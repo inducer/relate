@@ -10,7 +10,8 @@ admin.site.register(Course, CourseAdmin)
 
 
 class ParticipationAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["user", "course", "role", "status", "enroll_time"]
+    list_filter = ["course", "role", "status"]
 
 admin.site.register(Participation, ParticipationAdmin)
 

@@ -20,6 +20,28 @@
 {% endblock %}
 
 {% block content %}
+  {% if role == participation_role.instructor %}
+    <div class="well">
+      <a class="btn btn-lg btn-primary" href="{% url "course.views.update_course" course.identifier %}" 
+        role="button">Update content &raquo;</a>
+    </div>
+  {% endif %}
+
+  {% if not user.is_authenticated %}
+    <div class="well">
+      <p>You're not currently signed in.</p>
+      <a class="btn btn-lg btn-primary" href="{% url "course.views.sign_in" course.identifier %}"
+        role="button">Sign in &raquo;</a>
+    </div>
+  {% endif %}
+
+  {% if role == participation_role.unenrolled %}
+    <div class="well">
+      <a class="btn btn-lg btn-primary" href="{% url "course.views.update_course" course.identifier %}" 
+        role="button">Update content &raquo;</a>
+    </div>
+  {% endif %}
+
   {% for module in course_desc.modules %}
   <a name="{{module.id}}"></a>
     {{module.html_content|safe}}

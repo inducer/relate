@@ -6,7 +6,7 @@ import django.forms as forms
 
 from course.models import (
         Course, Participation,
-        role, participation_status)
+        participation_role, participation_status)
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -17,24 +17,21 @@ from crispy_forms.layout import Submit
 import re
 import datetime 
 
-def get_course_file(request, course, full_name):
+def get_course_file(request, course, full_name, commit_sha=None):
     from os.path import join
 
     from gittle import Gittle
     repo = Gittle(join(settings.GIT_ROOT, course.identifier))
 
-    active_sha = course.active_git_commit_sha.encode()
-    head_sha = repo._commit_sha("HEAD")
+    if commit_sha is None:
+        commit_sha = course.active_git_commit_sha
 
-    if active_sha != head_sha:
-        # FIXME: only instructors should see this
-        messages.add_message(request, messages.WARNING,
-                "A new revision (%s) of the course data is available "
-                "in the git repository." % head_sha)
+    if isinstance(commit_sha, unicode):
+        commit_sha = commit_sha.encode()
 
     names = full_name.split("/")
 
-    tree_sha = repo[active_sha].tree
+    tree_sha = repo[commit_sha].tree
     tree = repo[tree_sha]
 
     try:
@@ -159,11 +156,11 @@ def get_role_and_participation(request, course):
                 "Multiple enrollments found. Please contact the course staff.")
 
     if len(participations) == 0:
-        return role.unenrolled, None
+        return participation_role.unenrolled, None
 
     participation = participations[0]
     if participation.status != participation_status.active:
-        return role.unenrolled, participation
+        return participation_role.unenrolled, participation
     else:
         return participation.role, participation
 
@@ -191,7 +188,7 @@ def get_course_desc(request, course):
     return course_desc
 
 
-def get_flow(request, course, flow_id):
+def get_flow(request, course, flow_id, commit_sha):
     from yaml import load
     flow = dict_to_struct(load(get_course_file(request, course,
         "flows/%s.yml" % flow_id)))
@@ -230,6 +227,9 @@ def get_flow_access(course_desc, role, flow, flow_visit):
     return AccessResult("deny", 100)
 
 
+def find_flow_visit(role, participation):
+    return None
+
 # {{{ views
 
 def course_page(request, course_identifier):
@@ -244,6 +244,8 @@ def course_page(request, course_identifier):
         "ick": repr(course_desc),
         "course_desc": course_desc,
         "participation": participation,
+        "role": role,
+        "participation_role": participation_role,
         })
 
 
@@ -271,8 +273,7 @@ def start_flow(request, course_identifier, flow_identifier):
 
     course_desc = get_course_desc(request, course)
 
-    flow = get_flow(request, course, flow_identifier,
-        if fvisit else course.active_git_commit_sha)
+    flow = get_flow(request, course, flow_identifier, active_git_commit_sha)
 
     access = get_flow_access(course_desc, role, flow, None)
 
@@ -288,7 +289,6 @@ def start_flow(request, course_identifier, flow_identifier):
             fvisit = FlowVisit()
             fvisit.participation = participation
             fvisit.active_git_commit_sha = course.active_git_commit_sha
-            fvisit.
 
 
 
@@ -309,6 +309,16 @@ def view_flow_page(request, course_identifier, flow_identifier, page_identifier)
         "course_desc": course_desc,
         #"flow_desc": flow_desc,
         })
+
+
+def update_course(request, course_identifier):
+    #head_sha = repo._commit_sha("HEAD")
+
+    #if commit_sha != head_sha:
+    # FIXME: only instructors should see this
+    messages.add_message(request, messages.WARNING,
+            "A new revision (%s) of the course data is available "
+            "in the git repository." % head_sha)
 
 # }}}
 

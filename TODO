@@ -1,8 +1,8 @@
-- git cron update script
+- git pull/validate
 - student enrollment/approval
-- home page rendering
 - flow
 - introduce migrations
+- model docs
 
 Ideas:
 
@@ -12,8 +12,6 @@ Ideas:
 - Instant flow results
 - For-credit availability
 - Minimum visit times
-- Quizzes are flows
-- Git push, then visit validation page
 - Live chat via candy?
 - Leave feedback
 - extra time?

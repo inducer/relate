@@ -10,6 +10,10 @@ urlpatterns = patterns('',
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/$",
         "course.views.course_page",),
+    (r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/update/$",
+        "course.views.update_course",),
      (r"^course"
          "/(?P<course_identifier>[-a-zA-Z0-9]+)"
          "/flow"

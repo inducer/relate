@@ -1,5 +1,8 @@
-Django>=1.6.99
+# Django>=1.7 once released
+https://www.djangoproject.com/download/1.7.b4/tarball/
+
 django-crispy-forms>=1.4.0
+
 markdown
 sympy
 pytz
