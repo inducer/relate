@@ -1,5 +1,8 @@
 Django>=1.6.99
 django-crispy-forms>=1.4.0
-docutils>=0.11
+markdown
 sympy
 pytz
+https://github.com/FriendCode/mimer/archive/master.tar.gz
+gittle>=0.3.0
+pyyaml

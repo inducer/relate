@@ -2,6 +2,7 @@
 - student enrollment/approval
 - home page rendering
 - flow
+- introduce migrations
 
 Ideas:
 
@@ -15,3 +16,4 @@ Ideas:
 - Git push, then visit validation page
 - Live chat via candy?
 - Leave feedback
+- extra time?

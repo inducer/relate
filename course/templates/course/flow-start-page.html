@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block brand %}
+  {{ course_desc.number}}:
+  {{ course_desc.name}}
+  {{ course_desc.run}}
+{% endblock %}
+{% block brand_link %}
+  {% url 'course.views.course_page' course.identifier %}
+{% endblock %}
+
+{% block navbar %}
+{% endblock %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h1>{{flow.title}}</h1>
+
+  {% if flow.description %}
+  {{flow.description_html|safe}}
+  {% endif %}
+
+  <div class="well">
+    {% crispy form %}
+  </div>
+{% endblock %}
+
+

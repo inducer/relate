@@ -1,6 +1,7 @@
 /static
 *~
 .*.swp
+.sw[ophijklm]
 local_settings.py
 *.sqlite3
 *.py[co]

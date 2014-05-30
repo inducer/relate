@@ -1,6 +1,6 @@
 from django.contrib import admin
 from course.models import (Course, Participation, InstantFlowRequest,
-        FlowVisit, FlowGroupVisit, FlowPage)
+        FlowVisit, FlowPageVisit)
 
 
 class CourseAdmin(admin.ModelAdmin):
@@ -21,7 +21,7 @@ class InstantFlowRequestAdmin(admin.ModelAdmin):
 admin.site.register(InstantFlowRequest, InstantFlowRequestAdmin)
 
 
-class FlowGroupVisitAdmin(admin.ModelAdmin):
+class FlowVisitAdmin(admin.ModelAdmin):
     pass
 
-admin.site.register(FlowGroupVisit, FlowGroupVisitAdmin)
+admin.site.register(FlowVisit, FlowVisitAdmin)
