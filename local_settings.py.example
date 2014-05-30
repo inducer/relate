@@ -1,0 +1,18 @@
+SECRET_KEY = '<CHANGE ME>'
+
+ALLOWED_HOSTS = [
+        "expensely.example.com",
+        ]
+
+DATABASES = {
+    'default': {
+        'ENGINE':'django.db.backends.postgresql_psycopg2',
+        'NAME': 'expensely',
+        'USER': 'expensely',
+        'PASSWORD': '<PASSWORD>',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    }
+}
+
+DEBUG = False

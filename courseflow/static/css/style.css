@@ -1,0 +1,28 @@
+body {
+  min-height: 2000px;
+  padding-top: 70px;
+}
+
+.account-list tr td {
+  padding-left: 0.6em;
+  padding-bottom: 0.3ex;
+  padding-right: 0.6em;
+  border:1px;
+}
+.account-list tr th {
+  padding-left: 0.6em;
+  padding-bottom: 0.3ex;
+  padding-right: 0.6em;
+  border:1px;
+
+  font-weight: bold;
+  background-color: #ddd;
+}
+
+tr.evenrow {
+  background-color: #eee;
+}
+
+td.amount {
+  text-align:right;
+}

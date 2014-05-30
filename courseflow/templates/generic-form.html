@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  {% if form_description %}
+    <h2>{{ form_description }}</h2>
+  {% endif %}
+  <div class="well">
+    {% crispy form %}
+  </div>
+{% endblock %}
