@@ -13,6 +13,7 @@ USER_STATUS_CHOICES = (
         (user_status.active, "Active"),
         )
 
+
 class UserStatus(models.Model):
     user = models.OneToOneField(User)
     status = models.CharField(max_length=50,
@@ -43,7 +44,6 @@ class Course(models.Model):
 
     def get_absolute_url(self):
         return reverse("course.views.course_page", args=(self.identifier,))
-
 
 
 class participation_role:

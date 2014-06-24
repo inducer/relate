@@ -1,4 +1,5 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import (  # noqa
+        render, get_object_or_404, redirect)
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -15,7 +16,8 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
 import re
-import datetime 
+import datetime
+
 
 def get_course_file(request, course, full_name, commit_sha=None):
     from os.path import join
@@ -46,6 +48,7 @@ def get_course_file(request, course, full_name, commit_sha=None):
         # TODO: Proper 404
         raise RuntimeError("resource '%s' not found" % full_name)
 
+
 # {{{ tools
 
 class Struct:
@@ -56,6 +59,7 @@ class Struct:
     def __repr__(self):
         return repr(self.__dict__)
 
+
 def dict_to_struct(data):
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
@@ -65,6 +69,7 @@ def dict_to_struct(data):
         return data
 
 # }}}
+
 
 # {{{ formatting
 
@@ -83,6 +88,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         for child in root:
             self.run(child)
 
+
 class LinkFixerExtension(Extension):
     def __init__(self, course):
         self.course = course
@@ -91,6 +97,7 @@ class LinkFixerExtension(Extension):
     def extendMarkdown(self, md, md_globals):
         md.treeprocessors["courseflow_link_fixer"] = \
                 LinkFixerTreeprocessor(self.course)
+
 
 def html_body(course, text):
     import markdown
@@ -104,18 +111,25 @@ def html_body(course, text):
 DATE_RE_MATCH = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
 WEEK_RE_MATCH = re.compile(r"^(start|end)\s+week\s+([0-9]+)$")
 
+
 def parse_absolute_date_spec(date_spec):
     match = DATE_RE_MATCH.match(date_spec)
     if not match:
         raise ValueError("invalid absolute datespec: %s" % date_spec)
 
-    return datetime.date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    return datetime.date(
+            int(match.group(1)),
+            int(match.group(2)),
+            int(match.group(3)))
 
 
 def parse_date_spec(course_desc, date_spec):
     match = DATE_RE_MATCH.match(date_spec)
     if match:
-        return datetime.date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        return datetime.date(
+                int(match.group(1)),
+                int(match.group(2)),
+                int(match.group(3)))
 
     match = WEEK_RE_MATCH.match(date_spec)
     if match:
@@ -123,7 +137,8 @@ def parse_date_spec(course_desc, date_spec):
         if match.group(1) == "start":
             return course_desc.first_course_week_start + datetime.timedelta(days=n*7)
         elif match.group(1) == "end":
-            return course_desc.first_course_week_start + datetime.timedelta(days=n*7+6)
+            return (course_desc.first_course_week_start
+                    + datetime.timedelta(days=n*7+6))
         else:
             raise ValueError("invalid datespec: %s" % date_spec)
 
@@ -167,7 +182,8 @@ def get_role_and_participation(request, course):
 
 def get_course_desc(request, course):
     from yaml import load
-    course_desc = dict_to_struct(load(get_course_file(request, course, "course.yml")))
+    course_desc = dict_to_struct(
+            load(get_course_file(request, course, "course.yml")))
 
     assert isinstance(course_desc.course_start, datetime.date)
     assert isinstance(course_desc.course_end, datetime.date)
@@ -204,6 +220,7 @@ class AccessResult:
 
         assert what in ["allow", "view", "deny"]
 
+
 def get_flow_access(course_desc, role, flow, flow_visit):
     if flow_visit is not None:
         now = flow_visit.start_time.date()
@@ -230,7 +247,21 @@ def get_flow_access(course_desc, role, flow, flow_visit):
 def find_flow_visit(role, participation):
     return None
 
+
 # {{{ views
+
+def home(request):
+    courses_and_descs = []
+    for course in Course.objects.all():
+        courses_and_descs.append(
+                (course, get_course_desc(request, course)))
+
+    courses_and_descs.sort(key=lambda (course, desc): desc.course_start)
+
+    return render(request, "course/home.html", {
+        "courses_and_descs": courses_and_descs
+        })
+
 
 def course_page(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
@@ -280,8 +311,11 @@ def start_flow(request, course_identifier, flow_identifier):
     if access.what == "deny":
         messages.add_message(request, messages.WARNING,
                 "Access denied")
-        return render(request, "course/blank.html", 
-                {"course": course, "course_desc": course_desc,},
+        return render(request, "course/blank.html",
+                {
+                    "course": course,
+                    "course_desc": course_desc,
+                    },
                 status=403)
 
     if request.method == "POST":
@@ -289,8 +323,6 @@ def start_flow(request, course_identifier, flow_identifier):
             fvisit = FlowVisit()
             fvisit.participation = participation
             fvisit.active_git_commit_sha = course.active_git_commit_sha
-
-
 
     return render(request, "course/flow-start-page.html", {
         "course": course,

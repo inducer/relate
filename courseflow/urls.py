@@ -6,22 +6,23 @@ urlpatterns = patterns('',
     # url(r'^$', 'courseflow.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
 
-    (r"^course"
+    url(r'^$', 'course.views.home', name='home'),
+    url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/$",
         "course.views.course_page",),
-    (r"^course"
+    url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/update/$",
         "course.views.update_course",),
-     (r"^course"
+    url(r"^course"
          "/(?P<course_identifier>[-a-zA-Z0-9]+)"
          "/flow"
          "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
          "/start"
          "/$",
          "course.views.start_flow",),
-    (r"^course"
+    url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow"
         "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
