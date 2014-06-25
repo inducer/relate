@@ -1,14 +1,6 @@
-{% extends "base.html" %}
+{% extends "course/course-base.html" %}
 
-{% block brand %}
-  {{ course_desc.number}}:
-  {{ course_desc.name}}
-  {{ course_desc.run}}
-{% endblock %}
-{% block brand_link %}
-{% endblock %}
-
-{% block navbar %}
+{% block page_navbar %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Content<b class="caret"></b></a>
     <ul class="dropdown-menu">
@@ -20,13 +12,6 @@
 {% endblock %}
 
 {% block content %}
-  {% if role == participation_role.instructor %}
-    <div class="well">
-      <a class="btn btn-lg btn-primary" href="{% url "course.views.update_course" course.identifier %}" 
-        role="button">Update content &raquo;</a>
-    </div>
-  {% endif %}
-
   {% if not user.is_authenticated %}
     <div class="well">
       <p>You're not currently signed in.</p>
@@ -37,8 +22,8 @@
 
   {% if role == participation_role.unenrolled %}
     <div class="well">
-      <a class="btn btn-lg btn-primary" href="{% url "course.views.update_course" course.identifier %}" 
-        role="button">Update content &raquo;</a>
+      <a class="btn btn-lg btn-primary" href="{% url "course.views.enroll" course.identifier %}"
+        role="button">Enroll &raquo;</a>
     </div>
   {% endif %}
 
@@ -47,4 +32,3 @@
     {{module.html_content|safe}}
   {% endfor %}
 {% endblock %}
-

@@ -13,6 +13,10 @@ urlpatterns = patterns('',
         "course.views.course_page",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/pull/$",
+        "course.views.pull_course_updates",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/update/$",
         "course.views.update_course",),
     url(r"^course"

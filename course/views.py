@@ -1,165 +1,20 @@
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
-from django.conf import settings
 from django.contrib import messages
-from django.core.urlresolvers import reverse
 import django.forms as forms
+
+import datetime
 
 from course.models import (
         Course, Participation,
         participation_role, participation_status)
-
-from markdown.extensions import Extension
-from markdown.treeprocessors import Treeprocessor
+from course.content import (
+        get_git_repo, get_course_desc, parse_date_spec,
+        get_flow
+        )
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
-
-import re
-import datetime
-
-
-def get_course_file(request, course, full_name, commit_sha=None):
-    from os.path import join
-
-    from gittle import Gittle
-    repo = Gittle(join(settings.GIT_ROOT, course.identifier))
-
-    if commit_sha is None:
-        commit_sha = course.active_git_commit_sha
-
-    if isinstance(commit_sha, unicode):
-        commit_sha = commit_sha.encode()
-
-    names = full_name.split("/")
-
-    tree_sha = repo[commit_sha].tree
-    tree = repo[tree_sha]
-
-    try:
-        for name in names[:-1]:
-            mode, blob_sha = tree[name.encode()]
-            assert mode == repo.MODE_DIRECTORY
-            tree = repo[blob_sha]
-
-        mode, blob_sha = tree[names[-1].encode()]
-        return repo[blob_sha].data
-    except KeyError:
-        # TODO: Proper 404
-        raise RuntimeError("resource '%s' not found" % full_name)
-
-
-# {{{ tools
-
-class Struct:
-    def __init__(self, entries):
-        for name, val in entries.iteritems():
-            self.__dict__[name] = dict_to_struct(val)
-
-    def __repr__(self):
-        return repr(self.__dict__)
-
-
-def dict_to_struct(data):
-    if isinstance(data, list):
-        return [dict_to_struct(d) for d in data]
-    elif isinstance(data, dict):
-        return Struct(data)
-    else:
-        return data
-
-# }}}
-
-
-# {{{ formatting
-
-class LinkFixerTreeprocessor(Treeprocessor):
-    def __init__(self, course):
-        Treeprocessor.__init__(self)
-        self.course = course
-
-    def run(self, root):
-        if root.tag == "a" and root.attrib["href"].startswith("flow:"):
-            flow_id = root.attrib["href"][5:]
-            root.set("href",
-                    reverse("course.views.start_flow",
-                        args=(self.course.identifier, flow_id)))
-
-        for child in root:
-            self.run(child)
-
-
-class LinkFixerExtension(Extension):
-    def __init__(self, course):
-        self.course = course
-        Extension.__init__(self)
-
-    def extendMarkdown(self, md, md_globals):
-        md.treeprocessors["courseflow_link_fixer"] = \
-                LinkFixerTreeprocessor(self.course)
-
-
-def html_body(course, text):
-    import markdown
-    return markdown.markdown(text,
-        extensions=[
-            LinkFixerExtension(course)
-            ])
-
-# }}}
-
-DATE_RE_MATCH = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
-WEEK_RE_MATCH = re.compile(r"^(start|end)\s+week\s+([0-9]+)$")
-
-
-def parse_absolute_date_spec(date_spec):
-    match = DATE_RE_MATCH.match(date_spec)
-    if not match:
-        raise ValueError("invalid absolute datespec: %s" % date_spec)
-
-    return datetime.date(
-            int(match.group(1)),
-            int(match.group(2)),
-            int(match.group(3)))
-
-
-def parse_date_spec(course_desc, date_spec):
-    match = DATE_RE_MATCH.match(date_spec)
-    if match:
-        return datetime.date(
-                int(match.group(1)),
-                int(match.group(2)),
-                int(match.group(3)))
-
-    match = WEEK_RE_MATCH.match(date_spec)
-    if match:
-        n = int(match.group(2)) - 1
-        if match.group(1) == "start":
-            return course_desc.first_course_week_start + datetime.timedelta(days=n*7)
-        elif match.group(1) == "end":
-            return (course_desc.first_course_week_start
-                    + datetime.timedelta(days=n*7+6))
-        else:
-            raise ValueError("invalid datespec: %s" % date_spec)
-
-    raise ValueError("invalid datespec: %s" % date_spec)
-
-
-def compute_module_weight(course_desc, module):
-    now = datetime.datetime.now().date()
-
-    for wspec in module.weight:
-        if hasattr(wspec, "start"):
-            start_date = parse_date_spec(course_desc, wspec.start)
-            if now < start_date:
-                continue
-        if hasattr(wspec, "end"):
-            end_date = parse_date_spec(course_desc, wspec.end)
-            if end_date < now:
-                continue
-        return wspec.value
-
-    return 0
 
 
 def get_role_and_participation(request, course):
@@ -178,39 +33,6 @@ def get_role_and_participation(request, course):
         return participation_role.unenrolled, participation
     else:
         return participation.role, participation
-
-
-def get_course_desc(request, course):
-    from yaml import load
-    course_desc = dict_to_struct(
-            load(get_course_file(request, course, "course.yml")))
-
-    assert isinstance(course_desc.course_start, datetime.date)
-    assert isinstance(course_desc.course_end, datetime.date)
-
-    # a Monday
-    course_desc.first_course_week_start = \
-            course_desc.course_start - datetime.timedelta(
-                    days=course_desc.course_start.weekday())
-
-    for module in course_desc.modules:
-        module.weight = compute_module_weight(course_desc, module)
-        module.html_content = html_body(course, module.content)
-
-    course_desc.modules.sort(key=lambda module: module.weight)
-
-    course_desc.modules = [mod for mod in course_desc.modules if mod.weight >= 0]
-
-    return course_desc
-
-
-def get_flow(request, course, flow_id, commit_sha):
-    from yaml import load
-    flow = dict_to_struct(load(get_course_file(request, course,
-        "flows/%s.yml" % flow_id)))
-
-    flow.description_html = html_body(course, getattr(flow, "description", None))
-    return flow
 
 
 class AccessResult:
@@ -272,7 +94,6 @@ def course_page(request, course_identifier):
 
     return render(request, "course/course-page.html", {
         "course": course,
-        "ick": repr(course_desc),
         "course_desc": course_desc,
         "participation": participation,
         "role": role,
@@ -343,14 +164,114 @@ def view_flow_page(request, course_identifier, flow_identifier, page_identifier)
         })
 
 
-def update_course(request, course_identifier):
-    #head_sha = repo._commit_sha("HEAD")
+# {{{ git interaction
 
-    #if commit_sha != head_sha:
-    # FIXME: only instructors should see this
-    messages.add_message(request, messages.WARNING,
-            "A new revision (%s) of the course data is available "
-            "in the git repository." % head_sha)
+def pull_course_updates(request, course_identifier):
+    import sys
+
+    course = get_object_or_404(Course, identifier=course_identifier)
+    course_desc = get_course_desc(request, course)
+
+    was_successful = True
+    log_lines = []
+    try:
+        repo = get_git_repo(course)
+
+        if not course.git_source:
+            raise RuntimeError("no git source URL specified")
+
+        if course.ssh_private_key:
+            repo.auth(pkey=course.ssh_private_key.encode("ascii"))
+
+        log_lines.append("Pre-pull head is at '%s'" % repo.head)
+        repo.pull(course.git_source.encode("utf-8"))
+        log_lines.append("Post-pull head is at '%s'" % repo.head)
+
+    except Exception:
+        was_successful = False
+        from traceback import format_exception
+        log = "\n".join(log_lines) + "".join(
+                format_exception(*sys.exc_info()))
+    else:
+        log = "\n".join(log_lines)
+
+    return render(request, 'course/course-bulk-result.html', {
+        "process_description": "Pull course updates via git",
+        "log": log,
+        "status": "Pull successful."
+            if was_successful
+            else "Pull failed. See above for error.",
+        "was_successful": was_successful,
+        "course": course,
+        "course_desc": course_desc,
+        })
+
+
+class GitUpdateForm(forms.Form):
+    new_sha = forms.CharField(required=True, initial=50)
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(
+                Submit("submit", "Validate and update", css_class="col-lg-offset-2"))
+        super(GitUpdateForm, self).__init__(*args, **kwargs)
+
+
+def update_course(request, course_identifier):
+    course = get_object_or_404(Course, identifier=course_identifier)
+    course_desc = get_course_desc(request, course)
+
+    repo = get_git_repo(course)
+
+    if request.method == "POST":
+        form = GitUpdateForm(request.POST, request.FILES)
+        if form.is_valid():
+            new_sha = form.cleaned_data["new_sha"].encode("utf-8")
+
+            from course.content import validate_course_content
+            try:
+                validate_course_content(course, new_sha)
+            except Exception, e:
+                messages.add_message(request, messages.ERROR,
+                        "Course content did not validate successfully. (%s) "
+                        "Update not applied."
+                        % str(e))
+            else:
+                messages.add_message(request, messages.INFO,
+                        "Course content validated successfully. Update applied.")
+                course.active_git_commit_sha = new_sha
+                course.save()
+    else:
+        form = GitUpdateForm({
+            "new_sha": repo.head
+            })
+
+    text_lines = [
+            "<b>Active git SHA:</b> %s (%s)" % (
+                course.active_git_commit_sha,
+                repo[course.active_git_commit_sha.encode("utf-8")].message),
+            "<b>Current git HEAD:</b> %s (%s)" % (
+                repo.head,
+                repo[repo.head].message,
+            )
+            ]
+
+    return render(request, "course/generic-course-form.html", {
+        "form": form,
+        "form_text": "".join(
+            "<p>%s</p>" % line
+            for line in text_lines
+            ),
+        "form_description": "Update Course Revision",
+        "course": course,
+        "course_desc": course_desc,
+    })
+
+# }}}
 
 # }}}
 

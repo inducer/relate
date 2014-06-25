@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+  <h1>Welcome to CourseFlow!</h1>
+
+  The following courses are hosted on this instance of CourseFlow:
+  <ul>
+    {% for course, desc in courses_and_descs %}
+      <li>
+      <a href="{% url 'course.views.course_page' course.identifier %}">
+        {{desc.number}} {{desc.run}}</a>: {{desc.name}}
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}
+
+

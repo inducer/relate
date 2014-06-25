@@ -3,15 +3,12 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <h1>{{flow.title}}</h1>
-
-  {% if flow.description %}
-  {{flow.description_html|safe}}
+  {% if form_description %}
+    <h2>{{ form_description }}</h2>
   {% endif %}
-
+  {{ form_text|safe }}
   <div class="well">
     {% crispy form %}
   </div>
 {% endblock %}
-
 
