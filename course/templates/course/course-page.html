@@ -4,8 +4,8 @@
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Content<b class="caret"></b></a>
     <ul class="dropdown-menu">
-    {% for module in course_desc.modules %}
-      <li><a href="#{{module.id}}">{{module.title}}</a></li>
+    {% for chunk in course_desc.chunks %}
+      <li><a href="#{{chunk.id}}">{{chunk.title}}</a></li>
     {% endfor %}
     </ul>
   </li>
@@ -27,8 +27,8 @@
     </div>
   {% endif %}
 
-  {% for module in course_desc.modules %}
-  <a name="{{module.id}}"></a>
-    {{module.html_content|safe}}
+  {% for chunk in course_desc.chunks %}
+  <a name="{{chunk.id}}"></a>
+    {{chunk.html_content|safe}}
   {% endfor %}
 {% endblock %}

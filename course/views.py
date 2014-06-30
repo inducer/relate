@@ -67,7 +67,11 @@ def get_flow_access(course_desc, role, flow, flow_visit):
 
 
 def find_flow_visit(role, participation):
-    return None
+    visits = (FlowVisit.objects
+            .filter(participation=participation)
+            .order_by("-start_time"))
+
+
 
 
 # {{{ views
@@ -76,7 +80,7 @@ def home(request):
     courses_and_descs = []
     for course in Course.objects.all():
         courses_and_descs.append(
-                (course, get_course_desc(request, course)))
+                (course, get_course_desc(course)))
 
     courses_and_descs.sort(key=lambda (course, desc): desc.course_start)
 
@@ -88,7 +92,7 @@ def home(request):
 def course_page(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
 
-    course_desc = get_course_desc(request, course)
+    course_desc = get_course_desc(course)
 
     role, participation = get_role_and_participation(request, course)
 
@@ -123,16 +127,16 @@ def start_flow(request, course_identifier, flow_identifier):
     else:
         active_git_commit_sha = course.active_git_commit_sha
 
-    course_desc = get_course_desc(request, course)
+    course_desc = get_course_desc(course)
 
-    flow = get_flow(request, course, flow_identifier, active_git_commit_sha)
+    flow = get_flow(course, flow_identifier, active_git_commit_sha)
 
     access = get_flow_access(course_desc, role, flow, None)
 
     if access.what == "deny":
         messages.add_message(request, messages.WARNING,
                 "Access denied")
-        return render(request, "course/blank.html",
+        return render(request, "course/course-base.html",
                 {
                     "course": course,
                     "course_desc": course_desc,
@@ -155,7 +159,7 @@ def start_flow(request, course_identifier, flow_identifier):
 
 def view_flow_page(request, course_identifier, flow_identifier, page_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
-    course_desc = get_course_desc(request, course)
+    course_desc = get_course_desc(course)
 
     return render(request, "course/flow-page.html", {
         "course": course,
@@ -170,7 +174,7 @@ def pull_course_updates(request, course_identifier):
     import sys
 
     course = get_object_or_404(Course, identifier=course_identifier)
-    course_desc = get_course_desc(request, course)
+    course_desc = get_course_desc(course)
 
     was_successful = True
     log_lines = []
@@ -223,7 +227,7 @@ class GitUpdateForm(forms.Form):
 
 def update_course(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
-    course_desc = get_course_desc(request, course)
+    course_desc = get_course_desc(course)
 
     repo = get_git_repo(course)
 
