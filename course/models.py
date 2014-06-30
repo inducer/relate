@@ -33,6 +33,8 @@ class Course(models.Model):
             help_text="An SSH private key to use for Git authentication")
     xmpp_id = models.CharField(max_length=200, blank=True,
             help_text="An XMPP ID")
+    xmpp_password = models.CharField(max_length=200, blank=True,
+            help_text="An XMPP ID")
     active_git_commit_sha = models.CharField(max_length=200, null=True,
             blank=True)
 
