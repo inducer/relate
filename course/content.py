@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 
 # {{{ tools
 
-class Struct:
+class Struct(object):
     def __init__(self, entries):
         for name, val in entries.iteritems():
             self.__dict__[name] = dict_to_struct(val)
@@ -76,15 +76,7 @@ def get_git_repo(course):
     return Gittle(join(settings.GIT_ROOT, course.identifier))
 
 
-def get_course_file(course, full_name, commit_sha=None):
-    repo = get_git_repo(course)
-
-    if commit_sha is None:
-        commit_sha = course.active_git_commit_sha
-
-    if isinstance(commit_sha, unicode):
-        commit_sha = commit_sha.encode()
-
+def get_repo_blob(repo, full_name, commit_sha=None):
     names = full_name.split("/")
 
     tree_sha = repo[commit_sha].tree
@@ -97,10 +89,19 @@ def get_course_file(course, full_name, commit_sha=None):
             tree = repo[blob_sha]
 
         mode, blob_sha = tree[names[-1].encode()]
-        return repo[blob_sha].data
+        return repo[blob_sha]
     except KeyError:
         # TODO: Proper 404
         raise RuntimeError("resource '%s' not found" % full_name)
+
+
+def get_course_file(course, full_name, commit_sha=None):
+    repo = get_git_repo(course)
+
+    if commit_sha is None:
+        commit_sha = course.active_git_commit_sha.encode("us-ascii")
+
+    return get_repo_blob(repo, full_name, commit_sha).data
 
 
 def get_course_file_yaml(course, full_name, commit_sha=None):
@@ -146,21 +147,33 @@ def parse_date_spec(course_desc, date_spec):
     raise ValueError("invalid datespec: %s" % date_spec)
 
 
-def compute_chunk_weight(course_desc, chunk):
+def compute_chunk_weight_and_shown(course_desc, chunk, role):
     now = datetime.datetime.now().date()
 
-    for wspec in chunk.weight:
-        if hasattr(wspec, "start"):
-            start_date = parse_date_spec(course_desc, wspec.start)
+    for rule in chunk.rules:
+        if hasattr(rule, "role"):
+            if role != rule.role:
+                continue
+        if hasattr(rule, "start"):
+            start_date = parse_date_spec(course_desc, rule.start)
             if now < start_date:
                 continue
-        if hasattr(wspec, "end"):
-            end_date = parse_date_spec(course_desc, wspec.end)
+        if hasattr(rule, "end"):
+            end_date = parse_date_spec(course_desc, rule.end)
             if end_date < now:
                 continue
-        return wspec.value
+
+        shown = True
+        if hasattr(rule, "shown"):
+            shown = rule.shown
+
+        return rule.weight, shown
 
     return 0
+
+
+class NoCourseContent(RuntimeError):
+    pass
 
 
 def get_course_desc(course):
@@ -174,15 +187,20 @@ def get_course_desc(course):
             course_desc.course_start - datetime.timedelta(
                     days=course_desc.course_start.weekday())
 
+    return course_desc
+
+
+def get_processed_course_chunks(course, course_desc, role):
     for chunk in course_desc.chunks:
-        chunk.weight = compute_chunk_weight(course_desc, chunk)
+        chunk.weight, chunk.shown = \
+                compute_chunk_weight_and_shown(
+                        course_desc, chunk, role)
         chunk.html_content = html_body(course, chunk.content)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight)
 
-    course_desc.chunks = [mod for mod in course_desc.chunks if mod.weight >= 0]
-
-    return course_desc
+    return [mod for mod in course_desc.chunks
+            if chunk.shown]
 
 
 def get_flow(course, flow_id, commit_sha):
@@ -198,7 +216,7 @@ class ValidationError(RuntimeError):
     pass
 
 
-def validate_struct(obj, required_attrs, allowed_attrs):
+def validate_struct(location, obj, required_attrs, allowed_attrs):
     """
     :arg required_attrs: an attribute validation list (see below)
     :arg allowed_attrs: an attribute validation list (see below)
@@ -209,50 +227,79 @@ def validate_struct(obj, required_attrs, allowed_attrs):
     as a second argument to :func:`isinstance`.
     """
 
-    attrs = set(name for name in dir(obj) if not name.startswith("_"))
+    present_attrs = set(name for name in dir(obj) if not name.startswith("_"))
 
     for required, attr_list in [
             (True, required_attrs),
             (False, allowed_attrs),
             ]:
-        for attr_rec in required_attrs:
+        for attr_rec in attr_list:
             if isinstance(attr_rec, tuple):
                 attr, allowed_types = attr_rec
             else:
                 attr = attr_rec
                 allowed_types = None
 
-            if required and attr not in attrs:
-                raise ValidationError("attribute '%s' missing on '%s' instance"
-                        % (attr, type(obj).__name__))
+            if attr not in present_attrs:
+                if required:
+                    raise ValidationError("%s: attribute '%s' missing"
+                            % (location, attr))
+            else:
+                present_attrs.remove(attr)
+                val = getattr(obj, attr)
 
-            attrs.pop(attr)
-            val = getattr(obj, attr)
+                if allowed_types is str:
+                    allowed_types = (str, unicode)
 
-            if allowed_types is str:
-                allowed_types = (str, unicode)
+                if not isinstance(val, allowed_types):
+                    raise ValidationError("%s: attribute '%s' has "
+                            "wrong type: got '%s', expected '%s'"
+                            % (location, attr, type(val).__name__,
+                            allowed_types))
 
-            if not isinstance(val, allowed_types):
-                raise ValidationError("attribute '%s' on '%s' instance has "
-                        "wrong type: got '%s', expected '%s'"
-                        % (attr, type(obj).__name__), type(val).__name__,
-                        allowed_types)
-
-        if attrs:
-            raise ValidationError("extraneous attributes '%s' on '%s' instance"
-                    "wrong type: got '%s', expected '%s'"
-                    % (",".join(attrs), type(obj).__name__))
+    if present_attrs:
+        raise ValidationError("%s: extraneous attribute(s) '%s'"
+                % (location, ",".join(present_attrs)))
 
 
 datespec_types = (datetime.date, str, unicode)
 
 
+def validate_chunk_rule(chunk_rule):
+    validate_struct(
+            "chunk_rule",
+            chunk_rule,
+            required_attrs=[
+                ("weight", int),
+                ],
+            allowed_attrs=[
+                ("start", (str, datetime.date)),
+                ("end", (str, datetime.date)),
+                ("role", str),
+                ("shown", bool),
+            ])
+
+
 def validate_chunk(chunk):
-    pass
+    validate_struct(
+            "chunk",
+            chunk,
+            required_attrs=[
+                ("title", str),
+                ("id", str),
+                ("rules", list),
+                ("content", str),
+                ],
+            allowed_attrs=[]
+            )
+
+    for rule in chunk.rules:
+        validate_chunk_rule(rule)
 
 
 def validate_course_desc_struct(course_desc):
     validate_struct(
+            "course_desc",
             course_desc,
             required_attrs=[
                 ("name", str),
@@ -262,10 +309,123 @@ def validate_course_desc_struct(course_desc):
                 ("course_start", datetime.date),
                 ("course_end", datetime.date),
                 ("chunks", list),
-                ])
+                ],
+            allowed_attrs=[]
+            )
 
     for chunk in course_desc.chunks:
         validate_chunk(chunk)
+
+
+def validate_flow_page(location, page):
+    validate_struct(
+            location,
+            page,
+            required_attrs=[
+                ("type", str),
+                ("id", str),
+                ],
+            allowed_attrs=[
+                ("content", str),
+                ("prompt", str),
+                ("title", str),
+                ("answers", list),
+                ("choices", list),
+                ("value", (int, float)),
+                ]
+            )
+
+
+def validate_flow_group(location, grp):
+    validate_struct(
+            location,
+            grp,
+            required_attrs=[
+                ("id", str),
+                ("pages", list),
+                ],
+            allowed_attrs=[]
+            )
+
+    for i, page in enumerate(grp.pages):
+        validate_flow_page("%s, page %d" % (location, i+1), page)
+
+
+def validate_role(location, role):
+    from course.models import participation_role
+
+    if role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant,
+            participation_role.student,
+            participation_role.unenrolled,
+            ]:
+        raise ValidationError("%s: invalid role '%s'"
+                % (location, role))
+
+
+def validate_flow_access_rule(location, rule):
+    validate_struct(
+            location,
+            rule,
+            required_attrs=[
+                ("access", str),
+                ],
+            allowed_attrs=[
+                ("roles", list),
+                ("start", (datetime.date, str)),
+                ("end", (datetime.date, str)),
+                ("credit_percent", (int, float)),
+                ("time_limit", str),
+                ("allowed_visit_count", int),
+                ]
+            )
+
+    if rule.access not in ["allow", "deny", "credit", "review"]:
+        raise ValidationError("%s: invalid value for 'access'"
+                % location)
+
+    if hasattr(rule, "roles"):
+        for i, role in enumerate(rule.roles):
+            validate_role(
+                    "%s, role %d" % (location, i+1),
+                    role)
+
+    # TODO: validate time limit
+
+
+def validate_flow_desc(location, flow_desc):
+    validate_struct(
+            location,
+            flow_desc,
+            required_attrs=[
+                ("title", str),
+                ("description", str),
+                ("flow_groups", list),
+                ],
+            allowed_attrs=[
+                ("access_rules", list),
+                ]
+            )
+
+    if hasattr(flow_desc, "access_rules"):
+        for i, rule in enumerate(flow_desc.access_rules):
+            validate_flow_access_rule(
+                    "%s, access rule %d" % (location, i+1),
+                    rule)
+
+        last_rule = flow_desc.access_rules[-1]
+        if (
+                hasattr(last_rule, "roles")
+                or hasattr(last_rule, "start")
+                or hasattr(last_rule, "end")
+                ):
+            raise ValidationError("%s: last access rule must set default access "
+                    "(i.e. have no attributes other than 'access')"
+                    % location)
+
+    for i, grp in enumerate(flow_desc.flow_groups):
+        validate_flow_group("%s, group %d" % (location, i+1), grp)
 
 
 def validate_course_content(course, validate_sha):
@@ -274,4 +434,16 @@ def validate_course_content(course, validate_sha):
 
     validate_course_desc_struct(course_desc)
 
+    repo = get_git_repo(course)
+    flows_tree = get_repo_blob(repo, "flows", validate_sha)
+
+    for entry in flows_tree.items():
+        location = "flows/%s" % entry.path
+        flow_desc = get_course_file_yaml(course, location,
+                commit_sha=validate_sha)
+
+        validate_flow_desc(location, flow_desc)
+
 # }}}
+
+# vim: foldmethod=marker

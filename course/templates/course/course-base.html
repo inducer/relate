@@ -23,3 +23,14 @@
   {% endif %}
 
 {% endblock %}
+
+{% block version_advice %}
+  {% if participation.preview_git_commit_sha %}
+    <div class="alert alert-info">
+      You are currently using a preview of revision
+      '{{participation.preview_git_commit_sha}}'.
+      <a class="btn btn-sm btn-primary" href="{% url "course.views.update_course" course.identifier %}"
+        role="button">View revisions</a>
+    </div>
+  {% endif %}
+{% endblock %}

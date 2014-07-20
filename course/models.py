@@ -33,10 +33,9 @@ class Course(models.Model):
             help_text="An SSH private key to use for Git authentication")
     xmpp_id = models.CharField(max_length=200, blank=True,
             help_text="An XMPP ID")
-    xmpp_password = models.CharField(max_length=200, blank=True,
-            help_text="An XMPP ID")
-    active_git_commit_sha = models.CharField(max_length=200, null=True,
-            blank=True)
+    xmpp_password = models.CharField(max_length=200, blank=True)
+    active_git_commit_sha = models.CharField(max_length=200, null=False,
+            blank=False)
 
     participants = models.ManyToManyField(User,
             through='Participation')
@@ -52,7 +51,7 @@ class participation_role:
     instructor = "instructor"
     teaching_assistant = "ta"
     student = "student"
-    unenrolled = "student"
+    unenrolled = "unenrolled"
 
 
 PARTICIPATION_ROLE_CHOICES = (
@@ -91,6 +90,9 @@ class Participation(models.Model):
     time_factor = models.DecimalField(
             max_digits=10, decimal_places=2,
             default=1)
+
+    preview_git_commit_sha = models.CharField(max_length=200, null=True,
+            blank=True)
 
     def __unicode__(self):
         return "%s in %s as %s" % (

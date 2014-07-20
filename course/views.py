@@ -18,8 +18,14 @@ from crispy_forms.layout import Submit
 
 
 def get_role_and_participation(request, course):
+    # "wake up" lazy object
+    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
+    user = (request.user._wrapped
+            if hasattr(request.user, '_wrapped')
+            else request.user)
+
     participations = Participation.objects.filter(
-            user=request.user, course=course)
+            user=user, course=course)
 
     if len(participations) > 1:
         messages.add_message(request, messages.WARNING,
@@ -96,11 +102,16 @@ def course_page(request, course_identifier):
 
     role, participation = get_role_and_participation(request, course)
 
+    from course.content import get_processed_course_chunks
+    chunks = get_processed_course_chunks(course, course_desc,
+            role)
+
     return render(request, "course/course-page.html", {
         "course": course,
         "course_desc": course_desc,
         "participation": participation,
         "role": role,
+        "chunks": chunks,
         "participation_role": participation_role,
         })
 
@@ -168,6 +179,11 @@ def view_flow_page(request, course_identifier, flow_identifier, page_identifier)
         })
 
 
+def enroll(request, course_identifier):
+    # FIXME
+    raise NotImplementedError()
+
+
 # {{{ git interaction
 
 def pull_course_updates(request, course_identifier):
@@ -214,57 +230,105 @@ def pull_course_updates(request, course_identifier):
 class GitUpdateForm(forms.Form):
     new_sha = forms.CharField(required=True, initial=50)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, previewing, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
+        if previewing:
+            self.helper.add_input(
+                    Submit("end_preview", "End preview",
+                        css_class="col-lg-offset-2"))
+        else:
+            self.helper.add_input(
+                    Submit("preview", "Validate and preview",
+                        css_class="col-lg-offset-2"))
+
         self.helper.add_input(
-                Submit("submit", "Validate and update", css_class="col-lg-offset-2"))
+                Submit("update", "Validate and update"))
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
 
 def update_course(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     course_desc = get_course_desc(course)
+    role, participation = get_role_and_participation(request, course)
 
     repo = get_git_repo(course)
 
+    previewing = participation.preview_git_commit_sha is not None
+
+    response_form = None
     if request.method == "POST":
-        form = GitUpdateForm(request.POST, request.FILES)
-        if form.is_valid():
+        form = GitUpdateForm(previewing, request.POST, request.FILES)
+        if "end_preview" in form.data:
+            messages.add_message(request, messages.INFO,
+                    "Preview ended.")
+            participation.preview_git_commit_sha = None
+            participation.save()
+
+            previewing = False
+
+        elif form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode("utf-8")
 
             from course.content import validate_course_content
+            from course.content import ValidationError
             try:
                 validate_course_content(course, new_sha)
-            except Exception, e:
+            except ValidationError, e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "
                         "Update not applied."
                         % str(e))
+                validated = False
             else:
                 messages.add_message(request, messages.INFO,
-                        "Course content validated successfully. Update applied.")
+                        "Course content validated successfully.")
+                validated = True
+
+            if validated and "update" in form.data:
+                messages.add_message(request, messages.INFO,
+                        "Update applied.")
+
                 course.active_git_commit_sha = new_sha
                 course.save()
-    else:
-        form = GitUpdateForm({
-            "new_sha": repo.head
-            })
+
+                response_form = form
+
+            elif validated and "preview" in form.data:
+                messages.add_message(request, messages.INFO,
+                        "Preview activated.")
+
+                participation.preview_git_commit_sha = new_sha
+                participation.save()
+
+                previewing = True
+
+    if response_form is None:
+        form = GitUpdateForm(previewing,
+                {"new_sha": repo.head})
 
     text_lines = [
-            "<b>Active git SHA:</b> %s (%s)" % (
-                course.active_git_commit_sha,
-                repo[course.active_git_commit_sha.encode("utf-8")].message),
             "<b>Current git HEAD:</b> %s (%s)" % (
                 repo.head,
-                repo[repo.head].message,
-            )
+                repo[repo.head].message),
+            "<b>Public active git SHA:</b> %s (%s)" % (
+                course.active_git_commit_sha,
+                repo[course.active_git_commit_sha.encode()].message),
             ]
+    if participation.preview_git_commit_sha:
+        text_lines.append(
+            "<b>Current preview git SHA:</b> %s (%s)" % (
+                participation.preview_git_commit_sha,
+                repo[participation.preview_git_commit_sha.encode()].message,
+            ))
+    else:
+        text_lines.append("<b>Current preview git SHA:</b> None")
 
     return render(request, "course/generic-course-form.html", {
+        "participation": participation,
         "form": form,
         "form_text": "".join(
             "<p>%s</p>" % line
@@ -274,6 +338,7 @@ def update_course(request, course_identifier):
         "course": course,
         "course_desc": course_desc,
     })
+
 
 # }}}
 

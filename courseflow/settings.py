@@ -91,8 +91,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-SESSION_COOKIE_NAME = 'expensely_sessionid'
-SESSION_COOKIE_AGE = 12096000 # 20 weeks
+SESSION_COOKIE_NAME = 'courseflow_sessionid'
+SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 for name, val in local_settings.iteritems():
     if not name.startswith("_"):
