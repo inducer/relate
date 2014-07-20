@@ -216,6 +216,15 @@ class ValidationError(RuntimeError):
     pass
 
 
+ID_RE = re.compile(r"^[\w]+$")
+
+
+def validate_identifier(location, s):
+    if not ID_RE.match(s):
+        raise ValidationError("%s: invalid identifier '%s'"
+                % (location, s))
+
+
 def validate_struct(location, obj, required_attrs, allowed_attrs):
     """
     :arg required_attrs: an attribute validation list (see below)
@@ -317,6 +326,8 @@ def validate_course_desc_struct(course_desc):
         validate_chunk(chunk)
 
 
+# {{{ flow validation
+
 def validate_flow_page(location, page):
     validate_struct(
             location,
@@ -335,6 +346,8 @@ def validate_flow_page(location, page):
                 ]
             )
 
+    validate_identifier(location, page.id)
+
 
 def validate_flow_group(location, grp):
     validate_struct(
@@ -350,6 +363,21 @@ def validate_flow_group(location, grp):
     for i, page in enumerate(grp.pages):
         validate_flow_page("%s, page %d" % (location, i+1), page)
 
+    validate_identifier(location, grp.id)
+
+    # {{{ check page id uniqueness
+
+    page_ids = set()
+
+    for page in grp.pages:
+        if page.id in page_ids:
+            raise ValidationError("%s: page id '%s' not unique"
+                    % (location, page.id))
+
+        page_ids.add(page.id)
+
+    # }}}
+
 
 def validate_role(location, role):
     from course.models import participation_role
@@ -364,12 +392,23 @@ def validate_role(location, role):
                 % (location, role))
 
 
+def validate_flow_permission(location, permission):
+    from course.models import flow_permission
+    if permission not in [
+            flow_permission.view_past,
+            flow_permission.start_credit,
+            flow_permission.start_no_credit,
+            ]:
+        raise ValidationError("%s: invalid flow permission"
+                % location)
+
+
 def validate_flow_access_rule(location, rule):
     validate_struct(
             location,
             rule,
             required_attrs=[
-                ("access", str),
+                ("permissions", list),
                 ],
             allowed_attrs=[
                 ("roles", list),
@@ -381,9 +420,10 @@ def validate_flow_access_rule(location, rule):
                 ]
             )
 
-    if rule.access not in ["allow", "deny", "credit", "review"]:
-        raise ValidationError("%s: invalid value for 'access'"
-                % location)
+    for i, perm in enumerate(rule.permissions):
+        validate_role(
+                "%s, permission %d" % (location, i+1),
+                perm)
 
     if hasattr(rule, "roles"):
         for i, role in enumerate(rule.roles):
@@ -424,8 +464,23 @@ def validate_flow_desc(location, flow_desc):
                     "(i.e. have no attributes other than 'access')"
                     % location)
 
+    # {{{ check group id uniqueness
+
+    group_ids = set()
+
+    for grp in flow_desc.flow_groups:
+        if grp.id in group_ids:
+            raise ValidationError("%s: group id '%s' not unique"
+                    % (location, grp.id))
+
+        group_ids.add(grp.id)
+
+    # }}}
+
     for i, grp in enumerate(flow_desc.flow_groups):
-        validate_flow_group("%s, group %d" % (location, i+1), grp)
+        validate_flow_group("%s, group %d ('%s')" % (location, i+1), grp, grp.id)
+
+# }}}
 
 
 def validate_course_content(course, validate_sha):

@@ -2,9 +2,11 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 
 urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'courseflow.views.home', name='home'),
-    # url(r'^blog/', include('blog.urls')),
+    url(r'^login/by-email/$',
+        'course.views.sign_in_by_email'),
+    url(r'^logout/$',
+        'django.contrib.auth.views.logout',
+        {'template_name': 'base.html'}),
 
     url(r'^$', 'course.views.home', name='home'),
     url(r"^course"

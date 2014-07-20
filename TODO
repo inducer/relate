@@ -3,6 +3,11 @@
 - introduce migrations
 - model docs
 
+- Update admin for new model business
+- Time mark creation
+- Time mark validation
+- Sign in doesn't work
+
 Ideas:
 
 - Liveness (preview/TAs-only?)
@@ -17,3 +22,5 @@ Ideas:
 - Student tags, adapt homepage
 
 - Flow group ordering, max page count, question/page tags
+
+- Course setup wizard

@@ -15,16 +15,17 @@
   {% if not user.is_authenticated %}
     <div class="well">
       <p>You're not currently signed in.</p>
-      <a class="btn btn-lg btn-primary" href="{% url "course.views.sign_in" course.identifier %}"
+      <a class="btn btn-lg btn-primary" href="{% url "course.views.sign_in_by_email" %}"
         role="button">Sign in &raquo;</a>
     </div>
-  {% endif %}
+  {% else %}
 
-  {% if role == participation_role.unenrolled %}
-    <div class="well">
-      <a class="btn btn-lg btn-primary" href="{% url "course.views.enroll" course.identifier %}"
-        role="button">Enroll &raquo;</a>
-    </div>
+    {% if role == participation_role.unenrolled %}
+      <div class="well">
+        <a class="btn btn-lg btn-primary" href="{% url "course.views.enroll" course.identifier %}"
+          role="button">Enroll &raquo;</a>
+      </div>
+    {% endif %}
   {% endif %}
 
   {% for chunk in chunks %}

@@ -45,9 +45,9 @@
             {% endif %}
             {% if user.is_authenticated %}
               <li><p class="navbar-text">Signed in as {{user.username}}</p></li>
-              <li><a href="/logout/">Sign out</a></li>
+              <li><a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a></li>
             {% else %}
-              <li><a href="/login/">Sign in</a></li>
+              <li><a href="{% url "course.views.sign_in_by_email" %}">Sign in</a></li>
             {% endif %}
           </ul>
         </div><!--/.nav-collapse -->

@@ -35,6 +35,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'course',
     'crispy_forms',
+    'json_field',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -76,8 +77,6 @@ DATABASES = {
 # https://docs.djangoproject.com/en/dev/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
 
 USE_I18N = True
 

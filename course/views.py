@@ -24,6 +24,9 @@ def get_role_and_participation(request, course):
             if hasattr(request.user, '_wrapped')
             else request.user)
 
+    if not user.is_authenticated():
+        return participation_role.unenrolled, None
+
     participations = Participation.objects.filter(
             user=user, course=course)
 
@@ -78,8 +81,6 @@ def find_flow_visit(role, participation):
             .order_by("-start_time"))
 
 
-
-
 # {{{ views
 
 def home(request):
@@ -93,6 +94,11 @@ def home(request):
     return render(request, "course/home.html", {
         "courses_and_descs": courses_and_descs
         })
+
+
+def sign_in_by_email(request):
+    # FIXME
+    raise NotImplementedError()
 
 
 def course_page(request, course_identifier):
