@@ -4,9 +4,14 @@ https://www.djangoproject.com/download/1.7c1/tarball/
 django-crispy-forms>=1.4.0
 django-json-field
 
+six
+
 markdown
 sympy
 pytz
-https://github.com/FriendCode/mimer/archive/master.tar.gz
-gittle>=0.3.0
 pyyaml
+
+https://github.com/FriendCode/mimer/archive/master.tar.gz
+
+# dulwich does not yet support Python3
+dulwich

@@ -93,6 +93,6 @@ STATIC_URL = '/static/'
 SESSION_COOKIE_NAME = 'courseflow_sessionid'
 SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
-for name, val in local_settings.iteritems():
+for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val

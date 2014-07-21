@@ -19,8 +19,8 @@ urlpatterns = patterns('',
         "course.views.enroll",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/pull/$",
-        "course.views.pull_course_updates",),
+        "/fetch/$",
+        "course.views.fetch_course_updates",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/update/$",

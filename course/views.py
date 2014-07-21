@@ -3,13 +3,15 @@ from django.shortcuts import (  # noqa
 from django.contrib import messages
 import django.forms as forms
 
+from django.core.exceptions import PermissionDenied
+
 import datetime
 
 from course.models import (
         Course, Participation,
         participation_role, participation_status)
 from course.content import (
-        get_git_repo, get_course_desc, parse_date_spec,
+        get_course_repo, get_course_desc, parse_date_spec,
         get_flow
         )
 
@@ -27,12 +29,11 @@ def get_role_and_participation(request, course):
     if not user.is_authenticated():
         return participation_role.unenrolled, None
 
-    participations = Participation.objects.filter(
-            user=user, course=course)
+    participations = list(Participation.objects.filter(
+            user=user, course=course))
 
-    if len(participations) > 1:
-        messages.add_message(request, messages.WARNING,
-                "Multiple enrollments found. Please contact the course staff.")
+    # The uniqueness constraint should have ensured that.
+    assert len(participations) <= 1
 
     if len(participations) == 0:
         return participation_role.unenrolled, None
@@ -41,7 +42,19 @@ def get_role_and_participation(request, course):
     if participation.status != participation_status.active:
         return participation_role.unenrolled, participation
     else:
-        return participation.role, participation
+        if participation.temporary_role:
+            return participation.temporary_role, participation
+        else:
+            return participation.role, participation
+
+
+def get_active_commit_sha(course, participation):
+    sha = course.active_git_commit_sha
+
+    if participation is not None and participation.preview_git_commit_sha:
+        sha = participation.preview_git_commit_sha
+
+    return sha.encode()
 
 
 class AccessResult:
@@ -86,10 +99,15 @@ def find_flow_visit(role, participation):
 def home(request):
     courses_and_descs = []
     for course in Course.objects.all():
-        courses_and_descs.append(
-                (course, get_course_desc(course)))
+        repo = get_course_repo(course)
+        desc = get_course_desc(repo, course.active_git_commit_sha.encode())
+        courses_and_descs.append((course, desc))
 
-    courses_and_descs.sort(key=lambda (course, desc): desc.course_start)
+    def course_sort_key(entry):
+        course, desc = entry
+        return desc.course_start
+
+    courses_and_descs.sort(key=course_sort_key)
 
     return render(request, "course/home.html", {
         "courses_and_descs": courses_and_descs
@@ -103,10 +121,12 @@ def sign_in_by_email(request):
 
 def course_page(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
-
-    course_desc = get_course_desc(course)
-
     role, participation = get_role_and_participation(request, course)
+
+    commit_sha = get_active_commit_sha(course, participation)
+
+    repo = get_course_repo(course)
+    course_desc = get_course_desc(repo, commit_sha)
 
     from course.content import get_processed_course_chunks
     chunks = get_processed_course_chunks(course, course_desc,
@@ -192,16 +212,24 @@ def enroll(request, course_identifier):
 
 # {{{ git interaction
 
-def pull_course_updates(request, course_identifier):
+def fetch_course_updates(request, course_identifier):
     import sys
 
     course = get_object_or_404(Course, identifier=course_identifier)
-    course_desc = get_course_desc(course)
+    role, participation = get_role_and_participation(request, course)
+
+    if role != participation_role.instructor:
+        return PermissionDenied("must be instructor to update course")
+
+    commit_sha = get_active_commit_sha(course, participation)
+
+    repo = get_course_repo(course)
+    course_desc = get_course_desc(repo, commit_sha)
 
     was_successful = True
     log_lines = []
     try:
-        repo = get_git_repo(course)
+        repo = get_course_repo(course)
 
         if not course.git_source:
             raise RuntimeError("no git source URL specified")
@@ -209,9 +237,14 @@ def pull_course_updates(request, course_identifier):
         if course.ssh_private_key:
             repo.auth(pkey=course.ssh_private_key.encode("ascii"))
 
-        log_lines.append("Pre-pull head is at '%s'" % repo.head)
-        repo.pull(course.git_source.encode("utf-8"))
-        log_lines.append("Post-pull head is at '%s'" % repo.head)
+        log_lines.append("Pre-fetch head is at '%s'" % repo.head())
+
+        from dulwich.client import get_transport_and_path
+        client, remote_path = get_transport_and_path(course.git_source.encode())
+        remote_refs = client.fetch(remote_path, repo)
+        repo["HEAD"] = remote_refs["HEAD"]
+
+        log_lines.append("Post-fetch head is at '%s'" % repo.head())
 
     except Exception:
         was_successful = False
@@ -222,7 +255,7 @@ def pull_course_updates(request, course_identifier):
         log = "\n".join(log_lines)
 
     return render(request, 'course/course-bulk-result.html', {
-        "process_description": "Pull course updates via git",
+        "process_description": "Fetch course updates via git",
         "log": log,
         "status": "Pull successful."
             if was_successful
@@ -258,12 +291,15 @@ class GitUpdateForm(forms.Form):
 
 def update_course(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
-    course_desc = get_course_desc(course)
     role, participation = get_role_and_participation(request, course)
 
-    repo = get_git_repo(course)
+    commit_sha = get_active_commit_sha(course, participation)
 
-    previewing = participation.preview_git_commit_sha is not None
+    repo = get_course_repo(course)
+
+    course_desc = get_course_desc(repo, commit_sha)
+
+    previewing = bool(participation.preview_git_commit_sha)
 
     response_form = None
     if request.method == "POST":
@@ -282,8 +318,8 @@ def update_course(request, course_identifier):
             from course.content import validate_course_content
             from course.content import ValidationError
             try:
-                validate_course_content(course, new_sha)
-            except ValidationError, e:
+                validate_course_content(repo, new_sha)
+            except ValidationError as e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "
                         "Update not applied."
@@ -314,12 +350,12 @@ def update_course(request, course_identifier):
 
     if response_form is None:
         form = GitUpdateForm(previewing,
-                {"new_sha": repo.head})
+                {"new_sha": repo.head()})
 
     text_lines = [
             "<b>Current git HEAD:</b> %s (%s)" % (
-                repo.head,
-                repo[repo.head].message),
+                repo.head(),
+                repo[repo.head()].message),
             "<b>Public active git SHA:</b> %s (%s)" % (
                 course.active_git_commit_sha,
                 repo[course.active_git_commit_sha.encode()].message),

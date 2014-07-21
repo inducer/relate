@@ -2,12 +2,14 @@ from django.conf import settings
 
 import re
 import datetime
+import six
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 
 from django.core.urlresolvers import reverse
 
+from django.http import Http404
 
 # {{{ tools
 
@@ -69,11 +71,11 @@ def html_body(course, text):
 # }}}
 
 
-def get_git_repo(course):
+def get_course_repo(course):
     from os.path import join
 
-    from gittle import Gittle
-    return Gittle(join(settings.GIT_ROOT, course.identifier))
+    from dulwich.repo import Repo
+    return Repo(join(settings.GIT_ROOT, course.identifier))
 
 
 def get_repo_blob(repo, full_name, commit_sha=None):
@@ -85,29 +87,19 @@ def get_repo_blob(repo, full_name, commit_sha=None):
     try:
         for name in names[:-1]:
             mode, blob_sha = tree[name.encode()]
-            assert mode == repo.MODE_DIRECTORY
             tree = repo[blob_sha]
 
         mode, blob_sha = tree[names[-1].encode()]
         return repo[blob_sha]
     except KeyError:
         # TODO: Proper 404
-        raise RuntimeError("resource '%s' not found" % full_name)
+        raise Http404("resource '%s' not found" % full_name)
 
 
-def get_course_file(course, full_name, commit_sha=None):
-    repo = get_git_repo(course)
-
-    if commit_sha is None:
-        commit_sha = course.active_git_commit_sha.encode("us-ascii")
-
-    return get_repo_blob(repo, full_name, commit_sha).data
-
-
-def get_course_file_yaml(course, full_name, commit_sha=None):
+def get_yaml_from_repo(repo, full_name, commit_sha):
     from yaml import load
     return dict_to_struct(
-            load(get_course_file(course, full_name, commit_sha)))
+            load(get_repo_blob(repo, full_name, commit_sha).data))
 
 
 DATE_RE_MATCH = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
@@ -176,8 +168,8 @@ class NoCourseContent(RuntimeError):
     pass
 
 
-def get_course_desc(course):
-    course_desc = get_course_file_yaml(course, "course.yml")
+def get_course_desc(repo, commit_sha):
+    course_desc = get_yaml_from_repo(repo, "course.yml", commit_sha)
 
     assert isinstance(course_desc.course_start, datetime.date)
     assert isinstance(course_desc.course_end, datetime.date)
@@ -257,9 +249,6 @@ def validate_struct(location, obj, required_attrs, allowed_attrs):
                 present_attrs.remove(attr)
                 val = getattr(obj, attr)
 
-                if allowed_types is str:
-                    allowed_types = (str, unicode)
-
                 if not isinstance(val, allowed_types):
                     raise ValidationError("%s: attribute '%s' has "
                             "wrong type: got '%s', expected '%s'"
@@ -271,7 +260,7 @@ def validate_struct(location, obj, required_attrs, allowed_attrs):
                 % (location, ",".join(present_attrs)))
 
 
-datespec_types = (datetime.date, str, unicode)
+datespec_types = (datetime.date, six.string_types)
 
 
 def validate_chunk_rule(chunk_rule):
@@ -421,7 +410,7 @@ def validate_flow_access_rule(location, rule):
             )
 
     for i, perm in enumerate(rule.permissions):
-        validate_role(
+        validate_flow_permission(
                 "%s, permission %d" % (location, i+1),
                 perm)
 
@@ -461,7 +450,7 @@ def validate_flow_desc(location, flow_desc):
                 or hasattr(last_rule, "end")
                 ):
             raise ValidationError("%s: last access rule must set default access "
-                    "(i.e. have no attributes other than 'access')"
+                    "(i.e. have no attributes other than 'permissions')"
                     % location)
 
     # {{{ check group id uniqueness
@@ -478,23 +467,22 @@ def validate_flow_desc(location, flow_desc):
     # }}}
 
     for i, grp in enumerate(flow_desc.flow_groups):
-        validate_flow_group("%s, group %d ('%s')" % (location, i+1), grp, grp.id)
+        validate_flow_group("%s, group %d ('%s')" % (location, i+1, grp.id), grp)
 
 # }}}
 
 
-def validate_course_content(course, validate_sha):
-    course_desc = get_course_file_yaml(course, "course.yml",
+def validate_course_content(repo, validate_sha):
+    course_desc = get_yaml_from_repo(repo, "course.yml",
             commit_sha=validate_sha)
 
     validate_course_desc_struct(course_desc)
 
-    repo = get_git_repo(course)
     flows_tree = get_repo_blob(repo, "flows", validate_sha)
 
     for entry in flows_tree.items():
         location = "flows/%s" % entry.path
-        flow_desc = get_course_file_yaml(course, location,
+        flow_desc = get_yaml_from_repo(repo, location,
                 commit_sha=validate_sha)
 
         validate_flow_desc(location, flow_desc)
