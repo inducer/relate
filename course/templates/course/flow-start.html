@@ -1,10 +1,12 @@
 {% extends "course/course-base.html" %}
 
-{% block content %}
-  <h1>{{flow.title}}</h1>
+{% block title %}
+  {{flow_desc.title}} - CourseFlow
+{% endblock %}
 
-  {% if flow.description %}
-  {{flow.description_html|safe}}
+{% block content %}
+  {% if flow_desc.description %}
+  {{flow_desc.description_html|safe}}
   {% endif %}
 
   <form

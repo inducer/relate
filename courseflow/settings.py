@@ -89,6 +89,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = join(BASE_DIR, "static")
 
 SESSION_COOKIE_NAME = 'courseflow_sessionid'
 SESSION_COOKIE_AGE = 12096000  # 20 weeks

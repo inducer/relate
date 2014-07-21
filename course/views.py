@@ -41,7 +41,7 @@ from course.models import (
 
 from course.content import (
         get_course_repo, get_course_desc, parse_date_spec,
-        get_flow
+        get_flow_desc
         )
 
 
@@ -83,7 +83,7 @@ def get_active_commit_sha(course, participation):
     return sha.encode()
 
 
-def get_flow_permissions(course_desc, participation, role, flow_id, flow):
+def get_flow_permissions(course_desc, participation, role, flow_id, flow_desc):
     now = datetime.datetime.now().date()
 
     # {{{ scan for exceptions in database
@@ -111,7 +111,7 @@ def get_flow_permissions(course_desc, participation, role, flow_id, flow):
 
     # {{{ interpret flow rules
 
-    for rule in flow.access_rules:
+    for rule in flow_desc.access_rules:
         if hasattr(rule, "roles"):
             if role not in rule.roles:
                 continue
@@ -197,10 +197,10 @@ def start_flow(request, course_identifier, flow_identifier):
     course_desc = get_course_desc(repo, commit_sha)
     course = get_object_or_404(Course, identifier=course_identifier)
 
-    flow = get_flow(repo, course, flow_identifier, commit_sha)
+    flow_desc = get_flow_desc(repo, course, flow_identifier, commit_sha)
 
     permissions, stipulations = get_flow_permissions(
-            course_desc, participation, role, flow_identifier, flow)
+            course_desc, participation, role, flow_identifier, flow_desc)
 
     from course.models import flow_permission
     if flow_permission.view not in permissions:
@@ -222,7 +222,7 @@ def start_flow(request, course_identifier, flow_identifier):
 
             request.session["flow_visit_id"] = visit.id
 
-            page_count = set_up_flow_visit_page_data(repo, visit, flow, commit_sha)
+            page_count = set_up_flow_visit_page_data(repo, visit, flow_desc, commit_sha)
             visit.page_count = page_count
             visit.save()
 
@@ -246,7 +246,7 @@ def start_flow(request, course_identifier, flow_identifier):
             "participation": participation,
             "course_desc": course_desc,
             "course": course,
-            "flow": flow,
+            "flow_desc": flow_desc,
             "flow_identifier": flow_identifier,
             "can_start_credit": can_start_credit,
             "can_start_no_credit": can_start_no_credit,
@@ -287,10 +287,10 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
     repo = get_course_repo(course)
     course_desc = get_course_desc(repo, commit_sha)
 
-    flow = get_flow(repo, course, flow_identifier, commit_sha)
+    flow_desc = get_flow_desc(repo, course, flow_identifier, commit_sha)
 
     permissions, stipulations = get_flow_permissions(
-            course_desc, participation, role, flow_identifier, flow)
+            course_desc, participation, role, flow_identifier, flow_desc)
 
     from course.models import FlowPageData, FlowPageVisit
     page_data = get_object_or_404(
@@ -298,7 +298,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
     from course.content import get_flow_page_desc
     page_desc = get_flow_page_desc(
-            flow_visit, flow, page_data.group_id, page_data.page_id)
+            flow_visit, flow_desc, page_data.group_id, page_data.page_id)
 
     from course.content import instantiate_flow_page
     page = instantiate_flow_page(
@@ -307,9 +307,34 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 page_data.group_id, page_data.page_id),
             repo, page_desc, commit_sha)
 
+    from course.page import PageContext
+    page_context = PageContext(
+            course=course,
+            ordinal=page_data.ordinal,
+            page_count=flow_visit.page_count,
+            )
+
     if request.method == "POST":
         if "finish" in request.POST:
-            raise NotImplementedError()
+            from django.utils.timezone import now
+            flow_visit.completion_time = now()
+            flow_visit.state = flow_visit_state.completed
+            flow_visit.save()
+
+            # FIXME assign grade
+
+            from course.content import html_body
+            return render(request, "course/flow-completion.html", {
+                "course": course,
+                "course_desc": course_desc,
+                "flow_identifier": flow_identifier,
+                "flow_desc": flow_desc,
+                "ordinal": ordinal,
+                "page_data": page_data,
+                "flow_visit": flow_visit,
+                "body": html_body(course, flow_desc.completion_text),
+                "participation": participation,
+            })
         elif "submit" in request.POST:
             raise NotImplementedError()
         else:
@@ -320,16 +345,16 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         page_visit.page_data = page_data
         page_visit.save()
 
-        from course.page import PageContext
-        page_context = PageContext(course=course)
         title = page.title(page_context, page_data.data)
         body = page.body(page_context, page_data.data)
-        form = page.form(page_context, page_data.data)
+        form = page.form(page_context, page_data.data,
+                post_data=None, files_data=None)
 
         return render(request, "course/flow-page.html", {
             "course": course,
             "course_desc": course_desc,
             "flow_identifier": flow_identifier,
+            "flow_desc": flow_desc,
             "ordinal": ordinal,
             "page_data": page_data,
             "flow_visit": flow_visit,

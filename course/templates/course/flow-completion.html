@@ -1,0 +1,19 @@
+{% extends "course/course-base.html" %}
+
+{% block title %}
+  {{flow_desc.title}} - CourseFlow
+{% endblock %}
+
+{% block content %}
+  {{ body|safe }}
+
+  <div class="well flow-well">
+    <a class="btn btn-default"
+      href="{% url "course.views.start_flow" course.identifier flow_identifier %}"
+      role="button">&laquo; Start over</a>
+    <a class="btn btn-default"
+      href="{% url "course.views.course_page" course.identifier %}"
+      role="button">To course page &raquo;</a>
+  </div>
+
+{% endblock %}

@@ -220,7 +220,7 @@ def get_processed_course_chunks(course, course_desc, role):
             if chunk.shown]
 
 
-def get_flow(repo, course, flow_id, commit_sha):
+def get_flow_desc(repo, course, flow_id, commit_sha):
     flow = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
 
     flow.description_html = html_body(course, getattr(flow, "description", None))

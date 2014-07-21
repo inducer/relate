@@ -28,8 +28,10 @@ from course.validation import validate_struct
 
 
 class PageContext(object):
-    def __init__(self, course):
+    def __init__(self, course, ordinal, page_count):
         self.course = course
+        self.ordinal = ordinal
+        self.page_count = page_count
 
 
 class PageBase(object):
@@ -56,9 +58,8 @@ class PageBase(object):
     def body(self, page_context, data):
         raise NotImplementedError()
 
-    def form(self, page_context, data):
+    def form(self, page_context, data, post_data, files_data):
         return None
-
 
 
 class Page(PageBase):
@@ -84,9 +85,6 @@ class Page(PageBase):
     def body(self, page_context, data):
         from course.content import html_body
         return html_body(page_context.course, self.page_desc.content)
-
-    def form(self, page_context, data):
-        return None
 
 
 class TextQuestion(PageBase):

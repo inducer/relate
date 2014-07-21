@@ -2,15 +2,12 @@
 
 {% load crispy_forms_tags %}
 
+{% block title %}
+  [{{ page_data.next_ordinal }}/{{ flow_visit.page_count }}]
+  {{title}} - {{ flow_desc.title}} - CourseFlow
+{% endblock %}
+
 {% block content %}
-  <h1>{{flow.title}}</h1>
-
-  {% if flow.description %}
-  {{flow.description_html|safe}}
-  {% endif %}
-
-  <h1>{{ title|safe }}</h1>
-
   {{ body|safe }}
 
   {% if form %}
@@ -34,9 +31,10 @@
         <a class="btn btn-default"
           href="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.next_ordinal %}"
           role="button">Next &raquo;</a>
-      {% else %}
-        <button type="submit" name="finish" class="btn btn-primary">Finish &raquo;</button>
       {% endif %}
+      <div style="float:right">
+        <button type="submit" name="finish" class="btn btn-default">End session</button>
+    </div>
 
     </div>
   </form>

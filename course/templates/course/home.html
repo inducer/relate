@@ -1,8 +1,14 @@
 {% extends "base.html" %}
 
-
 {% block content %}
-  <h1>Welcome to CourseFlow!</h1>
+  <div class="jumbotron">
+    <h1>Welcome to CourseFlow!</h1>
+    <p>CourseFlow is open-source courseware that is with you all the way
+    through a course.</p>
+    <p>
+    <a class="btn btn-lg btn-primary" href="https://github.com/inducer/courseflow" role="button">Learn more &raquo;</a>
+    </p>
+  </div>
 
   {% if courses_and_descs %}
     The following courses are hosted on this instance of CourseFlow:
