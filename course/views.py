@@ -224,6 +224,7 @@ def start_flow(request, course_identifier, flow_identifier):
 
             page_count = set_up_flow_visit_page_data(visit, flow)
             visit.page_count = page_count
+            visit.save()
 
             return redirect("course.views.view_flow_page",
                     course_identifier,
@@ -299,21 +300,27 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
     page_desc = get_flow_page_desc(
             flow_visit, flow, page_data.group_id, page_data.page_id)
 
-    page_visit = FlowPageVisit()
-    page_visit.flow_visit = flow_visit
-    page_visit.page_data = page_data
-    page_visit.save()
+    if request.method == "POST":
+        if "finish" in request.POST:
+            raise NotImplementedError()
+        else:
+            raise SuspiciousOperation("unrecognized POST action")
+    else:
+        page_visit = FlowPageVisit()
+        page_visit.flow_visit = flow_visit
+        page_visit.page_data = page_data
+        page_visit.save()
 
-    return render(request, "course/flow-page.html", {
-        "course": course,
-        "course_desc": course_desc,
-        "ordinal": ordinal,
-        "page_data": page_data,
-        "flow_visit": flow_visit,
-        "participation": participation,
-        #"flow_desc": flow_desc,
+        return render(request, "course/flow-page.html", {
+            "course": course,
+            "course_desc": course_desc,
+            "flow_identifier": flow_identifier,
+            "ordinal": ordinal,
+            "page_data": page_data,
+            "flow_visit": flow_visit,
+            "participation": participation,
+            #"flow_desc": flow_desc,
         })
-
 
 # }}}
 

@@ -183,8 +183,7 @@ def update_course(request, course_identifier):
         elif form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode("utf-8")
 
-            from course.content import validate_course_content
-            from course.content import ValidationError
+            from course.validation import validate_course_content, ValidationError
             try:
                 validate_course_content(repo, new_sha)
             except ValidationError as e:

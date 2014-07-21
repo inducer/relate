@@ -28,7 +28,6 @@ from django.conf import settings
 
 import re
 import datetime
-import six
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -262,307 +261,75 @@ def get_flow_page_desc(flow_id, flow, group_id, page_id):
             % (group_id, page_id, flow_id))
 
 
-# {{{ validation
-
-class ValidationError(RuntimeError):
+class ClassNotFoundError(RuntimeError):
     pass
 
 
-ID_RE = re.compile(r"^[\w]+$")
-
-
-def validate_identifier(location, s):
-    if not ID_RE.match(s):
-        raise ValidationError("%s: invalid identifier '%s'"
-                % (location, s))
-
-
-def validate_struct(location, obj, required_attrs, allowed_attrs):
-    """
-    :arg required_attrs: an attribute validation list (see below)
-    :arg allowed_attrs: an attribute validation list (see below)
-
-    An attribute validation list is a list of elements, where each element is
-    either a string (the name of the attribute), in which case the type of each
-    attribute is not checked, or a tuple *(name, type)*, where type is valid
-    as a second argument to :func:`isinstance`.
-    """
-
-    present_attrs = set(name for name in dir(obj) if not name.startswith("_"))
-
-    for required, attr_list in [
-            (True, required_attrs),
-            (False, allowed_attrs),
-            ]:
-        for attr_rec in attr_list:
-            if isinstance(attr_rec, tuple):
-                attr, allowed_types = attr_rec
-            else:
-                attr = attr_rec
-                allowed_types = None
-
-            if attr not in present_attrs:
-                if required:
-                    raise ValidationError("%s: attribute '%s' missing"
-                            % (location, attr))
-            else:
-                present_attrs.remove(attr)
-                val = getattr(obj, attr)
-
-                if not isinstance(val, allowed_types):
-                    raise ValidationError("%s: attribute '%s' has "
-                            "wrong type: got '%s', expected '%s'"
-                            % (location, attr, type(val).__name__,
-                            allowed_types))
-
-    if present_attrs:
-        raise ValidationError("%s: extraneous attribute(s) '%s'"
-                % (location, ",".join(present_attrs)))
-
-
-datespec_types = (datetime.date, six.string_types)
-
-
-def validate_chunk_rule(chunk_rule):
-    validate_struct(
-            "chunk_rule",
-            chunk_rule,
-            required_attrs=[
-                ("weight", int),
-                ],
-            allowed_attrs=[
-                ("start", (str, datetime.date)),
-                ("end", (str, datetime.date)),
-                ("role", str),
-                ("shown", bool),
-            ])
-
-
-def validate_chunk(chunk):
-    validate_struct(
-            "chunk",
-            chunk,
-            required_attrs=[
-                ("title", str),
-                ("id", str),
-                ("rules", list),
-                ("content", str),
-                ],
-            allowed_attrs=[]
-            )
-
-    for rule in chunk.rules:
-        validate_chunk_rule(rule)
-
-
-def validate_course_desc_struct(course_desc):
-    validate_struct(
-            "course_desc",
-            course_desc,
-            required_attrs=[
-                ("name", str),
-                ("number", str),
-                ("run", str),
-                ("description", str),
-                ("course_start", datetime.date),
-                ("course_end", datetime.date),
-                ("chunks", list),
-                ],
-            allowed_attrs=[]
-            )
-
-    for chunk in course_desc.chunks:
-        validate_chunk(chunk)
-
-
-# {{{ flow validation
-
-def validate_flow_page(location, page):
-    validate_struct(
-            location,
-            page,
-            required_attrs=[
-                ("type", str),
-                ("id", str),
-                ],
-            allowed_attrs=[
-                ("content", str),
-                ("prompt", str),
-                ("title", str),
-                ("answers", list),
-                ("choices", list),
-                ("value", (int, float)),
-                ]
-            )
-
-    validate_identifier(location, page.id)
-
-
-def validate_flow_group(location, grp):
-    validate_struct(
-            location,
-            grp,
-            required_attrs=[
-                ("id", str),
-                ("pages", list),
-                ],
-            allowed_attrs=[]
-            )
-
-    for i, page in enumerate(grp.pages):
-        validate_flow_page("%s, page %d" % (location, i+1), page)
-
-    validate_identifier(location, grp.id)
-
-    # {{{ check page id uniqueness
-
-    page_ids = set()
-
-    for page in grp.pages:
-        if page.id in page_ids:
-            raise ValidationError("%s: page id '%s' not unique"
-                    % (location, page.id))
-
-        page_ids.add(page.id)
-
-    # }}}
-
-
-def validate_role(location, role):
-    from course.models import participation_role
-
-    if role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant,
-            participation_role.student,
-            participation_role.unenrolled,
-            ]:
-        raise ValidationError("%s: invalid role '%s'"
-                % (location, role))
-
-
-def validate_flow_permission(location, permission):
-    from course.models import FLOW_PERMISSION_CHOICES
-    if permission not in dict(FLOW_PERMISSION_CHOICES):
-        raise ValidationError("%s: invalid flow permission"
-                % location)
-
-
-def validate_flow_access_rule(location, rule):
-    validate_struct(
-            location,
-            rule,
-            required_attrs=[
-                ("permissions", list),
-                ],
-            allowed_attrs=[
-                ("roles", list),
-                ("start", (datetime.date, str)),
-                ("end", (datetime.date, str)),
-                ("credit_percent", (int, float)),
-                ("time_limit", str),
-                ("allowed_visit_count", int),
-                ]
-            )
-
-    for i, perm in enumerate(rule.permissions):
-        validate_flow_permission(
-                "%s, permission %d" % (location, i+1),
-                perm)
-
-    if hasattr(rule, "roles"):
-        for i, role in enumerate(rule.roles):
-            validate_role(
-                    "%s, role %d" % (location, i+1),
-                    role)
-
-    # TODO: validate time limit
-
-
-def validate_flow_desc(location, flow_desc):
-    validate_struct(
-            location,
-            flow_desc,
-            required_attrs=[
-                ("title", str),
-                ("description", str),
-                ("groups", list),
-                ],
-            allowed_attrs=[
-                ("access_rules", list),
-                ]
-            )
-
-    if hasattr(flow_desc, "access_rules"):
-        for i, rule in enumerate(flow_desc.access_rules):
-            validate_flow_access_rule(
-                    "%s, access rule %d" % (location, i+1),
-                    rule)
-
-        last_rule = flow_desc.access_rules[-1]
-        if (
-                hasattr(last_rule, "roles")
-                or hasattr(last_rule, "start")
-                or hasattr(last_rule, "end")
-                ):
-            raise ValidationError("%s: last access rule must set default access "
-                    "(i.e. have no attributes other than 'permissions')"
-                    % location)
-
-    # {{{ check for non-emptiness
-
-    flow_has_page = False
-    for i, grp in enumerate(flow_desc.groups):
-        group_has_page = False
-
-        for page in grp.pages:
-            group_has_page = flow_has_page = True
-            break
-
-        if not group_has_page:
-            raise ValidationError("%s, group %d ('%d'): no pages found"
-                    % (location, i+1, grp.id))
-
-    if not flow_has_page:
-        raise ValidationError("%s: no pages found"
-                % location)
-
-    # }}}
-
-    # {{{ check group id uniqueness
-
-    group_ids = set()
-
-    for grp in flow_desc.groups:
-        if grp.id in group_ids:
-            raise ValidationError("%s: group id '%s' not unique"
-                    % (location, grp.id))
-
-        group_ids.add(grp.id)
-
-    # }}}
-
-    for i, grp in enumerate(flow_desc.groups):
-        validate_flow_group("%s, group %d ('%s')" % (location, i+1, grp.id), grp)
-
-# }}}
-
-
-def validate_course_content(repo, validate_sha):
-    course_desc = get_yaml_from_repo(repo, "course.yml",
-            commit_sha=validate_sha)
-
-    validate_course_desc_struct(course_desc)
-
-    flows_tree = get_repo_blob(repo, "flows", validate_sha)
-
-    for entry in flows_tree.items():
-        location = "flows/%s" % entry.path
-        flow_desc = get_yaml_from_repo(repo, location,
-                commit_sha=validate_sha)
-
-        validate_flow_desc(location, flow_desc)
-
-# }}}
+def import_class(name):
+    components = name.split('.')
+
+    if len(components) < 2:
+        # need at least one module plus class name
+        raise ClassNotFoundError(name)
+
+    module_name = ".".join(components[:-1])
+    try:
+        mod = __import__(module_name)
+    except ImportError:
+        raise ClassNotFoundError(name)
+
+    for comp in components[1:]:
+        try:
+            mod = getattr(mod, comp)
+        except AttributeError:
+            raise ClassNotFoundError(name)
+
+    return mod
+
+
+def get_flow_page_class(repo, typename, commit_sha):
+    # look among default page types
+    import course.page
+    try:
+        return getattr(course.page, typename)
+    except AttributeError:
+        pass
+
+    # try a global dotted-name import
+    try:
+        return import_class(typename)
+    except ClassNotFoundError:
+        pass
+
+    if typename.startswith("repo:"):
+        stripped_typename = typename[5:]
+
+        components = stripped_typename.split(",")
+        if len(components) != 2:
+            raise ClassNotFoundError("repo page class must conist of two "
+                    "dotted components (invalid: '%s')" % typename)
+
+        module, classname = components
+        from os.path import join
+        module_name = join("code", module+".py")
+        module_code = get_repo_blob(repo, module_name, commit_sha).data
+
+        module_dict = {}
+
+        exec(compile(module_code, module_name, 'exec'), module_dict)
+
+        try:
+            return module_dict[classname]
+        except AttributeError:
+            raise ClassNotFoundError(typename)
+    else:
+        raise ClassNotFoundError(typename)
+
+
+def instantiate_flow_page(location, repo, page_desc, commit_sha):
+    class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
+    return class_(location, page_desc)
+
+
 
 # vim: foldmethod=marker
