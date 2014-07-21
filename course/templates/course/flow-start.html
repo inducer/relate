@@ -16,7 +16,13 @@
     {% if can_start_credit or can_start_no_credit %}
       <div class="well">
         {% if can_start_no_credit %}
-          <button type="submit" name="start_no_credit" class="btn btn-primary">Start &raquo;</button>
+          <button type="submit" name="start_no_credit" class="btn btn-primary">
+            {% if can_start_credit %}
+              Start wihtout credit &raquo;
+            {% else %}
+              Start &raquo;
+            {% endif %}
+          </button>
         {% endif %}
         {% if can_start_credit %}
           <button type="submit" name="start_credit" class="btn btn-primary">Start for-credit attempt &raquo;</button>

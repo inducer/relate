@@ -1,3 +1,29 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import division
+
+__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+
+__license__ = """
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+
 from django.conf import settings
 
 import re
@@ -10,6 +36,7 @@ from markdown.treeprocessors import Treeprocessor
 from django.core.urlresolvers import reverse
 
 from django.core.exceptions import ObjectDoesNotExist
+
 
 # {{{ tools
 
@@ -204,12 +231,15 @@ def get_flow(repo, course, flow_id, commit_sha):
 def set_up_flow_visit_page_data(flow_visit, flow):
     from course.models import FlowPageData
 
+    data = None
+
     ordinal = 0
     for grp in flow.groups:
         for page in grp.pages:
             data = FlowPageData()
             data.flow_visit = flow_visit
             data.ordinal = ordinal
+            data.is_last = False
             data.group_id = grp.id
             data.page_id = page.id
 
@@ -218,8 +248,10 @@ def set_up_flow_visit_page_data(flow_visit, flow):
 
             ordinal += 1
 
+    return ordinal
 
-def get_flow_page(flow_id, flow, group_id, page_id):
+
+def get_flow_page_desc(flow_id, flow, group_id, page_id):
     for grp in flow.groups:
         if grp.id == group_id:
             for page in grp.pages:
@@ -476,6 +508,26 @@ def validate_flow_desc(location, flow_desc):
             raise ValidationError("%s: last access rule must set default access "
                     "(i.e. have no attributes other than 'permissions')"
                     % location)
+
+    # {{{ check for non-emptiness
+
+    flow_has_page = False
+    for i, grp in enumerate(flow_desc.groups):
+        group_has_page = False
+
+        for page in grp.pages:
+            group_has_page = flow_has_page = True
+            break
+
+        if not group_has_page:
+            raise ValidationError("%s, group %d ('%d'): no pages found"
+                    % (location, i+1, grp.id))
+
+    if not flow_has_page:
+        raise ValidationError("%s: no pages found"
+                % location)
+
+    # }}}
 
     # {{{ check group id uniqueness
 

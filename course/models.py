@@ -171,6 +171,9 @@ class FlowVisit(models.Model):
     flow_id = models.CharField(max_length=200)
     start_time = models.DateTimeField(default=now)
     completion_time = models.DateTimeField(null=True, blank=True)
+    page_count = models.IntegerField(null=True, blank=True)
+
+    stipulations = JSONField(blank=True, null=True)
 
     state = models.CharField(max_length=50, choices=FLOW_VISIT_STATE_CHOICES)
 
@@ -199,8 +202,20 @@ class FlowPageData(models.Model):
                 self.page_id,
                 self.flow_visit.flow_id)
 
+    # Django's templates are a little daft.
+    def previous_ordinal(self):
+        return self.ordinal - 1
+
+    def next_ordinal(self):
+        return self.ordinal + 1
+
 
 class FlowPageVisit(models.Model):
+    # This is redundant (because the FlowVisit is available through
+    # page_data), but it helps the admin site understand the link
+    # and provide editing.
+    flow_visit = models.ForeignKey(FlowVisit)
+
     page_data = models.ForeignKey(FlowPageData, db_index=True)
     visit_time = models.DateTimeField(default=now, db_index=True)
 
