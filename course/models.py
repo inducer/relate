@@ -4,7 +4,7 @@ from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
 
-from json_field import JSONField
+from jsonfield import JSONField
 
 
 # {{{ user status
@@ -138,6 +138,7 @@ class Participation(models.Model):
 
     class Meta:
         unique_together = (("user", "course"),)
+        ordering = ("course", "user")
 
 # }}}
 
@@ -157,30 +158,53 @@ class flow_visit_state:
     completed = "completed"
 
 
+FLOW_VISIT_STATE_CHOICES = (
+        (flow_visit_state.in_progress, "In progress"),
+        (flow_visit_state.expired, "Expired"),
+        (flow_visit_state.completed, "Completed"),
+        )
+
+
 class FlowVisit(models.Model):
-    participation = models.ForeignKey(Participation)
+    participation = models.ForeignKey(Participation, null=True, blank=True)
     active_git_commit_sha = models.CharField(max_length=200)
     flow_id = models.CharField(max_length=200)
     start_time = models.DateTimeField(default=now)
     completion_time = models.DateTimeField(null=True, blank=True)
 
-    state = models.CharField(max_length=50)
+    state = models.CharField(max_length=50, choices=FLOW_VISIT_STATE_CHOICES)
+
+    class Meta:
+        ordering = ("participation",)
 
 
 class FlowPageData(models.Model):
-    ordinal = models.IntegerField()
     flow_visit = models.ForeignKey(FlowVisit)
+    ordinal = models.IntegerField()
 
+    group_id = models.CharField(max_length=200)
     page_id = models.CharField(max_length=200)
 
-    data = JSONField()
+    data = JSONField(null=True, blank=True)
+
+    class Meta:
+        unique_together = (("flow_visit", "ordinal"),)
+        verbose_name_plural = "flow page data"
+
+    def __unicode__(self):
+        return "Data for %s's visit %d to '%s/%s' in '%s'" % (
+                self.flow_visit.participation.user,
+                self.flow_visit.id,
+                self.group_id,
+                self.page_id,
+                self.flow_visit.flow_id)
 
 
 class FlowPageVisit(models.Model):
-    page = models.ForeignKey(FlowPageData)
+    page_data = models.ForeignKey(FlowPageData, db_index=True)
     visit_time = models.DateTimeField(default=now, db_index=True)
 
-    answer = JSONField()
+    answer = JSONField(null=True, blank=True)
 
 # }}}
 
@@ -188,7 +212,8 @@ class FlowPageVisit(models.Model):
 # {{{ flow access
 
 class flow_permission:
-    # If you change this, make sure to also change the validation code
+    # access flow start page
+    view = "view"
 
     # review past attempts
     view_past = "view_past"
@@ -199,11 +224,15 @@ class flow_permission:
     # start new not-for-credit visit
     start_no_credit = "start_no_credit"
 
+    # see correct answer
+    see_correct_answer = "see_correct_answer"
 
 FLOW_PERMISSION_CHOICES = (
+        (flow_permission.view, "View flow start page"),
         (flow_permission.view_past, "Review past attempts"),
         (flow_permission.start_credit, "Start for-credit visit"),
         (flow_permission.start_no_credit, "Start not-for-credit visit"),
+        (flow_permission.see_correct_answer, "See correct answer"),
         )
 
 
@@ -212,14 +241,25 @@ class FlowAccessException(models.Model):
     flow_id = models.CharField(max_length=200, blank=False, null=False)
     expiration = models.DateTimeField(blank=True, null=True)
 
+    stipulations = JSONField(blank=True, null=True)
+
     creator = models.ForeignKey(User, null=True)
     creation_time = models.DateTimeField(default=now, db_index=True)
 
+    def __unicode__(self):
+        return "Access exception for '%s' to '%s' in '%s'" % (
+                self.participation.user, self.flow_id,
+                self.participation.course)
+
 
 class FlowAccessExceptionEntry(models.Model):
-    exception = models.ForeignKey(FlowAccessException)
+    exception = models.ForeignKey(FlowAccessException,
+            related_name="entries")
     permission = models.CharField(max_length=50,
             choices=FLOW_PERMISSION_CHOICES)
+
+    def __unicode__(self):
+        return self.permission
 
 # }}}
 

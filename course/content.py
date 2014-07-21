@@ -9,7 +9,7 @@ from markdown.treeprocessors import Treeprocessor
 
 from django.core.urlresolvers import reverse
 
-from django.http import Http404
+from django.core.exceptions import ObjectDoesNotExist
 
 # {{{ tools
 
@@ -92,8 +92,7 @@ def get_repo_blob(repo, full_name, commit_sha=None):
         mode, blob_sha = tree[names[-1].encode()]
         return repo[blob_sha]
     except KeyError:
-        # TODO: Proper 404
-        raise Http404("resource '%s' not found" % full_name)
+        raise ObjectDoesNotExist("resource '%s' not found" % full_name)
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha):
@@ -195,11 +194,40 @@ def get_processed_course_chunks(course, course_desc, role):
             if chunk.shown]
 
 
-def get_flow(course, flow_id, commit_sha):
-    flow = get_course_file_yaml(course, "flows/%s.yml")
+def get_flow(repo, course, flow_id, commit_sha):
+    flow = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
 
     flow.description_html = html_body(course, getattr(flow, "description", None))
     return flow
+
+
+def set_up_flow_visit_page_data(flow_visit, flow):
+    from course.models import FlowPageData
+
+    ordinal = 0
+    for grp in flow.groups:
+        for page in grp.pages:
+            data = FlowPageData()
+            data.flow_visit = flow_visit
+            data.ordinal = ordinal
+            data.group_id = grp.id
+            data.page_id = page.id
+
+            # FIXME Create page data
+            data.save()
+
+            ordinal += 1
+
+
+def get_flow_page(flow_id, flow, group_id, page_id):
+    for grp in flow.groups:
+        if grp.id == group_id:
+            for page in grp.pages:
+                if page.id == page_id:
+                    return page
+
+    raise ObjectDoesNotExist("page '%s/%s' in flow '%s'"
+            % (group_id, page_id, flow_id))
 
 
 # {{{ validation
@@ -382,12 +410,8 @@ def validate_role(location, role):
 
 
 def validate_flow_permission(location, permission):
-    from course.models import flow_permission
-    if permission not in [
-            flow_permission.view_past,
-            flow_permission.start_credit,
-            flow_permission.start_no_credit,
-            ]:
+    from course.models import FLOW_PERMISSION_CHOICES
+    if permission not in dict(FLOW_PERMISSION_CHOICES):
         raise ValidationError("%s: invalid flow permission"
                 % location)
 
@@ -430,7 +454,7 @@ def validate_flow_desc(location, flow_desc):
             required_attrs=[
                 ("title", str),
                 ("description", str),
-                ("flow_groups", list),
+                ("groups", list),
                 ],
             allowed_attrs=[
                 ("access_rules", list),
@@ -457,7 +481,7 @@ def validate_flow_desc(location, flow_desc):
 
     group_ids = set()
 
-    for grp in flow_desc.flow_groups:
+    for grp in flow_desc.groups:
         if grp.id in group_ids:
             raise ValidationError("%s: group id '%s' not unique"
                     % (location, grp.id))
@@ -466,7 +490,7 @@ def validate_flow_desc(location, flow_desc):
 
     # }}}
 
-    for i, grp in enumerate(flow_desc.flow_groups):
+    for i, grp in enumerate(flow_desc.groups):
         validate_flow_group("%s, group %d ('%s')" % (location, i+1, grp.id), grp)
 
 # }}}

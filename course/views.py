@@ -3,13 +3,16 @@ from django.shortcuts import (  # noqa
 from django.contrib import messages
 import django.forms as forms
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 
 import datetime
 
 from course.models import (
         Course, Participation,
-        participation_role, participation_status)
+        FlowAccessException,
+        FlowVisit,
+        participation_role, participation_status, flow_visit_state)
+
 from course.content import (
         get_course_repo, get_course_desc, parse_date_spec,
         get_flow
@@ -57,41 +60,55 @@ def get_active_commit_sha(course, participation):
     return sha.encode()
 
 
-class AccessResult:
-    def __init__(self, what, credit_percent):
-        self.what = what
-        self.credit_percent = credit_percent
+def get_flow_permissions(course_desc, participation, role, flow_id, flow):
+    now = datetime.datetime.now().date()
 
-        assert what in ["allow", "view", "deny"]
+    # {{{ scan for exceptions in database
 
+    for exc in (
+            FlowAccessException.objects
+            .filter(participation=participation, flow_id=flow_id)
+            .order_by("expiration")):
 
-def get_flow_access(course_desc, role, flow, flow_visit):
-    if flow_visit is not None:
-        now = flow_visit.start_time.date()
-    else:
-        now = datetime.datetime.now().date()
+        if exc.expiration is not None and exc.expiration < now:
+            continue
+
+        stipulations = exc.stipulations
+        if not isinstance(stipulations, dict):
+            stipulations = {}
+        from course.content import dict_to_struct
+        stipulations = dict_to_struct(exc.stipulations)
+
+        return (
+                [entry.permission for entry in exc.entries.all()],
+                stipulations
+                )
+
+    # }}}
+
+    # {{{ interpret flow rules
 
     for rule in flow.access_rules:
-        if role not in rule.roles:
-            continue
+        if hasattr(rule, "roles"):
+            if role not in rule.roles:
+                continue
+
         if hasattr(rule, "start"):
             start_date = parse_date_spec(course_desc, rule.start)
             if now < start_date:
                 continue
+
         if hasattr(rule, "end"):
             end_date = parse_date_spec(course_desc, rule.end)
             if end_date < now:
                 continue
 
-        return AccessResult(rule.access, getattr(rule, "credit_percent", 100))
+        return rule.permissions, rule
 
-    return AccessResult("deny", 100)
+    # }}}
 
-
-def find_flow_visit(role, participation):
-    visits = (FlowVisit.objects
-            .filter(participation=participation)
-            .order_by("-start_time"))
+    raise ValueError("Flow access rules of flow '%s' did not resolve "
+            "to access answer for '%s'" % (flow_id, participation))
 
 
 # {{{ views
@@ -119,6 +136,11 @@ def sign_in_by_email(request):
     raise NotImplementedError()
 
 
+def enroll(request, course_identifier):
+    # FIXME
+    raise NotImplementedError()
+
+
 def course_page(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
@@ -142,61 +164,113 @@ def course_page(request, course_identifier):
         })
 
 
-class StartForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-
-        self.helper.add_input(
-                Submit("submit", "Get started"))
-        super(StartForm, self).__init__(*args, **kwargs)
-
-
 def start_flow(request, course_identifier, flow_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
-
     role, participation = get_role_and_participation(request, course)
 
-    # TODO: Could be one of multiple
-    fvisit = find_flow_visit(role, participation)
-    if fvisit:
-        active_git_commit_sha = fvisit.active_git_commit_sha
-    else:
-        active_git_commit_sha = course.active_git_commit_sha
+    commit_sha = get_active_commit_sha(course, participation)
 
-    course_desc = get_course_desc(course)
+    repo = get_course_repo(course)
+    course_desc = get_course_desc(repo, commit_sha)
+    course = get_object_or_404(Course, identifier=course_identifier)
 
-    flow = get_flow(course, flow_identifier, active_git_commit_sha)
+    flow = get_flow(repo, course, flow_identifier, commit_sha)
 
-    access = get_flow_access(course_desc, role, flow, None)
+    permissions, stipulations = get_flow_permissions(
+            course_desc, participation, role, flow_identifier, flow)
 
-    if access.what == "deny":
-        messages.add_message(request, messages.WARNING,
-                "Access denied")
-        return render(request, "course/course-base.html",
-                {
-                    "course": course,
-                    "course_desc": course_desc,
-                    },
-                status=403)
+    from course.models import flow_permission
+    if flow_permission.view not in permissions:
+        raise PermissionDenied()
 
     if request.method == "POST":
-        if role != role.unenrolled:
-            fvisit = FlowVisit()
-            fvisit.participation = participation
-            fvisit.active_git_commit_sha = course.active_git_commit_sha
+        from course.content import set_up_flow_visit_page_data
 
-    return render(request, "course/flow-start-page.html", {
-        "course": course,
-        "course_desc": course_desc,
-        "flow": flow,
-        "form": StartForm(),
-        })
+        if "start_credit" in request.POST:
+            raise NotImplementedError("for-credit flows")
+            # FIXME for-credit
+        elif "start_no_credit" in request.POST:
+            visit = FlowVisit()
+            visit.participation = participation
+            visit.active_git_commit_sha = commit_sha.decode()
+            visit.flow_id = flow_identifier
+            visit.state = flow_visit_state.in_progress
+            visit.save()
+
+            request.session["flow_visit_id"] = visit.id
+
+            set_up_flow_visit_page_data(visit, flow)
+
+            return redirect("course.views.view_flow_page",
+                    course_identifier,
+                    flow_identifier,
+                    0)
+
+        else:
+            raise SuspiciousOperation("unrecognized POST action")
+
+    else:
+        can_start_credit = flow_permission.start_credit in permissions
+        can_start_no_credit = flow_permission.start_no_credit in permissions
+
+        # FIXME take into account max attempts
+        # FIXME resumption
+        # FIXME view past
+
+        return render(request, "course/flow-start.html", {
+            "participation": participation,
+            "course_desc": course_desc,
+            "course": course,
+            "flow": flow,
+            "flow_identifier": flow_identifier,
+            "can_start_credit": can_start_credit,
+            "can_start_no_credit": can_start_no_credit,
+            })
 
 
-def view_flow_page(request, course_identifier, flow_identifier, page_identifier):
+def view_flow_page(request, course_identifier, flow_identifier, ordinal):
+    flow_visit = None
+    flow_visit_id = request.session.get("flow_visit_id")
+
+    if flow_visit_id is not None:
+        flow_visits = list(FlowVisit.objects.filter(id=flow_visit_id))
+
+        if flow_visits and flow_visits[0].flow_id == flow_identifier:
+            flow_visit, = flow_visits
+
+    if flow_visit is None:
+        messages.add_message(request, messages.WARNING,
+                "No ongoing flow visit for this flow. "
+                "Redirected to flow start page.")
+
+        return redirect("course.views.start_flow",
+                course_identifier,
+                flow_identifier)
+
+    # FIXME time limits
+
     course = get_object_or_404(Course, identifier=course_identifier)
-    course_desc = get_course_desc(course)
+    role, participation = get_role_and_participation(request, course)
+
+    commit_sha = flow_visit.active_git_commit_sha.encode()
+
+    repo = get_course_repo(course)
+    course_desc = get_course_desc(repo, commit_sha)
+
+    flow = get_flow(repo, course, flow_identifier, commit_sha)
+
+    permissions, stipulations = get_flow_permissions(
+            course_desc, participation, role, flow_identifier, flow)
+
+    from course.model import FlowPageData, FlowPageVisit
+    page_data = get_object_or_404(
+            FlowPageData, flow_visit=flow_visit, ordinal=ordinal)
+
+    from course.content import get_flow_page
+    page = get_flow_page(flow_visit, flow, page_data.group_id, page_data.page_id)
+
+    page_visit = FlowPageVisit()
+    page_visit.page_data = page_data
 
     return render(request, "course/flow-page.html", {
         "course": course,
@@ -205,12 +279,19 @@ def view_flow_page(request, course_identifier, flow_identifier, page_identifier)
         })
 
 
-def enroll(request, course_identifier):
-    # FIXME
-    raise NotImplementedError()
-
-
 # {{{ git interaction
+
+class GitFetchForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(Submit("fetch", "Fetch"))
+
+        super(GitFetchForm, self).__init__(*args, **kwargs)
+
 
 def fetch_course_updates(request, course_identifier):
     import sys
@@ -219,51 +300,67 @@ def fetch_course_updates(request, course_identifier):
     role, participation = get_role_and_participation(request, course)
 
     if role != participation_role.instructor:
-        return PermissionDenied("must be instructor to update course")
+        raise PermissionDenied("must be instructor to fetch revisisons")
 
     commit_sha = get_active_commit_sha(course, participation)
 
     repo = get_course_repo(course)
     course_desc = get_course_desc(repo, commit_sha)
 
-    was_successful = True
-    log_lines = []
-    try:
-        repo = get_course_repo(course)
+    form = GitFetchForm(request.POST, request.FILES)
+    if request.method == "POST":
+        if form.is_valid():
+            was_successful = True
+            log_lines = []
+            try:
+                repo = get_course_repo(course)
 
-        if not course.git_source:
-            raise RuntimeError("no git source URL specified")
+                if not course.git_source:
+                    raise RuntimeError("no git source URL specified")
 
-        if course.ssh_private_key:
-            repo.auth(pkey=course.ssh_private_key.encode("ascii"))
+                if course.ssh_private_key:
+                    repo.auth(pkey=course.ssh_private_key.encode("ascii"))
 
-        log_lines.append("Pre-fetch head is at '%s'" % repo.head())
+                log_lines.append("Pre-fetch head is at '%s'" % repo.head())
 
-        from dulwich.client import get_transport_and_path
-        client, remote_path = get_transport_and_path(course.git_source.encode())
-        remote_refs = client.fetch(remote_path, repo)
-        repo["HEAD"] = remote_refs["HEAD"]
+                from dulwich.client import get_transport_and_path
+                client, remote_path = get_transport_and_path(
+                        course.git_source.encode())
+                remote_refs = client.fetch(remote_path, repo)
+                repo["HEAD"] = remote_refs["HEAD"]
 
-        log_lines.append("Post-fetch head is at '%s'" % repo.head())
+                log_lines.append("Post-fetch head is at '%s'" % repo.head())
 
-    except Exception:
-        was_successful = False
-        from traceback import format_exception
-        log = "\n".join(log_lines) + "".join(
-                format_exception(*sys.exc_info()))
+            except Exception:
+                was_successful = False
+                from traceback import format_exception
+                log = "\n".join(log_lines) + "".join(
+                        format_exception(*sys.exc_info()))
+            else:
+                log = "\n".join(log_lines)
+
+            return render(request, 'course/course-bulk-result.html', {
+                "process_description": "Fetch course updates via git",
+                "log": log,
+                "status": "Pull successful."
+                    if was_successful
+                    else "Pull failed. See above for error.",
+                "was_successful": was_successful,
+                "course": course,
+                "course_desc": course_desc,
+                })
+        else:
+            form = GitFetchForm()
     else:
-        log = "\n".join(log_lines)
+        form = GitFetchForm()
 
-    return render(request, 'course/course-bulk-result.html', {
-        "process_description": "Fetch course updates via git",
-        "log": log,
-        "status": "Pull successful."
-            if was_successful
-            else "Pull failed. See above for error.",
-        "was_successful": was_successful,
+    return render(request, "course/generic-course-form.html", {
+        "participation": participation,
+        "form": form,
+        "form_description": "Fetch New Course Revisions",
         "course": course,
         "course_desc": course_desc,
-        })
+    })
 
 
 class GitUpdateForm(forms.Form):

@@ -1,0 +1,28 @@
+{% extends "course/course-base.html" %}
+
+{% block content %}
+  <h1>{{flow.title}}</h1>
+
+  {% if flow.description %}
+  {{flow.description_html|safe}}
+  {% endif %}
+
+  <form
+    action="{% url "course.views.start_flow" course.identifier flow_identifier %}"
+    method="POST">
+
+    {% csrf_token %}
+
+    {% if can_start_credit or can_start_no_credit %}
+      <div class="well">
+        {% if can_start_no_credit %}
+          <button type="submit" name="start_no_credit" class="btn btn-primary">Start &raquo;</button>
+        {% endif %}
+        {% if can_start_credit %}
+          <button type="submit" name="start_credit" class="btn btn-primary">Start for-credit attempt &raquo;</button>
+        {% endif %}
+      </div>
+    {% endif %}
+  </form>
+
+{% endblock %}

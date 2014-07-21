@@ -3,6 +3,7 @@ https://www.djangoproject.com/download/1.7c1/tarball/
 
 django-crispy-forms>=1.4.0
 django-json-field
+https://github.com/bradjasper/django-jsonfield/archive/postgresql.tar.gz
 
 six
 

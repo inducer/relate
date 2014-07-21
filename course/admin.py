@@ -3,7 +3,7 @@ from course.models import (
         UserStatus,
         Course, TimeMark,
         Participation, InstantFlowRequest,
-        FlowVisit, FlowPageVisit,
+        FlowVisit, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
         GradingOpportunity, GradeChange)
 
@@ -65,16 +65,46 @@ admin.site.register(InstantFlowRequest, InstantFlowRequestAdmin)
 
 # {{{ flow visits
 
+class FlowPageDataInline(admin.TabularInline):
+    model = FlowPageData
+    extra = 0
+
+
 class FlowVisitAdmin(admin.ModelAdmin):
-    pass
+    def get_course(self, obj):
+        return obj.participation.course
+    get_course.short_description = "Course"
+    get_course.admin_order_field = "participation__course"
+
+    def get_participant(self, obj):
+        return obj.participation.user
+    get_participant.short_description = "Participant"
+    get_participant.admin_order_field = "participation__user"
+
+    list_display = (
+            "flow_id",
+            "get_participant",
+            "get_course",
+            "start_time",
+            "state",
+            )
+    list_display_links = (
+            "flow_id",
+            "get_participant",
+            )
+
+    date_hierarchy = "start_time"
+
+    list_filter = (
+            "participation__course",
+            "flow_id",
+            "state",
+            )
+
+    inlines = (FlowPageDataInline,)
 
 admin.site.register(FlowVisit, FlowVisitAdmin)
 
-
-class FlowPageVisitAdmin(admin.ModelAdmin):
-    pass
-
-admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 
 # }}}
 

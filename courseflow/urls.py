@@ -25,6 +25,8 @@ urlpatterns = patterns('',
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/update/$",
         "course.views.update_course",),
+
+    # flow-related
     url(r"^course"
          "/(?P<course_identifier>[-a-zA-Z0-9]+)"
          "/flow"
@@ -36,9 +38,7 @@ urlpatterns = patterns('',
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow"
         "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
-        "/group"
-        "/(?P<group_identifier>[-_a-zA-Z0-9]+)"
-        "/(?P<page_identifier>[-_a-zA-Z0-9]+)"
+        "/(?P<ordinal>[0-9]+)"
         "/$",
         "course.views.view_flow_page",),
 
