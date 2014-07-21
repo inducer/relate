@@ -26,3 +26,7 @@ tr.evenrow {
 td.amount {
   text-align:right;
 }
+
+.flow-well {
+  margin-top: 2ex;
+}

@@ -227,29 +227,6 @@ def get_flow(repo, course, flow_id, commit_sha):
     return flow
 
 
-def set_up_flow_visit_page_data(flow_visit, flow):
-    from course.models import FlowPageData
-
-    data = None
-
-    ordinal = 0
-    for grp in flow.groups:
-        for page in grp.pages:
-            data = FlowPageData()
-            data.flow_visit = flow_visit
-            data.ordinal = ordinal
-            data.is_last = False
-            data.group_id = grp.id
-            data.page_id = page.id
-
-            # FIXME Create page data
-            data.save()
-
-            ordinal += 1
-
-    return ordinal
-
-
 def get_flow_page_desc(flow_id, flow, group_id, page_id):
     for grp in flow.groups:
         if grp.id == group_id:
@@ -329,6 +306,34 @@ def get_flow_page_class(repo, typename, commit_sha):
 def instantiate_flow_page(location, repo, page_desc, commit_sha):
     class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
     return class_(location, page_desc)
+
+
+def set_up_flow_visit_page_data(repo, flow_visit, flow, commit_sha):
+    from course.models import FlowPageData
+
+    data = None
+
+    ordinal = 0
+    for grp in flow.groups:
+        for page_desc in grp.pages:
+            data = FlowPageData()
+            data.flow_visit = flow_visit
+            data.ordinal = ordinal
+            data.is_last = False
+            data.group_id = grp.id
+            data.page_id = page_desc.id
+
+            page = instantiate_flow_page(
+                    "course '%s', flow '%s', page '%s/%s'"
+                    % (flow_visit.participation.course, flow_visit.flow_id,
+                        grp.id, page_desc.id),
+                    repo, page_desc, commit_sha)
+            data.data = page.make_page_data()
+            data.save()
+
+            ordinal += 1
+
+    return ordinal
 
 
 

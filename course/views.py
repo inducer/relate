@@ -222,7 +222,7 @@ def start_flow(request, course_identifier, flow_identifier):
 
             request.session["flow_visit_id"] = visit.id
 
-            page_count = set_up_flow_visit_page_data(visit, flow)
+            page_count = set_up_flow_visit_page_data(repo, visit, flow, commit_sha)
             visit.page_count = page_count
             visit.save()
 
@@ -268,7 +268,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
     if flow_visit is None:
         messages.add_message(request, messages.WARNING,
-                "No ongoing flow visit for this flow. "
+                "No current visit record found for this flow. "
                 "Redirected to flow start page.")
 
         return redirect("course.views.start_flow",
@@ -300,8 +300,17 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
     page_desc = get_flow_page_desc(
             flow_visit, flow, page_data.group_id, page_data.page_id)
 
+    from course.content import instantiate_flow_page
+    page = instantiate_flow_page(
+            "course '%s', flow '%s', page '%s/%s'"
+            % (course_identifier, flow_identifier,
+                page_data.group_id, page_data.page_id),
+            repo, page_desc, commit_sha)
+
     if request.method == "POST":
         if "finish" in request.POST:
+            raise NotImplementedError()
+        elif "submit" in request.POST:
             raise NotImplementedError()
         else:
             raise SuspiciousOperation("unrecognized POST action")
@@ -311,6 +320,12 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         page_visit.page_data = page_data
         page_visit.save()
 
+        from course.page import PageContext
+        page_context = PageContext(course=course)
+        title = page.title(page_context, page_data.data)
+        body = page.body(page_context, page_data.data)
+        form = page.form(page_context, page_data.data)
+
         return render(request, "course/flow-page.html", {
             "course": course,
             "course_desc": course_desc,
@@ -318,8 +333,10 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             "ordinal": ordinal,
             "page_data": page_data,
             "flow_visit": flow_visit,
+            "title": title,
+            "body": body,
+            "form": form,
             "participation": participation,
-            #"flow_desc": flow_desc,
         })
 
 # }}}

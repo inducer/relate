@@ -172,23 +172,6 @@ def validate_course_desc_struct(ctx, course_desc):
 # {{{ flow validation
 
 def validate_flow_page(ctx, location, page_desc):
-    validate_struct(
-            location,
-            page_desc,
-            required_attrs=[
-                ("type", str),
-                ("id", str),
-                ],
-            allowed_attrs=[
-                ("content", str),
-                ("prompt", str),
-                ("title", str),
-                ("answers", list),
-                ("choices", list),
-                ("value", (int, float)),
-                ]
-            )
-
     validate_identifier(location, page_desc.id)
 
     from course.content import instantiate_flow_page

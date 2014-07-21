@@ -1,12 +1,13 @@
-Courseflow
+CourseFlow
 ==========
 
-Courseflow lets students participate in online activities. Each such activity
+CourseFlow is a `Django <https://docs.djangoproject.com/>`_-based courseware
+package that lets students participate in online activities. Each such activity
 is called a "flow". It flows over a couple of pages, each of which can be, say,
 a video, a quiz question, a page of text, or, within the confines of HTML,
 something completely different.
 
-Courseflow is set apart by the following features:
+CourseFlow is set apart by the following features:
 
 * Emphasizes ease of authoring, using `YAML <https://en.wikipedia.org/wiki/YAML>`_,
   `Markdown <https://en.wikipedia.org/wiki/Markdown>`_ and Python.
@@ -18,8 +19,9 @@ Courseflow is set apart by the following features:
 Installation
 ------------
 
-Courseflow is written using `Django <https://docs.djangoproject.com/>`_ in
-Python 2.7.
+Courseflow currently works with Python 2.7 (because `dulwich
+<https://www.samba.org/~jelmer/dulwich/>`_, a dependency, does not yet support
+Python 3.
 
 (Optional) Make a virtualenv to install to::
 

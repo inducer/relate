@@ -27,6 +27,11 @@ THE SOFTWARE.
 from course.validation import validate_struct
 
 
+class PageContext(object):
+    def __init__(self, course):
+        self.course = course
+
+
 class PageBase(object):
     """
     .. attribute:: location
@@ -41,6 +46,19 @@ class PageBase(object):
     def __init__(self, location, id):
         self.location = location
         self.id = id
+
+    def make_page_data(self):
+        return {}
+
+    def title(self, page_context, data):
+        raise NotImplementedError()
+
+    def body(self, page_context, data):
+        raise NotImplementedError()
+
+    def form(self, page_context, data):
+        return None
+
 
 
 class Page(PageBase):
@@ -59,6 +77,16 @@ class Page(PageBase):
 
         PageBase.__init__(self, location, page_desc.id)
         self.page_desc = page_desc
+
+    def title(self, page_context, data):
+        return self.page_desc.title
+
+    def body(self, page_context, data):
+        from course.content import html_body
+        return html_body(page_context.course, self.page_desc.content)
+
+    def form(self, page_context, data):
+        return None
 
 
 class TextQuestion(PageBase):

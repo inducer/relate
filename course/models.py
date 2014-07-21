@@ -204,7 +204,7 @@ class FlowVisit(models.Model):
     state = models.CharField(max_length=50, choices=FLOW_VISIT_STATE_CHOICES)
 
     class Meta:
-        ordering = ("participation",)
+        ordering = ("participation", "-start_time")
 
 
 class FlowPageData(models.Model):
