@@ -68,15 +68,21 @@ class Course(models.Model):
             db_index=True)
     git_source = models.CharField(max_length=200, blank=True,
             help_text="A Git URL from which to pull course updates")
-    ssh_private_key = models.CharField(max_length=2000, blank=True,
+    ssh_private_key = models.TextField(blank=True,
             help_text="An SSH private key to use for Git authentication")
 
     enrollment_approval_required = models.BooleanField(
-            default=False)
+            default=False,
+            help_text="If set, each enrolling student must be "
+            "individually approved.")
     enrollment_required_email_suffix = models.CharField(
-            max_length=200, blank=True, null=True)
+            max_length=200, blank=True, null=True,
+            help_text="Enrollee's email addresses must end in the "
+            "specified suffix, such as '@illinois.edu'.")
 
-    course_robot_email_address = models.EmailField()
+    course_robot_email_address = models.EmailField(
+            help_text="This email address will be used in the 'From' line "
+            "of automated emails sent by CourseFlow.")
     course_xmpp_id = models.CharField(max_length=200, blank=True)
     course_xmpp_password = models.CharField(max_length=200, blank=True)
     active_git_commit_sha = models.CharField(max_length=200, null=False,
@@ -178,19 +184,6 @@ class InstantFlowRequest(models.Model):
 
 # {{{ flow visit tracking
 
-class flow_visit_state:
-    in_progress = "in_progress"
-    expired = "expired"
-    completed = "completed"
-
-
-FLOW_VISIT_STATE_CHOICES = (
-        (flow_visit_state.in_progress, "In progress"),
-        (flow_visit_state.expired, "Expired"),
-        (flow_visit_state.completed, "Completed"),
-        )
-
-
 class FlowVisit(models.Model):
     participation = models.ForeignKey(Participation, null=True, blank=True)
     active_git_commit_sha = models.CharField(max_length=200)
@@ -201,7 +194,8 @@ class FlowVisit(models.Model):
 
     stipulations = JSONField(blank=True, null=True)
 
-    state = models.CharField(max_length=50, choices=FLOW_VISIT_STATE_CHOICES)
+    in_progress = models.BooleanField(default=None)
+    for_credit = models.BooleanField(default=None)
 
     class Meta:
         ordering = ("participation", "-start_time")
@@ -246,6 +240,7 @@ class FlowPageVisit(models.Model):
     visit_time = models.DateTimeField(default=now, db_index=True)
 
     answer = JSONField(null=True, blank=True)
+    answer_is_final = models.NullBooleanField()
 
     def __unicode__(self):
         return "%s's visit to %s/%s' in '%s' on %s" % (
@@ -261,27 +256,21 @@ class FlowPageVisit(models.Model):
 # {{{ flow access
 
 class flow_permission:
-    # access flow start page
     view = "view"
-
-    # review past attempts
     view_past = "view_past"
-
-    # start new for-credit visit
     start_credit = "start_credit"
-
-    # start new not-for-credit visit
     start_no_credit = "start_no_credit"
 
-    # see correct answer
-    see_correct_answer = "see_correct_answer"
+    see_correctness = "see_correctness"
+    see_answer = "see_answer"
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view, "View flow start page"),
         (flow_permission.view_past, "Review past attempts"),
         (flow_permission.start_credit, "Start for-credit visit"),
         (flow_permission.start_no_credit, "Start not-for-credit visit"),
-        (flow_permission.see_correct_answer, "See correct answer"),
+        (flow_permission.see_correctness, "See whether answer is correct"),
+        (flow_permission.see_answer, "See the correct answer"),
         )
 
 

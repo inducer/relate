@@ -14,7 +14,7 @@
   <li>
   {% if role == participation_role.instructor %}
   <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Admin activities<b class="caret"></b></a>
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Instructor activities<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li><a href="{% url "course.versioning.fetch_course_updates" course.identifier %}">Fetch updates</a></li>
       <li><a href="{% url "course.versioning.update_course" course.identifier %}">Update course</a></li>

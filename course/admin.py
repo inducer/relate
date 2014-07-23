@@ -112,12 +112,20 @@ class FlowVisitAdmin(admin.ModelAdmin):
     get_participant.short_description = "Participant"
     get_participant.admin_order_field = "participation__user"
 
+    search_fields = (
+            "flow_id",
+            "participation__user__username",
+            "participation__user__first_name",
+            "participation__user__last_name",
+            )
+
     list_display = (
             "flow_id",
             "get_participant",
             "get_course",
             "start_time",
-            "state",
+            "in_progress",
+            "for_credit",
             )
     list_display_links = (
             "flow_id",
@@ -129,13 +137,13 @@ class FlowVisitAdmin(admin.ModelAdmin):
     list_filter = (
             "participation__course",
             "flow_id",
-            "state",
+            "in_progress",
+            "for_credit",
             )
 
     inlines = (FlowPageDataInline, FlowPageVisitInline)
 
 admin.site.register(FlowVisit, FlowVisitAdmin)
-
 
 # }}}
 

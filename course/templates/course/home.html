@@ -11,20 +11,20 @@
   </div>
 
   {% if courses_and_descs %}
-    The following courses are hosted on this instance of CourseFlow:
-    <ul>
+    <div class="row">
       {% for course, desc in courses_and_descs %}
-        <li>
-        <a href="{% url 'course.views.course_page' course.identifier %}">
-          {{desc.number}} {{desc.run}}</a>: {{desc.name}}
-        </li>
+        <div class="col-lg-4">
+          <h3>{{desc.number}} {{desc.run}}</h3>
+          <p>{{desc.name}}</p>
+          <p><a class="btn btn-default" href="{% url 'course.views.course_page' course.identifier %}"" role="button">View &raquo;</a></p>
+        </div>
       {% endfor %}
-    </ul>
+    </div>
   {% else %}
     There no courses hosted on this instance of CourseFlow.
-    Visit the
-    <a href="{% url 'admin:index' %}" target="_new">admin site</a>
-    to create one.
-
+  {% endif %}
+  {% if user.is_staff %}
+    <hr>
+    <a class="btn btn-primary" href="{% url 'course.versioning.set_up_new_course' %}"" role="button">Set up new course &raquo;</a></p>
   {% endif %}
 {% endblock %}

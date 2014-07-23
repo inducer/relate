@@ -32,10 +32,6 @@ To install, clone the repository::
 
     git clone git://github.com/inducer/courseflow
 
-Clone the sample content (into the same directory as courseflow)::
-
-    git clone git://github.com/inducer/courseflow-sample
-
 Enter the courseflow directory::
 
     cd courseflow
@@ -52,13 +48,15 @@ Copy (and, optionally, edit) the example configuration::
 Initialize the database::
 
     python manage.py migrate
-    python manage.py changepassword $(whoami)
+    python manage.py createsuperuser --username=$(whoami)
 
 Run the server::
 
     python manage.py runserver
 
-Open a browser to http://localhost:8000.
+Open a browser to http://localhost:8000 and select "Set up new course".
+To test, you may use ``git://github.com/inducer/courseflow-sample`` to
+create a sample course.
 
 FIXME: Test/unfinshed
 

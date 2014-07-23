@@ -97,11 +97,14 @@ def html_body(course, text):
 # }}}
 
 
-def get_course_repo(course):
+def get_course_repo_path(course):
     from os.path import join
+    return join(settings.GIT_ROOT, course.identifier)
 
+
+def get_course_repo(course):
     from dulwich.repo import Repo
-    return Repo(join(settings.GIT_ROOT, course.identifier))
+    return Repo(get_course_repo_path(course))
 
 
 def get_repo_blob(repo, full_name, commit_sha=None):

@@ -25,6 +25,8 @@ THE SOFTWARE.
 """
 
 from course.validation import validate_struct
+from crispy_forms.helper import FormHelper
+import django.forms as forms
 
 
 class PageContext(object):
@@ -58,8 +60,15 @@ class PageBase(object):
     def body(self, page_context, data):
         raise NotImplementedError()
 
-    def form(self, page_context, data, post_data, files_data):
+    def fresh_form(self, page_context, data):
         return None
+
+    def form_with_answer(self, page_context, data,
+            previous_answer, previous_answer_is_final):
+        raise NotImplementedError()
+
+    def post_form(self, page_context, data, post_data, files_data):
+        raise NotImplementedError()
 
 
 class Page(PageBase):
@@ -87,6 +96,18 @@ class Page(PageBase):
         return html_body(page_context.course, self.page_desc.content)
 
 
+class TextAnswerForm(forms.Form):
+    answer = forms.CharField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        super(TextAnswerForm, self).__init__(*args, **kwargs)
+
+
 class TextQuestion(PageBase):
     def __init__(self, location, page_desc):
         validate_struct(
@@ -105,6 +126,29 @@ class TextQuestion(PageBase):
 
         PageBase.__init__(self, location, page_desc.id)
         self.page_desc = page_desc
+
+    def title(self, page_context, data):
+        return self.page_desc.title
+
+    def body(self, page_context, data):
+        from course.content import html_body
+        return html_body(page_context.course, self.page_desc.prompt)
+
+    def fresh_form(self, page_context, data):
+        return TextAnswerForm()
+
+    def form_with_answer(self, page_context, data,
+            previous_answer, previous_answer_is_final):
+        answer = {"answer": previous_answer["answer"]}
+        form = TextAnswerForm(answer)
+
+        if previous_answer_is_final:
+            self.fields['answer'].widget.attrs['readonly'] = True
+
+        return form
+
+    def post_form(self, page_context, data, post_data, files_data):
+        return TextAnswerForm(post_data, files_data)
 
 
 class SymbolicQuestion(PageBase):

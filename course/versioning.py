@@ -28,10 +28,12 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 import django.forms as forms
-
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 
-from course.models import Course, participation_role
+from course.models import (
+        Course,
+        Participation, participation_role, participation_status)
 
 from course.content import (get_course_repo, get_course_desc)
 from course.views import (
@@ -40,6 +42,101 @@ from course.views import (
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
+from django.db import transaction
+
+
+# {{{ new course setup
+
+class CourseCreationForm(forms.ModelForm):
+    class Meta:
+        model = Course
+        fields = [
+            'identifier', 'git_source', 'ssh_private_key',
+            'enrollment_approval_required',
+            'enrollment_required_email_suffix',
+            'course_robot_email_address']
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(
+                Submit("submit", "Validate and create",
+                    css_class="col-lg-offset-2"))
+
+        super(CourseCreationForm, self).__init__(*args, **kwargs)
+
+
+@login_required
+@transaction.atomic
+def set_up_new_course(request):
+    if not request.user.is_staff:
+        raise PermissionDenied("only staff may create courses")
+
+    if request.method == "POST":
+        form = CourseCreationForm(request.POST)
+
+        if form.is_valid():
+            new_course = form.save(commit=False)
+
+            from course.content import get_course_repo_path
+            repo_path = get_course_repo_path(new_course)
+
+            try:
+                import os
+                os.makedirs(repo_path)
+
+                from dulwich.repo import Repo
+                repo = Repo.init(repo_path)
+
+                from dulwich.client import get_transport_and_path
+                client, remote_path = get_transport_and_path(
+                        new_course.git_source.encode())
+                remote_refs = client.fetch(remote_path, repo)
+                new_sha = repo["HEAD"] = remote_refs["HEAD"]
+
+                from course.validation import validate_course_content
+                validate_course_content(repo, new_sha)
+
+                new_course.active_git_commit_sha = new_sha
+                new_course.save()
+
+                # {{{ set up a participation for the course creator
+
+                part = Participation()
+                part.user = request.user
+                part.course = new_course
+                part.role = participation_role.instructor
+                part.status = participation_status.active
+                part.save()
+
+                # }}}
+
+            except Exception as e:
+                import shutil
+                shutil.rmtree(repo_path)
+
+                messages.add_message(request, messages.ERROR,
+                        "Course creation failed: %s: %s" % (
+                            type(e).__name__, str(e)))
+            else:
+                return redirect(
+                        "course.views.course_page",
+                        new_course.identifier)
+
+    else:
+        course = Course()
+        form = CourseCreationForm(course)
+        del course
+
+    return render(request, "generic-form.html", {
+        "form_description": "Set up new course",
+        "form": form
+        })
+
+# }}}
 
 
 # {{{ fetch
@@ -51,9 +148,9 @@ class GitFetchForm(forms.Form):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        self.helper.add_input(Submit("fetch", "Fetch"))
-
         super(GitFetchForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(Submit("fetch", "Fetch"))
 
 
 def fetch_course_updates(request, course_identifier):
@@ -127,8 +224,8 @@ def fetch_course_updates(request, course_identifier):
 
 # }}}
 
-# {{{ update
 
+# {{{ update
 
 class GitUpdateForm(forms.Form):
     new_sha = forms.CharField(required=True, initial=50)

@@ -27,7 +27,6 @@ THE SOFTWARE.
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
-import django.forms as forms
 
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 
@@ -37,7 +36,7 @@ from course.models import (
         Course, Participation,
         FlowAccessException,
         FlowVisit,
-        participation_role, participation_status, flow_visit_state)
+        participation_role, participation_status)
 
 from course.content import (
         get_course_repo, get_course_desc, parse_date_spec,
@@ -209,20 +208,20 @@ def start_flow(request, course_identifier, flow_identifier):
     if request.method == "POST":
         from course.content import set_up_flow_visit_page_data
 
-        if "start_credit" in request.POST:
-            raise NotImplementedError("for-credit flows")
-            # FIXME for-credit
-        elif "start_no_credit" in request.POST:
+        if ("start_no_credit" in request.POST
+                or "start_credit" in request.POST):
             visit = FlowVisit()
             visit.participation = participation
             visit.active_git_commit_sha = commit_sha.decode()
             visit.flow_id = flow_identifier
-            visit.state = flow_visit_state.in_progress
+            visit.in_progress = True
+            visit.for_credit = "start_credit" in request.POST
             visit.save()
 
             request.session["flow_visit_id"] = visit.id
 
-            page_count = set_up_flow_visit_page_data(repo, visit, flow_desc, commit_sha)
+            page_count = set_up_flow_visit_page_data(repo, visit,
+                    flow_desc, commit_sha)
             visit.page_count = page_count
             visit.save()
 
@@ -253,8 +252,81 @@ def start_flow(request, course_identifier, flow_identifier):
             })
 
 
-def view_flow_page(request, course_identifier, flow_identifier, ordinal):
-    # {{{ find flow_visit
+class FlowPageContext(object):
+    """This object acts as a container for all the information that a flow page
+    may need to render itself or respond to a POST.
+    """
+
+    def __init__(self, request, course_identifier, flow_identifier,
+            ordinal, flow_visit):
+        self.flow_visit = flow_visit
+        self.course_identifier = course_identifier
+        self.flow_identifier = flow_identifier
+
+        self.course = get_object_or_404(Course, identifier=course_identifier)
+        self.role, self.participation = get_role_and_participation(
+                request, self.course)
+
+        self.commit_sha = self.flow_visit.active_git_commit_sha.encode()
+
+        self.repo = get_course_repo(self.course)
+        self.course_desc = get_course_desc(self.repo, self.commit_sha)
+
+        self.flow_desc = get_flow_desc(self.repo, self.course,
+                flow_identifier, self.commit_sha)
+
+        self.permissions, self.stipulations = get_flow_permissions(
+                self.course_desc, self.participation, self.role,
+                flow_identifier, self.flow_desc)
+
+        from course.models import FlowPageData
+        page_data = self.page_data = get_object_or_404(
+                FlowPageData, flow_visit=flow_visit, ordinal=ordinal)
+
+        from course.content import get_flow_page_desc
+        self.page_desc = get_flow_page_desc(
+                flow_visit, self.flow_desc, page_data.group_id, page_data.page_id)
+
+        from course.content import instantiate_flow_page
+        self.page = instantiate_flow_page(
+                "course '%s', flow '%s', page '%s/%s'"
+                % (course_identifier, flow_identifier,
+                    page_data.group_id, page_data.page_id),
+                self.repo, self.page_desc, self.commit_sha)
+
+        from course.page import PageContext
+        self.page_context = PageContext(
+                course=self.course,
+                ordinal=page_data.ordinal,
+                page_count=flow_visit.page_count,
+                )
+
+        # {{{ dig for previous answers
+
+        from course.models import FlowPageVisit
+        previous_answer_visits = (FlowPageVisit.objects
+                .filter(answer__isnull=False)
+                .order_by("-visit_time"))
+
+        self.prev_answer_is_final = False
+        self.prev_answer = None
+        for prev_visit in previous_answer_visits:
+            self.prev_answer = prev_visit.answer
+            self.prev_answer_is_final = prev_visit.answer_is_final
+            break
+
+        # }}}
+
+    @property
+    def ordinal(self):
+        return self.page_data.ordinal
+
+    @property
+    def page_count(self):
+        return self.flow_visit.page_count
+
+
+def find_current_flow_visit(request, flow_identifier):
     flow_visit = None
     flow_visit_id = request.session.get("flow_visit_id")
 
@@ -264,105 +336,125 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         if flow_visits and flow_visits[0].flow_id == flow_identifier:
             flow_visit, = flow_visits
 
-        del flow_visits
+        if not flow_visit.in_progress:
+            flow_visit = False
+
+    return flow_visit
+
+
+def finish_flow_visit(flow_visit):
+    from django.utils.timezone import now
+    flow_visit.completion_time = now()
+    flow_visit.in_progress = False
+    flow_visit.save()
+
+    # FIXME mark answers as final
+    # FIXME assign grade
+
+
+def render_flow_completion_response(request, fpctx):
+    from course.content import html_body
+    return render(request, "course/flow-completion.html", {
+        "course": fpctx.course,
+        "course_desc": fpctx.course_desc,
+        "flow_identifier": fpctx.flow_identifier,
+        "flow_desc": fpctx.flow_desc,
+        "body": html_body(fpctx.course, fpctx.flow_desc.completion_text),
+        "participation": fpctx.participation,
+    })
+
+
+def render_flow_page(request, fpctx, **kwargs):
+    args = {
+        "course": fpctx.course,
+        "course_desc": fpctx.course_desc,
+        "flow_identifier": fpctx.flow_identifier,
+        "flow_desc": fpctx.flow_desc,
+        "ordinal": fpctx.ordinal,
+        "page_data": fpctx.page_data,
+        "flow_visit": fpctx.flow_visit,
+        "participation": fpctx.participation,
+    }
+
+    args.update(kwargs)
+
+    return render(request, "course/flow-page.html", args)
+
+
+def finalize_flow_page_form(fpctx, form):
+    if form is not None:
+        from course.models import flow_permission
+        from crispy_forms.layout import Submit
+        form.helper.add_input(
+                Submit("save", "Save answer",
+                    css_class="col-lg-offset-2"))
+
+        will_receive_feedback = (
+                flow_permission.see_correctness in fpctx.permissions
+                or flow_permission.see_answer in fpctx.permissions)
+        if will_receive_feedback:
+            form.helper.add_input(Submit("submit", "Submit final answer"))
+        else:
+            # Only offer 'save and move on' if student will receive no feedback
+            if fpctx.page_data.ordinal + 1 < fpctx.flow_visit.page_count:
+                form.helper.add_input(
+                        Submit("save_and_next", "Save answer and move on"))
+            else:
+                form.helper.add_input(
+                        Submit("save_and_finish", "Save answer and finish"))
+
+    return form
+
+
+def view_flow_page(request, course_identifier, flow_identifier, ordinal):
+    flow_visit = find_current_flow_visit(request, flow_identifier)
 
     if flow_visit is None:
         messages.add_message(request, messages.WARNING,
-                "No current visit record found for this flow. "
+                "No in-progress visit record found for this flow. "
                 "Redirected to flow start page.")
 
         return redirect("course.views.start_flow",
                 course_identifier,
                 flow_identifier)
 
-    # }}}
+    fpctx = FlowPageContext(request, course_identifier, flow_identifier,
+            ordinal, flow_visit)
 
     # FIXME time limits
 
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
-
-    commit_sha = flow_visit.active_git_commit_sha.encode()
-
-    repo = get_course_repo(course)
-    course_desc = get_course_desc(repo, commit_sha)
-
-    flow_desc = get_flow_desc(repo, course, flow_identifier, commit_sha)
-
-    permissions, stipulations = get_flow_permissions(
-            course_desc, participation, role, flow_identifier, flow_desc)
-
-    from course.models import FlowPageData, FlowPageVisit
-    page_data = get_object_or_404(
-            FlowPageData, flow_visit=flow_visit, ordinal=ordinal)
-
-    from course.content import get_flow_page_desc
-    page_desc = get_flow_page_desc(
-            flow_visit, flow_desc, page_data.group_id, page_data.page_id)
-
-    from course.content import instantiate_flow_page
-    page = instantiate_flow_page(
-            "course '%s', flow '%s', page '%s/%s'"
-            % (course_identifier, flow_identifier,
-                page_data.group_id, page_data.page_id),
-            repo, page_desc, commit_sha)
-
-    from course.page import PageContext
-    page_context = PageContext(
-            course=course,
-            ordinal=page_data.ordinal,
-            page_count=flow_visit.page_count,
-            )
+    from course.models import FlowPageVisit, flow_permission
 
     if request.method == "POST":
         if "finish" in request.POST:
-            from django.utils.timezone import now
-            flow_visit.completion_time = now()
-            flow_visit.state = flow_visit_state.completed
-            flow_visit.save()
-
-            # FIXME assign grade
-
-            from course.content import html_body
-            return render(request, "course/flow-completion.html", {
-                "course": course,
-                "course_desc": course_desc,
-                "flow_identifier": flow_identifier,
-                "flow_desc": flow_desc,
-                "ordinal": ordinal,
-                "page_data": page_data,
-                "flow_visit": flow_visit,
-                "body": html_body(course, flow_desc.completion_text),
-                "participation": participation,
-            })
-        elif "submit" in request.POST:
-            raise NotImplementedError()
+            finish_flow_visit(flow_visit)
+            request.session["flow_visit_id"] = None
+            return render_flow_completion_response(request, fpctx)
         else:
-            raise SuspiciousOperation("unrecognized POST action")
+            # FIXME reject if previous answer is final
+            form = fpctx.page.post_form(fpctx.page_context, fpctx.page_data.data,
+                    post_data=request.POST, files_data=request.POST)
     else:
         page_visit = FlowPageVisit()
         page_visit.flow_visit = flow_visit
-        page_visit.page_data = page_data
+        page_visit.page_data = fpctx.page_data
         page_visit.save()
 
-        title = page.title(page_context, page_data.data)
-        body = page.body(page_context, page_data.data)
-        form = page.form(page_context, page_data.data,
-                post_data=None, files_data=None)
+        page_context = fpctx.page_context
+        page_data = fpctx. page_data
 
-        return render(request, "course/flow-page.html", {
-            "course": course,
-            "course_desc": course_desc,
-            "flow_identifier": flow_identifier,
-            "flow_desc": flow_desc,
-            "ordinal": ordinal,
-            "page_data": page_data,
-            "flow_visit": flow_visit,
-            "title": title,
-            "body": body,
-            "form": form,
-            "participation": participation,
-        })
+        title = fpctx.page.title(page_context, page_data.data)
+        body = fpctx.page.body(page_context, page_data.data)
+
+        if fpctx.prev_answer:
+            form = fpctx.page.form_with_answer(page_context, page_data.data,
+                    fpctx.prev_answer, fpctx.prev_answer_is_final)
+        else:
+            form = fpctx.page.fresh_form(page_context, page_data.data)
+
+        form = finalize_flow_page_form(fpctx, form)
+
+        return render_flow_page(request, fpctx, title=title, body=body, form=form)
 
 # }}}
 

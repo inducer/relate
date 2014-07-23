@@ -35,6 +35,7 @@ urlpatterns = patterns('',
         {'template_name': 'base.html'}),
 
     url(r'^$', 'course.views.home', name='home'),
+
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/$",
@@ -45,6 +46,8 @@ urlpatterns = patterns('',
         "course.views.enroll",),
 
     # versioning
+    url(r"^new-course/$",
+        "course.versioning.set_up_new_course"),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/fetch/$",
