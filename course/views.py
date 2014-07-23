@@ -27,13 +27,21 @@ THE SOFTWARE.
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
-
+import django.forms as forms
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import \
+        AuthenticationForm as AuthenticationFormBase
+from django.core.urlresolvers import reverse
 
 import datetime
 
 from course.models import (
-        Course, Participation,
+        UserStatus, user_status,
+        Course, course_validation_state, Participation,
         FlowAccessException,
         FlowVisit,
         participation_role, participation_status)
@@ -136,36 +144,181 @@ def get_flow_permissions(course_desc, participation, role, flow_id, flow_desc):
 # {{{ views
 
 def home(request):
-    courses_and_descs = []
+    courses_and_descs_and_invalid_flags = []
     for course in Course.objects.all():
         repo = get_course_repo(course)
         desc = get_course_desc(repo, course.active_git_commit_sha.encode())
-        courses_and_descs.append((course, desc))
+
+        role, participation = get_role_and_participation(request, course)
+
+        show = True
+        if course.hidden:
+            if role not in [participation_role.teaching_assistant,
+                    participation_role.instructor]:
+                show = False
+
+        if course.validation_state != course_validation_state.valid:
+            if role != participation_role.instructor:
+                show = False
+
+        if show:
+            courses_and_descs_and_invalid_flags.append(
+                    (course, desc,
+                        course.validation_state != course_validation_state.valid))
 
     def course_sort_key(entry):
-        course, desc = entry
+        course, desc, invalid_flag = entry
         return desc.course_start
 
-    courses_and_descs.sort(key=course_sort_key)
+    courses_and_descs_and_invalid_flags.sort(key=course_sort_key)
 
     return render(request, "course/home.html", {
-        "courses_and_descs": courses_and_descs
+        "courses_and_descs_and_invalid_flags": courses_and_descs_and_invalid_flags
         })
 
 
+# {{{ conventional login
+
+class LoginForm(AuthenticationFormBase):
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(Submit("submit", "Sign in",
+            css_class="col-lg-offset-2"))
+
+        super(LoginForm, self).__init__(*args, **kwargs)
+
+
+def sign_in(request):
+    from django.contrib.auth.views import login
+    return login(request, template_name="course/login.html",
+            authentication_form=LoginForm)
+
+# }}}
+
+
+# {{{ email sign-in flow
+
+class SignInByEmailForm(forms.Form):
+    email = forms.EmailField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(
+                Submit("submit", "Send sign-in email",
+                    css_class="col-lg-offset-2"))
+
+        super(SignInByEmailForm, self).__init__(*args, **kwargs)
+
+
+def make_sign_in_key(user):
+    # try to ensure these hashes aren't guessable.
+    import random
+    import hashlib
+    from time import time
+    m = hashlib.sha1()
+    m.update(user.email)
+    m.update(hex(random.getrandbits(128)))
+    m.update(str(time()))
+    return m.hexdigest()
+
+
 def sign_in_by_email(request):
-    # FIXME
-    raise NotImplementedError()
+    if request.method == 'POST':
+        form = SignInByEmailForm(request.POST)
+        if form.is_valid():
+            from django.contrib.auth.models import User
+
+            email = form.cleaned_data["email"]
+            users = User.objects.filter(email=email)
+
+            if users.count() > 1:
+                messages.add_message(request, messages.ERROR,
+                        "More than one user with this email. "
+                        "Please contact site staff.")
+                raise PermissionDenied("duplicate email")
+
+            if users.count() == 0:
+                user = User()
+                user.username = email
+                user.email = email
+                user.set_unusable_password()
+                user.save()
+
+                ustatus = UserStatus()
+                ustatus.user = user
+                ustatus.status = user_status.requested
+                ustatus.sign_in_key = make_sign_in_key(user)
+                ustatus.save()
+
+                messages.add_message(request, messages.INFO,
+                        "Please check your email and click the link.")
+
+            elif users.count() == 1:
+                user, = users
+                ustatus = user.user_status
+                ustatus.user = user
+                ustatus.sign_in_key = make_sign_in_key(user)
+                ustatus.save()
+
+            from django.template.loader import render_to_string
+            message = render_to_string("course/sign-in-email.txt", {
+                "user": user,
+                "sign_in_uri": request.build_absolute_uri(
+                    reverse(
+                        "course.views.sign_in_link",
+                        args=(ustatus.sign_in_key,))),
+                "home_uri": request.build_absolute_uri(reverse("course.views.home"))
+                })
+            from django.core.mail import send_mail
+            send_mail("Your CourseFlow sign-in link", message,
+                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+            return redirect("course.views.home")
+    else:
+        form = SignInByEmailForm()
+
+    return render(request, "course/login-by-email.html", {
+        "form_description": "",
+        "form": form
+        })
 
 
+def sign_in_link(request, sign_in_key):
+    pass
+
+# }}}
+
+
+@login_required
 def enroll(request, course_identifier):
     # FIXME
     raise NotImplementedError()
 
 
+def check_course_state(course, role):
+    if course.hidden:
+        if role not in [participation_role.teaching_assistant,
+                participation_role.instructor]:
+            raise PermissionDenied("only course staff have access")
+    elif course.validation_state != course_validation_state.valid:
+        if role != participation_role.instructor:
+            raise PermissionDenied("only the instructor has access")
+
+
 def course_page(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
+
+    check_course_state(course, role)
 
     commit_sha = get_active_commit_sha(course, participation)
 
@@ -179,6 +332,7 @@ def course_page(request, course_identifier):
     return render(request, "course/course-page.html", {
         "course": course,
         "course_desc": course_desc,
+        "course_validation_state": course_validation_state,
         "participation": participation,
         "role": role,
         "chunks": chunks,
@@ -189,6 +343,8 @@ def course_page(request, course_identifier):
 def start_flow(request, course_identifier, flow_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
+
+    check_course_state(course, role)
 
     commit_sha = get_active_commit_sha(course, participation)
 
@@ -266,6 +422,8 @@ class FlowPageContext(object):
         self.course = get_object_or_404(Course, identifier=course_identifier)
         self.role, self.participation = get_role_and_participation(
                 request, self.course)
+
+        check_course_state(self.course, self.role)
 
         self.commit_sha = self.flow_visit.active_git_commit_sha.encode()
 

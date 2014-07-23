@@ -28,11 +28,17 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 
 urlpatterns = patterns('',
-    url(r'^login/by-email/$',
-        'course.views.sign_in_by_email'),
-    url(r'^logout/$',
+    url(r"^login/$",
+        "course.views.sign_in"),
+    url(r"^login/by-email/$",
+        "course.views.sign_in_by_email"),
+    url(r"^login/token"
+        "/(?P<sign_in_key>[a-zA-Z0-9]+)"
+        "/$",
+        "course.views.sign_in_link"),
+    url(r"^logout/$",
         'django.contrib.auth.views.logout',
-        {'template_name': 'base.html'}),
+        {'next_page': 'course.views.home'}),
 
     url(r'^$', 'course.views.home', name='home'),
 

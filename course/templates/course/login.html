@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h1>Sign in</h1>
+
+  <div class="alert alert-warning">
+    If you have a not been assigned a password, you should use the
+    <a href="{% url "course.views.sign_in_by_email" %}">email-based sign-in process</a>.
+  </div>
+
+  <div class="well">
+    <form method="post" action="{% url "course.views.sign_in" %}" class="form-horizontal">
+      {% crispy form %}
+      <input type="hidden" name="next" value="{{ next }}" />
+    </form>
+  </div>
+{% endblock %}
+

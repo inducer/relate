@@ -12,6 +12,22 @@
 {% endblock %}
 
 {% block content %}
+  {% if course.hidden %}
+    <div class="alert alert-info">
+      The course is only visible to course staff at the moment.
+      <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
+        role="button">Change &raquo;</a>
+    </div>
+  {% endif %}
+  {% if course.validation_state != course_validation_state.valid %}
+    <div class="alert alert-warning">
+      There may be a problem with the validity of course data, which may lead
+      to students encountering unexpected errors.
+      <a class="btn btn-primary" href="{% url "course.versioning.update_course" course.identifier %}"
+        role="button">Update &raquo;</a>
+    </div>
+  {% endif %}
+
   {% if not user.is_authenticated %}
     <div class="well">
       You're not currently signed in.

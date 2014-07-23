@@ -29,4 +29,6 @@ EMAIL_HOST_PASSWORD = ''
 EMAIL_PORT = 25
 EMAIL_USE_TLS = False
 
+ROBOT_EMAIL_FROM = "Andreas Kloeckner <inform@tiker.net>"
+
 TIME_ZONE = "America/Chicago"

@@ -49,7 +49,8 @@ admin.site.register(UserStatus, UserStatusAdmin)
 
 
 class CourseAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("identifier", "hidden", "validation_state")
+    list_filter = ("validation_state",)
 
 admin.site.register(Course, CourseAdmin)
 

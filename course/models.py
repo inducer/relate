@@ -46,26 +46,51 @@ USER_STATUS_CHOICES = (
 
 
 class UserStatus(models.Model):
-    user = models.OneToOneField(User, db_index=True)
+    user = models.OneToOneField(User, db_index=True, related_name="user_status")
     status = models.CharField(max_length=50,
             choices=USER_STATUS_CHOICES)
-    registration_key = models.CharField(max_length=50,
+    sign_in_key = models.CharField(max_length=50,
             null=True, unique=True, db_index=True)
     key_time = models.DateTimeField(default=now)
 
     class Meta:
         verbose_name_plural = "user statuses"
         ordering = ("key_time",)
+
+    def __unicode__(self):
+        return "User status for %s" % self.user
+
 # }}}
 
 
 # {{{ course
+
+class course_validation_state:
+    invalid = "invalid"
+    valid_except_time_marks = "valid_except_time_marks"
+    valid = "valid"
+
+
+COURSE_VALIDATION_STATE_CHOICES = (
+        (course_validation_state.invalid, "Validity of course data not verified"),
+        (course_validation_state.valid_except_time_marks,
+            "Valid with unchecked time marks"),
+        (course_validation_state.valid, "Valid"),
+        )
+
 
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
             help_text="A URL identifier. Alphanumeric with dashes, "
             "no spaces",
             db_index=True)
+
+    hidden = models.BooleanField(
+            default=True,
+            help_text="Is the course only visible to course staff?")
+    validation_state = models.CharField(max_length=50,
+            choices=COURSE_VALIDATION_STATE_CHOICES)
+
     git_source = models.CharField(max_length=200, blank=True,
             help_text="A Git URL from which to pull course updates")
     ssh_private_key = models.TextField(blank=True,
@@ -277,7 +302,10 @@ class FlowAccessException(models.Model):
     flow_id = models.CharField(max_length=200, blank=False, null=False)
     expiration = models.DateTimeField(blank=True, null=True)
 
-    stipulations = JSONField(blank=True, null=True)
+    stipulations = JSONField(blank=True, null=True,
+            help_text="A dictionary of the same things that can be added "
+            "to a flow access rule, such as allowed_visit_count or "
+            "credit_percent.")
 
     creator = models.ForeignKey(User, null=True)
     creation_time = models.DateTimeField(default=now, db_index=True)

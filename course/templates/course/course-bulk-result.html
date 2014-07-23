@@ -5,11 +5,11 @@
   <pre>{{ log }}</pre>
   {% if was_successful %}
     <div class="alert alert-success">
-      {{ status }}
+      {{ status|safe }}
     </div>
   {% else %}
     <div class="alert alert-danger">
-      {{ status }}
+      {{ status|safe }}
     </div>
   {% endif %}
 {% endblock %}

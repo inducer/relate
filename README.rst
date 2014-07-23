@@ -14,7 +14,7 @@ CourseFlow is set apart by the following features:
   See `example content <https://github.com/inducer/courseflow-sample>`_.
 * Versioning of content through deep integration with `git <https://git-scm.org>`_.
   Instructors can preview newly-authored content while students work with
-  prior versions, all from the same instance of Courseflow.
+  prior versions, all from the same instance of CourseFlow.
 
 Installation
 ------------

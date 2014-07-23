@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h2>Sign in or create account</h2>
+
+  <div class="alert alert-warning">
+    If you have a user name and a password, you should use the
+    <a href="{% url "course.views.sign_in" %}">conventional sign-in process</a>.
+  </div>
+
+  <div class="well">
+    {% crispy form %}
+  </div>
+{% endblock %}

@@ -10,18 +10,26 @@
     </p>
   </div>
 
-  {% if courses_and_descs %}
+  {% if courses_and_descs_and_invalid_flags %}
     <div class="row">
-      {% for course, desc in courses_and_descs %}
+      {% for course, desc, invalid in courses_and_descs_and_invalid_flags %}
         <div class="col-lg-4">
           <h3>{{desc.number}} {{desc.run}}</h3>
           <p>{{desc.name}}</p>
-          <p><a class="btn btn-default" href="{% url 'course.views.course_page' course.identifier %}"" role="button">View &raquo;</a></p>
+          {% if invalid %}
+            <div class="alert alert-warning">The course content has not yet been validated.</div>
+            <p><a class="btn btn-default" href="{% url 'course.versioning.fetch_course_updates' course.identifier %}" role="button">Update &raquo;</a></p>
+          {% else %}
+            <p><a class="btn btn-default" href="{% url 'course.views.course_page' course.identifier %}"" role="button">View &raquo;</a></p>
+          {% endif %}
         </div>
       {% endfor %}
     </div>
   {% else %}
     There no courses hosted on this instance of CourseFlow.
+    {% if not user.is_authenticated %}
+      <a href="{% url "course.views.sign_in" %}">Sign in</a> to get started.
+    {% endif %}
   {% endif %}
   {% if user.is_staff %}
     <hr>

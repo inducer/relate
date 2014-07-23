@@ -1,0 +1,17 @@
+{% if user.first_name %}
+Dear {{user.firstname}},
+{% else %}
+Dear {{user.email}},
+{% endif %}
+Welcome to CourseFlow! Please click this link to sign in:
+
+{{ sign_in_uri }}
+
+You have received this email because someone (maybe you) entered your email
+address into the CourseFlow instance at
+
+{{ home_uri }}
+
+If this was not you, it is safe to disregard this email.
+
+- CourseFlow staff

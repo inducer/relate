@@ -30,9 +30,10 @@ from django.contrib import messages
 import django.forms as forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.urlresolvers import reverse
 
 from course.models import (
-        Course,
+        Course, course_validation_state,
         Participation, participation_role, participation_status)
 
 from course.content import (get_course_repo, get_course_desc)
@@ -50,11 +51,12 @@ from django.db import transaction
 class CourseCreationForm(forms.ModelForm):
     class Meta:
         model = Course
-        fields = [
-            'identifier', 'git_source', 'ssh_private_key',
-            'enrollment_approval_required',
-            'enrollment_required_email_suffix',
-            'course_robot_email_address']
+        fields = (
+            "identifier", "hidden",
+            "git_source", "ssh_private_key",
+            "enrollment_approval_required",
+            "enrollment_required_email_suffix",
+            "course_robot_email_address")
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
@@ -88,36 +90,40 @@ def set_up_new_course(request):
                 import os
                 os.makedirs(repo_path)
 
-                from dulwich.repo import Repo
-                repo = Repo.init(repo_path)
+                try:
+                    from dulwich.repo import Repo
+                    repo = Repo.init(repo_path)
 
-                from dulwich.client import get_transport_and_path
-                client, remote_path = get_transport_and_path(
-                        new_course.git_source.encode())
-                remote_refs = client.fetch(remote_path, repo)
-                new_sha = repo["HEAD"] = remote_refs["HEAD"]
+                    from dulwich.client import get_transport_and_path
+                    client, remote_path = get_transport_and_path(
+                            new_course.git_source.encode())
+                    remote_refs = client.fetch(remote_path, repo)
+                    new_sha = repo["HEAD"] = remote_refs["HEAD"]
 
-                from course.validation import validate_course_content
-                validate_course_content(repo, new_sha)
+                    from course.validation import validate_course_content
+                    validate_course_content(repo, new_sha)
 
-                new_course.active_git_commit_sha = new_sha
-                new_course.save()
+                    new_course.validation_state = course_validation_state.valid
+                    new_course.active_git_commit_sha = new_sha
+                    new_course.save()
 
-                # {{{ set up a participation for the course creator
+                    # {{{ set up a participation for the course creator
 
-                part = Participation()
-                part.user = request.user
-                part.course = new_course
-                part.role = participation_role.instructor
-                part.status = participation_status.active
-                part.save()
+                    part = Participation()
+                    part.user = request.user
+                    part.course = new_course
+                    part.role = participation_role.instructor
+                    part.status = participation_status.active
+                    part.save()
 
-                # }}}
+                    # }}}
+                except:
+                    # Don't coalesce this handler with the one below. We only want
+                    # to delete the directory if we created it. Trust me.
+                    import shutil
+                    shutil.rmtree(repo_path)
 
             except Exception as e:
-                import shutil
-                shutil.rmtree(repo_path)
-
                 messages.add_message(request, messages.ERROR,
                         "Course creation failed: %s: %s" % (
                             type(e).__name__, str(e)))
@@ -151,6 +157,7 @@ class GitFetchForm(forms.Form):
         self.helper.add_input(Submit("fetch", "Fetch"))
 
 
+@login_required
 def fetch_course_updates(request, course_identifier):
     import sys
 
@@ -200,7 +207,13 @@ def fetch_course_updates(request, course_identifier):
             return render(request, 'course/course-bulk-result.html', {
                 "process_description": "Fetch course updates via git",
                 "log": log,
-                "status": "Pull successful."
+                "status": (
+                    "Fetch successful. "
+                    '<a href="%s" class="btn btn-primary">Update &raquo;</a>'
+                    % reverse("course.versioning.update_course",
+                        args=(course_identifier,))
+                    )
+
                     if was_successful
                     else "Pull failed. See above for error.",
                 "was_successful": was_successful,
@@ -226,7 +239,7 @@ def fetch_course_updates(request, course_identifier):
 # {{{ update
 
 class GitUpdateForm(forms.Form):
-    new_sha = forms.CharField(required=True, initial=50)
+    new_sha = forms.CharField(required=True)
 
     def __init__(self, previewing, *args, **kwargs):
         self.helper = FormHelper()
@@ -248,6 +261,7 @@ class GitUpdateForm(forms.Form):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
 
+@login_required
 def update_course(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
@@ -297,6 +311,7 @@ def update_course(request, course_identifier):
                         "Update applied.")
 
                 course.active_git_commit_sha = new_sha
+                course.validation_state = course_validation_state.valid
                 course.save()
 
                 response_form = form
