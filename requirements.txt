@@ -8,6 +8,7 @@ https://github.com/bradjasper/django-jsonfield/archive/postgresql.tar.gz
 six
 
 markdown
+pymbolic
 sympy
 pytz
 pyyaml

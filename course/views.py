@@ -28,14 +28,10 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
-from django.contrib.auth.decorators import login_required
-from django.conf import settings
-from django.core.urlresolvers import reverse
 
 import datetime
 
 from course.models import (
-        get_user_status, user_status,
         Course, Participation,
         FlowAccessException,
         FlowVisit,
@@ -136,7 +132,7 @@ def get_flow_permissions(course_desc, participation, role, flow_id, flow_desc):
             "to access answer for '%s'" % (flow_id, participation))
 
 
-# {{{ views
+# {{{ home
 
 def home(request):
     courses_and_descs_and_invalid_flags = []
@@ -170,81 +166,10 @@ def home(request):
         "courses_and_descs_and_invalid_flags": courses_and_descs_and_invalid_flags
         })
 
-
-# {{{ enrollment
-
-@login_required
-def enroll(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
-
-    if role != participation_role.unenrolled:
-        messages.add_message(request, messages.ERROR,
-                "Already enrolled. Cannot re-renroll.")
-        return redirect("course.views.course_page", course_identifier)
-
-    user = request.user
-    ustatus = get_user_status(user)
-    if (course.enrollment_required_email_suffix
-            and not ustatus.status == user_status.active):
-        messages.add_message(request, messages.ERROR,
-                "Your email address is not yet confirmed. "
-                "Confirm your email to continue.")
-        return redirect("course.views.course_page", course_identifier)
-
-    if (course.enrollment_required_email_suffix
-            and not user.email.endswith(course.enrollment_required_email_suffix)):
-
-        messages.add_message(request, messages.ERROR,
-                "Enrollment not allowed. Please use your '%s' email to "
-                "enroll." % course.enrollment_required_email_suffix)
-        return redirect("course.views.course_page", course_identifier)
-
-    def enroll(status):
-        participations = Participation.objects.filter(course=course, user=user)
-
-        assert participations.count() <= 1
-        if participations.count() == 0:
-            participation = Participation()
-            participation.user = user
-            participation.course = course
-            participation.role = participation_role.student
-            participation.status = status
-            participation.save()
-        else:
-            (participation,) = participations
-            participation.status = status
-            participation.save()
-
-        return participation
-
-    if course.enrollment_approval_required:
-        enroll(participation_status.requested)
-        messages.add_message(request, messages.INFO,
-                "Enrollment request sent. You will receive notifcation "
-                "by email once your request has been acted upon.")
-
-        from django.template.loader import render_to_string
-        message = render_to_string("course/enrollment-request-email.txt", {
-            "user": user,
-            "course": course,
-            "admin_uri": request.build_absolute_uri(
-                    reverse("admin:course_participation_changelist"))
-            })
-        from django.core.mail import send_mail
-        send_mail("[%s] New enrollment request" % course_identifier,
-                message,
-                settings.ROBOT_EMAIL_FROM,
-                recipient_list=[course.email])
-    else:
-        enroll(participation_status.active)
-        messages.add_message(request, messages.SUCCESS,
-                "Successfully enrolled.")
-
-    return redirect("course.views.course_page", course_identifier)
-
 # }}}
 
+
+# {{{ course page
 
 def check_course_state(course, role):
     if course.hidden:
@@ -280,26 +205,49 @@ def course_page(request, course_identifier):
         "participation_role": participation_role,
         })
 
+# }}}
+
+
+class FlowContext(object):
+    def __init__(self, request, course_identifier, flow_identifier, flow_visit=None):
+        self.flow_visit = flow_visit
+
+        self.course_identifier = course_identifier
+        self.flow_identifier = flow_identifier
+
+        self.course = get_object_or_404(Course, identifier=course_identifier)
+        self.role, self.participation = get_role_and_participation(
+                request, self.course)
+
+        check_course_state(self.course, self.role)
+
+        if self.flow_visit is not None:
+            self.commit_sha = self.flow_visit.active_git_commit_sha.encode()
+        else:
+            self.commit_sha = get_active_commit_sha(self.course, self.participation)
+
+        self.repo = get_course_repo(self.course)
+        self.course_desc = get_course_desc(self.repo, self.commit_sha)
+
+        self.flow_desc = get_flow_desc(self.repo, self.course,
+                flow_identifier, self.commit_sha)
+
+        self.permissions, self.stipulations = get_flow_permissions(
+                self.course_desc, self.participation, self.role,
+                flow_identifier, self.flow_desc)
+
+    def will_receive_feedback(self):
+        from course.models import flow_permission
+        return (
+                flow_permission.see_correctness in self.permissions
+                or flow_permission.see_answer in self.permissions)
+
 
 def start_flow(request, course_identifier, flow_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
-
-    check_course_state(course, role)
-
-    commit_sha = get_active_commit_sha(course, participation)
-
-    repo = get_course_repo(course)
-    course_desc = get_course_desc(repo, commit_sha)
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    flow_desc = get_flow_desc(repo, course, flow_identifier, commit_sha)
-
-    permissions, stipulations = get_flow_permissions(
-            course_desc, participation, role, flow_identifier, flow_desc)
+    fctx = FlowContext(request, course_identifier, flow_identifier)
 
     from course.models import flow_permission
-    if flow_permission.view not in permissions:
+    if flow_permission.view not in fctx.permissions:
         raise PermissionDenied()
 
     if request.method == "POST":
@@ -308,8 +256,8 @@ def start_flow(request, course_identifier, flow_identifier):
         if ("start_no_credit" in request.POST
                 or "start_credit" in request.POST):
             visit = FlowVisit()
-            visit.participation = participation
-            visit.active_git_commit_sha = commit_sha.decode()
+            visit.participation = fctx.participation
+            visit.active_git_commit_sha = fctx.commit_sha.decode()
             visit.flow_id = flow_identifier
             visit.in_progress = True
             visit.for_credit = "start_credit" in request.POST
@@ -317,8 +265,8 @@ def start_flow(request, course_identifier, flow_identifier):
 
             request.session["flow_visit_id"] = visit.id
 
-            page_count = set_up_flow_visit_page_data(repo, visit,
-                    flow_desc, commit_sha)
+            page_count = set_up_flow_visit_page_data(fctx.repo, visit,
+                    fctx.flow_desc, fctx.commit_sha)
             visit.page_count = page_count
             visit.save()
 
@@ -331,52 +279,33 @@ def start_flow(request, course_identifier, flow_identifier):
             raise SuspiciousOperation("unrecognized POST action")
 
     else:
-        can_start_credit = flow_permission.start_credit in permissions
-        can_start_no_credit = flow_permission.start_no_credit in permissions
+        can_start_credit = flow_permission.start_credit in fctx.permissions
+        can_start_no_credit = flow_permission.start_no_credit in fctx.permissions
 
         # FIXME take into account max attempts
         # FIXME resumption
         # FIXME view past
 
         return render(request, "course/flow-start.html", {
-            "participation": participation,
-            "course_desc": course_desc,
-            "course": course,
-            "flow_desc": flow_desc,
+            "participation": fctx.participation,
+            "course_desc": fctx.course_desc,
+            "course": fctx.course,
+            "flow_desc": fctx.flow_desc,
             "flow_identifier": flow_identifier,
             "can_start_credit": can_start_credit,
             "can_start_no_credit": can_start_no_credit,
             })
 
 
-class FlowPageContext(object):
+class FlowPageContext(FlowContext):
     """This object acts as a container for all the information that a flow page
     may need to render itself or respond to a POST.
     """
 
     def __init__(self, request, course_identifier, flow_identifier,
             ordinal, flow_visit):
-        self.flow_visit = flow_visit
-        self.course_identifier = course_identifier
-        self.flow_identifier = flow_identifier
-
-        self.course = get_object_or_404(Course, identifier=course_identifier)
-        self.role, self.participation = get_role_and_participation(
-                request, self.course)
-
-        check_course_state(self.course, self.role)
-
-        self.commit_sha = self.flow_visit.active_git_commit_sha.encode()
-
-        self.repo = get_course_repo(self.course)
-        self.course_desc = get_course_desc(self.repo, self.commit_sha)
-
-        self.flow_desc = get_flow_desc(self.repo, self.course,
-                flow_identifier, self.commit_sha)
-
-        self.permissions, self.stipulations = get_flow_permissions(
-                self.course_desc, self.participation, self.role,
-                flow_identifier, self.flow_desc)
+        FlowContext.__init__(self, request, course_identifier, flow_identifier,
+                flow_visit=flow_visit)
 
         from course.models import FlowPageData
         page_data = self.page_data = get_object_or_404(
@@ -426,6 +355,10 @@ class FlowPageContext(object):
     def page_count(self):
         return self.flow_visit.page_count
 
+    @property
+    def percentage(self):
+        return int(100*(self.ordinal+1)/self.page_count)
+
     def create_visit(self):
         from course.models import FlowPageVisit
 
@@ -433,12 +366,6 @@ class FlowPageContext(object):
         page_visit.flow_visit = self.flow_visit
         page_visit.page_data = self.page_data
         page_visit.save()
-
-    def will_receive_feedback(self):
-        from course.models import flow_permission
-        return (
-                flow_permission.see_correctness in self.permissions
-                or flow_permission.see_answer in self.permissions)
 
 
 def find_current_flow_visit(request, flow_identifier):
@@ -457,30 +384,6 @@ def find_current_flow_visit(request, flow_identifier):
     return flow_visit
 
 
-def finish_flow_visit(flow_visit):
-    from django.utils.timezone import now
-    flow_visit.completion_time = now()
-    flow_visit.in_progress = False
-    flow_visit.save()
-
-    # FIXME mark answers as final
-    # FIXME assign grade
-
-
-def render_flow_completion_response(request, fpctx):
-    # FIXME show grade
-
-    from course.content import html_body
-    return render(request, "course/flow-completion.html", {
-        "course": fpctx.course,
-        "course_desc": fpctx.course_desc,
-        "flow_identifier": fpctx.flow_identifier,
-        "flow_desc": fpctx.flow_desc,
-        "body": html_body(fpctx.course, fpctx.flow_desc.completion_text),
-        "participation": fpctx.participation,
-    })
-
-
 def render_flow_page(request, fpctx, **kwargs):
     args = {
         "course": fpctx.course,
@@ -489,6 +392,7 @@ def render_flow_page(request, fpctx, **kwargs):
         "flow_desc": fpctx.flow_desc,
         "ordinal": fpctx.ordinal,
         "page_data": fpctx.page_data,
+        "percentage": fpctx.percentage,
         "flow_visit": fpctx.flow_visit,
         "participation": fpctx.participation,
     }
@@ -498,25 +402,33 @@ def render_flow_page(request, fpctx, **kwargs):
     return render(request, "course/flow-page.html", args)
 
 
-def finalize_flow_page_form(fpctx, form):
-    if form is not None and not fpctx.prev_answer_is_final:
-        from crispy_forms.layout import Submit
-        form.helper.add_input(
-                Submit("save", "Save answer",
-                    css_class="col-lg-offset-2"))
+def add_buttons_to_form(fpctx, form):
+    from crispy_forms.layout import Submit
+    form.helper.add_input(
+            Submit("save", "Save answer",
+                css_class="col-lg-offset-2"))
 
-        if fpctx.will_receive_feedback():
-            form.helper.add_input(Submit("submit", "Submit final answer"))
+    if fpctx.will_receive_feedback():
+        form.helper.add_input(Submit("submit", "Submit final answer"))
+    else:
+        # Only offer 'save and move on' if student will receive no feedback
+        if fpctx.page_data.ordinal + 1 < fpctx.flow_visit.page_count:
+            form.helper.add_input(
+                    Submit("save_and_next", "Save answer and move on"))
         else:
-            # Only offer 'save and move on' if student will receive no feedback
-            if fpctx.page_data.ordinal + 1 < fpctx.flow_visit.page_count:
-                form.helper.add_input(
-                        Submit("save_and_next", "Save answer and move on"))
-            else:
-                form.helper.add_input(
-                        Submit("save_and_finish", "Save answer and finish"))
+            form.helper.add_input(
+                    Submit("save_and_finish", "Save answer and finish"))
 
     return form
+
+
+def get_pressed_button(form):
+    buttons = ["save", "save_and_next", "save_and_finish", "submit"]
+    for button in buttons:
+        if button in form.data:
+            return button
+
+    raise SuspiciousOperation("could not find which button was pressed")
 
 
 def view_flow_page(request, course_identifier, flow_identifier, ordinal):
@@ -544,9 +456,8 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
     if request.method == "POST":
         if "finish" in request.POST:
-            finish_flow_visit(flow_visit)
-            request.session["flow_visit_id"] = None
-            return render_flow_completion_response(request, fpctx)
+            return redirect("course.views.finish_flow",
+                    course_identifier, flow_identifier)
         else:
             # reject if previous answer was final
             if fpctx.prev_answer_is_final:
@@ -555,19 +466,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             form = fpctx.page.post_form(fpctx.page_context, fpctx.page_data.data,
                     post_data=request.POST, files_data=request.POST)
 
-            # {{{ figure out which button was pressed
-
-            buttons = ["save", "save_and_next", "save_and_finish", "submit"]
-            pressed_button = None
-            for button in buttons:
-                if button in form.data:
-                    pressed_button = button
-                    break
-
-            if pressed_button is None:
-                raise SuspiciousOperation("could not find which button was pressed")
-
-            # }}}
+            pressed_button = get_pressed_button(form)
 
             if form.is_valid():
                 # {{{ form validated, process answer
@@ -584,6 +483,9 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 page_visit.answer_is_final = pressed_button == "submit"
                 page_visit.save()
 
+                answer_data = page_visit.answer
+                answer_is_final = page_visit.answer_is_final
+
                 if (pressed_button == "save_and_next"
                         and not fpctx.will_receive_feedback()):
                     return redirect("course.views.view_flow_page",
@@ -592,60 +494,108 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                             fpctx.ordinal + 1)
                 elif (pressed_button == "save_and_finish"
                         and not fpctx.will_receive_feedback()):
-                    finish_flow_visit(flow_visit)
-                    request.session["flow_visit_id"] = None
-                    return render_flow_completion_response(request, fpctx)
+                    return redirect("course.views.finish_flow",
+                            course_identifier, flow_identifier)
                 else:
-                    title = fpctx.page.title(page_context, page_data.data)
-                    body = fpctx.page.body(page_context, page_data.data)
+                    # continue at common flow page generation below
 
                     form = fpctx.page.form_with_answer(page_context, page_data.data,
                             page_visit.answer, page_visit.answer_is_final)
 
-                    form = finalize_flow_page_form(fpctx, form)
-
-                    # FIXME generate feedback
-
-                    return render_flow_page(request, fpctx,
-                            title=title, body=body, form=form)
+                    # continue at common flow page generation below
 
                 # }}}
 
             else:
-                # {{{ form did not validate
+                # form did not validate
 
                 fpctx.create_visit()
 
-                title = fpctx.page.title(page_context, page_data.data)
-                body = fpctx.page.body(page_context, page_data.data)
+                answer_data = None
+                answer_is_final = False
 
-                form = finalize_flow_page_form(fpctx, form)
-
-                return render_flow_page(request,
-                        fpctx, title=title, body=body, form=form)
-
-                # }}}
+                # continue at common flow page generation below
 
     else:
         fpctx.create_visit()
 
-        page_context = fpctx.page_context
-        page_data = fpctx. page_data
+        answer_data = fpctx.prev_answer
+        answer_is_final = fpctx.prev_answer_is_final
 
-        title = fpctx.page.title(page_context, page_data.data)
-        body = fpctx.page.body(page_context, page_data.data)
-
-        if fpctx.prev_answer:
+        if answer_data:
             form = fpctx.page.form_with_answer(page_context, page_data.data,
-                    fpctx.prev_answer, fpctx.prev_answer_is_final)
+                    answer_data, answer_is_final)
+
         else:
             form = fpctx.page.fresh_form(page_context, page_data.data)
 
-        # FIXME generate feedback
+    # start common flow page generation
 
-        form = finalize_flow_page_form(fpctx, form)
+    # defined at this point: form, answer_data, answer_is_final
 
-        return render_flow_page(request, fpctx, title=title, body=body, form=form)
+    if form is not None and not answer_is_final:
+        form = add_buttons_to_form(fpctx, form)
+
+    show_correctness = None
+    show_answer = None
+    feedback = None
+
+    if (answer_data is not None
+            and answer_is_final):
+        show_correctness = flow_permission.see_correctness in fpctx.permissions
+        show_answer = flow_permission.see_answer in fpctx.permissions
+
+        if show_correctness or show_answer:
+            feedback = fpctx.page.grade(page_context, page_data.data, answer_data)
+
+    title = fpctx.page.title(page_context, page_data.data)
+    body = fpctx.page.body(page_context, page_data.data)
+
+    return render_flow_page(
+            request, fpctx, title=title, body=body, form=form,
+            feedback=feedback,
+            show_correctness=show_correctness,
+            show_answer=show_answer)
+
+
+def finish_flow(request, course_identifier, flow_identifier):
+    flow_visit = find_current_flow_visit(request, flow_identifier)
+
+    if flow_visit is None:
+        messages.add_message(request, messages.WARNING,
+                "No in-progress visit record found for this flow. "
+                "Redirected to flow start page.")
+
+        return redirect("course.views.start_flow",
+                course_identifier,
+                flow_identifier)
+
+    fctx = FlowContext(request, course_identifier, flow_identifier,
+            flow_visit=flow_visit)
+
+    request.session["flow_visit_id"] = None
+
+    from django.utils.timezone import now
+    flow_visit.completion_time = now()
+    flow_visit.in_progress = False
+    flow_visit.save()
+
+    # FIXME confirm, ask about unanswered questions
+    # FIXME mark answers as final
+    # FIXME assign grade
+    # FIXME show grade
+
+    from course.content import html_body
+    return render(request, "course/flow-completion.html", {
+        "course": fctx.course,
+        "course_desc": fctx.course_desc,
+        "flow_identifier": fctx.flow_identifier,
+        "flow_desc": fctx.flow_desc,
+        "body": html_body(fctx.course, fctx.flow_desc.completion_text),
+        "participation": fctx.participation,
+    })
+
+
 
 # }}}
 

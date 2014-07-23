@@ -81,6 +81,13 @@ urlpatterns = patterns('',
         "/(?P<ordinal>[0-9]+)"
         "/$",
         "course.views.view_flow_page",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/flow"
+        "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+        "/finish"
+        "/$",
+        "course.views.finish_flow",),
 
     url(r'^admin/', include(admin.site.urls)),
 )

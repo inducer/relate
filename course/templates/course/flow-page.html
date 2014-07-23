@@ -12,7 +12,28 @@
 
   {% if form %}
     <div class="well">
-    {% crispy form %}
+      {% crispy form %}
+    </div>
+  {% endif %}
+  {% if show_correctness %}
+    <div class="alert
+      {% if feedback.correctness == 1 %}
+        alert-success
+      {% elif feedback.correctness == 0 %}
+        alert-danger
+      {% else%}
+        alert-info
+      {% endif %}
+      ">
+        <p>{{feedback.feedback}}</p>
+      {% if show_answer and feedback.correctness < 1 %}
+        <p>{{feedback.correct_answer}}</p>
+      {% endif %}
+    </div>
+  {% elif show_answer %}
+    {# show only correct answer, without indication of correctness #}
+    <div class="well">
+      <p>{{feedback.correct_answer}}</p>
     </div>
   {% endif %}
 
@@ -28,7 +49,6 @@
           href="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.previous_ordinal %}"
           role="button">&laquo; Previous</a>
       {% endif %}
-      {{ page_data.next_ordinal }} / {{ flow_visit.page_count }}
       {% if page_data.next_ordinal < flow_visit.page_count %}
         <a class="btn btn-default"
           href="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.next_ordinal %}"
@@ -36,7 +56,15 @@
       {% endif %}
       <div style="float:right">
         <button type="submit" name="finish" class="btn btn-default">End session</button>
-    </div>
+      </div>
+      <div class="progress flow-progress">
+        <div class="progress-bar progress-bar-success" role="progressbar"
+          aria-valuenow="{{ page_data.next_ordinal }}"
+          aria-valuemin="0" aria-valuemax="{{ flow_visit.page_count }}"
+          style="width:{{ percentage }}%">
+          {{ page_data.next_ordinal }} / {{ flow_visit.page_count }}
+        </div>
+      </div>
 
     </div>
   </form>

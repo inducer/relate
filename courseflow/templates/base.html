@@ -24,7 +24,7 @@
   <body>
 
     <!-- Fixed navbar -->
-    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="navbar navbar-default" role="navigation">
       <div class="container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -45,14 +45,11 @@
             {% endif %}
             {% if user.is_authenticated %}
               <li>
-                <p class="navbar-text">
                 <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
-                </p>
               </li>
               <li>
-              <p class="navbar-text">
               <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
-              <p></li>
+              </li>
             {% else %}
               <li><a href="{% url student_sign_in_view %}">Sign in</a></li>
             {% endif %}
@@ -88,6 +85,14 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="/static/js/jquery-1.11.0.js"></script>
     <script src="/static/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript"
+      src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+      });
+    </script>
   </body>
 </html>
 
