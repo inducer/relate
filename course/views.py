@@ -305,6 +305,8 @@ class FlowPageContext(object):
 
         from course.models import FlowPageVisit
         previous_answer_visits = (FlowPageVisit.objects
+                .filter(flow_visit=flow_visit)
+                .filter(page_data=page_data)
                 .filter(answer__isnull=False)
                 .order_by("-visit_time"))
 
@@ -324,6 +326,20 @@ class FlowPageContext(object):
     @property
     def page_count(self):
         return self.flow_visit.page_count
+
+    def create_visit(self):
+        from course.models import FlowPageVisit
+
+        page_visit = FlowPageVisit()
+        page_visit.flow_visit = self.flow_visit
+        page_visit.page_data = self.page_data
+        page_visit.save()
+
+    def will_receive_feedback(self):
+        from course.models import flow_permission
+        return (
+                flow_permission.see_correctness in self.permissions
+                or flow_permission.see_answer in self.permissions)
 
 
 def find_current_flow_visit(request, flow_identifier):
@@ -353,6 +369,8 @@ def finish_flow_visit(flow_visit):
 
 
 def render_flow_completion_response(request, fpctx):
+    # FIXME show grade
+
     from course.content import html_body
     return render(request, "course/flow-completion.html", {
         "course": fpctx.course,
@@ -382,17 +400,13 @@ def render_flow_page(request, fpctx, **kwargs):
 
 
 def finalize_flow_page_form(fpctx, form):
-    if form is not None:
-        from course.models import flow_permission
+    if form is not None and not fpctx.prev_answer_is_final:
         from crispy_forms.layout import Submit
         form.helper.add_input(
                 Submit("save", "Save answer",
                     css_class="col-lg-offset-2"))
 
-        will_receive_feedback = (
-                flow_permission.see_correctness in fpctx.permissions
-                or flow_permission.see_answer in fpctx.permissions)
-        if will_receive_feedback:
+        if fpctx.will_receive_feedback():
             form.helper.add_input(Submit("submit", "Submit final answer"))
         else:
             # Only offer 'save and move on' if student will receive no feedback
@@ -421,9 +435,13 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
     fpctx = FlowPageContext(request, course_identifier, flow_identifier,
             ordinal, flow_visit)
 
-    # FIXME time limits
+    page_context = fpctx.page_context
+    page_data = fpctx.page_data
 
     from course.models import FlowPageVisit, flow_permission
+
+    if flow_permission.view not in fpctx.permissions:
+        raise PermissionDenied("not allowed to view flow")
 
     if request.method == "POST":
         if "finish" in request.POST:
@@ -431,14 +449,86 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             request.session["flow_visit_id"] = None
             return render_flow_completion_response(request, fpctx)
         else:
-            # FIXME reject if previous answer is final
+            # reject if previous answer was final
+            if fpctx.prev_answer_is_final:
+                raise PermissionDenied("already have final answer")
+
             form = fpctx.page.post_form(fpctx.page_context, fpctx.page_data.data,
                     post_data=request.POST, files_data=request.POST)
+
+            # {{{ figure out which button was pressed
+
+            buttons = ["save", "save_and_next", "save_and_finish", "submit"]
+            pressed_button = None
+            for button in buttons:
+                if button in form.data:
+                    pressed_button = button
+                    break
+
+            if pressed_button is None:
+                raise SuspiciousOperation("could not find which button was pressed")
+
+            # }}}
+
+            if form.is_valid():
+                # {{{ form validated, process answer
+
+                messages.add_message(request, messages.INFO,
+                        "Answer saved.")
+
+                page_visit = FlowPageVisit()
+                page_visit.flow_visit = fpctx.flow_visit
+                page_visit.page_data = fpctx.page_data
+                page_visit.answer = fpctx.page.make_answer_data(
+                        fpctx.page_context, fpctx.page_data.data,
+                        form)
+                page_visit.answer_is_final = pressed_button == "submit"
+                page_visit.save()
+
+                if (pressed_button == "save_and_next"
+                        and not fpctx.will_receive_feedback()):
+                    return redirect("course.views.view_flow_page",
+                            course_identifier,
+                            flow_identifier,
+                            fpctx.ordinal + 1)
+                elif (pressed_button == "save_and_finish"
+                        and not fpctx.will_receive_feedback()):
+                    finish_flow_visit(flow_visit)
+                    request.session["flow_visit_id"] = None
+                    return render_flow_completion_response(request, fpctx)
+                else:
+                    title = fpctx.page.title(page_context, page_data.data)
+                    body = fpctx.page.body(page_context, page_data.data)
+
+                    form = fpctx.page.form_with_answer(page_context, page_data.data,
+                            page_visit.answer, page_visit.answer_is_final)
+
+                    form = finalize_flow_page_form(fpctx, form)
+
+                    # FIXME generate feedback
+
+                    return render_flow_page(request, fpctx,
+                            title=title, body=body, form=form)
+
+                # }}}
+
+            else:
+                # {{{ form did not validate
+
+                fpctx.create_visit()
+
+                title = fpctx.page.title(page_context, page_data.data)
+                body = fpctx.page.body(page_context, page_data.data)
+
+                form = finalize_flow_page_form(fpctx, form)
+
+                return render_flow_page(request,
+                        fpctx, title=title, body=body, form=form)
+
+                # }}}
+
     else:
-        page_visit = FlowPageVisit()
-        page_visit.flow_visit = flow_visit
-        page_visit.page_data = fpctx.page_data
-        page_visit.save()
+        fpctx.create_visit()
 
         page_context = fpctx.page_context
         page_data = fpctx. page_data
@@ -451,6 +541,8 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                     fpctx.prev_answer, fpctx.prev_answer_is_final)
         else:
             form = fpctx.page.fresh_form(page_context, page_data.data)
+
+        # FIXME generate feedback
 
         form = finalize_flow_page_form(fpctx, form)
 

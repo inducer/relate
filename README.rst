@@ -19,9 +19,9 @@ CourseFlow is set apart by the following features:
 Installation
 ------------
 
-Courseflow currently works with Python 2.7 (because `dulwich
+CourseFlow currently works with Python 2.7. (This is because `dulwich
 <https://www.samba.org/~jelmer/dulwich/>`_, a dependency, does not yet support
-Python 3.
+Python 3.)
 
 (Optional) Make a virtualenv to install to::
 

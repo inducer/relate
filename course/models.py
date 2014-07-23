@@ -192,8 +192,6 @@ class FlowVisit(models.Model):
     completion_time = models.DateTimeField(null=True, blank=True)
     page_count = models.IntegerField(null=True, blank=True)
 
-    stipulations = JSONField(blank=True, null=True)
-
     in_progress = models.BooleanField(default=None)
     for_credit = models.BooleanField(default=None)
 
@@ -234,7 +232,7 @@ class FlowPageVisit(models.Model):
     # This is redundant (because the FlowVisit is available through
     # page_data), but it helps the admin site understand the link
     # and provide editing.
-    flow_visit = models.ForeignKey(FlowVisit)
+    flow_visit = models.ForeignKey(FlowVisit, db_index=True)
 
     page_data = models.ForeignKey(FlowPageData, db_index=True)
     visit_time = models.DateTimeField(default=now, db_index=True)
@@ -243,7 +241,7 @@ class FlowPageVisit(models.Model):
     answer_is_final = models.NullBooleanField()
 
     def __unicode__(self):
-        return "%s's visit to %s/%s' in '%s' on %s" % (
+        return "%s's visit to '%s/%s' in '%s' on %s" % (
                 self.flow_visit.participation.user,
                 self.page_data.group_id,
                 self.page_data.page_id,

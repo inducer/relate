@@ -127,9 +127,7 @@ def set_up_new_course(request):
                         new_course.identifier)
 
     else:
-        course = Course()
-        form = CourseCreationForm(course)
-        del course
+        form = CourseCreationForm()
 
     return render(request, "generic-form.html", {
         "form_description": "Set up new course",
