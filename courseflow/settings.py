@@ -53,6 +53,13 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+
+AUTHENTICATION_BACKENDS = (
+    'course.auth.TokenBackend',
+    'django.contrib.auth.backends.ModelBackend',
+    )
+
+
 TEMPLATE_CONTEXT_PROCESSORS = (
         TEMPLATE_CONTEXT_PROCESSORS
         + ("course.auth.sign_in_method_context_processor",)

@@ -46,7 +46,7 @@
             {% if user.is_authenticated %}
               <li>
                 <p class="navbar-text">
-                <a href="{% url "course.views.user_profile" %}">Signed in as {{user.username}}</a>
+                <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
                 </p>
               </li>
               <li>

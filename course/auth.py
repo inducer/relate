@@ -146,7 +146,7 @@ def sign_in_by_email(request):
                 "user": user,
                 "sign_in_uri": request.build_absolute_uri(
                     reverse(
-                        "course.views.sign_in_link",
+                        "course.auth.sign_in_stage2_with_token",
                         args=(ustatus.sign_in_key,))),
                 "home_uri": request.build_absolute_uri(reverse("course.views.home"))
                 })
@@ -164,27 +164,45 @@ def sign_in_by_email(request):
         })
 
 
-def sign_in_link(request, sign_in_key):
+class TokenBackend(object):
+    def authenticate(self, token=None):
+        ustatuses = UserStatus.objects.filter(sign_in_key=token)
+
+        assert ustatuses.count() <= 1
+        if ustatuses.count() == 0:
+            return None
+
+        (ustatus,) = ustatuses
+
+        ustatus.user_status = user_status.active
+        ustatus.sign_in_key = None
+        ustatus.save()
+
+        return ustatus.user
+
+    def get_user(self, user_id):
+        try:
+            return User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return None
+
+
+def sign_in_stage2_with_token(request, sign_in_key):
     if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
         raise SuspiciousOperation("email-based sign-in is not being used")
 
-    ustatuses = UserStatus.objects.filter(sign_in_key=sign_in_key)
-
-    assert ustatuses.count() <= 1
-    if ustatuses.count() == 0:
+    from django.contrib.auth import authenticate, login
+    user = authenticate(token=sign_in_key)
+    if user is None:
         messages.add_message(request, messages.ERROR,
                 "Invalid sign-in token. Perhaps you've used an old token email?")
         raise PermissionDenied("invalid sign-in token")
 
-    (ustatus,) = ustatuses
+    if not user.is_active:
+        messages.add_message(request, messages.ERROR,
+                "Account disabled.")
+        raise PermissionDenied("invalid sign-in token")
 
-    ustatus.user_status = user_status.active
-    ustatus.sign_in_key = None
-    ustatus.save()
-
-    user = ustatus.user
-
-    from django.contrib.auth import login
     login(request, user)
 
     if not (user.first_name and user.last_name):
@@ -192,7 +210,7 @@ def sign_in_link(request, sign_in_key):
                 "Successfully signed in. "
                 "Please complete your registration information below.")
 
-        return redirect("course.views.user_profile")
+        return redirect("course.auth.user_profile")
     else:
         messages.add_message(request, messages.INFO,
                 "Successfully signed in.")

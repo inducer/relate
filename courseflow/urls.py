@@ -35,7 +35,7 @@ urlpatterns = patterns('',
     url(r"^login/token"
         "/(?P<sign_in_key>[a-zA-Z0-9]+)"
         "/$",
-        "course.auth.sign_in_link"),
+        "course.auth.sign_in_stage2_with_token"),
     url(r"^logout/$",
         "django.contrib.auth.views.logout",
         {"next_page": "course.views.home"}),
