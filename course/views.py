@@ -27,21 +27,15 @@ THE SOFTWARE.
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
-import django.forms as forms
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import \
-        AuthenticationForm as AuthenticationFormBase
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 import datetime
 
 from course.models import (
-        UserStatus, user_status,
+        get_user_status, user_status,
         Course, Participation,
         FlowAccessException,
         FlowVisit,
@@ -177,10 +171,79 @@ def home(request):
         })
 
 
+# {{{ enrollment
+
 @login_required
 def enroll(request, course_identifier):
-    # FIXME
-    raise NotImplementedError()
+    course = get_object_or_404(Course, identifier=course_identifier)
+    role, participation = get_role_and_participation(request, course)
+
+    if role != participation_role.unenrolled:
+        messages.add_message(request, messages.ERROR,
+                "Already enrolled. Cannot re-renroll.")
+        return redirect("course.views.course_page", course_identifier)
+
+    user = request.user
+    ustatus = get_user_status(user)
+    if (course.enrollment_required_email_suffix
+            and not ustatus.status == user_status.active):
+        messages.add_message(request, messages.ERROR,
+                "Your email address is not yet confirmed. "
+                "Confirm your email to continue.")
+        return redirect("course.views.course_page", course_identifier)
+
+    if (course.enrollment_required_email_suffix
+            and not user.email.endswith(course.enrollment_required_email_suffix)):
+
+        messages.add_message(request, messages.ERROR,
+                "Enrollment not allowed. Please use your '%s' email to "
+                "enroll." % course.enrollment_required_email_suffix)
+        return redirect("course.views.course_page", course_identifier)
+
+    def enroll(status):
+        participations = Participation.objects.filter(course=course, user=user)
+
+        assert participations.count() <= 1
+        if participations.count() == 0:
+            participation = Participation()
+            participation.user = user
+            participation.course = course
+            participation.role = participation_role.student
+            participation.status = status
+            participation.save()
+        else:
+            (participation,) = participations
+            participation.status = status
+            participation.save()
+
+        return participation
+
+    if course.enrollment_approval_required:
+        enroll(participation_status.requested)
+        messages.add_message(request, messages.INFO,
+                "Enrollment request sent. You will receive notifcation "
+                "by email once your request has been acted upon.")
+
+        from django.template.loader import render_to_string
+        message = render_to_string("course/enrollment-request-email.txt", {
+            "user": user,
+            "course": course,
+            "admin_uri": request.build_absolute_uri(
+                    reverse("admin:course_participation_changelist"))
+            })
+        from django.core.mail import send_mail
+        send_mail("[%s] New enrollment request" % course_identifier,
+                message,
+                settings.ROBOT_EMAIL_FROM,
+                recipient_list=[course.email])
+    else:
+        enroll(participation_status.active)
+        messages.add_message(request, messages.SUCCESS,
+                "Successfully enrolled.")
+
+    return redirect("course.views.course_page", course_identifier)
+
+# }}}
 
 
 def check_course_state(course, role):

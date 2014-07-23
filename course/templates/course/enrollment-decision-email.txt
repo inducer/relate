@@ -1,0 +1,17 @@
+{% if user.first_name %}Dear {{user.first_name}},
+{% elif user.email %}Dear {{user.email}},
+{% else %}Dear UN {{user.username}},
+{% endif %}
+{% if approved %}Welcome! Your request to join the course 
+'{{course.identifier}}' has been approved.
+
+Find the course web page here:
+
+{{ course_uri }}
+
+Welcome, and we hope you have a productive class!
+{% else %}We're sorry to let you know that your request to join the course 
+'{{course.identifier}}' has been denied. Please get in touch with the course
+staff (for example by replying to this email) to state your case.
+{% endif %}
+- CourseFlow staff

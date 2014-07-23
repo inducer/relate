@@ -30,6 +30,7 @@ from course.models import (
         FlowVisit, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
         GradingOpportunity, GradeChange)
+from course.enrollment import (approve_enrollment, deny_enrollment)
 
 
 # {{{ user status
@@ -76,6 +77,8 @@ admin.site.register(TimeLabel, TimeLabelAdmin)
 class ParticipationAdmin(admin.ModelAdmin):
     list_display = ["user", "course", "role", "status", "enroll_time"]
     list_filter = ["course", "role", "status"]
+
+    actions = [approve_enrollment, deny_enrollment]
 
 admin.site.register(Participation, ParticipationAdmin)
 

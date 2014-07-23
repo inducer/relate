@@ -52,7 +52,7 @@ urlpatterns = patterns('',
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/enroll/$",
-        "course.views.enroll",),
+        "course.enrollment.enroll",),
 
     # versioning
     url(r"^new-course/$",

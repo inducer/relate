@@ -45,12 +45,24 @@ USER_STATUS_CHOICES = (
         )
 
 
+def get_user_status(user):
+    try:
+        return user.user_status
+    except AttributeError:
+        ustatus = UserStatus()
+        ustatus.user = user
+        ustatus.status = user_status.unconfirmed
+        ustatus.save()
+
+        return ustatus
+
+
 class UserStatus(models.Model):
     user = models.OneToOneField(User, db_index=True, related_name="user_status")
     status = models.CharField(max_length=50,
             choices=USER_STATUS_CHOICES)
     sign_in_key = models.CharField(max_length=50,
-            null=True, unique=True, db_index=True)
+            null=True, unique=True, db_index=True, blank=True)
     key_time = models.DateTimeField(default=now)
 
     class Meta:
@@ -155,12 +167,14 @@ class participation_status:
     requested = "requested"
     active = "active"
     dropped = "dropped"
+    denied = "denied"
 
 
 PARTICIPATION_STATUS_CHOICES = (
         (participation_status.requested, "Requested"),
         (participation_status.active, "Active"),
         (participation_status.dropped, "Dropped"),
+        (participation_status.denied, "Denied"),
         )
 
 
