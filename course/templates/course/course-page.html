@@ -19,7 +19,7 @@
         role="button">Change &raquo;</a>
     </div>
   {% endif %}
-  {% if course.validation_state != course_validation_state.valid %}
+  {% if not course.valid %}
     <div class="alert alert-warning">
       There may be a problem with the validity of course data, which may lead
       to students encountering unexpected errors.
@@ -31,7 +31,7 @@
   {% if not user.is_authenticated %}
     <div class="well">
       You're not currently signed in.
-      <a class="btn btn-primary" href="{% url "course.views.sign_in_by_email" %}"
+      <a class="btn btn-primary" href="{% url student_sign_in_view %}"
         role="button">Sign in &raquo;</a>
     </div>
   {% else %}

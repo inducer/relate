@@ -25,7 +25,7 @@ THE SOFTWARE.
 from django.contrib import admin
 from course.models import (
         UserStatus,
-        Course, TimeMark,
+        Course, TimeLabel,
         Participation, InstantFlowRequest,
         FlowVisit, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
@@ -49,15 +49,15 @@ admin.site.register(UserStatus, UserStatusAdmin)
 
 
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("identifier", "hidden", "validation_state")
-    list_filter = ("validation_state",)
+    list_display = ("identifier", "hidden", "valid")
+    list_filter = ("hidden", "valid",)
 
 admin.site.register(Course, CourseAdmin)
 
 
-# {{{ time marks
+# {{{ time labels
 
-class TimeMarkAdmin(admin.ModelAdmin):
+class TimeLabelAdmin(admin.ModelAdmin):
     list_display = ["course", "kind", "ordinal", "time"]
     list_filter = ["course", "kind"]
 
@@ -66,7 +66,7 @@ class TimeMarkAdmin(admin.ModelAdmin):
     def __unicode__(self):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
 
-admin.site.register(TimeMark, TimeMarkAdmin)
+admin.site.register(TimeLabel, TimeLabelAdmin)
 
 # }}}
 

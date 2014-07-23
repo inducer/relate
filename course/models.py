@@ -36,11 +36,11 @@ from jsonfield import JSONField
 # {{{ user status
 
 class user_status:
-    requested = "requested"
+    unconfirmed = "unconfirmed"
     active = "active"
 
 USER_STATUS_CHOICES = (
-        (user_status.requested, "Requested"),
+        (user_status.unconfirmed, "Unconfirmed"),
         (user_status.active, "Active"),
         )
 
@@ -65,34 +65,26 @@ class UserStatus(models.Model):
 
 # {{{ course
 
-class course_validation_state:
-    invalid = "invalid"
-    valid_except_time_marks = "valid_except_time_marks"
-    valid = "valid"
-
-
-COURSE_VALIDATION_STATE_CHOICES = (
-        (course_validation_state.invalid, "Validity of course data not verified"),
-        (course_validation_state.valid_except_time_marks,
-            "Valid with unchecked time marks"),
-        (course_validation_state.valid, "Valid"),
-        )
-
 
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
-            help_text="A URL identifier. Alphanumeric with dashes, "
-            "no spaces",
+            help_text="A course identifier. Alphanumeric with dashes, "
+            "no spaces. This is visible in URLs and determines the location "
+            "on your file system where the course's git repository lives.",
             db_index=True)
 
     hidden = models.BooleanField(
             default=True,
             help_text="Is the course only visible to course staff?")
-    validation_state = models.CharField(max_length=50,
-            choices=COURSE_VALIDATION_STATE_CHOICES)
+    valid = models.BooleanField(
+            default=True,
+            help_text="Whether the course content has passed validation.")
 
     git_source = models.CharField(max_length=200, blank=True,
-            help_text="A Git URL from which to pull course updates")
+            help_text="A Git URL from which to pull course updates. "
+            "If you're just starting out, enter "
+            "<tt>git://github.com/inducer/courseflow-sample</tt> "
+            "to get some sample content.")
     ssh_private_key = models.TextField(blank=True,
             help_text="An SSH private key to use for Git authentication")
 
@@ -105,9 +97,10 @@ class Course(models.Model):
             help_text="Enrollee's email addresses must end in the "
             "specified suffix, such as '@illinois.edu'.")
 
-    course_robot_email_address = models.EmailField(
+    email = models.EmailField(
             help_text="This email address will be used in the 'From' line "
-            "of automated emails sent by CourseFlow.")
+            "of automated emails sent by CourseFlow. It will also receive "
+            "notifications about required approvals.")
     course_xmpp_id = models.CharField(max_length=200, blank=True)
     course_xmpp_password = models.CharField(max_length=200, blank=True)
     active_git_commit_sha = models.CharField(max_length=200, null=False,
@@ -125,8 +118,9 @@ class Course(models.Model):
 # }}}
 
 
-class TimeMark(models.Model):
-    """A time mark is an identifier that can be used in datespecs in lecture content.
+class TimeLabel(models.Model):
+    """A time label is an identifier that can be used to specify dates in
+    course content.
     """
 
     course = models.ForeignKey(Course)

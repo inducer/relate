@@ -44,10 +44,17 @@
               <li><a href="/admin" target="_new">Admin site</a></li>
             {% endif %}
             {% if user.is_authenticated %}
-              <li><p class="navbar-text">Signed in as {{user.username}}</p></li>
-              <li><a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a></li>
+              <li>
+                <p class="navbar-text">
+                <a href="{% url "course.views.user_profile" %}">Signed in as {{user.username}}</a>
+                </p>
+              </li>
+              <li>
+              <p class="navbar-text">
+              <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
+              <p></li>
             {% else %}
-              <li><a href="{% url "course.views.sign_in_by_email" %}">Sign in</a></li>
+              <li><a href="{% url student_sign_in_view %}">Sign in</a></li>
             {% endif %}
           </ul>
         </div><!--/.nav-collapse -->

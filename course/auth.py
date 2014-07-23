@@ -1,0 +1,245 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import division
+
+__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+
+__license__ = """
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+
+from django.shortcuts import (  # noqa
+        render, get_object_or_404, redirect)
+from django.contrib import messages
+import django.forms as forms
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import \
+        AuthenticationForm as AuthenticationFormBase
+from django.core.urlresolvers import reverse
+
+from course.models import UserStatus, user_status
+
+
+# {{{ conventional login
+
+class LoginForm(AuthenticationFormBase):
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(Submit("submit", "Sign in",
+            css_class="col-lg-offset-2"))
+
+        super(LoginForm, self).__init__(*args, **kwargs)
+
+
+def sign_in(request):
+    from django.contrib.auth.views import login
+    return login(request, template_name="course/login.html",
+            authentication_form=LoginForm)
+
+# }}}
+
+
+# {{{ email sign-in flow
+
+def sign_in_method_context_processor(request):
+    return {
+        "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW
+        }
+
+
+class SignInByEmailForm(forms.Form):
+    email = forms.EmailField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(
+                Submit("submit", "Send sign-in email",
+                    css_class="col-lg-offset-2"))
+
+        super(SignInByEmailForm, self).__init__(*args, **kwargs)
+
+
+def make_sign_in_key(user):
+    # Try to ensure these hashes aren't guessable.
+    import random
+    import hashlib
+    from time import time
+    m = hashlib.sha1()
+    m.update(user.email)
+    m.update(hex(random.getrandbits(128)))
+    m.update(str(time()))
+    return m.hexdigest()
+
+
+def sign_in_by_email(request):
+    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
+        raise SuspiciousOperation("email-based sign-in is not being used")
+
+    if request.method == 'POST':
+        form = SignInByEmailForm(request.POST)
+        if form.is_valid():
+            from django.contrib.auth.models import User
+
+            email = form.cleaned_data["email"]
+            users = User.objects.filter(email=email)
+
+            if users.count() > 1:
+                messages.add_message(request, messages.ERROR,
+                        "More than one user with this email. "
+                        "Please contact site staff.")
+                raise PermissionDenied("duplicate email")
+
+            if users.count() == 0:
+                user = User()
+                user.username = email
+                user.email = email
+                user.set_unusable_password()
+                user.save()
+
+                ustatus = UserStatus()
+                ustatus.user = user
+                ustatus.status = user_status.unconfirmed
+                ustatus.sign_in_key = make_sign_in_key(user)
+                ustatus.save()
+
+            elif users.count() == 1:
+                user, = users
+                ustatus = user.user_status
+                ustatus.user = user
+                ustatus.sign_in_key = make_sign_in_key(user)
+                ustatus.save()
+
+            messages.add_message(request, messages.INFO,
+                    "Email sent. Please check your email and click the link.")
+
+            from django.template.loader import render_to_string
+            message = render_to_string("course/sign-in-email.txt", {
+                "user": user,
+                "sign_in_uri": request.build_absolute_uri(
+                    reverse(
+                        "course.views.sign_in_link",
+                        args=(ustatus.sign_in_key,))),
+                "home_uri": request.build_absolute_uri(reverse("course.views.home"))
+                })
+            from django.core.mail import send_mail
+            send_mail("Your CourseFlow sign-in link", message,
+                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+            return redirect("course.views.home")
+    else:
+        form = SignInByEmailForm()
+
+    return render(request, "course/login-by-email.html", {
+        "form_description": "",
+        "form": form
+        })
+
+
+def sign_in_link(request, sign_in_key):
+    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
+        raise SuspiciousOperation("email-based sign-in is not being used")
+
+    ustatuses = UserStatus.objects.filter(sign_in_key=sign_in_key)
+
+    assert ustatuses.count() <= 1
+    if ustatuses.count() == 0:
+        messages.add_message(request, messages.ERROR,
+                "Invalid sign-in token. Perhaps you've used an old token email?")
+        raise PermissionDenied("invalid sign-in token")
+
+    (ustatus,) = ustatuses
+
+    ustatus.user_status = user_status.active
+    ustatus.sign_in_key = None
+    ustatus.save()
+
+    user = ustatus.user
+
+    from django.contrib.auth import login
+    login(request, user)
+
+    if not (user.first_name and user.last_name):
+        messages.add_message(request, messages.INFO,
+                "Successfully signed in. "
+                "Please complete your registration information below.")
+
+        return redirect("course.views.user_profile")
+    else:
+        messages.add_message(request, messages.INFO,
+                "Successfully signed in.")
+
+        return redirect("course.views.home")
+
+
+# }}}
+
+# {{{ user profile
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name")
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(
+                Submit("submit", "Update",
+                    css_class="col-lg-offset-2"))
+
+        super(UserProfileForm, self).__init__(*args, **kwargs)
+
+
+def user_profile(request):
+    if request.method == "POST":
+        form = UserProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.add_message(request, messages.INFO,
+                    "Profile data saved.")
+            return redirect("course.views.home")
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = UserProfileForm(instance=request.user)
+
+    return render(request, "generic-form.html", {
+        "form_description": "User Profile",
+        "form": form,
+        })
+
+# }}}
+
+# vim: foldmethod=marker

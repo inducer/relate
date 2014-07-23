@@ -7,14 +7,13 @@
 
   <div class="alert alert-warning">
     If you have a not been assigned a password, you should use the
-    <a href="{% url "course.views.sign_in_by_email" %}">email-based sign-in process</a>.
+    <a href="{% url student_sign_in_view %}">standard sign-in process</a>.
   </div>
 
   <div class="well">
-    <form method="post" action="{% url "course.views.sign_in" %}" class="form-horizontal">
+    <form method="post" action="{% url "course.auth.sign_in" %}" class="form-horizontal">
       {% crispy form %}
       <input type="hidden" name="next" value="{{ next }}" />
     </form>
   </div>
 {% endblock %}
-

@@ -28,7 +28,7 @@
   {% else %}
     There no courses hosted on this instance of CourseFlow.
     {% if not user.is_authenticated %}
-      <a href="{% url "course.views.sign_in" %}">Sign in</a> to get started.
+      <a href="{% url "course.auth.sign_in" %}">Sign in</a> to get started.
     {% endif %}
   {% endif %}
   {% if user.is_staff %}

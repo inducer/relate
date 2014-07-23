@@ -1,14 +1,12 @@
-{% if user.first_name %}
-Dear {{user.firstname}},
-{% else %}
-Dear {{user.email}},
+{% if user.first_name %}Dear {{user.firstname}},
+{% else %}Dear {{user.email}},
 {% endif %}
 Welcome to CourseFlow! Please click this link to sign in:
 
 {{ sign_in_uri }}
 
 You have received this email because someone (maybe you) entered your email
-address into the CourseFlow instance at
+address into the CourseFlow web site at
 
 {{ home_uri }}
 

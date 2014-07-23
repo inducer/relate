@@ -33,7 +33,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
 
 from course.models import (
-        Course, course_validation_state,
+        Course,
         Participation, participation_role, participation_status)
 
 from course.content import (get_course_repo, get_course_desc)
@@ -56,7 +56,7 @@ class CourseCreationForm(forms.ModelForm):
             "git_source", "ssh_private_key",
             "enrollment_approval_required",
             "enrollment_required_email_suffix",
-            "course_robot_email_address")
+            "email")
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
@@ -103,7 +103,9 @@ def set_up_new_course(request):
                     from course.validation import validate_course_content
                     validate_course_content(repo, new_sha)
 
-                    new_course.validation_state = course_validation_state.valid
+                    # FIXME create time labels
+
+                    new_course.valid = True
                     new_course.active_git_commit_sha = new_sha
                     new_course.save()
 
@@ -311,7 +313,7 @@ def update_course(request, course_identifier):
                         "Update applied.")
 
                 course.active_git_commit_sha = new_sha
-                course.validation_state = course_validation_state.valid
+                course.valid = True
                 course.save()
 
                 response_form = form

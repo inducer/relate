@@ -29,16 +29,19 @@ from django.contrib import admin
 
 urlpatterns = patterns('',
     url(r"^login/$",
-        "course.views.sign_in"),
+        "course.auth.sign_in"),
     url(r"^login/by-email/$",
-        "course.views.sign_in_by_email"),
+        "course.auth.sign_in_by_email"),
     url(r"^login/token"
         "/(?P<sign_in_key>[a-zA-Z0-9]+)"
         "/$",
-        "course.views.sign_in_link"),
+        "course.auth.sign_in_link"),
     url(r"^logout/$",
-        'django.contrib.auth.views.logout',
-        {'next_page': 'course.views.home'}),
+        "django.contrib.auth.views.logout",
+        {"next_page": "course.views.home"}),
+    url(r"^profile/$",
+        "course.auth.user_profile",
+        ),
 
     url(r'^$', 'course.views.home', name='home'),
 

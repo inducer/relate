@@ -55,8 +55,6 @@ Run the server::
     python manage.py runserver
 
 Open a browser to http://localhost:8000 and select "Set up new course".
-To test, you may use ``git://github.com/inducer/courseflow-sample`` to
-create a sample course.
 
 FIXME: Test/unfinshed
 

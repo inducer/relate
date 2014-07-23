@@ -6,6 +6,8 @@ ALLOWED_HOSTS = [
         "courseflow.example.com",
         ]
 
+# Comment this out to use a default, local SQLite database.
+# (Not recommended for production use.)
 DATABASES = {
     'default': {
         'ENGINE':'django.db.backends.postgresql_psycopg2',
@@ -21,6 +23,8 @@ DATABASES = {
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
+# Your course git repositories will be stored under this directory.
+# Make sure it's writable by your web user.
 GIT_ROOT = "/some/where"
 
 EMAIL_HOST = '127.0.0.1'
@@ -32,3 +36,7 @@ EMAIL_USE_TLS = False
 ROBOT_EMAIL_FROM = "Andreas Kloeckner <inform@tiker.net>"
 
 TIME_ZONE = "America/Chicago"
+
+# Uncomment one of these to choose the default sign-in method for students
+STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_email"
+#STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_sso"

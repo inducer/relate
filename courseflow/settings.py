@@ -8,6 +8,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
+# Do not change this file. All these settings can be overridden in
+# local_settings.py.
+
+from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 from os.path import join
@@ -48,6 +53,11 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+        TEMPLATE_CONTEXT_PROCESSORS
+        + ("course.auth.sign_in_method_context_processor",)
+        )
+
 ROOT_URLCONF = 'courseflow.urls'
 
 WSGI_APPLICATION = 'courseflow.wsgi.application'
@@ -58,14 +68,11 @@ TEMPLATE_DIRS = (
         join(BASE_DIR, "courseflow", "templates"),
         )
 
-STATICFILES_DIRS = (
-        join(BASE_DIR, "courseflow", "static"),
-        )
 
 # Database
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
-# default, likely overriden by local_settings below
+# default, likely overriden by local_settings.py
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -89,7 +96,12 @@ LOGIN_REDIRECT_URL = "/"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
+STATICFILES_DIRS = (
+        join(BASE_DIR, "courseflow", "static"),
+        )
+
 STATIC_URL = '/static/'
+
 STATIC_ROOT = join(BASE_DIR, "static")
 
 SESSION_COOKIE_NAME = 'courseflow_sessionid'
