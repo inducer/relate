@@ -9,9 +9,7 @@
   {{flow_desc.description_html|safe}}
   {% endif %}
 
-  <form
-    action="{% url "course.views.start_flow" course.identifier flow_identifier %}"
-    method="POST">
+  <form method="POST">
 
     {% csrf_token %}
 

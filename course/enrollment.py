@@ -88,9 +88,6 @@ def enroll(request, course_identifier):
 
     if course.enrollment_approval_required:
         enroll(participation_status.requested)
-        messages.add_message(request, messages.INFO,
-                "Enrollment request sent. You will receive notifcation "
-                "by email once your request has been acted upon.")
 
         from django.template.loader import render_to_string
         message = render_to_string("course/enrollment-request-email.txt", {
@@ -104,6 +101,10 @@ def enroll(request, course_identifier):
                 message,
                 settings.ROBOT_EMAIL_FROM,
                 recipient_list=[course.email])
+
+        messages.add_message(request, messages.INFO,
+                "Enrollment request sent. You will receive notifcation "
+                "by email once your request has been acted upon.")
     else:
         enroll(participation_status.active)
         messages.add_message(request, messages.SUCCESS,

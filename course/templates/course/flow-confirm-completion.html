@@ -1,0 +1,39 @@
+{% extends "course/course-base.html" %}
+
+{% block title %}
+  {{flow_desc.title}} - CourseFlow
+{% endblock %}
+
+{% block content %}
+  <h1>End Session: {{flow_desc.title}}?</h1>
+
+  {% if unanswered_count %}
+    <div class="alert alert-warning">
+      You have left questions unanswered.
+    </div>
+  {% endif %}
+
+  {% if total_count %}
+    <p>
+    There were {{total_count}} questions.
+    {% if answered_count == total_count %}
+      You have provided an answer for all of them.
+    {% else %}
+      You have answered {{answered_count}} and left {{unanswered_count}} unanswered.
+    {% endif %}
+    </p>
+  {% endif %}
+
+
+  <div class="well flow-well">
+    <form method="POST">
+    <a class="btn btn-default"
+      href="{% url "course.views.view_flow_page" course.identifier flow_identifier last_page_nr %}"
+      role="button">&laquo; Go back</a>
+      {% csrf_token %}
+      <button type="submit" name="submit" class="btn btn-primary">Confirm: End session</button>
+    </form>
+  </div>
+
+{% endblock %}
+

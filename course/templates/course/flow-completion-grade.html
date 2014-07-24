@@ -1,0 +1,52 @@
+{% extends "course/course-base.html" %}
+
+{% block title %}
+  {{flow_desc.title}} - CourseFlow
+{% endblock %}
+
+{% block content %}
+
+  {% if grade_info.total_count %}
+  <h1>Results: {{flow_desc.title}}</h1>
+  <div class="well flow-well">
+    <p>
+    You have achieved <b>{{ grade_info.points|floatformat }}</b> out of
+    {{ grade_info.max_points|floatformat }} possible points.
+    (That's <b>{{ grade_info.points_percent|floatformat }}%</b>.)
+    </p>
+
+    <div class="progress">
+      <div class="progress-bar progress-bar-success"
+        style="width: {{ grade_info.points_percent|floatformat }}%"></div>
+      <div class="progress-bar progress-bar-danger"
+        style="width: {{ grade_info.missed_points_percent|floatformat }}%"></div>
+    </div>
+
+    <p>You have answered {{ grade_info.fully_correct_count }} questions
+    correctly, {{ grade_info.partially_correct_count }} questions
+    partially correctly, and {{ grade_info.incorrect_count }} questions
+    incorrectly.</p>
+
+    <div class="progress">
+      <div class="progress-bar progress-bar-success"
+        style="width: {{ grade_info.fully_correct_percent|floatformat }}%"></div>
+      <div class="progress-bar progress-bar-warning"
+        style="width: {{ grade_info.partially_correct_percent|floatformat }}%"></div>
+      <div class="progress-bar progress-bar-danger"
+        style="width: {{ grade_info.incorrect_percent|floatformat }}%"></div>
+    </div>
+  </div>
+  {{ body|safe }}
+
+  {% endif %}
+
+  <div class="well flow-well">
+    <a class="btn btn-default"
+      href="{% url "course.views.start_flow" course.identifier flow_identifier %}"
+      role="button">&laquo; Start over / Review</a>
+    <a class="btn btn-default"
+      href="{% url "course.views.course_page" course.identifier %}"
+      role="button">To course page &raquo;</a>
+  </div>
+
+{% endblock %}

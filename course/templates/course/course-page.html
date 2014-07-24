@@ -16,7 +16,7 @@
     <div class="alert alert-info">
       The course is only visible to course staff at the moment.
       <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
-        role="button">Change &raquo;</a>
+        role="button" target="_new">Change &raquo;</a>
     </div>
   {% endif %}
   {% if not course.valid %}

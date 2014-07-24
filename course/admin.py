@@ -156,7 +156,7 @@ admin.site.register(FlowVisit, FlowVisitAdmin)
 
 class FlowAccessExceptionEntryInline(admin.StackedInline):
     model = FlowAccessExceptionEntry
-    extra = 2
+    extra = 5
 
 
 class FlowAccessExceptionAdmin(admin.ModelAdmin):
@@ -213,20 +213,26 @@ class GradeChangeAdmin(admin.ModelAdmin):
 
     def get_opportunity(self, obj):
         return obj.opportunity.name
-    get_course.short_description = "Opportunity"
-    get_course.admin_order_field = "opportunity"
+    get_opportunity.short_description = "Opportunity"
+    get_opportunity.admin_order_field = "opportunity"
 
     def get_participant(self, obj):
         return obj.participation.user
     get_participant.short_description = "Participant"
     get_participant.admin_order_field = "participation__user"
 
+    def get_percentage(self, obj):
+        return round(100*obj.points/obj.max_points)
+    get_percentage.short_description = "%"
+
     list_display = (
             "get_opportunity",
             "get_participant",
             "get_course",
             "state",
+            "intent",
             "points",
+            "get_percentage",
             "grade_time",
             )
     list_display_links = (
@@ -238,7 +244,6 @@ class GradeChangeAdmin(admin.ModelAdmin):
     list_filter = (
             "opportunity__course",
             "opportunity",
-            "participation",
             "state",
             )
 

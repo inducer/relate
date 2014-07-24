@@ -38,11 +38,11 @@ def remove_prefix(prefix, s):
 
 
 class PageContext(object):
-    def __init__(self, course, ordinal, page_count):
+    def __init__(self, course):
         self.course = course
-        self.ordinal = ordinal
-        self.page_count = page_count
 
+
+# {{{ answer feedback type
 
 class AnswerFeedback(object):
     """
@@ -83,6 +83,10 @@ class AnswerFeedback(object):
         self.correct_answer = correct_answer
         self.feedback = feedback
 
+# }}}
+
+
+# {{{ abstract page base class
 
 class PageBase(object):
     """The abstract interface of a flow page.
@@ -98,6 +102,8 @@ class PageBase(object):
     .. automethod:: make_page_data
     .. automethod:: title
     .. automethod:: body
+    .. automethod:: expects_answer
+    .. automethod:: max_points
     .. automethod:: fresh_form
     .. automethod:: answer_data
     .. automethod:: form_with_answer
@@ -127,6 +133,20 @@ class PageBase(object):
 
         raise NotImplementedError()
 
+    def expects_answer(self):
+        """
+        :return: a :class:`bool` indicating whether this page lets the
+            user provide an answer of some type.
+        """
+        raise NotImplementedError()
+
+    def max_points(self, page_data):
+        """
+        :return: a :class:`int` or :class:`float` indicating how many points
+            are achievable on this page.
+        """
+        raise NotImplementedError()
+
     def fresh_form(self, page_context, page_data):
         """Return an unfilled :class:`django.forms.Form` instance for the page."""
 
@@ -154,12 +174,19 @@ class PageBase(object):
         raise NotImplementedError()
 
     def grade(self, page_context, page_data, answer_data):
-        """Return a :class:`AnswerFeedback` for the user's *answer_data*."""
+        """Return a :class:`AnswerFeedback` for the user's *answer_data*.
+
+        *answer_data* may be None, which must be handled.
+        """
 
         raise NotImplementedError()
 
+# }}}
+
 
 class Page(PageBase):
+    """A page showing static content."""
+
     def __init__(self, location, page_desc):
         validate_struct(
                 location,
@@ -182,6 +209,9 @@ class Page(PageBase):
     def body(self, page_context, page_data):
         from course.content import html_body
         return html_body(page_context.course, self.page_desc.content)
+
+    def expects_answer(self):
+        return False
 
 
 # {{{ text question
@@ -245,6 +275,12 @@ class TextQuestion(PageBase):
         from course.content import html_body
         return html_body(page_context.course, self.page_desc.prompt)
 
+    def expects_answer(self):
+        return True
+
+    def max_points(self, page_data):
+        return self.page_desc.value
+
     def fresh_form(self, page_context, page_data):
         return TextAnswerForm()
 
@@ -265,7 +301,15 @@ class TextQuestion(PageBase):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data):
+        correct_answer_text = ("A correct answer is: '%s'."
+                % remove_prefix("plain:", self.page_desc.answers[0]))
+
         correctness = 0
+
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.",
+                    correct_answer=correct_answer_text)
 
         answer = answer_data["answer"]
 
@@ -291,8 +335,7 @@ class TextQuestion(PageBase):
 
         return AnswerFeedback(
                 correctness=correctness,
-                correct_answer="A correct answer is: '%s'."
-                % remove_prefix("plain:", self.page_desc.answers[0]))
+                correct_answer=correct_answer_text)
 
 # }}}
 
@@ -351,6 +394,12 @@ class SymbolicQuestion(PageBase):
         from course.content import html_body
         return html_body(page_context.course, self.page_desc.prompt)
 
+    def expects_answer(self):
+        return True
+
+    def max_points(self, page_data):
+        return self.page_desc.value
+
     def fresh_form(self, page_context, page_data):
         return SymbolicAnswerForm()
 
@@ -371,6 +420,14 @@ class SymbolicQuestion(PageBase):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data):
+        correct_answer_text = ("A correct answer is: '%s'."
+                % self.page_desc.answers[0])
+
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.",
+                    correct_answer=correct_answer_text)
+
         correctness = 0
 
         answer = parse_sympy(answer_data["answer"])
@@ -382,10 +439,8 @@ class SymbolicQuestion(PageBase):
             if simplify(answer - correct_answer_sym) == 0:
                 correctness = 1
 
-        return AnswerFeedback(
-                correctness=correctness,
-                correct_answer="A correct answer is: '%s'."
-                % self.page_desc.answers[0])
+        return AnswerFeedback(correctness=correctness,
+                correct_answer=correct_answer_text)
 
 # }}}
 
@@ -441,6 +496,12 @@ class ChoiceQuestion(PageBase):
         from course.content import html_body
         return html_body(page_context.course, self.page_desc.prompt)
 
+    def expects_answer(self):
+        return True
+
+    def max_points(self, page_data):
+        return self.page_desc.value
+
     def make_page_data(self):
         import random
         perm = range(len(self.page_desc.choices))
@@ -482,24 +543,30 @@ class ChoiceQuestion(PageBase):
         return {"choice": form.cleaned_data["choice"]}
 
     def grade(self, page_context, page_data, answer_data):
-        permutation = page_data["permutation"]
-        choice = answer_data["choice"]
-
         for i, choice_text in enumerate(self.page_desc.choices):
             if choice_text.startswith(self.CORRECT_TAG):
                 unpermuted_correct_idx = i
+
+        correct_answer_text = ("A correct answer is: '%s'."
+                % remove_prefix(
+                    self.CORRECT_TAG,
+                    self.page_desc.choices[unpermuted_correct_idx]).lstrip())
+
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.",
+                    correct_answer=correct_answer_text)
+
+        permutation = page_data["permutation"]
+        choice = answer_data["choice"]
 
         if permutation[choice] == unpermuted_correct_idx:
             correctness = 1
         else:
             correctness = 0
 
-        return AnswerFeedback(
-                correctness=correctness,
-                correct_answer="A correct answer is: '%s'."
-                % remove_prefix(
-                    self.CORRECT_TAG,
-                    self.page_desc.choices[unpermuted_correct_idx]).lstrip())
+        return AnswerFeedback(correctness=correctness,
+                correct_answer=correct_answer_text)
 
 # }}}
 

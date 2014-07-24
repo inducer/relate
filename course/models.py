@@ -281,6 +281,9 @@ class FlowPageVisit(models.Model):
                 self.flow_visit.flow_id,
                 self.visit_time)
 
+    class Meta:
+        unique_together = (("page_data", "visit_time"),)
+
 # }}}
 
 
@@ -350,16 +353,28 @@ class GradingOpportunity(models.Model):
             help_text="Flow identifier that this grading opportunity "
             "is linked to, if any")
 
-    max_points = models.DecimalField(max_digits=10, decimal_places=2)
-
     due_time = models.DateTimeField(default=None, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "grading opportunities"
         ordering = ("course", "due_time", "identifier")
+        unique_together = (("course", "identifier"),)
 
     def __unicode__(self):
         return "%s in %s" % (self.name, self.course)
+
+
+class grade_change_intent:
+    max_grade = "max_grade"
+    min_grade = "min_grade"
+    use_latest = "use_latest"
+
+
+GRADE_CHANGE_INTENT_CHOICES = (
+        (grade_change_intent.max_grade, "Use maximum"),
+        (grade_change_intent.min_grade, "Use minimum"),
+        (grade_change_intent.use_latest, "Use latest"),
+        )
 
 
 class grade_state_change_types:
@@ -392,9 +407,13 @@ class GradeChange(models.Model):
 
     state = models.CharField(max_length=50,
             choices=GRADE_STATE_CHANGE_CHOICES)
+    intent = models.CharField(max_length=20,
+            choices=GRADE_CHANGE_INTENT_CHOICES)
 
     points = models.DecimalField(max_digits=10, decimal_places=2,
             blank=True, null=True)
+    max_points = models.DecimalField(max_digits=10, decimal_places=2)
+
     comment = models.TextField(blank=True, null=True)
 
     due_time = models.DateTimeField(default=None, blank=True, null=True)

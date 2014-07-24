@@ -138,9 +138,6 @@ def sign_in_by_email(request):
                 ustatus.sign_in_key = make_sign_in_key(user)
                 ustatus.save()
 
-            messages.add_message(request, messages.INFO,
-                    "Email sent. Please check your email and click the link.")
-
             from django.template.loader import render_to_string
             message = render_to_string("course/sign-in-email.txt", {
                 "user": user,
@@ -153,6 +150,9 @@ def sign_in_by_email(request):
             from django.core.mail import send_mail
             send_mail("Your CourseFlow sign-in link", message,
                     settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+            messages.add_message(request, messages.INFO,
+                    "Email sent. Please check your email and click the link.")
 
             return redirect("course.views.home")
     else:
