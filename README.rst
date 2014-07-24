@@ -57,9 +57,9 @@ Run the server::
 
     python manage.py runserver
 
-Open a browser to http://localhost:8000 and select "Set up new course".
-
-FIXME: Test/unfinshed
+Open a browser to http://localhost:8000, sign in (your user name will be the
+same as your system user name, or whatever `whoami` returned above) and select
+"Set up new course".
 
 License
 -------
