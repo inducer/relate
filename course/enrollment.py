@@ -54,7 +54,7 @@ def enroll(request, course_identifier):
     user = request.user
     ustatus = get_user_status(user)
     if (course.enrollment_required_email_suffix
-            and not ustatus.status == user_status.active):
+            and ustatus.status != user_status.active):
         messages.add_message(request, messages.ERROR,
                 "Your email address is not yet confirmed. "
                 "Confirm your email to continue.")

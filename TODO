@@ -6,23 +6,26 @@
 - Time mark creation
 - Time mark validation
 - Time mark validation after creation
-- Sign in doesn't work
+
+- media
 
 Ideas:
 
-- Liveness (preview/TAs-only?)
 - Live feedback box
 - Instant flow request
 - Instant flow results
 - For-credit availability
-- Live chat via candy?
 - Leave feedback
-- extra time?
+- time limits, extra time?
 - Student tags, adapt homepage
 
 - Flow group ordering, max page count, question/page tags
+
+- Deferred grading (essays etc, per question)
+
 
 Rejected ideas
 ==============
 
 - Minimum visit times
+- Live chat via candy?

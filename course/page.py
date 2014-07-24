@@ -30,6 +30,13 @@ import django.forms as forms
 import re
 
 
+def remove_prefix(prefix, s):
+    if s.startswith(prefix):
+        return s[len(prefix):]
+    else:
+        return s
+
+
 class PageContext(object):
     def __init__(self, course, ordinal, page_count):
         self.course = course
@@ -184,7 +191,7 @@ class TextQuestion(PageBase):
         for i, answer in enumerate(page_desc.answers):
             if answer.startswith("regex:"):
                 try:
-                    re.compile(answer.lstrip("regex:"))
+                    re.compile(remove_prefix("regex:", answer))
                 except:
                     raise ValidationError("%s, answer %d: regex did not compile"
                             % (location, i+1))
@@ -230,7 +237,7 @@ class TextQuestion(PageBase):
 
         for correct_answer in self.page_desc.answers:
             if correct_answer.startswith("regex:"):
-                pattern = re.compile(correct_answer.lstrip("regex:"))
+                pattern = re.compile(remove_prefix("regex:", correct_answer))
 
                 match = pattern.match(answer)
                 if match:
@@ -239,7 +246,7 @@ class TextQuestion(PageBase):
                     break
 
             elif correct_answer.startswith("plain:"):
-                pattern = correct_answer.lstrip("plain:")
+                pattern = remove_prefix("plain:", correct_answer)
 
                 if pattern == answer:
                     correctness = 1
@@ -251,7 +258,7 @@ class TextQuestion(PageBase):
         return AnswerFeedback(
                 correctness=correctness,
                 correct_answer="A correct answer is: '%s'."
-                % self.page_desc.answers[0].lstrip("plain:"))
+                % remove_prefix("plain:", self.page_desc.answers[0]))
 
 # }}}
 
@@ -292,6 +299,13 @@ class SymbolicQuestion(PageBase):
                     ],
                 allowed_attrs=[],
                 )
+
+        for answer in page_desc.answers:
+            try:
+                parse_sympy(answer)
+            except Exception as e:
+                raise ValidationError("%s: %s: %s"
+                        % (location, type(e).__name__, str(e)))
 
         PageBase.__init__(self, location, page_desc.id)
         self.page_desc = page_desc
@@ -344,7 +358,21 @@ class SymbolicQuestion(PageBase):
 
 # {{{ choice question
 
+class ChoiceAnswerForm(forms.Form):
+    def __init__(self, field, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        super(ChoiceAnswerForm, self).__init__(*args, **kwargs)
+
+        self.fields["choice"] = field
+
+
 class ChoiceQuestion(PageBase):
+    CORRECT_TAG = "~CORRECT~"
+
     def __init__(self, location, page_desc):
         validate_struct(
                 location,
@@ -360,8 +388,84 @@ class ChoiceQuestion(PageBase):
                 allowed_attrs=[],
                 )
 
+        correct_choice_count = 0
+        for choice in page_desc.choices:
+            if choice.startswith(self.CORRECT_TAG):
+                correct_choice_count += 1
+
+        if correct_choice_count != 1:
+            raise ValidationError("%s: exactly one correct answer expected, %d found"
+                    % (location, correct_choice_count))
+
         PageBase.__init__(self, location, page_desc.id)
         self.page_desc = page_desc
+
+    def title(self, page_context, page_data):
+        return self.page_desc.title
+
+    def body(self, page_context, page_data):
+        from course.content import html_body
+        return html_body(page_context.course, self.page_desc.prompt)
+
+    def make_page_data(self):
+        import random
+        perm = range(len(self.page_desc.choices))
+        random.shuffle(perm)
+
+        return {"permutation": perm}
+
+    def make_choice_form(self, page_data, *args, **kwargs):
+        permutation = page_data["permutation"]
+
+        choices = tuple(
+                (i, remove_prefix(self.CORRECT_TAG, self.page_desc.choices[src_i]))
+                for i, src_i in enumerate(permutation))
+
+        return ChoiceAnswerForm(
+            forms.TypedChoiceField(
+                choices=tuple(choices),
+                coerce=int,
+                widget=forms.RadioSelect()),
+            *args, **kwargs)
+
+    def fresh_form(self, page_context, page_data):
+        return self.make_choice_form(page_data)
+
+    def form_with_answer(self, page_context, page_data,
+            answer_data, answer_is_final):
+        form_data = {"choice": answer_data["choice"]}
+        form = self.make_choice_form(page_data, form_data)
+
+        if answer_is_final:
+            form.fields['choice'].widget.attrs['disabled'] = True
+
+        return form
+
+    def post_form(self, page_context, page_data, post_data, files_data):
+        return self.make_choice_form(page_data, post_data, files_data)
+
+    def make_answer_data(self, page_context, page_data, form):
+        return {"choice": form.cleaned_data["choice"]}
+
+    def grade(self, page_context, page_data, answer_data):
+        permutation = page_data["permutation"]
+        choice = answer_data["choice"]
+
+        for i, choice_text in enumerate(self.page_desc.choices):
+            if choice_text.startswith(self.CORRECT_TAG):
+                unpermuted_correct_idx = i
+
+        if permutation[choice] == unpermuted_correct_idx:
+            correctness = 1
+        else:
+            correctness = 0
+
+        return AnswerFeedback(
+                correctness=correctness,
+                correct_answer="A correct answer is: '%s'."
+                % remove_prefix(
+                    self.CORRECT_TAG,
+                    self.page_desc.choices[unpermuted_correct_idx]).lstrip())
 
 # }}}
 

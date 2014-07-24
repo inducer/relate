@@ -174,7 +174,7 @@ class TokenBackend(object):
 
         (ustatus,) = ustatuses
 
-        ustatus.user_status = user_status.unconfirmed
+        ustatus.status = user_status.active
         ustatus.sign_in_key = None
         ustatus.save()
 
