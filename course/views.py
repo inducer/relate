@@ -477,7 +477,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 page_visit = FlowPageVisit()
                 page_visit.flow_visit = fpctx.flow_visit
                 page_visit.page_data = fpctx.page_data
-                page_visit.answer = fpctx.page.make_answer_data(
+                page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
                         form)
                 page_visit.answer_is_final = pressed_button == "submit"

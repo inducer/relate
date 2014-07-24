@@ -85,7 +85,8 @@ class AnswerFeedback(object):
 
 
 class PageBase(object):
-    """
+    """The abstract interface of a flow page.
+
     .. attribute:: location
 
         A string 'location' for reporting errors.
@@ -93,6 +94,14 @@ class PageBase(object):
     .. attribute:: id
 
         The page identifier.
+
+    .. automethod:: make_page_data
+    .. automethod:: title
+    .. automethod:: body
+    .. automethod:: fresh_form
+    .. automethod:: answer_data
+    .. automethod:: form_with_answer
+    .. automethod:: post_form
     """
 
     def __init__(self, location, id):
@@ -100,28 +109,53 @@ class PageBase(object):
         self.id = id
 
     def make_page_data(self):
+        """Return (possibly randomly generated) data that is used to generate
+        the content on this page. This is passed to methods below as the *page_data*
+        argument. One possible use for this argument would be a random permutation
+        of choices that is generated once (at flow setup) and then used whenever
+        this page is shown.
+        """
         return {}
 
     def title(self, page_context, page_data):
+        """Return the (non-HTML) title of this page."""
+
         raise NotImplementedError()
 
     def body(self, page_context, page_data):
+        """Return the (HTML) body of the page."""
+
         raise NotImplementedError()
 
     def fresh_form(self, page_context, page_data):
+        """Return an unfilled :class:`django.forms.Form` instance for the page."""
+
         return None
 
+    def answer_data(self, page_context, page_data, form):
+        raise NotImplementedError()
+        """Return a JSON-persistable object reflecting the user's answer on the
+        form. This will be passed to methods below as *answer_data*.
+        """
+
     def form_with_answer(self, page_context, page_data,
-            previous_answer, previous_answer_is_final):
+            answer_data, answer_is_final):
+        """Return a :class:`django.forms.Form` instance with
+        *answer_data* prepopulated. If *answer_is_final* is *True*,
+        the form should be read-only.
+        """
+
         raise NotImplementedError()
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        raise NotImplementedError()
-
-    def make_answer_data(self, page_context, page_data, form):
+        """Return a :class:`django.forms.Form` instance with
+        data from *post_data* and *files_data* filled in.
+        """
         raise NotImplementedError()
 
     def grade(self, page_context, page_data, answer_data):
+        """Return a :class:`AnswerFeedback` for the user's *answer_data*."""
+
         raise NotImplementedError()
 
 
@@ -227,7 +261,7 @@ class TextQuestion(PageBase):
     def post_form(self, page_context, page_data, post_data, files_data):
         return TextAnswerForm(post_data, files_data)
 
-    def make_answer_data(self, page_context, page_data, form):
+    def answer_data(self, page_context, page_data, form):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data):
@@ -333,7 +367,7 @@ class SymbolicQuestion(PageBase):
     def post_form(self, page_context, page_data, post_data, files_data):
         return SymbolicAnswerForm(post_data, files_data)
 
-    def make_answer_data(self, page_context, page_data, form):
+    def answer_data(self, page_context, page_data, form):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data):
@@ -444,7 +478,7 @@ class ChoiceQuestion(PageBase):
     def post_form(self, page_context, page_data, post_data, files_data):
         return self.make_choice_form(page_data, post_data, files_data)
 
-    def make_answer_data(self, page_context, page_data, form):
+    def answer_data(self, page_context, page_data, form):
         return {"choice": form.cleaned_data["choice"]}
 
     def grade(self, page_context, page_data, answer_data):
