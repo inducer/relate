@@ -1,6 +1,6 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
-SECRET_KEY = '<CHANGE ME>'
+SECRET_KEY = '<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>'
 
 ALLOWED_HOSTS = [
         "courseflow.example.com",
@@ -20,12 +20,20 @@ DATABASES = {
 }
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 # Your course git repositories will be stored under this directory.
 # Make sure it's writable by your web user.
-GIT_ROOT = "/some/where"
+#
+# The default below makes them sit side-by-side with your courseflow checkout,
+# which makes sense for development, but you probably want to change this
+# in production.
+#
+# The 'course identifiers' you enter will be directory names below this root.
+
+#GIT_ROOT = "/some/where"
+GIT_ROOT = ".."
 
 EMAIL_HOST = '127.0.0.1'
 EMAIL_HOST_USER = ''
@@ -39,4 +47,4 @@ TIME_ZONE = "America/Chicago"
 
 # Uncomment one of these to choose the default sign-in method for students
 STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_email"
-#STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_sso"
+#STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_sso"  # not yet implemented

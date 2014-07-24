@@ -108,6 +108,7 @@ class PageBase(object):
     .. automethod:: answer_data
     .. automethod:: form_with_answer
     .. automethod:: post_form
+    .. automethod:: grade
     """
 
     def __init__(self, location, id):

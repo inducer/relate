@@ -1,20 +1,20 @@
-- student enrollment/approval
-- flow
+- flow start options
+- flow overview
 - introduce migrations
 - model docs
 
 - Time mark creation
 - Time mark validation
-- Time mark validation after creation
 
 - media
 
 Ideas:
 
+- question bank
+  -> localize an elaborate question and all its 'stuff' (JS, media)
 - Live feedback box
 - Instant flow request
 - Instant flow results
-- For-credit availability
 - Leave feedback
 - time limits, extra time?
 - Student tags, adapt homepage
@@ -22,7 +22,6 @@ Ideas:
 - Flow group ordering, max page count, question/page tags
 
 - Deferred grading (essays etc, per question)
-
 
 Rejected ideas
 ==============
