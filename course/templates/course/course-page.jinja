@@ -1,4 +1,4 @@
-{% extends "course/course-base.html" %}
+{% extends "course/course-base.jinja" %}
 
 {% block page_navbar %}
   <li class="dropdown">
@@ -15,7 +15,7 @@
   {% if course.hidden %}
     <div class="alert alert-info">
       The course is only visible to course staff at the moment.
-      <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
+      <a class="btn btn-default" href="{{ url("admin:course_course_change", course.id) }}"
         role="button" target="_new">Change &raquo;</a>
     </div>
   {% endif %}
@@ -23,7 +23,7 @@
     <div class="alert alert-warning">
       There may be a problem with the validity of course data, which may lead
       to students encountering unexpected errors.
-      <a class="btn btn-primary" href="{% url "course.versioning.update_course" course.identifier %}"
+      <a class="btn btn-primary" href="{{ url("course.versioning.update_course", course.identifier) }}"
         role="button">Update &raquo;</a>
     </div>
   {% endif %}
@@ -31,14 +31,14 @@
   {% if not user.is_authenticated %}
     <div class="well">
       You're not currently signed in.
-      <a class="btn btn-primary" href="{% url student_sign_in_view %}"
+      <a class="btn btn-primary" href="{{ url(student_sign_in_view }}"
         role="button">Sign in &raquo;</a>
     </div>
   {% else %}
 
     {% if role == participation_role.unenrolled %}
       <div class="well">
-        <a class="btn btn-lg btn-primary" href="{% url "course.enrollment.enroll" course.identifier %}"
+        <a class="btn btn-lg btn-primary" href="{{ url("course.enrollment.enroll", course.identifier) }}"
           role="button">Enroll &raquo;</a>
       </div>
     {% endif %}

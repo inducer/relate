@@ -10,12 +10,12 @@
   <ul>
     {% if not user.is_authenticated %}
     <li>
-    <a href="{% url student_sign_in_view %}">Sign in</a>.
+    <a href="{{ url("student_sign_in_view") }}">Sign in</a>.
 
       You're not currently signed in. Access to the resource is restricted,
       and since the site has no way of knowing who you are, it denied you accesss.
       Once you're signed in, navigate back to your course from the
-      <a href="{% url "course.views.home" %}">home page</a> and retry your last
+      <a href="{{ url("course.views.home") }}">home page</a> and retry your last
       action.
     </li>
     {% endif %}
@@ -26,7 +26,7 @@
     </li>
     <li>
     If none of the above steps, please navigate back to your course from the
-    <a href="{% url "course.views.home" %}">home page</a> and contact your course
+    <a href="{{ url("course.views.home") }}">home page</a> and contact your course
     staff.
     </li>
   </ul>

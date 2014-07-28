@@ -41,6 +41,7 @@ INSTALLED_APPS = (
     'course',
     'crispy_forms',
     'json_field',
+    'django_jinja',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -73,6 +74,12 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 TEMPLATE_DIRS = (
         join(BASE_DIR, "courseflow", "templates"),
+        )
+
+
+TEMPLATE_LOADERS = (
+        'django_jinja.loaders.AppLoader',
+        'django_jinja.loaders.FileSystemLoader',
         )
 
 

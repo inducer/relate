@@ -45,13 +45,13 @@
             {% endif %}
             {% if user.is_authenticated %}
               <li>
-                <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
+              <a href="{{ url("course.auth.user_profile") }}">Signed in as {{user.username}}</a>
               </li>
               <li>
-              <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
+              <a href="{{ url("django.contrib.auth.views.logout") }}">Sign out</a>
               </li>
             {% else %}
-              <li><a href="{% url student_sign_in_view %}">Sign in</a></li>
+              <li><a href="{{ url(student_sign_in_view) }}">Sign in</a></li>
             {% endif %}
           </ul>
         </div><!--/.nav-collapse -->

@@ -17,3 +17,5 @@ https://github.com/FriendCode/mimer/archive/master.tar.gz
 
 # dulwich does not yet support Python3
 dulwich
+
+django-jinja
