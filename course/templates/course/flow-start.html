@@ -10,9 +10,30 @@
   {% endif %}
 
   <form method="POST">
-
     {% csrf_token %}
 
+    {% if past_visits %}
+      <div class="well">
+        <table>
+          <tr>
+            <th>Start time</th>
+            <th>State</th>
+            <th>Result</th>
+            <th>Actions</th>
+          </tr>
+          {% for flow_visit in past_visits %}
+            <tr>
+              <th>Start time</th>
+              <th>State</th>
+              <th>Result</th>
+              <th>Actions</th>
+            </tr>
+          {% endfor %}
+        </table>
+      </div>
+    {% endif %}
+
+    <div class="well">
     {% if can_start_credit or can_start_no_credit %}
       <div class="well">
         {% if can_start_no_credit %}

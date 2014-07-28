@@ -276,6 +276,11 @@ def start_flow(request, course_identifier, flow_identifier):
 
         if ("start_no_credit" in request.POST
                 or "start_credit" in request.POST):
+
+            # FIXME take into account max attempts
+            # FIXME resumption
+            # FIXME view past
+
             visit = FlowVisit()
             visit.participation = fctx.participation
             visit.active_git_commit_sha = fctx.commit_sha.decode()
@@ -303,18 +308,28 @@ def start_flow(request, course_identifier, flow_identifier):
         can_start_credit = flow_permission.start_credit in fctx.permissions
         can_start_no_credit = flow_permission.start_no_credit in fctx.permissions
 
+        past_visits = (FlowVisit.objects
+                .filter(
+                    participation=fctx.participation,
+                    flow_id=flow_identifier)
+                .order_by("start_time"))
+
+
         # FIXME take into account max attempts
         # FIXME resumption
         # FIXME view past
 
-        return render(request, "course/flow-start.html", {
+        return render(request, "course/flow-start.jinja", {
             "participation": fctx.participation,
             "course_desc": fctx.course_desc,
             "course": fctx.course,
             "flow_desc": fctx.flow_desc,
             "flow_identifier": flow_identifier,
+
             "can_start_credit": can_start_credit,
             "can_start_no_credit": can_start_no_credit,
+
+            "past_visits": past_visits,
             })
 
 # }}}
@@ -730,6 +745,8 @@ def finish_flow(request, course_identifier, flow_identifier):
         if not flow_visit.in_progress:
             raise PermissionDenied("Can't end a flow that's already ended")
 
+        # Actually end the flow.
+
         request.session["flow_visit_id"] = None
 
         from django.utils.timezone import now
@@ -753,7 +770,7 @@ def finish_flow(request, course_identifier, flow_identifier):
         gchange.opportunity = gopp
         gchange.participation = fctx.participation
         gchange.state = grade_state_change_types.graded
-        gchange.intent = grade_change_intent.max_grade
+        gchange.intent = grade_change_intent.max_percent
         gchange.points = grade_info.points
         gchange.max_points = grade_info.max_points
         gchange.creator = request.user
@@ -771,7 +788,7 @@ def finish_flow(request, course_identifier, flow_identifier):
 
     (answered_count, unanswered_count) = count_answered(fctx, answer_visits)
     if answered_count + unanswered_count == 0:
-        # Not serious--no questions in flow. No need to end the flow.
+        # Not serious--no questions in flow. No need to end the flow visit.
 
         from course.content import html_body
         return render(request, "course/flow-completion.html", {
@@ -784,7 +801,7 @@ def finish_flow(request, course_identifier, flow_identifier):
         })
 
     elif not flow_visit.in_progress:
-        # just reviewing: re-show grades
+        # Just reviewing: re-show grades.
         grade_info = gather_grade_info(fctx, answer_visits)
 
         return render(request, "course/flow-completion-grade.html", {

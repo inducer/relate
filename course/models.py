@@ -367,12 +367,18 @@ class GradingOpportunity(models.Model):
 class grade_change_intent:
     max_grade = "max_grade"
     min_grade = "min_grade"
+    max_percent = "max_percent"
+    min_percent = "min_percent"
+    use_earliest = "use_earliest"
     use_latest = "use_latest"
 
 
 GRADE_CHANGE_INTENT_CHOICES = (
-        (grade_change_intent.max_grade, "Use maximum"),
-        (grade_change_intent.min_grade, "Use minimum"),
+        (grade_change_intent.max_grade, "Use max grade"),
+        (grade_change_intent.min_grade, "Use min grade"),
+        (grade_change_intent.max_percent, "Use max %"),
+        (grade_change_intent.min_percent, "Use min %"),
+        (grade_change_intent.use_earliest, "Use earliest"),
         (grade_change_intent.use_latest, "Use latest"),
         )
 
