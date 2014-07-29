@@ -9,7 +9,9 @@ Welcome to courseflow's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
+
+    content.rst
 
 
 

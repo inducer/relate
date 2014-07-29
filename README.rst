@@ -33,7 +33,7 @@ Python 3.)
 
 To install, clone the repository::
 
-    git clone git://github.com/inducer/courseflow
+    git clone --recursive git://github.com/inducer/courseflow
 
 Enter the courseflow directory::
 
