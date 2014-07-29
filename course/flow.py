@@ -206,6 +206,8 @@ def start_flow(request, course_identifier, flow_identifier):
         resume_match = None
         for post_key in request.POST:
             resume_match = RESUME_RE.match(post_key)
+            if resume_match is not None:
+                break
 
         if resume_match is not None:
             resume_session_id = int(resume_match.group(1))
@@ -228,6 +230,7 @@ def start_flow(request, course_identifier, flow_identifier):
                     course_identifier,
                     flow_identifier,
                     0)
+
         elif ("start_no_credit" in request.POST
                 or "start_credit" in request.POST):
 
