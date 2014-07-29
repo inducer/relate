@@ -60,7 +60,7 @@ class ImpersonateMiddleware(object):
                             "Error while impersonating: %s." % e)
 
 
-def is_staff_test(user):
+def may_impersonate(user):
     return user.is_staff
 
 
@@ -79,7 +79,7 @@ class ImpersonateForm(forms.Form):
             css_class="col-lg-offset-2"))
 
 
-@user_passes_test(is_staff_test)
+@user_passes_test(may_impersonate)
 def impersonate(request):
     if request.method == 'POST':
         form = ImpersonateForm(request.POST)
@@ -133,8 +133,10 @@ def stop_impersonating(request):
 
 
 def impersonation_context_processor(request):
-    return {"currently_impersonating":
-            hasattr(request, "courseflow_impersonate_original_user")}
+    return {
+            "currently_impersonating":
+            hasattr(request, "courseflow_impersonate_original_user"),
+            }
 
 # }}}
 

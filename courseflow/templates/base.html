@@ -38,23 +38,29 @@
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
           {%block navbar %}{% endblock %}
+          {% if user.is_staff or currently_impersonating %}
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Staff activities<b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="/admin" target="_new">Admin site</a></li>
+              <li role="presentation" class="divider"></li>
+              <li role="presentation" class="dropdown-header">Troubleshooting</li>
+              {% if currently_impersonating %}
+                <li><a class="navbar-link" href="{% url "course.auth.stop_impersonating" %}">Stop impersonating</a></li>
+              {% else %}
+                <li><a href="{% url "course.auth.impersonate" %}">Impersonate user</a></li>
+              {% endif %}
+            </ul>
+          </li>
+          {% endif %}
         </ul>
           <ul class="nav navbar-nav navbar-right">
             {% if user.is_staff %}
-              <li><a href="/admin" target="_new">Admin site</a></li>
             {% endif %}
             {% if user.is_authenticated %}
               <li>
                 <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
               </li>
-              {% if currently_impersonating %}
-                <li>
-                  <p class="navbar-text">
-                  (<b>impersonated</b>,
-                  <a class="navbar-link" href="{% url "course.auth.stop_impersonating" %}">stop</a>)
-                  </p>
-                </li>
-              {% endif %}
               <li>
               <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
               </li>
