@@ -36,6 +36,8 @@ from django.core.urlresolvers import reverse
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from HTMLParser import HTMLParser
+
 
 # {{{ tools
 
@@ -61,20 +63,119 @@ def dict_to_struct(data):
 
 # {{{ formatting
 
+def _attr_to_string(key, val):
+    if val is None:
+        return key
+    else:
+        return "%s=\"%s\"" % (key, val)
+
+
+class TagProcessingHTMLParser(HTMLParser):
+    def __init__(self, out_file, process_tag_func):
+        HTMLParser.__init__(self)
+
+        self.out_file = out_file
+        self.process_tag_func = process_tag_func
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        attrs.update(self.process_tag_func(tag, attrs))
+
+        self.out_file.write("<%s %s>" % (tag, " ".join(
+            _attr_to_string(k, v) for k, v in attrs.iteritems())))
+
+    def handle_endtag(self, tag):
+        self.out_file.write("</%s>" % tag)
+
+    def handle_startendtag(self, tag, attrs):
+        attrs = dict(attrs)
+        attrs.update(self.process_tag_func(tag, attrs))
+
+        self.out_file.write("<%s %s/>" % (tag, " ".join(
+            _attr_to_string(k, v) for k, v in attrs.iteritems())))
+
+    def handle_data(self, data):
+        self.out_file.write(data)
+
+    def handle_entityref(self, name):
+        self.out_file.write("&%s;" % name)
+
+    def handle_charref(self, name):
+        self.out_file.write("&#%s;" % name)
+
+    def handle_comment(self, data):
+        self.out_file.write("<!--%s-->" % data)
+
+    def handle_decl(self, decl):
+        self.out_file.write("<!%s>" % decl)
+
+    def handle_pi(self, data):
+        raise NotImplementedError("I have no idea what a processing instruction is.")
+
+    def unknown_decl(self, data):
+        self.out_file.write("<![%s]>" % data)
+
+
 class LinkFixerTreeprocessor(Treeprocessor):
-    def __init__(self, course):
+    def __init__(self, md, course):
         Treeprocessor.__init__(self)
+        self.md = md
         self.course = course
 
-    def run(self, root):
-        if root.tag == "a" and root.attrib["href"].startswith("flow:"):
-            flow_id = root.attrib["href"][5:]
-            root.set("href",
-                    reverse("course.flow.start_flow",
-                        args=(self.course.identifier, flow_id)))
+    def process_url(self, url):
+        if url.startswith("flow:"):
+            flow_id = url[5:]
+            return reverse("course.flow.start_flow",
+                        args=(self.course.identifier, flow_id))
+
+        elif url.startswith("media:"):
+            media_path = url[6:]
+            return reverse("course.views.get_media",
+                        args=(self.course.identifier, media_path))
+
+        return None
+
+    def process_tag(self, tag_name, attrs):
+        changed_attrs = {}
+
+        if tag_name == "a" and "href" in attrs:
+            new_href = self.process_url(attrs["href"])
+
+            if new_href is not None:
+                changed_attrs["href"] = new_href
+
+        elif tag_name == "img" and "src" in attrs:
+            new_src = self.process_url(attrs["src"])
+
+            if new_src is not None:
+                changed_attrs["src"] = new_src
+
+        return changed_attrs
+
+    def process_etree_element(self, element):
+        changed_attrs = self.process_tag(element.tag, element.attrib)
+
+        for key, val in changed_attrs.iteritems():
+            element.set(key, val)
+
+    def walk_and_process_tree(self, root):
+        self.process_etree_element(root)
 
         for child in root:
-            self.run(child)
+            self.walk_and_process_tree(child)
+
+    def run(self, root):
+        self.walk_and_process_tree(root)
+
+        # root through and process Markdown's HTML stash (gross!)
+        from cStringIO import StringIO
+
+        for i, (html, safe) in enumerate(self.md.htmlStash.rawHtmlBlocks):
+            outf = StringIO()
+            parser = TagProcessingHTMLParser(outf, self.process_tag)
+            parser.feed(html)
+
+            self.md.htmlStash.rawHtmlBlocks[i] = (outf.getvalue(), safe)
 
 
 class LinkFixerExtension(Extension):
@@ -84,15 +185,17 @@ class LinkFixerExtension(Extension):
 
     def extendMarkdown(self, md, md_globals):
         md.treeprocessors["courseflow_link_fixer"] = \
-                LinkFixerTreeprocessor(self.course)
+                LinkFixerTreeprocessor(md, self.course)
 
 
 def html_body(course, text):
     import markdown
     return markdown.markdown(text,
         extensions=[
-            LinkFixerExtension(course)
-            ])
+            LinkFixerExtension(course),
+            "extra",
+            ],
+        output_format="html5")
 
 # }}}
 
@@ -337,7 +440,6 @@ def set_up_flow_session_page_data(repo, flow_session, flow, commit_sha):
             ordinal += 1
 
     return ordinal
-
 
 
 # vim: foldmethod=marker

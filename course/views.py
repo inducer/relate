@@ -120,4 +120,25 @@ def course_page(request, course_identifier):
 # }}}
 
 
+def get_media(request, course_identifier, media_path):
+    course = get_object_or_404(Course, identifier=course_identifier)
+
+    role, participation = get_role_and_participation(request, course)
+
+    repo = get_course_repo(course)
+
+    # FIXME There's a corner case with flows here, which may be on a
+    # different commit.
+    commit_sha = get_active_commit_sha(course, participation)
+
+    from course.content import get_repo_blob
+    data = get_repo_blob(repo, "media/"+media_path, commit_sha).data
+
+    from mimetypes import guess_type
+    content_type = guess_type(media_path)
+
+    from django.http import HttpResponse
+    return HttpResponse(data, content_type=content_type)
+
+
 # vim: foldmethod=marker

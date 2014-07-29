@@ -26,7 +26,7 @@
       {% endfor %}
     </div>
   {% else %}
-    There no courses hosted on this instance of CourseFlow.
+    There no courses hosted on this CourseFlow site.
     {% if not user.is_authenticated %}
       <a href="{% url "course.auth.sign_in" %}">Sign in</a> to get started.
     {% endif %}
