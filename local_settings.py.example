@@ -49,3 +49,11 @@ TIME_ZONE = "America/Chicago"
 # Uncomment one of these to choose the default sign-in method for students
 STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_email"
 #STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_sso"  # not yet implemented
+
+# URL prefix from which MathJax will be included. May be None to disable MathJax.
+#
+# Should end in "/". CourseFlow will look for MathJax.js in this path.
+#
+# Note that the "//" at the beginning of this default is not a typo.
+# It makes this URL root work with http and https.
+MATHJAX_URL_ROOT = "//cdn.mathjax.org/mathjax/latest/"

@@ -1,0 +1,33 @@
+#! /usr/bin/env python
+
+try:
+    import twisted.web.server
+except ImportError:
+    HAVE_TWISTED = False
+else:
+    HAVE_TWISTED = True
+
+PORT = 9009
+
+import os
+os.chdir("/usr/share/javascript/mathjax")
+
+if HAVE_TWISTED:
+    from twisted.web.server import Site
+    from twisted.web.static import File
+    from twisted.internet import reactor
+
+    resource = File(os.getcwd())
+    factory = Site(resource)
+    reactor.listenTCP(PORT, factory)
+    reactor.run()
+else:
+    import SimpleHTTPServer
+    import SocketServer
+    Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+
+    httpd = SocketServer.ThreadingTCPServer(("", PORT), Handler)
+
+    print "serving at port", PORT
+    httpd.serve_forever()
+

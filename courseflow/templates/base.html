@@ -85,20 +85,22 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="/static/js/jquery-1.11.0.js"></script>
     <script src="/static/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
-    <script type="text/javascript"
-      src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-    </script>
-    <script type="text/x-mathjax-config">
-      MathJax.Hub.Config({
-        extensions: ["tex2jax.js", "TeX/boldsymbol.js"],
-        // jax: ["input/TeX", "output/HTML-CSS"],
-        tex2jax: {
-          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
-          processEscapes: true
-        },
-      });
-    </script>
+    {% if mathjax_url_root %}
+      <script type="text/javascript"
+        src="{{mathjax_url_root}}MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+      </script>
+      <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+          extensions: ["tex2jax.js", "TeX/boldsymbol.js"],
+          // jax: ["input/TeX", "output/HTML-CSS"],
+          tex2jax: {
+            inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+            processEscapes: true
+          },
+        });
+      </script>
+    {% endif %}
   </body>
 </html>
 

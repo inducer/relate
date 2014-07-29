@@ -66,12 +66,6 @@ def sign_in(request):
 
 # {{{ email sign-in flow
 
-def sign_in_method_context_processor(request):
-    return {
-        "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW
-        }
-
-
 class SignInByEmailForm(forms.Form):
     email = forms.EmailField(required=True)
 
