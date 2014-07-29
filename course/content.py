@@ -311,7 +311,7 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
     return class_(location, page_desc)
 
 
-def set_up_flow_visit_page_data(repo, flow_visit, flow, commit_sha):
+def set_up_flow_session_page_data(repo, flow_session, flow, commit_sha):
     from course.models import FlowPageData
 
     data = None
@@ -320,7 +320,7 @@ def set_up_flow_visit_page_data(repo, flow_visit, flow, commit_sha):
     for grp in flow.groups:
         for page_desc in grp.pages:
             data = FlowPageData()
-            data.flow_visit = flow_visit
+            data.flow_session = flow_session
             data.ordinal = ordinal
             data.is_last = False
             data.group_id = grp.id
@@ -328,7 +328,7 @@ def set_up_flow_visit_page_data(repo, flow_visit, flow, commit_sha):
 
             page = instantiate_flow_page(
                     "course '%s', flow '%s', page '%s/%s'"
-                    % (flow_visit.participation.course, flow_visit.flow_id,
+                    % (flow_session.participation.course, flow_session.flow_id,
                         grp.id, page_desc.id),
                     repo, page_desc, commit_sha)
             data.data = page.make_page_data()

@@ -32,12 +32,14 @@ from django.db import transaction
 
 import datetime
 
+import re
+
 from course.models import (
         Course,
         Participation, participation_role, participation_status,
         FlowAccessException,
-        FlowVisit, FlowPageData, FlowPageVisit, flow_permission,
-        GradingOpportunity, GradeChange)
+        FlowSession, FlowPageData, FlowPageVisit, flow_permission,
+        GradeChange)
 
 from course.content import (
         get_course_repo, get_course_desc, parse_date_spec,
@@ -86,30 +88,9 @@ def get_active_commit_sha(course, participation):
 def get_flow_permissions(course_desc, participation, role, flow_id, flow_desc):
     now = datetime.datetime.now().date()
 
-    # {{{ scan for exceptions in database
-
-    for exc in (
-            FlowAccessException.objects
-            .filter(participation=participation, flow_id=flow_id)
-            .order_by("expiration")):
-
-        if exc.expiration is not None and exc.expiration < now:
-            continue
-
-        stipulations = exc.stipulations
-        if not isinstance(stipulations, dict):
-            stipulations = {}
-        from course.content import dict_to_struct
-        stipulations = dict_to_struct(exc.stipulations)
-
-        return (
-                [entry.permission for entry in exc.entries.all()],
-                stipulations
-                )
-
-    # }}}
-
     # {{{ interpret flow rules
+
+    flow_rule = None
 
     for rule in flow_desc.access_rules:
         if hasattr(rule, "roles"):
@@ -126,9 +107,46 @@ def get_flow_permissions(course_desc, participation, role, flow_id, flow_desc):
             if end_date < now:
                 continue
 
-        return rule.permissions, rule
+        flow_rule = rule
+        break
 
     # }}}
+
+    # {{{ scan for exceptions in database
+
+    for exc in (
+            FlowAccessException.objects
+            .filter(participation=participation, flow_id=flow_id)
+            .order_by("expiration")):
+
+        if exc.expiration is not None and exc.expiration < now:
+            continue
+
+        exc_stipulations = exc.stipulations
+        if not isinstance(exc_stipulations, dict):
+            exc_stipulations = {}
+
+        stipulations = {}
+
+        if flow_rule is not None:
+            stipulations.update(
+                    (key, val)
+                    for key, val in flow_rule.__dict__.iteritems()
+                    if not key.startswith("_"))
+
+        stipulations.update(exc_stipulations)
+        from course.content import dict_to_struct
+        stipulations = dict_to_struct(stipulations)
+
+        return (
+                [entry.permission for entry in exc.entries.all()],
+                stipulations
+                )
+
+    # }}}
+
+    if flow_rule is not None:
+        return flow_rule.permissions, flow_rule
 
     raise ValueError("Flow access rules of flow '%s' did not resolve "
             "to access answer for '%s'" % (flow_id, participation))
@@ -213,8 +231,10 @@ def course_page(request, course_identifier):
 # {{{ start flow
 
 class FlowContext(object):
-    def __init__(self, request, course_identifier, flow_identifier, flow_visit=None):
-        self.flow_visit = flow_visit
+    def __init__(self, request, course_identifier, flow_identifier,
+            flow_session=None):
+
+        self.flow_session = flow_session
 
         self.course_identifier = course_identifier
         self.flow_identifier = flow_identifier
@@ -225,8 +245,8 @@ class FlowContext(object):
 
         check_course_state(self.course, self.role)
 
-        if self.flow_visit is not None:
-            self.commit_sha = self.flow_visit.active_git_commit_sha.encode()
+        if self.flow_session is not None:
+            self.commit_sha = self.flow_session.active_git_commit_sha.encode()
         else:
             self.commit_sha = get_active_commit_sha(self.course, self.participation)
 
@@ -248,13 +268,13 @@ class FlowContext(object):
 
     @property
     def page_count(self):
-        return self.flow_visit.page_count
+        return self.flow_session.page_count
 
 
 def instantiate_flow_page_with_ctx(fctx, page_data):
     from course.content import get_flow_page_desc
     page_desc = get_flow_page_desc(
-            fctx.flow_visit, fctx.flow_desc, page_data.group_id, page_data.page_id)
+            fctx.flow_session, fctx.flow_desc, page_data.group_id, page_data.page_id)
 
     from course.content import instantiate_flow_page
     return instantiate_flow_page(
@@ -264,6 +284,10 @@ def instantiate_flow_page_with_ctx(fctx, page_data):
             fctx.repo, page_desc, fctx.commit_sha)
 
 
+RESUME_RE = re.compile("^resume_([0-9]+)$")
+
+
+@transaction.atomic
 def start_flow(request, course_identifier, flow_identifier):
     fctx = FlowContext(request, course_identifier, flow_identifier)
 
@@ -271,30 +295,77 @@ def start_flow(request, course_identifier, flow_identifier):
     if flow_permission.view not in fctx.permissions:
         raise PermissionDenied()
 
-    if request.method == "POST":
-        from course.content import set_up_flow_visit_page_data
+    have_in_progress_session = (FlowSession.objects
+            .filter(
+                participation=fctx.participation,
+                flow_id=fctx.flow_identifier,
+                in_progress=True
+                )).count() > 0
+    prior_ession_count = (FlowSession.objects
+            .filter(
+                participation=fctx.participation,
+                flow_id=fctx.flow_identifier,
+                )).count()
 
-        if ("start_no_credit" in request.POST
+    if hasattr(fctx.stipulations, "allowed_session_count"):
+        allowed_another_session = (
+                prior_ession_count < fctx.stipulations.allowed_session_count)
+    else:
+        allowed_another_session = True
+
+    if request.method == "POST":
+        from course.content import set_up_flow_session_page_data
+
+        resume_match = None
+        for post_key in request.POST:
+            resume_match = RESUME_RE.match(post_key)
+
+        if resume_match is not None:
+            resume_session_id = int(resume_match.group(1))
+
+            resume_session = get_object_or_404(FlowSession, pk=resume_session_id)
+
+            if resume_session.participation != fctx.participation:
+                raise PermissionDenied("not your session")
+
+            if resume_session.flow_id != fctx.flow_identifier:
+                raise SuspiciousOperation("flow id mismatch on resume")
+
+            if not (flow_permission.view_past in fctx.permissions
+                    or resume_session.in_progress):
+                raise PermissionDenied("not allowed to resume session")
+
+            request.session["flow_session_id"] = resume_session_id
+
+            return redirect("course.views.view_flow_page",
+                    course_identifier,
+                    flow_identifier,
+                    0)
+        elif ("start_no_credit" in request.POST
                 or "start_credit" in request.POST):
 
-            # FIXME take into account max attempts
-            # FIXME resumption
-            # FIXME view past
+            if not allowed_another_session:
+                raise PermissionDenied("new session would exceed "
+                        "allowed session count limit exceed")
 
-            visit = FlowVisit()
-            visit.participation = fctx.participation
-            visit.active_git_commit_sha = fctx.commit_sha.decode()
-            visit.flow_id = flow_identifier
-            visit.in_progress = True
-            visit.for_credit = "start_credit" in request.POST
-            visit.save()
+            if have_in_progress_session:
+                raise PermissionDenied("cannot start flow when other flow "
+                        "is already in progress")
 
-            request.session["flow_visit_id"] = visit.id
+            session = FlowSession()
+            session.participation = fctx.participation
+            session.active_git_commit_sha = fctx.commit_sha.decode()
+            session.flow_id = flow_identifier
+            session.in_progress = True
+            session.for_credit = "start_credit" in request.POST
+            session.save()
 
-            page_count = set_up_flow_visit_page_data(fctx.repo, visit,
+            request.session["flow_session_id"] = session.id
+
+            page_count = set_up_flow_session_page_data(fctx.repo, session,
                     fctx.flow_desc, fctx.commit_sha)
-            visit.page_count = page_count
-            visit.save()
+            session.page_count = page_count
+            session.save()
 
             return redirect("course.views.view_flow_page",
                     course_identifier,
@@ -305,33 +376,46 @@ def start_flow(request, course_identifier, flow_identifier):
             raise SuspiciousOperation("unrecognized POST action")
 
     else:
-        can_start_credit = flow_permission.start_credit in fctx.permissions
-        can_start_no_credit = flow_permission.start_no_credit in fctx.permissions
+        may_start_credit = (
+                not have_in_progress_session
+                and allowed_another_session
+                and flow_permission.start_credit in fctx.permissions)
+        may_start_no_credit = (
+                not have_in_progress_session
+                and allowed_another_session
+                and flow_permission.start_no_credit in fctx.permissions)
+        may_review = (
+                flow_permission.view_past in fctx.permissions)
 
-        past_visits = (FlowVisit.objects
+        past_sessions = (FlowSession.objects
                 .filter(
                     participation=fctx.participation,
                     flow_id=flow_identifier)
                 .order_by("start_time"))
 
-        for pv in past_visits:
-            pv.result()
-
-        # FIXME take into account max attempts
-        # FIXME resumption
-        # FIXME view past
+        if hasattr(fctx.flow_desc, "grade_aggregation_strategy"):
+            from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
+            grade_aggregation_strategy_text = (
+                    dict(GRADE_AGGREGATION_STRATEGY_CHOICES)
+                    [fctx.flow_desc.grade_aggregation_strategy])
+        else:
+            grade_aggregation_strategy_text = None
 
         return render(request, "course/flow-start.html", {
             "participation": fctx.participation,
             "course_desc": fctx.course_desc,
             "course": fctx.course,
             "flow_desc": fctx.flow_desc,
+            "grade_aggregation_strategy":
+            grade_aggregation_strategy_text,
             "flow_identifier": flow_identifier,
 
-            "can_start_credit": can_start_credit,
-            "can_start_no_credit": can_start_no_credit,
+            "may_start_credit": may_start_credit,
+            "may_start_no_credit": may_start_no_credit,
+            "may_review": may_review,
 
-            "past_visits": past_visits,
+            "past_sessions": past_sessions,
+            "stipulations": fctx.stipulations,
             })
 
 # }}}
@@ -345,17 +429,17 @@ class FlowPageContext(FlowContext):
     """
 
     def __init__(self, request, course_identifier, flow_identifier,
-            ordinal, flow_visit):
+            ordinal, flow_session):
         FlowContext.__init__(self, request, course_identifier, flow_identifier,
-                flow_visit=flow_visit)
+                flow_session=flow_session)
 
         from course.models import FlowPageData
         page_data = self.page_data = get_object_or_404(
-                FlowPageData, flow_visit=flow_visit, ordinal=ordinal)
+                FlowPageData, flow_session=flow_session, ordinal=ordinal)
 
         from course.content import get_flow_page_desc
         self.page_desc = get_flow_page_desc(
-                flow_visit, self.flow_desc, page_data.group_id, page_data.page_id)
+                flow_session, self.flow_desc, page_data.group_id, page_data.page_id)
 
         self.page = instantiate_flow_page_with_ctx(self, page_data)
 
@@ -365,7 +449,7 @@ class FlowPageContext(FlowContext):
         # {{{ dig for previous answers
 
         previous_answer_visits = (FlowPageVisit.objects
-                .filter(flow_visit=flow_visit)
+                .filter(flow_session=flow_session)
                 .filter(page_data=page_data)
                 .filter(answer__isnull=False)
                 .order_by("-visit_time"))
@@ -389,22 +473,22 @@ class FlowPageContext(FlowContext):
 
     def create_visit(self):
         page_visit = FlowPageVisit()
-        page_visit.flow_visit = self.flow_visit
+        page_visit.flow_session = self.flow_session
         page_visit.page_data = self.page_data
         page_visit.save()
 
 
-def find_current_flow_visit(request, flow_identifier):
-    flow_visit = None
-    flow_visit_id = request.session.get("flow_visit_id")
+def find_current_flow_session(request, flow_identifier):
+    flow_session = None
+    flow_session_id = request.session.get("flow_session_id")
 
-    if flow_visit_id is not None:
-        flow_visits = list(FlowVisit.objects.filter(id=flow_visit_id))
+    if flow_session_id is not None:
+        flow_sessions = list(FlowSession.objects.filter(id=flow_session_id))
 
-        if flow_visits and flow_visits[0].flow_id == flow_identifier:
-            flow_visit, = flow_visits
+        if flow_sessions and flow_sessions[0].flow_id == flow_identifier:
+            flow_session, = flow_sessions
 
-    return flow_visit
+    return flow_session
 
 
 def render_flow_page(request, fpctx, **kwargs):
@@ -416,7 +500,7 @@ def render_flow_page(request, fpctx, **kwargs):
         "ordinal": fpctx.ordinal,
         "page_data": fpctx.page_data,
         "percentage": fpctx.percentage,
-        "flow_visit": fpctx.flow_visit,
+        "flow_session": fpctx.flow_session,
         "participation": fpctx.participation,
     }
 
@@ -435,7 +519,7 @@ def add_buttons_to_form(fpctx, form):
         form.helper.add_input(Submit("submit", "Submit final answer"))
     else:
         # Only offer 'save and move on' if student will receive no feedback
-        if fpctx.page_data.ordinal + 1 < fpctx.flow_visit.page_count:
+        if fpctx.page_data.ordinal + 1 < fpctx.flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next", "Save answer and move on"))
         else:
@@ -455,11 +539,11 @@ def get_pressed_button(form):
 
 
 def view_flow_page(request, course_identifier, flow_identifier, ordinal):
-    flow_visit = find_current_flow_visit(request, flow_identifier)
+    flow_session = find_current_flow_session(request, flow_identifier)
 
-    if flow_visit is None:
+    if flow_session is None:
         messages.add_message(request, messages.WARNING,
-                "No in-progress visit record found for this flow. "
+                "No in-progress session record found for this flow. "
                 "Redirected to flow start page.")
 
         return redirect("course.views.start_flow",
@@ -467,7 +551,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 flow_identifier)
 
     fpctx = FlowPageContext(request, course_identifier, flow_identifier,
-            ordinal, flow_visit)
+            ordinal, flow_session)
 
     page_context = fpctx.page_context
     page_data = fpctx.page_data
@@ -484,6 +568,10 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             if fpctx.prev_answer_is_final:
                 raise PermissionDenied("already have final answer")
 
+            # reject answer update if flow is not in-progress
+            if not flow_session.in_progress:
+                raise PermissionDenied("session is not in progress")
+
             form = fpctx.page.post_form(fpctx.page_context, fpctx.page_data.data,
                     post_data=request.POST, files_data=request.POST)
 
@@ -496,7 +584,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                         "Answer saved.")
 
                 page_visit = FlowPageVisit()
-                page_visit.flow_visit = fpctx.flow_visit
+                page_visit.flow_session = fpctx.flow_session
                 page_visit.page_data = fpctx.page_data
                 page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
@@ -583,12 +671,12 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
 # {{{ finish flow
 
-def assemble_answer_visits(flow_visit):
-    answer_visits = [None] * flow_visit.page_count
+def assemble_answer_visits(flow_session):
+    answer_visits = [None] * flow_session.page_count
 
     from course.models import FlowPageVisit
     answer_page_visits = (FlowPageVisit.objects
-            .filter(flow_visit=flow_visit)
+            .filter(flow_session=flow_session)
             .filter(answer__isnull=False)
             .order_by("visit_time"))
 
@@ -600,7 +688,7 @@ def assemble_answer_visits(flow_visit):
 
 def count_answered(fctx, answer_visits):
     all_page_data = (FlowPageData.objects
-            .filter(flow_visit=fctx.flow_visit)
+            .filter(flow_session=fctx.flow_session)
             .order_by("ordinal"))
 
     answered_count = 0
@@ -656,7 +744,7 @@ class GradeInfo(object):
 
 def gather_grade_info(fctx, answer_visits):
     all_page_data = (FlowPageData.objects
-            .filter(flow_visit=fctx.flow_visit)
+            .filter(flow_session=fctx.flow_session)
             .order_by("ordinal"))
 
     points = 0
@@ -703,11 +791,11 @@ def gather_grade_info(fctx, answer_visits):
 
 @transaction.atomic
 def finish_flow(request, course_identifier, flow_identifier):
-    flow_visit = find_current_flow_visit(request, flow_identifier)
+    flow_session = find_current_flow_session(request, flow_identifier)
 
-    if flow_visit is None:
+    if flow_session is None:
         messages.add_message(request, messages.WARNING,
-                "No visit record found for this flow. "
+                "No session record found for this flow. "
                 "Redirected to flow start page.")
 
         return redirect("course.views.start_flow",
@@ -715,9 +803,9 @@ def finish_flow(request, course_identifier, flow_identifier):
                 flow_identifier)
 
     fctx = FlowContext(request, course_identifier, flow_identifier,
-            flow_visit=flow_visit)
+            flow_session=flow_session)
 
-    answer_visits = assemble_answer_visits(flow_visit)
+    answer_visits = assemble_answer_visits(flow_session)
 
     from course.content import html_body
 
@@ -725,25 +813,36 @@ def finish_flow(request, course_identifier, flow_identifier):
         if "submit" not in request.POST:
             raise SuspiciousOperation("odd POST parameters")
 
-        if not flow_visit.in_progress:
-            raise PermissionDenied("Can't end a flow that's already ended")
+        if not flow_session.in_progress:
+            raise PermissionDenied("Can't end a session that's already ended")
 
         # Actually end the flow.
 
-        request.session["flow_visit_id"] = None
+        request.session["flow_session_id"] = None
+
+        grade_info = gather_grade_info(fctx, answer_visits)
+
+        points = grade_info.points
+        comment = None
+
+        if hasattr(fctx.stipulations, "credit_percent"):
+            comment = "Counted at %.1f%% of %.1f points" % (
+                    fctx.stipulations.credit_percent, points)
+            points = points * fctx.stipulations.credit_percent / 100
 
         from django.utils.timezone import now
-        flow_visit.completion_time = now()
-        flow_visit.in_progress = False
-        flow_visit.save()
+        flow_session.completion_time = now()
+        flow_session.in_progress = False
+        flow_session.points = points
+        flow_session.max_points = grade_info.max_points
+        flow_session.result_comment = comment
+        flow_session.save()
 
         # mark answers as final
         for answer_visit in answer_visits:
             if answer_visit is not None:
                 answer_visit.answer_is_final = True
                 answer_visit.save()
-
-        grade_info = gather_grade_info(fctx, answer_visits)
 
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
@@ -754,10 +853,11 @@ def finish_flow(request, course_identifier, flow_identifier):
         gchange.opportunity = gopp
         gchange.participation = fctx.participation
         gchange.state = grade_state_change_types.graded
-        gchange.points = grade_info.points
+        gchange.points = points
         gchange.max_points = grade_info.max_points
         gchange.creator = request.user
-        gchange.flow_visit = flow_visit
+        gchange.flow_session = flow_session
+        gchange.comment = comment
         gchange.save()
 
         return render(request, "course/flow-completion-grade.html", {
@@ -784,7 +884,7 @@ def finish_flow(request, course_identifier, flow_identifier):
             "body": html_body(fctx.course, fctx.flow_desc.completion_text),
         })
 
-    elif not flow_visit.in_progress:
+    elif not flow_session.in_progress:
         # Just reviewing: re-show grades.
         grade_info = gather_grade_info(fctx, answer_visits)
 

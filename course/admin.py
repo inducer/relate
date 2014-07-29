@@ -27,7 +27,7 @@ from course.models import (
         UserStatus,
         Course, TimeLabel,
         Participation, InstantFlowRequest,
-        FlowVisit, FlowPageData, FlowPageVisit,
+        FlowSession, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
         GradingOpportunity, GradeChange)
 from course.enrollment import (approve_enrollment, deny_enrollment)
@@ -91,7 +91,7 @@ class InstantFlowRequestAdmin(admin.ModelAdmin):
 admin.site.register(InstantFlowRequest, InstantFlowRequestAdmin)
 
 
-# {{{ flow visits
+# {{{ flow sessions
 
 class FlowPageDataInline(admin.TabularInline):
     model = FlowPageData
@@ -105,7 +105,7 @@ class FlowPageVisitInline(admin.TabularInline):
     raw_id_fields = ("page_data",)
 
 
-class FlowVisitAdmin(admin.ModelAdmin):
+class FlowSessionAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
     get_course.short_description = "Course"
@@ -147,7 +147,7 @@ class FlowVisitAdmin(admin.ModelAdmin):
 
     inlines = (FlowPageDataInline, FlowPageVisitInline)
 
-admin.site.register(FlowVisit, FlowVisitAdmin)
+admin.site.register(FlowSession, FlowSessionAdmin)
 
 # }}}
 
@@ -189,6 +189,8 @@ class FlowAccessExceptionAdmin(admin.ModelAdmin):
             )
 
     date_hierarchy = "creation_time"
+
+    raw_id_fields = ("participation",)
 
 
 admin.site.register(FlowAccessException, FlowAccessExceptionAdmin)
@@ -246,7 +248,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "state",
             )
 
-    raw_id_fields = ("flow_visit",)
+    raw_id_fields = ("flow_session",)
 
 admin.site.register(GradeChange, GradeChangeAdmin)
 

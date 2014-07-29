@@ -19,11 +19,11 @@
   margin-top:0;
 }
 
-table.past-flow-visit-table th {
+table.past-flow-session-table th {
   margin-right:1em;
   border-bottom: 1px solid black;
 }
-table.past-flow-visit-table td {
+table.past-flow-session-table td {
   padding-right:1em;
   padding-top:4px;
 }

@@ -214,9 +214,9 @@ class InstantFlowRequest(models.Model):
     end_time = models.DateTimeField()
 
 
-# {{{ flow visit tracking
+# {{{ flow session tracking
 
-class FlowVisit(models.Model):
+class FlowSession(models.Model):
     participation = models.ForeignKey(Participation, null=True, blank=True)
     active_git_commit_sha = models.CharField(max_length=200)
     flow_id = models.CharField(max_length=200)
@@ -227,23 +227,32 @@ class FlowVisit(models.Model):
     in_progress = models.BooleanField(default=None)
     for_credit = models.BooleanField(default=None)
 
+    # Non-normal: These fields can be recomputed, albeit at great expense.
+    #
+    # Looking up the corresponding GradeChange is also invalid because
+    # some flow sessions are not for credit and still have results.
+
+    points = models.DecimalField(max_digits=10, decimal_places=2,
+            blank=True, null=True)
+    max_points = models.DecimalField(max_digits=10, decimal_places=2,
+            blank=True, null=True)
+    result_comment = models.TextField(blank=True, null=True)
+
     class Meta:
         ordering = ("participation", "-start_time")
 
-    def result(self):
-        gcs = (self.grade_changes.order_by("grade_time"))
-
-        return GradeStateMachine().consume(gcs).percentage()
-
     def __unicode__(self):
-        return "%s's visit %d to '%s'" % (
+        return "%s's session %d on '%s'" % (
                 self.participation.user,
                 self.id,
                 self.flow_id)
 
+    def percentage(self):
+        return 100*self.points/self.max_points
+
 
 class FlowPageData(models.Model):
-    flow_visit = models.ForeignKey(FlowVisit)
+    flow_session = models.ForeignKey(FlowSession)
     ordinal = models.IntegerField()
 
     group_id = models.CharField(max_length=200)
@@ -252,16 +261,16 @@ class FlowPageData(models.Model):
     data = JSONField(null=True, blank=True)
 
     class Meta:
-        unique_together = (("flow_visit", "ordinal"),)
+        unique_together = (("flow_session", "ordinal"),)
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
         return "Data for %s's visit %d to '%s/%s' in '%s'" % (
-                self.flow_visit.participation.user,
-                self.flow_visit.id,
+                self.flow_session.participation.user,
+                self.flow_session.id,
                 self.group_id,
                 self.page_id,
-                self.flow_visit.flow_id)
+                self.flow_session.flow_id)
 
     # Django's templates are a little daft.
     def previous_ordinal(self):
@@ -272,10 +281,10 @@ class FlowPageData(models.Model):
 
 
 class FlowPageVisit(models.Model):
-    # This is redundant (because the FlowVisit is available through
+    # This is redundant (because the FlowSession is available through
     # page_data), but it helps the admin site understand the link
     # and provide editing.
-    flow_visit = models.ForeignKey(FlowVisit, db_index=True)
+    flow_session = models.ForeignKey(FlowSession, db_index=True)
 
     page_data = models.ForeignKey(FlowPageData, db_index=True)
     visit_time = models.DateTimeField(default=now, db_index=True)
@@ -285,10 +294,10 @@ class FlowPageVisit(models.Model):
 
     def __unicode__(self):
         return "%s's visit to '%s/%s' in '%s' on %s" % (
-                self.flow_visit.participation.user,
+                self.flow_session.participation.user,
                 self.page_data.group_id,
                 self.page_data.page_id,
-                self.flow_visit.flow_id,
+                self.flow_session.flow_id,
                 self.visit_time)
 
     class Meta:
@@ -309,10 +318,10 @@ class flow_permission:
     see_answer = "see_answer"
 
 FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view, "View flow start page"),
+        (flow_permission.view, "View flow"),
         (flow_permission.view_past, "Review past attempts"),
-        (flow_permission.start_credit, "Start for-credit visit"),
-        (flow_permission.start_no_credit, "Start not-for-credit visit"),
+        (flow_permission.start_credit, "Start for-credit session"),
+        (flow_permission.start_no_credit, "Start not-for-credit session"),
         (flow_permission.see_correctness, "See whether answer is correct"),
         (flow_permission.see_answer, "See the correct answer"),
         )
@@ -325,8 +334,9 @@ class FlowAccessException(models.Model):
 
     stipulations = JSONField(blank=True, null=True,
             help_text="A dictionary of the same things that can be added "
-            "to a flow access rule, such as allowed_visit_count or "
-            "credit_percent.")
+            "to a flow access rule, such as allowed_session_count or "
+            "credit_percent. If not specified here, values will default "
+            "to the stipulations in the course content.")
 
     creator = models.ForeignKey(User, null=True)
     creation_time = models.DateTimeField(default=now, db_index=True)
@@ -361,12 +371,12 @@ class grade_aggregation_strategy:
 
 
 GRADE_AGGREGATION_STRATEGY_CHOICES = (
-        (grade_aggregation_strategy.max_grade, "Use max grade"),
-        (grade_aggregation_strategy.avg_grade, "Use avg grade"),
-        (grade_aggregation_strategy.min_grade, "Use min grade"),
+        (grade_aggregation_strategy.max_grade, "Use the max grade"),
+        (grade_aggregation_strategy.avg_grade, "Use the avg grade"),
+        (grade_aggregation_strategy.min_grade, "Use the min grade"),
 
-        (grade_aggregation_strategy.use_earliest, "Use earliest"),
-        (grade_aggregation_strategy.use_latest, "Use latest"),
+        (grade_aggregation_strategy.use_earliest, "Use the earliest grade"),
+        (grade_aggregation_strategy.use_latest, "Use the latest grade"),
         )
 
 
@@ -438,7 +448,7 @@ class GradeChange(models.Model):
     creator = models.ForeignKey(User, null=True)
     grade_time = models.DateTimeField(default=now, db_index=True)
 
-    flow_visit = models.ForeignKey(FlowVisit, null=True, blank=True,
+    flow_session = models.ForeignKey(FlowSession, null=True, blank=True,
             related_name="grade_changes")
 
     class Meta:

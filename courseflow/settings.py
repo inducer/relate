@@ -62,7 +62,7 @@ AUTHENTICATION_BACKENDS = (
 
 TEMPLATE_CONTEXT_PROCESSORS = (
         TEMPLATE_CONTEXT_PROCESSORS
-        + ("course.auth.sign_in_method_context_processor",)
+        + ("course.utils.settings_context_processor",)
         )
 
 ROOT_URLCONF = 'courseflow.urls'

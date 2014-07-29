@@ -1,5 +1,3 @@
-- flow start options
-- flow overview
 - introduce migrations
 - model docs
 
@@ -8,13 +6,16 @@
 
 - media
 
+Ideas
+=====
+
 - impersonate
   https://stackoverflow.com/questions/2242909/django-user-impersonation-by-admin
 
-Ideas:
-
 - question bank
   -> localize an elaborate question and all its 'stuff' (JS, media)
+  -> use a media search path
+- flow overview
 - Live feedback box
 - Instant flow request
 - Instant flow results

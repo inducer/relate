@@ -12,50 +12,53 @@
   <form method="POST">
     {% csrf_token %}
 
-    {% if past_visits %}
+    {% if past_sessions %}
       <div class="well">
-        <h3 class="start-well-title">Past visits</h3>
+        <h3 class="start-well-title">Past sessions</h3>
 
-        <table class="past-flow-visit-table">
+        <table class="past-flow-session-table">
           <tr>
             <th>Start time</th>
             <th>State</th>
             <th>Result</th>
             <th>Actions</th>
           </tr>
-          {% for flow_visit in past_visits %}
+          {% for flow_session in past_sessions %}
             <tr>
-              <td>{{ flow_visit.start_time }}</td>
+              <td>{{ flow_session.start_time }}</td>
               <td>
-                {% if flow_visit.for_credit %}
+                {% if flow_session.for_credit %}
                   <span class="label label-danger">for credit</span>
                 {% else %}
                   <span class="label label-success">not for credit</span>
                 {% endif %}
-                {% if flow_visit.in_progress %}
+                {% if flow_session.in_progress %}
                   <span class="label label-warning">in progress</span>
                 {% else %}
                   <span class="label label-success">finished</span>
-                  ({{ flow_visit.completion_time }})
+                  ({{ flow_session.completion_time }})
                 {% endif %}
               </td>
               <td>
-                {% if flow_visit.result != None %}
-                  {{ flow_visit.result|floatformat }}
+                {% if flow_session.points != None %}
+                  <b>{{ flow_session.points|floatformat }}</b>
+                  out of
+                  {{ flow_session.max_points|floatformat }}
+
+                  (<b>{{ flow_session.percentage|floatformat }}%</b>)
                 {% else %}
                   (none)
                 {% endif %}
 
               </td>
               <td>
-                {% if may_review and not flow_visit.in_progress %}
-                  <button type="submit" name="review_{{flow_visit.id}}" class="btn btn-primary btn-sm">
-                    Review &raquo;
-                  </button>
-                {% endif %}
-                {% if flow_visit.in_progress %}
-                  <button type="submit" name="resume_{{flow_visit.id}}" class="btn btn-primary btn-sm">
+                {% if flow_session.in_progress %}
+                  <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
                     Resume &raquo;
+                  </button>
+                {% elif may_review %}
+                  <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                    Review &raquo;
                   </button>
                 {% endif %}
               </td>
@@ -65,18 +68,38 @@
       </div>
     {% endif %}
 
-    {% if can_start_credit or can_start_no_credit %}
+    <ul>
+    {% if grade_aggregation_strategy %}
+      <li>
+        If multiple grades are available, the policy will be to 
+        '{{grade_aggregation_strategy}}'.
+      </li>
+    {% endif %}
+    {% if stipulations.allowed_session_count %}
+      <li>
+      Only {{stipulations.allowed_session_count}} sessions will be allowed.
+      </li>
+    {% endif %}
+    {% if stipulations.credit_percent %}
+      <li>
+      You will receive {{stipulations.credit_percent}}% credit for
+      completing this session for-credit.
+      </li>
+    {% endif %}
+    </ul>
+
+    {% if may_start_credit or may_start_no_credit %}
       <div class="well">
-        {% if can_start_no_credit %}
+        {% if may_start_no_credit %}
           <button type="submit" name="start_no_credit" class="btn btn-primary">
-            {% if can_start_credit %}
+            {% if may_start_credit %}
               Start without credit &raquo;
             {% else %}
               Start &raquo;
             {% endif %}
           </button>
         {% endif %}
-        {% if can_start_credit %}
+        {% if may_start_credit %}
           <button type="submit" name="start_credit" class="btn btn-primary">Start for-credit attempt &raquo;</button>
         {% endif %}
       </div>

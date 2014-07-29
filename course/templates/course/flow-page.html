@@ -3,7 +3,7 @@
 {% load crispy_forms_tags %}
 
 {% block title %}
-  [{{ page_data.next_ordinal }}/{{ flow_visit.page_count }}]
+  [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
   {{title}} - {{ flow_desc.title}} - CourseFlow
 {% endblock %}
 
@@ -49,7 +49,7 @@
           href="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.previous_ordinal %}"
           role="button">&laquo; Previous</a>
       {% endif %}
-      {% if page_data.next_ordinal < flow_visit.page_count %}
+      {% if page_data.next_ordinal < flow_session.page_count %}
         <a class="btn btn-default"
           href="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.next_ordinal %}"
           role="button">Next &raquo;</a>
@@ -60,9 +60,9 @@
       <div class="progress flow-progress">
         <div class="progress-bar progress-bar-success" role="progressbar"
           aria-valuenow="{{ page_data.next_ordinal }}"
-          aria-valuemin="0" aria-valuemax="{{ flow_visit.page_count }}"
+          aria-valuemin="0" aria-valuemax="{{ flow_session.page_count }}"
           style="width:{{ percentage }}%">
-          {{ page_data.next_ordinal }} / {{ flow_visit.page_count }}
+          {{ page_data.next_ordinal }} / {{ flow_session.page_count }}
         </div>
       </div>
 

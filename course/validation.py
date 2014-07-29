@@ -238,7 +238,7 @@ def validate_flow_access_rule(ctx, location, rule):
                 ("end", (datetime.date, str)),
                 ("credit_percent", (int, float)),
                 #("time_limit", str),
-                ("allowed_visit_count", int),
+                ("allowed_session_count", int),
                 ]
             )
 
