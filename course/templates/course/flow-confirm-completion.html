@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-  <h1>End Session: {{flow_desc.title}}?</h1>
+  <h1>End Session '{{flow_desc.title}}'?</h1>
 
   {% if unanswered_count %}
     <div class="alert alert-warning">
@@ -28,7 +28,7 @@
   <div class="well flow-well">
     <form method="POST">
     <a class="btn btn-default"
-      href="{% url "course.views.view_flow_page" course.identifier flow_identifier last_page_nr %}"
+      href="{% url "course.flow.view_flow_page" course.identifier flow_identifier last_page_nr %}"
       role="button">&laquo; Go back</a>
       {% csrf_token %}
       <button type="submit" name="submit" class="btn btn-primary">Confirm: End session</button>

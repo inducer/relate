@@ -37,7 +37,10 @@ from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
 from django.core.urlresolvers import reverse
 
-from course.models import UserStatus, user_status
+from course.models import (
+        UserStatus, user_status,
+        Participation, participation_role, participation_status,
+        )
 
 
 # {{{ conventional login
@@ -253,5 +256,35 @@ def user_profile(request):
         })
 
 # }}}
+
+
+def get_role_and_participation(request, course):
+    # "wake up" lazy object
+    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
+    user = (request.user._wrapped
+            if hasattr(request.user, '_wrapped')
+            else request.user)
+
+    if not user.is_authenticated():
+        return participation_role.unenrolled, None
+
+    participations = list(Participation.objects.filter(
+            user=user, course=course))
+
+    # The uniqueness constraint should have ensured that.
+    assert len(participations) <= 1
+
+    if len(participations) == 0:
+        return participation_role.unenrolled, None
+
+    participation = participations[0]
+    if participation.status != participation_status.active:
+        return participation_role.unenrolled, participation
+    else:
+        if participation.temporary_role:
+            return participation.temporary_role, participation
+        else:
+            return participation.role, participation
+
 
 # vim: foldmethod=marker

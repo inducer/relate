@@ -70,7 +70,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         if root.tag == "a" and root.attrib["href"].startswith("flow:"):
             flow_id = root.attrib["href"][5:]
             root.set("href",
-                    reverse("course.views.start_flow",
+                    reverse("course.flow.start_flow",
                         args=(self.course.identifier, flow_id)))
 
         for child in root:

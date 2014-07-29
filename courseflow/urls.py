@@ -73,21 +73,21 @@ urlpatterns = patterns('',
          "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
          "/start"
          "/$",
-         "course.views.start_flow",),
+         "course.flow.start_flow",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow"
         "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
         "/(?P<ordinal>[0-9]+)"
         "/$",
-        "course.views.view_flow_page",),
+        "course.flow.view_flow_page",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow"
         "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
         "/finish"
         "/$",
-        "course.views.finish_flow",),
+        "course.flow.finish_flow",),
 
     url(r'^admin/', include(admin.site.urls)),
 )

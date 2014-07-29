@@ -12,62 +12,6 @@
   <form method="POST">
     {% csrf_token %}
 
-    {% if past_sessions %}
-      <div class="well">
-        <h3 class="start-well-title">Past sessions</h3>
-
-        <table class="past-flow-session-table">
-          <tr>
-            <th>Start time</th>
-            <th>State</th>
-            <th>Result</th>
-            <th>Actions</th>
-          </tr>
-          {% for flow_session in past_sessions %}
-            <tr>
-              <td>{{ flow_session.start_time }}</td>
-              <td>
-                {% if flow_session.for_credit %}
-                  <span class="label label-danger">for credit</span>
-                {% else %}
-                  <span class="label label-success">not for credit</span>
-                {% endif %}
-                {% if flow_session.in_progress %}
-                  <span class="label label-warning">in progress</span>
-                {% else %}
-                  <span class="label label-success">finished</span>
-                  ({{ flow_session.completion_time }})
-                {% endif %}
-              </td>
-              <td>
-                {% if flow_session.points != None %}
-                  <b>{{ flow_session.points|floatformat }}</b>
-                  out of
-                  {{ flow_session.max_points|floatformat }}
-
-                  (<b>{{ flow_session.percentage|floatformat }}%</b>)
-                {% else %}
-                  (none)
-                {% endif %}
-
-              </td>
-              <td>
-                {% if flow_session.in_progress %}
-                  <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                    Resume &raquo;
-                  </button>
-                {% elif may_review %}
-                  <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                    Review &raquo;
-                  </button>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </table>
-      </div>
-    {% endif %}
-
     <ul>
     {% if grade_aggregation_strategy %}
       <li>
@@ -88,8 +32,62 @@
     {% endif %}
     </ul>
 
-    {% if may_start_credit or may_start_no_credit %}
+    {% if may_start_credit or may_start_no_credit or past_sessions%}
       <div class="well">
+        {% if past_sessions %}
+          <h3 class="start-well-title">Past sessions</h3>
+
+          <table class="past-flow-session-table">
+            <tr>
+              <th>Start time</th>
+              <th>State</th>
+              <th>Result</th>
+              <th>Actions</th>
+            </tr>
+            {% for flow_session in past_sessions %}
+              <tr>
+                <td>{{ flow_session.start_time }}</td>
+                <td>
+                  {% if flow_session.for_credit %}
+                    <span class="label label-danger">for credit</span>
+                  {% else %}
+                    <span class="label label-success">not for credit</span>
+                  {% endif %}
+                  {% if flow_session.in_progress %}
+                    <span class="label label-warning">in progress</span>
+                  {% else %}
+                    <span class="label label-success">finished</span>
+                    ({{ flow_session.completion_time }})
+                  {% endif %}
+                </td>
+                <td>
+                  {% if flow_session.points != None %}
+                    <b>{{ flow_session.points|floatformat }}</b>
+                    out of
+                    {{ flow_session.max_points|floatformat }}
+
+                    (<b>{{ flow_session.percentage|floatformat }}%</b>)
+                  {% else %}
+                    (none)
+                  {% endif %}
+
+                </td>
+                <td>
+                  {% if flow_session.in_progress %}
+                    <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                      Resume &raquo;
+                    </button>
+                  {% elif may_review %}
+                    <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                      Review &raquo;
+                    </button>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% endif %}
+
         {% if may_start_no_credit %}
           <button type="submit" name="start_no_credit" class="btn btn-primary">
             {% if may_start_credit %}
@@ -100,7 +98,7 @@
           </button>
         {% endif %}
         {% if may_start_credit %}
-          <button type="submit" name="start_credit" class="btn btn-primary">Start for-credit attempt &raquo;</button>
+          <button type="submit" name="start_credit" class="btn btn-primary">Start new for-credit attempt &raquo;</button>
         {% endif %}
       </div>
     {% endif %}

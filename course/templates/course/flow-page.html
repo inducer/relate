@@ -38,7 +38,7 @@
   {% endif %}
 
   <form
-    action="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.ordinal %}"
+    action="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.ordinal %}"
     method="POST">
 
     {% csrf_token %}
@@ -46,12 +46,12 @@
     <div class="well flow-well">
       {% if page_data.ordinal > 0 %}
         <a class="btn btn-default"
-          href="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.previous_ordinal %}"
+          href="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.previous_ordinal %}"
           role="button">&laquo; Previous</a>
       {% endif %}
       {% if page_data.next_ordinal < flow_session.page_count %}
         <a class="btn btn-default"
-          href="{% url "course.views.view_flow_page" course.identifier flow_identifier page_data.next_ordinal %}"
+          href="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.next_ordinal %}"
           role="button">Next &raquo;</a>
       {% endif %}
       <div style="float:right">
