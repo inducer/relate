@@ -43,6 +43,11 @@ urlpatterns = patterns('',
         "course.auth.user_profile",
         ),
 
+    # troubleshooting
+    url(r'^user/impersonate/$', 'course.auth.impersonate'),
+    url(r'^user/stop_impersonating/$', 'course.auth.stop_impersonating'),
+
+    # course
     url(r'^$', 'course.views.home', name='home'),
 
     url(r"^course"

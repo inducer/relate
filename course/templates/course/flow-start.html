@@ -16,17 +16,18 @@
     {% if grade_aggregation_strategy %}
       <li>
         If multiple grades are available, the policy will be to 
-        '{{grade_aggregation_strategy}}'.
+        '{{ grade_aggregation_strategy }}'.
       </li>
     {% endif %}
     {% if stipulations.allowed_session_count %}
       <li>
-      Only {{stipulations.allowed_session_count}} sessions will be allowed.
+      {{ stipulations.allowed_session_count }}
+      session{{ stipulations.allowed_session_count|pluralize }} will be allowed.
       </li>
     {% endif %}
     {% if stipulations.credit_percent %}
       <li>
-      You will receive {{stipulations.credit_percent}}% credit for
+      You will receive {{ stipulations.credit_percent }}% credit for
       completing this session for-credit.
       </li>
     {% endif %}

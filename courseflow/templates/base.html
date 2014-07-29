@@ -47,6 +47,14 @@
               <li>
                 <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
               </li>
+              {% if currently_impersonating %}
+                <li>
+                  <p class="navbar-text">
+                  (<b>impersonated</b>,
+                  <a class="navbar-link" href="{% url "course.auth.stop_impersonating" %}">stop</a>)
+                  </p>
+                </li>
+              {% endif %}
               <li>
               <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
               </li>

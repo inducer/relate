@@ -51,6 +51,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'course.auth.ImpersonateMiddleware',
 )
 
 
@@ -62,7 +63,10 @@ AUTHENTICATION_BACKENDS = (
 
 TEMPLATE_CONTEXT_PROCESSORS = (
         TEMPLATE_CONTEXT_PROCESSORS
-        + ("course.utils.settings_context_processor",)
+        + (
+            "course.utils.settings_context_processor",
+            "course.auth.impersonation_context_processor",
+            )
         )
 
 ROOT_URLCONF = 'courseflow.urls'

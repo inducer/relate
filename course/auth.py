@@ -35,12 +35,108 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
+from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
 
 from course.models import (
         UserStatus, user_status,
         Participation, participation_role, participation_status,
         )
+
+
+# {{{ impersonation
+
+class ImpersonateMiddleware(object):
+    def process_request(self, request):
+        if request.user.is_staff and 'impersonate_id' in request.session:
+            imp_id = request.session['impersonate_id']
+
+            request.courseflow_impersonate_original_user = request.user
+            if imp_id is not None:
+                try:
+                    request.user = User.objects.get(id=imp_id)
+                except Exception as e:
+                    messages.add_message(request, messages.ERROR,
+                            "Error while impersonating: %s." % e)
+
+
+def is_staff_test(user):
+    return user.is_staff
+
+
+class ImpersonateForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects, required=True,
+            help_text="Select user to impersonate.")
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        super(ImpersonateForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(Submit("submit", "Impersonate",
+            css_class="col-lg-offset-2"))
+
+
+@user_passes_test(is_staff_test)
+def impersonate(request):
+    if request.method == 'POST':
+        form = ImpersonateForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data["user"]
+
+            messages.add_message(request, messages.INFO,
+                    "Now impersonating '%s'." % user.username)
+            request.session['impersonate_id'] = user.id
+
+            # Because we'll likely no longer have access to this page.
+            return redirect("course.views.home")
+    else:
+        form = ImpersonateForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Impersonate user",
+        "form": form
+        })
+
+
+class StopImpersonatingForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        super(StopImpersonatingForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(Submit("submit", "Stop impersonating"))
+
+
+def stop_impersonating(request):
+    if not hasattr(request, "courseflow_impersonate_original_user"):
+        messages.add_message(request, messages.ERROR,
+                "Not currently impersonating anyone.")
+
+    if request.method == 'POST':
+        form = StopImpersonatingForm(request.POST)
+        if form.is_valid():
+            messages.add_message(request, messages.INFO,
+                    "No longer impersonating anyone.")
+            del request.session['impersonate_id']
+
+            # Because otherwise the header will show stale data.
+            return redirect("course.views.home")
+    else:
+        form = StopImpersonatingForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Stop impersonating user",
+        "form": form
+        })
+
+
+def impersonation_context_processor(request):
+    return {"currently_impersonating":
+            hasattr(request, "courseflow_impersonate_original_user")}
+
+# }}}
 
 
 # {{{ conventional login
@@ -50,7 +146,6 @@ class LoginForm(AuthenticationFormBase):
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
         self.helper.field_class = "col-lg-8"
 
         self.helper.add_input(Submit("submit", "Sign in",

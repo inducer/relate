@@ -10,9 +10,6 @@
 Ideas
 =====
 
-- impersonate
-  https://stackoverflow.com/questions/2242909/django-user-impersonation-by-admin
-
 - question bank
   -> localize an elaborate question and all its 'stuff' (JS, media)
   -> use a media search path
