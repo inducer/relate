@@ -97,6 +97,7 @@ def set_up_new_course(request):
                     from dulwich.client import get_transport_and_path
                     client, remote_path = get_transport_and_path(
                             new_course.git_source.encode())
+                    client._fetch_capabilities.remove('thin-pack')
                     remote_refs = client.fetch(remote_path, repo)
                     new_sha = repo["HEAD"] = remote_refs["HEAD"]
 
@@ -194,6 +195,7 @@ def fetch_course_updates(request, course_identifier):
                 from dulwich.client import get_transport_and_path
                 client, remote_path = get_transport_and_path(
                         course.git_source.encode())
+                client._fetch_capabilities.remove('thin-pack')
                 remote_refs = client.fetch(remote_path, repo)
                 repo["HEAD"] = remote_refs["HEAD"]
 
