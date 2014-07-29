@@ -104,9 +104,8 @@ class PageBase(object):
     .. automethod:: body
     .. automethod:: expects_answer
     .. automethod:: max_points
-    .. automethod:: fresh_form
     .. automethod:: answer_data
-    .. automethod:: form_with_answer
+    .. automethod:: make_form
     .. automethod:: post_form
     .. automethod:: grade
     """
@@ -148,22 +147,19 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
-    def fresh_form(self, page_context, page_data):
-        """Return an unfilled :class:`django.forms.Form` instance for the page."""
-
-        return None
-
     def answer_data(self, page_context, page_data, form):
         raise NotImplementedError()
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
         """
 
-    def form_with_answer(self, page_context, page_data,
+    def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
         """Return a :class:`django.forms.Form` instance with
         *answer_data* prepopulated. If *answer_is_final* is *True*,
         the form should be read-only.
+
+        *answer_data* may be *None*.
         """
 
         raise NotImplementedError()
@@ -284,13 +280,14 @@ class TextQuestion(PageBase):
     def max_points(self, page_data):
         return self.page_desc.value
 
-    def fresh_form(self, page_context, page_data):
-        return TextAnswerForm()
-
-    def form_with_answer(self, page_context, page_data,
+    def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
-        answer = {"answer": answer_data["answer"]}
-        form = TextAnswerForm(answer)
+        if answer_data is not None:
+            answer = {"answer": answer_data["answer"]}
+            form = TextAnswerForm(answer)
+        else:
+            answer = None
+            form = TextAnswerForm()
 
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
@@ -402,13 +399,13 @@ class SymbolicQuestion(PageBase):
     def max_points(self, page_data):
         return self.page_desc.value
 
-    def fresh_form(self, page_context, page_data):
-        return SymbolicAnswerForm()
-
-    def form_with_answer(self, page_context, page_data,
+    def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
-        answer = {"answer": answer_data["answer"]}
-        form = SymbolicAnswerForm(answer)
+        if answer_data is not None:
+            answer = {"answer": answer_data["answer"]}
+            form = SymbolicAnswerForm(answer)
+        else:
+            form = SymbolicAnswerForm()
 
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
@@ -525,13 +522,13 @@ class ChoiceQuestion(PageBase):
                 widget=forms.RadioSelect()),
             *args, **kwargs)
 
-    def fresh_form(self, page_context, page_data):
-        return self.make_choice_form(page_data)
-
-    def form_with_answer(self, page_context, page_data,
+    def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
-        form_data = {"choice": answer_data["choice"]}
-        form = self.make_choice_form(page_data, form_data)
+        if answer_data is not None:
+            form_data = {"choice": answer_data["choice"]}
+            form = self.make_choice_form(page_data, form_data)
+        else:
+            form = self.make_choice_form(page_data)
 
         if answer_is_final:
             form.fields['choice'].widget.attrs['disabled'] = True

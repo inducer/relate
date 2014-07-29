@@ -516,14 +516,17 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         fpctx.create_visit()
 
         answer_data = fpctx.prev_answer
-        answer_is_final = fpctx.prev_answer_is_final
+        answer_is_final = (
+                fpctx.prev_answer_is_final
 
-        if answer_data:
-            form = fpctx.page.form_with_answer(page_context, page_data.data,
+                # can happen if no answer was ever saved
+                or not fpctx.flow_session.in_progress)
+
+        if fpctx.page.expects_answer():
+            form = fpctx.page.make_form(page_context, page_data.data,
                     answer_data, answer_is_final)
-
         else:
-            form = fpctx.page.fresh_form(page_context, page_data.data)
+            form = None
 
     # start common flow page generation
 
@@ -536,8 +539,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
     show_answer = None
     feedback = None
 
-    if (answer_data is not None
-            and answer_is_final):
+    if fpctx.page.expects_answer() and answer_is_final:
         show_correctness = flow_permission.see_correctness in fpctx.permissions
         show_answer = flow_permission.see_answer in fpctx.permissions
 
