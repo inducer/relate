@@ -391,6 +391,9 @@ def render_flow_page(request, fpctx, **kwargs):
         "participation": fpctx.participation,
     }
 
+    if fpctx.page.expects_answer():
+        args["max_points"] = fpctx.page.max_points(fpctx.page_data)
+
     args.update(kwargs)
 
     return render(request, "course/flow-page.html", args)
@@ -495,7 +498,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 else:
                     # continue at common flow page generation below
 
-                    form = fpctx.page.form_with_answer(page_context, page_data.data,
+                    form = fpctx.page.make_form(page_context, page_data.data,
                             page_visit.answer, page_visit.answer_is_final)
 
                     # continue at common flow page generation below

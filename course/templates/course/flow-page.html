@@ -8,6 +8,12 @@
 {% endblock %}
 
 {% block content %}
+  {% if max_points %}
+    <div style="float:right" class="well">
+      {{ max_points }} point{{ max_points|pluralize }}
+    </div>
+  {% endif %}
+
   {{ body|safe }}
 
   {% if form %}
