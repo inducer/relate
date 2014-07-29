@@ -314,12 +314,14 @@ def start_flow(request, course_identifier, flow_identifier):
                     flow_id=flow_identifier)
                 .order_by("start_time"))
 
+        for pv in past_visits:
+            pv.result()
 
         # FIXME take into account max attempts
         # FIXME resumption
         # FIXME view past
 
-        return render(request, "course/flow-start.jinja", {
+        return render(request, "course/flow-start.html", {
             "participation": fctx.participation,
             "course_desc": fctx.course_desc,
             "course": fctx.course,
@@ -699,25 +701,6 @@ def gather_grade_info(fctx, answer_visits):
             incorrect_count=incorrect_count)
 
 
-def get_flow_grading_opportunity(course, flow_id, flow_desc):
-    gopps = (GradingOpportunity.objects
-            .filter(course=course)
-            .filter(flow_id=flow_id))
-
-    if gopps.count() == 0:
-        gopp = GradingOpportunity()
-        gopp.course = course
-        gopp.identifier = "flow_"+flow_id.replace("-", "_")
-        gopp.name = "Flow: %s" % flow_desc.title
-        gopp.flow_id = flow_id
-        gopp.save()
-
-        return gopp
-    else:
-        gopp, = gopps
-        return gopp
-
-
 @transaction.atomic
 def finish_flow(request, course_identifier, flow_identifier):
     flow_visit = find_current_flow_visit(request, flow_identifier)
@@ -762,18 +745,19 @@ def finish_flow(request, course_identifier, flow_identifier):
 
         grade_info = gather_grade_info(fctx, answer_visits)
 
+        from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
                 fctx.course, fctx.flow_identifier, fctx.flow_desc)
 
-        from course.models import grade_change_intent, grade_state_change_types
+        from course.models import grade_state_change_types
         gchange = GradeChange()
         gchange.opportunity = gopp
         gchange.participation = fctx.participation
         gchange.state = grade_state_change_types.graded
-        gchange.intent = grade_change_intent.max_percent
         gchange.points = grade_info.points
         gchange.max_points = grade_info.max_points
         gchange.creator = request.user
+        gchange.flow_visit = flow_visit
         gchange.save()
 
         return render(request, "course/flow-completion-grade.html", {

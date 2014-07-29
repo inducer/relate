@@ -8,6 +8,9 @@
 
 - media
 
+- impersonate
+  https://stackoverflow.com/questions/2242909/django-user-impersonation-by-admin
+
 Ideas:
 
 - question bank

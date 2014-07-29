@@ -77,7 +77,6 @@ class UserStatus(models.Model):
 
 # {{{ course
 
-
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
             help_text="A course identifier. Alphanumeric with dashes, "
@@ -231,6 +230,17 @@ class FlowVisit(models.Model):
     class Meta:
         ordering = ("participation", "-start_time")
 
+    def result(self):
+        gcs = (self.grade_changes.order_by("grade_time"))
+
+        return GradeStateMachine().consume(gcs).percentage()
+
+    def __unicode__(self):
+        return "%s's visit %d to '%s'" % (
+                self.participation.user,
+                self.id,
+                self.flow_id)
+
 
 class FlowPageData(models.Model):
     flow_visit = models.ForeignKey(FlowVisit)
@@ -341,6 +351,25 @@ class FlowAccessExceptionEntry(models.Model):
 
 # {{{ grading
 
+class grade_aggregation_strategy:
+    max_grade = "max_grade"
+    avg_grade = "avg_grade"
+    min_grade = "min_grade"
+
+    use_earliest = "use_earliest"
+    use_latest = "use_latest"
+
+
+GRADE_AGGREGATION_STRATEGY_CHOICES = (
+        (grade_aggregation_strategy.max_grade, "Use max grade"),
+        (grade_aggregation_strategy.avg_grade, "Use avg grade"),
+        (grade_aggregation_strategy.min_grade, "Use min grade"),
+
+        (grade_aggregation_strategy.use_earliest, "Use earliest"),
+        (grade_aggregation_strategy.use_latest, "Use latest"),
+        )
+
+
 class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course)
 
@@ -353,6 +382,9 @@ class GradingOpportunity(models.Model):
             help_text="Flow identifier that this grading opportunity "
             "is linked to, if any")
 
+    aggregation_strategy = models.CharField(max_length=20,
+            choices=GRADE_AGGREGATION_STRATEGY_CHOICES)
+
     due_time = models.DateTimeField(default=None, blank=True, null=True)
 
     class Meta:
@@ -362,25 +394,6 @@ class GradingOpportunity(models.Model):
 
     def __unicode__(self):
         return "%s in %s" % (self.name, self.course)
-
-
-class grade_change_intent:
-    max_grade = "max_grade"
-    min_grade = "min_grade"
-    max_percent = "max_percent"
-    min_percent = "min_percent"
-    use_earliest = "use_earliest"
-    use_latest = "use_latest"
-
-
-GRADE_CHANGE_INTENT_CHOICES = (
-        (grade_change_intent.max_grade, "Use max grade"),
-        (grade_change_intent.min_grade, "Use min grade"),
-        (grade_change_intent.max_percent, "Use max %"),
-        (grade_change_intent.min_percent, "Use min %"),
-        (grade_change_intent.use_earliest, "Use earliest"),
-        (grade_change_intent.use_latest, "Use latest"),
-        )
 
 
 class grade_state_change_types:
@@ -413,8 +426,6 @@ class GradeChange(models.Model):
 
     state = models.CharField(max_length=50,
             choices=GRADE_STATE_CHANGE_CHOICES)
-    intent = models.CharField(max_length=20,
-            choices=GRADE_CHANGE_INTENT_CHOICES)
 
     points = models.DecimalField(max_digits=10, decimal_places=2,
             blank=True, null=True)
@@ -427,6 +438,9 @@ class GradeChange(models.Model):
     creator = models.ForeignKey(User, null=True)
     grade_time = models.DateTimeField(default=now, db_index=True)
 
+    flow_visit = models.ForeignKey(FlowVisit, null=True, blank=True,
+            related_name="grade_changes")
+
     class Meta:
         ordering = ("opportunity", "participation", "grade_time")
 
@@ -438,6 +452,134 @@ class GradeChange(models.Model):
         if self.opportunity.course != self.participation.course:
             raise ValidationError("Participation and opportunity must live "
                     "in the same course")
+
+    def percentage(self):
+        return 100*self.points/self.max_points
+
+# }}}
+
+
+# {{{ grade state machine
+
+class GradeStateMachine(object):
+    def __init__(self):
+        self.opportunity = None
+
+        self.state = None
+        self._clear_grades()
+        self.due_time = None
+        self.last_report_time = None
+
+        # applies to *all* grade changes
+        self._last_grade_change_time = None
+
+    def _clear_grades(self):
+        self.state = None
+        self.last_grade_time = None
+        self.valid_percentages = []
+
+    def _consume_grade_change(self, gchange):
+        if self.opportunity is None:
+            self.opportunity = gchange.opportunity
+            self.due_time = self.opportunity.due_time
+        else:
+            assert self.opportunity.pk == gchange.opportunity.pk
+
+        # check that times are increasing
+        if self._last_grade_change_time is not None:
+            assert gchange.grade_time > self._last_grade_change_time
+            self._last_grade_change_time = gchange.grade_time
+
+        if gchange.state == grade_state_change_types.graded:
+            if self.state == grade_state_change_types.unavailable:
+                raise ValueError("cannot accept grade once opportunity has been "
+                        "marked 'unavailable'")
+            if self.state == grade_state_change_types.exempt:
+                raise ValueError("cannot accept grade once opportunity has been "
+                        "marked 'exempt'")
+
+            if self.due_time is not None and gchange.grade_time > self.due_time:
+                raise ValueError("cannot accept grade after due date")
+
+            self.state = gchange.state
+            self.valid_percentages.append(gchange.percentage())
+
+        elif gchange.state == grade_state_change_types.unavailable:
+            self._clear_grades()
+            self.state = gchange.state
+
+        elif gchange.state == grade_state_change_types.do_over:
+            self._clear_grades()
+
+        elif gchange.state == grade_state_change_types.exempt:
+            self._clear_grades()
+            self.state = gchange.state
+
+        elif gchange.state == grade_state_change_types.report_sent:
+            self.last_report_time = gchange.grade_time
+
+        elif gchange.state == grade_state_change_types.extension:
+            self.due_time = gchange.due_time
+
+        elif gchange.state in [
+                grade_state_change_types.grading_started,
+                grade_state_change_types.retrieved,
+                ]:
+            pass
+        else:
+            raise RuntimeError("invalid grade change state '%s'" % gchange.state)
+
+    def consume(self, iterable):
+        for gchange in iterable:
+            self._consume_grade_change(gchange)
+
+        return self
+
+    def percentage(self):
+        """
+        :return: a percentage of achieved points, or *None*
+        """
+        if self.opportunity is None or not self.valid_percentages:
+            return None
+
+        strategy = self.opportunity.aggregation_strategy
+
+        if strategy == grade_aggregation_strategy.max_grade:
+            return max(self.valid_percentages)
+        elif strategy == grade_aggregation_strategy.min_grade:
+            return min(self.valid_percentages)
+        elif strategy == grade_aggregation_strategy.avg_grade:
+            return sum(self.valid_percentages)/len(self.valid_percentages)
+        elif strategy == grade_aggregation_strategy.use_earliest:
+            return self.valid_percentages[0]
+        elif strategy == grade_aggregation_strategy.use_latest:
+            return self.valid_percentages[-1]
+        else:
+            raise ValueError("invalid grade aggregation strategy '%s'" % strategy)
+
+# }}}
+
+
+# {{{ flow <-> grading integration
+
+def get_flow_grading_opportunity(course, flow_id, flow_desc):
+    gopps = (GradingOpportunity.objects
+            .filter(course=course)
+            .filter(flow_id=flow_id))
+
+    if gopps.count() == 0:
+        gopp = GradingOpportunity()
+        gopp.course = course
+        gopp.identifier = "flow_"+flow_id.replace("-", "_")
+        gopp.name = "Flow: %s" % flow_desc.title
+        gopp.aggregation_strategy = flow_desc.grade_aggregation_strategy
+        gopp.flow_id = flow_id
+        gopp.save()
+
+        return gopp
+    else:
+        gopp, = gopps
+        return gopp
 
 # }}}
 

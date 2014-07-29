@@ -124,6 +124,7 @@ def set_up_new_course(request):
                     # to delete the directory if we created it. Trust me.
                     import shutil
                     shutil.rmtree(repo_path)
+                    raise
 
             except Exception as e:
                 messages.add_message(request, messages.ERROR,

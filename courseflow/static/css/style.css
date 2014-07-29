@@ -15,3 +15,15 @@
   text-color:#eee;
 }
 
+.well .start-well-title {
+  margin-top:0;
+}
+
+table.past-flow-visit-table th {
+  margin-right:1em;
+  border-bottom: 1px solid black;
+}
+table.past-flow-visit-table td {
+  padding-right:1em;
+  padding-top:4px;
+}

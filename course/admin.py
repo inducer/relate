@@ -230,7 +230,6 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "get_participant",
             "get_course",
             "state",
-            "intent",
             "points",
             "get_percentage",
             "grade_time",
@@ -246,6 +245,8 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "opportunity",
             "state",
             )
+
+    raw_id_fields = ("flow_visit",)
 
 admin.site.register(GradeChange, GradeChangeAdmin)
 

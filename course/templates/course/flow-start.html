@@ -14,7 +14,9 @@
 
     {% if past_visits %}
       <div class="well">
-        <table>
+        <h3 class="start-well-title">Past visits</h3>
+
+        <table class="past-flow-visit-table">
           <tr>
             <th>Start time</th>
             <th>State</th>
@@ -23,23 +25,52 @@
           </tr>
           {% for flow_visit in past_visits %}
             <tr>
-              <th>Start time</th>
-              <th>State</th>
-              <th>Result</th>
-              <th>Actions</th>
+              <td>{{ flow_visit.start_time }}</td>
+              <td>
+                {% if flow_visit.for_credit %}
+                  <span class="label label-danger">for credit</span>
+                {% else %}
+                  <span class="label label-success">not for credit</span>
+                {% endif %}
+                {% if flow_visit.in_progress %}
+                  <span class="label label-warning">in progress</span>
+                {% else %}
+                  <span class="label label-success">finished</span>
+                  ({{ flow_visit.completion_time }})
+                {% endif %}
+              </td>
+              <td>
+                {% if flow_visit.result != None %}
+                  {{ flow_visit.result|floatformat }}
+                {% else %}
+                  (none)
+                {% endif %}
+
+              </td>
+              <td>
+                {% if may_review and not flow_visit.in_progress %}
+                  <button type="submit" name="review_{{flow_visit.id}}" class="btn btn-primary btn-sm">
+                    Review &raquo;
+                  </button>
+                {% endif %}
+                {% if flow_visit.in_progress %}
+                  <button type="submit" name="resume_{{flow_visit.id}}" class="btn btn-primary btn-sm">
+                    Resume &raquo;
+                  </button>
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </table>
       </div>
     {% endif %}
 
-    <div class="well">
     {% if can_start_credit or can_start_no_credit %}
       <div class="well">
         {% if can_start_no_credit %}
           <button type="submit" name="start_no_credit" class="btn btn-primary">
             {% if can_start_credit %}
-              Start wihtout credit &raquo;
+              Start without credit &raquo;
             {% else %}
               Start &raquo;
             {% endif %}

@@ -228,6 +228,8 @@ class TextAnswerForm(forms.Form):
 
         super(TextAnswerForm, self).__init__(*args, **kwargs)
 
+        self.fields["answer"].widget.attrs["autofocus"] = None
+
 
 class TextQuestion(PageBase):
     def __init__(self, location, page_desc):
@@ -320,7 +322,6 @@ class TextQuestion(PageBase):
 
                 match = pattern.match(answer)
                 if match:
-                    print "MATCH,%s,%s,%s," % (match, correct_answer, match.group(0))
                     correctness = 1
                     break
 

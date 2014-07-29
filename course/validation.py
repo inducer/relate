@@ -237,7 +237,7 @@ def validate_flow_access_rule(ctx, location, rule):
                 ("start", (datetime.date, str)),
                 ("end", (datetime.date, str)),
                 ("credit_percent", (int, float)),
-                ("time_limit", str),
+                #("time_limit", str),
                 ("allowed_visit_count", int),
                 ]
             )
@@ -254,8 +254,6 @@ def validate_flow_access_rule(ctx, location, rule):
                     "%s, role %d" % (location, i+1),
                     role)
 
-    # TODO: validate time limit
-
 
 def validate_flow_desc(ctx, location, flow_desc):
     validate_struct(
@@ -269,14 +267,19 @@ def validate_flow_desc(ctx, location, flow_desc):
                 ],
             allowed_attrs=[
                 ("access_rules", list),
+                ("grade_aggregation_strategy", str),
                 ]
             )
+
+    encountered_permissions = set()
 
     if hasattr(flow_desc, "access_rules"):
         for i, rule in enumerate(flow_desc.access_rules):
             validate_flow_access_rule(ctx,
                     "%s, access rule %d" % (location, i+1),
                     rule)
+
+            encountered_permissions.update(rule.permissions)
 
         last_rule = flow_desc.access_rules[-1]
         if (
@@ -287,6 +290,22 @@ def validate_flow_desc(ctx, location, flow_desc):
             raise ValidationError("%s: last access rule must set default access "
                     "(i.e. have no attributes other than 'permissions')"
                     % location)
+
+    if hasattr(flow_desc, "grade_aggregation_strategy"):
+        from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
+        if flow_desc.grade_aggregation_strategy not in \
+                dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
+            raise ValidationError("%s: invalid grade aggregation strategy"
+                    % location)
+    else:
+        from course.models import flow_permission
+        if flow_permission.start_credit in encountered_permissions:
+            raise ValidationError(
+                    "%s: flow which can be used for credit must have "
+                    "grade_aggregation_strategy"
+                    % location)
+
+
 
     # {{{ check for non-emptiness
 
