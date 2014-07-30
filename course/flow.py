@@ -46,10 +46,8 @@ from course.auth import get_role_and_participation
 from course.views import check_course_state, get_active_commit_sha
 
 
-def get_flow_permissions(course, participation, role, flow_id, flow_desc):
-    from django.utils.timezone import now
-    now_dt = now()
-
+def get_flow_permissions(course, participation, role, flow_id, flow_desc,
+        now_datetime):
     # {{{ interpret flow rules
 
     flow_rule = None
@@ -61,12 +59,12 @@ def get_flow_permissions(course, participation, role, flow_id, flow_desc):
 
         if hasattr(rule, "start"):
             start_date = parse_date_spec(course, rule.start)
-            if now_dt < start_date:
+            if now_datetime < start_date:
                 continue
 
         if hasattr(rule, "end"):
             end_date = parse_date_spec(course, rule.end)
-            if end_date < now_dt:
+            if end_date < now_datetime:
                 continue
 
         flow_rule = rule
@@ -142,9 +140,11 @@ class FlowContext(object):
         self.flow_desc = get_flow_desc(self.repo, self.course,
                 flow_identifier, self.commit_sha)
 
+        from course.views import get_now_or_fake_time
         self.permissions, self.stipulations = get_flow_permissions(
                 self.course, self.participation, self.role,
-                flow_identifier, self.flow_desc)
+                flow_identifier, self.flow_desc,
+                get_now_or_fake_time(request))
 
     def will_receive_feedback(self):
         from course.models import flow_permission

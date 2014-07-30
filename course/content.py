@@ -286,21 +286,18 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
             raise InvalidDatespec(datespec)
 
 
-def compute_chunk_weight_and_shown(course, chunk, role):
-    from django.utils.timezone import now
-    now_dt = now()
-
+def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
     for rule in chunk.rules:
         if hasattr(rule, "role"):
             if role != rule.role:
                 continue
         if hasattr(rule, "start"):
             start_date = parse_date_spec(course, rule.start)
-            if now_dt < start_date:
+            if now_datetime < start_date:
                 continue
         if hasattr(rule, "end"):
             end_date = parse_date_spec(course, rule.end)
-            if end_date < now_dt:
+            if end_date < now_datetime:
                 continue
 
         shown = True
@@ -316,11 +313,11 @@ def get_course_desc(repo, course, commit_sha):
     return get_yaml_from_repo(repo, course.course_file, commit_sha)
 
 
-def get_processed_course_chunks(course, course_desc, role):
+def get_processed_course_chunks(course, course_desc, role, now_datetime):
     for chunk in course_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
-                        course, chunk, role)
+                        course, chunk, role, now_datetime)
         chunk.html_content = markdown_to_html(course, chunk.content)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight)

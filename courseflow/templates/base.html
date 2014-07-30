@@ -50,25 +50,31 @@
             <ul class="dropdown-menu">
               <li><a href="/admin" target="_new">Admin site</a></li>
               <li role="presentation" class="divider"></li>
-              <li role="presentation" class="dropdown-header">Troubleshooting</li>
+              <li role="presentation" class="dropdown-header">Test/Troubleshoot</li>
               {% if currently_impersonating %}
                 <li><a class="navbar-link" href="{% url "course.auth.stop_impersonating" %}">Stop impersonating</a></li>
               {% else %}
                 <li><a href="{% url "course.auth.impersonate" %}">Impersonate user</a></li>
               {% endif %}
+              <li><a href="{% url "course.views.set_fake_time" %}">Set fake time</a></li>
             </ul>
           </li>
           {% endif %}
         </ul>
           <ul class="nav navbar-nav navbar-right">
-            {% if user.is_staff %}
-            {% endif %}
             {% if user.is_authenticated %}
               <li>
                 <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
               </li>
+              {% if currently_impersonating %}
+                <li>
+                  <p class="navbar-text">
+                  <b>(impersonated)</b>
+                  </p>
+                </li>
+              {% endif %}
               <li>
-              <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
+                <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
               </li>
             {% else %}
               <li><a href="{% url student_sign_in_view %}">Sign in</a></li>
@@ -91,6 +97,13 @@
           {{ message|safe }}
         </div>
       {% endfor %}
+
+      {% if fake_time %}
+        <div class="alert alert-info">
+          You are currently seeing a preview of what the site
+          would look like at {{ fake_time }}.
+        </div>
+      {% endif %}
 
       {% block version_advice %}
       {% endblock %}

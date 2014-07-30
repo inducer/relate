@@ -53,6 +53,8 @@ class CourseAdmin(admin.ModelAdmin):
     list_display = ("identifier", "hidden", "valid")
     list_filter = ("hidden", "valid",)
 
+    save_on_top = True
+
 admin.site.register(Course, CourseAdmin)
 
 

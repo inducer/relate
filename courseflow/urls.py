@@ -47,6 +47,8 @@ urlpatterns = patterns('',
     url(r'^user/impersonate/$', 'course.auth.impersonate'),
     url(r'^user/stop_impersonating/$', 'course.auth.stop_impersonating'),
 
+    url(r'^time/set-fake-time/$', 'course.views.set_fake_time'),
+
     # course
     url(r'^$', 'course.views.home', name='home'),
 

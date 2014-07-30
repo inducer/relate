@@ -113,7 +113,7 @@ def course_page(request, course_identifier):
 
     from course.content import get_processed_course_chunks
     chunks = get_processed_course_chunks(course, course_desc,
-            role)
+            role, get_now_or_fake_time(request))
 
     return render(request, "course/course-page.html", {
         "course": course,
@@ -341,6 +341,89 @@ def renumber_time_labels(request, course_identifier):
         "course": course,
         "course_desc": course_desc,
     })
+
+# }}}
+
+
+# {{{ time travel
+
+class FakeTimeForm(forms.Form):
+    time = forms.DateTimeField(
+            widget=DateTimePicker(
+                options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}))
+
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(
+                Submit("set", "Set", css_class="col-lg-offset-2"))
+        self.helper.add_input(
+                Submit("unset", "Unset"))
+
+        super(FakeTimeForm, self).__init__(*args, **kwargs)
+
+
+def get_fake_time(request):
+    if "courseflow_fake_time" in request.session:
+        import datetime
+
+        from django.conf import settings
+        from pytz import timezone
+        tz = timezone(settings.TIME_ZONE)
+        return tz.localize(
+                datetime.datetime.fromtimestamp(
+                    request.session["courseflow_fake_time"]))
+    else:
+        return None
+
+
+def get_now_or_fake_time(request):
+    fake_time = get_fake_time(request)
+    if fake_time is None:
+        from django.utils.timezone import now
+        return now()
+    else:
+        return fake_time
+
+
+def set_fake_time(request):
+    if not request.user.is_staff:
+        raise PermissionDenied("only staff may set fake time")
+
+    if request.method == "POST":
+        form = FakeTimeForm(request.POST, request.FILES)
+        do_set = "set" in form.data
+        if form.is_valid():
+            fake_time = form.cleaned_data["time"]
+            if do_set:
+                import time
+                request.session["courseflow_fake_time"] = \
+                        time.mktime(fake_time.timetuple())
+            else:
+                request.session.pop("courseflow_fake_time", None)
+
+    else:
+        if "courseflow_fake_time" in request.session:
+            form = FakeTimeForm({
+                "time": get_fake_time(request)
+                })
+        else:
+            form = FakeTimeForm()
+
+    return render(request, "generic-form.html", {
+        "form": form,
+        "form_description": "Set fake time",
+    })
+
+
+def fake_time_context_processor(request):
+    return {
+            "fake_time": get_fake_time(request),
+            }
+
 # }}}
 
 
