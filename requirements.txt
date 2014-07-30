@@ -19,3 +19,5 @@ https://github.com/FriendCode/mimer/archive/master.tar.gz
 # Using git version for fix to https://github.com/jelmer/dulwich/issues/135
 
 git+https://github.com/jelmer/dulwich.git
+
+django-bootstrap3-datetimepicker

@@ -99,6 +99,11 @@ class Course(models.Model):
     ssh_private_key = models.TextField(blank=True,
             help_text="An SSH private key to use for Git authentication")
 
+    course_file = models.CharField(max_length=200,
+            default="course.yml",
+            help_text="Name of a YAML file in the git repository that contains "
+            "the root course descriptor.")
+
     enrollment_approval_required = models.BooleanField(
             default=False,
             help_text="If set, each enrolling student must be "
@@ -143,6 +148,13 @@ class TimeLabel(models.Model):
 
     class Meta:
         ordering = ("course", "time")
+        unique_together = (("course", "kind", "ordinal"))
+
+    def __unicode__(self):
+        if self.ordinal is not None:
+            return "%s %s" % (self.kind, self.ordinal)
+        else:
+            return self.kind
 
 
 # {{{ participation

@@ -32,8 +32,6 @@ from django.db import transaction
 
 import re
 
-import datetime
-
 from course.models import (
         Course,
         FlowAccessException,
@@ -48,8 +46,9 @@ from course.auth import get_role_and_participation
 from course.views import check_course_state, get_active_commit_sha
 
 
-def get_flow_permissions(course_desc, participation, role, flow_id, flow_desc):
-    now = datetime.datetime.now().date()
+def get_flow_permissions(course, participation, role, flow_id, flow_desc):
+    from django.utils.timezone import now
+    now_dt = now()
 
     # {{{ interpret flow rules
 
@@ -61,13 +60,13 @@ def get_flow_permissions(course_desc, participation, role, flow_id, flow_desc):
                 continue
 
         if hasattr(rule, "start"):
-            start_date = parse_date_spec(course_desc, rule.start)
-            if now < start_date:
+            start_date = parse_date_spec(course, rule.start)
+            if now_dt < start_date:
                 continue
 
         if hasattr(rule, "end"):
-            end_date = parse_date_spec(course_desc, rule.end)
-            if end_date < now:
+            end_date = parse_date_spec(course, rule.end)
+            if end_date < now_dt:
                 continue
 
         flow_rule = rule
@@ -138,13 +137,13 @@ class FlowContext(object):
             self.commit_sha = get_active_commit_sha(self.course, self.participation)
 
         self.repo = get_course_repo(self.course)
-        self.course_desc = get_course_desc(self.repo, self.commit_sha)
+        self.course_desc = get_course_desc(self.repo, self.course, self.commit_sha)
 
         self.flow_desc = get_flow_desc(self.repo, self.course,
                 flow_identifier, self.commit_sha)
 
         self.permissions, self.stipulations = get_flow_permissions(
-                self.course_desc, self.participation, self.role,
+                self.course, self.participation, self.role,
                 flow_identifier, self.flow_desc)
 
     def will_receive_feedback(self):

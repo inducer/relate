@@ -63,6 +63,19 @@ urlpatterns = patterns('',
         "/media/(?P<media_path>.*)$",
         "course.views.get_media",),
 
+    # time labels
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/validate-time-labels/$",
+        "course.views.validate_time_labels",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/create-recurring-time-labels/$",
+        "course.views.create_recurring_time_labels",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/renumber-time-labels/$",
+        "course.views.renumber_time_labels",),
 
     # versioning
     url(r"^new-course/$",

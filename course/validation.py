@@ -108,9 +108,14 @@ datespec_types = (datetime.date, six.string_types)
 
 
 class ValidationContext(object):
-    def __init__(self, repo, commit_sha):
+    def __init__(self, repo, commit_sha, datespec_callback):
         self.repo = repo
         self.commit_sha = commit_sha
+        self.datespec_callback = datespec_callback
+
+    def encounter_datespec(self, datespec):
+        if self.datespec_callback is not None:
+            self.datespec_callback(datespec)
 
 
 # {{{ course page validation
@@ -128,6 +133,12 @@ def validate_chunk_rule(ctx, chunk_rule):
                 ("role", str),
                 ("shown", bool),
             ])
+
+    if hasattr(chunk_rule, "start"):
+        ctx.encounter_datespec(chunk_rule.start)
+
+    if hasattr(chunk_rule, "end"):
+        ctx.encounter_datespec(chunk_rule.end)
 
 
 def validate_chunk(ctx, chunk):
@@ -155,9 +166,6 @@ def validate_course_desc_struct(ctx, course_desc):
                 ("name", str),
                 ("number", str),
                 ("run", str),
-                ("description", str),
-                ("course_start", datetime.date),
-                ("course_end", datetime.date),
                 ("chunks", list),
                 ],
             allowed_attrs=[]
@@ -237,7 +245,7 @@ def validate_flow_access_rule(ctx, location, rule):
                 ("start", (datetime.date, str)),
                 ("end", (datetime.date, str)),
                 ("credit_percent", (int, float)),
-                #("time_limit", str),
+                # ("time_limit", str),
                 ("allowed_session_count", int),
                 ]
             )
@@ -253,6 +261,12 @@ def validate_flow_access_rule(ctx, location, rule):
             validate_role(
                     "%s, role %d" % (location, i+1),
                     role)
+
+    if hasattr(rule, "start"):
+        ctx.encounter_datespec(rule.start)
+
+    if hasattr(rule, "end"):
+        ctx.encounter_datespec(rule.end)
 
 
 def validate_flow_desc(ctx, location, flow_desc):
@@ -305,8 +319,6 @@ def validate_flow_desc(ctx, location, flow_desc):
                     "grade_aggregation_strategy"
                     % location)
 
-
-
     # {{{ check for non-emptiness
 
     flow_has_page = False
@@ -348,11 +360,15 @@ def validate_flow_desc(ctx, location, flow_desc):
 # }}}
 
 
-def validate_course_content(repo, validate_sha):
-    course_desc = get_yaml_from_repo(repo, "course.yml",
+def validate_course_content(repo, course_file, validate_sha, datespec_callback=None):
+    course_desc = get_yaml_from_repo(repo, course_file,
             commit_sha=validate_sha)
 
-    ctx = ValidationContext(repo=repo, commit_sha=validate_sha)
+    ctx = ValidationContext(
+            repo=repo,
+            commit_sha=validate_sha,
+            datespec_callback=datespec_callback)
+
     validate_course_desc_struct(ctx, course_desc)
 
     flows_tree = get_repo_blob(repo, "flows", validate_sha)

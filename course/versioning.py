@@ -32,6 +32,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
 
+from django.db import transaction
+
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
+
 from course.models import (
         Course,
         Participation, participation_role, participation_status)
@@ -40,10 +45,6 @@ from course.content import (get_course_repo, get_course_desc)
 from course.views import (
         get_role_and_participation, get_active_commit_sha
         )
-
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
-from django.db import transaction
 
 
 # {{{ new course setup
@@ -54,6 +55,7 @@ class CourseCreationForm(forms.ModelForm):
         fields = (
             "identifier", "hidden",
             "git_source", "ssh_private_key",
+            "course_file",
             "enrollment_approval_required",
             "enrollment_required_email_suffix",
             "email")
@@ -102,7 +104,7 @@ def set_up_new_course(request):
                     new_sha = repo["HEAD"] = remote_refs["HEAD"]
 
                     from course.validation import validate_course_content
-                    validate_course_content(repo, new_sha)
+                    validate_course_content(repo, new_course.course_file, new_sha)
 
                     # FIXME create time labels
 
@@ -174,7 +176,7 @@ def fetch_course_updates(request, course_identifier):
     commit_sha = get_active_commit_sha(course, participation)
 
     repo = get_course_repo(course)
-    course_desc = get_course_desc(repo, commit_sha)
+    course_desc = get_course_desc(repo, course, commit_sha)
 
     form = GitFetchForm(request.POST, request.FILES)
     if request.method == "POST":
@@ -212,15 +214,14 @@ def fetch_course_updates(request, course_identifier):
             return render(request, 'course/course-bulk-result.html', {
                 "process_description": "Fetch course updates via git",
                 "log": log,
-                "status": (
-                    "Fetch successful. "
-                    '<a href="%s" class="btn btn-primary">Update &raquo;</a>'
-                    % reverse("course.versioning.update_course",
-                        args=(course_identifier,))
-                    )
-
-                    if was_successful
-                    else "Pull failed. See above for error.",
+                "status": ((
+                        "Fetch successful. "
+                        '<a href="%s" class="btn btn-primary">Update &raquo;</a>'
+                        % reverse("course.versioning.update_course",
+                            args=(course_identifier,))
+                        )
+                        if was_successful
+                        else "Pull failed. See above for error."),
                 "was_successful": was_successful,
                 "course": course,
                 "course_desc": course_desc,
@@ -278,7 +279,7 @@ def update_course(request, course_identifier):
 
     repo = get_course_repo(course)
 
-    course_desc = get_course_desc(repo, commit_sha)
+    course_desc = get_course_desc(repo, course, commit_sha)
 
     previewing = bool(participation is not None
             and participation.preview_git_commit_sha)
@@ -299,7 +300,7 @@ def update_course(request, course_identifier):
 
             from course.validation import validate_course_content, ValidationError
             try:
-                validate_course_content(repo, new_sha)
+                validate_course_content(repo, course.course_file, new_sha)
             except ValidationError as e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "

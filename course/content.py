@@ -28,6 +28,7 @@ from django.conf import settings
 
 import re
 import datetime
+from django.utils.timezone import now
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -233,57 +234,73 @@ def get_yaml_from_repo(repo, full_name, commit_sha):
             load(get_repo_blob(repo, full_name, commit_sha).data))
 
 
-DATE_RE_MATCH = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
-WEEK_RE_MATCH = re.compile(r"^(start|end)\s+week\s+([0-9]+)$")
+DATE_RE = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
+TRAILING_NUMERAL_RE = re.compile(r"^(.*)\s+([0-9]+)$")
 
 
-def parse_absolute_date_spec(date_spec):
-    match = DATE_RE_MATCH.match(date_spec)
-    if not match:
-        raise ValueError("invalid absolute datespec: %s" % date_spec)
-
-    return datetime.date(
-            int(match.group(1)),
-            int(match.group(2)),
-            int(match.group(3)))
+class InvalidDatespec(ValueError):
+    def __init__(self, datespec):
+        ValueError.__init__(self, str(datespec))
+        self.datespec = datespec
 
 
-def parse_date_spec(course_desc, date_spec):
-    match = DATE_RE_MATCH.match(date_spec)
+def parse_date_spec(course, datespec, return_now_on_error=True):
+    if isinstance(datespec, datetime.datetime):
+        return datespec
+    if isinstance(datespec, datetime.date):
+        return datetime.datetime(datespec)
+
+    datespec = datespec.strip()
+
+    match = DATE_RE.match(datespec)
     if match:
         return datetime.date(
                 int(match.group(1)),
                 int(match.group(2)),
                 int(match.group(3)))
 
-    match = WEEK_RE_MATCH.match(date_spec)
+    from course.models import TimeLabel
+
+    match = TRAILING_NUMERAL_RE.match(datespec)
     if match:
-        n = int(match.group(2)) - 1
-        if match.group(1) == "start":
-            return course_desc.first_course_week_start + datetime.timedelta(days=n*7)
-        elif match.group(1) == "end":
-            return (course_desc.first_course_week_start
-                    + datetime.timedelta(days=n*7+6))
+        try:
+            return TimeLabel.objects.get(
+                    course=course,
+                    kind=match.group(1),
+                    ordinal=int(match.group(2))).time
+        except ObjectDoesNotExist:
+            if return_now_on_error:
+                return now()
+            else:
+                raise InvalidDatespec(datespec)
+
+    try:
+        return TimeLabel.objects.get(
+                course=course,
+                kind=datespec,
+                ordinal=None).time
+    except ObjectDoesNotExist:
+        if return_now_on_error:
+            return now()
         else:
-            raise ValueError("invalid datespec: %s" % date_spec)
-
-    raise ValueError("invalid datespec: %s" % date_spec)
+            raise InvalidDatespec(datespec)
 
 
-def compute_chunk_weight_and_shown(course_desc, chunk, role):
-    now = datetime.datetime.now().date()
+def compute_chunk_weight_and_shown(course, chunk, role):
+    from django.utils.timezone import now
+    now_dt = now()
 
     for rule in chunk.rules:
         if hasattr(rule, "role"):
             if role != rule.role:
                 continue
         if hasattr(rule, "start"):
-            start_date = parse_date_spec(course_desc, rule.start)
-            if now < start_date:
+            start_date = parse_date_spec(course, rule.start)
+            if now_dt < start_date:
                 continue
         if hasattr(rule, "end"):
-            end_date = parse_date_spec(course_desc, rule.end)
-            if end_date < now:
+            end_date = parse_date_spec(course, rule.end)
+            if end_date < now_dt:
                 continue
 
         shown = True
@@ -295,29 +312,15 @@ def compute_chunk_weight_and_shown(course_desc, chunk, role):
     return 0
 
 
-class NoCourseContent(RuntimeError):
-    pass
-
-
-def get_course_desc(repo, commit_sha):
-    course_desc = get_yaml_from_repo(repo, "course.yml", commit_sha)
-
-    assert isinstance(course_desc.course_start, datetime.date)
-    assert isinstance(course_desc.course_end, datetime.date)
-
-    # a Monday
-    course_desc.first_course_week_start = \
-            course_desc.course_start - datetime.timedelta(
-                    days=course_desc.course_start.weekday())
-
-    return course_desc
+def get_course_desc(repo, course, commit_sha):
+    return get_yaml_from_repo(repo, course.course_file, commit_sha)
 
 
 def get_processed_course_chunks(course, course_desc, role):
     for chunk in course_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
-                        course_desc, chunk, role)
+                        course, chunk, role)
         chunk.html_content = html_body(course, chunk.content)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight)
