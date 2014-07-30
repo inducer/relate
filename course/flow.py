@@ -720,7 +720,7 @@ def finish_flow(request, course_identifier, flow_identifier):
 
     answer_visits = assemble_answer_visits(flow_session)
 
-    from course.content import html_body
+    from course.content import markdown_to_html
 
     if request.method == "POST":
         if "submit" not in request.POST:
@@ -778,7 +778,7 @@ def finish_flow(request, course_identifier, flow_identifier):
             "course_desc": fctx.course_desc,
             "flow_identifier": fctx.flow_identifier,
             "flow_desc": fctx.flow_desc,
-            "body": html_body(fctx.course, fctx.flow_desc.completion_text),
+            "body": markdown_to_html(fctx.course, fctx.flow_desc.completion_text),
             "participation": fctx.participation,
             "grade_info": grade_info,
         })
@@ -787,14 +787,14 @@ def finish_flow(request, course_identifier, flow_identifier):
     if answered_count + unanswered_count == 0:
         # Not serious--no questions in flow. No need to end the flow visit.
 
-        from course.content import html_body
+        from course.content import markdown_to_html
         return render(request, "course/flow-completion.html", {
             "course": fctx.course,
             "course_desc": fctx.course_desc,
             "flow_identifier": fctx.flow_identifier,
             "flow_desc": fctx.flow_desc,
             "last_page_nr": fctx.page_count-1,
-            "body": html_body(fctx.course, fctx.flow_desc.completion_text),
+            "body": markdown_to_html(fctx.course, fctx.flow_desc.completion_text),
         })
 
     elif not flow_session.in_progress:
@@ -806,7 +806,7 @@ def finish_flow(request, course_identifier, flow_identifier):
             "course_desc": fctx.course_desc,
             "flow_identifier": fctx.flow_identifier,
             "flow_desc": fctx.flow_desc,
-            "body": html_body(fctx.course, fctx.flow_desc.completion_text),
+            "body": markdown_to_html(fctx.course, fctx.flow_desc.completion_text),
             "participation": fctx.participation,
             "grade_info": grade_info,
         })

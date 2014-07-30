@@ -189,7 +189,7 @@ class LinkFixerExtension(Extension):
                 LinkFixerTreeprocessor(md, self.course)
 
 
-def html_body(course, text):
+def markdown_to_html(course, text):
     import markdown
     return markdown.markdown(text,
         extensions=[
@@ -321,7 +321,7 @@ def get_processed_course_chunks(course, course_desc, role):
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
                         course, chunk, role)
-        chunk.html_content = html_body(course, chunk.content)
+        chunk.html_content = markdown_to_html(course, chunk.content)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight)
 
@@ -332,7 +332,8 @@ def get_processed_course_chunks(course, course_desc, role):
 def get_flow_desc(repo, course, flow_id, commit_sha):
     flow = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
 
-    flow.description_html = html_body(course, getattr(flow, "description", None))
+    flow.description_html = markdown_to_html(
+            course, getattr(flow, "description", None))
     return flow
 
 
@@ -390,14 +391,13 @@ def get_flow_page_class(repo, typename, commit_sha):
     if typename.startswith("repo:"):
         stripped_typename = typename[5:]
 
-        components = stripped_typename.split(",")
+        components = stripped_typename.split(".")
         if len(components) != 2:
             raise ClassNotFoundError("repo page class must conist of two "
                     "dotted components (invalid: '%s')" % typename)
 
         module, classname = components
-        from os.path import join
-        module_name = join("code", module+".py")
+        module_name = "code/"+module+".py"
         module_code = get_repo_blob(repo, module_name, commit_sha).data
 
         module_dict = {}

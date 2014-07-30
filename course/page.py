@@ -236,8 +236,8 @@ class Page(PageBase):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import html_body
-        return html_body(page_context.course, self.page_desc.content)
+        from course.content import markdown_to_html
+        return markdown_to_html(page_context.course, self.page_desc.content)
 
     def expects_answer(self):
         return False
@@ -303,8 +303,8 @@ class TextQuestion(PageBase):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import html_body
-        return html_body(page_context.course, self.page_desc.prompt)
+        from course.content import markdown_to_html
+        return markdown_to_html(page_context.course, self.page_desc.prompt)
 
     def expects_answer(self):
         return True
@@ -422,8 +422,8 @@ class SymbolicQuestion(PageBase):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import html_body
-        return html_body(page_context.course, self.page_desc.prompt)
+        from course.content import markdown_to_html
+        return markdown_to_html(page_context.course, self.page_desc.prompt)
 
     def expects_answer(self):
         return True
@@ -524,8 +524,8 @@ class ChoiceQuestion(PageBase):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import html_body
-        return html_body(page_context.course, self.page_desc.prompt)
+        from course.content import markdown_to_html
+        return markdown_to_html(page_context.course, self.page_desc.prompt)
 
     def expects_answer(self):
         return True
