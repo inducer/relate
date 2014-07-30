@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 from course.validation import validate_struct, ValidationError
 from crispy_forms.helper import FormHelper
+from django.utils.safestring import mark_safe
 import django.forms as forms
 import re
 
@@ -540,11 +541,22 @@ class ChoiceQuestion(PageBase):
 
         return {"permutation": perm}
 
-    def make_choice_form(self, page_data, *args, **kwargs):
+    def make_choice_form(self, page_context, page_data, *args, **kwargs):
         permutation = page_data["permutation"]
 
+        def process_choice_string(s):
+            s = remove_prefix(self.CORRECT_TAG, s)
+
+            from course.content import markdown_to_html
+            s = markdown_to_html(page_context.course, s)
+
+            # allow HTML in option
+            s = mark_safe(s)
+
+            return s
+
         choices = tuple(
-                (i, remove_prefix(self.CORRECT_TAG, self.page_desc.choices[src_i]))
+                (i,  process_choice_string(self.page_desc.choices[src_i]))
                 for i, src_i in enumerate(permutation))
 
         return ChoiceAnswerForm(
@@ -558,9 +570,9 @@ class ChoiceQuestion(PageBase):
             answer_data, answer_is_final):
         if answer_data is not None:
             form_data = {"choice": answer_data["choice"]}
-            form = self.make_choice_form(page_data, form_data)
+            form = self.make_choice_form(page_context, page_data, form_data)
         else:
-            form = self.make_choice_form(page_data)
+            form = self.make_choice_form(page_context, page_data)
 
         if answer_is_final:
             form.fields['choice'].widget.attrs['disabled'] = True
@@ -568,7 +580,10 @@ class ChoiceQuestion(PageBase):
         return (form, None)
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return (self.make_choice_form(page_data, post_data, files_data), None)
+        return (
+                self.make_choice_form(
+                    page_context, page_data, post_data, files_data),
+                None)
 
     def answer_data(self, page_context, page_data, form):
         return {"choice": form.cleaned_data["choice"]}
