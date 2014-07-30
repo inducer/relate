@@ -326,7 +326,7 @@ def update_course(request, course_identifier):
                         "Update applied. "
                         "You may want to view the time labels used "
                         "in the course content and check that they "
-                        "recognized. "
+                        "are recognized. "
                         + '<a href="%s" class="btn btn-primary">'
                         'Check &raquo;</a>'
                         % reverse("course.views.check_time_labels",

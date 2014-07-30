@@ -79,7 +79,7 @@ def get_flow_permissions(course, participation, role, flow_id, flow_desc,
             .filter(participation=participation, flow_id=flow_id)
             .order_by("expiration")):
 
-        if exc.expiration is not None and exc.expiration < now:
+        if exc.expiration is not None and exc.expiration < now_datetime:
             continue
 
         exc_stipulations = exc.stipulations
@@ -129,10 +129,11 @@ class FlowContext(object):
 
         check_course_state(self.course, self.role)
 
+        course_commit_sha = get_active_commit_sha(self.course, self.participation)
         if self.flow_session is not None:
             self.commit_sha = self.flow_session.active_git_commit_sha.encode()
         else:
-            self.commit_sha = get_active_commit_sha(self.course, self.participation)
+            self.commit_sha = course_commit_sha
 
         self.repo = get_course_repo(self.course)
         self.course_desc = get_course_desc(self.repo, self.course, self.commit_sha)
@@ -140,11 +141,26 @@ class FlowContext(object):
         self.flow_desc = get_flow_desc(self.repo, self.course,
                 flow_identifier, self.commit_sha)
 
+        # {{{ figure out permissions
+
+        # Fetch current version of the flow to compute permissions,
+        # fall back to 'old' version if current git version does not
+        # contain this flow any more.
+        from django.core.exceptions import ObjectDoesNotExist
+
+        try:
+            permissions_flow_desc = get_flow_desc(self.repo, self.course,
+                    flow_identifier, course_commit_sha)
+        except ObjectDoesNotExist:
+            permissions_flow_desc = self.flow_desc
+
         from course.views import get_now_or_fake_time
         self.permissions, self.stipulations = get_flow_permissions(
                 self.course, self.participation, self.role,
-                flow_identifier, self.flow_desc,
+                flow_identifier, permissions_flow_desc,
                 get_now_or_fake_time(request))
+
+        # }}}
 
     def will_receive_feedback(self):
         from course.models import flow_permission
