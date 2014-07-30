@@ -1,0 +1,29 @@
+{% extends "course/course-base.html" %}
+
+{% block content %}
+  <h1>Time label validity check</h1>
+
+  {% if invalid_datespecs %}
+    The following time labels were found in course content that were not
+    understood:
+    <ul>
+      {% for datespec in invalid_datespecs %}
+        <li><tt>{{ datespec }}</tt>
+      {% endfor %}
+    </ul>
+    <div class="alert alert-warning">
+      <p>
+      <b>Unrecognized time labels were found.</b>
+      </p>
+
+      <p>
+      Check the "Time labels" functions in the instructor menu to add the
+      missing labels.
+      </p>
+    </div>
+  {% else %}
+    <div class="alert alert-success">
+      No unrecognized time labels were found.
+    </div>
+  {% endif %}
+{% endblock %}
