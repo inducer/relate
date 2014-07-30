@@ -209,7 +209,8 @@ class RecurringTimeLabelForm(forms.Form):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        self.helper.add_input(Submit("submit", "Create"))
+        self.helper.add_input(
+                Submit("submit", "Create", css_class="col-lg-offset-2"))
 
         super(RecurringTimeLabelForm, self).__init__(*args, **kwargs)
 
@@ -282,7 +283,8 @@ class RenumberTimeLabelsForm(forms.Form):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        self.helper.add_input(Submit("submit", "Renumber"))
+        self.helper.add_input(
+                Submit("submit", "Renumber", css_class="col-lg-offset-2"))
 
         super(RenumberTimeLabelsForm, self).__init__(*args, **kwargs)
 

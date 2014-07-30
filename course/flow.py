@@ -380,27 +380,6 @@ def find_current_flow_session(request, flow_identifier):
     return flow_session
 
 
-def render_flow_page(request, fpctx, **kwargs):
-    args = {
-        "course": fpctx.course,
-        "course_desc": fpctx.course_desc,
-        "flow_identifier": fpctx.flow_identifier,
-        "flow_desc": fpctx.flow_desc,
-        "ordinal": fpctx.ordinal,
-        "page_data": fpctx.page_data,
-        "percentage": fpctx.percentage,
-        "flow_session": fpctx.flow_session,
-        "participation": fpctx.participation,
-    }
-
-    if fpctx.page.expects_answer():
-        args["max_points"] = fpctx.page.max_points(fpctx.page_data)
-
-    args.update(kwargs)
-
-    return render(request, "course/flow-page.html", args)
-
-
 def add_buttons_to_form(fpctx, form):
     from crispy_forms.layout import Submit
     form.helper.add_input(
@@ -464,7 +443,8 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             if not flow_session.in_progress:
                 raise PermissionDenied("session is not in progress")
 
-            form = fpctx.page.post_form(fpctx.page_context, fpctx.page_data.data,
+            form, form_html = fpctx.page.post_form(
+                    fpctx.page_context, fpctx.page_data.data,
                     post_data=request.POST, files_data=request.POST)
 
             pressed_button = get_pressed_button(form)
@@ -500,7 +480,8 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 else:
                     # continue at common flow page generation below
 
-                    form = fpctx.page.make_form(page_context, page_data.data,
+                    form, form_html = fpctx.page.make_form(
+                            page_context, page_data.data,
                             page_visit.answer, page_visit.answer_is_final)
 
                     # continue at common flow page generation below
@@ -528,14 +509,16 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 or not fpctx.flow_session.in_progress)
 
         if fpctx.page.expects_answer():
-            form = fpctx.page.make_form(page_context, page_data.data,
+            form, form_html = fpctx.page.make_form(
+                    page_context, page_data.data,
                     answer_data, answer_is_final)
         else:
             form = None
+            form_html = None
 
     # start common flow page generation
 
-    # defined at this point: form, answer_data, answer_is_final
+    # defined at this point: form, form_template, answer_data, answer_is_final
 
     if form is not None and not answer_is_final:
         form = add_buttons_to_form(fpctx, form)
@@ -549,16 +532,49 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         show_answer = flow_permission.see_answer in fpctx.permissions
 
         if show_correctness or show_answer:
-            feedback = fpctx.page.grade(page_context, page_data.data, answer_data)
+            feedback = fpctx.page.grade(
+                    page_context, page_data.data, answer_data,
+                    # FIXME
+                    grade_data=None)
 
     title = fpctx.page.title(page_context, page_data.data)
     body = fpctx.page.body(page_context, page_data.data)
 
-    return render_flow_page(
-            request, fpctx, title=title, body=body, form=form,
-            feedback=feedback,
-            show_correctness=show_correctness,
-            show_answer=show_answer)
+    # {{{ render flow page
+
+    if form is not None and form_html is None:
+        from crispy_forms.utils import render_crispy_form
+        from django.template import RequestContext
+        context = RequestContext(request, {})
+        form_html = render_crispy_form(form, context=context)
+        del context
+
+        form_html = '<div class="well">%s</div>' % form_html
+
+    args = {
+        "course": fpctx.course,
+        "course_desc": fpctx.course_desc,
+        "flow_identifier": fpctx.flow_identifier,
+        "flow_desc": fpctx.flow_desc,
+        "ordinal": fpctx.ordinal,
+        "page_data": fpctx.page_data,
+        "percentage": fpctx.percentage,
+        "flow_session": fpctx.flow_session,
+        "participation": fpctx.participation,
+
+        "title": title, "body": body,
+        "form_html": form_html,
+        "feedback": feedback,
+        "show_correctness": show_correctness,
+        "show_answer": show_answer,
+    }
+
+    if fpctx.page.expects_answer():
+        args["max_points"] = fpctx.page.max_points(fpctx.page_data)
+
+    return render(request, "course/flow-page.html", args)
+
+    # }}}
 
 # }}}
 
@@ -652,8 +668,10 @@ def gather_grade_info(fctx, answer_visits):
 
         if answer_visits[i] is not None:
             answer_data = answer_visits[i].answer
+            grade_data = answer_visits[i].grade_data
         else:
             answer_data = None
+            grade_data = None
 
         page = instantiate_flow_page_with_ctx(fctx, page_data)
 
@@ -663,7 +681,8 @@ def gather_grade_info(fctx, answer_visits):
         from course.page import PageContext
         page_context = PageContext(course=fctx.course)
 
-        feedback = page.grade(page_context, page_data.data, answer_data)
+        feedback = page.grade(
+                page_context, page_data.data, answer_data, grade_data)
 
         max_points += page.max_points(page_data.data)
         points += page.max_points(page_data.data)*feedback.correctness

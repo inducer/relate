@@ -304,6 +304,8 @@ class FlowPageVisit(models.Model):
     answer = JSONField(null=True, blank=True)
     answer_is_final = models.NullBooleanField()
 
+    grade_data = JSONField(null=True, blank=True)
+
     def __unicode__(self):
         return "%s's visit to '%s/%s' in '%s' on %s" % (
                 self.flow_session.participation.user,

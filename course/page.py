@@ -30,6 +30,15 @@ import django.forms as forms
 import re
 
 
+__doc__ = """
+
+.. autoclass:: PageBase
+.. autoclass:: AnswerFeedback
+.. autoclass:: PageContext
+
+"""
+
+
 def remove_prefix(prefix, s):
     if s.startswith(prefix):
         return s[len(prefix):]
@@ -38,6 +47,10 @@ def remove_prefix(prefix, s):
 
 
 class PageContext(object):
+    """
+    .. attribute:: course
+    """
+
     def __init__(self, course):
         self.course = course
 
@@ -155,25 +168,44 @@ class PageBase(object):
 
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
-        """Return a :class:`django.forms.Form` instance with
-        *answer_data* prepopulated. If *answer_is_final* is *True*,
-        the form should be read-only.
+        """
+        :arg answer_data: value returned by :meth:`answer_data`.
+             May be *None*.
+        :return: a tuple (form, form_html), where *form* is a
+            :class:`django.forms.Form` instance with *answer_data* prepopulated.
+            If *answer_is_final* is *True*, the form should be read-only.
 
-        *answer_data* may be *None*.
+            *form_html* is the HTML of the rendered form. If *None*, the form
+            will automatically be rendered using
+            :func:`crispy_forms.utils.render_crispy_form`.
         """
 
         raise NotImplementedError()
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        """Return a :class:`django.forms.Form` instance with
-        data from *post_data* and *files_data* filled in.
+        """Return a form with the POST response from *post_data* and *files_data*
+        filled in.
+
+        :return: a tuple (form, form_html), where *form* is a
+            :class:`django.forms.Form` instance with *answer_data* prepopulated.
+            If *answer_is_final* is *True*, the form should be read-only.
+
+            *form_html* is the HTML of the rendered form. It should not include
+            a ``<form>`` HTML tag or a Django CSRF token. If *None*, the form
+            will automatically be rendered using
+            :func:`crispy_forms.utils.render_crispy_form`.
         """
         raise NotImplementedError()
 
-    def grade(self, page_context, page_data, answer_data):
-        """Return a :class:`AnswerFeedback` for the user's *answer_data*.
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        """Grade the answer contained in *answer_data*.
 
-        *answer_data* may be None, which must be handled.
+        :arg answer_data: value returned by :meth:`answer_data`,
+            or *None*, which means that no answer was supplied.
+        :arg grade_data: is a (currently unimplemented) interface to
+            feed in persisted information from deferred/human grading.
+        :return: a :class:`AnswerFeedback` instanstance, or *None* if the
+            grade is not yet available.
         """
 
         raise NotImplementedError()
@@ -292,15 +324,15 @@ class TextQuestion(PageBase):
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
 
-        return form
+        return (form, None)
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return TextAnswerForm(post_data, files_data)
+        return (TextAnswerForm(post_data, files_data), None)
 
     def answer_data(self, page_context, page_data, form):
         return {"answer": form.cleaned_data["answer"].strip()}
 
-    def grade(self, page_context, page_data, answer_data):
+    def grade(self, page_context, page_data, answer_data, grade_data):
         correct_answer_text = ("A correct answer is: '%s'."
                 % remove_prefix("plain:", self.page_desc.answers[0]))
 
@@ -410,15 +442,15 @@ class SymbolicQuestion(PageBase):
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
 
-        return form
+        return (form, None)
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return SymbolicAnswerForm(post_data, files_data)
+        return (SymbolicAnswerForm(post_data, files_data), None)
 
     def answer_data(self, page_context, page_data, form):
         return {"answer": form.cleaned_data["answer"].strip()}
 
-    def grade(self, page_context, page_data, answer_data):
+    def grade(self, page_context, page_data, answer_data, grade_data):
         correct_answer_text = ("A correct answer is: '%s'."
                 % self.page_desc.answers[0])
 
@@ -533,15 +565,15 @@ class ChoiceQuestion(PageBase):
         if answer_is_final:
             form.fields['choice'].widget.attrs['disabled'] = True
 
-        return form
+        return (form, None)
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return self.make_choice_form(page_data, post_data, files_data)
+        return (self.make_choice_form(page_data, post_data, files_data), None)
 
     def answer_data(self, page_context, page_data, form):
         return {"choice": form.cleaned_data["choice"]}
 
-    def grade(self, page_context, page_data, answer_data):
+    def grade(self, page_context, page_data, answer_data, grade_data):
         for i, choice_text in enumerate(self.page_desc.choices):
             if choice_text.startswith(self.CORRECT_TAG):
                 unpermuted_correct_idx = i

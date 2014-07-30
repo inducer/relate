@@ -16,10 +16,8 @@
 
   {{ body|safe }}
 
-  {% if form %}
-    <div class="well">
-      {% crispy form %}
-    </div>
+  {% if form_html %}
+    {{ form_html|safe }}
   {% endif %}
   {% if show_correctness %}
     <div class="alert
