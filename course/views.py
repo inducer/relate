@@ -77,7 +77,7 @@ def home(request):
 
     def course_sort_key(entry):
         course, desc, invalid_flag = entry
-        return desc.course_start
+        return course.identifier
 
     courses_and_descs_and_invalid_flags.sort(key=course_sort_key)
 
@@ -154,7 +154,7 @@ def get_media(request, course_identifier, media_path):
 
 # {{{ time labels
 
-def validate_time_labels(request, course_identifier):
+def check_time_labels(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
 
     role, participation = get_role_and_participation(request, course)

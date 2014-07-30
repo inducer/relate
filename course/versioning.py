@@ -122,6 +122,15 @@ def set_up_new_course(request):
                     part.save()
 
                     # }}}
+
+                    messages.add_message(request, messages.INFO,
+                            "Course content validated, creation succeeded. "
+                            "You may want to view the time labels used "
+                            "in the course content and create them. "
+                            + '<a href="%s" class="btn btn-primary">'
+                            'Check &raquo;</a>'
+                            % reverse("course.views.check_time_labels",
+                                args=(new_course.identifier,)))
                 except:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
@@ -314,7 +323,14 @@ def update_course(request, course_identifier):
 
             if validated and "update" in form.data:
                 messages.add_message(request, messages.INFO,
-                        "Update applied.")
+                        "Update applied. "
+                        "You may want to view the time labels used "
+                        "in the course content and check that they "
+                        "recognized. "
+                        + '<a href="%s" class="btn btn-primary">'
+                        'Check &raquo;</a>'
+                        % reverse("course.views.check_time_labels",
+                            args=(course.identifier,)))
 
                 course.active_git_commit_sha = new_sha
                 course.valid = True

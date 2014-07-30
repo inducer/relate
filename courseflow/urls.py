@@ -66,8 +66,8 @@ urlpatterns = patterns('',
     # time labels
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/validate-time-labels/$",
-        "course.views.validate_time_labels",),
+        "/check-time-labels/$",
+        "course.views.check_time_labels",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/create-recurring-time-labels/$",

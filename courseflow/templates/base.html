@@ -88,7 +88,7 @@
             alert-{{ message.tags }}
           {% endif %}
           ">
-          {{ message }}
+          {{ message|safe }}
         </div>
       {% endfor %}
 
@@ -121,4 +121,3 @@
     {% endif %}
   </body>
 </html>
-
