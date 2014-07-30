@@ -99,7 +99,11 @@ def set_up_new_course(request):
                     from dulwich.client import get_transport_and_path
                     client, remote_path = get_transport_and_path(
                             new_course.git_source.encode())
+
+                    # Work around
+                    # https://bugs.launchpad.net/dulwich/+bug/1025886
                     client._fetch_capabilities.remove('thin-pack')
+
                     remote_refs = client.fetch(remote_path, repo)
                     new_sha = repo["HEAD"] = remote_refs["HEAD"]
 
@@ -172,6 +176,19 @@ class GitFetchForm(forms.Form):
         self.helper.add_input(Submit("fetch", "Fetch"))
 
 
+def is_parent_commit(repo, potential_parent, child):
+    queue = [repo[parent] for parent in child.parents]
+
+    while queue:
+        entry = queue.pop()
+        if entry == potential_parent:
+            return True
+
+        queue.extend(repo[parent] for parent in entry.parents)
+
+    return False
+
+
 @login_required
 def fetch_course_updates(request, course_identifier):
     import sys
@@ -206,9 +223,17 @@ def fetch_course_updates(request, course_identifier):
                 from dulwich.client import get_transport_and_path
                 client, remote_path = get_transport_and_path(
                         course.git_source.encode())
+
+                # Work around
+                # https://bugs.launchpad.net/dulwich/+bug/1025886
                 client._fetch_capabilities.remove('thin-pack')
+
                 remote_refs = client.fetch(remote_path, repo)
-                repo["HEAD"] = remote_refs["HEAD"]
+                remote_head = remote_refs["HEAD"]
+                if is_parent_commit(repo, repo[remote_head], repo["HEAD"]):
+                    raise RuntimeError("fetch would discard commits, refusing")
+
+                repo["HEAD"] = remote_head
 
                 log_lines.append("Post-fetch head is at '%s'" % repo.head())
 
