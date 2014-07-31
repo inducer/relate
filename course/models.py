@@ -305,7 +305,7 @@ class FlowPageVisit(models.Model):
     visit_time = models.DateTimeField(default=now, db_index=True)
 
     answer = JSONField(null=True, blank=True)
-    answer_is_final = models.NullBooleanField()
+    is_graded_answer = models.NullBooleanField()
 
     grade_data = JSONField(null=True, blank=True)
 
@@ -331,6 +331,7 @@ class flow_permission:
     start_credit = "start_credit"
     start_no_credit = "start_no_credit"
 
+    change_answer = "change_answer"
     see_correctness = "see_correctness"
     see_answer = "see_answer"
 
@@ -339,6 +340,8 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.view_past, "Review past attempts"),
         (flow_permission.start_credit, "Start for-credit session"),
         (flow_permission.start_no_credit, "Start not-for-credit session"),
+
+        (flow_permission.change_answer, "Change already-graded answer"),
         (flow_permission.see_correctness, "See whether answer is correct"),
         (flow_permission.see_answer, "See the correct answer"),
         )

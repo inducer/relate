@@ -74,7 +74,6 @@ class CourseCreationForm(forms.ModelForm):
 
 
 @login_required
-@transaction.atomic
 def set_up_new_course(request):
     if not request.user.is_staff:
         raise PermissionDenied("only staff may create courses")
@@ -93,48 +92,50 @@ def set_up_new_course(request):
                 os.makedirs(repo_path)
 
                 try:
-                    from dulwich.repo import Repo
-                    repo = Repo.init(repo_path)
+                    with transaction.atomic():
+                        from dulwich.repo import Repo
+                        repo = Repo.init(repo_path)
 
-                    from dulwich.client import get_transport_and_path
-                    client, remote_path = get_transport_and_path(
-                            new_course.git_source.encode())
+                        from dulwich.client import get_transport_and_path
+                        client, remote_path = get_transport_and_path(
+                                new_course.git_source.encode())
 
-                    # Work around
-                    # https://bugs.launchpad.net/dulwich/+bug/1025886
-                    client._fetch_capabilities.remove('thin-pack')
+                        # Work around
+                        # https://bugs.launchpad.net/dulwich/+bug/1025886
+                        client._fetch_capabilities.remove('thin-pack')
 
-                    remote_refs = client.fetch(remote_path, repo)
-                    new_sha = repo["HEAD"] = remote_refs["HEAD"]
+                        remote_refs = client.fetch(remote_path, repo)
+                        new_sha = repo["HEAD"] = remote_refs["HEAD"]
 
-                    from course.validation import validate_course_content
-                    validate_course_content(repo, new_course.course_file, new_sha)
+                        from course.validation import validate_course_content
+                        validate_course_content(
+                                repo, new_course.course_file, new_sha)
 
-                    # FIXME create time labels
+                        # FIXME create time labels
 
-                    new_course.valid = True
-                    new_course.active_git_commit_sha = new_sha
-                    new_course.save()
+                        new_course.valid = True
+                        new_course.active_git_commit_sha = new_sha
+                        new_course.save()
 
-                    # {{{ set up a participation for the course creator
+                        # {{{ set up a participation for the course creator
 
-                    part = Participation()
-                    part.user = request.user
-                    part.course = new_course
-                    part.role = participation_role.instructor
-                    part.status = participation_status.active
-                    part.save()
+                        part = Participation()
+                        part.user = request.user
+                        part.course = new_course
+                        part.role = participation_role.instructor
+                        part.status = participation_status.active
+                        part.save()
 
-                    # }}}
+                        # }}}
 
-                    messages.add_message(request, messages.INFO,
-                            "Course content validated, creation succeeded. "
-                            "You may want to view the time labels used "
-                            "in the course content and create them. "
-                            + '<a href="%s" class="btn btn-primary">'
-                            'Check &raquo;</a>'
-                            % reverse("course.views.check_time_labels",
-                                args=(new_course.identifier,)))
+                        messages.add_message(request, messages.INFO,
+                                "Course content validated, creation succeeded. "
+                                "You may want to view the time labels used "
+                                "in the course content and create them. "
+                                + '<a href="%s" class="btn btn-primary">'
+                                'Check &raquo;</a>'
+                                % reverse("course.views.check_time_labels",
+                                    args=(new_course.identifier,)))
                 except:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.

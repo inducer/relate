@@ -29,6 +29,7 @@ from django.shortcuts import (  # noqa
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import transaction
+from django.utils.safestring import mark_safe
 
 import re
 
@@ -361,11 +362,11 @@ class FlowPageContext(FlowContext):
                 .filter(answer__isnull=False)
                 .order_by("-visit_time"))
 
-        self.prev_answer_is_final = False
+        self.prev_answer_was_graded = False
         self.prev_answer = None
         for prev_visit in previous_answer_visits:
             self.prev_answer = prev_visit.answer
-            self.prev_answer_is_final = prev_visit.answer_is_final
+            self.prev_answer_was_graded = prev_visit.is_graded_answer
             break
 
         # }}}
@@ -405,15 +406,20 @@ def add_buttons_to_form(fpctx, form):
                 css_class="col-lg-offset-2"))
 
     if fpctx.will_receive_feedback():
-        form.helper.add_input(Submit("submit", "Submit final answer"))
+        if flow_permission.change_answer in fpctx.permissions:
+            form.helper.add_input(Submit("submit", "Submit answer for grading"))
+        else:
+            form.helper.add_input(Submit("submit", "Submit final answer"))
     else:
         # Only offer 'save and move on' if student will receive no feedback
         if fpctx.page_data.ordinal + 1 < fpctx.flow_session.page_count:
             form.helper.add_input(
-                    Submit("save_and_next", "Save answer and move on"))
+                    Submit("save_and_next",
+                        mark_safe("Save answer and move on &raquo;")))
         else:
             form.helper.add_input(
-                    Submit("save_and_finish", "Save answer and finish"))
+                    Submit("save_and_finish",
+                        mark_safe("Save answer and finish &raquo;")))
 
     return form
 
@@ -453,13 +459,14 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             return redirect("course.flow.finish_flow",
                     course_identifier, flow_identifier)
         else:
-            # reject if previous answer was final
-            if fpctx.prev_answer_is_final:
-                raise PermissionDenied("already have final answer")
-
             # reject answer update if flow is not in-progress
             if not flow_session.in_progress:
                 raise PermissionDenied("session is not in progress")
+
+            # reject if previous answer was final
+            if (fpctx.prev_answer_was_graded
+                    and flow_permission.change_answer not in fpctx.permissions):
+                raise PermissionDenied("already have final answer")
 
             form, form_html = fpctx.page.post_form(
                     fpctx.page_context, fpctx.page_data.data,
@@ -479,11 +486,14 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
                         form)
-                page_visit.answer_is_final = pressed_button == "submit"
+                page_visit.is_graded_answer = pressed_button == "submit"
                 page_visit.save()
 
                 answer_data = page_visit.answer
-                answer_is_final = page_visit.answer_is_final
+                answer_was_graded = page_visit.is_graded_answer
+                may_change_answer = (
+                        not answer_was_graded
+                        or flow_permission.change_answer in fpctx.permissions)
 
                 if (pressed_button == "save_and_next"
                         and not fpctx.will_receive_feedback()):
@@ -500,7 +510,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
                     form, form_html = fpctx.page.make_form(
                             page_context, page_data.data,
-                            page_visit.answer, page_visit.answer_is_final)
+                            page_visit.answer, not may_change_answer)
 
                     # continue at common flow page generation below
 
@@ -512,7 +522,9 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 fpctx.create_visit()
 
                 answer_data = None
-                answer_is_final = False
+                answer_was_graded = False
+                may_change_answer = True
+                # because we were allowed this far in by the check above
 
                 # continue at common flow page generation below
 
@@ -520,32 +532,35 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         fpctx.create_visit()
 
         answer_data = fpctx.prev_answer
-        answer_is_final = (
-                fpctx.prev_answer_is_final
+        answer_was_graded = fpctx.prev_answer_was_graded
+        may_change_answer = (
+                (not answer_was_graded
+                    or flow_permission.change_answer in fpctx.permissions)
 
                 # can happen if no answer was ever saved
-                or not fpctx.flow_session.in_progress)
+                and fpctx.flow_session.in_progress)
 
         if fpctx.page.expects_answer():
             form, form_html = fpctx.page.make_form(
                     page_context, page_data.data,
-                    answer_data, answer_is_final)
+                    answer_data, not may_change_answer)
         else:
             form = None
             form_html = None
 
     # start common flow page generation
 
-    # defined at this point: form, form_template, answer_data, answer_is_final
+    # defined at this point:
+    # form, form_template, answer_data, may_change_answer, answer_was_graded
 
-    if form is not None and not answer_is_final:
+    if form is not None and may_change_answer:
         form = add_buttons_to_form(fpctx, form)
 
     show_correctness = None
     show_answer = None
     feedback = None
 
-    if fpctx.page.expects_answer() and answer_is_final:
+    if fpctx.page.expects_answer() and answer_was_graded:
         show_correctness = flow_permission.see_correctness in fpctx.permissions
         show_answer = flow_permission.see_answer in fpctx.permissions
 
@@ -794,7 +809,7 @@ def finish_flow(request, course_identifier, flow_identifier):
 
             for answer_visit in answer_visits:
                 if answer_visit is not None:
-                    answer_visit.answer_is_final = True
+                    answer_visit.is_graded_answer = True
                     answer_visit.save()
 
             # }}}

@@ -91,13 +91,13 @@ class AnswerFeedback(object):
 
         if feedback is None:
             if correctness == 0:
-                feedback = "Your answer is not correct."
+                feedback = "Your answer was not correct."
             elif correctness == 1:
-                feedback = "Your answer is correct."
+                feedback = "Your answer was correct."
             elif correctness > 0.5:
-                feedback = "Your answer is mostly correct."
+                feedback = "Your answer was mostly correct."
             else:
-                feedback = "Your answer is somewhat correct."
+                feedback = "Your answer was somewhat correct."
 
         self.correctness = correctness
         self.correct_answer = correct_answer
