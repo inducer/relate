@@ -7,3 +7,4 @@ Writing content for CourseFlow
 
 * Linking to flows
 * Linking to media
+* Jinja, macros, default_jinja_macro_files

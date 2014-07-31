@@ -1,23 +1,34 @@
 # Django>=1.7 once released
 https://www.djangoproject.com/download/1.7c1/tarball/
 
+# Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms>=1.4.0
-django-json-field
+
+# Page data, answer data, ... all represented in JSON. This makes that editable
+# in the Django admin.
 https://github.com/bradjasper/django-jsonfield/archive/postgresql.tar.gz
+
+# For easy content formatting:
+markdown
+
+# For rendering macros in content:
+jinja2
 
 six
 
-markdown
+# For math/symbolic questions
 pymbolic
 sympy
-pytz
-pyyaml
 
-https://github.com/FriendCode/mimer/archive/master.tar.gz
+# Django timezone support
+pytz
+
+# Course content is stored in YAML.
+pyyaml
 
 # dulwich does not yet support Python3
 # Using git version for fix to https://github.com/jelmer/dulwich/issues/135
+dulwich
 
-git+https://github.com/jelmer/dulwich.git
-
+# A date picker widget
 django-bootstrap3-datetimepicker

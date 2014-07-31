@@ -5,12 +5,14 @@
 {% endblock %}
 
 {% block content %}
-  {{ body|safe }}
+  {{ completion_text|safe }}
 
   <div class="well flow-well">
-    <a class="btn btn-default"
-      href="{% url "course.flow.view_flow_page" course.identifier flow_identifier last_page_nr %}"
-      role="button">&laquo; Go back</a>
+    {% if last_page_nr %}
+      <a class="btn btn-default"
+        href="{% url "course.flow.view_flow_page" course.identifier flow_identifier last_page_nr %}"
+        role="button">&laquo; Go back</a>
+    {% endif %}
     <a class="btn btn-default"
       href="{% url "course.flow.start_flow" course.identifier flow_identifier %}"
       role="button">Start over</a>

@@ -259,8 +259,11 @@ class FlowSession(models.Model):
                 self.id,
                 self.flow_id)
 
-    def percentage(self):
-        return 100*self.points/self.max_points
+    def points_percentage(self):
+        if self.max_points:
+            return 100*self.points/self.max_points
+        else:
+            return None
 
 
 class FlowPageData(models.Model):

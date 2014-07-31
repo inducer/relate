@@ -62,7 +62,7 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if flow_session.points != None %}
+                  {% if flow_session.max_points %}
                     <b>{{ flow_session.points|floatformat }}</b>
                     out of
                     {{ flow_session.max_points|floatformat }}

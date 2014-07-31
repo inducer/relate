@@ -129,11 +129,12 @@ class FlowContext(object):
 
         check_course_state(self.course, self.role)
 
-        course_commit_sha = get_active_commit_sha(self.course, self.participation)
+        self.course_commit_sha = get_active_commit_sha(
+                self.course, self.participation)
         if self.flow_session is not None:
             self.commit_sha = self.flow_session.active_git_commit_sha.encode()
         else:
-            self.commit_sha = course_commit_sha
+            self.commit_sha = self.course_commit_sha
 
         self.repo = get_course_repo(self.course)
         self.course_desc = get_course_desc(self.repo, self.course, self.commit_sha)
@@ -150,7 +151,7 @@ class FlowContext(object):
 
         try:
             permissions_flow_desc = get_flow_desc(self.repo, self.course,
-                    flow_identifier, course_commit_sha)
+                    flow_identifier, self.course_commit_sha)
         except ObjectDoesNotExist:
             permissions_flow_desc = self.flow_desc
 
@@ -349,7 +350,8 @@ class FlowPageContext(FlowContext):
         self.page = instantiate_flow_page_with_ctx(self, page_data)
 
         from course.page import PageContext
-        self.page_context = PageContext(course=self.course)
+        self.page_context = PageContext(
+                course=self.course, repo=self.repo, commit_sha=self.commit_sha)
 
         # {{{ dig for previous answers
 
@@ -373,7 +375,7 @@ class FlowPageContext(FlowContext):
         return self.page_data.ordinal
 
     @property
-    def percentage(self):
+    def percentage_done(self):
         return int(100*(self.ordinal+1)/self.page_count)
 
     def create_visit(self):
@@ -574,7 +576,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         "flow_desc": fpctx.flow_desc,
         "ordinal": fpctx.ordinal,
         "page_data": fpctx.page_data,
-        "percentage": fpctx.percentage,
+        "percentage": fpctx.percentage_done,
         "flow_session": fpctx.flow_session,
         "participation": fpctx.participation,
 
@@ -695,7 +697,8 @@ def gather_grade_info(fctx, answer_visits):
             continue
 
         from course.page import PageContext
-        page_context = PageContext(course=fctx.course)
+        page_context = PageContext(
+                course=fctx.course, repo=fctx.repo, commit_sha=fctx.commit_sha)
 
         feedback = page.grade(
                 page_context, page_data.data, answer_data, grade_data)
@@ -736,7 +739,24 @@ def finish_flow(request, course_identifier, flow_identifier):
 
     answer_visits = assemble_answer_visits(flow_session)
 
-    from course.content import markdown_to_html
+    from course.content import markup_to_html
+    completion_text = markup_to_html(
+            fctx.course, fctx.repo, fctx.commit_sha,
+            fctx.flow_desc.completion_text)
+
+    (answered_count, unanswered_count) = count_answered(fctx, answer_visits)
+    print answered_count, unanswered_count
+
+    def render_finish_response(template, **kwargs):
+        render_args = {
+            "course": fctx.course,
+            "course_desc": fctx.course_desc,
+            "flow_identifier": fctx.flow_identifier,
+            "flow_desc": fctx.flow_desc,
+            "participation": fctx.participation,
+        }
+        render_args.update(kwargs)
+        return render(request, template, render_args)
 
     if request.method == "POST":
         if "submit" not in request.POST:
@@ -767,78 +787,78 @@ def finish_flow(request, course_identifier, flow_identifier):
         flow_session.result_comment = comment
         flow_session.save()
 
-        # mark answers as final
-        for answer_visit in answer_visits:
-            if answer_visit is not None:
-                answer_visit.answer_is_final = True
-                answer_visit.save()
+        if answered_count + unanswered_count:
+            # {{{ there is a grade to be had--assign it
 
-        from course.models import get_flow_grading_opportunity
-        gopp = get_flow_grading_opportunity(
-                fctx.course, fctx.flow_identifier, fctx.flow_desc)
+            # {{{ mark answers as final
 
-        from course.models import grade_state_change_types
-        gchange = GradeChange()
-        gchange.opportunity = gopp
-        gchange.participation = fctx.participation
-        gchange.state = grade_state_change_types.graded
-        gchange.points = points
-        gchange.max_points = grade_info.max_points
-        gchange.creator = request.user
-        gchange.flow_session = flow_session
-        gchange.comment = comment
-        gchange.save()
+            for answer_visit in answer_visits:
+                if answer_visit is not None:
+                    answer_visit.answer_is_final = True
+                    answer_visit.save()
 
-        return render(request, "course/flow-completion-grade.html", {
-            "course": fctx.course,
-            "course_desc": fctx.course_desc,
-            "flow_identifier": fctx.flow_identifier,
-            "flow_desc": fctx.flow_desc,
-            "body": markdown_to_html(fctx.course, fctx.flow_desc.completion_text),
-            "participation": fctx.participation,
-            "grade_info": grade_info,
-        })
+            # }}}
 
-    (answered_count, unanswered_count) = count_answered(fctx, answer_visits)
-    if answered_count + unanswered_count == 0:
-        # Not serious--no questions in flow. No need to end the flow visit.
+            from course.models import get_flow_grading_opportunity
+            gopp = get_flow_grading_opportunity(
+                    fctx.course, fctx.flow_identifier, fctx.flow_desc)
 
-        from course.content import markdown_to_html
-        return render(request, "course/flow-completion.html", {
-            "course": fctx.course,
-            "course_desc": fctx.course_desc,
-            "flow_identifier": fctx.flow_identifier,
-            "flow_desc": fctx.flow_desc,
-            "last_page_nr": fctx.page_count-1,
-            "body": markdown_to_html(fctx.course, fctx.flow_desc.completion_text),
-        })
+            from course.models import grade_state_change_types
+            gchange = GradeChange()
+            gchange.opportunity = gopp
+            gchange.participation = fctx.participation
+            gchange.state = grade_state_change_types.graded
+            gchange.points = points
+            gchange.max_points = grade_info.max_points
+            gchange.creator = request.user
+            gchange.flow_session = flow_session
+            gchange.comment = comment
+            gchange.save()
+
+            return render_finish_response(
+                    "course/flow-completion-grade.html",
+                    completion_text=completion_text,
+                    grade_info=grade_info)
+
+            # }}}
+
+        else:
+            # {{{ no grade
+
+            return render_finish_response(
+                    "course/flow-completion.html",
+                    last_page_nr=None,
+                    completion_text=completion_text)
+
+            # }}}
+
+    if (answered_count + unanswered_count == 0
+            and fctx.commit_sha == fctx.course_commit_sha):
+        # Not serious--no questions in flow, and no new version available.
+        # No need to end the flow visit.
+
+        return render_finish_response(
+                "course/flow-completion.html",
+                last_page_nr=fctx.page_count-1,
+                completion_text=completion_text)
 
     elif not flow_session.in_progress:
         # Just reviewing: re-show grades.
         grade_info = gather_grade_info(fctx, answer_visits)
 
-        return render(request, "course/flow-completion-grade.html", {
-            "course": fctx.course,
-            "course_desc": fctx.course_desc,
-            "flow_identifier": fctx.flow_identifier,
-            "flow_desc": fctx.flow_desc,
-            "body": markdown_to_html(fctx.course, fctx.flow_desc.completion_text),
-            "participation": fctx.participation,
-            "grade_info": grade_info,
-        })
+        return render_finish_response(
+                "course/flow-completion-grade.html",
+                completion_text=completion_text,
+                grade_info=grade_info)
 
     else:
         # confirm ending flow
-        return render(request, "course/flow-confirm-completion.html", {
-            "course": fctx.course,
-            "course_desc": fctx.course_desc,
-            "flow_identifier": fctx.flow_identifier,
-            "flow_desc": fctx.flow_desc,
-            "last_page_nr": fctx.page_count-1,
-            "answered_count": answered_count,
-            "unanswered_count": unanswered_count,
-            "total_count": answered_count+unanswered_count,
-        })
+        return render_finish_response(
+                "course/flow-confirm-completion.html",
+                last_page_nr=fctx.page_count-1,
+                answered_count=answered_count,
+                unanswered_count=unanswered_count,
+                total_count=answered_count+unanswered_count)
 
 # }}}
 

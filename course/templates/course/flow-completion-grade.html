@@ -36,9 +36,9 @@
         style="width: {{ grade_info.incorrect_percent|floatformat }}%"></div>
     </div>
   </div>
-  {{ body|safe }}
-
   {% endif %}
+
+  {{ completion_text|safe }}
 
   <div class="well flow-well">
     <a class="btn btn-default"

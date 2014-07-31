@@ -61,13 +61,15 @@ admin.site.register(Course, CourseAdmin)
 # {{{ time labels
 
 class TimeLabelAdmin(admin.ModelAdmin):
-    list_display = ["course", "kind", "ordinal", "time"]
-    list_filter = ["course", "kind"]
+    list_display = ("course", "kind", "ordinal", "time")
+    list_filter = ("course", "kind")
 
     date_hierarchy = "time"
 
     def __unicode__(self):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
+
+    list_editable = ("ordinal", "time")
 
 admin.site.register(TimeLabel, TimeLabelAdmin)
 

@@ -39,6 +39,8 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from HTMLParser import HTMLParser
 
+from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
+
 
 # {{{ tools
 
@@ -62,7 +64,44 @@ def dict_to_struct(data):
 # }}}
 
 
-# {{{ formatting
+# {{{ repo interaction
+
+def get_course_repo_path(course):
+    from os.path import join
+    return join(settings.GIT_ROOT, course.identifier)
+
+
+def get_course_repo(course):
+    from dulwich.repo import Repo
+    return Repo(get_course_repo_path(course))
+
+
+def get_repo_blob(repo, full_name, commit_sha=None):
+    names = full_name.split("/")
+
+    tree_sha = repo[commit_sha].tree
+    tree = repo[tree_sha]
+
+    try:
+        for name in names[:-1]:
+            mode, blob_sha = tree[name.encode()]
+            tree = repo[blob_sha]
+
+        mode, blob_sha = tree[names[-1].encode()]
+        return repo[blob_sha]
+    except KeyError:
+        raise ObjectDoesNotExist("resource '%s' not found" % full_name)
+
+
+def get_yaml_from_repo(repo, full_name, commit_sha):
+    from yaml import load
+    return dict_to_struct(
+            load(get_repo_blob(repo, full_name, commit_sha).data))
+
+# }}}
+
+
+# {{{ markup
 
 def _attr_to_string(key, val):
     if val is None:
@@ -118,21 +157,31 @@ class TagProcessingHTMLParser(HTMLParser):
 
 
 class LinkFixerTreeprocessor(Treeprocessor):
-    def __init__(self, md, course):
+    def __init__(self, md, course, commit_sha):
         Treeprocessor.__init__(self)
         self.md = md
         self.course = course
+        self.commit_sha = commit_sha
+
+    def get_course_identifier(self):
+        if self.course is None:
+            return "bogus-course-identifier"
+        else:
+            return self.course.identifier
 
     def process_url(self, url):
         if url.startswith("flow:"):
             flow_id = url[5:]
             return reverse("course.flow.start_flow",
-                        args=(self.course.identifier, flow_id))
+                        args=(self.get_course_identifier(), flow_id))
 
         elif url.startswith("media:"):
             media_path = url[6:]
             return reverse("course.views.get_media",
-                        args=(self.course.identifier, media_path))
+                        args=(
+                            self.get_course_identifier(),
+                            self.commit_sha,
+                            media_path))
 
         return None
 
@@ -180,58 +229,65 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
 
 class LinkFixerExtension(Extension):
-    def __init__(self, course):
-        self.course = course
+    def __init__(self, course, commit_sha):
         Extension.__init__(self)
+        self.course = course
+        self.commit_sha = commit_sha
 
     def extendMarkdown(self, md, md_globals):
         md.treeprocessors["courseflow_link_fixer"] = \
-                LinkFixerTreeprocessor(md, self.course)
+                LinkFixerTreeprocessor(md, self.course, self.commit_sha)
 
 
-def markdown_to_html(course, text):
+class GitTemplateLoader(BaseTemplateLoader):
+    def __init__(self, repo, commit_sha):
+        self.repo = repo
+        self.commit_sha = commit_sha
+
+    def get_source(self, environment, template):
+        try:
+            data = get_repo_blob(self.repo, template, self.commit_sha).data
+        except ObjectDoesNotExist:
+            raise TemplateNotFound(template)
+
+        source = data.decode('utf-8')
+
+        def is_up_to_date():
+            # There's not much point to caching here, because we create
+            # a new loader for every request anyhow...
+            return False
+
+        return source, None, lambda: False
+
+
+def remove_prefix(prefix, s):
+    if s.startswith(prefix):
+        return s[len(prefix):]
+    else:
+        return s
+
+
+JINJA_PREFIX = "[JINJA]"
+
+
+def markup_to_html(course, repo, commit_sha, text):
+    if text.lstrip().startswith(JINJA_PREFIX):
+        text = remove_prefix(JINJA_PREFIX, text.lstrip())
+
+        from jinja2 import Environment
+        env = Environment(loader=GitTemplateLoader(repo, commit_sha))
+        template = env.from_string(text)
+        text = template.render()
+
     import markdown
     return markdown.markdown(text,
         extensions=[
-            LinkFixerExtension(course),
+            LinkFixerExtension(course, commit_sha),
             "extra",
             ],
         output_format="html5")
 
 # }}}
-
-
-def get_course_repo_path(course):
-    from os.path import join
-    return join(settings.GIT_ROOT, course.identifier)
-
-
-def get_course_repo(course):
-    from dulwich.repo import Repo
-    return Repo(get_course_repo_path(course))
-
-
-def get_repo_blob(repo, full_name, commit_sha=None):
-    names = full_name.split("/")
-
-    tree_sha = repo[commit_sha].tree
-    tree = repo[tree_sha]
-
-    try:
-        for name in names[:-1]:
-            mode, blob_sha = tree[name.encode()]
-            tree = repo[blob_sha]
-
-        mode, blob_sha = tree[names[-1].encode()]
-        return repo[blob_sha]
-    except KeyError:
-        raise ObjectDoesNotExist("resource '%s' not found" % full_name)
-
-
-def get_yaml_from_repo(repo, full_name, commit_sha):
-    from yaml import load
-    return dict_to_struct(
-            load(get_repo_blob(repo, full_name, commit_sha).data))
 
 
 DATE_RE = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
@@ -313,12 +369,13 @@ def get_course_desc(repo, course, commit_sha):
     return get_yaml_from_repo(repo, course.course_file, commit_sha)
 
 
-def get_processed_course_chunks(course, course_desc, role, now_datetime):
+def get_processed_course_chunks(course, repo, commit_sha,
+        course_desc, role, now_datetime):
     for chunk in course_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
                         course, chunk, role, now_datetime)
-        chunk.html_content = markdown_to_html(course, chunk.content)
+        chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight)
 
@@ -329,8 +386,8 @@ def get_processed_course_chunks(course, course_desc, role, now_datetime):
 def get_flow_desc(repo, course, flow_id, commit_sha):
     flow = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
 
-    flow.description_html = markdown_to_html(
-            course, getattr(flow, "description", None))
+    flow.description_html = markup_to_html(
+            course, repo, commit_sha, getattr(flow, "description", None))
     return flow
 
 
@@ -411,7 +468,12 @@ def get_flow_page_class(repo, typename, commit_sha):
 
 def instantiate_flow_page(location, repo, page_desc, commit_sha):
     class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
-    return class_(location, page_desc)
+
+    from course.validation import ValidationContext
+    vctx = ValidationContext(
+            repo=repo, commit_sha=commit_sha)
+
+    return class_(vctx, location, page_desc)
 
 
 def set_up_flow_session_page_data(repo, flow_session, flow, commit_sha):

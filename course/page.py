@@ -24,7 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from course.validation import validate_struct, ValidationError
+from course.validation import validate_struct, ValidationError, validate_markup
+from course.content import remove_prefix
 from crispy_forms.helper import FormHelper
 from django.utils.safestring import mark_safe
 import django.forms as forms
@@ -40,20 +41,25 @@ __doc__ = """
 """
 
 
-def remove_prefix(prefix, s):
-    if s.startswith(prefix):
-        return s[len(prefix):]
-    else:
-        return s
-
-
 class PageContext(object):
     """
     .. attribute:: course
     """
 
-    def __init__(self, course):
+    def __init__(self, course, repo, commit_sha):
         self.course = course
+        self.repo = repo
+        self.commit_sha = commit_sha
+
+
+def markup_to_html(page_context, text):
+    from course.content import markup_to_html
+
+    return markup_to_html(
+            page_context.course,
+            page_context.repo,
+            page_context.commit_sha,
+            text)
 
 
 # {{{ answer feedback type
@@ -124,7 +130,11 @@ class PageBase(object):
     .. automethod:: grade
     """
 
-    def __init__(self, location, id):
+    def __init__(self, vctx, location, id):
+        """
+        :arg vctx: a :class:`course.validation.ValidationContext`
+        """
+
         self.location = location
         self.id = id
 
@@ -217,7 +227,7 @@ class PageBase(object):
 class Page(PageBase):
     """A page showing static content."""
 
-    def __init__(self, location, page_desc):
+    def __init__(self, vctx, location, page_desc):
         validate_struct(
                 location,
                 page_desc,
@@ -230,15 +240,16 @@ class Page(PageBase):
                 allowed_attrs=[],
                 )
 
-        PageBase.__init__(self, location, page_desc.id)
+        PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
+
+        validate_markup(vctx, location, page_desc.content)
 
     def title(self, page_context, page_data):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import markdown_to_html
-        return markdown_to_html(page_context.course, self.page_desc.content)
+        return markup_to_html(page_context, self.page_desc.content)
 
     def expects_answer(self):
         return False
@@ -260,8 +271,12 @@ class TextAnswerForm(forms.Form):
         self.fields["answer"].widget.attrs["autofocus"] = None
 
 
+REGEX_PREFIX = "regex:"
+PLAIN_PREFIX = "plain:"
+
+
 class TextQuestion(PageBase):
-    def __init__(self, location, page_desc):
+    def __init__(self, vctx, location, page_desc):
         validate_struct(
                 location,
                 page_desc,
@@ -284,28 +299,29 @@ class TextQuestion(PageBase):
             raise ValidationError("%s: first answer must be 'plain:' to serve as "
                     "correct answer" % location)
 
+        validate_markup(vctx, location, page_desc.prompt)
+
         for i, answer in enumerate(page_desc.answers):
-            if answer.startswith("regex:"):
+            ans_location = "%s, answer %d" % (location, i+1)
+
+            if answer.startswith(REGEX_PREFIX):
                 try:
-                    re.compile(remove_prefix("regex:", answer))
+                    re.compile(remove_prefix(REGEX_PREFIX, answer))
                 except:
-                    raise ValidationError("%s, answer %d: regex did not compile"
-                            % (location, i+1))
-            elif answer.startswith("plain:"):
+                    raise ValidationError("%s: regex did not compile" % ans_location)
+            elif answer.startswith(PLAIN_PREFIX):
                 pass
             else:
-                raise ValidationError("%s, answer %d: unknown answer type"
-                        % (location, i+1))
+                raise ValidationError("%s: unknown answer type" % ans_location)
 
-        PageBase.__init__(self, location, page_desc.id)
+        PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
 
     def title(self, page_context, page_data):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import markdown_to_html
-        return markdown_to_html(page_context.course, self.page_desc.prompt)
+        return markup_to_html(page_context, self.page_desc.prompt)
 
     def expects_answer(self):
         return True
@@ -347,16 +363,16 @@ class TextQuestion(PageBase):
         answer = answer_data["answer"]
 
         for correct_answer in self.page_desc.answers:
-            if correct_answer.startswith("regex:"):
-                pattern = re.compile(remove_prefix("regex:", correct_answer))
+            if correct_answer.startswith(REGEX_PREFIX):
+                pattern = re.compile(remove_prefix(REGEX_PREFIX, correct_answer))
 
                 match = pattern.match(answer)
                 if match:
                     correctness = 1
                     break
 
-            elif correct_answer.startswith("plain:"):
-                pattern = remove_prefix("plain:", correct_answer)
+            elif correct_answer.startswith(PLAIN_PREFIX):
+                pattern = remove_prefix(PLAIN_PREFIX, correct_answer)
 
                 if pattern == answer:
                     correctness = 1
@@ -394,7 +410,7 @@ class SymbolicAnswerForm(TextAnswerForm):
 
 
 class SymbolicQuestion(PageBase):
-    def __init__(self, location, page_desc):
+    def __init__(self, vctx, location, page_desc):
         validate_struct(
                 location,
                 page_desc,
@@ -416,15 +432,16 @@ class SymbolicQuestion(PageBase):
                 raise ValidationError("%s: %s: %s"
                         % (location, type(e).__name__, str(e)))
 
-        PageBase.__init__(self, location, page_desc.id)
+        validate_markup(vctx, location, page_desc.prompt)
+
+        PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
 
     def title(self, page_context, page_data):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import markdown_to_html
-        return markdown_to_html(page_context.course, self.page_desc.prompt)
+        return markup_to_html(page_context, self.page_desc.prompt)
 
     def expects_answer(self):
         return True
@@ -494,7 +511,7 @@ class ChoiceAnswerForm(forms.Form):
 class ChoiceQuestion(PageBase):
     CORRECT_TAG = "~CORRECT~"
 
-    def __init__(self, location, page_desc):
+    def __init__(self, vctx, location, page_desc):
         validate_struct(
                 location,
                 page_desc,
@@ -518,15 +535,16 @@ class ChoiceQuestion(PageBase):
             raise ValidationError("%s: exactly one correct answer expected, %d found"
                     % (location, correct_choice_count))
 
-        PageBase.__init__(self, location, page_desc.id)
+        validate_markup(vctx, location, page_desc.prompt)
+
+        PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
 
     def title(self, page_context, page_data):
         return self.page_desc.title
 
     def body(self, page_context, page_data):
-        from course.content import markdown_to_html
-        return markdown_to_html(page_context.course, self.page_desc.prompt)
+        return markup_to_html(page_context, self.page_desc.prompt)
 
     def expects_answer(self):
         return True
@@ -547,8 +565,7 @@ class ChoiceQuestion(PageBase):
         def process_choice_string(s):
             s = remove_prefix(self.CORRECT_TAG, s)
 
-            from course.content import markdown_to_html
-            s = markdown_to_html(page_context.course, s)
+            s = markup_to_html(page_context, s)
 
             # allow HTML in option
             s = mark_safe(s)

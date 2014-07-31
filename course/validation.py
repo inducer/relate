@@ -108,7 +108,15 @@ datespec_types = (datetime.date, six.string_types)
 
 
 class ValidationContext(object):
-    def __init__(self, repo, commit_sha, datespec_callback):
+    """
+    .. attribute:: repo
+    .. attribute:: commit_sha
+    .. attribute:: datespec_callback
+
+        a function that is supposed to be called on all encountered datespecs
+    """
+
+    def __init__(self, repo, commit_sha, datespec_callback=None):
         self.repo = repo
         self.commit_sha = commit_sha
         self.datespec_callback = datespec_callback
@@ -120,9 +128,22 @@ class ValidationContext(object):
 
 # {{{ course page validation
 
-def validate_chunk_rule(ctx, chunk_rule):
+def validate_markup(ctx, location, markup_str):
+    from course.content import markup_to_html
+    try:
+        markup_to_html(
+                course=None,
+                repo=ctx.repo,
+                commit_sha=ctx.commit_sha,
+                text=markup_str)
+    except Exception as e:
+        raise ValidationError("%s: %s: %s" % (
+            location, type(e).__name__, str(e)))
+
+
+def validate_chunk_rule(ctx, location, chunk_rule):
     validate_struct(
-            "chunk_rule",
+            location,
             chunk_rule,
             required_attrs=[
                 ("weight", int),
@@ -141,9 +162,9 @@ def validate_chunk_rule(ctx, chunk_rule):
         ctx.encounter_datespec(chunk_rule.end)
 
 
-def validate_chunk(ctx, chunk):
+def validate_chunk(ctx, location, chunk):
     validate_struct(
-            "chunk",
+            location,
             chunk,
             required_attrs=[
                 ("title", str),
@@ -154,13 +175,17 @@ def validate_chunk(ctx, chunk):
             allowed_attrs=[]
             )
 
-    for rule in chunk.rules:
-        validate_chunk_rule(ctx, rule)
+    for i, rule in enumerate(chunk.rules):
+        validate_chunk_rule(ctx,
+                "%s, rule %d" % (location, i+1),
+                rule)
+
+    validate_markup(ctx, location, chunk.content)
 
 
-def validate_course_desc_struct(ctx, course_desc):
+def validate_course_desc_struct(ctx, location, course_desc):
     validate_struct(
-            "course_desc",
+            location,
             course_desc,
             required_attrs=[
                 ("name", str),
@@ -171,8 +196,10 @@ def validate_course_desc_struct(ctx, course_desc):
             allowed_attrs=[]
             )
 
-    for chunk in course_desc.chunks:
-        validate_chunk(ctx, chunk)
+    for i, chunk in enumerate(course_desc.chunks):
+        validate_chunk(ctx,
+                "%s, chunk %d ('%s')" % (location, i+1, chunk.id),
+                chunk)
 
 # }}}
 
@@ -182,15 +209,17 @@ def validate_course_desc_struct(ctx, course_desc):
 def validate_flow_page(ctx, location, page_desc):
     validate_identifier(location, page_desc.id)
 
-    from course.content import instantiate_flow_page
+    from course.content import get_flow_page_class
     try:
-        instantiate_flow_page(location, ctx.repo, page_desc, ctx.commit_sha)
-    except ValidationError as e:
-        raise ValidationError("%s: %s" % (location, str(e)))
+        class_ = get_flow_page_class(ctx.repo, page_desc.type, ctx.commit_sha)
+        class_(ctx, location, page_desc)
+    except ValidationError:
+        raise
     except Exception as e:
+        from traceback import format_exc
         raise ValidationError(
-                "%s: could not instantiate flow page: %s: %s"
-                % (location, type(e).__name__, str(e)))
+                "%s: could not instantiate flow page: %s: %s<br><pre>%s</pre>"
+                % (location, type(e).__name__, str(e), format_exc()))
 
 
 def validate_flow_group(ctx, location, grp):
@@ -357,6 +386,9 @@ def validate_flow_desc(ctx, location, flow_desc):
                 % (location, i+1, grp.id),
                 grp)
 
+    validate_markup(ctx, location, flow_desc.description)
+    validate_markup(ctx, location, flow_desc.completion_text)
+
 # }}}
 
 
@@ -369,7 +401,7 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
             commit_sha=validate_sha,
             datespec_callback=datespec_callback)
 
-    validate_course_desc_struct(ctx, course_desc)
+    validate_course_desc_struct(ctx, course_file, course_desc)
 
     flows_tree = get_repo_blob(repo, "flows", validate_sha)
 

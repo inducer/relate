@@ -112,7 +112,8 @@ def course_page(request, course_identifier):
     course_desc = get_course_desc(repo, course, commit_sha)
 
     from course.content import get_processed_course_chunks
-    chunks = get_processed_course_chunks(course, course_desc,
+    chunks = get_processed_course_chunks(
+            course, repo, commit_sha, course_desc,
             role, get_now_or_fake_time(request))
 
     return render(request, "course/course-page.html", {
@@ -129,19 +130,15 @@ def course_page(request, course_identifier):
 
 # {{{ media
 
-def get_media(request, course_identifier, media_path):
+def get_media(request, course_identifier, commit_sha, media_path):
     course = get_object_or_404(Course, identifier=course_identifier)
 
     role, participation = get_role_and_participation(request, course)
 
     repo = get_course_repo(course)
 
-    # FIXME There's a corner case with flows here, which may be on a
-    # different commit.
-    commit_sha = get_active_commit_sha(course, participation)
-
     from course.content import get_repo_blob
-    data = get_repo_blob(repo, "media/"+media_path, commit_sha).data
+    data = get_repo_blob(repo, "media/"+media_path, commit_sha.encode()).data
 
     from mimetypes import guess_type
     content_type = guess_type(media_path)
