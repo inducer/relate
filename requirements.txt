@@ -32,3 +32,7 @@ dulwich
 
 # A date picker widget
 django-bootstrap3-datetimepicker
+
+# For in-class instant messaging
+sleekxmpp
+dnspython

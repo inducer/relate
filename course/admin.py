@@ -29,7 +29,9 @@ from course.models import (
         Participation, InstantFlowRequest,
         FlowSession, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
-        GradingOpportunity, GradeChange)
+        GradingOpportunity, GradeChange, InstantMessage)
+from django.db import models
+from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
 
 
@@ -49,9 +51,19 @@ admin.site.register(UserStatus, UserStatusAdmin)
 # }}}
 
 
+class CourseAdminForm(forms.ModelForm):
+    class Meta:
+        model = Course
+        widgets = {
+                "course_xmpp_password": forms.PasswordInput
+                }
+
+
 class CourseAdmin(admin.ModelAdmin):
     list_display = ("identifier", "hidden", "valid")
     list_filter = ("hidden", "valid",)
+
+    form = CourseAdminForm
 
     save_on_top = True
 
@@ -255,6 +267,41 @@ class GradeChangeAdmin(admin.ModelAdmin):
     raw_id_fields = ("flow_session",)
 
 admin.site.register(GradeChange, GradeChangeAdmin)
+
+# }}}
+
+
+# {{{ instant message
+
+class InstantMessageAdmin(admin.ModelAdmin):
+    def get_course(self, obj):
+        return obj.participation.course
+    get_course.short_description = "Course"
+    get_course.admin_order_field = "participation__course"
+
+    def get_participant(self, obj):
+        return obj.participation.user
+    get_participant.short_description = "Participant"
+    get_participant.admin_order_field = "participation__user"
+
+    list_filter = ("participation__course",)
+    list_display = (
+            "get_course",
+            "get_participant",
+            "time",
+            "text",
+            )
+
+    date_hierarchy = "time"
+
+    search_fields = (
+            "text",
+            "participation__user__username",
+            "participation__user__first_name",
+            "participation__user__last_name",
+            )
+
+admin.site.register(InstantMessage, InstantMessageAdmin)
 
 # }}}
 

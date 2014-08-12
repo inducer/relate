@@ -11,10 +11,21 @@
   {% block page_navbar %}
   {% endblock %}
 
-  <li>
+  {% if role != participation_role.unenrolled %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Student<b class="caret"></b></a>
+    <ul class="dropdown-menu">
+      {% if course.course_xmpp_id %}
+      <li><a href="{% url "course.im.send_instant_message" course.identifier %}">Send instant message</a></li>
+      {% endif %}
+      <li><a href="{% url "course.views.view_grades" course.identifier %}">View grades</a></li>
+    </ul>
+  </li>
+  {% endif %}
+
   {% if role == participation_role.instructor %}
   <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Instructor activities<b class="caret"></b></a>
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Instructor<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li role="presentation" class="dropdown-header">Versioning</li>
       <li><a href="{% url "course.versioning.fetch_course_updates" course.identifier %}">Fetch updates</a></li>

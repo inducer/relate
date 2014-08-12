@@ -507,4 +507,13 @@ def set_up_flow_session_page_data(repo, flow_session, flow, commit_sha):
     return ordinal
 
 
+def get_active_commit_sha(course, participation):
+    sha = course.active_git_commit_sha
+
+    if participation is not None and participation.preview_git_commit_sha:
+        sha = participation.preview_git_commit_sha
+
+    return sha.encode()
+
+
 # vim: foldmethod=marker

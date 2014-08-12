@@ -39,16 +39,7 @@ from bootstrap3_datetime.widgets import DateTimePicker
 from course.auth import get_role_and_participation
 from course.models import (Course, participation_role, TimeLabel)
 
-from course.content import (get_course_repo, get_course_desc)
-
-
-def get_active_commit_sha(course, participation):
-    sha = course.active_git_commit_sha
-
-    if participation is not None and participation.preview_git_commit_sha:
-        sha = participation.preview_git_commit_sha
-
-    return sha.encode()
+from course.content import (get_course_repo, get_course_desc, get_active_commit_sha)
 
 
 # {{{ home
@@ -423,5 +414,21 @@ def fake_time_context_processor(request):
 
 # }}}
 
+
+# {{{ grading
+
+def view_grades(request, course_identifier):
+    course = get_object_or_404(Course, identifier=course_identifier)
+    role, participation = get_role_and_participation(request, course)
+
+    check_course_state(course, role)
+
+    messages.add_message(request, messages.ERROR,
+            "Grade viewing is not yet implemented. (Sorry!) It will be "
+            "once you start accumulating a sufficient number of grades.")
+
+    return redirect("course.views.course_page", course_identifier)
+
+# }}}
 
 # vim: foldmethod=marker

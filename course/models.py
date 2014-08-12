@@ -117,8 +117,23 @@ class Course(models.Model):
             help_text="This email address will be used in the 'From' line "
             "of automated emails sent by CourseFlow. It will also receive "
             "notifications about required approvals.")
-    course_xmpp_id = models.CharField(max_length=200, blank=True)
-    course_xmpp_password = models.CharField(max_length=200, blank=True)
+
+    # {{{ XMPP
+
+    course_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
+            help_text="(Required only if the instant message feature is desired.) "
+            "The Jabber/XMPP ID (JID) the course will use to sign in to an "
+            "XMPP server.")
+    course_xmpp_password = models.CharField(max_length=200, blank=True, null=True,
+            help_text="(Required only if the instant message feature is desired.) "
+            "The password to go with the JID above.")
+
+    recipient_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
+            help_text="(Required only if the instant message feature is desired.) "
+            "The JID to which instant messages will be sent.")
+
+    # }}}
+
     active_git_commit_sha = models.CharField(max_length=200, null=False,
             blank=False)
 
@@ -610,6 +625,22 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc):
     else:
         gopp, = gopps
         return gopp
+
+# }}}
+
+
+# {{{ XMPP log
+
+class InstantMessage(models.Model):
+    participation = models.ForeignKey(Participation)
+    text = models.CharField(max_length=200)
+    time = models.DateTimeField(default=now)
+
+    class Meta:
+        ordering = ("participation__course", "time")
+
+    def __unicode__(self):
+        return "%s: %s" % (self.participation, self.text)
 
 # }}}
 

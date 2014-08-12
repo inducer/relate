@@ -58,6 +58,14 @@ urlpatterns = patterns('',
         "course.views.course_page",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grades/$",
+        "course.views.view_grades",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/instant-message/$",
+        "course.im.send_instant_message",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/enroll/$",
         "course.enrollment.enroll",),
     url(r"^course"
