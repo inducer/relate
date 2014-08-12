@@ -41,7 +41,7 @@ INSTALLED_APPS = (
     "course",
     "crispy_forms",
     "json_field",
-    "bootstrap3_datetime"
+    "bootstrap3_datetime",
 )
 
 MIDDLEWARE_CLASSES = (

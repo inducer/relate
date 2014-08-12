@@ -30,6 +30,8 @@ import six
 
 from course.content import get_yaml_from_repo, get_repo_blob
 
+from django.core.exceptions import ObjectDoesNotExist
+
 
 # {{{ validation tools
 
@@ -91,6 +93,10 @@ def validate_struct(location, obj, required_attrs, allowed_attrs):
                 present_attrs.remove(attr)
                 val = getattr(obj, attr)
 
+                if allowed_types == str:
+                    # Love you, too, Python 2.
+                    allowed_types = (str, unicode)
+
                 if not isinstance(val, allowed_types):
                     raise ValidationError("%s: attribute '%s' has "
                             "wrong type: got '%s', expected '%s'"
@@ -137,6 +143,9 @@ def validate_markup(ctx, location, markup_str):
                 commit_sha=ctx.commit_sha,
                 text=markup_str)
     except Exception as e:
+        from traceback import print_exc
+        print_exc()
+
         raise ValidationError("%s: %s: %s" % (
             location, type(e).__name__, str(e)))
 
@@ -393,8 +402,15 @@ def validate_flow_desc(ctx, location, flow_desc):
 
 
 def validate_course_content(repo, course_file, validate_sha, datespec_callback=None):
-    course_desc = get_yaml_from_repo(repo, course_file,
-            commit_sha=validate_sha)
+    try:
+        course_desc = get_yaml_from_repo(repo, course_file,
+                commit_sha=validate_sha)
+    except Exception, e:
+        from traceback import print_exc
+        print_exc()
+
+        raise ValidationError("%s: %s: %s" % (
+            course_file, type(e).__name__, str(e)))
 
     ctx = ValidationContext(
             repo=repo,
@@ -403,14 +419,18 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
 
     validate_course_desc_struct(ctx, course_file, course_desc)
 
-    flows_tree = get_repo_blob(repo, "flows", validate_sha)
+    try:
+        flows_tree = get_repo_blob(repo, "flows", validate_sha)
+    except ObjectDoesNotExist:
+        # That's OK--no flows yet.
+        pass
+    else:
+        for entry in flows_tree.items():
+            location = "flows/%s" % entry.path
+            flow_desc = get_yaml_from_repo(repo, location,
+                    commit_sha=validate_sha)
 
-    for entry in flows_tree.items():
-        location = "flows/%s" % entry.path
-        flow_desc = get_yaml_from_repo(repo, location,
-                commit_sha=validate_sha)
-
-        validate_flow_desc(ctx, location, flow_desc)
+            validate_flow_desc(ctx, location, flow_desc)
 
 # }}}
 

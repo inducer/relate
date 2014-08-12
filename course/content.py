@@ -188,6 +188,9 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_tag(self, tag_name, attrs):
         changed_attrs = {}
 
+        if tag_name == "table":
+            changed_attrs["class"] = "table table-condensed"
+
         if tag_name == "a" and "href" in attrs:
             new_href = self.process_url(attrs["href"])
 
@@ -218,7 +221,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         self.walk_and_process_tree(root)
 
         # root through and process Markdown's HTML stash (gross!)
-        from cStringIO import StringIO
+        from StringIO import StringIO
 
         for i, (html, safe) in enumerate(self.md.htmlStash.rawHtmlBlocks):
             outf = StringIO()
@@ -377,7 +380,7 @@ def get_processed_course_chunks(course, repo, commit_sha,
                         course, chunk, role, now_datetime)
         chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content)
 
-    course_desc.chunks.sort(key=lambda chunk: chunk.weight)
+    course_desc.chunks.sort(key=lambda chunk: chunk.weight, reverse=True)
 
     return [mod for mod in course_desc.chunks
             if chunk.shown]

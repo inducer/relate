@@ -1,11 +1,12 @@
 - model docs
 
-- practice/repeated submission (code!)
 - configuration store
 
 Ideas
 =====
 
+- comment box http://jsfiddle.net/9Le8X/2/
+- per-page permission filter
 - question bank
   -> localize an elaborate question and all its 'stuff' (JS, media)
   -> use a media search path
