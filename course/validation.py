@@ -210,6 +210,19 @@ def validate_course_desc_struct(ctx, location, course_desc):
                 "%s, chunk %d ('%s')" % (location, i+1, chunk.id),
                 chunk)
 
+    # {{{ check chunk id uniqueness
+
+    chunk_ids = set()
+
+    for chunk in course_desc.chunks:
+        if chunk.id in chunk_ids:
+            raise ValidationError("%s: chunk id '%s' not unique"
+                    % (location, chunk.id))
+
+        chunk_ids.add(chunk.id)
+
+    # }}}
+
 # }}}
 
 
