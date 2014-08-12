@@ -31,6 +31,8 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 import django.forms as forms
 
+from django.views.decorators.cache import cache_control
+
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
@@ -121,6 +123,7 @@ def course_page(request, course_identifier):
 
 # {{{ media
 
+@cache_control(max_age=3600*24*31)  # cache for a month
 def get_media(request, course_identifier, commit_sha, media_path):
     course = get_object_or_404(Course, identifier=course_identifier)
 
