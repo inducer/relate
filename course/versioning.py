@@ -50,7 +50,7 @@ import paramiko.client
 
 
 class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
-    def missing_host_key(client, hostname, key):
+    def missing_host_key(self, client, hostname, key):
         # simply accept the key
         return
 
