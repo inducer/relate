@@ -48,17 +48,29 @@ from course.views import (
 
 
 def get_dulwich_client_and_remote_path_from_course(course):
-    client_kwargs = {}
+    ssh_kwargs = {}
     if course.ssh_private_key:
         from StringIO import StringIO
         import paramiko
         key_file = StringIO(course.ssh_private_key.encode())
-        client_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
+        ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
-    from dulwich.client import get_transport_and_path
-    client, remote_path = get_transport_and_path(
-            course.git_source.encode(),
-            **client_kwargs)
+    def get_dulwich_ssh_vendor(ssh_kwargs):
+        from dulwich.client import ParamikoSSHVendor
+        vendor = ParamikoSSHVendor()
+        vendor.ssh_kwargs.update(ssh_kwargs)
+        return vendor
+
+    import dulwich.client
+    prev_get_ssh_vendor = dulwich.client.get_ssh_vendor
+    dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor
+
+    try:
+        from dulwich.client import get_transport_and_path
+        client, remote_path = get_transport_and_path(
+                course.git_source.encode())
+    finally:
+        dulwich.client.get_ssh_vendor = prev_get_ssh_vendor
 
     # Work around
     # https://bugs.launchpad.net/dulwich/+bug/1025886
