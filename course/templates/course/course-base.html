@@ -1,5 +1,12 @@
 {% extends "base.html" %}
 
+{% block title %}
+  {{ course_desc.number}}:
+  {{ course_desc.name}}
+  -
+  CourseFlow
+{% endblock %}
+
 {% block brand %}
   {{ course_desc.number}}:
   {{ course_desc.name}}
