@@ -117,7 +117,8 @@ def set_up_new_course(request):
                         repo = Repo.init(repo_path)
 
                         client, remote_path = \
-                            get_dulwich_client_and_remote_path_from_course(course)
+                            get_dulwich_client_and_remote_path_from_course(
+                                    new_course)
 
                         remote_refs = client.fetch(remote_path, repo)
                         new_sha = repo["HEAD"] = remote_refs["HEAD"]
