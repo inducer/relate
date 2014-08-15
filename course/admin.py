@@ -52,13 +52,12 @@ admin.site.register(UserStatus, UserStatusAdmin)
 
 
 class CourseAdminForm(forms.ModelForm):
-    exclude = ()
-
     class Meta:
         model = Course
         widgets = {
                 "course_xmpp_password": forms.PasswordInput
                 }
+        exclude = ()
 
 
 class CourseAdmin(admin.ModelAdmin):
