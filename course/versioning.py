@@ -86,20 +86,17 @@ def get_dulwich_client_and_remote_path_from_course(course):
         key_file = StringIO(course.ssh_private_key.encode())
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
-    def get_dulwich_ssh_vendor(ssh_kwargs):
+    def get_dulwich_ssh_vendor():
         vendor = DulwichParamikoSSHVendor(ssh_kwargs)
         return vendor
 
+    # writing to another module's global variable: gross!
     import dulwich.client
-    prev_get_ssh_vendor = dulwich.client.get_ssh_vendor
     dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor
 
-    try:
-        from dulwich.client import get_transport_and_path
-        client, remote_path = get_transport_and_path(
-                course.git_source.encode())
-    finally:
-        dulwich.client.get_ssh_vendor = prev_get_ssh_vendor
+    from dulwich.client import get_transport_and_path
+    client, remote_path = get_transport_and_path(
+            course.git_source.encode())
 
     # Work around
     # https://bugs.launchpad.net/dulwich/+bug/1025886
