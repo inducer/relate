@@ -45,20 +45,43 @@ from course.content import (get_course_repo, get_course_desc)
 from course.views import (
         get_role_and_participation, get_active_commit_sha
         )
+import paramiko
+
+
+class DulwichParamikoSSHVendor(object):
+    def __init__(self, ssh_kwargs):
+        self.ssh_kwargs = ssh_kwargs
+
+    def run_command(self, host, command, username=None, port=None,
+                    progress_stderr=None):
+        if port is None:
+            port = 22
+
+        client = paramiko.SSHClient()
+
+        client.set_missing_host_key_policy(
+                paramiko.client.AutoAddPolicy())
+        client.connect(host, username=username, port=port,
+                       **self.ssh_kwargs)
+
+        channel = client.get_transport().open_session()
+
+        channel.exec_command(*command)
+
+        from dulwich.client import ParamikoWrapper
+        return ParamikoWrapper(
+            client, channel, progress_stderr=progress_stderr)
 
 
 def get_dulwich_client_and_remote_path_from_course(course):
     ssh_kwargs = {}
     if course.ssh_private_key:
         from StringIO import StringIO
-        import paramiko
         key_file = StringIO(course.ssh_private_key.encode())
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
     def get_dulwich_ssh_vendor(ssh_kwargs):
-        from dulwich.client import ParamikoSSHVendor
-        vendor = ParamikoSSHVendor()
-        vendor.ssh_kwargs.update(ssh_kwargs)
+        vendor = DulwichParamikoSSHVendor(ssh_kwargs)
         return vendor
 
     import dulwich.client
