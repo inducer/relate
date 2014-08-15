@@ -35,6 +35,7 @@ import re
 
 from course.models import (
         Course,
+        participation_role,
         FlowAccessException,
         FlowSession, FlowPageData, FlowPageVisit, flow_permission,
         GradeChange)
@@ -313,6 +314,8 @@ def start_flow(request, course_identifier, flow_identifier):
             "course_desc": fctx.course_desc,
             "course": fctx.course,
             "flow_desc": fctx.flow_desc,
+            "role": fctx.role,
+            "participation_role": participation_role,
             "grade_aggregation_strategy":
             grade_aggregation_strategy_text,
             "flow_identifier": flow_identifier,
@@ -595,6 +598,9 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         "flow_session": fpctx.flow_session,
         "participation": fpctx.participation,
 
+        "role": fpctx.role,
+        "participation_role": participation_role,
+
         "title": title, "body": body,
         "form_html": form_html,
         "feedback": feedback,
@@ -769,7 +775,10 @@ def finish_flow(request, course_identifier, flow_identifier):
             "flow_identifier": fctx.flow_identifier,
             "flow_desc": fctx.flow_desc,
             "participation": fctx.participation,
+            "role": fctx.role,
+            "participation_role": participation_role,
         }
+
         render_args.update(kwargs)
         return render(request, template, render_args)
 
