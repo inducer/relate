@@ -273,9 +273,6 @@ def fetch_course_updates(request, course_identifier):
                 if not course.git_source:
                     raise RuntimeError("no git source URL specified")
 
-                if course.ssh_private_key:
-                    repo.auth(pkey=course.ssh_private_key.encode("ascii"))
-
                 log_lines.append("Pre-fetch head is at '%s'" % repo.head())
 
                 client, remote_path = \
