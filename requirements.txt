@@ -29,6 +29,7 @@ pyyaml
 # dulwich does not yet support Python3
 # Using git version for fix to https://github.com/jelmer/dulwich/issues/135
 dulwich
+paramiko
 
 # A date picker widget
 django-bootstrap3-datetimepicker

@@ -47,6 +47,26 @@ from course.views import (
         )
 
 
+def get_dulwich_client_and_remote_path_from_course(course):
+    client_kwargs = {}
+    if course.ssh_private_key:
+        from StringIO import StringIO
+        import paramiko
+        with StringIO(course.ssh_private_key.encode()) as key_file:
+            client_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
+
+    from dulwich.client import get_transport_and_path
+    client, remote_path = get_transport_and_path(
+            course.git_source.encode(),
+            **client_kwargs)
+
+    # Work around
+    # https://bugs.launchpad.net/dulwich/+bug/1025886
+    client._fetch_capabilities.remove('thin-pack')
+
+    return client, remote_path
+
+
 # {{{ new course setup
 
 class CourseCreationForm(forms.ModelForm):
@@ -96,13 +116,8 @@ def set_up_new_course(request):
                         from dulwich.repo import Repo
                         repo = Repo.init(repo_path)
 
-                        from dulwich.client import get_transport_and_path
-                        client, remote_path = get_transport_and_path(
-                                new_course.git_source.encode())
-
-                        # Work around
-                        # https://bugs.launchpad.net/dulwich/+bug/1025886
-                        client._fetch_capabilities.remove('thin-pack')
+                        client, remote_path = \
+                            get_dulwich_client_and_remote_path_from_course(course)
 
                         remote_refs = client.fetch(remote_path, repo)
                         new_sha = repo["HEAD"] = remote_refs["HEAD"]
@@ -221,13 +236,8 @@ def fetch_course_updates(request, course_identifier):
 
                 log_lines.append("Pre-fetch head is at '%s'" % repo.head())
 
-                from dulwich.client import get_transport_and_path
-                client, remote_path = get_transport_and_path(
-                        course.git_source.encode())
-
-                # Work around
-                # https://bugs.launchpad.net/dulwich/+bug/1025886
-                client._fetch_capabilities.remove('thin-pack')
+                client, remote_path = \
+                    get_dulwich_client_and_remote_path_from_course(course)
 
                 remote_refs = client.fetch(remote_path, repo)
                 remote_head = remote_refs["HEAD"]
