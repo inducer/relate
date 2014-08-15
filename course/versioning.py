@@ -172,6 +172,9 @@ def set_up_new_course(request):
                     raise
 
             except Exception as e:
+                from traceback import print_exc
+                print_exc()
+
                 messages.add_message(request, messages.ERROR,
                         "Course creation failed: %s: %s" % (
                             type(e).__name__, str(e)))
