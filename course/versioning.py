@@ -46,6 +46,13 @@ from course.views import (
         get_role_and_participation, get_active_commit_sha
         )
 import paramiko
+import paramiko.client
+
+
+class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
+    def missing_host_key(client, hostname, key):
+        # simply accept the key
+        return
 
 
 class DulwichParamikoSSHVendor(object):
@@ -59,8 +66,7 @@ class DulwichParamikoSSHVendor(object):
 
         client = paramiko.SSHClient()
 
-        client.set_missing_host_key_policy(
-                paramiko.client.AutoAddPolicy())
+        client.set_missing_host_key_policy(AutoAcceptPolicy())
         client.connect(host, username=username, port=port,
                        **self.ssh_kwargs)
 
