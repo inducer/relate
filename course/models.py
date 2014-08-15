@@ -29,7 +29,6 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
-from django import forms
 
 from jsonfield import JSONField
 
@@ -126,7 +125,6 @@ class Course(models.Model):
             "The Jabber/XMPP ID (JID) the course will use to sign in to an "
             "XMPP server.")
     course_xmpp_password = models.CharField(max_length=200, blank=True, null=True,
-            widget=forms.PasswordInput,
             help_text="(Required only if the instant message feature is desired.) "
             "The password to go with the JID above.")
 
