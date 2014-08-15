@@ -52,8 +52,8 @@ def get_dulwich_client_and_remote_path_from_course(course):
     if course.ssh_private_key:
         from StringIO import StringIO
         import paramiko
-        with StringIO(course.ssh_private_key.encode()) as key_file:
-            client_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
+        key_file = StringIO(course.ssh_private_key.encode())
+        client_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
     from dulwich.client import get_transport_and_path
     client, remote_path = get_transport_and_path(
