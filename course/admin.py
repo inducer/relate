@@ -30,8 +30,6 @@ from course.models import (
         FlowSession, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
         GradingOpportunity, GradeChange, InstantMessage)
-from django.db import models
-from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
 
 
@@ -51,20 +49,9 @@ admin.site.register(UserStatus, UserStatusAdmin)
 # }}}
 
 
-class CourseAdminForm(forms.ModelForm):
-    class Meta:
-        model = Course
-        widgets = {
-                "course_xmpp_password": forms.PasswordInput
-                }
-        exclude = ()
-
-
 class CourseAdmin(admin.ModelAdmin):
     list_display = ("identifier", "hidden", "valid")
     list_filter = ("hidden", "valid",)
-
-    form = CourseAdminForm
 
     save_on_top = True
 
