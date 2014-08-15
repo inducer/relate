@@ -30,7 +30,6 @@ from course.models import (
         FlowSession, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
         GradingOpportunity, GradeChange, InstantMessage)
-from django.db import models
 from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
 
@@ -51,11 +50,17 @@ admin.site.register(UserStatus, UserStatusAdmin)
 # }}}
 
 
+class UnsafePasswordInput(forms.TextInput):
+    # This sends passwords back to the user--not ideal, but OK for the XMPP
+    # password.
+    input_type = 'password'
+
+
 class CourseAdminForm(forms.ModelForm):
     class Meta:
         model = Course
         widgets = {
-                "course_xmpp_password": forms.PasswordInput
+                "course_xmpp_password": UnsafePasswordInput
                 }
         exclude = ()
 
