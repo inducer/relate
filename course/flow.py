@@ -47,6 +47,8 @@ from course.content import (
 from course.auth import get_role_and_participation
 from course.views import check_course_state, get_active_commit_sha
 
+from course.content import dict_to_struct
+
 
 def get_flow_permissions(course, participation, role, flow_id, flow_desc,
         now_datetime):
@@ -54,23 +56,28 @@ def get_flow_permissions(course, participation, role, flow_id, flow_desc,
 
     flow_rule = None
 
-    for rule in flow_desc.access_rules:
-        if hasattr(rule, "roles"):
-            if role not in rule.roles:
-                continue
+    if not hasattr(flow_desc, "access_rules"):
+        flow_rule = dict_to_struct(
+                {"permissions":
+                    [flow_permission.view, flow_permission.start_no_credit]})
+    else:
+        for rule in flow_desc.access_rules:
+            if hasattr(rule, "roles"):
+                if role not in rule.roles:
+                    continue
 
-        if hasattr(rule, "start"):
-            start_date = parse_date_spec(course, rule.start)
-            if now_datetime < start_date:
-                continue
+            if hasattr(rule, "start"):
+                start_date = parse_date_spec(course, rule.start)
+                if now_datetime < start_date:
+                    continue
 
-        if hasattr(rule, "end"):
-            end_date = parse_date_spec(course, rule.end)
-            if end_date < now_datetime:
-                continue
+            if hasattr(rule, "end"):
+                end_date = parse_date_spec(course, rule.end)
+                if end_date < now_datetime:
+                    continue
 
-        flow_rule = rule
-        break
+            flow_rule = rule
+            break
 
     # }}}
 
@@ -97,7 +104,6 @@ def get_flow_permissions(course, participation, role, flow_id, flow_desc,
                     if not key.startswith("_"))
 
         stipulations.update(exc_stipulations)
-        from course.content import dict_to_struct
         stipulations = dict_to_struct(stipulations)
 
         return (
