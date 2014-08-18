@@ -30,6 +30,7 @@ from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 import django.forms as forms
+import django.views.decorators.http as http
 
 from django.views.decorators.cache import cache_control
 
@@ -123,7 +124,12 @@ def course_page(request, course_identifier):
 
 # {{{ media
 
+def media_etag_func(request, course_identifier, commit_sha, media_path):
+    return ":".join([course_identifier, commit_sha, media_path])
+
+
 @cache_control(max_age=3600*24*31)  # cache for a month
+@http.condition(etag_func=media_etag_func)
 def get_media(request, course_identifier, commit_sha, media_path):
     course = get_object_or_404(Course, identifier=course_identifier)
 
@@ -131,14 +137,14 @@ def get_media(request, course_identifier, commit_sha, media_path):
 
     repo = get_course_repo(course)
 
-    from course.content import get_repo_blob
-    data = get_repo_blob(repo, "media/"+media_path, commit_sha.encode()).data
+    from course.content import get_repo_blob_data_cached
+    data = get_repo_blob_data_cached(
+            repo, "media/"+media_path, commit_sha.encode())
 
     from mimetypes import guess_type
     content_type = guess_type(media_path)
 
-    from django.http import HttpResponse
-    return HttpResponse(data, content_type=content_type)
+    return http.HttpResponse(data, content_type=content_type)
 
 # }}}
 

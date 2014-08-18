@@ -15,16 +15,20 @@
     <link rel="stylesheet" href="/static/css/style.css" >
     <link rel="stylesheet" href="/static/font-awesome/css/font-awesome.min.css">
 
-    {# scripts have to be up here because the datepicker's JS needs them to run #}
-    <script src="/static/js/jquery-1.11.0.js"></script>
-    <script src="/static/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
+    {% if form.media %}
+      {# If there are forms with media, then #}
+      {# scripts have to be up here because the datepicker's JS needs them to run #}
+      {# If you change this, also change the corresponding copy below. #}
+      <script src="/static/js/jquery-1.11.0.js"></script>
+      <script src="/static/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
+      {{ form.media }}
+    {% endif %}
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
       <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
-    {{ form.media }}
   </head>
 
   <body>
@@ -113,7 +117,7 @@
 
     </div>
 
-    <!-- Bootstrap core JavaScript
+    <!-- JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     {% if mathjax_url_root %}
@@ -131,6 +135,11 @@
           },
         });
       </script>
+    {% endif %}
+    {% if not form.media %}
+      {# If you change this, also change the corresponding copy above. #}
+      <script src="/static/js/jquery-1.11.0.js"></script>
+      <script src="/static/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
     {% endif %}
   </body>
 </html>

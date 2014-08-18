@@ -28,14 +28,14 @@ from django.conf import settings
 
 import re
 import datetime
+
 from django.utils.timezone import now
+from django.core.urlresolvers import reverse
+from django.core.exceptions import ObjectDoesNotExist
+import django.core.cache as cache
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
-
-from django.core.urlresolvers import reverse
-
-from django.core.exceptions import ObjectDoesNotExist
 
 from HTMLParser import HTMLParser
 
@@ -71,12 +71,22 @@ def get_course_repo_path(course):
     return join(settings.GIT_ROOT, course.identifier)
 
 
+COURSE_REPOS = {}
+
+
 def get_course_repo(course):
-    from dulwich.repo import Repo
-    return Repo(get_course_repo_path(course))
+    try:
+        return COURSE_REPOS[course.pk]
+    except KeyError:
+        from dulwich.repo import Repo
+        repo = Repo(get_course_repo_path(course))
+
+        COURSE_REPOS[course.pk] = repo
+
+        return repo
 
 
-def get_repo_blob(repo, full_name, commit_sha=None):
+def get_repo_blob(repo, full_name, commit_sha):
     names = full_name.split("/")
 
     tree_sha = repo[commit_sha].tree
@@ -93,10 +103,35 @@ def get_repo_blob(repo, full_name, commit_sha=None):
         raise ObjectDoesNotExist("resource '%s' not found" % full_name)
 
 
+def get_repo_blob_data_cached(repo, full_name, commit_sha):
+    cache_key = "%%%1".join((repo.controldir(), full_name, commit_sha))
+
+    def_cache = cache.caches["default"]
+    result = def_cache.get(cache_key)
+    if result is not None:
+        return result
+
+    result = get_repo_blob(repo, full_name, commit_sha).data
+
+    def_cache.add(cache_key, result, None)
+    return result
+
+
 def get_yaml_from_repo(repo, full_name, commit_sha):
+    cache_key = "%%%2".join((repo.controldir(), full_name, commit_sha))
+
+    def_cache = cache.caches["default"]
+    result = def_cache.get(cache_key)
+    if result is not None:
+        return result
+
     from yaml import load
-    return dict_to_struct(
+    result = dict_to_struct(
             load(get_repo_blob(repo, full_name, commit_sha).data))
+
+    def_cache.add(cache_key, result, None)
+
+    return result
 
 # }}}
 
