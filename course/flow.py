@@ -210,17 +210,19 @@ def start_flow(request, course_identifier, flow_identifier):
             .filter(
                 participation=fctx.participation,
                 flow_id=fctx.flow_identifier,
-                in_progress=True
+                in_progress=True,
+                participation__null=False,
                 )).count() > 0
-    prior_ession_count = (FlowSession.objects
+    prior_session_count = (FlowSession.objects
             .filter(
                 participation=fctx.participation,
                 flow_id=fctx.flow_identifier,
+                participation__null=False,
                 )).count()
 
     if hasattr(fctx.stipulations, "allowed_session_count"):
         allowed_another_session = (
-                prior_ession_count < fctx.stipulations.allowed_session_count)
+                prior_session_count < fctx.stipulations.allowed_session_count)
     else:
         allowed_another_session = True
 
