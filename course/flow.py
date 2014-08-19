@@ -211,13 +211,13 @@ def start_flow(request, course_identifier, flow_identifier):
                 participation=fctx.participation,
                 flow_id=fctx.flow_identifier,
                 in_progress=True,
-                participation__null=False,
+                participation__isnull=False,
                 )).count() > 0
     prior_session_count = (FlowSession.objects
             .filter(
                 participation=fctx.participation,
                 flow_id=fctx.flow_identifier,
-                participation__null=False,
+                participation__isnull=False,
                 )).count()
 
     if hasattr(fctx.stipulations, "allowed_session_count"):
