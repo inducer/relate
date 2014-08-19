@@ -213,16 +213,17 @@ def start_flow(request, course_identifier, flow_identifier):
                 in_progress=True,
                 participation__isnull=False,
                 )).count() > 0
-    prior_session_count = (FlowSession.objects
+    past_sessions = (FlowSession.objects
             .filter(
                 participation=fctx.participation,
                 flow_id=fctx.flow_identifier,
-                participation__isnull=False,
-                )).count()
+                participation__isnull=False)
+           .order_by("start_time"))
+    past_session_count = past_sessions.count()
 
     if hasattr(fctx.stipulations, "allowed_session_count"):
         allowed_another_session = (
-                prior_session_count < fctx.stipulations.allowed_session_count)
+                past_session_count < fctx.stipulations.allowed_session_count)
     else:
         allowed_another_session = True
 
@@ -242,6 +243,9 @@ def start_flow(request, course_identifier, flow_identifier):
 
             if resume_session.participation != fctx.participation:
                 raise PermissionDenied("not your session")
+
+            if resume_session.participation is None:
+                raise PermissionDenied("can't resume anonymous session")
 
             if resume_session.flow_id != fctx.flow_identifier:
                 raise SuspiciousOperation("flow id mismatch on resume")
@@ -303,12 +307,6 @@ def start_flow(request, course_identifier, flow_identifier):
                 and flow_permission.start_no_credit in fctx.permissions)
         may_review = (
                 flow_permission.view_past in fctx.permissions)
-
-        past_sessions = (FlowSession.objects
-                .filter(
-                    participation=fctx.participation,
-                    flow_id=flow_identifier)
-                .order_by("start_time"))
 
         if hasattr(fctx.flow_desc, "grade_aggregation_strategy"):
             from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
