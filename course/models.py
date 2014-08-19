@@ -244,6 +244,10 @@ class InstantFlowRequest(models.Model):
 # {{{ flow session tracking
 
 class FlowSession(models.Model):
+    # This looks like it's redundant with 'participation', below--but it's not.
+    # 'participation' is nullable.
+    course = models.ForeignKey(Course)
+
     participation = models.ForeignKey(Participation, null=True, blank=True)
     active_git_commit_sha = models.CharField(max_length=200)
     flow_id = models.CharField(max_length=200)
@@ -266,7 +270,7 @@ class FlowSession(models.Model):
     result_comment = models.TextField(blank=True, null=True)
 
     class Meta:
-        ordering = ("participation", "-start_time")
+        ordering = ("course", "participation", "-start_time")
 
     def __unicode__(self):
         return "%s's session %d on '%s'" % (

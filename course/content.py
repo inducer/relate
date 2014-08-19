@@ -516,13 +516,14 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
     return class_(vctx, location, page_desc)
 
 
-def set_up_flow_session_page_data(repo, flow_session, flow, commit_sha):
+def set_up_flow_session_page_data(repo, flow_session,
+        course_identifier, flow_desc, commit_sha):
     from course.models import FlowPageData
 
     data = None
 
     ordinal = 0
-    for grp in flow.groups:
+    for grp in flow_desc.groups:
         for page_desc in grp.pages:
             data = FlowPageData()
             data.flow_session = flow_session
@@ -533,7 +534,7 @@ def set_up_flow_session_page_data(repo, flow_session, flow, commit_sha):
 
             page = instantiate_flow_page(
                     "course '%s', flow '%s', page '%s/%s'"
-                    % (flow_session.participation.course, flow_session.flow_id,
+                    % (course_identifier, flow_session.flow_id,
                         grp.id, page_desc.id),
                     repo, page_desc, commit_sha)
             data.data = page.make_page_data()

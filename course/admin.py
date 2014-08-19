@@ -128,11 +128,6 @@ class FlowPageVisitInline(admin.TabularInline):
 
 
 class FlowSessionAdmin(admin.ModelAdmin):
-    def get_course(self, obj):
-        return obj.participation.course
-    get_course.short_description = "Course"
-    get_course.admin_order_field = "participation__course"
-
     def get_participant(self, obj):
         return obj.participation.user
     get_participant.short_description = "Participant"
@@ -148,7 +143,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
     list_display = (
             "flow_id",
             "get_participant",
-            "get_course",
+            "course",
             "start_time",
             "in_progress",
             "for_credit",
@@ -161,7 +156,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
     date_hierarchy = "start_time"
 
     list_filter = (
-            "participation__course",
+            "course",
             "flow_id",
             "in_progress",
             "for_credit",

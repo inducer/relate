@@ -277,7 +277,7 @@ def start_flow(request, course_identifier, flow_identifier):
             request.session["flow_session_id"] = session.id
 
             page_count = set_up_flow_session_page_data(fctx.repo, session,
-                    fctx.flow_desc, fctx.commit_sha)
+                    course_identifier, fctx.flow_desc, fctx.commit_sha)
             session.page_count = page_count
             session.save()
 
