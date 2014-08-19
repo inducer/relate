@@ -141,6 +141,8 @@ def get_yaml_from_repo(repo, full_name, commit_sha):
 def _attr_to_string(key, val):
     if val is None:
         return key
+    elif "\"" in val:
+        return "%s='%s'" % (key, val)
     else:
         return "%s=\"%s\"" % (key, val)
 
