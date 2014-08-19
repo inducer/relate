@@ -267,6 +267,7 @@ def start_flow(request, course_identifier, flow_identifier):
                         "is already in progress")
 
             session = FlowSession()
+            session.course = fctx.course
             session.participation = fctx.participation
             session.active_git_commit_sha = fctx.commit_sha.decode()
             session.flow_id = flow_identifier
