@@ -28,6 +28,9 @@ Ideas
 - Multi text question
 - Multi MC question
 
+- Improve access-denied error for time-based rule on flow
+- Make MC (multiple-choice) jumble optional
+
 Rejected ideas
 ==============
 
