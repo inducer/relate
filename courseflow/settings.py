@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS
+from django.conf.global_settings import (
+        TEMPLATE_CONTEXT_PROCESSORS, STATICFILES_FINDERS)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -42,6 +43,7 @@ INSTALLED_APPS = (
     "crispy_forms",
     "json_field",
     "bootstrap3_datetime",
+    "djangobower",
 )
 
 MIDDLEWARE_CLASSES = (
@@ -70,6 +72,24 @@ TEMPLATE_CONTEXT_PROCESSORS = (
             "course.views.fake_time_context_processor",
             )
         )
+
+
+# {{{ bower packages
+
+BOWER_COMPONENTS_ROOT = os.path.join(BASE_DIR, "components")
+
+STATICFILES_FINDERS = STATICFILES_FINDERS + (
+    "djangobower.finders.BowerFinder",
+    )
+
+BOWER_INSTALLED_APPS = (
+    "bootstrap#3.2.0",
+    "fontawesome",
+    "video-js",
+    )
+
+
+# }}}
 
 ROOT_URLCONF = 'courseflow.urls'
 

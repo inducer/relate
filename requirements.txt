@@ -37,3 +37,6 @@ django-bootstrap3-datetimepicker
 # For in-class instant messaging
 sleekxmpp
 dnspython
+
+# To manage web dependencies
+django-bower

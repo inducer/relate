@@ -26,6 +26,9 @@ CourseFlow currently works with Python 2.7. (This is because `dulwich
 <https://www.samba.org/~jelmer/dulwich/>`_, a dependency, does not yet support
 Python 3.)
 
+Install `bower <http://bower.io/>`_ and its dependencies, as described on its
+web page.
+
 (Optional) Make a virtualenv to install to::
 
     virtualenv --system-site-packages my-courseflow-env
@@ -33,7 +36,7 @@ Python 3.)
 
 To install, clone the repository::
 
-    git clone --recursive git://github.com/inducer/courseflow
+    git clone git://github.com/inducer/courseflow
 
 Enter the courseflow directory::
 
@@ -52,6 +55,10 @@ Initialize the database::
 
     python manage.py migrate
     python manage.py createsuperuser --username=$(whoami)
+
+Retrieve static (JS/CSS) dependencies::
+
+    python manage.py bower install
 
 Run the server::
 

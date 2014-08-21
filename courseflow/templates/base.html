@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+
+{% load static %}
+
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -10,17 +13,17 @@
 
     <title>{%block title %}CourseFlow{% endblock %}</title>
 
-    <link href="/static/bootstrap-3.1.1-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static "bootstrap/dist/css/bootstrap.css" %}" rel="stylesheet">
 
     <link rel="stylesheet" href="/static/css/style.css" >
-    <link rel="stylesheet" href="/static/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="{% static "fontawesome/css/font-awesome.css" %}">
 
     {% if form.media %}
       {# If there are forms with media, then #}
       {# scripts have to be up here because the datepicker's JS needs them to run #}
       {# If you change this, also change the corresponding copy below. #}
-      <script src="/static/js/jquery-1.11.0.js"></script>
-      <script src="/static/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
+      <script src="{% static "jquery/dist/jquery.js" %}"></script>
+      <script src="{% static "bootstrap/dist/js/bootstrap.js" %}"></script>
       {{ form.media }}
     {% endif %}
 
@@ -30,10 +33,10 @@
       <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
 
-    <link href="/static/video-js/video-js.css" rel="stylesheet">
-    <script src="/static/video-js/video.js"></script>
+    <link href="{% static "videojs/dist/video-js/video-js.css" %}" rel="stylesheet">
+    <script src="{% static "videojs/dist/video-js/video.js" %}"></script>
     <script>
-      videojs.options.flash.swf = "/static/video-js/video-js.swf"
+      videojs.options.flash.swf = "{% static "videojs/dist/video-js/video-js.swf" %}"
     </script>
   </head>
 
@@ -144,8 +147,8 @@
     {% endif %}
     {% if not form.media %}
       {# If you change this, also change the corresponding copy above. #}
-      <script src="/static/js/jquery-1.11.0.js"></script>
-      <script src="/static/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
+      <script src="{% static "jquery/dist/jquery.js" %}"></script>
+      <script src="{% static "bootstrap/dist/js/bootstrap.js" %}"></script>
     {% endif %}
   </body>
 </html>

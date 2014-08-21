@@ -7,3 +7,4 @@ local_settings.py
 *.py[co]
 .sw[opn]
 doc/_build
+components

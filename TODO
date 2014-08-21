@@ -22,12 +22,12 @@ Ideas
 
 - Custom matcher classes
 
-- Name X question
+- Name X out of Y question
 - Multi text question
 - Multi MC question
+- Code question
 
 - Improve access-denied error for time-based rule on flow
-- Make MC (multiple-choice) jumble optional
 
 Rejected ideas
 ==============
