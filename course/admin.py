@@ -129,7 +129,11 @@ class FlowPageVisitInline(admin.TabularInline):
 
 class FlowSessionAdmin(admin.ModelAdmin):
     def get_participant(self, obj):
+        if obj.participation is None:
+            return None
+
         return obj.participation.user
+
     get_participant.short_description = "Participant"
     get_participant.admin_order_field = "participation__user"
 

@@ -114,6 +114,12 @@ datespec_types = (datetime.date, six.string_types)
 # }}}
 
 
+class ValidationWarning(object):
+    def __init__(self, location, text):
+        self.location = location
+        self.text = text
+
+
 class ValidationContext(object):
     """
     .. attribute:: repo
@@ -127,10 +133,14 @@ class ValidationContext(object):
         self.repo = repo
         self.commit_sha = commit_sha
         self.datespec_callback = datespec_callback
+        self.warnings = []
 
     def encounter_datespec(self, datespec):
         if self.datespec_callback is not None:
             self.datespec_callback(datespec)
+
+    def add_warning(self, *args, **kwargs):
+        self.warnings.append(ValidationWarning(*args, **kwargs))
 
 
 # {{{ course page validation
@@ -451,6 +461,8 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
                     commit_sha=validate_sha)
 
             validate_flow_desc(ctx, location, flow_desc)
+
+    return ctx.warnings
 
 # }}}
 

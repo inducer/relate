@@ -262,7 +262,7 @@ class Page(PageBase):
 class TextAnswerForm(forms.Form):
     answer = forms.CharField(required=True)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, matchers, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
@@ -270,11 +270,178 @@ class TextAnswerForm(forms.Form):
 
         super(TextAnswerForm, self).__init__(*args, **kwargs)
 
+        self.matchers = matchers
+
         self.fields["answer"].widget.attrs["autofocus"] = None
 
+    def clean(self):
+        cleaned_data = super(TextAnswerForm, self).clean()
 
-REGEX_PREFIX = "regex:"
-PLAIN_PREFIX = "plain:"
+        for matcher in self.matchers:
+            matcher.validate(cleaned_data["answer"])
+
+
+# {{{ matchers
+
+class TextAnswerMatcher(object):
+    """Abstract interface for matching text answers.
+
+    .. attribute:: prefix
+    """
+
+    def __init__(self, location, pattern):
+        pass
+
+    def validate(self, s):
+        """Called to validate form input against simple input mistakes.
+
+        Should raise :exc:`django.forms.ValidationError` on error.
+        """
+
+        pass
+
+    def grade(self, s):
+        raise NotImplementedError()
+
+    def correct_answer_text(self):
+        """May return *None* if not known."""
+        raise NotImplementedError()
+
+
+class CaseSensitivePlainMatcher(TextAnswerMatcher):
+    prefix = "case_sens_plain"
+
+    def __init__(self, location, pattern):
+        self.pattern = pattern
+
+    def grade(self, s):
+        return int(self.pattern == s)
+
+    def correct_answer_text(self):
+        return self.pattern
+
+
+class PlainMatcher(CaseSensitivePlainMatcher):
+    prefix = "plain"
+
+    def grade(self, s):
+        return int(self.pattern.lower() == s.lower())
+
+
+class RegexMatcher(TextAnswerMatcher):
+    prefix = "regex"
+    re_flags = re.I
+
+    def __init__(self, location, pattern):
+        try:
+            self.pattern = re.compile(pattern, self.re_flags)
+        except:
+            tp, e, _ = sys.exc_info()
+
+            raise ValidationError("%s: regex '%s' did not compile: %s: %s"
+                    % (location, pattern, tp.__name__, str(e)))
+
+    def grade(self, s):
+        match = self.pattern.match(s)
+        if match is not None:
+            return 1
+        else:
+            return 0
+
+    def correct_answer_text(self):
+        return None
+
+
+class CaseSensitiveRegexMatcher(RegexMatcher):
+    prefix = "case_sens_regex"
+    re_flags = 0
+
+
+def parse_sympy(s):
+    if isinstance(s, unicode):
+        # Sympy is not spectacularly happy with unicode function names
+        s = s.encode()
+
+    from pymbolic import parse
+    from pymbolic.sympy_interface import PymbolicToSympyMapper
+
+    # use pymbolic because it has a semi-secure parser
+    return PymbolicToSympyMapper()(parse(s))
+
+
+class SymbolicExpressionMatcher(TextAnswerMatcher):
+    prefix = "sym_expr"
+
+    def __init__(self, location, pattern):
+        self.pattern = pattern
+
+        try:
+            self.pattern_sym = parse_sympy(pattern)
+        except:
+            tp, e, _ = sys.exc_info()
+            raise ValidationError("%s: %s: %s"
+                    % (location, tp.__name__, str(e)))
+
+    def validate(self, s):
+        try:
+            parse_sympy(s)
+        except:
+            tp, e, _ = sys.exc_info()
+            raise forms.ValidationError("%s: %s"
+                    % (tp.__name__, str(e)))
+
+    def grade(self, s):
+        from sympy import simplify
+        answer_sym = parse_sympy(s)
+
+        if simplify(answer_sym - self.pattern_sym) == 0:
+            return 1
+        else:
+            return 0
+
+    def correct_answer_text(self):
+        return self.pattern
+
+
+TEXT_ANSWER_MATCHER_CLASSES = [
+        CaseSensitivePlainMatcher,
+        PlainMatcher,
+        RegexMatcher,
+        CaseSensitiveRegexMatcher,
+        SymbolicExpressionMatcher,
+        ]
+
+
+MATCHER_RE = re.compile(r"^\<([a-zA-Z0-9_:.]+)\>(.*)$")
+MATCHER_RE_2 = re.compile(r"^([a-zA-Z0-9_.]+):(.*)$")
+
+
+def parse_matcher(vctx, location, answer):
+    match = MATCHER_RE.match(answer)
+
+    if match is not None:
+        matcher_prefix = match.group(1)
+        pattern = match.group(2)
+    else:
+        match = MATCHER_RE_2.match(answer)
+
+        if match is None:
+            raise ValidationError("%s: does not specify match type"
+                    % location)
+
+        matcher_prefix = match.group(1)
+        pattern = match.group(2)
+
+        vctx.add_warning(location, "uses deprecated 'matcher:answer' style")
+
+    for matcher_class in TEXT_ANSWER_MATCHER_CLASSES:
+        if matcher_class.prefix == matcher_prefix:
+            return matcher_class(location, pattern)
+
+    raise ValidationError("%s: unknown match type '%s'"
+            % (location, matcher_prefix))
+
+# }}}
 
 
 class TextQuestion(PageBase):
@@ -297,24 +464,19 @@ class TextQuestion(PageBase):
             raise ValidationError("%s: at least one answer must be provided"
                     % location)
 
-        if not page_desc.answers[0].startswith("plain:"):
-            raise ValidationError("%s: first answer must be 'plain:' to serve as "
-                    "correct answer" % location)
+        self.matchers = [
+                parse_matcher(
+                    vctx,
+                    "%s, answer %d" % (location, i+1),
+                    answer)
+                for i, answer in enumerate(page_desc.answers)]
+
+        if not any(matcher.correct_answer_text() is not None
+                for matcher in self.matchers):
+            raise ValidationError("%s: no matcher is able to provide a plain-text "
+                    "correct answer")
 
         validate_markup(vctx, location, page_desc.prompt)
-
-        for i, answer in enumerate(page_desc.answers):
-            ans_location = "%s, answer %d" % (location, i+1)
-
-            if answer.startswith(REGEX_PREFIX):
-                try:
-                    re.compile(remove_prefix(REGEX_PREFIX, answer))
-                except:
-                    raise ValidationError("%s: regex did not compile" % ans_location)
-            elif answer.startswith(PLAIN_PREFIX):
-                pass
-            else:
-                raise ValidationError("%s: unknown answer type" % ans_location)
 
         PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
@@ -335,10 +497,10 @@ class TextQuestion(PageBase):
             answer_data, answer_is_final):
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
-            form = TextAnswerForm(answer)
+            form = TextAnswerForm(self.matchers, answer)
         else:
             answer = None
-            form = TextAnswerForm()
+            form = TextAnswerForm(self.matchers)
 
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
@@ -346,158 +508,40 @@ class TextQuestion(PageBase):
         return (form, None)
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return (TextAnswerForm(post_data, files_data), None)
+        return (TextAnswerForm(self.matchers, post_data, files_data), None)
 
     def answer_data(self, page_context, page_data, form):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data, grade_data):
-        correct_answer_text = ("A correct answer is: '%s'."
-                % remove_prefix("plain:", self.page_desc.answers[0]))
+        CA_PATTERN = "A correct answer is: '%s'."
+
+        for matcher in self.matchers:
+            unspec_correct_answer_text = matcher.correct_answer_text()
+            if unspec_correct_answer_text is not None:
+                break
+
+        assert unspec_correct_answer_text
 
         correctness = 0
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.",
-                    correct_answer=correct_answer_text)
+                    correct_answer=CA_PATTERN % unspec_correct_answer_text)
 
         answer = answer_data["answer"]
 
-        for correct_answer in self.page_desc.answers:
-            if correct_answer.startswith(REGEX_PREFIX):
-                pattern = re.compile(remove_prefix(REGEX_PREFIX, correct_answer))
+        correctness, correct_answer_text = max(
+                (matcher.grade(answer), matcher.correct_answer_text())
+                for matcher in self.matchers)
 
-                match = pattern.match(answer)
-                if match:
-                    correctness = 1
-                    break
-
-            elif correct_answer.startswith(PLAIN_PREFIX):
-                pattern = remove_prefix(PLAIN_PREFIX, correct_answer)
-
-                if pattern == answer:
-                    correctness = 1
-                    break
-
-            else:
-                raise ValueError("unknown text answer type in '%s'" % correct_answer)
+        if correct_answer_text is None:
+            correct_answer_text = unspec_correct_answer_text
 
         return AnswerFeedback(
                 correctness=correctness,
-                correct_answer=correct_answer_text)
-
-# }}}
-
-
-# {{{ symbolic question
-
-def parse_sympy(s):
-    if isinstance(s, unicode):
-        # Sympy is not spectacularly happy with unicode function names
-        s = s.encode()
-
-    from pymbolic import parse
-    from pymbolic.sympy_interface import PymbolicToSympyMapper
-
-    # use pymbolic because it has a semi-secure parser
-    return PymbolicToSympyMapper()(parse(s))
-
-
-class SymbolicAnswerForm(TextAnswerForm):
-    def clean(self):
-        cleaned_data = super(SymbolicAnswerForm, self).clean()
-
-        try:
-            parse_sympy(cleaned_data["answer"])
-        except:
-            tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%s: %s"
-                    % (tp.__name__, str(e)))
-
-
-class SymbolicQuestion(PageBase):
-    def __init__(self, vctx, location, page_desc):
-        validate_struct(
-                location,
-                page_desc,
-                required_attrs=[
-                    ("type", str),
-                    ("id", str),
-                    ("value", (int, float)),
-                    ("title", str),
-                    ("answers", list),
-                    ("prompt", str),
-                    ],
-                allowed_attrs=[],
-                )
-
-        for answer in page_desc.answers:
-            try:
-                parse_sympy(answer)
-            except:
-                tp, e, _ = sys.exc_info()
-                raise ValidationError("%s: %s: %s"
-                        % (location, tp.__name__, str(e)))
-
-        validate_markup(vctx, location, page_desc.prompt)
-
-        PageBase.__init__(self, vctx, location, page_desc.id)
-        self.page_desc = page_desc
-
-    def title(self, page_context, page_data):
-        return self.page_desc.title
-
-    def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
-
-    def expects_answer(self):
-        return True
-
-    def max_points(self, page_data):
-        return self.page_desc.value
-
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        if answer_data is not None:
-            answer = {"answer": answer_data["answer"]}
-            form = SymbolicAnswerForm(answer)
-        else:
-            form = SymbolicAnswerForm()
-
-        if answer_is_final:
-            form.fields['answer'].widget.attrs['readonly'] = True
-
-        return (form, None)
-
-    def post_form(self, page_context, page_data, post_data, files_data):
-        return (SymbolicAnswerForm(post_data, files_data), None)
-
-    def answer_data(self, page_context, page_data, form):
-        return {"answer": form.cleaned_data["answer"].strip()}
-
-    def grade(self, page_context, page_data, answer_data, grade_data):
-        correct_answer_text = ("A correct answer is: '%s'."
-                % self.page_desc.answers[0])
-
-        if answer_data is None:
-            return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.",
-                    correct_answer=correct_answer_text)
-
-        correctness = 0
-
-        answer = parse_sympy(answer_data["answer"])
-
-        from sympy import simplify
-        for correct_answer in self.page_desc.answers:
-            correct_answer_sym = parse_sympy(correct_answer)
-
-            if simplify(answer - correct_answer_sym) == 0:
-                correctness = 1
-
-        return AnswerFeedback(correctness=correctness,
-                correct_answer=correct_answer_text)
+                correct_answer=CA_PATTERN % correct_answer_text)
 
 # }}}
 
@@ -635,6 +679,108 @@ class ChoiceQuestion(PageBase):
             correctness = 1
         else:
             correctness = 0
+
+        return AnswerFeedback(correctness=correctness,
+                correct_answer=correct_answer_text)
+
+# }}}
+
+
+# {{{ symbolic question (deprecated)
+
+class SymbolicAnswerForm(TextAnswerForm):
+    def clean(self):
+        cleaned_data = super(SymbolicAnswerForm, self).clean()
+
+        try:
+            parse_sympy(cleaned_data["answer"])
+        except:
+            tp, e, _ = sys.exc_info()
+            raise forms.ValidationError("%s: %s"
+                    % (tp.__name__, str(e)))
+
+
+class SymbolicQuestion(PageBase):
+    def __init__(self, vctx, location, page_desc):
+        vctx.add_warning(location, "uses deprecated SymbolicQuestion")
+
+        validate_struct(
+                location,
+                page_desc,
+                required_attrs=[
+                    ("type", str),
+                    ("id", str),
+                    ("value", (int, float)),
+                    ("title", str),
+                    ("answers", list),
+                    ("prompt", str),
+                    ],
+                allowed_attrs=[],
+                )
+
+        for answer in page_desc.answers:
+            try:
+                parse_sympy(answer)
+            except:
+                tp, e, _ = sys.exc_info()
+                raise ValidationError("%s: %s: %s"
+                        % (location, tp.__name__, str(e)))
+
+        validate_markup(vctx, location, page_desc.prompt)
+
+        PageBase.__init__(self, vctx, location, page_desc.id)
+        self.page_desc = page_desc
+
+    def title(self, page_context, page_data):
+        return self.page_desc.title
+
+    def body(self, page_context, page_data):
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def expects_answer(self):
+        return True
+
+    def max_points(self, page_data):
+        return self.page_desc.value
+
+    def make_form(self, page_context, page_data,
+            answer_data, answer_is_final):
+        if answer_data is not None:
+            answer = {"answer": answer_data["answer"]}
+            form = SymbolicAnswerForm(answer)
+        else:
+            form = SymbolicAnswerForm()
+
+        if answer_is_final:
+            form.fields['answer'].widget.attrs['readonly'] = True
+
+        return (form, None)
+
+    def post_form(self, page_context, page_data, post_data, files_data):
+        return (SymbolicAnswerForm(post_data, files_data), None)
+
+    def answer_data(self, page_context, page_data, form):
+        return {"answer": form.cleaned_data["answer"].strip()}
+
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        correct_answer_text = ("A correct answer is: '%s'."
+                % self.page_desc.answers[0])
+
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.",
+                    correct_answer=correct_answer_text)
+
+        correctness = 0
+
+        answer = parse_sympy(answer_data["answer"])
+
+        from sympy import simplify
+        for correct_answer in self.page_desc.answers:
+            correct_answer_sym = parse_sympy(correct_answer)
+
+            if simplify(answer - correct_answer_sym) == 0:
+                correctness = 1
 
         return AnswerFeedback(correctness=correctness,
                 correct_answer=correct_answer_text)

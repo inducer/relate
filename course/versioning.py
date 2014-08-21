@@ -384,7 +384,7 @@ def update_course(request, course_identifier):
 
             from course.validation import validate_course_content, ValidationError
             try:
-                validate_course_content(repo, course.course_file, new_sha)
+                warnings = validate_course_content(repo, course.course_file, new_sha)
             except ValidationError as e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "
@@ -392,8 +392,17 @@ def update_course(request, course_identifier):
                         % str(e))
                 validated = False
             else:
-                messages.add_message(request, messages.INFO,
-                        "Course content validated successfully.")
+                if not warnings:
+                    messages.add_message(request, messages.SUCCESS,
+                            "Course content validated successfully.")
+                else:
+                    messages.add_message(request, messages.WARNING,
+                            "Course content validated OK, with warnings:"
+                            "<ul>%s</ul>"
+                            % ("".join(
+                                "<li><i>%s</i>: %s</li>" % (w.location, w.text)
+                                for w in warnings)))
+
                 validated = True
 
             if validated and "update" in form.data:

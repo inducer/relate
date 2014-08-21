@@ -17,8 +17,7 @@ jinja2
 six
 
 # For math/symbolic questions
-# Until next release, for "InvalidTokenError does not derive from Exception"
-git+git://github.com/inducer/pytools
+pytools
 pymbolic
 sympy
 
