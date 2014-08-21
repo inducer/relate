@@ -407,7 +407,7 @@ def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
 
         return rule.weight, shown
 
-    return 0
+    return 0, True
 
 
 def get_course_desc(repo, course, commit_sha):
@@ -424,7 +424,7 @@ def get_processed_course_chunks(course, repo, commit_sha,
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight, reverse=True)
 
-    return [mod for mod in course_desc.chunks
+    return [chunk for chunk in course_desc.chunks
             if chunk.shown]
 
 
