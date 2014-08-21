@@ -387,6 +387,11 @@ def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
         if hasattr(rule, "role"):
             if role != rule.role:
                 continue
+
+        if hasattr(rule, "roles"):
+            if role not in rule.roles:
+                continue
+
         if hasattr(rule, "start"):
             start_date = parse_date_spec(course, rule.start)
             if now_datetime < start_date:

@@ -174,6 +174,7 @@ def validate_chunk_rule(ctx, location, chunk_rule):
                 ("start", (str, datetime.date)),
                 ("end", (str, datetime.date)),
                 ("role", str),
+                ("roles", list),
                 ("shown", bool),
             ])
 
@@ -182,6 +183,16 @@ def validate_chunk_rule(ctx, location, chunk_rule):
 
     if hasattr(chunk_rule, "end"):
         ctx.encounter_datespec(chunk_rule.end)
+
+    if hasattr(chunk_rule, "role"):
+        ctx.add_warning(location, "Uses deprecated 'role' attribute--"
+                "use 'roles' instead")
+
+        validate_role(location, chunk_rule.role)
+
+    if hasattr(chunk_rule, "roles"):
+        for role in chunk_rule.roles:
+            validate_role(location, role)
 
 
 def validate_chunk(ctx, location, chunk):

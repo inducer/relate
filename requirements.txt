@@ -17,7 +17,6 @@ jinja2
 six
 
 # For math/symbolic questions
-pytools
 pymbolic
 sympy
 
