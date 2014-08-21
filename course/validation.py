@@ -27,6 +27,7 @@ THE SOFTWARE.
 import re
 import datetime
 import six
+import sys
 
 from course.content import get_yaml_from_repo, get_repo_blob
 
@@ -142,9 +143,11 @@ def validate_markup(ctx, location, markup_str):
                 repo=ctx.repo,
                 commit_sha=ctx.commit_sha,
                 text=markup_str)
-    except Exception as e:
+    except:
         from traceback import print_exc
         print_exc()
+
+        _, e, _ = sys.exc_info()
 
         raise ValidationError("%s: %s: %s" % (
             location, type(e).__name__, str(e)))
@@ -237,7 +240,9 @@ def validate_flow_page(ctx, location, page_desc):
         class_(ctx, location, page_desc)
     except ValidationError:
         raise
-    except Exception as e:
+    except:
+        _, e, _ = sys.exc_info()
+
         from traceback import format_exc
         raise ValidationError(
                 "%s: could not instantiate flow page: %s: %s<br><pre>%s</pre>"
@@ -418,9 +423,11 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
     try:
         course_desc = get_yaml_from_repo(repo, course_file,
                 commit_sha=validate_sha)
-    except Exception, e:
+    except:
         from traceback import print_exc
         print_exc()
+
+        _, e, _ = sys.exc_info()
 
         raise ValidationError("%s: %s: %s" % (
             course_file, type(e).__name__, str(e)))

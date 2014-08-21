@@ -29,7 +29,9 @@ from course.content import remove_prefix
 from crispy_forms.helper import FormHelper
 from django.utils.safestring import mark_safe
 import django.forms as forms
+
 import re
+import sys
 
 
 __doc__ = """
@@ -404,7 +406,8 @@ class SymbolicAnswerForm(TextAnswerForm):
 
         try:
             parse_sympy(cleaned_data["answer"])
-        except Exception as e:
+        except:
+            _, e, _ = sys.exc_info()
             raise forms.ValidationError("%s: %s"
                     % (type(e).__name__, str(e)))
 
@@ -428,7 +431,8 @@ class SymbolicQuestion(PageBase):
         for answer in page_desc.answers:
             try:
                 parse_sympy(answer)
-            except Exception as e:
+            except:
+                _, e, _ = sys.exc_info()
                 raise ValidationError("%s: %s: %s"
                         % (location, type(e).__name__, str(e)))
 
