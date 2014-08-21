@@ -393,6 +393,10 @@ class TextQuestion(PageBase):
 # {{{ symbolic question
 
 def parse_sympy(s):
+    if isinstance(s, unicode):
+        # Sympy is not spectacularly happy with unicode function names
+        s = s.encode()
+
     from pymbolic import parse
     from pymbolic.sympy_interface import PymbolicToSympyMapper
 
