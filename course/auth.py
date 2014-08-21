@@ -204,7 +204,7 @@ def sign_in_by_email(request):
             from django.contrib.auth.models import User
 
             email = form.cleaned_data["email"]
-            users = User.objects.get(email__iexact=email)
+            users = User.objects.filter(email__iexact=email)
 
             if users.count() > 1:
                 messages.add_message(request, messages.ERROR,
