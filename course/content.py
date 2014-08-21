@@ -41,6 +41,8 @@ from HTMLParser import HTMLParser
 
 from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
 
+import threading
+
 
 # {{{ tools
 
@@ -71,17 +73,26 @@ def get_course_repo_path(course):
     return join(settings.GIT_ROOT, course.identifier)
 
 
-COURSE_REPOS = {}
+# All this because dulwich is stateful and not reentrant.
+_THREAD_LOCAL_STORAGE = threading.local()
+
+
+def get_course_repos_dict():
+    try:
+        return _THREAD_LOCAL_STORAGE.COURSE_REPOS
+    except AttributeError:
+        _THREAD_LOCAL_STORAGE.COURSE_REPOS = {}
+        return _THREAD_LOCAL_STORAGE.COURSE_REPOS
 
 
 def get_course_repo(course):
     try:
-        return COURSE_REPOS[course.pk]
+        return get_course_repos_dict()[course.pk]
     except KeyError:
         from dulwich.repo import Repo
         repo = Repo(get_course_repo_path(course))
 
-        COURSE_REPOS[course.pk] = repo
+        get_course_repos_dict()[course.pk] = repo
 
         return repo
 
