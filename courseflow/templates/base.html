@@ -129,22 +129,20 @@
     <!-- JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    {% if mathjax_url_root %}
-      <script type="text/javascript"
-        src="{{mathjax_url_root}}MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-      </script>
-      <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({
-          extensions: ["tex2jax.js", "TeX/boldsymbol.js"],
-          // jax: ["input/TeX", "output/HTML-CSS"],
-          tex2jax: {
-            inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-            displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
-            processEscapes: true
-          },
-        });
-      </script>
-    {% endif %}
+    <script type="text/javascript"
+      src="{% static "MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML" %}">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        extensions: ["tex2jax.js", "TeX/boldsymbol.js"],
+        // jax: ["input/TeX", "output/HTML-CSS"],
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        },
+      });
+    </script>
     {% if not form.media %}
       {# If you change this, also change the corresponding copy above. #}
       <script src="{% static "jquery/dist/jquery.js" %}"></script>

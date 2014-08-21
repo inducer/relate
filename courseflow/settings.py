@@ -85,7 +85,8 @@ STATICFILES_FINDERS = STATICFILES_FINDERS + (
 BOWER_INSTALLED_APPS = (
     "bootstrap#3.2.0",
     "fontawesome",
-    "video-js",
+    "videojs",
+    "MathJax",
     )
 
 

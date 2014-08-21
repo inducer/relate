@@ -30,5 +30,4 @@ from django.conf import settings
 def settings_context_processor(request):
     return {
         "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
-        "mathjax_url_root": settings.MATHJAX_URL_ROOT,
         }
