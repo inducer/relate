@@ -41,7 +41,7 @@ INSTALLED_APPS = (
     "django.contrib.staticfiles",
     "course",
     "crispy_forms",
-    "json_field",
+    "jsonfield",
     "bootstrap3_datetime",
     "djangobower",
 )
