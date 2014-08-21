@@ -231,6 +231,23 @@ class Participation(models.Model):
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
 
+
+class ParticipationPreapproval(models.Model):
+    email = models.EmailField(max_length=254)
+    course = models.ForeignKey(Course)
+    role = models.CharField(max_length=50,
+            choices=PARTICIPATION_ROLE_CHOICES)
+
+    creator = models.ForeignKey(User, null=True)
+    creation_time = models.DateTimeField(default=now, db_index=True)
+
+    def __unicode__(self):
+        return "%s in %s" % (self.email, self.course)
+
+    class Meta:
+        unique_together = (("course", "email"),)
+        ordering = ("course", "email")
+
 # }}}
 
 

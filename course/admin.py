@@ -26,7 +26,8 @@ from django.contrib import admin
 from course.models import (
         UserStatus,
         Course, TimeLabel,
-        Participation, InstantFlowRequest,
+        Participation, ParticipationPreapproval,
+        InstantFlowRequest,
         FlowSession, FlowPageData, FlowPageVisit,
         FlowAccessException, FlowAccessExceptionEntry,
         GradingOpportunity, GradeChange, InstantMessage)
@@ -103,6 +104,13 @@ class ParticipationAdmin(admin.ModelAdmin):
     actions = [approve_enrollment, deny_enrollment]
 
 admin.site.register(Participation, ParticipationAdmin)
+
+
+class ParticipationPreapprovalAdmin(admin.ModelAdmin):
+    list_display = ["email", "course", "role"]
+    list_filter = ["course", "role"]
+
+admin.site.register(ParticipationPreapproval, ParticipationPreapprovalAdmin)
 
 # }}}
 

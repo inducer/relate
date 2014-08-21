@@ -30,10 +30,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.db import transaction
 
 from course.models import (
         get_user_status, user_status,
-        Course, Participation,
+        Course,
+        Participation, ParticipationPreapproval,
         participation_role, participation_status)
 
 from course.views import get_role_and_participation
@@ -42,6 +44,7 @@ from course.views import get_role_and_participation
 # {{{ enrollment
 
 @login_required
+@transaction.atomic
 def enroll(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
@@ -68,7 +71,7 @@ def enroll(request, course_identifier):
                 "enroll." % course.enrollment_required_email_suffix)
         return redirect("course.views.course_page", course_identifier)
 
-    def enroll(status):
+    def enroll(status, role):
         participations = Participation.objects.filter(course=course, user=user)
 
         assert participations.count() <= 1
@@ -76,7 +79,7 @@ def enroll(request, course_identifier):
             participation = Participation()
             participation.user = user
             participation.course = course
-            participation.role = participation_role.student
+            participation.role = role
             participation.status = status
             participation.save()
         else:
@@ -86,8 +89,21 @@ def enroll(request, course_identifier):
 
         return participation
 
-    if course.enrollment_approval_required:
-        enroll(participation_status.requested)
+    preapproval = None
+    if request.user.email:
+        try:
+            preapproval = ParticipationPreapproval.objects.get(
+                    course=course, email__iexact=request.user.email)
+        except ParticipationPreapproval.DoesNotExist:
+            pass
+
+    role = participation_role.student
+
+    if preapproval is not None:
+        role = preapproval.role
+
+    if course.enrollment_approval_required and preapproval is None:
+        enroll(participation_status.requested, role)
 
         from django.template.loader import render_to_string
         message = render_to_string("course/enrollment-request-email.txt", {
@@ -106,7 +122,8 @@ def enroll(request, course_identifier):
                 "Enrollment request sent. You will receive notifcation "
                 "by email once your request has been acted upon.")
     else:
-        enroll(participation_status.active)
+        enroll(participation_status.active, role)
+
         messages.add_message(request, messages.SUCCESS,
                 "Successfully enrolled.")
 
