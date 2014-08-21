@@ -34,9 +34,9 @@ import django.views.decorators.http as http
 
 from django.views.decorators.cache import cache_control
 
-from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
+from courseflow.utils import StyledForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_role_and_participation
@@ -187,7 +187,7 @@ def check_time_labels(request, course_identifier):
         })
 
 
-class RecurringTimeLabelForm(forms.Form):
+class RecurringTimeLabelForm(StyledForm):
     kind = forms.CharField(required=True,
             help_text="Should be lower_case_with_underscores, no spaces allowed.")
     time = forms.DateTimeField(
@@ -201,15 +201,10 @@ class RecurringTimeLabelForm(forms.Form):
     count = forms.IntegerField(required=True)
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        super(RecurringTimeLabelForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", "Create", css_class="col-lg-offset-2"))
-
-        super(RecurringTimeLabelForm, self).__init__(*args, **kwargs)
 
 
 @transaction.atomic
@@ -269,21 +264,16 @@ def create_recurring_time_labels(request, course_identifier):
     })
 
 
-class RenumberTimeLabelsForm(forms.Form):
+class RenumberTimeLabelsForm(StyledForm):
     kind = forms.CharField(required=True,
             help_text="Should be lower_case_with_underscores, no spaces allowed.")
     starting_ordinal = forms.IntegerField(required=True, initial=1)
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        super(RenumberTimeLabelsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", "Renumber", css_class="col-lg-offset-2"))
-
-        super(RenumberTimeLabelsForm, self).__init__(*args, **kwargs)
 
 
 @transaction.atomic
@@ -344,23 +334,18 @@ def renumber_time_labels(request, course_identifier):
 
 # {{{ time travel
 
-class FakeTimeForm(forms.Form):
+class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}))
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        super(FakeTimeForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("set", "Set", css_class="col-lg-offset-2"))
         self.helper.add_input(
                 Submit("unset", "Unset"))
-
-        super(FakeTimeForm, self).__init__(*args, **kwargs)
 
 
 def get_fake_time(request):

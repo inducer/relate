@@ -42,10 +42,14 @@
       <li role="presentation" class="dropdown-header">Time labels</li>
       {% if user.is_staff %}
         <li><a href="{% url "admin:course_timelabel_changelist" %}" target="_new">Edit time labels</a></li>
-        <li><a href="{% url "course.views.check_time_labels" course.identifier %}">Check time labels</a></li>
-        <li><a href="{% url "course.views.create_recurring_time_labels" course.identifier %}">Create recurring time labels</a></li>
-        <li><a href="{% url "course.views.renumber_time_labels" course.identifier %}">Renumber time labels</a></li>
       {% endif %}
+      <li><a href="{% url "course.views.check_time_labels" course.identifier %}">Check time labels</a></li>
+      <li><a href="{% url "course.views.create_recurring_time_labels" course.identifier %}">Create recurring time labels</a></li>
+      <li><a href="{% url "course.views.renumber_time_labels" course.identifier %}">Renumber time labels</a></li>
+
+      <li role="presentation" class="divider"></li>
+      <li role="presentation" class="dropdown-header">Participation</li>
+      <li><a href="{% url "course.enrollment.create_preapprovals" course.identifier %}">Preapprove enrollments</a></li>
     </ul>
   </li>
   {% endif %}

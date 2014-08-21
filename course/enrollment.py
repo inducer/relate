@@ -28,17 +28,24 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
+from django import forms
+
+from crispy_forms.layout import Submit
 
 from course.models import (
         get_user_status, user_status,
         Course,
         Participation, ParticipationPreapproval,
-        participation_role, participation_status)
+        participation_role, participation_status,
+        PARTICIPATION_ROLE_CHOICES)
 
 from course.views import get_role_and_participation
+
+from courseflow.utils import StyledForm
 
 
 # {{{ enrollment
@@ -182,5 +189,92 @@ def deny_enrollment(modeladmin, request, queryset):
 deny_enrollment.short_description = "Deny enrollment"
 
 # }}}
+
+
+# {{{ preapprovals
+
+class BulkPreapprovalsForm(StyledForm):
+    role = forms.ChoiceField(
+            choices=PARTICIPATION_ROLE_CHOICES,
+            initial=participation_role.student)
+    emails = forms.CharField(required=True, widget=forms.Textarea,
+            help_text="Enter fully qualified email addresses, one per line.")
+
+    def __init__(self, *args, **kwargs):
+        super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", "Preapprove",
+                    css_class="col-lg-offset-2"))
+
+
+@login_required
+@transaction.atomic
+def create_preapprovals(request, course_identifier):
+    course = get_object_or_404(Course, identifier=course_identifier)
+
+    role, participation = get_role_and_participation(request, course)
+    if role != participation_role.instructor:
+        raise PermissionDenied("only instructors may do that")
+
+    from course.content import get_course_repo, get_course_desc
+    repo = get_course_repo(course)
+
+    from course.views import get_active_commit_sha
+    commit_sha = get_active_commit_sha(course, participation)
+
+    course_desc = get_course_desc(repo, course, commit_sha)
+
+    if request.method == "POST":
+        form = BulkPreapprovalsForm(request.POST)
+        if form.is_valid():
+
+            created_count = 0
+            exist_count = 0
+
+            role = form.cleaned_data["role"]
+            for l in form.cleaned_data["emails"].split("\n"):
+                l = l.strip()
+
+                if not l:
+                    continue
+
+                try:
+                    preapproval = ParticipationPreapproval.objects.get(
+                            email__iexact=l,
+                            course=course)
+                except ParticipationPreapproval.DoesNotExist:
+                    pass
+                else:
+                    exist_count += 1
+                    continue
+
+                preapproval = ParticipationPreapproval()
+                preapproval.email = l
+                preapproval.course = course
+                preapproval.role = role
+                preapproval.creator = request.user
+                preapproval.save()
+
+                created_count += 1
+
+            messages.add_message(request, messages.INFO,
+                    "%d preapprovals created, %d already existed."
+                    % (created_count, exist_count))
+            return redirect("course.views.home")
+
+    else:
+        form = BulkPreapprovalsForm()
+
+    return render(request, "course/generic-course-form.html", {
+        "participation": participation,
+        "form": form,
+        "form_description": "Create Participation Preapprovals",
+        "course": course,
+        "course_desc": course_desc,
+    })
+
+# }}}
+
 
 # vim: foldmethod=marker

@@ -43,6 +43,8 @@ from course.models import (
         Participation, participation_role, participation_status,
         )
 
+from courseflow.utils import StyledForm, StyledModelForm
+
 
 # {{{ impersonation
 
@@ -64,15 +66,11 @@ def may_impersonate(user):
     return user.is_staff
 
 
-class ImpersonateForm(forms.Form):
+class ImpersonateForm(StyledForm):
     user = forms.ModelChoiceField(queryset=User.objects, required=True,
             help_text="Select user to impersonate.")
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
-
         super(ImpersonateForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(Submit("submit", "Impersonate",
@@ -166,20 +164,15 @@ def sign_in(request):
 
 # {{{ email sign-in flow
 
-class SignInByEmailForm(forms.Form):
+class SignInByEmailForm(StyledForm):
     email = forms.EmailField(required=True)
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        super(SignInByEmailForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", "Send sign-in email",
                     css_class="col-lg-offset-2"))
-
-        super(SignInByEmailForm, self).__init__(*args, **kwargs)
 
 
 def make_sign_in_key(user):
@@ -318,22 +311,17 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 # {{{ user profile
 
-class UserProfileForm(forms.ModelForm):
+class UserProfileForm(StyledModelForm):
     class Meta:
         model = User
         fields = ("first_name", "last_name")
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        super(UserProfileForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", "Update",
                     css_class="col-lg-offset-2"))
-
-        super(UserProfileForm, self).__init__(*args, **kwargs)
 
 
 def user_profile(request):

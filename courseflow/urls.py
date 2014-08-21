@@ -71,6 +71,11 @@ urlpatterns = patterns('',
         "course.enrollment.enroll",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/preapprove/$",
+        "course.enrollment.create_preapprovals",),
+
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/media/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<media_path>.*)$",
         "course.views.get_media",),
