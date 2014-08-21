@@ -575,7 +575,9 @@ class ChoiceQuestion(PageBase):
                     ("choices", list),
                     ("prompt", str),
                     ],
-                allowed_attrs=[],
+                allowed_attrs=[
+                    ("shuffle", bool),
+                    ],
                 )
 
         correct_choice_count = 0
@@ -591,6 +593,7 @@ class ChoiceQuestion(PageBase):
 
         PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
+        self.shuffle = getattr(self.page_desc, "shuffle", False)
 
     def title(self, page_context, page_data):
         return self.page_desc.title
@@ -607,7 +610,8 @@ class ChoiceQuestion(PageBase):
     def make_page_data(self):
         import random
         perm = range(len(self.page_desc.choices))
-        random.shuffle(perm)
+        if self.shuffle:
+            random.shuffle(perm)
 
         return {"permutation": perm}
 
