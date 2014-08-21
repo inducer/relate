@@ -53,6 +53,10 @@ EMAIL_USE_TLS = False
 
 ROBOT_EMAIL_FROM = "Andreas Kloeckner <inform@tiker.net>"
 
+ADMINS = (
+  ("Andreas Kloeckner", "andreask@illinois.edu"),
+  )
+
 TIME_ZONE = "America/Chicago"
 
 # Uncomment one of these to choose the default sign-in method for students
