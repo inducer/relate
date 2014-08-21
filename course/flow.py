@@ -389,10 +389,11 @@ class FlowPageContext(FlowContext):
     def percentage_done(self):
         return int(100*(self.ordinal+1)/self.page_count)
 
-    def create_visit(self):
+    def create_visit(self, request):
         page_visit = FlowPageVisit()
         page_visit.flow_session = self.flow_session
         page_visit.page_data = self.page_data
+        page_visit.remote_address = request.META['REMOTE_ADDR']
         page_visit.save()
 
 
@@ -493,6 +494,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 page_visit = FlowPageVisit()
                 page_visit.flow_session = fpctx.flow_session
                 page_visit.page_data = fpctx.page_data
+                page_visit.remote_address = request.META['REMOTE_ADDR']
                 page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
                         form)
@@ -529,7 +531,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             else:
                 # form did not validate
 
-                fpctx.create_visit()
+                fpctx.create_visit(request)
 
                 answer_data = None
                 answer_was_graded = False
@@ -539,7 +541,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 # continue at common flow page generation below
 
     else:
-        fpctx.create_visit()
+        fpctx.create_visit(request)
 
         answer_data = fpctx.prev_answer
         answer_was_graded = fpctx.prev_answer_was_graded

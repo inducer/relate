@@ -322,6 +322,7 @@ class FlowPageVisit(models.Model):
 
     page_data = models.ForeignKey(FlowPageData, db_index=True)
     visit_time = models.DateTimeField(default=now, db_index=True)
+    remote_address = models.GenericIPAddressField(null=True, blank=True)
 
     answer = JSONField(null=True, blank=True)
     is_graded_answer = models.NullBooleanField()
