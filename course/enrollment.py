@@ -28,7 +28,7 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
@@ -53,6 +53,9 @@ from courseflow.utils import StyledForm
 @login_required
 @transaction.atomic
 def enroll(request, course_identifier):
+    if request.method != "POST":
+        raise SuspiciousOperation("can only enroll using POST request")
+
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
 

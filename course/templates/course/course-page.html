@@ -38,8 +38,12 @@
 
     {% if role == participation_role.unenrolled %}
       <div class="well">
-        <a class="btn btn-lg btn-primary" href="{% url "course.enrollment.enroll" course.identifier %}"
-          role="button">Enroll &raquo;</a>
+        <form method="POST" action="{% url "course.enrollment.enroll" course.identifier %}">
+          {% csrf_token %}
+          <button type="submit" name="enroll" class="btn btn-primary">
+            Enroll &raquo;
+          </button>
+        </form>
       </div>
     {% endif %}
   {% endif %}
