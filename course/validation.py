@@ -147,10 +147,10 @@ def validate_markup(ctx, location, markup_str):
         from traceback import print_exc
         print_exc()
 
-        _, e, _ = sys.exc_info()
+        tp, e, _ = sys.exc_info()
 
         raise ValidationError("%s: %s: %s" % (
-            location, type(e).__name__, str(e)))
+            location, tp.__name__, str(e)))
 
 
 def validate_chunk_rule(ctx, location, chunk_rule):
@@ -241,12 +241,12 @@ def validate_flow_page(ctx, location, page_desc):
     except ValidationError:
         raise
     except:
-        _, e, _ = sys.exc_info()
+        tp, e, _ = sys.exc_info()
 
         from traceback import format_exc
         raise ValidationError(
                 "%s: could not instantiate flow page: %s: %s<br><pre>%s</pre>"
-                % (location, type(e).__name__, str(e), format_exc()))
+                % (location, tp.__name__, str(e), format_exc()))
 
 
 def validate_flow_group(ctx, location, grp):
@@ -427,10 +427,10 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
         from traceback import print_exc
         print_exc()
 
-        _, e, _ = sys.exc_info()
+        tp, e, _ = sys.exc_info()
 
         raise ValidationError("%s: %s: %s" % (
-            course_file, type(e).__name__, str(e)))
+            course_file, tp.__name__, str(e)))
 
     ctx = ValidationContext(
             repo=repo,

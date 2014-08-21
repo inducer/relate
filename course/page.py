@@ -407,9 +407,9 @@ class SymbolicAnswerForm(TextAnswerForm):
         try:
             parse_sympy(cleaned_data["answer"])
         except:
-            _, e, _ = sys.exc_info()
+            tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%s: %s"
-                    % (type(e).__name__, str(e)))
+                    % (tp.__name__, str(e)))
 
 
 class SymbolicQuestion(PageBase):
@@ -432,9 +432,9 @@ class SymbolicQuestion(PageBase):
             try:
                 parse_sympy(answer)
             except:
-                _, e, _ = sys.exc_info()
+                tp, e, _ = sys.exc_info()
                 raise ValidationError("%s: %s: %s"
-                        % (location, type(e).__name__, str(e)))
+                        % (location, tp.__name__, str(e)))
 
         validate_markup(vctx, location, page_desc.prompt)
 
