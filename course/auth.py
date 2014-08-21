@@ -238,7 +238,7 @@ def sign_in_by_email(request):
                 "sign_in_uri": request.build_absolute_uri(
                     reverse(
                         "course.auth.sign_in_stage2_with_token",
-                        args=(ustatus.sign_in_key,))),
+                        args=(user.id, ustatus.sign_in_key,))),
                 "home_uri": request.build_absolute_uri(reverse("course.views.home"))
                 })
             from django.core.mail import send_mail
@@ -259,8 +259,10 @@ def sign_in_by_email(request):
 
 
 class TokenBackend(object):
-    def authenticate(self, token=None):
-        ustatuses = UserStatus.objects.filter(sign_in_key=token)
+    def authenticate(self, user_id=None, token=None):
+        user = User.objects.get(id=user_id)
+        ustatuses = UserStatus.objects.filter(
+                user=user, sign_in_key=token)
 
         assert ustatuses.count() <= 1
         if ustatuses.count() == 0:
@@ -281,12 +283,12 @@ class TokenBackend(object):
             return None
 
 
-def sign_in_stage2_with_token(request, sign_in_key):
+def sign_in_stage2_with_token(request, user_id, sign_in_key):
     if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
         raise SuspiciousOperation("email-based sign-in is not being used")
 
     from django.contrib.auth import authenticate, login
-    user = authenticate(token=sign_in_key)
+    user = authenticate(user_id=int(user_id), token=sign_in_key)
     if user is None:
         messages.add_message(request, messages.ERROR,
                 "Invalid sign-in token. Perhaps you've used an old token email?")

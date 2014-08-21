@@ -33,6 +33,7 @@ urlpatterns = patterns('',
     url(r"^login/by-email/$",
         "course.auth.sign_in_by_email"),
     url(r"^login/token"
+        "/(?P<user_id>[0-9]+)"
         "/(?P<sign_in_key>[a-zA-Z0-9]+)"
         "/$",
         "course.auth.sign_in_stage2_with_token"),
