@@ -382,14 +382,19 @@ def update_course(request, course_identifier):
         elif form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode("utf-8")
 
+            fetch_fixed = (
+                    '<p><a href="%s" class="btn btn-primary">'
+                    '&laquo; Re-fetch a fixed version</a></p>'
+                    % reverse("course.versioning.fetch_course_updates",
+                        args=(course.identifier,)))
+
             from course.validation import validate_course_content, ValidationError
             try:
                 warnings = validate_course_content(repo, course.course_file, new_sha)
             except ValidationError as e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "
-                        "Update not applied."
-                        % str(e))
+                        "Update not applied." % str(e) + fetch_fixed)
                 validated = False
             else:
                 if not warnings:
@@ -401,7 +406,8 @@ def update_course(request, course_identifier):
                             "<ul>%s</ul>"
                             % ("".join(
                                 "<li><i>%s</i>: %s</li>" % (w.location, w.text)
-                                for w in warnings)))
+                                for w in warnings))
+                            + fetch_fixed)
 
                 validated = True
 
@@ -411,8 +417,8 @@ def update_course(request, course_identifier):
                         "You may want to view the time labels used "
                         "in the course content and check that they "
                         "are recognized. "
-                        + '<a href="%s" class="btn btn-primary">'
-                        'Check &raquo;</a>'
+                        + '<p><a href="%s" class="btn btn-primary">'
+                        'Check &raquo;</a></p>'
                         % reverse("course.views.check_time_labels",
                             args=(course.identifier,)))
 
