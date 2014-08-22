@@ -53,6 +53,8 @@ EMAIL_USE_TLS = False
 
 ROBOT_EMAIL_FROM = "Andreas Kloeckner <inform@tiker.net>"
 
+SERVER_EMAIL = ROBOT_EMAIL_FROM
+
 ADMINS = (
   ("Andreas Kloeckner", "andreask@illinois.edu"),
   )
