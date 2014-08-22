@@ -291,12 +291,12 @@ class FlowSession(models.Model):
 
     def __unicode__(self):
         if self.participation is None:
-            return "%s's session %d on '%s'" % (
-                    self.participation.user,
+            return "anonymous session %d on '%s'" % (
                     self.id,
                     self.flow_id)
         else:
-            return "anonymous session %d on '%s'" % (
+            return "%s's session %d on '%s'" % (
+                    self.participation.user,
                     self.id,
                     self.flow_id)
 
