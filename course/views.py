@@ -162,15 +162,15 @@ def check_time_labels(request, course_identifier):
     commit_sha = get_active_commit_sha(course, participation)
     course_desc = get_course_desc(repo, course, commit_sha)
 
-    invalid_datespecs = set()
+    invalid_datespecs = {}
 
     from course.content import InvalidDatespec, parse_date_spec
 
-    def datespec_callback(datespec):
+    def datespec_callback(location, datespec):
         try:
             parse_date_spec(course, datespec, return_now_on_error=False)
         except InvalidDatespec as e:
-            invalid_datespecs.add(e.datespec)
+            invalid_datespecs.setdefault(e.datespec, []).append(location)
 
     from course.validation import validate_course_content
     validate_course_content(
@@ -183,7 +183,7 @@ def check_time_labels(request, course_identifier):
         "participation": participation,
         "role": role,
         "participation_role": participation_role,
-        "invalid_datespecs": sorted(invalid_datespecs),
+        "invalid_datespecs": sorted(invalid_datespecs.iteritems()),
         })
 
 

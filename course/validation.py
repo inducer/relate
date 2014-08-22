@@ -135,9 +135,9 @@ class ValidationContext(object):
         self.datespec_callback = datespec_callback
         self.warnings = []
 
-    def encounter_datespec(self, datespec):
+    def encounter_datespec(self, location, datespec):
         if self.datespec_callback is not None:
-            self.datespec_callback(datespec)
+            self.datespec_callback(location, datespec)
 
     def add_warning(self, *args, **kwargs):
         self.warnings.append(ValidationWarning(*args, **kwargs))
@@ -179,10 +179,10 @@ def validate_chunk_rule(ctx, location, chunk_rule):
             ])
 
     if hasattr(chunk_rule, "start"):
-        ctx.encounter_datespec(chunk_rule.start)
+        ctx.encounter_datespec(location, chunk_rule.start)
 
     if hasattr(chunk_rule, "end"):
-        ctx.encounter_datespec(chunk_rule.end)
+        ctx.encounter_datespec(location, chunk_rule.end)
 
     if hasattr(chunk_rule, "role"):
         ctx.add_warning(location, "Uses deprecated 'role' attribute--"
@@ -340,10 +340,10 @@ def validate_flow_access_rule(ctx, location, rule):
                     role)
 
     if hasattr(rule, "start"):
-        ctx.encounter_datespec(rule.start)
+        ctx.encounter_datespec(location, rule.start)
 
     if hasattr(rule, "end"):
-        ctx.encounter_datespec(rule.end)
+        ctx.encounter_datespec(location, rule.end)
 
 
 def validate_flow_desc(ctx, location, flow_desc):

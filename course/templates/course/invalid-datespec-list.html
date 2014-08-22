@@ -7,8 +7,13 @@
     The following time labels were found in course content that were not
     understood:
     <ul>
-      {% for datespec in invalid_datespecs %}
-        <li><tt>{{ datespec }}</tt>
+      {% for datespec, locations in invalid_datespecs %}
+        <li><tt>{{ datespec }}</tt>:
+          <ul>
+            <% for location in locations %>
+              {{ location }}
+            <% endfor %>
+          </ul>
       {% endfor %}
     </ul>
     <div class="alert alert-warning">
