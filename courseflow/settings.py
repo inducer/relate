@@ -87,8 +87,8 @@ BOWER_INSTALLED_APPS = (
     "fontawesome",
     "videojs",
     "MathJax",
+    "codemirror",
     )
-
 
 # }}}
 

@@ -62,3 +62,8 @@ TIME_ZONE = "America/Chicago"
 # Uncomment one of these to choose the default sign-in method for students
 STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_email"
 #STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_sso"  # not yet implemented
+
+# A string containing the image ID of the docker image to be used to run
+# student code. Build using "docker build ." in "docker/". This command
+# will print the image ID you need here as its last output.
+DOCKER_CFRUNPY_IMAGE = None

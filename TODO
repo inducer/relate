@@ -1,7 +1,5 @@
 - model docs
 
-- configuration store
-
 Ideas
 =====
 
@@ -25,6 +23,7 @@ Ideas
 - Name X out of Y question
 - Multi text question
 - Multi MC question
+- TextQuestions with answers yielding different grades
 - Code question
 
 - Improve access-denied error for time-based rule on flow
@@ -34,3 +33,4 @@ Rejected ideas
 
 - Minimum visit times
 - Live chat via candy?
+- configuration store

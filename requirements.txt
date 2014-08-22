@@ -40,3 +40,6 @@ dnspython
 
 # To manage web dependencies
 django-bower
+
+# For comfortable code entry
+django-codemirror-widget

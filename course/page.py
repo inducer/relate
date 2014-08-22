@@ -30,6 +30,9 @@ from crispy_forms.helper import FormHelper
 from django.utils.safestring import mark_safe
 import django.forms as forms
 
+from codemirror import CodeMirrorTextarea
+from courseflow.utils import StyledForm
+
 import re
 import sys
 
@@ -80,8 +83,9 @@ class AnswerFeedback(object):
 
     .. attribute:: feedback
 
-        Text (as a full sentence) providing feedback to the student about the
-        provided answer. Should not reveal the correct answer.
+        Text (at least as a full sentence, or even multi-paragraph HTML)
+        providing feedback to the student about the provided answer. Should not
+        reveal the correct answer.
 
         May be None, in which case generic feedback
         is generated from :attr:`correctness`.
@@ -259,15 +263,10 @@ class Page(PageBase):
 
 # {{{ text question
 
-class TextAnswerForm(forms.Form):
+class TextAnswerForm(StyledForm):
     answer = forms.CharField(required=True)
 
     def __init__(self, matchers, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
-
         super(TextAnswerForm, self).__init__(*args, **kwargs)
 
         self.matchers = matchers
@@ -548,13 +547,8 @@ class TextQuestion(PageBase):
 
 # {{{ choice question
 
-class ChoiceAnswerForm(forms.Form):
+class ChoiceAnswerForm(StyledForm):
     def __init__(self, field, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
-
         super(ChoiceAnswerForm, self).__init__(*args, **kwargs)
 
         self.fields["choice"] = field
@@ -662,14 +656,15 @@ class ChoiceQuestion(PageBase):
         return {"choice": form.cleaned_data["choice"]}
 
     def grade(self, page_context, page_data, answer_data, grade_data):
+        unpermuted_correct_indices = []
         for i, choice_text in enumerate(self.page_desc.choices):
             if choice_text.startswith(self.CORRECT_TAG):
-                unpermuted_correct_idx = i
+                unpermuted_correct_indices.append(i)
 
         correct_answer_text = ("A correct answer is: '%s'."
                 % remove_prefix(
                     self.CORRECT_TAG,
-                    self.page_desc.choices[unpermuted_correct_idx]).lstrip())
+                    self.page_desc.choices[unpermuted_correct_indices[0]]).lstrip())
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
@@ -679,13 +674,163 @@ class ChoiceQuestion(PageBase):
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
 
-        if permutation[choice] == unpermuted_correct_idx:
+        if permutation[choice] in unpermuted_correct_indices:
             correctness = 1
         else:
             correctness = 0
 
         return AnswerFeedback(correctness=correctness,
                 correct_answer=correct_answer_text)
+
+# }}}
+
+
+# {{{ python code question
+
+class PythonCodeForm(StyledForm):
+    answer = forms.CharField(required=True,
+            widget=CodeMirrorTextarea(
+                mode="python",
+                theme="cobalt",
+                config={'fixedGutter': True}))
+
+    def __init__(self, matchers, *args, **kwargs):
+        super(TextAnswerForm, self).__init__(*args, **kwargs)
+
+        self.matchers = matchers
+
+        self.fields["answer"].widget.attrs["autofocus"] = None
+
+    def clean(self):
+        # FIXME Should try compilation
+        pass
+
+
+def request_python_run(run_req):
+    import json
+    import socket
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(("localhost", 9941))
+    try:
+        sock.sendall(unicode(json.dumps(run_req)).encode("utf-8"))
+        return json.loads((sock.recv().decode('utf-8')))
+    finally:
+        sock.close()
+
+
+class PythonCodeQuestion(PageBase):
+    def __init__(self, vctx, location, page_desc):
+        validate_struct(
+                location,
+                page_desc,
+                required_attrs=[
+                    ("type", str),
+                    ("id", str),
+                    ("value", (int, float)),
+                    ("title", str),
+                    ("prompt", str),
+                    ("timeout", int),
+                    ],
+                allowed_attrs=[
+                    ("setup_code", str),
+                    ("names_for_user", str),
+                    ("names_from_user", list),
+                    ("test_code", list),
+                    ("correct_code", str),
+                    ],
+                )
+
+        validate_markup(vctx, location, page_desc.prompt)
+
+        PageBase.__init__(self, vctx, location, page_desc.id)
+        self.page_desc = page_desc
+
+    def title(self, page_context, page_data):
+        return self.page_desc.title
+
+    def body(self, page_context, page_data):
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def expects_answer(self):
+        return True
+
+    def max_points(self, page_data):
+        return self.page_desc.value
+
+    def make_form(self, page_context, page_data,
+            answer_data, answer_is_final):
+        if answer_data is not None:
+            answer = {"answer": answer_data["answer"]}
+            form = PythonCodeForm(answer)
+        else:
+            answer = None
+            form = PythonCodeForm(self.matchers)
+
+        if answer_is_final:
+            form.fields['answer'].widget.attrs['readonly'] = True
+
+        return (form, None)
+
+    def post_form(self, page_context, page_data, post_data, files_data):
+        return (PythonCodeForm(self.matchers, post_data, files_data), None)
+
+    def answer_data(self, page_context, page_data, form):
+        return {"answer": form.cleaned_data["answer"].strip()}
+
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        if hasattr(self.page_desc, "correct_code"):
+            correct_answer = (
+                    "The following code is a valid answer:<pre>%s</pre>"
+                    % self.page_desc.correct_code)
+        else:
+            correct_answer = ""
+
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.",
+                    correct_answer=correct_answer)
+
+        user_code = answer_data["answer"]
+
+        # {{{ request run
+
+        run_req = {"compile_only": False, "user_code": user_code}
+
+        def transfer_attr(name):
+            if hasattr(self.page_desc, name):
+                run_req[name] = getattr(self.page_desc, name)
+
+        transfer_attr("setup_code")
+        transfer_attr("names_for_user")
+        transfer_attr("names_from_user")
+        transfer_attr("test_code")
+
+        result = request_python_run(run_req)
+
+        # }}}
+
+        feedback_bits = []
+        if result["stdout"]:
+            feedback_bits.append(
+                    "<p>Your code printed the following output:<pre>%s</pre></p>"
+                    % result["stdout"])
+        if result["stderr"]:
+            feedback_bits.append(
+                    "<p>Your code printed the following error messages:"
+                    "<pre>%s</pre></p>" % result["stderr"])
+
+        correctness, correct_answer_text = max(
+                (matcher.grade(answer), matcher.correct_answer_text())
+                for matcher in self.matchers)
+
+        if correct_answer_text is None:
+            correct_answer_text = unspec_correct_answer_text
+
+        return AnswerFeedback(
+                correctness=correctness,
+                correct_answer=correct_answer,
+                feedback="\n".join(feedback_bits))
 
 # }}}
 
