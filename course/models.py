@@ -297,7 +297,6 @@ class FlowSession(models.Model):
                     self.flow_id)
         else:
             return "anonymous session %d on '%s'" % (
-                    self.participation.user,
                     self.id,
                     self.flow_id)
 
