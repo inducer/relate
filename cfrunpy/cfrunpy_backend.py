@@ -1,0 +1,227 @@
+# -*- coding: utf-8 -*-
+
+__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+
+__license__ = """
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+
+import sys
+import traceback
+
+
+__doc__ = """
+PROTOCOL
+========
+
+.. class:: Request
+
+    .. attribute:: setup_code
+
+    .. attribute:: names_for_user
+
+    .. attribute:: user_code
+
+    .. attribute:: names_from_user
+
+    .. attribute:: test_code
+
+    .. attribute:: compile_only
+
+        :class:`bool`
+
+.. class Response::
+    .. attribute:: result
+
+        One of
+
+        * ``success``
+        * ``uncaught_error``
+        * ``setup_compile_error``
+        * ``setup_error``,
+        * ``user_compile_error``
+        * ``user_error``
+        * ``test_compile_error``
+        * ``test_error``
+
+        Always present.
+
+    .. attribute:: stdout
+
+        Whatever came out of stdout.
+
+        Always present.
+
+    .. attribute:: stderr
+
+        Whatever came out of stderr.
+
+        Always present.
+
+    .. attribute:: points
+
+        A number between 0 and 1 (inclusive).
+
+        Present on ``success`` if :attr:`Request.compile_only` is *False*.
+
+    .. attribute:: feedback
+
+        A list of strings.
+
+        Present on ``success`` if :attr:`Request.compile_only` is *False*.
+"""
+
+
+# {{{ tools
+
+class Struct(object):
+    def __init__(self, entries):
+        for name, val in entries.items():
+            self.__dict__[name] = dict_to_struct(val)
+
+    def __repr__(self):
+        return repr(self.__dict__)
+
+
+def dict_to_struct(data):
+    if isinstance(data, list):
+        return [dict_to_struct(d) for d in data]
+    elif isinstance(data, dict):
+        return Struct(data)
+    else:
+        return data
+
+# }}}
+
+
+def package_exception(result, what):
+    tp, val, tb = sys.exc_info()
+    result["result"] = what
+    result["message"] = "%s: %s" % (tp.__name__, str(val))
+    result["traceback"] = "\n".join(
+            traceback.format_exception(tp, val, tb))
+
+
+class Feedback:
+    def __init__(self):
+        self.points = None
+        self.feedback_items = []
+
+    def set_points(self, points):
+        self.points = points
+
+    def add_feedback(self, text):
+        self.feedback_items.append(text)
+
+
+def run_code(result, run_req):
+    # {{{ compile code
+
+    if getattr(run_req, "setup_code", None):
+        try:
+            setup_code = compile(
+                    run_req.setup_code, "<setup code>", 'exec')
+        except:
+            package_exception(result, "setup_compile_error")
+            return
+    else:
+        setup_code = None
+
+    try:
+        user_code = compile(
+                run_req.user_code, "<user code>", 'exec')
+    except:
+        package_exception(result, "user_compile_error")
+        return
+
+    if getattr(run_req, "test_code", None):
+        try:
+            test_code = compile(
+                    run_req.test_code, "<test code>", 'exec')
+        except:
+            package_exception(result, "test_compile_error")
+            return
+    else:
+        test_code = None
+
+    # }}}
+
+    if hasattr(run_req, "compile_only") and run_req.compile_only:
+        result["result"] = "success"
+        return
+
+    # {{{ run code
+
+    feedback = Feedback()
+    maint_ctx = {"feedback": feedback}
+
+    if setup_code is not None:
+        try:
+            exec(setup_code, maint_ctx)
+        except:
+            package_exception(result, "setup_error")
+            return
+
+    user_ctx = {}
+    if hasattr(run_req, "names_for_user"):
+        for name in run_req.names_for_user:
+            if name not in maint_ctx:
+                result["result"] = "setup_error"
+                result["message"] = "Setup code did not define '%s'." % name
+
+            user_ctx[name] = maint_ctx[name]
+
+    try:
+        exec(user_code, user_ctx)
+    except:
+        package_exception(result, "user_error")
+        return
+
+    if hasattr(run_req, "names_from_user"):
+        for name in run_req.names_from_user:
+            if name not in user_ctx:
+                result["result"] = "success"
+                result["points"] = 0
+                result["feedback"] = [
+                        "Required answer variable '%s' was not defined."
+                        % name
+                        ]
+                return result
+
+            maint_ctx[name] = user_ctx[name]
+
+    if test_code is not None:
+        try:
+            exec(test_code, maint_ctx)
+        except:
+            package_exception(result, "test_error")
+            return
+
+    if not (feedback.points is None or 0 <= feedback.points <= 1):
+        raise ValueError("grade point value is invalid: %s"
+                % feedback.points)
+
+    result["points"] = feedback.points
+    result["feedback"] = feedback.feedback_items
+
+    # }}}
+
+    result["result"] = "success"
+
+# vim: foldmethod=marker

@@ -1,0 +1,72 @@
+#! /usr/bin/env python3
+
+
+__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+
+__license__ = """
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+import socketserver
+import json
+import sys
+import io
+from cfrunpy_backend import dict_to_struct, run_code, package_exception
+
+PORT = 9941
+
+
+class RunRequestTCPHandler(socketserver.BaseRequestHandler):
+    def handle(self):
+        result = {}
+        try:
+            recv_data = self.request.recv()
+            run_req = dict_to_struct(json.loads(recv_data.decode("utf-8")))
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            sys.stdin = None
+            sys.stdout = stdout
+            sys.stderr = stderr
+
+            run_code(result, run_req)
+
+            result["stdout"] = stdout.getvalue()
+            result["stderr"] = stderr.getvalue()
+
+            json_result = json.dumps(result)
+        except:
+            result = {}
+            package_exception(result, "uncaught_error")
+            json_result = json.dumps(result)
+
+        self.request.sendall(json_result.encode("utf-8"))
+
+
+def main():
+    server = socketserver.TCPServer(
+            ("localhost", PORT), RunRequestTCPHandler)
+    server.serve_forever()
+    # server.handle_request()
+
+
+if __name__ == "__main__":
+    main()
+
+# vim: foldmethod=marker

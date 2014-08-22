@@ -1,0 +1,35 @@
+title: Addition
+prompt: |
+
+    Your code will receive two variables, *a* and *b*. Compute their sum and
+    assign it to *c*.
+
+setup_code: |
+    import random
+
+    a = random.uniform(-10, 10)
+    b = random.uniform(-10, 10)
+
+names_for_user: [a, b]
+
+names_from_user: [c]
+
+test_code: |
+    def grade():
+        if not isinstance(c, float):
+            feedback.set_points(0)
+            feedback.add_feedback("Your computed c is not a float.")
+            return
+
+        correct_c = a + b
+        rel_err = abs(correct_c-c)/abs(correct_c)
+
+        if rel_err < 1e-7:
+            feedback.set_points(1)
+            feedback.add_feedback("Your computed c was correct.")
+        else:
+            feedback.set_points(0)
+            feedback.add_feedback("Your computed c was incorrect.")
+
+    grade()
+
