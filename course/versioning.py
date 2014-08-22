@@ -383,7 +383,7 @@ def update_course(request, course_identifier):
             new_sha = form.cleaned_data["new_sha"].encode("utf-8")
 
             fetch_fixed = (
-                    '<p><a href="%s" class="btn btn-primary">'
+                    '<p><a href="%s" class="btn btn-primary" style="margin-top:8px">'
                     '&laquo; Re-fetch a fixed version</a></p>'
                     % reverse("course.versioning.fetch_course_updates",
                         args=(course.identifier,)))
