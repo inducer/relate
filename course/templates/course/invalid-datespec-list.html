@@ -10,9 +10,9 @@
       {% for datespec, locations in invalid_datespecs %}
         <li><tt>{{ datespec }}</tt>:
           <ul>
-            <% for location in locations %>
+            {% for location in locations %}
               {{ location }}
-            <% endfor %>
+            {% endfor %}
           </ul>
       {% endfor %}
     </ul>
