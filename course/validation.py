@@ -306,8 +306,8 @@ def validate_flow_group(ctx, location, grp):
 def validate_flow_permission(ctx, location, permission):
     from course.models import FLOW_PERMISSION_CHOICES
     if permission not in dict(FLOW_PERMISSION_CHOICES):
-        raise ValidationError("%s: invalid flow permission"
-                % location)
+        raise ValidationError("%s: invalid flow permission '%s'"
+                % (location, permission))
 
 
 def validate_flow_access_rule(ctx, location, rule):
