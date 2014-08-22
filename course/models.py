@@ -290,10 +290,16 @@ class FlowSession(models.Model):
         ordering = ("course", "participation", "-start_time")
 
     def __unicode__(self):
-        return "%s's session %d on '%s'" % (
-                self.participation.user,
-                self.id,
-                self.flow_id)
+        if self.participation is None:
+            return "%s's session %d on '%s'" % (
+                    self.participation.user,
+                    self.id,
+                    self.flow_id)
+        else:
+            return "anonymous session %d on '%s'" % (
+                    self.participation.user,
+                    self.id,
+                    self.flow_id)
 
     def points_percentage(self):
         if self.max_points:
@@ -316,12 +322,10 @@ class FlowPageData(models.Model):
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
-        return "Data for %s's visit %d to '%s/%s' in '%s'" % (
-                self.flow_session.participation.user,
-                self.flow_session.id,
+        return "Data for page '%s/%s' in %s" % (
                 self.group_id,
                 self.page_id,
-                self.flow_session.flow_id)
+                self.flow_session)
 
     # Django's templates are a little daft.
     def previous_ordinal(self):
@@ -347,11 +351,10 @@ class FlowPageVisit(models.Model):
     grade_data = JSONField(null=True, blank=True)
 
     def __unicode__(self):
-        return "%s's visit to '%s/%s' in '%s' on %s" % (
-                self.flow_session.participation.user,
+        return "'%s/%s' in '%s' on %s" % (
                 self.page_data.group_id,
                 self.page_data.page_id,
-                self.flow_session.flow_id,
+                self.flow_session,
                 self.visit_time)
 
     class Meta:
