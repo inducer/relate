@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 from course.validation import validate_struct, ValidationError, validate_markup
 from course.content import remove_prefix
-from crispy_forms.helper import FormHelper
 from django.utils.safestring import mark_safe
 import django.forms as forms
 
@@ -97,13 +96,13 @@ class AnswerFeedback(object):
 
         if feedback is None:
             if correctness == 0:
-                feedback = "Your answer was not correct."
+                feedback = "Your answer is not correct."
             elif correctness == 1:
-                feedback = "Your answer was correct."
+                feedback = "Your answer is correct."
             elif correctness > 0.5:
-                feedback = "Your answer was mostly correct."
+                feedback = "Your answer is mostly correct."
             else:
-                feedback = "Your answer was somewhat correct."
+                feedback = "Your answer is somewhat correct."
 
         self.correctness = correctness
         self.correct_answer = correct_answer
@@ -557,6 +556,15 @@ class ChoiceAnswerForm(StyledForm):
 class ChoiceQuestion(PageBase):
     CORRECT_TAG = "~CORRECT~"
 
+    @classmethod
+    def process_choice_string(cls, page_context, s):
+        s = remove_prefix(cls.CORRECT_TAG, s)
+        s = markup_to_html(page_context, s)
+        # allow HTML in option
+        s = mark_safe(s)
+
+        return s
+
     def __init__(self, vctx, location, page_desc):
         validate_struct(
                 location,
@@ -612,18 +620,9 @@ class ChoiceQuestion(PageBase):
     def make_choice_form(self, page_context, page_data, *args, **kwargs):
         permutation = page_data["permutation"]
 
-        def process_choice_string(s):
-            s = remove_prefix(self.CORRECT_TAG, s)
-
-            s = markup_to_html(page_context, s)
-
-            # allow HTML in option
-            s = mark_safe(s)
-
-            return s
-
         choices = tuple(
-                (i,  process_choice_string(self.page_desc.choices[src_i]))
+                (i,  self.process_choice_string(
+                    page_context, self.page_desc.choices[src_i]))
                 for i, src_i in enumerate(permutation))
 
         return ChoiceAnswerForm(
@@ -662,8 +661,8 @@ class ChoiceQuestion(PageBase):
                 unpermuted_correct_indices.append(i)
 
         correct_answer_text = ("A correct answer is: '%s'."
-                % remove_prefix(
-                    self.CORRECT_TAG,
+                % self.process_choice_string(
+                    page_context,
                     self.page_desc.choices[unpermuted_correct_indices[0]]).lstrip())
 
         if answer_data is None:

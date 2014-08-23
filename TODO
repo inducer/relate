@@ -23,6 +23,8 @@ Ideas
 - Flow group ordering, max page count, question/page tags
 
 - Deferred grading (essays etc, per question)
+- Grading stages
+  (Autograder: works, TA: code not fishy)
 
 - Custom matcher classes
 
