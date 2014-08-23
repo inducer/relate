@@ -29,15 +29,15 @@
         alert-info
       {% endif %}
       ">
-        <p>{{feedback.feedback}}</p>
+        <p>{{feedback.feedback|safe}}</p>
       {% if show_answer and feedback.correctness < 1 %}
-        <p>{{feedback.correct_answer}}</p>
+        <p>{{feedback.correct_answer|safe}}</p>
       {% endif %}
     </div>
   {% elif show_answer %}
     {# show only correct answer, without indication of correctness #}
     <div class="well">
-      <p>{{feedback.correct_answer}}</p>
+      <p>{{feedback.correct_answer|safe}}</p>
     </div>
   {% endif %}
 
