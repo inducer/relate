@@ -660,7 +660,7 @@ class ChoiceQuestion(PageBase):
             if choice_text.startswith(self.CORRECT_TAG):
                 unpermuted_correct_indices.append(i)
 
-        correct_answer_text = ("A correct answer is: '%s'."
+        correct_answer_text = ("A correct answer is:%s"
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[unpermuted_correct_indices[0]]).lstrip())
