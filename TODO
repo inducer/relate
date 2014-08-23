@@ -1,5 +1,12 @@
 - model docs
 
+- Flow results analytics
+  --> time taken
+
+- Code question
+
+- Improve access-denied error for time-based rule on flow
+
 Ideas
 =====
 
@@ -10,7 +17,6 @@ Ideas
   -> use a media search path
 - flow overview
 - Instant flow request
-- Instant flow results
 - time limits, extra time?
 - Student tags, adapt homepage
 
@@ -24,9 +30,6 @@ Ideas
 - Multi text question
 - Multi MC question
 - TextQuestions with answers yielding different grades
-- Code question
-
-- Improve access-denied error for time-based rule on flow
 
 Rejected ideas
 ==============

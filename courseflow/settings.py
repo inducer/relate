@@ -90,6 +90,8 @@ BOWER_INSTALLED_APPS = (
     "codemirror",
     )
 
+CODEMIRROR_PATH = "codemirror"
+
 # }}}
 
 ROOT_URLCONF = 'courseflow.urls'
