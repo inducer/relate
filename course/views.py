@@ -27,10 +27,11 @@ THE SOFTWARE.
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages  # noqa
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.db import transaction
 import django.forms as forms
-import django.views.decorators.http as http
+import django.views.decorators.http as http_dec
+from django import http
 
 from django.views.decorators.cache import cache_control
 
@@ -129,7 +130,7 @@ def media_etag_func(request, course_identifier, commit_sha, media_path):
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
-@http.condition(etag_func=media_etag_func)
+@http_dec.condition(etag_func=media_etag_func)
 def get_media(request, course_identifier, commit_sha, media_path):
     course = get_object_or_404(Course, identifier=course_identifier)
 
@@ -138,8 +139,11 @@ def get_media(request, course_identifier, commit_sha, media_path):
     repo = get_course_repo(course)
 
     from course.content import get_repo_blob_data_cached
-    data = get_repo_blob_data_cached(
-            repo, "media/"+media_path, commit_sha.encode())
+    try:
+        data = get_repo_blob_data_cached(
+                repo, "media/"+media_path, commit_sha.encode())
+    except ObjectDoesNotExist:
+        raise http.Http404()
 
     from mimetypes import guess_type
     content_type = guess_type(media_path)
