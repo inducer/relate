@@ -150,7 +150,7 @@ class Histogram(object):
         bin_info_list = self.get_bin_info_list()
         max_len = max(len(bin.title) for bin in bin_info_list)
 
-        if max_len < 15:
+        if max_len < 20:
             from django.template.loader import render_to_string
             return render_to_string("course/histogram-wide.html", {
                 "bin_info_list": self.get_bin_info_list(),
@@ -176,7 +176,7 @@ def make_grade_histogram(pctx, flow_identifier):
         num_max_value=100)
     for session in qset:
         if session.in_progress:
-            hist.add_data_point("<still in progress>")
+            hist.add_data_point("<in progress>")
         else:
             hist.add_data_point(session.points_percentage())
 
