@@ -37,6 +37,10 @@
   {% endfor %}
   <div>
 
+  <h2>Time distribution</h2>
+  <p>(Times given in minutes)</p>
+
+  {{ time_histogram.html|safe }}
 {% endblock %}
 
 

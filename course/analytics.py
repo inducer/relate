@@ -284,6 +284,23 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     return page_info_list
 
 
+def make_time_histogram(pctx, flow_identifier):
+    qset = FlowSession.objects.filter(
+            course=pctx.course,
+            flow_id=flow_identifier)
+
+    hist = Histogram()
+    for session in qset:
+        if session.in_progress:
+            hist.add_data_point("<in progress>")
+        else:
+            delta = session.completion_time - session.start_time
+            minutes = delta.total_seconds() / 60
+            hist.add_data_point(round(minutes, 1))
+
+    return hist
+
+
 @login_required
 @course_view
 def flow_analytics(pctx, flow_identifier):
@@ -294,6 +311,7 @@ def flow_analytics(pctx, flow_identifier):
         "flow_identifier": flow_identifier,
         "grade_histogram": make_grade_histogram(pctx, flow_identifier),
         "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_identifier),
+        "time_histogram": make_time_histogram(pctx, flow_identifier),
         })
 
 # }}}
