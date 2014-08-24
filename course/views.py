@@ -83,6 +83,10 @@ def home(request):
 # }}}
 
 
+def maintenance(request):
+    return render(request, "maintenance.html")
+
+
 # {{{ course page
 
 def check_course_state(course, role):

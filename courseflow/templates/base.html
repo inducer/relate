@@ -75,7 +75,7 @@
           {% endif %}
         </ul>
           <ul class="nav navbar-nav navbar-right">
-            {% if user.is_authenticated %}
+            {% if user.is_authenticated and not maintenance_mode %}
               <li>
                 <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
               </li>
@@ -89,7 +89,7 @@
               <li>
                 <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
               </li>
-            {% else %}
+            {% elif not maintenance_mode %}
               {# Error pages don't seem to run template context processors, so #}
               {# this variable might not be available... #}
               {% if student_sign_in_view %}

@@ -28,6 +28,8 @@ THE SOFTWARE.
 import django.forms as forms
 from crispy_forms.helper import FormHelper
 
+from django.conf import settings
+
 
 class StyledForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -47,3 +49,10 @@ class StyledModelForm(forms.ModelForm):
         self.helper.field_class = "col-lg-8"
 
         super(StyledModelForm, self).__init__(*args, **kwargs)
+
+
+def settings_context_processor(request):
+    return {
+        "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
+        "maintenance_mode": settings.CF_MAINTENANCE_MODE,
+        }
