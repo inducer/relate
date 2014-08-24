@@ -330,10 +330,12 @@ def markup_to_html(course, repo, commit_sha, text):
         template = env.from_string(text)
         text = template.render()
 
+    from course.mdx_mathjax import MathJaxExtension
     import markdown
     return markdown.markdown(text,
         extensions=[
             LinkFixerExtension(course, commit_sha),
+            MathJaxExtension(),
             "extra",
             ],
         output_format="html5")
