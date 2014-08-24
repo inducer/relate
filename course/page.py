@@ -275,8 +275,9 @@ class TextAnswerForm(StyledForm):
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()
 
+        answer = cleaned_data.get("answer", "")
         for matcher in self.matchers:
-            matcher.validate(cleaned_data["answer"])
+            matcher.validate(answer)
 
 
 # {{{ matchers

@@ -43,3 +43,6 @@ django-bower
 
 # For comfortable code entry
 django-codemirror-widget
+
+# Optional, used for caching
+python-memcached
