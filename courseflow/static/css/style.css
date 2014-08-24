@@ -33,3 +33,8 @@ table.past-flow-session-table td {
 table.past-flow-session-table {
   margin-bottom: 2ex;
 }
+
+code {
+  /* Bootstrap: Hot pink for code? Really? */
+  color: #333;
+}
