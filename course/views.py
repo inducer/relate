@@ -34,6 +34,7 @@ import django.views.decorators.http as http_dec
 from django import http
 
 from django.views.decorators.cache import cache_control
+from django.contrib.auth.decorators import login_required
 
 from crispy_forms.layout import Submit
 
@@ -43,7 +44,8 @@ from bootstrap3_datetime.widgets import DateTimePicker
 from course.auth import get_role_and_participation
 from course.models import (Course, participation_role, TimeLabel)
 
-from course.content import (get_course_repo, get_course_desc, get_active_commit_sha)
+from course.content import (get_course_repo, get_course_desc)
+from course.utils import course_view, render_course_page
 
 
 # {{{ home
@@ -99,29 +101,15 @@ def check_course_state(course, role):
             raise PermissionDenied("only the instructor has access")
 
 
-def course_page(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
-
-    check_course_state(course, role)
-
-    commit_sha = get_active_commit_sha(course, participation)
-
-    repo = get_course_repo(course)
-    course_desc = get_course_desc(repo, course, commit_sha)
-
+@course_view
+def course_page(pctx):
     from course.content import get_processed_course_chunks
     chunks = get_processed_course_chunks(
-            course, repo, commit_sha, course_desc,
-            role, get_now_or_fake_time(request))
+            pctx.course, pctx.repo, pctx.course_commit_sha, pctx.course_desc,
+            pctx.role, get_now_or_fake_time(pctx.request))
 
-    return render(request, "course/course-page.html", {
-        "course": course,
-        "course_desc": course_desc,
-        "participation": participation,
-        "role": role,
+    return render_course_page(pctx, "course/course-page.html", {
         "chunks": chunks,
-        "participation_role": participation_role,
         })
 
 # }}}
@@ -159,16 +147,11 @@ def get_media(request, course_identifier, commit_sha, media_path):
 
 # {{{ time labels
 
-def check_time_labels(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    role, participation = get_role_and_participation(request, course)
-    if role != participation_role.instructor:
+@login_required
+@course_view
+def check_time_labels(pctx):
+    if pctx.role != participation_role.instructor:
         raise PermissionDenied("only instructors may do that")
-
-    repo = get_course_repo(course)
-    commit_sha = get_active_commit_sha(course, participation)
-    course_desc = get_course_desc(repo, course, commit_sha)
 
     invalid_datespecs = {}
 
@@ -176,21 +159,16 @@ def check_time_labels(request, course_identifier):
 
     def datespec_callback(location, datespec):
         try:
-            parse_date_spec(course, datespec, return_now_on_error=False)
+            parse_date_spec(pctx.course, datespec, return_now_on_error=False)
         except InvalidDatespec as e:
             invalid_datespecs.setdefault(e.datespec, []).append(location)
 
     from course.validation import validate_course_content
     validate_course_content(
-            repo, course.course_file, commit_sha,
+            pctx.repo, pctx.course.course_file, pctx.course_commit_sha,
             datespec_callback=datespec_callback)
 
-    return render(request, "course/invalid-datespec-list.html", {
-        "course": course,
-        "course_desc": course_desc,
-        "participation": participation,
-        "role": role,
-        "participation_role": participation_role,
+    return render_course_page(pctx, "course/invalid-datespec-list.html", {
         "invalid_datespecs": sorted(invalid_datespecs.iteritems()),
         })
 
@@ -216,16 +194,13 @@ class RecurringTimeLabelForm(StyledForm):
 
 
 @transaction.atomic
-def create_recurring_time_labels(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    role, participation = get_role_and_participation(request, course)
-    if role != participation_role.instructor:
+@login_required
+@course_view
+def create_recurring_time_labels(pctx):
+    if pctx.role != participation_role.instructor:
         raise PermissionDenied("only instructors may do that")
 
-    repo = get_course_repo(course)
-    commit_sha = get_active_commit_sha(course, participation)
-    course_desc = get_course_desc(repo, course, commit_sha)
+    request = pctx.request
 
     if request.method == "POST":
         form = RecurringTimeLabelForm(request.POST, request.FILES)
@@ -239,7 +214,7 @@ def create_recurring_time_labels(request, course_identifier):
 
             for i in xrange(form.cleaned_data["count"]):
                 label = TimeLabel()
-                label.course = course
+                label.course = pctx.course
                 label.kind = form.cleaned_data["kind"]
                 label.ordinal = ordinal
                 label.time = time
@@ -263,12 +238,9 @@ def create_recurring_time_labels(request, course_identifier):
     else:
         form = RecurringTimeLabelForm()
 
-    return render(request, "course/generic-course-form.html", {
-        "participation": participation,
+    return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": "Create recurring time labels",
-        "course": course,
-        "course_desc": course_desc,
     })
 
 
@@ -285,34 +257,31 @@ class RenumberTimeLabelsForm(StyledForm):
 
 
 @transaction.atomic
-def renumber_time_labels(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    role, participation = get_role_and_participation(request, course)
-    if role != participation_role.instructor:
+@login_required
+@course_view
+def renumber_time_labels(pctx):
+    if pctx.role != participation_role.instructor:
         raise PermissionDenied("only instructors may do that")
 
-    repo = get_course_repo(course)
-    commit_sha = get_active_commit_sha(course, participation)
-    course_desc = get_course_desc(repo, course, commit_sha)
+    request = pctx.request
 
     if request.method == "POST":
         form = RenumberTimeLabelsForm(request.POST, request.FILES)
         if form.is_valid():
             labels = list(TimeLabel.objects
-                    .filter(course=course, kind=form.cleaned_data["kind"])
+                    .filter(course=pctx.course, kind=form.cleaned_data["kind"])
                     .order_by('time'))
 
             if labels:
                 queryset = (TimeLabel.objects
-                    .filter(course=course, kind=form.cleaned_data["kind"]))
+                    .filter(course=pctx.course, kind=form.cleaned_data["kind"]))
 
                 queryset.delete()
 
                 ordinal = form.cleaned_data["starting_ordinal"]
                 for label in labels:
                     new_label = TimeLabel()
-                    new_label.course = course
+                    new_label.course = pctx.course
                     new_label.kind = form.cleaned_data["kind"]
                     new_label.ordinal = ordinal
                     new_label.time = label.time
@@ -329,12 +298,9 @@ def renumber_time_labels(request, course_identifier):
     else:
         form = RenumberTimeLabelsForm()
 
-    return render(request, "course/generic-course-form.html", {
-        "participation": participation,
+    return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": "Renumber time labels",
-        "course": course,
-        "course_desc": course_desc,
     })
 
 # }}}
@@ -419,17 +385,13 @@ def fake_time_context_processor(request):
 
 # {{{ grading
 
-def view_grades(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
-
-    check_course_state(course, role)
-
-    messages.add_message(request, messages.ERROR,
+@course_view
+def view_grades(pctx):
+    messages.add_message(pctx.request, messages.ERROR,
             "Grade viewing is not yet implemented. (Sorry!) It will be "
             "once you start accumulating a sufficient number of grades.")
 
-    return redirect("course.views.course_page", course_identifier)
+    return redirect("course.views.course_page", pctx.course.identifier)
 
 # }}}
 

@@ -7,6 +7,9 @@
 
 - Improve access-denied error for time-based rule on flow
 
+- Use up-to-date flow data
+  -> Interaction with ChoiceQ
+
 Ideas
 =====
 

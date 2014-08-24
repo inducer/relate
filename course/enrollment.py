@@ -44,6 +44,7 @@ from course.models import (
         PARTICIPATION_ROLE_CHOICES)
 
 from course.views import get_role_and_participation
+from course.utils import course_view, render_course_page
 
 from courseflow.utils import StyledForm
 
@@ -213,20 +214,12 @@ class BulkPreapprovalsForm(StyledForm):
 
 @login_required
 @transaction.atomic
-def create_preapprovals(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    role, participation = get_role_and_participation(request, course)
-    if role != participation_role.instructor:
+@course_view
+def create_preapprovals(pctx):
+    if pctx.role != participation_role.instructor:
         raise PermissionDenied("only instructors may do that")
 
-    from course.content import get_course_repo, get_course_desc
-    repo = get_course_repo(course)
-
-    from course.views import get_active_commit_sha
-    commit_sha = get_active_commit_sha(course, participation)
-
-    course_desc = get_course_desc(repo, course, commit_sha)
+    request = pctx.request
 
     if request.method == "POST":
         form = BulkPreapprovalsForm(request.POST)
@@ -245,7 +238,7 @@ def create_preapprovals(request, course_identifier):
                 try:
                     preapproval = ParticipationPreapproval.objects.get(
                             email__iexact=l,
-                            course=course)
+                            course=pctx.course)
                 except ParticipationPreapproval.DoesNotExist:
                     pass
                 else:
@@ -254,7 +247,7 @@ def create_preapprovals(request, course_identifier):
 
                 preapproval = ParticipationPreapproval()
                 preapproval.email = l
-                preapproval.course = course
+                preapproval.course = pctx.course
                 preapproval.role = role
                 preapproval.creator = request.user
                 preapproval.save()
@@ -269,12 +262,9 @@ def create_preapprovals(request, course_identifier):
     else:
         form = BulkPreapprovalsForm()
 
-    return render(request, "course/generic-course-form.html", {
-        "participation": participation,
+    return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": "Create Participation Preapprovals",
-        "course": course,
-        "course_desc": course_desc,
     })
 
 # }}}

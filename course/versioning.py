@@ -41,10 +41,7 @@ from course.models import (
         Course,
         Participation, participation_role, participation_status)
 
-from course.content import (get_course_repo, get_course_desc)
-from course.views import (
-        get_role_and_participation, get_active_commit_sha
-        )
+from course.utils import course_view, render_course_page
 import paramiko
 import paramiko.client
 
@@ -248,35 +245,28 @@ def is_parent_commit(repo, potential_parent, child):
 
 
 @login_required
-def fetch_course_updates(request, course_identifier):
+@course_view
+def fetch_course_updates(pctx):
     import sys
 
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
-
-    if role != participation_role.instructor:
+    if pctx.role != participation_role.instructor:
         raise PermissionDenied("must be instructor to fetch revisisons")
 
-    commit_sha = get_active_commit_sha(course, participation)
-
-    repo = get_course_repo(course)
-    course_desc = get_course_desc(repo, course, commit_sha)
-
-    form = GitFetchForm(request.POST, request.FILES)
-    if request.method == "POST":
+    form = GitFetchForm(pctx.request.POST, pctx.request.FILES)
+    if pctx.request.method == "POST":
         if form.is_valid():
             was_successful = True
             log_lines = []
             try:
-                repo = get_course_repo(course)
+                repo = pctx.repo
 
-                if not course.git_source:
+                if not pctx.course.git_source:
                     raise RuntimeError("no git source URL specified")
 
                 log_lines.append("Pre-fetch head is at '%s'" % repo.head())
 
                 client, remote_path = \
-                    get_dulwich_client_and_remote_path_from_course(course)
+                    get_dulwich_client_and_remote_path_from_course(pctx.course)
 
                 remote_refs = client.fetch(remote_path, repo)
                 remote_head = remote_refs["HEAD"]
@@ -295,32 +285,27 @@ def fetch_course_updates(request, course_identifier):
             else:
                 log = "\n".join(log_lines)
 
-            return render(request, 'course/course-bulk-result.html', {
+            return render_course_page(pctx, 'course/course-bulk-result.html', {
                 "process_description": "Fetch course updates via git",
                 "log": log,
                 "status": ((
                         "Fetch successful. "
                         '<a href="%s" class="btn btn-primary">Update &raquo;</a>'
                         % reverse("course.versioning.update_course",
-                            args=(course_identifier,))
+                            args=(pctx.course.identifier,))
                         )
                         if was_successful
                         else "Pull failed. See above for error."),
                 "was_successful": was_successful,
-                "course": course,
-                "course_desc": course_desc,
                 })
         else:
             form = GitFetchForm()
     else:
         form = GitFetchForm()
 
-    return render(request, "course/generic-course-form.html", {
-        "participation": participation,
+    return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": "Fetch New Course Revisions",
-        "course": course,
-        "course_desc": course_desc,
     })
 
 # }}}
@@ -352,18 +337,15 @@ class GitUpdateForm(forms.Form):
 
 
 @login_required
-def update_course(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
-
-    if role != participation_role.instructor:
+@course_view
+def update_course(pctx):
+    if pctx.role != participation_role.instructor:
         raise PermissionDenied("must be instructor to update course")
 
-    commit_sha = get_active_commit_sha(course, participation)
-
-    repo = get_course_repo(course)
-
-    course_desc = get_course_desc(repo, course, commit_sha)
+    course = pctx.course
+    request = pctx.request
+    repo = pctx.repo
+    participation = pctx.participation
 
     previewing = bool(participation is not None
             and participation.preview_git_commit_sha)
@@ -390,7 +372,8 @@ def update_course(request, course_identifier):
 
             from course.validation import validate_course_content, ValidationError
             try:
-                warnings = validate_course_content(repo, course.course_file, new_sha)
+                warnings = validate_course_content(
+                        repo, course.course_file, new_sha)
             except ValidationError as e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "
@@ -459,16 +442,13 @@ def update_course(request, course_identifier):
     else:
         text_lines.append("<b>Current preview git SHA:</b> None")
 
-    return render(request, "course/generic-course-form.html", {
-        "participation": participation,
+    return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text": "".join(
             "<p>%s</p>" % line
             for line in text_lines
             ),
         "form_description": "Update Course Revision",
-        "course": course,
-        "course_desc": course_desc,
     })
 
 # }}}

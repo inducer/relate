@@ -33,12 +33,11 @@ import django.forms as forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
-from course.auth import get_role_and_participation
-from course.models import (Course, participation_role,
+from course.models import (
+        participation_role,
         InstantMessage)
 
-from course.content import (
-        get_course_repo, get_course_desc, get_active_commit_sha)
+from course.utils import course_view, render_course_page
 
 import sleekxmpp
 
@@ -145,27 +144,24 @@ def get_xmpp_connection(course):
         return xmpp
 
 
-def send_instant_message(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    role, participation = get_role_and_participation(request, course)
-    if role not in [
+@course_view
+def send_instant_message(pctx):
+    if pctx.role not in [
             participation_role.student,
             participation_role.teaching_assistant,
             participation_role.instructor]:
         raise PermissionDenied("only enrolled folks may do that")
 
+    request = pctx.request
+    course = pctx.course
+
     if not course.course_xmpp_id:
         messages.add_message(request, messages.ERROR,
                 "Instant messaging is not enabled for this course.")
 
-        return redirect("course.views.course_page", course_identifier)
+        return redirect("course.views.course_page", pctx.course_identifier)
 
-    repo = get_course_repo(course)
-    commit_sha = get_active_commit_sha(course, participation)
-    course_desc = get_course_desc(repo, course, commit_sha)
-
-    xmpp = get_xmpp_connection(course)
+    xmpp = get_xmpp_connection(pctx.course)
     if xmpp.is_recipient_online():
         form_text = "Recipient is <span class=\"label label-success\">Online</span>."
     else:
@@ -176,7 +172,7 @@ def send_instant_message(request, course_identifier):
         form = InstantMessageForm(request.POST, request.FILES)
         if form.is_valid():
             msg = InstantMessage()
-            msg.participation = participation
+            msg.participation = pctx.participation
             msg.text = form.cleaned_data["message"]
             msg.save()
 
@@ -206,15 +202,10 @@ def send_instant_message(request, course_identifier):
     else:
         form = InstantMessageForm()
 
-    return render(request, "course/generic-course-form.html", {
-        "participation": participation,
+    return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text": form_text,
-        "role": role,
-        "participation_role": participation_role,
         "form_description": "Send instant message",
-        "course": course,
-        "course_desc": course_desc,
     })
 
 # }}}

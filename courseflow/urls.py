@@ -130,6 +130,19 @@ urlpatterns = patterns('',
         "/$",
         "course.flow.finish_flow",),
 
+    # analytics
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/flow-analytics"
+        "/$",
+        "course.analytics.flow_list",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/flow-analytics"
+        "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+        "/$",
+        "course.analytics.flow_analytics",),
+
     url(r'^admin/', include(admin.site.urls)),
 )
 

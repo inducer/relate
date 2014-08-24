@@ -1,0 +1,20 @@
+{% extends "course/course-base.html" %}
+
+{% block content %}
+  <h1>Analytics: List of Flows with Sessions</h1>
+  {% if flow_ids %}
+    <ul>
+      {% for flow_id in flow_ids %}
+      <li>
+      <a href="{% url "course.analytics.flow_analytics" course.identifier flow_id %}">
+        {{ flow_id }}
+      </a>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    No flow sessions have been recorded.
+  {% endif %}
+{% endblock %}
+
+

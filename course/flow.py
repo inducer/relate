@@ -34,166 +34,16 @@ from django.utils.safestring import mark_safe
 import re
 
 from course.models import (
-        Course,
         participation_role,
-        FlowAccessException,
         FlowSession, FlowPageData, FlowPageVisit, flow_permission,
         GradeChange)
 
-from course.content import (
-        get_course_repo, get_course_desc, get_flow_desc,
-        parse_date_spec
-        )
-from course.auth import get_role_and_participation
-from course.views import check_course_state, get_active_commit_sha
-
-from course.content import dict_to_struct
-
-
-def get_flow_permissions(course, participation, role, flow_id, flow_desc,
-        now_datetime):
-    # {{{ interpret flow rules
-
-    flow_rule = None
-
-    if not hasattr(flow_desc, "access_rules"):
-        flow_rule = dict_to_struct(
-                {"permissions":
-                    [flow_permission.view, flow_permission.start_no_credit]})
-    else:
-        for rule in flow_desc.access_rules:
-            if hasattr(rule, "roles"):
-                if role not in rule.roles:
-                    continue
-
-            if hasattr(rule, "start"):
-                start_date = parse_date_spec(course, rule.start)
-                if now_datetime < start_date:
-                    continue
-
-            if hasattr(rule, "end"):
-                end_date = parse_date_spec(course, rule.end)
-                if end_date < now_datetime:
-                    continue
-
-            flow_rule = rule
-            break
-
-    # }}}
-
-    # {{{ scan for exceptions in database
-
-    for exc in (
-            FlowAccessException.objects
-            .filter(participation=participation, flow_id=flow_id)
-            .order_by("expiration")):
-
-        if exc.expiration is not None and exc.expiration < now_datetime:
-            continue
-
-        exc_stipulations = exc.stipulations
-        if not isinstance(exc_stipulations, dict):
-            exc_stipulations = {}
-
-        stipulations = {}
-
-        if flow_rule is not None:
-            stipulations.update(
-                    (key, val)
-                    for key, val in flow_rule.__dict__.iteritems()
-                    if not key.startswith("_"))
-
-        stipulations.update(exc_stipulations)
-        stipulations = dict_to_struct(stipulations)
-
-        return (
-                [entry.permission for entry in exc.entries.all()],
-                stipulations
-                )
-
-    # }}}
-
-    if flow_rule is not None:
-        return flow_rule.permissions, flow_rule
-
-    raise ValueError("Flow access rules of flow '%s' did not resolve "
-            "to access answer for '%s'" % (flow_id, participation))
+from course.utils import (
+        FlowContext, FlowPageContext,
+        instantiate_flow_page_with_ctx)
 
 
 # {{{ start flow
-
-class FlowContext(object):
-    def __init__(self, request, course_identifier, flow_identifier,
-            flow_session=None):
-
-        self.flow_session = flow_session
-
-        self.course_identifier = course_identifier
-        self.flow_identifier = flow_identifier
-
-        self.course = get_object_or_404(Course, identifier=course_identifier)
-        self.role, self.participation = get_role_and_participation(
-                request, self.course)
-
-        check_course_state(self.course, self.role)
-
-        self.course_commit_sha = get_active_commit_sha(
-                self.course, self.participation)
-        if self.flow_session is not None:
-            self.commit_sha = self.flow_session.active_git_commit_sha.encode()
-        else:
-            self.commit_sha = self.course_commit_sha
-
-        self.repo = get_course_repo(self.course)
-        self.course_desc = get_course_desc(self.repo, self.course, self.commit_sha)
-
-        self.flow_desc = get_flow_desc(self.repo, self.course,
-                flow_identifier, self.commit_sha)
-
-        # {{{ figure out permissions
-
-        # Fetch current version of the flow to compute permissions,
-        # fall back to 'old' version if current git version does not
-        # contain this flow any more.
-        from django.core.exceptions import ObjectDoesNotExist
-
-        try:
-            permissions_flow_desc = get_flow_desc(self.repo, self.course,
-                    flow_identifier, self.course_commit_sha)
-        except ObjectDoesNotExist:
-            permissions_flow_desc = self.flow_desc
-
-        from course.views import get_now_or_fake_time
-        self.permissions, self.stipulations = get_flow_permissions(
-                self.course, self.participation, self.role,
-                flow_identifier, permissions_flow_desc,
-                get_now_or_fake_time(request))
-
-        # }}}
-
-    def will_receive_feedback(self):
-        from course.models import flow_permission
-        return (
-                flow_permission.see_correctness in self.permissions
-                or flow_permission.see_answer in self.permissions)
-
-    @property
-    def page_count(self):
-        return self.flow_session.page_count
-
-
-def instantiate_flow_page_with_ctx(fctx, page_data):
-    from course.content import get_flow_page_desc
-    page_desc = get_flow_page_desc(
-            fctx.flow_session, fctx.flow_desc, page_data.group_id, page_data.page_id)
-
-    from course.content import instantiate_flow_page
-    return instantiate_flow_page(
-            "course '%s', flow '%s', page '%s/%s'"
-            % (fctx.course_identifier, fctx.flow_identifier,
-                page_data.group_id, page_data.page_id),
-            fctx.repo, page_desc, fctx.commit_sha)
-
 
 RESUME_RE = re.compile("^resume_([0-9]+)$")
 
@@ -275,7 +125,7 @@ def start_flow(request, course_identifier, flow_identifier):
             session = FlowSession()
             session.course = fctx.course
             session.participation = fctx.participation
-            session.active_git_commit_sha = fctx.commit_sha.decode()
+            session.active_git_commit_sha = fctx.flow_commit_sha.decode()
             session.flow_id = flow_identifier
             session.in_progress = True
             session.for_credit = "start_credit" in request.POST
@@ -284,7 +134,7 @@ def start_flow(request, course_identifier, flow_identifier):
             request.session["flow_session_id"] = session.id
 
             page_count = set_up_flow_session_page_data(fctx.repo, session,
-                    course_identifier, fctx.flow_desc, fctx.commit_sha)
+                    course_identifier, fctx.flow_desc, fctx.flow_commit_sha)
             session.page_count = page_count
             session.save()
 
@@ -339,63 +189,6 @@ def start_flow(request, course_identifier, flow_identifier):
 
 
 # {{{ flow page
-
-class FlowPageContext(FlowContext):
-    """This object acts as a container for all the information that a flow page
-    may need to render itself or respond to a POST.
-    """
-
-    def __init__(self, request, course_identifier, flow_identifier,
-            ordinal, flow_session):
-        FlowContext.__init__(self, request, course_identifier, flow_identifier,
-                flow_session=flow_session)
-
-        from course.models import FlowPageData
-        page_data = self.page_data = get_object_or_404(
-                FlowPageData, flow_session=flow_session, ordinal=ordinal)
-
-        from course.content import get_flow_page_desc
-        self.page_desc = get_flow_page_desc(
-                flow_session, self.flow_desc, page_data.group_id, page_data.page_id)
-
-        self.page = instantiate_flow_page_with_ctx(self, page_data)
-
-        from course.page import PageContext
-        self.page_context = PageContext(
-                course=self.course, repo=self.repo, commit_sha=self.commit_sha)
-
-        # {{{ dig for previous answers
-
-        previous_answer_visits = (FlowPageVisit.objects
-                .filter(flow_session=flow_session)
-                .filter(page_data=page_data)
-                .filter(answer__isnull=False)
-                .order_by("-visit_time"))
-
-        self.prev_answer_was_graded = False
-        self.prev_answer = None
-        for prev_visit in previous_answer_visits:
-            self.prev_answer = prev_visit.answer
-            self.prev_answer_was_graded = prev_visit.is_graded_answer
-            break
-
-        # }}}
-
-    @property
-    def ordinal(self):
-        return self.page_data.ordinal
-
-    @property
-    def percentage_done(self):
-        return int(100*(self.ordinal+1)/self.page_count)
-
-    def create_visit(self, request):
-        page_visit = FlowPageVisit()
-        page_visit.flow_session = self.flow_session
-        page_visit.page_data = self.page_data
-        page_visit.remote_address = request.META['REMOTE_ADDR']
-        page_visit.save()
-
 
 def find_current_flow_session(request, flow_identifier):
     flow_session = None
@@ -728,7 +521,7 @@ def gather_grade_info(fctx, answer_visits):
 
         from course.page import PageContext
         page_context = PageContext(
-                course=fctx.course, repo=fctx.repo, commit_sha=fctx.commit_sha)
+                course=fctx.course, repo=fctx.repo, commit_sha=fctx.flow_commit_sha)
 
         feedback = page.grade(
                 page_context, page_data.data, answer_data, grade_data)
@@ -771,7 +564,7 @@ def finish_flow(request, course_identifier, flow_identifier):
 
     from course.content import markup_to_html
     completion_text = markup_to_html(
-            fctx.course, fctx.repo, fctx.commit_sha,
+            fctx.course, fctx.repo, fctx.flow_commit_sha,
             fctx.flow_desc.completion_text)
 
     (answered_count, unanswered_count) = count_answered(fctx, answer_visits)
@@ -866,7 +659,7 @@ def finish_flow(request, course_identifier, flow_identifier):
             # }}}
 
     if (answered_count + unanswered_count == 0
-            and fctx.commit_sha == fctx.course_commit_sha):
+            and fctx.flow_commit_sha == fctx.course_commit_sha):
         # Not serious--no questions in flow, and no new version available.
         # No need to end the flow visit.
 
