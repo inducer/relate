@@ -58,5 +58,12 @@ td.histogram-bar-cell div.progress {
   margin-bottom:5px;
 }
 
+.stats-percentage {
+  visibility:hidden;
+}
+div.progress:hover  span.stats-percentage{
+  visibility:visible;
+}
+
 
 /* }}} */

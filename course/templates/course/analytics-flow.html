@@ -30,7 +30,7 @@
         <div class="progress-bar progress-bar-info" role="progressbar"
           aria-valuenow="{{ astats.average_correctness_percent }}" aria-valuemin="0" aria-valuemax="100"
           style="width: {{ astats.average_correctness_percent|floatformat:1 }}%">
-          {{ astats.average_correctness_percent|floatformat:1 }}%
+          <span class="stats-percentage">{{ astats.average_correctness_percent|floatformat:1 }}%</span>
         </div>
       </div>
     </div>
