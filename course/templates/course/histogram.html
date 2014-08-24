@@ -1,0 +1,21 @@
+<div class="histogram">
+  {% for bin in bin_info_list %}
+    <div class="histogram-entry">
+      <span class="histogram-title">
+        {% if bin.url %}
+          <a href="{{ bin.url }}">{{ bin.title }}</a>
+        {% else %}
+          {{ bin.title }}
+        {% endif %}
+        ({{ bin.raw_weight }})
+      </span>
+      <div class="progress">
+        <div class="progress-bar progress-bar-info" role="progressbar"
+          aria-valuenow="{{ bin.percentage }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ bin.percentage|floatformat:1 }}%">
+          <span class="sr-only">{{ bin.percentage|floatformat:1 }}%</span>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>

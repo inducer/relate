@@ -38,3 +38,25 @@ code {
   /* Bootstrap: Hot pink for code? Really? */
   color: #333;
 }
+
+/* {{{ histograms */
+
+div.histogram > table {
+  border: 0px;
+}
+
+td.histogram-title {
+  vertical-align: top;
+  padding-right: 1em;
+}
+
+td.histogram-bar-cell {
+  min-width:500px;
+}
+
+td.histogram-bar-cell div.progress {
+  margin-bottom:5px;
+}
+
+
+/* }}} */

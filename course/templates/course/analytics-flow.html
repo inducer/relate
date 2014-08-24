@@ -1,0 +1,19 @@
+{% extends "course/course-base.html" %}
+
+{% block title %}
+  Analytics
+{% endblock %}
+
+{% block content %}
+  <h1>Analytics: <tt>{{ flow_identifier}}</tt></h1>
+
+  <h2>Grade distribution</h2>
+
+  <p>{{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }} </p>
+
+  {{ grade_histogram.html|safe }}
+
+{% endblock %}
+
+
+
