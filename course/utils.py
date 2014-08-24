@@ -176,7 +176,9 @@ class FlowContext(CoursePageContext):
             current_flow_desc = get_flow_desc(self.repo, self.course,
                     flow_identifier, current_flow_desc_sha)
 
-        self.flow_commit_sha = get_flow_commit_sha(current_flow_desc)
+        self.flow_commit_sha = get_flow_commit_sha(
+                self.course, self.participation,
+                current_flow_desc, self.flow_session)
         if self.flow_commit_sha == current_flow_desc_sha:
             self.flow_desc = current_flow_desc
         else:
