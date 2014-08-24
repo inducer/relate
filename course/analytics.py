@@ -77,13 +77,14 @@ class BinInfo(object):
 class Histogram(object):
     def __init__(self, num_bin_count=10, num_bin_starts=None,
             num_min_value=None, num_max_value=None,
-            num_enforce_bounds=False):
+            num_enforce_bounds=False, num_log_bins=False):
         self.string_weights = {}
         self.num_values = []
         self.num_bin_starts = num_bin_starts
         self.num_min_value = num_min_value
         self.num_max_value = num_max_value
         self.num_bin_count = num_bin_count
+        self.num_log_bins = num_log_bins
 
     def add_data_point(self, value, weight=1):
         if isinstance(value, basestring):
@@ -116,10 +117,17 @@ class Histogram(object):
             if max_value is None:
                 max_value, _ = max(self.num_values)
 
-            bin_width = (max_value - min_value)/self.num_bin_count
-            num_bin_starts = [
-                    min_value+bin_width*i
-                    for i in range(self.num_bin_count)]
+            if self.num_log_bins:
+                from math import log, exp
+                bin_width = (log(max_value) - log(min_value))/self.num_bin_count
+                num_bin_starts = [
+                        exp(log(min_value)+bin_width*i)
+                        for i in range(self.num_bin_count)]
+            else:
+                bin_width = (max_value - min_value)/self.num_bin_count
+                num_bin_starts = [
+                        min_value+bin_width*i
+                        for i in range(self.num_bin_count)]
 
         bins = [0 for i in range(len(num_bin_starts))]
 
@@ -289,7 +297,7 @@ def make_time_histogram(pctx, flow_identifier):
             course=pctx.course,
             flow_id=flow_identifier)
 
-    hist = Histogram()
+    hist = Histogram(num_log_bins=True)
     for session in qset:
         if session.in_progress:
             hist.add_data_point("<in progress>")
