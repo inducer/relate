@@ -449,8 +449,8 @@ def get_flow_desc(repo, course, flow_id, commit_sha):
     return flow
 
 
-def get_flow_page_desc(flow_id, flow, group_id, page_id):
-    for grp in flow.groups:
+def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):
+    for grp in flow_desc.groups:
         if grp.id == group_id:
             for page in grp.pages:
                 if page.id == page_id:
@@ -570,6 +570,13 @@ def get_active_commit_sha(course, participation):
         sha = participation.preview_git_commit_sha
 
     return sha.encode()
+
+
+def get_flow_commit_sha(course, participation, flow_desc, flow_session):
+    if flow_session is not None:
+        return flow_session.active_git_commit_sha.encode()
+    else:
+        return get_active_commit_sha(course, participation)
 
 
 # vim: foldmethod=marker

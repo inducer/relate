@@ -159,31 +159,36 @@ class FlowContext(CoursePageContext):
         self.flow_session = flow_session
         self.flow_identifier = flow_identifier
 
-        if self.flow_session is not None:
-            self.flow_commit_sha = self.flow_session.active_git_commit_sha.encode()
-        else:
-            self.flow_commit_sha = self.course_commit_sha
+        from course.content import get_flow_commit_sha
+        from django.core.exceptions import ObjectDoesNotExist
 
-        self.flow_desc = get_flow_desc(self.repo, self.course,
+        # Fetch 'current' version of the flow to compute permissions
+        # and versioning rules.
+        # Fall back to 'old' version if current git version does not
+        # contain this flow any more.
+
+        try:
+            current_flow_desc_sha = self.course_commit_sha
+            current_flow_desc = get_flow_desc(self.repo, self.course,
+                    flow_identifier, current_flow_desc_sha)
+        except ObjectDoesNotExist:
+            current_flow_desc_sha = self.flow_session.active_git_commit_sha.encode()
+            current_flow_desc = get_flow_desc(self.repo, self.course,
+                    flow_identifier, current_flow_desc_sha)
+
+        self.flow_commit_sha = get_flow_commit_sha(current_flow_desc)
+        if self.flow_commit_sha == current_flow_desc_sha:
+            self.flow_desc = current_flow_desc
+        else:
+            self.flow_desc = get_flow_desc(self.repo, self.course,
                 flow_identifier, self.flow_commit_sha)
 
         # {{{ figure out permissions
 
-        # Fetch current version of the flow to compute permissions,
-        # fall back to 'old' version if current git version does not
-        # contain this flow any more.
-        from django.core.exceptions import ObjectDoesNotExist
-
-        try:
-            permissions_flow_desc = get_flow_desc(self.repo, self.course,
-                    flow_identifier, self.course_commit_sha)
-        except ObjectDoesNotExist:
-            permissions_flow_desc = self.flow_desc
-
         from course.views import get_now_or_fake_time
         self.permissions, self.stipulations = get_flow_permissions(
                 self.course, self.participation, self.role,
-                flow_identifier, permissions_flow_desc,
+                flow_identifier, current_flow_desc,
                 get_now_or_fake_time(request))
 
         # }}}

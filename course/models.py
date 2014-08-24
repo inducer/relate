@@ -326,7 +326,7 @@ class FlowPageData(models.Model):
                 self.page_id,
                 self.flow_session)
 
-    # Django's templates are a little daft.
+    # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
         return self.ordinal - 1
 

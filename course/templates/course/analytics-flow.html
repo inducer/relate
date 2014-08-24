@@ -1,7 +1,7 @@
 {% extends "course/course-base.html" %}
 
 {% block title %}
-  Analytics
+  Analytics - CourseFlow
 {% endblock %}
 
 {% block content %}
@@ -12,6 +12,30 @@
   <p>{{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }} </p>
 
   {{ grade_histogram.html|safe }}
+
+  <h2>Page-by-Page Statistics</h2>
+
+  <div class="page-by-page-analytics">
+  {% for astats in page_answer_stats_list %}
+    <div class="page-entry">
+      {% if astats.url %}
+        <a href="{{ astats.url }}"><tt>{{ astats.group_id }}/{{ astats.page_id }}</tt></a>:
+      {% else %}
+        <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
+      {% endif %}
+      {{ astats.title }}
+      ({{ astats.answer_count }} response{{ astats.answer_count|pluralize }})
+
+      <div class="progress">
+        <div class="progress-bar progress-bar-info" role="progressbar"
+          aria-valuenow="{{ astats.average_correctness_percent }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ astats.average_correctness_percent|floatformat:1 }}%">
+          <span class="sr-only">{{ astats.average_correctness_percent|floatformat:1 }}%</span>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  <div>
 
 {% endblock %}
 
