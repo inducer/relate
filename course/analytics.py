@@ -203,7 +203,17 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
             pctx.course_commit_sha)
 
+    flow_desc_cache = {}
     page_cache = {}
+
+    def get_flow_desc_from_cache(commit_sha):
+        try:
+            return flow_desc_cache[commit_sha]
+        except KeyError:
+            flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
+                    commit_sha)
+            flow_desc_cache[commit_sha] = flow_desc
+            return flow_desc
 
     def get_page(group_id, page_id, commit_sha):
         key = (group_id, page_id, commit_sha)
@@ -212,8 +222,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
         except KeyError:
             page_desc = get_flow_page_desc(
                     flow_identifier,
-                    get_flow_desc(pctx.repo, pctx.course, flow_identifier,
-                        commit_sha),
+                    get_flow_desc_from_cache(commit_sha),
                     group_id, page_id)
 
             page = instantiate_flow_page(
