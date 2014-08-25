@@ -539,8 +539,6 @@ class TextQuestion(PageBase):
 
         assert unspec_correct_answer_text
 
-        correctness = 0
-
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.",

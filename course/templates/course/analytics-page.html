@@ -19,8 +19,19 @@
       {{ astats.normalized_answer }}
       ({{ astats.count }} response{{ astats.count|pluralize }})
 
+      {{ astats.correctness }}
       <div class="progress">
-        <div class="progress-bar progress-bar-info" role="progressbar"
+        <div class="progress-bar
+          {% if astats.correctness == 0 %}
+            progress-bar-danger
+          {% elif astats.correctness == 1 %}
+            progress-bar-success
+          {% elif astats.correctness == None %}
+            progress-bar-info
+          {% else %}
+            progress-bar-warning
+          {% endif %}"
+          role="progressbar"
           aria-valuenow="{{ astats.percentage }}" aria-valuemin="0" aria-valuemax="100"
           style="width: {{ astats.percentage|floatformat:1 }}%">
           <span class="stats-percentage">{{ astats.percentage|floatformat:1 }}%</span>

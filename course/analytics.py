@@ -289,7 +289,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
                 answer_feedback = page.grade(
                         grading_page_context, visit.page_data.data,
-                        visit.answer, grade_data=None)
+                        visit.answer, grade_data=visit.grade_data)
 
                 count += 1
                 points += answer_feedback.correctness
@@ -390,8 +390,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
         flow_commit_sha = get_flow_commit_sha(
                 pctx.course, pctx.participation, flow_desc,
                 visit.flow_session)
-        page = page_cache.get_page(group_id, page_id,
-                flow_commit_sha)
+        page = page_cache.get_page(group_id, page_id, flow_commit_sha)
 
         from course.page import PageContext
         grading_page_context = PageContext(
@@ -404,7 +403,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
 
         answer_feedback = page.grade(
                 grading_page_context, visit.page_data.data,
-                visit.answer, grade_data=None)
+                visit.answer, grade_data=visit.grade_data)
 
         key = (answer_feedback.normalized_answer,
                 answer_feedback.correctness)
@@ -427,14 +426,13 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
             answer_stats,
             key=lambda astats: astats.percentage,
             reverse=True)
-    print len(answer_stats)
 
     return render_course_page(pctx, "course/analytics-page.html", {
         "flow_identifier": flow_identifier,
         "group_id": group_id,
+        "page_id": page_id,
         "title": title,
         "body": body,
-        "page_id": group_id,
         "answer_stats_list": answer_stats,
         })
 
