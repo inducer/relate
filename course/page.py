@@ -72,6 +72,21 @@ class NoNormalizedAnswerAvailable(object):
     pass
 
 
+def get_auto_feedback(correctness):
+    if correctness == 0:
+        return "Your answer is not correct."
+    elif correctness == 1:
+        return "Your answer is correct."
+    elif correctness > 0.5:
+        return "Your answer is mostly correct. (%.1f %%)" \
+                % (100*correctness)
+    elif correctness is None:
+        return "The correctness of your answer could not be determined."
+    else:
+        return "Your answer is somewhat correct. (%.1f %%)" \
+                % (100*correctness)
+
+
 class AnswerFeedback(object):
     """
     .. attribute:: correctness
@@ -107,18 +122,7 @@ class AnswerFeedback(object):
                 raise ValueError("Invalid correctness value")
 
         if feedback is None:
-            if correctness == 0:
-                feedback = "Your answer is not correct."
-            elif correctness == 1:
-                feedback = "Your answer is correct."
-            elif correctness > 0.5:
-                feedback = "Your answer is mostly correct. (%.1f %%)" \
-                        % (100*correctness)
-            elif feedback is None:
-                feedback = "The correctness of your answer could not be determined."
-            else:
-                feedback = "Your answer is somewhat correct. (%.1f %%)" \
-                        % (100*correctness)
+            feedback = get_auto_feedback(correctness)
 
         self.correctness = correctness
         self.correct_answer = correct_answer
@@ -927,6 +931,14 @@ class PythonCodeQuestion(PageBase):
         else:
             raise RuntimeError("invalid cfrunpy result: %s" % response.result)
 
+        if hasattr(response, "points"):
+            correctness = response.points
+            feedback_bits.append(
+                    "<p><b>%s</b></p>"
+                    % get_auto_feedback(correctness))
+        else:
+            correctness = None
+
         if hasattr(response, "feedback") and response.feedback:
             feedback_bits.append(
                     "<p>Here is some feedback on your code:"
@@ -945,10 +957,6 @@ class PythonCodeQuestion(PageBase):
             feedback_bits.append(
                     "<p>Your code printed the following error messages:"
                     "<pre>%s</pre></p>" % html_escape(response.stderr))
-        if hasattr(response, "points"):
-            correctness = response.points
-        else:
-            correctness = None
 
         if hasattr(self.page_desc, "correct_code"):
             correct_answer = "<pre>%s</pre>" % html_escape(

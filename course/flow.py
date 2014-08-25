@@ -211,7 +211,9 @@ def add_buttons_to_form(fpctx, form):
 
     if fpctx.will_receive_feedback():
         if flow_permission.change_answer in fpctx.permissions:
-            form.helper.add_input(Submit("submit", "Submit answer for grading"))
+            form.helper.add_input(
+                    Submit(
+                        "submit", "Submit answer for grading"))
         else:
             form.helper.add_input(Submit("submit", "Submit final answer"))
     else:
@@ -311,8 +313,6 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                     return redirect("course.flow.finish_flow",
                             course_identifier, flow_identifier)
                 else:
-                    # continue at common flow page generation below
-
                     form, form_html = fpctx.page.make_form(
                             page_context, page_data.data,
                             page_visit.answer, not may_change_answer)
@@ -387,8 +387,6 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         form_html = render_crispy_form(form, context=context)
         del context
 
-        form_html = '<div class="well">%s</div>' % form_html
-
     args = {
         "course": fpctx.course,
         "course_desc": fpctx.course_desc,
@@ -408,6 +406,10 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         "form_html": form_html,
         "feedback": feedback,
         "show_correctness": show_correctness,
+        "may_change_answer": may_change_answer,
+        "may_change_graded_answer":
+            flow_permission.change_answer in fpctx.permissions,
+        "will_receive_feedback": fpctx.will_receive_feedback(),
         "show_answer": show_answer,
     }
 
@@ -434,6 +436,11 @@ def assemble_answer_visits(flow_session):
 
     for page_visit in answer_page_visits:
         answer_visits[page_visit.page_data.ordinal] = page_visit
+
+        if not flow_session.in_progress:
+            # This is redundant with the answers being marked as
+            # final at the end of a flow, but that's OK.
+            page_visit.is_graded_answer = True
 
     return answer_visits
 
@@ -527,7 +534,11 @@ def gather_grade_info(fctx, answer_visits):
         feedback = page.grade(
                 page_context, page_data.data, answer_data, grade_data)
 
+        if feedback is None or feedback.correctness is None:
+            return None
+
         max_points += page.max_points(page_data.data)
+
         points += page.max_points(page_data.data)*feedback.correctness
 
         if feedback.correctness == 1:
@@ -598,24 +609,34 @@ def finish_flow(request, course_identifier, flow_identifier):
 
         grade_info = gather_grade_info(fctx, answer_visits)
 
-        points = grade_info.points
         comment = None
 
-        if hasattr(fctx.stipulations, "credit_percent"):
-            comment = "Counted at %.1f%% of %.1f points" % (
-                    fctx.stipulations.credit_percent, points)
-            points = points * fctx.stipulations.credit_percent / 100
+        if grade_info is not None:
+            points = grade_info.points
+
+            if hasattr(fctx.stipulations, "credit_percent"):
+                comment = "Counted at %.1f%% of %.1f points" % (
+                        fctx.stipulations.credit_percent, points)
+                points = points * fctx.stipulations.credit_percent / 100
+        else:
+            points = None
 
         from django.utils.timezone import now
         flow_session.completion_time = now()
         flow_session.in_progress = False
-        flow_session.points = points
-        flow_session.max_points = grade_info.max_points
+
+        if grade_info is not None:
+            flow_session.points = points
+            flow_session.max_points = grade_info.max_points
+        else:
+            flow_session.points = None
+            flow_session.max_points = None
+
         flow_session.result_comment = comment
         flow_session.save()
 
         if answered_count + unanswered_count:
-            # {{{ there is a grade to be had--assign it
+            # This is a graded flow.
 
             # {{{ mark answers as final
 
@@ -625,6 +646,18 @@ def finish_flow(request, course_identifier, flow_identifier):
                     answer_visit.save()
 
             # }}}
+
+            if grade_info is None:
+                messages.add_message(request, messages.INFO,
+                        "A grade for your work has not yet been assigned. "
+                        "Please check back later for grade information.")
+
+                return render_finish_response(
+                        "course/flow-completion.html",
+                        last_page_nr=None,
+                        completion_text=completion_text)
+
+            # {{{ there is a grade to be had--assign it
 
             from course.models import get_flow_grading_opportunity
             gopp = get_flow_grading_opportunity(

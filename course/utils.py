@@ -238,11 +238,13 @@ class FlowPageContext(FlowContext):
                 .filter(answer__isnull=False)
                 .order_by("-visit_time"))
 
-        self.prev_answer_was_graded = False
+        self.prev_answer_was_graded = not self.flow_session.in_progress
         self.prev_answer = None
         for prev_visit in previous_answer_visits:
             self.prev_answer = prev_visit.answer
-            self.prev_answer_was_graded = prev_visit.is_graded_answer
+            self.prev_answer_was_graded = (
+                    prev_visit.is_graded_answer
+                    or not self.flow_session.in_progress)
             break
 
         # }}}
