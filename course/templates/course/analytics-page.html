@@ -19,7 +19,6 @@
       {{ astats.normalized_answer }}
       ({{ astats.count }} response{{ astats.count|pluralize }})
 
-      {{ astats.correctness }}
       <div class="progress">
         <div class="progress-bar
           {% if astats.correctness == 0 %}
