@@ -30,6 +30,16 @@
   </li>
   {% endif %}
 
+  {% if role == participation_role.instructor or role == participation_role.teaching_assistant %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Teaching tools<b class="caret"></b></a>
+    <ul class="dropdown-menu">
+      <li role="presentation" class="dropdown-header">Analytics</li>
+      <li><a href="{% url "course.analytics.flow_list" course.identifier %}">Overview</a></li>
+    </ul>
+  </li>
+  {% endif %}
+
   {% if role == participation_role.instructor %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Instructor<b class="caret"></b></a>
@@ -50,10 +60,6 @@
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">Participation</li>
       <li><a href="{% url "course.enrollment.create_preapprovals" course.identifier %}">Preapprove enrollments</a></li>
-
-      <li role="presentation" class="divider"></li>
-      <li role="presentation" class="dropdown-header">Analytics</li>
-      <li><a href="{% url "course.analytics.flow_list" course.identifier %}">Overview</a></li>
     </ul>
   </li>
   {% endif %}
