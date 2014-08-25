@@ -62,6 +62,10 @@ PROTOCOL
 
         Always present.
 
+    .. attribute:: message
+
+        Optional.
+
     .. attribute:: traceback
 
         Optional.

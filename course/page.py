@@ -741,29 +741,76 @@ class PythonCodeForm(StyledForm):
         pass
 
 
-def recvall(sock):
-    data = ''
-    while True:
-        packet = sock.recv(8192)
-        if not packet:
-            return data
-        data += packet
-
-    return data
+CFRUNPY_PORT = 9941
 
 
 def request_python_run(run_req):
     import json
+    import httplib
+    from django.conf import settings
+    import docker
     import socket
+    import errno
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("localhost", 9941))
+    docker_cnx = docker.Client(
+            base_url='unix://var/run/docker.sock',
+            version='1.12', timeout=10)
+
+    dresult = docker_cnx.create_container(
+            image=settings.CF_DOCKER_CFRUNPY_IMAGE,
+            command=["/opt/cfrunpy/cfrunpy", "-1"],
+            mem_limit="128m",
+            user="cfrunpy")
+    container_id = dresult["Id"]
     try:
-        sock.sendall(unicode(json.dumps(run_req)).encode("utf-8"))
-        sock.shutdown(socket.SHUT_WR)
-        return json.loads((recvall(sock).decode('utf-8')))
+        # FIXME: Prohibit networking
+
+        docker_cnx.start(
+                container_id,
+                port_bindings={CFRUNPY_PORT: ('127.0.0.1',)})
+
+        port_info, = docker_cnx.port(container_id, CFRUNPY_PORT)
+        port = int(port_info["HostPort"])
+
+        from time import time, sleep
+        start_time = time()
+        timeout = 5
+
+        while True:
+            try:
+                connection = httplib.HTTPConnection('localhost', port)
+
+                headers = {'Content-type': 'application/json'}
+
+                json_run_req = json.dumps(run_req).encode("utf-8")
+
+                connection.request('POST', '/run-python', json_run_req, headers)
+
+                response = connection.getresponse()
+                response_data = response.read().decode("utf-8")
+                response_json = json.loads(response_data)
+
+                return response_json
+
+            except socket.error as e:
+                from traceback import format_exc
+
+                if e.errno == errno.ECONNRESET:
+                    if time() - start_time < timeout:
+                        sleep(0.1)
+                        # and retry
+                    else:
+                        return {
+                                "result": "uncaught_error",
+                                "message": "Timeout waiting for container.",
+                                "traceback": "".join(format_exc()),
+                                }
+                else:
+                    raise
+
     finally:
-        sock.close()
+        docker_cnx.stop(container_id, timeout=3)
+        docker_cnx.remove_container(container_id)
 
 
 class PythonCodeQuestion(PageBase):
@@ -854,7 +901,15 @@ class PythonCodeQuestion(PageBase):
         transfer_attr("names_from_user")
         transfer_attr("test_code")
 
-        response_dict = request_python_run(run_req)
+        try:
+            response_dict = request_python_run(run_req)
+        except:
+            from traceback import format_exc
+            response_dict = {
+                    "result": "uncaught_error",
+                    "message": "Error connecting to container",
+                    "traceback": "".join(format_exc()),
+                    }
 
         # }}}
 
@@ -890,7 +945,7 @@ class PythonCodeQuestion(PageBase):
 
             from django.core.mail import send_mail
             from django.conf import settings
-            send_mail("[%s] Broken code question"
+            send_mail("[%s] code question execution failed"
                     % page_context.course.identifier,
                     message,
                     settings.ROBOT_EMAIL_FROM,
