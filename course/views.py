@@ -223,7 +223,6 @@ def create_recurring_time_labels(pctx):
                 if interval == "weekly":
                     date = time.date()
                     date += datetime.timedelta(weeks=1)
-                    print type(time.tzinfo)
                     time = time.tzinfo.localize(
                             datetime.datetime(date.year, date.month, date.day,
                                 time.hour, time.minute, time.second))

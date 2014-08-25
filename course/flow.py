@@ -580,7 +580,6 @@ def finish_flow(request, course_identifier, flow_identifier):
             fctx.flow_desc.completion_text)
 
     (answered_count, unanswered_count) = count_answered(fctx, answer_visits)
-    print answered_count, unanswered_count
 
     def render_finish_response(template, **kwargs):
         render_args = {

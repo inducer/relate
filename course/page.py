@@ -814,8 +814,6 @@ class PythonCodeQuestion(PageBase):
             answer = None
             form = PythonCodeForm()
 
-        print form.media
-
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
 
@@ -857,7 +855,6 @@ class PythonCodeQuestion(PageBase):
         transfer_attr("test_code")
 
         response_dict = request_python_run(run_req)
-        print response_dict
 
         # }}}
 

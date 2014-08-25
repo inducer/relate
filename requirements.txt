@@ -46,3 +46,6 @@ django-codemirror-widget
 
 # Optional, used for caching
 python-memcached
+
+# For code isolation in code questions
+docker-py
