@@ -30,6 +30,7 @@ from django.shortcuts import (  # noqa
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import connection
+from django.core.urlresolvers import reverse
 
 from course.utils import course_view, render_course_page
 from course.models import (
@@ -39,6 +40,7 @@ from course.models import (
 
 from course.content import (
         get_flow_desc, get_flow_page_desc,
+        get_flow_commit_sha,
         instantiate_flow_page)
 
 
@@ -77,7 +79,8 @@ class BinInfo(object):
 class Histogram(object):
     def __init__(self, num_bin_count=10, num_bin_starts=None,
             num_min_value=None, num_max_value=None,
-            num_enforce_bounds=False, num_log_bins=False):
+            num_enforce_bounds=False, num_log_bins=False,
+            num_bin_title_formatter=str):
         self.string_weights = {}
         self.num_values = []
         self.num_bin_starts = num_bin_starts
@@ -85,6 +88,7 @@ class Histogram(object):
         self.num_max_value = num_max_value
         self.num_bin_count = num_bin_count
         self.num_log_bins = num_log_bins
+        self.num_bin_title_formatter = num_bin_title_formatter
 
     def add_data_point(self, value, weight=1):
         if isinstance(value, basestring):
@@ -145,7 +149,7 @@ class Histogram(object):
         total_weight = self.total_weight()
         num_bin_info = [
                 BinInfo(
-                    title=str(start),
+                    title=self.num_bin_title_formatter(start),
                     raw_weight=weight,
                     percentage=100*weight/total_weight)
                 for start, weight in zip(num_bin_starts, bins)]
@@ -175,6 +179,44 @@ class Histogram(object):
                 })
 
 # }}}
+
+
+class PageCache(object):
+    """Caches instantiated pages."""
+
+    def __init__(self, pctx, flow_identifier):
+        self.pctx = pctx
+        self.flow_identifier = flow_identifier
+        self.flow_desc_cache = {}
+        self.page_cache = {}
+
+    def get_flow_desc_from_cache(self, commit_sha):
+        try:
+            return self.flow_desc_cache[commit_sha]
+        except KeyError:
+            flow_desc = get_flow_desc(self.pctx.repo, self.pctx.course,
+                    self.flow_identifier, commit_sha)
+            self.flow_desc_cache[commit_sha] = flow_desc
+            return flow_desc
+
+    def get_page(self, group_id, page_id, commit_sha):
+        key = (group_id, page_id, commit_sha)
+        try:
+            return self.page_cache[key]
+        except KeyError:
+            page_desc = get_flow_page_desc(
+                    self.flow_identifier,
+                    self.get_flow_desc_from_cache(commit_sha),
+                    group_id, page_id)
+
+            page = instantiate_flow_page(
+                    location="flow '%s', group, '%s', page '%s'"
+                    % (self.flow_identifier, group_id, page_id),
+                    repo=self.pctx.repo, page_desc=page_desc,
+                    commit_sha=commit_sha)
+
+            self.page_cache[key] = page
+            return page
 
 
 # {{{ flow analytics
@@ -211,37 +253,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
             pctx.course_commit_sha)
 
-    flow_desc_cache = {}
-    page_cache = {}
-
-    def get_flow_desc_from_cache(commit_sha):
-        try:
-            return flow_desc_cache[commit_sha]
-        except KeyError:
-            flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
-                    commit_sha)
-            flow_desc_cache[commit_sha] = flow_desc
-            return flow_desc
-
-    def get_page(group_id, page_id, commit_sha):
-        key = (group_id, page_id, commit_sha)
-        try:
-            return page_cache[key]
-        except KeyError:
-            page_desc = get_flow_page_desc(
-                    flow_identifier,
-                    get_flow_desc_from_cache(commit_sha),
-                    group_id, page_id)
-
-            page = instantiate_flow_page(
-                    location="flow '%s', group, '%s', page '%s'"
-                    % (flow_identifier, group_desc.id, page_desc.id),
-                    repo=pctx.repo, page_desc=page_desc,
-                    commit_sha=commit_sha)
-            page_cache[key] = page
-            return page
-
-    from course.content import get_flow_commit_sha
+    page_cache = PageCache(pctx, flow_identifier)
 
     page_info_list = []
     for group_desc in flow_desc.groups:
@@ -264,7 +276,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                 flow_commit_sha = get_flow_commit_sha(
                         pctx.course, pctx.participation, flow_desc,
                         visit.flow_session)
-                page = get_page(group_desc.id, page_desc.id, flow_commit_sha)
+                page = page_cache.get_page(group_desc.id, page_desc.id,
+                        flow_commit_sha)
 
                 from course.page import PageContext
                 grading_page_context = PageContext(
@@ -287,7 +300,15 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         page_id=page_desc.id,
                         title=title,
                         average_correctness=points/count,
-                        answer_count=count))
+                        answer_count=count,
+                        url=reverse(
+                            "course.analytics.page_analytics",
+                            args=(
+                                pctx.course_identifier,
+                                flow_identifier,
+                                group_desc.id,
+                                page_desc.id,
+                                ))))
 
     return page_info_list
 
@@ -297,14 +318,16 @@ def make_time_histogram(pctx, flow_identifier):
             course=pctx.course,
             flow_id=flow_identifier)
 
-    hist = Histogram(num_log_bins=True)
+    hist = Histogram(
+            num_log_bins=True,
+            num_bin_title_formatter=lambda minutes: "$>$ %.1f min" % minutes)
     for session in qset:
         if session.in_progress:
             hist.add_data_point("<in progress>")
         else:
             delta = session.completion_time - session.start_time
             minutes = delta.total_seconds() / 60
-            hist.add_data_point(round(minutes, 1))
+            hist.add_data_point(minutes)
 
     return hist
 
@@ -320,6 +343,99 @@ def flow_analytics(pctx, flow_identifier):
         "grade_histogram": make_grade_histogram(pctx, flow_identifier),
         "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_identifier),
         "time_histogram": make_time_histogram(pctx, flow_identifier),
+        })
+
+# }}}
+
+
+# {{{ page analytics
+
+class AnswerStats(object):
+    def __init__(self, normalized_answer, correctness, count,
+            percentage):
+        self.normalized_answer = normalized_answer
+        self.correctness = correctness
+        self.count = count
+        self.percentage = percentage
+
+
+@login_required
+@course_view
+def page_analytics(pctx, flow_identifier, group_id, page_id):
+    if pctx.role != participation_role.instructor:
+        raise PermissionDenied("must be instructor to view analytics")
+
+    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
+            pctx.course_commit_sha)
+
+    page_cache = PageCache(pctx, flow_identifier)
+
+    visits = (FlowPageVisit.objects
+            .filter(
+                flow_session__flow_id=flow_identifier,
+                page_data__group_id=group_id,
+                page_data__page_id=page_id,
+                is_graded_answer=True,
+                )
+            .prefetch_related("flow_session")
+            .prefetch_related("page_data"))
+
+    normalized_answer_and_correctness_to_count = {}
+
+    title = None
+    body = None
+    total_count = 0
+
+    for visit in visits:
+        flow_commit_sha = get_flow_commit_sha(
+                pctx.course, pctx.participation, flow_desc,
+                visit.flow_session)
+        page = page_cache.get_page(group_id, page_id,
+                flow_commit_sha)
+
+        from course.page import PageContext
+        grading_page_context = PageContext(
+                course=pctx.course,
+                repo=pctx.repo,
+                commit_sha=flow_commit_sha)
+
+        title = page.title(grading_page_context, visit.page_data.data)
+        body = page.body(grading_page_context, visit.page_data.data)
+
+        answer_feedback = page.grade(
+                grading_page_context, visit.page_data.data,
+                visit.answer, grade_data=None)
+
+        key = (answer_feedback.normalized_answer,
+                answer_feedback.correctness)
+        normalized_answer_and_correctness_to_count[key] = \
+                normalized_answer_and_correctness_to_count.get(key, 0) + 1
+
+        total_count += 1
+
+    answer_stats = []
+    for (normalized_answer, correctness), count in \
+            normalized_answer_and_correctness_to_count.iteritems():
+        answer_stats.append(
+                AnswerStats(
+                    normalized_answer=normalized_answer,
+                    correctness=correctness,
+                    count=count,
+                    percentage=100 * count/total_count))
+
+    answer_stats = sorted(
+            answer_stats,
+            key=lambda astats: astats.percentage,
+            reverse=True)
+    print len(answer_stats)
+
+    return render_course_page(pctx, "course/analytics-page.html", {
+        "flow_identifier": flow_identifier,
+        "group_id": group_id,
+        "title": title,
+        "body": body,
+        "page_id": group_id,
+        "answer_stats_list": answer_stats,
         })
 
 # }}}

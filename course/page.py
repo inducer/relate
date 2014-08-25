@@ -68,6 +68,9 @@ def markup_to_html(page_context, text):
 
 # {{{ answer feedback type
 
+class NoNormalizedAnswerAvailable(object):
+    pass
+
 class AnswerFeedback(object):
     """
     .. attribute:: correctness
@@ -88,9 +91,16 @@ class AnswerFeedback(object):
 
         May be None, in which case generic feedback
         is generated from :attr:`correctness`.
+
+    .. attribute:: normalized_answer
+
+        An HTML-formatted answer to be shown in analytics,
+        or a :class:`NoNormalizedAnswerAvailable`, or *None*
+        if no answer was provided.
     """
 
-    def __init__(self, correctness, correct_answer, feedback=None):
+    def __init__(self, correctness, correct_answer, feedback=None,
+            normalized_answer=NoNormalizedAnswerAvailable()):
         if correctness < 0 or correctness > 1:
             raise ValueError("Invalid correctness value")
 
@@ -107,6 +117,7 @@ class AnswerFeedback(object):
         self.correctness = correctness
         self.correct_answer = correct_answer
         self.feedback = feedback
+        self.normalized_answer = normalized_answer
 
 # }}}
 
@@ -286,6 +297,7 @@ class TextAnswerMatcher(object):
     """Abstract interface for matching text answers.
 
     .. attribute:: prefix
+    .. attribute:: is_case_sensitive
     """
 
     def __init__(self, location, pattern):
@@ -309,6 +321,7 @@ class TextAnswerMatcher(object):
 
 class CaseSensitivePlainMatcher(TextAnswerMatcher):
     prefix = "case_sens_plain"
+    is_case_sensitive = True
 
     def __init__(self, location, pattern):
         self.pattern = pattern
@@ -322,6 +335,7 @@ class CaseSensitivePlainMatcher(TextAnswerMatcher):
 
 class PlainMatcher(CaseSensitivePlainMatcher):
     prefix = "plain"
+    is_case_sensitive = False
 
     def grade(self, s):
         return int(self.pattern.lower() == s.lower())
@@ -330,6 +344,7 @@ class PlainMatcher(CaseSensitivePlainMatcher):
 class RegexMatcher(TextAnswerMatcher):
     prefix = "regex"
     re_flags = re.I
+    is_case_sensitive = False
 
     def __init__(self, location, pattern):
         try:
@@ -354,6 +369,7 @@ class RegexMatcher(TextAnswerMatcher):
 class CaseSensitiveRegexMatcher(RegexMatcher):
     prefix = "case_sens_regex"
     re_flags = 0
+    is_case_sensitive = True
 
 
 def parse_sympy(s):
@@ -370,6 +386,7 @@ def parse_sympy(s):
 
 class SymbolicExpressionMatcher(TextAnswerMatcher):
     prefix = "sym_expr"
+    is_case_sensitive = True
 
     def __init__(self, location, pattern):
         self.pattern = pattern
@@ -538,9 +555,14 @@ class TextQuestion(PageBase):
         if correct_answer_text is None:
             correct_answer_text = unspec_correct_answer_text
 
+        normalized_answer = answer
+        if not any(matcher.is_case_sensitive for matcher in self.matchers):
+            normalized_answer = normalized_answer.lower()
+
         return AnswerFeedback(
                 correctness=correctness,
-                correct_answer=CA_PATTERN % correct_answer_text)
+                correct_answer=CA_PATTERN % correct_answer_text,
+                normalized_answer=normalized_answer)
 
 # }}}
 
@@ -669,7 +691,8 @@ class ChoiceQuestion(PageBase):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.",
-                    correct_answer=correct_answer_text)
+                    correct_answer=correct_answer_text,
+                    normalized_answer=None)
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
@@ -680,7 +703,10 @@ class ChoiceQuestion(PageBase):
             correctness = 0
 
         return AnswerFeedback(correctness=correctness,
-                correct_answer=correct_answer_text)
+                correct_answer=correct_answer_text,
+                normalized_answer=self.process_choice_string(
+                    page_context,
+                    self.page_desc.choices[permutation[choice]]))
 
 # }}}
 
@@ -789,7 +815,8 @@ class PythonCodeQuestion(PageBase):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.",
-                    correct_answer=correct_answer)
+                    correct_answer=correct_answer,
+                    normalized_answer=None)
 
         user_code = answer_data["answer"]
 

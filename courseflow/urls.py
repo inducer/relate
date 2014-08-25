@@ -142,6 +142,15 @@ urlpatterns = patterns('',
         "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
         "/$",
         "course.analytics.flow_analytics",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/flow-analytics"
+        "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+        "/page"
+        "/(?P<group_id>[-_a-zA-Z0-9]+)"
+        "/(?P<page_id>[-_a-zA-Z0-9]+)"
+        "/$",
+        "course.analytics.page_analytics",),
 
     url(r'^admin/', include(admin.site.urls)),
 )

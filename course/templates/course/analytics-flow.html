@@ -7,7 +7,7 @@
 {% block content %}
   <h1>Analytics: <tt>{{ flow_identifier}}</tt></h1>
 
-  <h2>Grade distribution</h2>
+  <h2>Grade Distribution</h2>
 
   <p>{{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }} </p>
 
@@ -37,11 +37,7 @@
   {% endfor %}
   <div>
 
-  <h2>Time distribution</h2>
-  <p>(Times given in minutes)</p>
+  <h2>Time Distribution</h2>
 
   {{ time_histogram.html|safe }}
 {% endblock %}
-
-
-
