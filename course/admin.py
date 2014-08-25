@@ -122,6 +122,10 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
     list_display = ["email", "course", "role"]
     list_filter = ["course", "role"]
 
+    search_fields = (
+            "email",
+            )
+
 admin.site.register(ParticipationPreapproval, ParticipationPreapprovalAdmin)
 
 # }}}
