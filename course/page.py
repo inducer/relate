@@ -71,13 +71,14 @@ def markup_to_html(page_context, text):
 class NoNormalizedAnswerAvailable(object):
     pass
 
+
 class AnswerFeedback(object):
     """
     .. attribute:: correctness
 
         A :class:`float` between 0 and 1 (inclusive),
         indicating the degree of correctness of the
-        answer.
+        answer. May be *None*.
 
     .. attribute:: correct_answer
 
@@ -101,8 +102,9 @@ class AnswerFeedback(object):
 
     def __init__(self, correctness, correct_answer, feedback=None,
             normalized_answer=NoNormalizedAnswerAvailable()):
-        if correctness < 0 or correctness > 1:
-            raise ValueError("Invalid correctness value")
+        if correctness is not None:
+            if correctness < 0 or correctness > 1:
+                raise ValueError("Invalid correctness value")
 
         if feedback is None:
             if correctness == 0:
@@ -110,9 +112,13 @@ class AnswerFeedback(object):
             elif correctness == 1:
                 feedback = "Your answer is correct."
             elif correctness > 0.5:
-                feedback = "Your answer is mostly correct."
+                feedback = "Your answer is mostly correct. (%.1f %%)" \
+                        % (100*correctness)
+            elif feedback is None:
+                feedback = "The correctness of your answer could not be determined."
             else:
-                feedback = "Your answer is somewhat correct."
+                feedback = "Your answer is somewhat correct. (%.1f %%)" \
+                        % (100*correctness)
 
         self.correctness = correctness
         self.correct_answer = correct_answer
@@ -715,19 +721,31 @@ class PythonCodeForm(StyledForm):
     answer = forms.CharField(required=True,
             widget=CodeMirrorTextarea(
                 mode="python",
-                theme="cobalt",
-                config={'fixedGutter': True}))
+                theme="default",
+                config={
+                    "fixedGutter": True,
+                    "indentUnit": 4,
+                    }))
 
-    def __init__(self, matchers, *args, **kwargs):
-        super(TextAnswerForm, self).__init__(*args, **kwargs)
-
-        self.matchers = matchers
+    def __init__(self, *args, **kwargs):
+        super(PythonCodeForm, self).__init__(*args, **kwargs)
 
         self.fields["answer"].widget.attrs["autofocus"] = None
 
     def clean(self):
         # FIXME Should try compilation
         pass
+
+
+def recvall(sock):
+    data = ''
+    while True:
+        packet = sock.recv(8192)
+        if not packet:
+            return data
+        data += packet
+
+    return data
 
 
 def request_python_run(run_req):
@@ -738,7 +756,8 @@ def request_python_run(run_req):
     sock.connect(("localhost", 9941))
     try:
         sock.sendall(unicode(json.dumps(run_req)).encode("utf-8"))
-        return json.loads((sock.recv().decode('utf-8')))
+        sock.shutdown(socket.SHUT_WR)
+        return json.loads((recvall(sock).decode('utf-8')))
     finally:
         sock.close()
 
@@ -754,13 +773,13 @@ class PythonCodeQuestion(PageBase):
                     ("value", (int, float)),
                     ("title", str),
                     ("prompt", str),
-                    ("timeout", int),
+                    ("timeout", (int, float)),
                     ],
                 allowed_attrs=[
                     ("setup_code", str),
-                    ("names_for_user", str),
+                    ("names_for_user", list),
                     ("names_from_user", list),
-                    ("test_code", list),
+                    ("test_code", str),
                     ("correct_code", str),
                     ],
                 )
@@ -789,7 +808,9 @@ class PythonCodeQuestion(PageBase):
             form = PythonCodeForm(answer)
         else:
             answer = None
-            form = PythonCodeForm(self.matchers)
+            form = PythonCodeForm()
+
+        print form.media
 
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
@@ -797,7 +818,7 @@ class PythonCodeQuestion(PageBase):
         return (form, None)
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return (PythonCodeForm(self.matchers, post_data, files_data), None)
+        return (PythonCodeForm(post_data, files_data), None)
 
     def answer_data(self, page_context, page_data, form):
         return {"answer": form.cleaned_data["answer"].strip()}
@@ -831,26 +852,109 @@ class PythonCodeQuestion(PageBase):
         transfer_attr("names_from_user")
         transfer_attr("test_code")
 
-        result = request_python_run(run_req)
+        response_dict = request_python_run(run_req)
+        print response_dict
 
         # }}}
 
+        # {{{ send email if the grading code broke
+
+        if response_dict["result"] in [
+                "uncaught_error",
+                "setup_compile_error",
+                "setup_error",
+                "test_compile_error",
+                "test_error"]:
+            error_msg_parts = ["RESULT: %s" % response_dict["result"]]
+            for key, val in sorted(response_dict.items()):
+                if key != "result" and val:
+                    error_msg_parts.append("-------------------------------------")
+                    error_msg_parts.append(key)
+                    error_msg_parts.append("-------------------------------------")
+                    error_msg_parts.append(val)
+            error_msg_parts.append("-------------------------------------")
+            error_msg_parts.append("user code")
+            error_msg_parts.append("-------------------------------------")
+            error_msg_parts.append(user_code)
+            error_msg_parts.append("-------------------------------------")
+
+            error_msg = "\n".join(error_msg_parts)
+
+            from django.template.loader import render_to_string
+            message = render_to_string("course/broken-code-question-email.txt", {
+                "page_id": self.page_desc.id,
+                "course": page_context.course,
+                "error_message": error_msg,
+                })
+
+            from django.core.mail import send_mail
+            from django.conf import settings
+            send_mail("[%s] Broken code question"
+                    % page_context.course.identifier,
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[page_context.course.email])
+
+        # }}}
+
+        from courseflow.utils import dict_to_struct
+        response = dict_to_struct(response_dict)
+
+        from courseflow.utils import html_escape
         feedback_bits = []
-        if result["stdout"]:
+        if response.result == "success":
+            pass
+        elif response.result in [
+                "uncaught_error",
+                "setup_compile_error",
+                "setup_error",
+                "test_compile_error",
+                "test_error"]:
+            feedback_bits.append(
+                    "<p>The grading code failed. Sorry about that. "
+                    "The staff has been informed, and if this problem is due "
+                    "to an issue with the grading code, "
+                    "it will be fixed as soon as possible. "
+                    "In the meantime, you'll see a traceback "
+                    "below that may help you figure out what went wrong.</p>")
+        elif response.result == "user_compile_error":
+            feedback_bits.append(
+                    "<p>Your code failed to compile. An error message is below.</p>")
+        elif response.result == "user_error":
+            feedback_bits.append(
+                    "<p>Your code failed with an exception. "
+                    "A traceback is below.</p>")
+        else:
+            raise RuntimeError("invalid cfrunpy result: %s" % response.result)
+
+        if hasattr(response, "feedback") and response.feedback:
+            feedback_bits.append(
+                    "<p>Here is some feedback on your code:"
+                    "<ul>%s</ul></p>" % "".join(
+                        "<li>%s</li>" % html_escape(fb_item)
+                        for fb_item in response.feedback))
+        if hasattr(response, "traceback") and response.traceback:
+            feedback_bits.append(
+                    "<p>This is the exception traceback:"
+                    "<pre>%s</pre></p>" % html_escape(response.traceback))
+        if hasattr(response, "stdout") and response.stdout:
             feedback_bits.append(
                     "<p>Your code printed the following output:<pre>%s</pre></p>"
-                    % result["stdout"])
-        if result["stderr"]:
+                    % html_escape(response.stdout))
+        if hasattr(response, "stderr") and response.stderr:
             feedback_bits.append(
                     "<p>Your code printed the following error messages:"
-                    "<pre>%s</pre></p>" % result["stderr"])
+                    "<pre>%s</pre></p>" % html_escape(response.stderr))
+        if hasattr(response, "points"):
+            correctness = response.points
+        else:
+            correctness = None
 
-        correctness, correct_answer_text = max(
-                (matcher.grade(answer), matcher.correct_answer_text())
-                for matcher in self.matchers)
-
-        if correct_answer_text is None:
-            correct_answer_text = unspec_correct_answer_text
+        if hasattr(self.page_desc, "correct_code"):
+            correct_answer = "<pre>%s</pre>" % html_escape(
+                    self.page_desc.correct_code)
+        else:
+            correct_answer = None
 
         return AnswerFeedback(
                 correctness=correctness,

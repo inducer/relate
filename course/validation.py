@@ -29,9 +29,10 @@ import datetime
 import six
 import sys
 
-from course.content import get_yaml_from_repo, get_repo_blob
-
 from django.core.exceptions import ObjectDoesNotExist
+
+from course.content import get_yaml_from_repo, get_repo_blob
+from courseflow.utils import html_escape
 
 
 # {{{ validation tools
@@ -102,7 +103,7 @@ def validate_struct(location, obj, required_attrs, allowed_attrs):
                     raise ValidationError("%s: attribute '%s' has "
                             "wrong type: got '%s', expected '%s'"
                             % (location, attr, type(val).__name__,
-                            allowed_types))
+                            html_escape(str(allowed_types))))
 
     if present_attrs:
         raise ValidationError("%s: extraneous attribute(s) '%s'"

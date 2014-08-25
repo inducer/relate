@@ -41,29 +41,9 @@ from HTMLParser import HTMLParser
 
 from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
 
+from courseflow.utils import dict_to_struct
+
 import threading
-
-
-# {{{ tools
-
-class Struct(object):
-    def __init__(self, entries):
-        for name, val in entries.iteritems():
-            self.__dict__[name] = dict_to_struct(val)
-
-    def __repr__(self):
-        return repr(self.__dict__)
-
-
-def dict_to_struct(data):
-    if isinstance(data, list):
-        return [dict_to_struct(d) for d in data]
-    elif isinstance(data, dict):
-        return Struct(data)
-    else:
-        return data
-
-# }}}
 
 
 # {{{ repo interaction

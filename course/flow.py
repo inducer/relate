@@ -404,6 +404,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         "participation_role": participation_role,
 
         "title": title, "body": body,
+        "form": form,
         "form_html": form_html,
         "feedback": feedback,
         "show_correctness": show_correctness,

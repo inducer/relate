@@ -30,11 +30,11 @@
       {% endif %}
       ">
         <p>{{feedback.feedback|safe}}</p>
-      {% if show_answer and feedback.correctness < 1 %}
+      {% if show_answer and feedback.correctness < 1 and feedback.correct_answer %}
         <p>{{feedback.correct_answer|safe}}</p>
       {% endif %}
     </div>
-  {% elif show_answer %}
+  {% elif show_answer and feedback.correct_answer%}
     {# show only correct answer, without indication of correctness #}
     <div class="well">
       <p>{{feedback.correct_answer|safe}}</p>

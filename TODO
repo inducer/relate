@@ -10,6 +10,8 @@
 - Use up-to-date flow data
   -> Interaction with ChoiceQ
 
+- correctness can be None
+
 Ideas
 =====
 

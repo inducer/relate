@@ -31,11 +31,22 @@ from cfrunpy_backend import dict_to_struct, run_code, package_exception
 PORT = 9941
 
 
+def recvall(sock):
+    data = b''
+    while True:
+        packet = sock.recv(4096)
+        if not packet:
+            return data
+        data += packet
+
+    return data
+
+
 class RunRequestTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         result = {}
         try:
-            recv_data = self.request.recv()
+            recv_data = recvall(self.request)
             run_req = dict_to_struct(json.loads(recv_data.decode("utf-8")))
 
             stdout = io.StringIO()

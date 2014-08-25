@@ -56,3 +56,40 @@ def settings_context_processor(request):
         "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
         "maintenance_mode": settings.CF_MAINTENANCE_MODE,
         }
+
+HTML_ESCAPE_TABLE = {
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;",
+    ">": "&gt;",
+    "<": "&lt;",
+    }
+
+
+def html_escape(text):
+    """Produce entities within text."""
+    return "".join(HTML_ESCAPE_TABLE.get(c, c) for c in text)
+
+
+# {{{ dict_to_struct
+
+class Struct(object):
+    def __init__(self, entries):
+        for name, val in entries.iteritems():
+            self.__dict__[name] = dict_to_struct(val)
+
+    def __repr__(self):
+        return repr(self.__dict__)
+
+
+def dict_to_struct(data):
+    if isinstance(data, list):
+        return [dict_to_struct(d) for d in data]
+    elif isinstance(data, dict):
+        return Struct(data)
+    else:
+        return data
+
+# }}}
+
+# vim: foldmethod=marker

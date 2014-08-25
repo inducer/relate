@@ -62,17 +62,21 @@ PROTOCOL
 
         Always present.
 
+    .. attribute:: traceback
+
+        Optional.
+
     .. attribute:: stdout
 
         Whatever came out of stdout.
 
-        Always present.
+        Optional.
 
     .. attribute:: stderr
 
         Whatever came out of stderr.
 
-        Always present.
+        Optional.
 
     .. attribute:: points
 
