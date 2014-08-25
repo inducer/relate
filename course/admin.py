@@ -43,6 +43,12 @@ class UserStatusAdmin(admin.ModelAdmin):
 
     date_hierarchy = "key_time"
 
+    search_fields = (
+            "user__username",
+            "user__first_name",
+            "user__last_name",
+            )
+
     def __unicode__(self):
         return u"%s in status %s" % (self.user, self.status)
 
@@ -101,6 +107,12 @@ class ParticipationAdmin(admin.ModelAdmin):
     list_display = ["user", "course", "role", "status", "enroll_time"]
     list_filter = ["course", "role", "status"]
 
+    search_fields = (
+            "course__identifier",
+            "user__username",
+            "user__first_name",
+            "user__last_name",
+            )
     actions = [approve_enrollment, deny_enrollment]
 
 admin.site.register(Participation, ParticipationAdmin)
