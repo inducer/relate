@@ -251,6 +251,12 @@ class PageAnswerStats(object):
         self.url = url
 
 
+def safe_div(num, denom):
+    if denom == 0:
+        return 0
+    return num/denom
+
+
 def make_page_answer_stats_list(pctx, flow_identifier):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
             pctx.course_commit_sha)
@@ -301,7 +307,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         group_id=group_desc.id,
                         page_id=page_desc.id,
                         title=title,
-                        average_correctness=points/count,
+                        average_correctness=safe_div(points, count),
                         answer_count=count,
                         url=reverse(
                             "course.analytics.page_analytics",
@@ -426,7 +432,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
                     normalized_answer=normalized_answer,
                     correctness=correctness,
                     count=count,
-                    percentage=100 * count/total_count))
+                    percentage=safe_div(100 * count, total_count)))
 
     answer_stats = sorted(
             answer_stats,
