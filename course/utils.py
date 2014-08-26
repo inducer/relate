@@ -291,3 +291,5 @@ def render_course_page(pctx, template_name, args):
         })
 
     return render(pctx.request, template_name, args)
+
+# vim: foldmethod=marker

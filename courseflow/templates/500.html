@@ -9,10 +9,12 @@
   when the error occurred. Also mention the current time when sending your report.
   </p>
 
+  {% if maintenance_mode %}
   <p>
   In the meantime, you may navigate back to  the
   <a href="{% url "course.views.home" %}">home page</a>.
   </p>
+  {% endif %}
 
   <p>
   Sorry, and thanks for your patience!
