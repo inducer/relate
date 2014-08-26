@@ -104,8 +104,15 @@ admin.site.register(TimeLabel, TimeLabelAdmin)
 # {{{ participation
 
 class ParticipationAdmin(admin.ModelAdmin):
-    list_display = ["user", "course", "role", "status", "enroll_time"]
-    list_filter = ["course", "role", "status"]
+    list_display = (
+            "user__username",
+            "user__first_name",
+            "user__last_name",
+            "course",
+            "role",
+            "status",
+            "enroll_time")
+    list_filter = ("course", "role", "status")
 
     search_fields = (
             "course__identifier",
@@ -113,6 +120,7 @@ class ParticipationAdmin(admin.ModelAdmin):
             "user__first_name",
             "user__last_name",
             )
+
     actions = [approve_enrollment, deny_enrollment]
 
 admin.site.register(Participation, ParticipationAdmin)
