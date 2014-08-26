@@ -68,6 +68,21 @@ Open a browser to http://localhost:8000, sign in (your user name will be the
 same as your system user name, or whatever `whoami` returned above) and select
 "Set up new course".
 
+Additional setup steps for Docker
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+(TODO)
+
+Add to kernel command line, if needed::
+
+    [...] cgroup_enable=memory swapaccount=1
+
+Change docker config to disallow IP forwarding::
+
+    --ip-forward=false
+
+in :file:`/etc/default/docker.io`.
+
 License
 -------
 
