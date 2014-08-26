@@ -31,6 +31,7 @@ import django.forms as forms
 
 from codemirror import CodeMirrorTextarea
 from courseflow.utils import StyledForm
+from courseflow.utils import StyledForm
 
 import re
 import sys
@@ -751,6 +752,7 @@ def request_python_run(run_req):
     import docker
     import socket
     import errno
+    from httplib import BadStatusLine
 
     docker_cnx = docker.Client(
             base_url='unix://var/run/docker.sock',
@@ -774,7 +776,7 @@ def request_python_run(run_req):
 
         from time import time, sleep
         start_time = time()
-        timeout = 5
+        docker_timeout = 5
 
         while True:
             try:
@@ -795,8 +797,8 @@ def request_python_run(run_req):
             except socket.error as e:
                 from traceback import format_exc
 
-                if e.errno == errno.ECONNRESET:
-                    if time() - start_time < timeout:
+                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
+                    if time() - start_time < docker_timeout:
                         sleep(0.1)
                         # and retry
                     else:
@@ -807,6 +809,17 @@ def request_python_run(run_req):
                                 }
                 else:
                     raise
+
+            except BadStatusLine:
+                if time() - start_time < docker_timeout:
+                    sleep(0.1)
+                    # and retry
+                else:
+                    return {
+                            "result": "uncaught_error",
+                            "message": "Timeout waiting for container.",
+                            "traceback": "".join(format_exc()),
+                            }
 
     finally:
         docker_cnx.stop(container_id, timeout=3)
