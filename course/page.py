@@ -776,7 +776,7 @@ def request_python_run(run_req):
 
         from time import time, sleep
         start_time = time()
-        docker_timeout = 5
+        docker_timeout = 15
 
         while True:
             try:
