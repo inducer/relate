@@ -1,4 +1,4 @@
-FROM stackbrew/debian:testing
+FROM inducer/debian-i386
 MAINTAINER Andreas Kloeckner <inform@tiker.net>
 EXPOSE 9941
 RUN useradd cfrunpy
