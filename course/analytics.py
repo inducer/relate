@@ -299,8 +299,10 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         grading_page_context, visit.page_data.data,
                         visit.answer, grade_data=visit.grade_data)
 
-                count += 1
-                points += answer_feedback.correctness
+                if (answer_feedback is not None
+                        and answer_feedback.correctness is not None):
+                    count += 1
+                    points += answer_feedback.correctness
 
             page_info_list.append(
                     PageAnswerStats(
@@ -417,12 +419,13 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
                 grading_page_context, visit.page_data.data,
                 visit.answer, grade_data=visit.grade_data)
 
-        key = (answer_feedback.normalized_answer,
-                answer_feedback.correctness)
-        normalized_answer_and_correctness_to_count[key] = \
-                normalized_answer_and_correctness_to_count.get(key, 0) + 1
+        if answer_feedback is not None:
+            key = (answer_feedback.normalized_answer,
+                    answer_feedback.correctness)
+            normalized_answer_and_correctness_to_count[key] = \
+                    normalized_answer_and_correctness_to_count.get(key, 0) + 1
 
-        total_count += 1
+            total_count += 1
 
     answer_stats = []
     for (normalized_answer, correctness), count in \
