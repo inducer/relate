@@ -118,8 +118,8 @@ class ParticipationAdmin(admin.ModelAdmin):
 
     list_display = (
             "user",
-            "user_first_name",
-            "user_last_name",
+            "get_user_first_name",
+            "get_user_last_name",
             "course",
             "role",
             "status",
