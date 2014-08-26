@@ -119,9 +119,15 @@ class Histogram(object):
             num_bin_starts = self.num_bin_starts
         else:
             if min_value is None:
-                min_value, _ = min(self.num_values)
+                if self.num_values:
+                    min_value, _ = min(self.num_values)
+                else:
+                    min_value = 1
             if max_value is None:
-                max_value, _ = max(self.num_values)
+                if self.num_values:
+                    max_value, _ = max(self.num_values)
+                else:
+                    max_value = 1
 
             if self.num_log_bins:
                 from math import log, exp
