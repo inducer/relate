@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
+from django import http
 
 from course.views import (
         get_role_and_participation
@@ -172,6 +173,9 @@ class FlowContext(CoursePageContext):
             current_flow_desc = get_flow_desc(self.repo, self.course,
                     flow_identifier, current_flow_desc_sha)
         except ObjectDoesNotExist:
+            if self.flow_session is None:
+                raise http.Http404()
+
             current_flow_desc_sha = self.flow_session.active_git_commit_sha.encode()
             current_flow_desc = get_flow_desc(self.repo, self.course,
                     flow_identifier, current_flow_desc_sha)
