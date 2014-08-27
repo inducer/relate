@@ -553,10 +553,11 @@ def get_active_commit_sha(course, participation):
 
 
 def get_flow_commit_sha(course, participation, flow_desc, flow_session):
-    if flow_session is not None:
-        return flow_session.active_git_commit_sha.encode()
-    else:
+    if (not getattr(flow_desc, "sticky_versioning", True)
+            or flow_session is None):
         return get_active_commit_sha(course, participation)
+    else:
+        return flow_session.active_git_commit_sha.encode()
 
 
 # vim: foldmethod=marker

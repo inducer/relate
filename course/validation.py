@@ -360,6 +360,7 @@ def validate_flow_desc(ctx, location, flow_desc):
             allowed_attrs=[
                 ("access_rules", list),
                 ("grade_aggregation_strategy", str),
+                ("sticky_versioning", bool),
                 ]
             )
 
@@ -382,6 +383,10 @@ def validate_flow_desc(ctx, location, flow_desc):
             raise ValidationError("%s: last access rule must set default access "
                     "(i.e. have no attributes other than 'permissions')"
                     % location)
+
+    if not hasattr(flow_desc, "sticky_versioning"):
+        ctx.add_warning(location, "missing 'sticky_versioning' attribute - "
+                "this will be required in 2015.x.")
 
     if hasattr(flow_desc, "grade_aggregation_strategy"):
         from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES

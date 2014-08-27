@@ -14,11 +14,28 @@
 
 - Store grades of graded answers
 
+- In-progress sessions at deadlines...?
+  -> Grading rule set ID
+
+- Unenrolled vs graded flows server error
+
+- Grade superseding after rule change
+
+- Code timeout
+- Test mem limits
+
+- per-page permission filter
+
+- record end flow with a null page visit
+
+- ending on new version, resume, ...
+
 Ideas
 =====
 
+- web hooks for auto-fetch and auto-preview
+
 - comment box http://jsfiddle.net/9Le8X/2/
-- per-page permission filter
 - question bank
   -> localize an elaborate question and all its 'stuff' (JS, media)
   -> use a media search path
