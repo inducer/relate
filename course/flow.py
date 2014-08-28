@@ -172,7 +172,13 @@ class GradeInfo(object):
         self.incorrect_count = incorrect_count
 
     def points_percent(self):
-        return 100*self.points/self.max_points
+        if self.max_points is None or self.max_points == 0:
+            if self.points == 0:
+                return 100
+            else:
+                return 0
+        else:
+            return 100*self.points/self.max_points
 
     def missed_points_percent(self):
         return 100 - self.points_percent()
