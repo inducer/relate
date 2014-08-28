@@ -128,7 +128,7 @@ urlpatterns = patterns('',
         "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
         "/finish"
         "/$",
-        "course.flow.finish_flow",),
+        "course.flow.finish_flow_session_view",),
 
     # analytics
     url(r"^course"

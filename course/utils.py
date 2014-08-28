@@ -213,6 +213,9 @@ class FlowContext(CoursePageContext):
 class FlowPageContext(FlowContext):
     """This object acts as a container for all the information that a flow page
     may need to render itself or respond to a POST.
+
+    Note that this is different from :class:`course.page.PageContext`,
+    which is used for in the page API.
     """
 
     def __init__(self, request, course_identifier, flow_identifier,
@@ -236,20 +239,19 @@ class FlowPageContext(FlowContext):
 
         # {{{ dig for previous answers
 
+        from django.db.models import Q
         previous_answer_visits = (FlowPageVisit.objects
                 .filter(flow_session=flow_session)
                 .filter(page_data=page_data)
-                .filter(answer__isnull=False)
+                .filter(Q(answer__isnull=False) | Q(is_synthetic=True))
                 .order_by("-visit_time"))
 
-        self.prev_answer_was_graded = not self.flow_session.in_progress
-        self.prev_answer = None
-        for prev_visit in previous_answer_visits:
-            self.prev_answer = prev_visit.answer
-            self.prev_answer_was_graded = (
-                    prev_visit.is_graded_answer
-                    or not self.flow_session.in_progress)
-            break
+        self.prev_answer_visit = None
+        for prev_visit in previous_answer_visits[:1]:
+            self.prev_answer_visit = prev_visit
+
+            if not self.flow_session.in_progress:
+                assert prev_visit.is_graded_answer, prev_visit.id
 
         # }}}
 
@@ -295,5 +297,50 @@ def render_course_page(pctx, template_name, args):
         })
 
     return render(pctx.request, template_name, args)
+
+
+# {{{ page cache
+
+class PageInstanceCache(object):
+    """Caches instances of :class:`course.page.Page`."""
+
+    def __init__(self, repo, course, flow_identifier):
+        self.repo = repo
+        self.course = course
+        self.flow_identifier = flow_identifier
+        self.flow_desc_cache = {}
+        self.page_cache = {}
+
+    def get_flow_desc_from_cache(self, commit_sha):
+        try:
+            return self.flow_desc_cache[commit_sha]
+        except KeyError:
+            flow_desc = get_flow_desc(self.repo, self.course,
+                    self.flow_identifier, commit_sha)
+            self.flow_desc_cache[commit_sha] = flow_desc
+            return flow_desc
+
+    def get_page(self, group_id, page_id, commit_sha):
+        key = (group_id, page_id, commit_sha)
+        try:
+            return self.page_cache[key]
+        except KeyError:
+
+            from course.content import get_flow_page_desc, instantiate_flow_page
+            page_desc = get_flow_page_desc(
+                    self.flow_identifier,
+                    self.get_flow_desc_from_cache(commit_sha),
+                    group_id, page_id)
+
+            page = instantiate_flow_page(
+                    location="flow '%s', group, '%s', page '%s'"
+                    % (self.flow_identifier, group_id, page_id),
+                    repo=self.repo, page_desc=page_desc,
+                    commit_sha=commit_sha)
+
+            self.page_cache[key] = page
+            return page
+
+# }}}
 
 # vim: foldmethod=marker

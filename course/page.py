@@ -31,7 +31,6 @@ import django.forms as forms
 
 from codemirror import CodeMirrorTextarea
 from courseflow.utils import StyledForm
-from courseflow.utils import StyledForm
 
 import re
 import sys
@@ -49,6 +48,11 @@ __doc__ = """
 class PageContext(object):
     """
     .. attribute:: course
+    .. attribute:: repo
+    .. attribute:: commit_sha
+
+    Note that this is different from :class:`course.utils.FlowPageContext`,
+    which is used internally by the flow views.
     """
 
     def __init__(self, course, repo, commit_sha):
@@ -129,6 +133,28 @@ class AnswerFeedback(object):
         self.correct_answer = correct_answer
         self.feedback = feedback
         self.normalized_answer = normalized_answer
+
+    def as_json(self):
+        result = {
+                "correctness": self.correctness,
+                "correct_answer": self.correct_answer,
+                "feedback": self.feedback,
+                }
+
+        if not isinstance(self.normalized_answer, NoNormalizedAnswerAvailable):
+            result["normalized_answer"] = self.normalized_answer
+
+        return result
+
+    @staticmethod
+    def from_json(json):
+        return AnswerFeedback(
+                correctness=json["correctness"],
+                correct_answer=json["correct_answer"],
+                feedback=json["feedback"],
+                normalized_answer=json.get("normalized_answer",
+                    NoNormalizedAnswerAvailable())
+                )
 
 # }}}
 

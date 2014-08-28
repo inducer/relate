@@ -308,7 +308,7 @@ class FlowSession(models.Model):
 
 
 class FlowPageData(models.Model):
-    flow_session = models.ForeignKey(FlowSession)
+    flow_session = models.ForeignKey(FlowSession, related_name="page_data")
     ordinal = models.IntegerField()
 
     group_id = models.CharField(max_length=200)
@@ -321,9 +321,10 @@ class FlowPageData(models.Model):
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
-        return "Data for page '%s/%s' in %s" % (
+        return "Data for page '%s/%s' (%d) in %s" % (
                 self.group_id,
                 self.page_id,
+                self.ordinal,
                 self.flow_session)
 
     # Django's templates are a little daft. No arithmetic--really?
@@ -344,20 +345,83 @@ class FlowPageVisit(models.Model):
     visit_time = models.DateTimeField(default=now, db_index=True)
     remote_address = models.GenericIPAddressField(null=True, blank=True)
 
+    is_synthetic = models.BooleanField(default=False)
+
     answer = JSONField(null=True, blank=True)
     is_graded_answer = models.NullBooleanField()
 
-    grade_data = JSONField(null=True, blank=True)
-
     def __unicode__(self):
-        return "'%s/%s' in '%s' on %s" % (
+        result = "'%s/%s' in '%s' on %s" % (
                 self.page_data.group_id,
                 self.page_data.page_id,
                 self.flow_session,
                 self.visit_time)
 
+        if self.is_graded_answer:
+            result += " (graded)"
+
+        return result
+
     class Meta:
+        # These must be distinguishable, to figure out what came later.
         unique_together = (("page_data", "visit_time"),)
+
+    def get_most_recent_grade(self):
+        grades = self.grades.order_by("-grade_time")[:1]
+
+        for grade in grades:
+            return grade
+
+        return None
+
+    def get_most_recent_feedback(self):
+        grade = self.get_most_recent_grade()
+
+        from course.page import AnswerFeedback
+        if grade is not None:
+            return AnswerFeedback.from_json(grade.feedback)
+        else:
+            return None
+
+# }}}
+
+
+#  {{{ flow page visit grade
+
+class FlowPageVisitGrade(models.Model):
+    visit = models.ForeignKey(FlowPageVisit, related_name="grades")
+
+    # NULL means 'autograded'
+    grader = models.ForeignKey(User, null=True, blank=True)
+    grade_time = models.DateTimeField(db_index=True, default=now)
+
+    # This data should be recomputable, but we'll cache it here,
+    # because it might be very expensive (container-launch expensive
+    # for code questions, for example) to recompute.
+
+    grade_data = JSONField(null=True, blank=True)
+
+    max_points = models.FloatField(null=True, blank=True,
+            help_text="Point value of this question when receiving "
+            "full credit.")
+    correctness = models.FloatField(null=True, blank=True,
+            help_text="Real number between zero and one (inclusively) "
+            "indicating the degree of correctness of the answer.")
+
+    # This JSON object has fields corresponding to
+    # :class:`course.page.AnswerFeedback`, except for
+    # :attr:`course.page.AnswerFeedback.correctness`, which is stored
+    # separately for efficiency.
+
+    feedback = JSONField(null=True, blank=True)
+
+    # }}}
+
+    class Meta:
+        # These must be distinguishable, to figure out what came later.
+        unique_together = (("visit", "grade_time"),)
+
+        ordering = ("visit", "grade_time")
 
 # }}}
 

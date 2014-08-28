@@ -28,7 +28,8 @@ from course.models import (
         Course, TimeLabel,
         Participation, ParticipationPreapproval,
         InstantFlowRequest,
-        FlowSession, FlowPageData, FlowPageVisit,
+        FlowSession, FlowPageData,
+        FlowPageVisit, FlowPageVisitGrade,
         FlowAccessException, FlowAccessExceptionEntry,
         GradingOpportunity, GradeChange, InstantMessage)
 from django import forms
@@ -212,7 +213,87 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
     inlines = (FlowPageDataInline, FlowPageVisitInline)
 
+    raw_id_fields = ("participation",)
+
 admin.site.register(FlowSession, FlowSessionAdmin)
+
+# }}}
+
+
+# {{{ flow page visit
+
+class FlowPageVisitGradeInline(admin.TabularInline):
+    model = FlowPageVisitGrade
+    extra = 0
+
+
+class FlowPageVisitAdmin(admin.ModelAdmin):
+    def get_course(self, obj):
+        return obj.flow_session.course
+    get_course.short_description = "Course"
+    get_course.admin_order_field = "flow_session__course"
+
+    def get_flow_id(self, obj):
+        return obj.flow_session.flow_id
+    get_flow_id.short_description = "Flow ID"
+    get_flow_id.admin_order_field = "flow_session__flow_id"
+
+    def get_page_id(self, obj):
+        return "%s/%s (%d)" % (
+                obj.page_data.group_id,
+                obj.page_data.page_id,
+                obj.page_data.ordinal)
+
+    get_page_id.short_description = "Page ID"
+    get_page_id.admin_order_field = "page_data__page_id"
+
+    def get_participant(self, obj):
+        if obj.flow_session.participation:
+            return obj.flow_session.participation.user
+        else:
+            return "(anonymous)"
+
+    get_participant.short_description = "Participant"
+    get_participant.admin_order_field = "flow_session__participation"
+
+    list_filter = (
+            "flow_session__participation__course",
+            "flow_session__flow_id",
+            "is_graded_answer",
+            "is_synthetic",
+            )
+    date_hierarchy = "visit_time"
+    list_display = (
+            "get_course",
+            "get_flow_id",
+            "get_page_id",
+            "get_participant",
+            "visit_time",
+            "remote_address",
+            "is_graded_answer",
+            )
+    list_display_links = (
+            "get_course",
+            "get_flow_id",
+            "get_page_id",
+            "visit_time",
+            )
+
+    search_fields = (
+            "text",
+            "flow_session__flow_id",
+            "page_data__group_id",
+            "page_data__page_id",
+            "participation__user__username",
+            "participation__user__first_name",
+            "participation__user__last_name",
+            )
+
+    raw_id_fields = ("flow_session", "page_data")
+
+    inlines = (FlowPageVisitGradeInline,)
+
+admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 
 # }}}
 

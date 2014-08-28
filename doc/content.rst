@@ -9,3 +9,8 @@ Writing content for CourseFlow
 * Linking to media
 * MathJax
 * Jinja, macros
+
+Explain implications of sticky_versioning
+
+The Page API
+------------

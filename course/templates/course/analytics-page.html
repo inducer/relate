@@ -16,7 +16,7 @@
   <div class="answer-analytics">
   {% for astats in answer_stats_list %}
     <div class="answer-entry">
-      {{ astats.normalized_answer }}
+      {{ astats.normalized_answer|safe }}
       ({{ astats.count }} response{{ astats.count|pluralize }})
 
       <div class="progress">

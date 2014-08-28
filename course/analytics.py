@@ -32,16 +32,13 @@ from django.core.exceptions import PermissionDenied
 from django.db import connection
 from django.core.urlresolvers import reverse
 
-from course.utils import course_view, render_course_page
+from course.utils import course_view, render_course_page, PageInstanceCache
 from course.models import (
         FlowSession,
         FlowPageVisit,
         participation_role)
 
-from course.content import (
-        get_flow_desc, get_flow_page_desc,
-        get_flow_commit_sha,
-        instantiate_flow_page)
+from course.content import (get_flow_desc, get_flow_commit_sha)
 
 
 # {{{ flow list
@@ -189,44 +186,6 @@ class Histogram(object):
 # }}}
 
 
-class PageCache(object):
-    """Caches instantiated pages."""
-
-    def __init__(self, pctx, flow_identifier):
-        self.pctx = pctx
-        self.flow_identifier = flow_identifier
-        self.flow_desc_cache = {}
-        self.page_cache = {}
-
-    def get_flow_desc_from_cache(self, commit_sha):
-        try:
-            return self.flow_desc_cache[commit_sha]
-        except KeyError:
-            flow_desc = get_flow_desc(self.pctx.repo, self.pctx.course,
-                    self.flow_identifier, commit_sha)
-            self.flow_desc_cache[commit_sha] = flow_desc
-            return flow_desc
-
-    def get_page(self, group_id, page_id, commit_sha):
-        key = (group_id, page_id, commit_sha)
-        try:
-            return self.page_cache[key]
-        except KeyError:
-            page_desc = get_flow_page_desc(
-                    self.flow_identifier,
-                    self.get_flow_desc_from_cache(commit_sha),
-                    group_id, page_id)
-
-            page = instantiate_flow_page(
-                    location="flow '%s', group, '%s', page '%s'"
-                    % (self.flow_identifier, group_id, page_id),
-                    repo=self.pctx.repo, page_desc=page_desc,
-                    commit_sha=commit_sha)
-
-            self.page_cache[key] = page
-            return page
-
-
 # {{{ flow analytics
 
 def make_grade_histogram(pctx, flow_identifier):
@@ -267,7 +226,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
             pctx.course_commit_sha)
 
-    page_cache = PageCache(pctx, flow_identifier)
+    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
 
     page_info_list = []
     for group_desc in flow_desc.groups:
@@ -301,9 +260,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
                 title = page.title(grading_page_context, visit.page_data.data)
 
-                answer_feedback = page.grade(
-                        grading_page_context, visit.page_data.data,
-                        visit.answer, grade_data=visit.grade_data)
+                answer_feedback = visit.get_most_recent_feedback()
 
                 if (answer_feedback is not None
                         and answer_feedback.correctness is not None):
@@ -388,7 +345,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
             pctx.course_commit_sha)
 
-    page_cache = PageCache(pctx, flow_identifier)
+    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
 
     visits = (FlowPageVisit.objects
             .filter(
@@ -421,9 +378,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
         title = page.title(grading_page_context, visit.page_data.data)
         body = page.body(grading_page_context, visit.page_data.data)
 
-        answer_feedback = page.grade(
-                grading_page_context, visit.page_data.data,
-                visit.answer, grade_data=visit.grade_data)
+        answer_feedback = visit.get_most_recent_feedback()
 
         if answer_feedback is not None:
             key = (answer_feedback.normalized_answer,

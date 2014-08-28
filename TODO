@@ -7,9 +7,6 @@
 
 - Improve access-denied error for time-based rule on flow
 
-- Use up-to-date flow data
-  -> Interaction with ChoiceQ
-
 - Email me my code
 
 - Store grades of graded answers
@@ -29,6 +26,10 @@
 - record end flow with a null page visit
 
 - ending on new version, resume, ...
+
+- Add db_index to flow_id in flowsession
+- Add db_index on FPVG.visit
+- Add a default ordering to fpvg
 
 Ideas
 =====

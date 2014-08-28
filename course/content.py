@@ -543,13 +543,22 @@ def set_up_flow_session_page_data(repo, flow_session,
     return ordinal
 
 
-def get_active_commit_sha(course, participation):
+def get_course_commit_sha(course, participation):
     sha = course.active_git_commit_sha
 
     if participation is not None and participation.preview_git_commit_sha:
         sha = participation.preview_git_commit_sha
 
     return sha.encode()
+
+
+def get_active_commit_sha(course, participation):
+    from warnings import warn
+    warn("get_active_commit_sha is deprecated--use "
+            "get_course_commit_sha instead",
+            stacklevel=2)
+
+    return get_course_commit_sha(course, participation)
 
 
 def get_flow_commit_sha(course, participation, flow_desc, flow_session):

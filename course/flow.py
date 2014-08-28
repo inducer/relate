@@ -35,7 +35,8 @@ import re
 
 from course.models import (
         participation_role,
-        FlowSession, FlowPageData, FlowPageVisit, flow_permission,
+        FlowSession, FlowPageData, FlowPageVisit, FlowPageVisitGrade,
+        flow_permission,
         GradeChange)
 
 from course.utils import (
@@ -43,7 +44,296 @@ from course.utils import (
         instantiate_flow_page_with_ctx)
 
 
-# {{{ start flow
+# {{{ grade page visit
+
+def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade, grade_data=None):
+    if not visit.is_graded_answer:
+        raise RuntimeError("cannot grade ungraded answer")
+
+    flow_session = visit.flow_session
+    course = flow_session.course
+    page_data = visit.page_data
+
+    from course.content import (
+            get_course_repo,
+            get_course_commit_sha,
+            get_flow_commit_sha,
+            get_flow_desc,
+            get_flow_page_desc,
+            instantiate_flow_page)
+
+    repo = get_course_repo(course)
+
+    course_commit_sha = get_course_commit_sha(
+            course, flow_session.participation)
+
+    flow_desc_pre = get_flow_desc(repo, course,
+            flow_session.flow_id, course_commit_sha)
+
+    flow_commit_sha = get_flow_commit_sha(
+            course, flow_session.participation, flow_desc_pre,
+            visit.flow_session)
+
+    flow_desc = get_flow_desc(repo, course,
+            flow_session.flow_id, flow_commit_sha)
+
+    page_desc = get_flow_page_desc(
+            flow_session.flow_id,
+            flow_desc,
+            page_data.group_id, page_data.page_id)
+
+    page = instantiate_flow_page(
+            location="flow '%s', group, '%s', page '%s'"
+            % (flow_session.flow_id, page_data.group_id, page_data.page_id),
+            repo=repo, page_desc=page_desc,
+            commit_sha=flow_commit_sha)
+
+    from course.page import PageContext
+    grading_page_context = PageContext(
+            course=course,
+            repo=repo,
+            commit_sha=flow_commit_sha)
+
+    answer_feedback = page.grade(
+            grading_page_context, visit.page_data.data,
+            visit.answer, grade_data=grade_data)
+
+    grade = visit_grade_model()
+    grade.visit = visit
+    grade.grade_data = grade_data
+    grade.max_points = page.max_points(visit.page_data)
+
+    if answer_feedback is not None:
+        grade.correctness = answer_feedback.correctness
+        grade.feedback = answer_feedback.as_json()
+
+    grade.save()
+
+# }}}
+
+
+# {{{ finish flow
+
+def assemble_answer_visits(flow_session):
+    answer_visits = [None] * flow_session.page_count
+
+    from course.models import FlowPageVisit
+    answer_page_visits = (FlowPageVisit.objects
+            .filter(flow_session=flow_session)
+            .filter(answer__isnull=False)
+            .order_by("visit_time"))
+
+    for page_visit in answer_page_visits:
+        answer_visits[page_visit.page_data.ordinal] = page_visit
+
+        if not flow_session.in_progress:
+            # This is redundant with the answers being marked as
+            # final at the end of a flow, but that's OK.
+            #
+            # Note that this change is generally not persisted.
+            page_visit.is_graded_answer = True
+
+    return answer_visits
+
+
+def count_answered(fctx, flow_session, answer_visits):
+    all_page_data = (FlowPageData.objects
+            .filter(flow_session=flow_session)
+            .order_by("ordinal"))
+
+    answered_count = 0
+    unanswered_count = 0
+    for i, page_data in enumerate(all_page_data):
+        assert i == page_data.ordinal
+
+        if answer_visits[i] is not None:
+            answer_data = answer_visits[i].answer
+        else:
+            answer_data = None
+
+        page = instantiate_flow_page_with_ctx(fctx, page_data)
+        if page.expects_answer():
+            if answer_data is None:
+                unanswered_count += 1
+            else:
+                answered_count += 1
+
+    return (answered_count, unanswered_count)
+
+
+class GradeInfo(object):
+    def __init__(self,
+            points, max_points,
+            fully_correct_count, partially_correct_count, incorrect_count):
+        self.points = points
+        self.max_points = max_points
+        self.fully_correct_count = fully_correct_count
+        self.partially_correct_count = partially_correct_count
+        self.incorrect_count = incorrect_count
+
+    def points_percent(self):
+        return 100*self.points/self.max_points
+
+    def missed_points_percent(self):
+        return 100 - self.points_percent()
+
+    def total_count(self):
+        return (self.fully_correct_count
+                + self.partially_correct_count
+                + self.incorrect_count)
+
+    def fully_correct_percent(self):
+        return 100*self.fully_correct_count/self.total_count()
+
+    def partially_correct_percent(self):
+        return 100*self.partially_correct_count/self.total_count()
+
+    def incorrect_percent(self):
+        return 100*self.incorrect_count/self.total_count()
+
+
+def gather_grade_info(fctx, answer_visits):
+    all_page_data = (FlowPageData.objects
+            .filter(flow_session=fctx.flow_session)
+            .order_by("ordinal"))
+
+    points = 0
+    max_points = 0
+    fully_correct_count = 0
+    partially_correct_count = 0
+    incorrect_count = 0
+
+    for i, page_data in enumerate(all_page_data):
+        assert i == page_data.ordinal
+
+        if answer_visits[i] is None:
+            # page did not expect an answer
+            continue
+
+        grade = answer_visits[i].get_most_recent_grade()
+        assert grade is not None
+
+        from course.page import AnswerFeedback
+        feedback = AnswerFeedback.from_json(grade.feedback)
+
+        if feedback is None or feedback.correctness is None:
+            return None
+
+        max_points += grade.max_points
+        points += grade.max_points*feedback.correctness
+
+        if feedback.correctness == 1:
+            fully_correct_count += 1
+        elif feedback.correctness == 0:
+            incorrect_count += 1
+        else:
+            partially_correct_count += 1
+
+    return GradeInfo(
+            points=points,
+            max_points=max_points,
+            fully_correct_count=fully_correct_count,
+            partially_correct_count=partially_correct_count,
+            incorrect_count=incorrect_count)
+
+
+def grade_page_visits(fctx, flow_session, answer_visits):
+    for i in range(len(answer_visits)):
+        answer_visit = answer_visits[i]
+
+        if answer_visit is not None:
+            answer_visit.is_graded_answer = True
+            answer_visit.save()
+
+        else:
+            page_data = flow_session.page_data.get(ordinal=i)
+            page = instantiate_flow_page_with_ctx(fctx, page_data)
+
+            if not page.expects_answer():
+                continue
+
+            # Create a synthetic visit to attach a grade
+            answer_visit = FlowPageVisit()
+            answer_visit.flow_session = flow_session
+            answer_visit.page_data = page_data
+            answer_visit.is_synthetic = True
+            answer_visit.answer = None
+            answer_visit.is_graded_answer = True
+            answer_visit.save()
+
+            answer_visits[i] = answer_visit
+
+        if answer_visit is not None:
+            grade_page_visit(answer_visit)
+
+
+def finish_flow_session(fctx, flow_session):
+    if not flow_session.in_progress:
+        raise RuntimeError("Can't end a session that's already ended")
+
+    answer_visits = assemble_answer_visits(flow_session)
+
+    (answered_count, unanswered_count) = count_answered(
+            fctx, fctx.flow_session, answer_visits)
+
+    is_graded_flow = bool(answered_count + unanswered_count)
+
+    if is_graded_flow:
+        grade_page_visits(fctx, flow_session, answer_visits)
+
+    # ORDERING RESTRICTION: Must grade pages before gathering grade info
+
+    grade_info = gather_grade_info(fctx, answer_visits)
+
+    comment = None
+
+    if grade_info is not None:
+        points = grade_info.points
+
+        if hasattr(fctx.stipulations, "credit_percent"):
+            comment = "Counted at %.1f%% of %.1f points" % (
+                    fctx.stipulations.credit_percent, points)
+            points = points * fctx.stipulations.credit_percent / 100
+    else:
+        points = None
+
+    from django.utils.timezone import now
+    flow_session.completion_time = now()
+    flow_session.in_progress = False
+
+    if grade_info is not None:
+        flow_session.points = points
+        flow_session.max_points = grade_info.max_points
+    else:
+        flow_session.points = None
+        flow_session.max_points = None
+
+    flow_session.result_comment = comment
+    flow_session.save()
+
+    if is_graded_flow:
+        from course.models import get_flow_grading_opportunity
+        gopp = get_flow_grading_opportunity(
+                fctx.course, fctx.flow_identifier, fctx.flow_desc)
+
+        from course.models import grade_state_change_types
+        gchange = GradeChange()
+        gchange.opportunity = gopp
+        gchange.participation = fctx.participation
+        gchange.state = grade_state_change_types.graded
+        gchange.points = points
+        gchange.max_points = grade_info.max_points
+        # creator left as NULL
+        gchange.flow_session = flow_session
+        gchange.comment = comment
+        gchange.save()
+
+    return grade_info
+
+# }}}
+
+
+# {{{ view: start flow
 
 RESUME_RE = re.compile("^resume_([0-9]+)$")
 
@@ -188,7 +478,7 @@ def start_flow(request, course_identifier, flow_identifier):
 # }}}
 
 
-# {{{ flow page
+# {{{ view: flow page
 
 def find_current_flow_session(request, flow_identifier):
     flow_session = None
@@ -262,7 +552,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
     if request.method == "POST":
         if "finish" in request.POST:
-            return redirect("course.flow.finish_flow",
+            return redirect("course.flow.finish_flow_session_view",
                     course_identifier, flow_identifier)
         else:
             # reject answer update if flow is not in-progress
@@ -270,7 +560,8 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 raise PermissionDenied("session is not in progress")
 
             # reject if previous answer was final
-            if (fpctx.prev_answer_was_graded
+            if (fpctx.prev_answer_visit is not None
+                    and fpctx.prev_answer_visit.is_graded_answer
                     and flow_permission.change_answer not in fpctx.permissions):
                 raise PermissionDenied("already have final answer")
 
@@ -290,17 +581,34 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 page_visit.flow_session = fpctx.flow_session
                 page_visit.page_data = fpctx.page_data
                 page_visit.remote_address = request.META['REMOTE_ADDR']
+
                 page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
                         form)
                 page_visit.is_graded_answer = pressed_button == "submit"
                 page_visit.save()
 
-                answer_data = page_visit.answer
                 answer_was_graded = page_visit.is_graded_answer
                 may_change_answer = (
                         not answer_was_graded
                         or flow_permission.change_answer in fpctx.permissions)
+
+                feedback = fpctx.page.grade(
+                        page_context, page_data.data, page_visit.answer,
+                        grade_data=None)
+
+                if page_visit.is_graded_answer:
+                    grade = FlowPageVisitGrade()
+                    grade.visit = page_visit
+                    grade.max_points = fpctx.page.max_points(page_data.data)
+
+                    if feedback is not None:
+                        grade.correctness = feedback.correctness
+                        grade.feedback = feedback.as_json()
+
+                    grade.save()
+
+                    del grade
 
                 if (pressed_button == "save_and_next"
                         and not fpctx.will_receive_feedback()):
@@ -310,7 +618,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                             fpctx.ordinal + 1)
                 elif (pressed_button == "save_and_finish"
                         and not fpctx.will_receive_feedback()):
-                    return redirect("course.flow.finish_flow",
+                    return redirect("course.flow.finish_flow_session_view",
                             course_identifier, flow_identifier)
                 else:
                     form, form_html = fpctx.page.make_form(
@@ -321,23 +629,29 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
                 # }}}
 
+                del page_visit
+
             else:
                 # form did not validate
 
                 fpctx.create_visit(request)
 
-                answer_data = None
                 answer_was_graded = False
                 may_change_answer = True
                 # because we were allowed this far in by the check above
+
+                feedback = None
 
                 # continue at common flow page generation below
 
     else:
         fpctx.create_visit(request)
 
-        answer_data = fpctx.prev_answer
-        answer_was_graded = fpctx.prev_answer_was_graded
+        if fpctx.prev_answer_visit is not None:
+            answer_was_graded = fpctx.prev_answer_visit.is_graded_answer
+        else:
+            answer_was_graded = False
+
         may_change_answer = (
                 (not answer_was_graded
                     or flow_permission.change_answer in fpctx.permissions)
@@ -346,34 +660,40 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 and fpctx.flow_session.in_progress)
 
         if fpctx.page.expects_answer():
+            if fpctx.prev_answer_visit is not None:
+                answer_data = fpctx.prev_answer_visit.answer
+                feedback = fpctx.prev_answer_visit.get_most_recent_feedback()
+            else:
+                answer_data = None
+                feedback = None
+
             form, form_html = fpctx.page.make_form(
                     page_context, page_data.data,
                     answer_data, not may_change_answer)
         else:
             form = None
             form_html = None
+            feedback = None
 
     # start common flow page generation
 
     # defined at this point:
-    # form, form_template, answer_data, may_change_answer, answer_was_graded
+    # form, form_html, may_change_answer, answer_was_graded, feedback
 
     if form is not None and may_change_answer:
         form = add_buttons_to_form(fpctx, form)
 
     show_correctness = None
     show_answer = None
-    feedback = None
+
+    shown_feedback = None
 
     if fpctx.page.expects_answer() and answer_was_graded:
         show_correctness = flow_permission.see_correctness in fpctx.permissions
         show_answer = flow_permission.see_answer in fpctx.permissions
 
         if show_correctness or show_answer:
-            feedback = fpctx.page.grade(
-                    page_context, page_data.data, answer_data,
-                    # FIXME
-                    grade_data=None)
+            shown_feedback = feedback
 
     title = fpctx.page.title(page_context, page_data.data)
     body = fpctx.page.body(page_context, page_data.data)
@@ -404,7 +724,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         "title": title, "body": body,
         "form": form,
         "form_html": form_html,
-        "feedback": feedback,
+        "feedback": shown_feedback,
         "show_correctness": show_correctness,
         "may_change_answer": may_change_answer,
         "may_change_graded_answer":
@@ -423,141 +743,10 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 # }}}
 
 
-# {{{ finish flow
-
-def assemble_answer_visits(flow_session):
-    answer_visits = [None] * flow_session.page_count
-
-    from course.models import FlowPageVisit
-    answer_page_visits = (FlowPageVisit.objects
-            .filter(flow_session=flow_session)
-            .filter(answer__isnull=False)
-            .order_by("visit_time"))
-
-    for page_visit in answer_page_visits:
-        answer_visits[page_visit.page_data.ordinal] = page_visit
-
-        if not flow_session.in_progress:
-            # This is redundant with the answers being marked as
-            # final at the end of a flow, but that's OK.
-            page_visit.is_graded_answer = True
-
-    return answer_visits
-
-
-def count_answered(fctx, answer_visits):
-    all_page_data = (FlowPageData.objects
-            .filter(flow_session=fctx.flow_session)
-            .order_by("ordinal"))
-
-    answered_count = 0
-    unanswered_count = 0
-    for i, page_data in enumerate(all_page_data):
-        assert i == page_data.ordinal
-
-        if answer_visits[i] is not None:
-            answer_data = answer_visits[i].answer
-        else:
-            answer_data = None
-
-        page = instantiate_flow_page_with_ctx(fctx, page_data)
-        if page.expects_answer():
-            if answer_data is None:
-                unanswered_count += 1
-            else:
-                answered_count += 1
-
-    return (answered_count, unanswered_count)
-
-
-class GradeInfo(object):
-    def __init__(self,
-            points, max_points,
-            fully_correct_count, partially_correct_count, incorrect_count):
-        self.points = points
-        self.max_points = max_points
-        self.fully_correct_count = fully_correct_count
-        self.partially_correct_count = partially_correct_count
-        self.incorrect_count = incorrect_count
-
-    def points_percent(self):
-        return 100*self.points/self.max_points
-
-    def missed_points_percent(self):
-        return 100 - self.points_percent()
-
-    def total_count(self):
-        return (self.fully_correct_count
-                + self.partially_correct_count
-                + self.incorrect_count)
-
-    def fully_correct_percent(self):
-        return 100*self.fully_correct_count/self.total_count()
-
-    def partially_correct_percent(self):
-        return 100*self.partially_correct_count/self.total_count()
-
-    def incorrect_percent(self):
-        return 100*self.incorrect_count/self.total_count()
-
-
-def gather_grade_info(fctx, answer_visits):
-    all_page_data = (FlowPageData.objects
-            .filter(flow_session=fctx.flow_session)
-            .order_by("ordinal"))
-
-    points = 0
-    max_points = 0
-    fully_correct_count = 0
-    partially_correct_count = 0
-    incorrect_count = 0
-
-    for i, page_data in enumerate(all_page_data):
-        assert i == page_data.ordinal
-
-        if answer_visits[i] is not None:
-            answer_data = answer_visits[i].answer
-            grade_data = answer_visits[i].grade_data
-        else:
-            answer_data = None
-            grade_data = None
-
-        page = instantiate_flow_page_with_ctx(fctx, page_data)
-
-        if not page.expects_answer():
-            continue
-
-        from course.page import PageContext
-        page_context = PageContext(
-                course=fctx.course, repo=fctx.repo, commit_sha=fctx.flow_commit_sha)
-
-        feedback = page.grade(
-                page_context, page_data.data, answer_data, grade_data)
-
-        if feedback is None or feedback.correctness is None:
-            return None
-
-        max_points += page.max_points(page_data.data)
-
-        points += page.max_points(page_data.data)*feedback.correctness
-
-        if feedback.correctness == 1:
-            fully_correct_count += 1
-        elif feedback.correctness == 0:
-            incorrect_count += 1
-        else:
-            partially_correct_count += 1
-
-    return GradeInfo(
-            points=points,
-            max_points=max_points,
-            fully_correct_count=fully_correct_count,
-            partially_correct_count=partially_correct_count,
-            incorrect_count=incorrect_count)
-
+# {{{ view: finish flow
 
 @transaction.atomic
-def finish_flow(request, course_identifier, flow_identifier):
+def finish_flow_session_view(request, course_identifier, flow_identifier):
     flow_session = find_current_flow_session(request, flow_identifier)
 
     if flow_session is None:
@@ -579,7 +768,8 @@ def finish_flow(request, course_identifier, flow_identifier):
             fctx.course, fctx.repo, fctx.flow_commit_sha,
             fctx.flow_desc.completion_text)
 
-    (answered_count, unanswered_count) = count_answered(fctx, answer_visits)
+    (answered_count, unanswered_count) = count_answered(
+            fctx, fctx.flow_session, answer_visits)
 
     def render_finish_response(template, **kwargs):
         render_args = {
@@ -602,49 +792,14 @@ def finish_flow(request, course_identifier, flow_identifier):
         if not flow_session.in_progress:
             raise PermissionDenied("Can't end a session that's already ended")
 
-        # Actually end the flow.
+        # Actually end the flow session
 
         request.session["flow_session_id"] = None
 
-        grade_info = gather_grade_info(fctx, answer_visits)
-
-        comment = None
-
-        if grade_info is not None:
-            points = grade_info.points
-
-            if hasattr(fctx.stipulations, "credit_percent"):
-                comment = "Counted at %.1f%% of %.1f points" % (
-                        fctx.stipulations.credit_percent, points)
-                points = points * fctx.stipulations.credit_percent / 100
-        else:
-            points = None
-
-        from django.utils.timezone import now
-        flow_session.completion_time = now()
-        flow_session.in_progress = False
-
-        if grade_info is not None:
-            flow_session.points = points
-            flow_session.max_points = grade_info.max_points
-        else:
-            flow_session.points = None
-            flow_session.max_points = None
-
-        flow_session.result_comment = comment
-        flow_session.save()
+        grade_info = finish_flow_session(fctx, flow_session)
 
         if answered_count + unanswered_count:
             # This is a graded flow.
-
-            # {{{ mark answers as final
-
-            for answer_visit in answer_visits:
-                if answer_visit is not None:
-                    answer_visit.is_graded_answer = True
-                    answer_visit.save()
-
-            # }}}
 
             if grade_info is None:
                 messages.add_message(request, messages.INFO,
@@ -656,30 +811,10 @@ def finish_flow(request, course_identifier, flow_identifier):
                         last_page_nr=None,
                         completion_text=completion_text)
 
-            # {{{ there is a grade to be had--assign it
-
-            from course.models import get_flow_grading_opportunity
-            gopp = get_flow_grading_opportunity(
-                    fctx.course, fctx.flow_identifier, fctx.flow_desc)
-
-            from course.models import grade_state_change_types
-            gchange = GradeChange()
-            gchange.opportunity = gopp
-            gchange.participation = fctx.participation
-            gchange.state = grade_state_change_types.graded
-            gchange.points = points
-            gchange.max_points = grade_info.max_points
-            gchange.creator = request.user
-            gchange.flow_session = flow_session
-            gchange.comment = comment
-            gchange.save()
-
             return render_finish_response(
                     "course/flow-completion-grade.html",
                     completion_text=completion_text,
                     grade_info=grade_info)
-
-            # }}}
 
         else:
             # {{{ no grade
