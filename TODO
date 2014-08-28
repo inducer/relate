@@ -7,12 +7,8 @@
 
 - Improve access-denied error for time-based rule on flow
 
-- Email me my code
-
 - In-progress sessions at deadlines...?
   -> Grading rule set ID
-
-- Unenrolled vs graded flows server error
 
 - Grade superseding after rule change
 
@@ -21,24 +17,18 @@
 
 - per-page permission filter
 
-- record end flow with a null page visit
-
 - ending on new version, resume, ...
-
-- Add db_index to flow_id in flowsession
-- Add db_index on FPVG.visit
-- Add a default ordering to fpvg
-
-validate markup in choices
-
-sticky_versioning in sample content
 
 Yaml parse errors lead to server errors
 
 Validation for presence of grade_aggregation_strategy
 
+Allow time mark + time
+
 Ideas
 =====
+
+- record end flow with a null page visit
 
 - web hooks for auto-fetch and auto-preview
 
@@ -71,3 +61,4 @@ Rejected ideas
 - Minimum visit times
 - Live chat via candy?
 - configuration store
+- Email me my code

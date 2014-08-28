@@ -649,6 +649,9 @@ class ChoiceQuestion(PageBase):
             if choice.startswith(self.CORRECT_TAG):
                 correct_choice_count += 1
 
+            validate_markup(vctx, location,
+                    remove_prefix(self.CORRECT_TAG, choice))
+
         if correct_choice_count < 1:
             raise ValidationError("%s: one or more correct answer(s) "
                     "expected, %d found" % (location, correct_choice_count))
@@ -1069,107 +1072,5 @@ class PythonCodeQuestion(PageBase):
 
 # }}}
 
-
-# {{{ symbolic question (deprecated)
-
-class SymbolicAnswerForm(TextAnswerForm):
-    def clean(self):
-        cleaned_data = super(SymbolicAnswerForm, self).clean()
-
-        try:
-            parse_sympy(cleaned_data["answer"])
-        except:
-            tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%s: %s"
-                    % (tp.__name__, str(e)))
-
-
-class SymbolicQuestion(PageBase):
-    def __init__(self, vctx, location, page_desc):
-        vctx.add_warning(location, "uses deprecated SymbolicQuestion")
-
-        validate_struct(
-                location,
-                page_desc,
-                required_attrs=[
-                    ("type", str),
-                    ("id", str),
-                    ("value", (int, float)),
-                    ("title", str),
-                    ("answers", list),
-                    ("prompt", str),
-                    ],
-                allowed_attrs=[],
-                )
-
-        for answer in page_desc.answers:
-            try:
-                parse_sympy(answer)
-            except:
-                tp, e, _ = sys.exc_info()
-                raise ValidationError("%s: %s: %s"
-                        % (location, tp.__name__, str(e)))
-
-        if vctx is not None:
-            validate_markup(vctx, location, page_desc.prompt)
-
-        PageBase.__init__(self, vctx, location, page_desc.id)
-        self.page_desc = page_desc
-
-    def title(self, page_context, page_data):
-        return self.page_desc.title
-
-    def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
-
-    def expects_answer(self):
-        return True
-
-    def max_points(self, page_data):
-        return self.page_desc.value
-
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        if answer_data is not None:
-            answer = {"answer": answer_data["answer"]}
-            form = SymbolicAnswerForm(answer)
-        else:
-            form = SymbolicAnswerForm()
-
-        if answer_is_final:
-            form.fields['answer'].widget.attrs['readonly'] = True
-
-        return (form, None)
-
-    def post_form(self, page_context, page_data, post_data, files_data):
-        return (SymbolicAnswerForm(post_data, files_data), None)
-
-    def answer_data(self, page_context, page_data, form):
-        return {"answer": form.cleaned_data["answer"].strip()}
-
-    def grade(self, page_context, page_data, answer_data, grade_data):
-        correct_answer_text = ("A correct answer is: '%s'."
-                % self.page_desc.answers[0])
-
-        if answer_data is None:
-            return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.",
-                    correct_answer=correct_answer_text)
-
-        correctness = 0
-
-        answer = parse_sympy(answer_data["answer"])
-
-        from sympy import simplify
-        for correct_answer in self.page_desc.answers:
-            correct_answer_sym = parse_sympy(correct_answer)
-
-            if simplify(answer - correct_answer_sym) == 0:
-                correctness = 1
-
-        return AnswerFeedback(correctness=correctness,
-                correct_answer=correct_answer_text)
-
-# }}}
 
 # vim: foldmethod=marker

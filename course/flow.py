@@ -317,7 +317,7 @@ def finish_flow_session(fctx, flow_session):
     flow_session.result_comment = comment
     flow_session.save()
 
-    if is_graded_flow:
+    if is_graded_flow and fctx.participation is not None:
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
                 fctx.course, fctx.flow_identifier, fctx.flow_desc)

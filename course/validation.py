@@ -323,8 +323,8 @@ def validate_flow_access_rule(ctx, location, rule):
                 ("start", (datetime.date, str)),
                 ("end", (datetime.date, str)),
                 ("credit_percent", (int, float)),
-                # ("time_limit", str),
                 ("allowed_session_count", int),
+                ("id", str),
                 ]
             )
 
@@ -345,6 +345,11 @@ def validate_flow_access_rule(ctx, location, rule):
 
     if hasattr(rule, "end"):
         ctx.encounter_datespec(location, rule.end)
+
+    if not hasattr(rule, "id"):
+        ctx.add_warning(location,
+                "Access rule is missing 'id' attribute. "
+                "This will become required in 2015.x.")
 
 
 def validate_flow_desc(ctx, location, flow_desc):
@@ -385,7 +390,7 @@ def validate_flow_desc(ctx, location, flow_desc):
                     % location)
 
     if not hasattr(flow_desc, "sticky_versioning"):
-        ctx.add_warning(location, "missing 'sticky_versioning' attribute - "
+        ctx.add_warning(location, "Flow is missing 'sticky_versioning' attribute - "
                 "this will be required in 2015.x.")
 
     if hasattr(flow_desc, "grade_aggregation_strategy"):

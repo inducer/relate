@@ -267,13 +267,14 @@ class FlowSession(models.Model):
 
     participation = models.ForeignKey(Participation, null=True, blank=True)
     active_git_commit_sha = models.CharField(max_length=200)
-    flow_id = models.CharField(max_length=200)
+    flow_id = models.CharField(max_length=200, db_index=True)
     start_time = models.DateTimeField(default=now)
     completion_time = models.DateTimeField(null=True, blank=True)
     page_count = models.IntegerField(null=True, blank=True)
 
     in_progress = models.BooleanField(default=None)
     for_credit = models.BooleanField(default=None)
+    access_rules_id = models.CharField(max_length=200, null=True)
 
     # Non-normal: These fields can be recomputed, albeit at great expense.
     #
