@@ -140,13 +140,17 @@ class Histogram(object):
 
         bins = [0 for i in range(len(num_bin_starts))]
 
+        temp_string_weights = self.string_weights.copy()
+
+        oob = "<out of bounds>"
+
         from bisect import bisect
         for value, weight in self.num_values:
-            if (max_value is not None
-                    and value > max_value
+            if ((max_value is not None
+                    and value > max_value)
                     or value < num_bin_starts[0]):
-                # ignore out-of-bounds value
-                assert False
+                temp_string_weights[oob] = \
+                        temp_string_weights.get(oob, 0) + weight
             else:
                 bin_nr = bisect(num_bin_starts, value)-1
                 bins[bin_nr] += weight
@@ -162,9 +166,9 @@ class Histogram(object):
         str_bin_info = [
                 BinInfo(
                     title=key,
-                    raw_weight=self.string_weights[key],
-                    percentage=100*self.string_weights[key]/total_weight)
-                for key in sorted(self.string_weights.iterkeys())]
+                    raw_weight=temp_string_weights[key],
+                    percentage=100*temp_string_weights[key]/total_weight)
+                for key in sorted(temp_string_weights.iterkeys())]
 
         return num_bin_info + str_bin_info
 
