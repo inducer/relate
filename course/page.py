@@ -185,7 +185,8 @@ class PageBase(object):
 
     def __init__(self, vctx, location, id):
         """
-        :arg vctx: a :class:`course.validation.ValidationContext`
+        :arg vctx: a :class:`course.validation.ValidationContext`, or None
+            if no validation is desired
         """
 
         self.location = location
@@ -296,7 +297,8 @@ class Page(PageBase):
         PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
 
-        validate_markup(vctx, location, page_desc.content)
+        if vctx is not None:
+            validate_markup(vctx, location, page_desc.content)
 
     def title(self, page_context, page_data):
         return self.page_desc.title
@@ -485,7 +487,8 @@ def parse_matcher(vctx, location, answer):
         matcher_prefix = match.group(1)
         pattern = match.group(2)
 
-        vctx.add_warning(location, "uses deprecated 'matcher:answer' style")
+        if vctx is not None:
+            vctx.add_warning(location, "uses deprecated 'matcher:answer' style")
 
     for matcher_class in TEXT_ANSWER_MATCHER_CLASSES:
         if matcher_class.prefix == matcher_prefix:
@@ -529,7 +532,8 @@ class TextQuestion(PageBase):
             raise ValidationError("%s: no matcher is able to provide a plain-text "
                     "correct answer")
 
-        validate_markup(vctx, location, page_desc.prompt)
+        if vctx is not None:
+            validate_markup(vctx, location, page_desc.prompt)
 
         PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
@@ -649,7 +653,8 @@ class ChoiceQuestion(PageBase):
             raise ValidationError("%s: one or more correct answer(s) "
                     "expected, %d found" % (location, correct_choice_count))
 
-        validate_markup(vctx, location, page_desc.prompt)
+        if vctx is not None:
+            validate_markup(vctx, location, page_desc.prompt)
 
         PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
@@ -875,7 +880,8 @@ class PythonCodeQuestion(PageBase):
                     ],
                 )
 
-        validate_markup(vctx, location, page_desc.prompt)
+        if vctx is not None:
+            validate_markup(vctx, location, page_desc.prompt)
 
         PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc
@@ -1104,7 +1110,8 @@ class SymbolicQuestion(PageBase):
                 raise ValidationError("%s: %s: %s"
                         % (location, tp.__name__, str(e)))
 
-        validate_markup(vctx, location, page_desc.prompt)
+        if vctx is not None:
+            validate_markup(vctx, location, page_desc.prompt)
 
         PageBase.__init__(self, vctx, location, page_desc.id)
         self.page_desc = page_desc

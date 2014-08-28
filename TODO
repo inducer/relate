@@ -31,6 +31,8 @@
 - Add db_index on FPVG.visit
 - Add a default ordering to fpvg
 
+validate markup in choices
+
 Ideas
 =====
 

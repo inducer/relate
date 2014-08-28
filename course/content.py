@@ -507,11 +507,7 @@ def get_flow_page_class(repo, typename, commit_sha):
 def instantiate_flow_page(location, repo, page_desc, commit_sha):
     class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
 
-    from course.validation import ValidationContext
-    vctx = ValidationContext(
-            repo=repo, commit_sha=commit_sha)
-
-    return class_(vctx, location, page_desc)
+    return class_(None, location, page_desc)
 
 
 def set_up_flow_session_page_data(repo, flow_session,
