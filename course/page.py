@@ -649,8 +649,9 @@ class ChoiceQuestion(PageBase):
             if choice.startswith(self.CORRECT_TAG):
                 correct_choice_count += 1
 
-            validate_markup(vctx, location,
-                    remove_prefix(self.CORRECT_TAG, choice))
+            if vctx is not None:
+                validate_markup(vctx, location,
+                        remove_prefix(self.CORRECT_TAG, choice))
 
         if correct_choice_count < 1:
             raise ValidationError("%s: one or more correct answer(s) "
