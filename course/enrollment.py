@@ -169,11 +169,13 @@ def decide_enrollment(approved, modeladmin, request, queryset):
                         args=(course.identifier,)))
             })
 
-        from django.core.mail import send_mail
-        send_mail("[%s] Your enrollment request" % course.identifier,
+        from django.core.mail import EmailMessage
+        msg = EmailMessage("[%s] Your enrollment request" % course.identifier,
                 message,
                 course.email,
-                recipient_list=[participation.user.email])
+                [participation.user.email])
+        msg.cc = [course.email]
+        msg.send()
 
         count += 1
 
