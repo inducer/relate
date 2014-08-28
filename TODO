@@ -9,8 +9,6 @@
 
 - Email me my code
 
-- Store grades of graded answers
-
 - In-progress sessions at deadlines...?
   -> Grading rule set ID
 
@@ -32,6 +30,12 @@
 - Add a default ordering to fpvg
 
 validate markup in choices
+
+sticky_versioning in sample content
+
+Yaml parse errors lead to server errors
+
+Validation for presence of grade_aggregation_strategy
 
 Ideas
 =====
