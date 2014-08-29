@@ -31,7 +31,7 @@ import sys
 
 from django.core.exceptions import ObjectDoesNotExist
 
-from course.content import get_yaml_from_repo, get_repo_blob
+from course.content import get_repo_blob
 from courseflow.utils import html_escape
 
 
@@ -451,10 +451,11 @@ def validate_flow_desc(ctx, location, flow_desc):
 # }}}
 
 
-def validate_course_content(repo, course_file, validate_sha, datespec_callback=None):
+def get_yaml_from_repo_safely(repo, full_name, commit_sha):
+    from course.content import get_yaml_from_repo
     try:
-        course_desc = get_yaml_from_repo(repo, course_file,
-                commit_sha=validate_sha)
+        return get_yaml_from_repo(
+                repo=repo, full_name=full_name, commit_sha=commit_sha)
     except:
         from traceback import print_exc
         print_exc()
@@ -462,7 +463,12 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
         tp, e, _ = sys.exc_info()
 
         raise ValidationError("%s: %s: %s" % (
-            course_file, tp.__name__, str(e)))
+            full_name, tp.__name__, str(e)))
+
+
+def validate_course_content(repo, course_file, validate_sha, datespec_callback=None):
+    course_desc = get_yaml_from_repo_safely(repo, course_file,
+            commit_sha=validate_sha)
 
     ctx = ValidationContext(
             repo=repo,
@@ -479,7 +485,7 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
     else:
         for entry in flows_tree.items():
             location = "flows/%s" % entry.path
-            flow_desc = get_yaml_from_repo(repo, location,
+            flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
             validate_flow_desc(ctx, location, flow_desc)

@@ -9,8 +9,6 @@
 
 - ending on new version, resume, ...
 
-Yaml parse errors lead to server errors
-
 Validation for presence of grade_aggregation_strategy
 
 Allow time mark + time
