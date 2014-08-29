@@ -317,6 +317,7 @@ def markup_to_html(course, repo, commit_sha, text):
             LinkFixerExtension(course, commit_sha),
             MathJaxExtension(),
             "extra",
+            "codehilite",
             ],
         output_format="html5")
 

@@ -49,3 +49,7 @@ python-memcached
 
 # For code isolation in code questions
 docker-py
+
+# For code highlighting, required via the CodeHilite extension to
+# Python-Markdown
+pygments
