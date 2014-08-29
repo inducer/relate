@@ -25,20 +25,42 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import socket
 import socketserver
 import json
 import sys
 import io
-import errno
 from cfrunpy_backend import dict_to_struct, run_code, package_exception
 from http.server import BaseHTTPRequestHandler
 
 PORT = 9941
+OUTPUT_LENGTH_LIMIT = 16*1024
+
+TEST_COUNT = 0
+
+
+def truncate_if_long(s):
+    if len(s) > OUTPUT_LENGTH_LIMIT:
+        s = s[:OUTPUT_LENGTH_LIMIT] + "[TRUNCATED... TOO MUCH OUTPUT]"
+    return s
 
 
 class RunRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        print("GET RECEIVED", file=sys.stderr)
+        if self.path != "/ping":
+            raise RuntimeError("unrecognized path in GET")
+
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+
+        self.wfile.write(b"OK")
+        print("PING RESPONSE DONE", file=sys.stderr)
+
     def do_POST(self):
+        global TEST_COUNT
+        TEST_COUNT += 1
+
         response = {}
 
         prev_stdout = sys.stdout  # noqa
@@ -47,7 +69,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
         try:
             print("POST RECEIVED", file=prev_stderr)
             if self.path != "/run-python":
-                raise RuntimeError("unrecognized path")
+                raise RuntimeError("unrecognized path in POST")
 
             clength = int(self.headers['content-length'])
             recv_data = self.rfile.read(clength)
@@ -66,8 +88,8 @@ class RunRequestHandler(BaseHTTPRequestHandler):
 
             run_code(response, run_req)
 
-            response["stdout"] = stdout.getvalue()
-            response["stderr"] = stderr.getvalue()
+            response["stdout"] = truncate_if_long(stdout.getvalue())
+            response["stderr"] = truncate_if_long(stderr.getvalue())
 
             print("REQUEST SERVICED: %r" % response, file=prev_stderr)
 
@@ -77,7 +99,9 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "application/json")
             self.end_headers()
 
+            print("WRITING RESPONSE", file=prev_stderr)
             self.wfile.write(json_result)
+            print("WROTE RESPONSE", file=prev_stderr)
         except:
             print("ERROR RESPONSE", file=prev_stderr)
             response = {}
@@ -98,15 +122,16 @@ def main():
     print("STARTING, LISTENING ON %d" % PORT, file=sys.stderr)
     server = socketserver.TCPServer(("", PORT), RunRequestHandler)
 
-    if len(sys.argv) > 1 and sys.argv[1] == "-1":
-        try:
-            server.handle_request()
-            print("DONE serving requests", file=sys.stderr)
-        finally:
-            server.server_close()
-            print("FINISHED server_close()", file=sys.stderr)
-    else:
-        server.serve_forever()
+    serve_single_test = len(sys.argv) > 1 and sys.argv[1] == "-1"
+
+    while True:
+        server.handle_request()
+        print("SERVED REQUEST", file=sys.stderr)
+        if TEST_COUNT > 0 and serve_single_test:
+            break
+
+    server.server_close()
+    print("FINISHED server_close()", file=sys.stderr)
 
     print("EXITING", file=sys.stderr)
 

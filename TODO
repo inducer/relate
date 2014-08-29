@@ -1,19 +1,9 @@
 - model docs
 
-- Flow results analytics
-  --> time taken
-
-- Code question
-
 - Improve access-denied error for time-based rule on flow
 
 - In-progress sessions at deadlines...?
   -> Grading rule set ID
-
-- Grade superseding after rule change
-
-- Code timeout
-- Test mem limits
 
 - per-page permission filter
 
@@ -27,6 +17,11 @@ Allow time mark + time
 
 Ideas
 =====
+
+- Grade superseding after rule change
+
+- Flow results analytics
+  --> time taken per question
 
 - record end flow with a null page visit
 

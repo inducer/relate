@@ -509,7 +509,8 @@ def add_buttons_to_form(fpctx, form):
         if flow_permission.change_answer in fpctx.permissions:
             form.helper.add_input(
                     Submit(
-                        "submit", "Submit answer for grading"))
+                        "submit", "Submit answer for grading",
+                        accesskey="g"))
         else:
             form.helper.add_input(Submit("submit", "Submit final answer"))
     else:

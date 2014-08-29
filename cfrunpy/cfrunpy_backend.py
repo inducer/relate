@@ -52,6 +52,7 @@ PROTOCOL
         One of
 
         * ``success``
+        * ``timeout``
         * ``uncaught_error``
         * ``setup_compile_error``
         * ``setup_error``,
@@ -122,7 +123,7 @@ def package_exception(result, what):
     tp, val, tb = sys.exc_info()
     result["result"] = what
     result["message"] = "%s: %s" % (tp.__name__, str(val))
-    result["traceback"] = "\n".join(
+    result["traceback"] = "".join(
             traceback.format_exception(tp, val, tb))
 
 

@@ -780,7 +780,11 @@ class PythonCodeForm(StyledForm):
 CFRUNPY_PORT = 9941
 
 
-def request_python_run(run_req):
+class InvalidPingResponse(RuntimeError):
+    pass
+
+
+def request_python_run(run_req, run_timeout):
     import json
     import httplib
     from django.conf import settings
@@ -789,46 +793,63 @@ def request_python_run(run_req):
     import errno
     from httplib import BadStatusLine
 
-    docker_cnx = docker.Client(
-            base_url='unix://var/run/docker.sock',
-            version='1.12', timeout=10)
+    debug = False
+    if debug:
+        def debug_print(s):
+            print s
+    else:
+        def debug_print(s):
+            pass
 
-    dresult = docker_cnx.create_container(
-            image=settings.CF_DOCKER_CFRUNPY_IMAGE,
-            command=["/opt/cfrunpy/cfrunpy", "-1"],
-            mem_limit="128m",
-            user="cfrunpy")
+    docker_timeout = 15
 
-    container_id = dresult["Id"]
+    # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
+    if 1:
+        docker_cnx = docker.Client(
+                base_url='unix://var/run/docker.sock',
+                version='1.12', timeout=docker_timeout)
+
+        dresult = docker_cnx.create_container(
+                image=settings.CF_DOCKER_CFRUNPY_IMAGE,
+                command=["/opt/cfrunpy/cfrunpy", "-1"],
+                mem_limit=256e6,
+                user="cfrunpy")
+
+        container_id = dresult["Id"]
+    else:
+        container_id = None
+
     try:
         # FIXME: Prohibit networking
 
-        docker_cnx.start(
-                container_id,
-                port_bindings={CFRUNPY_PORT: ('127.0.0.1',)})
+        if container_id is not None:
+            docker_cnx.start(
+                    container_id,
+                    port_bindings={CFRUNPY_PORT: ('127.0.0.1',)})
 
-        port_info, = docker_cnx.port(container_id, CFRUNPY_PORT)
-        port = int(port_info["HostPort"])
+            port_info, = docker_cnx.port(container_id, CFRUNPY_PORT)
+            port = int(port_info["HostPort"])
+        else:
+            port = CFRUNPY_PORT
 
         from time import time, sleep
         start_time = time()
-        docker_timeout = 15
+
+        # {{{ ping until response received
 
         while True:
             try:
                 connection = httplib.HTTPConnection('localhost', port)
 
-                headers = {'Content-type': 'application/json'}
-
-                json_run_req = json.dumps(run_req).encode("utf-8")
-
-                connection.request('POST', '/run-python', json_run_req, headers)
+                connection.request('GET', '/ping')
 
                 response = connection.getresponse()
                 response_data = response.read().decode("utf-8")
-                response_json = json.loads(response_data)
 
-                return response_json
+                if response_data != b"OK":
+                    raise InvalidPingResponse()
+
+                break
 
             except socket.error as e:
                 from traceback import format_exc
@@ -846,7 +867,7 @@ def request_python_run(run_req):
                 else:
                     raise
 
-            except BadStatusLine:
+            except (BadStatusLine, InvalidPingResponse):
                 if time() - start_time < docker_timeout:
                     sleep(0.1)
                     # and retry
@@ -857,9 +878,40 @@ def request_python_run(run_req):
                             "traceback": "".join(format_exc()),
                             }
 
+        # }}}
+
+        debug_print("PING SUCCESSFUL")
+
+        try:
+            # Add a second to accommodate 'wire' delays
+            connection = httplib.HTTPConnection('localhost', port,
+                    timeout=1 + run_timeout)
+
+            headers = {'Content-type': 'application/json'}
+
+            json_run_req = json.dumps(run_req).encode("utf-8")
+
+            debug_print("BEFPOST")
+            connection.request('POST', '/run-python', json_run_req, headers)
+            debug_print("AFTPOST")
+
+            http_response = connection.getresponse()
+            debug_print("GETR")
+            response_data = http_response.read().decode("utf-8")
+            debug_print("READR")
+            return json.loads(response_data)
+
+        except socket.timeout:
+            return {"result": "timeout"}
+
     finally:
-        docker_cnx.stop(container_id, timeout=3)
-        docker_cnx.remove_container(container_id)
+        if container_id is not None:
+            debug_print("-----------BEGIN DOCKER LOGS for %s" % container_id)
+            debug_print(docker_cnx.logs(container_id))
+            debug_print("-----------END DOCKER LOGS for %s" % container_id)
+
+            docker_cnx.stop(container_id, timeout=3)
+            docker_cnx.remove_container(container_id)
 
 
 class PythonCodeQuestion(PageBase):
@@ -952,7 +1004,8 @@ class PythonCodeQuestion(PageBase):
         transfer_attr("test_code")
 
         try:
-            response_dict = request_python_run(run_req)
+            response_dict = request_python_run(run_req,
+                    run_timeout=self.page_desc.timeout)
         except:
             from traceback import format_exc
             response_dict = {
@@ -1023,6 +1076,12 @@ class PythonCodeQuestion(PageBase):
                     "it will be fixed as soon as possible. "
                     "In the meantime, you'll see a traceback "
                     "below that may help you figure out what went wrong.</p>")
+        elif response.result == "timeout":
+            feedback_bits.append(
+                    "<p>Your code took too long to execute. The problem "
+                    "specifies that your code may take at most %s seconds to run. "
+                    "It took longer than that and was aborted.</p>"
+                    % self.page_desc.timeout)
         elif response.result == "user_compile_error":
             feedback_bits.append(
                     "<p>Your code failed to compile. An error message is below.</p>")
@@ -1051,6 +1110,7 @@ class PythonCodeQuestion(PageBase):
             feedback_bits.append(
                     "<p>This is the exception traceback:"
                     "<pre>%s</pre></p>" % html_escape(response.traceback))
+            print repr(response.traceback)
         if hasattr(response, "stdout") and response.stdout:
             feedback_bits.append(
                     "<p>Your code printed the following output:<pre>%s</pre></p>"
