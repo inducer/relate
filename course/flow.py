@@ -734,8 +734,6 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         "feedback": shown_feedback,
         "show_correctness": show_correctness,
         "may_change_answer": may_change_answer,
-        "may_change_graded_answer":
-            flow_permission.change_answer in fpctx.permissions,
         "will_receive_feedback": fpctx.will_receive_feedback(),
         "show_answer": show_answer,
     }
