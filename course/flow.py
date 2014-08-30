@@ -118,9 +118,10 @@ def assemble_answer_visits(flow_session):
     answer_visits = [None] * flow_session.page_count
 
     from course.models import FlowPageVisit
+    from django.db.models import Q
     answer_page_visits = (FlowPageVisit.objects
             .filter(flow_session=flow_session)
-            .filter(answer__isnull=False)
+            .filter(Q(answer__isnull=False) | Q(is_synthetic=True))
             .order_by("visit_time"))
 
     for page_visit in answer_page_visits:
