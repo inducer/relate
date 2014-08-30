@@ -232,7 +232,8 @@ def validate_course_desc_struct(ctx, location, course_desc):
 
     for i, chunk in enumerate(course_desc.chunks):
         validate_chunk(ctx,
-                "%s, chunk %d ('%s')" % (location, i+1, chunk.id),
+                "%s, chunk %d ('%s')"
+                % (location, i+1, getattr(chunk, "id", None)),
                 chunk)
 
     # {{{ check chunk id uniqueness
@@ -254,6 +255,9 @@ def validate_course_desc_struct(ctx, location, course_desc):
 # {{{ flow validation
 
 def validate_flow_page(ctx, location, page_desc):
+    if not hasattr(page_desc, "id"):
+        raise ValidationError("%s: flow page has no ID" % location)
+
     validate_identifier(location, page_desc.id)
 
     from course.content import get_flow_page_class
@@ -285,7 +289,8 @@ def validate_flow_group(ctx, location, grp):
     for i, page_desc in enumerate(grp.pages):
         validate_flow_page(
                 ctx,
-                "%s, page %d ('%s')" % (location, i+1, page_desc.id),
+                "%s, page %d ('%s')"
+                % (location, i+1, getattr(page_desc, "id", None)),
                 page_desc)
 
     validate_identifier(location, grp.id)
