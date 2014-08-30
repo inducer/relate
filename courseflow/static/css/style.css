@@ -67,3 +67,8 @@ div.progress:hover  span.stats-percentage{
 
 
 /* }}} */
+
+.fc-other-month {
+  background: #eee;
+}
+
