@@ -60,7 +60,7 @@ def check_events(pctx):
 
     from course.validation import validate_course_content
     validate_course_content(
-            pctx.repo, pctx.course.course_file, pctx.events_file,
+            pctx.repo, pctx.course.course_file, pctx.course.events_file,
             pctx.course_commit_sha, datespec_callback=datespec_callback)
 
     return render_course_page(pctx, "course/invalid-datespec-list.html", {
