@@ -12,5 +12,22 @@ Writing content for CourseFlow
 
 Explain implications of sticky_versioning
 
+Predefined question types
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Code questions
+##############
+
+Deep copy semantics
+
+Predefined symbols: ``feedback``, ``user_code``
+
+
+Calendar and Events
+-------------------
+
 The Page API
 ------------
+
+...
+
