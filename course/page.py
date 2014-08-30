@@ -975,10 +975,12 @@ class PythonCodeQuestion(PageBase):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data, grade_data):
+        from courseflow.utils import html_escape
+
         if hasattr(self.page_desc, "correct_code"):
             correct_answer = (
                     "The following code is a valid answer:<pre>%s</pre>"
-                    % self.page_desc.correct_code)
+                    % html_escape(self.page_desc.correct_code))
         else:
             correct_answer = ""
 
@@ -1059,7 +1061,6 @@ class PythonCodeQuestion(PageBase):
         from courseflow.utils import dict_to_struct
         response = dict_to_struct(response_dict)
 
-        from courseflow.utils import html_escape
         feedback_bits = []
         if response.result == "success":
             pass
@@ -1119,12 +1120,6 @@ class PythonCodeQuestion(PageBase):
             feedback_bits.append(
                     "<p>Your code printed the following error messages:"
                     "<pre>%s</pre></p>" % html_escape(response.stderr))
-
-        if hasattr(self.page_desc, "correct_code"):
-            correct_answer = "<pre>%s</pre>" % html_escape(
-                    self.page_desc.correct_code)
-        else:
-            correct_answer = None
 
         return AnswerFeedback(
                 correctness=correctness,
