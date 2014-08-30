@@ -178,7 +178,10 @@ def run_code(result, run_req):
     # {{{ run code
 
     feedback = Feedback()
-    maint_ctx = {"feedback": feedback}
+    maint_ctx = {
+            "feedback": feedback,
+            "user_code": user_code,
+            }
 
     if setup_code is not None:
         try:
@@ -188,13 +191,14 @@ def run_code(result, run_req):
             return
 
     user_ctx = {}
+    from copy import deepcopy
     if hasattr(run_req, "names_for_user"):
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
                 result["message"] = "Setup code did not define '%s'." % name
 
-            user_ctx[name] = maint_ctx[name]
+            user_ctx[name] = deepcopy(maint_ctx[name])
 
     try:
         exec(user_code, user_ctx)
@@ -208,7 +212,7 @@ def run_code(result, run_req):
                 result["result"] = "success"
                 result["points"] = 0
                 result["feedback"] = [
-                        "Required answer variable '%s' was not defined."
+                        "Required answer variable '%s' is not defined."
                         % name
                         ]
                 return result
