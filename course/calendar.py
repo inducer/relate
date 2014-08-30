@@ -74,6 +74,7 @@ class RecurringEventForm(StyledForm):
     time = forms.DateTimeField(
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}))
+    duration_in_minutes = forms.FloatField(required=False)
     interval = forms.ChoiceField(required=True,
             choices=(
                 ("weekly", "Weekly"),
@@ -108,12 +109,16 @@ def create_recurring_events(pctx):
             import datetime
 
             for i in xrange(form.cleaned_data["count"]):
-                label = Event()
-                label.course = pctx.course
-                label.kind = form.cleaned_data["kind"]
-                label.ordinal = ordinal
-                label.time = time
-                label.save()
+                evt = Event()
+                evt.course = pctx.course
+                evt.kind = form.cleaned_data["kind"]
+                evt.ordinal = ordinal
+                evt.time = time
+
+                if form.cleaned_data["duration_in_minutes"]:
+                    evt.end_time = evt.time + datetime.timedelta(
+                            minutes=form.cleaned_data["duration_in_minutes"])
+                evt.save()
 
                 if interval == "weekly":
                     date = time.date()
@@ -247,7 +252,7 @@ def view_calendar(pctx):
                 event_json["color"] = kind_desc["color"]
             if "title" in kind_desc:
                 if event.ordinal:
-                    human_title = "%s %d" % (kind_desc["title"], event.ordinal)
+                    human_title = kind_desc["title"].format(nr=event.ordinal)
                 else:
                     human_title = kind_desc["title"]
 
