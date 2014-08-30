@@ -127,6 +127,10 @@ def package_exception(result, what):
             traceback.format_exception(tp, val, tb))
 
 
+class GradingComplete(Exception):
+    pass
+
+
 class Feedback:
     def __init__(self):
         self.points = None
@@ -137,6 +141,11 @@ class Feedback:
 
     def add_feedback(self, text):
         self.feedback_items.append(text)
+
+    def finish(self, points, fb_text):
+        self.add_feedback(fb_text)
+        self.set_points(points)
+        raise GradingComplete()
 
 
 def run_code(result, run_req):
@@ -181,6 +190,7 @@ def run_code(result, run_req):
     maint_ctx = {
             "feedback": feedback,
             "user_code": user_code,
+            "GradingComplete": GradingComplete,
             }
 
     if setup_code is not None:
@@ -222,6 +232,8 @@ def run_code(result, run_req):
     if test_code is not None:
         try:
             exec(test_code, maint_ctx)
+        except GradingComplete:
+            pass
         except:
             package_exception(result, "test_error")
             return
