@@ -32,7 +32,7 @@ import sys
 from django.core.exceptions import ObjectDoesNotExist
 
 from course.content import get_repo_blob
-from courseflow.utils import html_escape
+from courseflow.utils import html_escape, Struct
 
 
 # {{{ validation tools
@@ -451,6 +451,25 @@ def validate_flow_desc(ctx, location, flow_desc):
 # }}}
 
 
+# {{{ calendar validation
+
+def validate_calendar_desc_struct(ctx, location, events_desc):
+    validate_struct(
+            location,
+            events_desc,
+            required_attrs=[
+                ],
+            allowed_attrs=[
+                ("event_kinds", Struct),
+                ("events", Struct),
+                ]
+            )
+
+    # FIXME could do more here
+
+# }}}
+
+
 def get_yaml_from_repo_safely(repo, full_name, commit_sha):
     from course.content import get_yaml_from_repo
     try:
@@ -466,7 +485,8 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
             full_name, tp.__name__, str(e)))
 
 
-def validate_course_content(repo, course_file, validate_sha, datespec_callback=None):
+def validate_course_content(repo, course_file, events_file,
+        validate_sha, datespec_callback=None):
     course_desc = get_yaml_from_repo_safely(repo, course_file,
             commit_sha=validate_sha)
 
@@ -476,6 +496,16 @@ def validate_course_content(repo, course_file, validate_sha, datespec_callback=N
             datespec_callback=datespec_callback)
 
     validate_course_desc_struct(ctx, course_file, course_desc)
+
+    try:
+        from course.content import get_yaml_from_repo
+        events_desc = get_yaml_from_repo(repo, events_file,
+                commit_sha=validate_sha)
+    except ObjectDoesNotExist:
+        # That's OK--no calendar info.
+        pass
+    else:
+        validate_calendar_desc_struct(ctx, events_file, events_desc)
 
     try:
         flows_tree = get_repo_blob(repo, "flows", validate_sha)

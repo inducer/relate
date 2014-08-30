@@ -111,6 +111,7 @@ class CourseCreationForm(forms.ModelForm):
             "identifier", "hidden",
             "git_source", "ssh_private_key",
             "course_file",
+            "events_file",
             "enrollment_approval_required",
             "enrollment_required_email_suffix",
             "email")
@@ -160,9 +161,8 @@ def set_up_new_course(request):
 
                         from course.validation import validate_course_content
                         validate_course_content(
-                                repo, new_course.course_file, new_sha)
-
-                        # FIXME create time labels
+                                repo, new_course.course_file,
+                                new_course.events_file, new_sha)
 
                         new_course.valid = True
                         new_course.active_git_commit_sha = new_sha
@@ -181,11 +181,11 @@ def set_up_new_course(request):
 
                         messages.add_message(request, messages.INFO,
                                 "Course content validated, creation succeeded. "
-                                "You may want to view the time labels used "
+                                "You may want to view the events used "
                                 "in the course content and create them. "
                                 + '<a href="%s" class="btn btn-primary">'
                                 'Check &raquo;</a>'
-                                % reverse("course.views.check_time_labels",
+                                % reverse("course.calendar.check_events",
                                     args=(new_course.identifier,)))
                 except:
                     # Don't coalesce this handler with the one below. We only want
@@ -373,7 +373,7 @@ def update_course(pctx):
             from course.validation import validate_course_content, ValidationError
             try:
                 warnings = validate_course_content(
-                        repo, course.course_file, new_sha)
+                        repo, course.course_file, course.events_file, new_sha)
             except ValidationError as e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "
@@ -397,13 +397,13 @@ def update_course(pctx):
             if validated and "update" in form.data:
                 messages.add_message(request, messages.INFO,
                         "Update applied. "
-                        "You may want to view the time labels used "
+                        "You may want to view the events used "
                         "in the course content and check that they "
                         "are recognized. "
                         + '<p><a href="%s" class="btn btn-primary" '
                         'style="margin-top:8px">'
                         'Check &raquo;</a></p>'
-                        % reverse("course.views.check_time_labels",
+                        % reverse("course.calendar.check_events",
                             args=(course.identifier,)))
 
                 course.active_git_commit_sha = new_sha

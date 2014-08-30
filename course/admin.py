@@ -25,7 +25,7 @@ THE SOFTWARE.
 from django.contrib import admin
 from course.models import (
         UserStatus,
-        Course, TimeLabel,
+        Course, Event,
         Participation, ParticipationPreapproval,
         InstantFlowRequest,
         FlowSession, FlowPageData,
@@ -101,10 +101,10 @@ class CourseAdmin(admin.ModelAdmin):
 admin.site.register(Course, CourseAdmin)
 
 
-# {{{ time labels
+# {{{ events
 
-class TimeLabelAdmin(admin.ModelAdmin):
-    list_display = ("course", "kind", "ordinal", "time")
+class EventAdmin(admin.ModelAdmin):
+    list_display = ("course", "kind", "ordinal", "time", "end_time")
     list_filter = ("course", "kind")
 
     date_hierarchy = "time"
@@ -112,9 +112,9 @@ class TimeLabelAdmin(admin.ModelAdmin):
     def __unicode__(self):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
 
-    list_editable = ("ordinal", "time")
+    list_editable = ("ordinal", "time", "end_time")
 
-admin.site.register(TimeLabel, TimeLabelAdmin)
+admin.site.register(Event, EventAdmin)
 
 # }}}
 

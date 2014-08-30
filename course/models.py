@@ -103,6 +103,10 @@ class Course(models.Model):
             default="course.yml",
             help_text="Name of a YAML file in the git repository that contains "
             "the root course descriptor.")
+    events_file = models.CharField(max_length=200,
+            default="events.yml",
+            help_text="Name of a YAML file in the git repository that contains "
+            "calendar information.")
 
     enrollment_approval_required = models.BooleanField(
             default=False,
@@ -149,8 +153,8 @@ class Course(models.Model):
 # }}}
 
 
-class TimeLabel(models.Model):
-    """A time label is an identifier that can be used to specify dates in
+class Event(models.Model):
+    """An event is an identifier that can be used to specify dates in
     course content.
     """
 
@@ -160,6 +164,7 @@ class TimeLabel(models.Model):
     ordinal = models.IntegerField(blank=True, null=True)
 
     time = models.DateTimeField()
+    end_time = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("course", "time")

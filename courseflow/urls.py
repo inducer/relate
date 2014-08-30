@@ -66,6 +66,8 @@ urlpatterns = patterns('',
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/instant-message/$",
         "course.im.send_instant_message",),
+
+    # enrollment
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/enroll/$",
@@ -75,25 +77,30 @@ urlpatterns = patterns('',
         "/preapprove/$",
         "course.enrollment.create_preapprovals",),
 
+    # media
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/media/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<media_path>.*)$",
         "course.views.get_media",),
 
-    # time labels
+    # calendar
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/check-time-labels/$",
-        "course.views.check_time_labels",),
+        "/check-events/$",
+        "course.calendar.check_events",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/create-recurring-time-labels/$",
-        "course.views.create_recurring_time_labels",),
+        "/create-recurring-events/$",
+        "course.calendar.create_recurring_events",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/renumber-time-labels/$",
-        "course.views.renumber_time_labels",),
+        "/renumber-events/$",
+        "course.calendar.renumber_events",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/calendar/$",
+        "course.calendar.view_calendar",),
 
     # versioning
     url(r"^new-course/$",

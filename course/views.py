@@ -28,13 +28,11 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.db import transaction
 import django.forms as forms
 import django.views.decorators.http as http_dec
 from django import http
 
 from django.views.decorators.cache import cache_control
-from django.contrib.auth.decorators import login_required
 
 from crispy_forms.layout import Submit
 
@@ -42,7 +40,7 @@ from courseflow.utils import StyledForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_role_and_participation
-from course.models import (Course, participation_role, TimeLabel)
+from course.models import (Course, participation_role)
 
 from course.content import (get_course_repo, get_course_desc)
 from course.utils import course_view, render_course_page
@@ -145,166 +143,6 @@ def get_media(request, course_identifier, commit_sha, media_path):
 # }}}
 
 
-# {{{ time labels
-
-@login_required
-@course_view
-def check_time_labels(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
-
-    invalid_datespecs = {}
-
-    from course.content import InvalidDatespec, parse_date_spec
-
-    def datespec_callback(location, datespec):
-        try:
-            parse_date_spec(pctx.course, datespec, return_now_on_error=False)
-        except InvalidDatespec as e:
-            invalid_datespecs.setdefault(e.datespec, []).append(location)
-
-    from course.validation import validate_course_content
-    validate_course_content(
-            pctx.repo, pctx.course.course_file, pctx.course_commit_sha,
-            datespec_callback=datespec_callback)
-
-    return render_course_page(pctx, "course/invalid-datespec-list.html", {
-        "invalid_datespecs": sorted(invalid_datespecs.iteritems()),
-        })
-
-
-class RecurringTimeLabelForm(StyledForm):
-    kind = forms.CharField(required=True,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.")
-    time = forms.DateTimeField(
-            widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}))
-    interval = forms.ChoiceField(required=True,
-            choices=(
-                ("weekly", "Weekly"),
-                ))
-    starting_ordinal = forms.IntegerField(required=True, initial=1)
-    count = forms.IntegerField(required=True)
-
-    def __init__(self, *args, **kwargs):
-        super(RecurringTimeLabelForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(
-                Submit("submit", "Create", css_class="col-lg-offset-2"))
-
-
-@transaction.atomic
-@login_required
-@course_view
-def create_recurring_time_labels(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
-
-    request = pctx.request
-
-    if request.method == "POST":
-        form = RecurringTimeLabelForm(request.POST, request.FILES)
-        if form.is_valid():
-
-            time = form.cleaned_data["time"]
-            ordinal = form.cleaned_data["starting_ordinal"]
-            interval = form.cleaned_data["interval"]
-
-            import datetime
-
-            for i in xrange(form.cleaned_data["count"]):
-                label = TimeLabel()
-                label.course = pctx.course
-                label.kind = form.cleaned_data["kind"]
-                label.ordinal = ordinal
-                label.time = time
-                label.save()
-
-                if interval == "weekly":
-                    date = time.date()
-                    date += datetime.timedelta(weeks=1)
-                    time = time.tzinfo.localize(
-                            datetime.datetime(date.year, date.month, date.day,
-                                time.hour, time.minute, time.second))
-                    del date
-                else:
-                    raise ValueError("unknown interval: %s" % interval)
-
-                ordinal += 1
-
-            messages.add_message(request, messages.SUCCESS,
-                    "Time labels created.")
-    else:
-        form = RecurringTimeLabelForm()
-
-    return render_course_page(pctx, "course/generic-course-form.html", {
-        "form": form,
-        "form_description": "Create recurring time labels",
-    })
-
-
-class RenumberTimeLabelsForm(StyledForm):
-    kind = forms.CharField(required=True,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.")
-    starting_ordinal = forms.IntegerField(required=True, initial=1)
-
-    def __init__(self, *args, **kwargs):
-        super(RenumberTimeLabelsForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(
-                Submit("submit", "Renumber", css_class="col-lg-offset-2"))
-
-
-@transaction.atomic
-@login_required
-@course_view
-def renumber_time_labels(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
-
-    request = pctx.request
-
-    if request.method == "POST":
-        form = RenumberTimeLabelsForm(request.POST, request.FILES)
-        if form.is_valid():
-            labels = list(TimeLabel.objects
-                    .filter(course=pctx.course, kind=form.cleaned_data["kind"])
-                    .order_by('time'))
-
-            if labels:
-                queryset = (TimeLabel.objects
-                    .filter(course=pctx.course, kind=form.cleaned_data["kind"]))
-
-                queryset.delete()
-
-                ordinal = form.cleaned_data["starting_ordinal"]
-                for label in labels:
-                    new_label = TimeLabel()
-                    new_label.course = pctx.course
-                    new_label.kind = form.cleaned_data["kind"]
-                    new_label.ordinal = ordinal
-                    new_label.time = label.time
-                    new_label.save()
-
-                    ordinal += 1
-
-                messages.add_message(request, messages.SUCCESS,
-                        "Time labels renumbered.")
-            else:
-                messages.add_message(request, messages.ERROR,
-                        "No time labels found.")
-
-    else:
-        form = RenumberTimeLabelsForm()
-
-    return render_course_page(pctx, "course/generic-course-form.html", {
-        "form": form,
-        "form_description": "Renumber time labels",
-    })
-
-# }}}
-
-
 # {{{ time travel
 
 class FakeTimeForm(StyledForm):
@@ -393,5 +231,6 @@ def view_grades(pctx):
     return redirect("course.views.course_page", pctx.course.identifier)
 
 # }}}
+
 
 # vim: foldmethod=marker

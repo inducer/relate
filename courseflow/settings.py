@@ -88,6 +88,7 @@ BOWER_INSTALLED_APPS = (
     "videojs",
     "MathJax",
     "codemirror",
+    "fullcalendar",
     )
 
 CODEMIRROR_PATH = "codemirror"

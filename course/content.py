@@ -108,6 +108,22 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     return result
 
 
+def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
+    cache_key = "%DICT%%2".join((repo.controldir(), full_name, commit_sha))
+
+    def_cache = cache.caches["default"]
+    result = def_cache.get(cache_key)
+    if result is not None:
+        return result
+
+    from yaml import load
+    result = load(get_repo_blob(repo, full_name, commit_sha).data)
+
+    def_cache.add(cache_key, result, None)
+
+    return result
+
+
 def get_yaml_from_repo(repo, full_name, commit_sha):
     cache_key = "%%%2".join((repo.controldir(), full_name, commit_sha))
 
@@ -210,6 +226,10 @@ class LinkFixerTreeprocessor(Treeprocessor):
                             self.get_course_identifier(),
                             self.commit_sha,
                             media_path))
+
+        elif url.strip() == "calendar:":
+            return reverse("course.calendar.view_calendar",
+                        args=(self.get_course_identifier(),))
 
         return None
 
@@ -349,12 +369,12 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
                 int(match.group(2)),
                 int(match.group(3)))
 
-    from course.models import TimeLabel
+    from course.models import Event
 
     match = TRAILING_NUMERAL_RE.match(datespec)
     if match:
         try:
-            return TimeLabel.objects.get(
+            return Event.objects.get(
                     course=course,
                     kind=match.group(1),
                     ordinal=int(match.group(2))).time
@@ -365,7 +385,7 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
                 raise InvalidDatespec(datespec)
 
     try:
-        return TimeLabel.objects.get(
+        return Event.objects.get(
                 course=course,
                 kind=datespec,
                 ordinal=None).time

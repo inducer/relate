@@ -26,6 +26,7 @@
       <li><a href="{% url "course.im.send_instant_message" course.identifier %}">Send instant message</a></li>
       {% endif %}
       <li><a href="{% url "course.views.view_grades" course.identifier %}">View grades</a></li>
+      <li><a href="{% url "course.calendar.view_calendar" course.identifier %}">View calendar</a></li>
     </ul>
   </li>
   {% endif %}
@@ -49,13 +50,13 @@
       <li><a href="{% url "course.versioning.update_course" course.identifier %}">Update course</a></li>
 
       <li role="presentation" class="divider"></li>
-      <li role="presentation" class="dropdown-header">Time labels</li>
+      <li role="presentation" class="dropdown-header">Calendar</li>
       {% if user.is_staff %}
-        <li><a href="{% url "admin:course_timelabel_changelist" %}" target="_blank">Edit time labels</a></li>
+        <li><a href="{% url "admin:course_event_changelist" %}" target="_blank">Edit events</a></li>
       {% endif %}
-      <li><a href="{% url "course.views.check_time_labels" course.identifier %}">Check time labels</a></li>
-      <li><a href="{% url "course.views.create_recurring_time_labels" course.identifier %}">Create recurring time labels</a></li>
-      <li><a href="{% url "course.views.renumber_time_labels" course.identifier %}">Renumber time labels</a></li>
+      <li><a href="{% url "course.calendar.check_events" course.identifier %}">Check events</a></li>
+      <li><a href="{% url "course.calendar.create_recurring_events" course.identifier %}">Create recurring events</a></li>
+      <li><a href="{% url "course.calendar.renumber_events" course.identifier %}">Renumber events</a></li>
 
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">Participation</li>
