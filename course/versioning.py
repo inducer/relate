@@ -31,6 +31,7 @@ import django.forms as forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
+from django.utils.safestring import mark_safe
 
 from django.db import transaction
 
@@ -244,9 +245,7 @@ def is_parent_commit(repo, potential_parent, child):
     return False
 
 
-@login_required
-@course_view
-def fetch_course_updates(pctx):
+def fetch_course_updates_inner(pctx):
     import sys
 
     if pctx.role != participation_role.instructor:
@@ -308,6 +307,12 @@ def fetch_course_updates(pctx):
         "form_description": "Fetch New Course Revisions",
     })
 
+
+@login_required
+@course_view
+def fetch_course_updates(pctx):
+    return fetch_course_updates_inner(pctx)
+
 # }}}
 
 
@@ -333,6 +338,8 @@ class GitUpdateForm(forms.Form):
 
         self.helper.add_input(
                 Submit("update", "Validate and update"))
+        self.helper.add_input(
+                Submit("fetch", mark_safe("&laquo; Fetch again")))
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
 
@@ -353,6 +360,9 @@ def update_course(pctx):
     response_form = None
     if request.method == "POST":
         form = GitUpdateForm(previewing, request.POST, request.FILES)
+        if "fetch" in form.data:
+            return fetch_course_updates_inner(pctx)
+
         if "end_preview" in form.data:
             messages.add_message(request, messages.INFO,
                     "Preview ended.")
@@ -364,12 +374,6 @@ def update_course(pctx):
         elif form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode("utf-8")
 
-            fetch_fixed = (
-                    '<p><a href="%s" class="btn btn-primary" style="margin-top:8px">'
-                    '&laquo; Re-fetch a fixed version</a></p>'
-                    % reverse("course.versioning.fetch_course_updates",
-                        args=(course.identifier,)))
-
             from course.validation import validate_course_content, ValidationError
             try:
                 warnings = validate_course_content(
@@ -377,7 +381,7 @@ def update_course(pctx):
             except ValidationError as e:
                 messages.add_message(request, messages.ERROR,
                         "Course content did not validate successfully. (%s) "
-                        "Update not applied." % str(e) + fetch_fixed)
+                        "Update not applied." % str(e))
                 validated = False
             else:
                 if not warnings:
@@ -389,8 +393,7 @@ def update_course(pctx):
                             "<ul>%s</ul>"
                             % ("".join(
                                 "<li><i>%s</i>: %s</li>" % (w.location, w.text)
-                                for w in warnings))
-                            + fetch_fixed)
+                                for w in warnings)))
 
                 validated = True
 
