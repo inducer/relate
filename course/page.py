@@ -758,19 +758,18 @@ class ChoiceQuestion(PageBase):
 # {{{ python code question
 
 class PythonCodeForm(StyledForm):
-    answer = forms.CharField(required=True,
+    def __init__(self, read_only, *args, **kwargs):
+        super(PythonCodeForm, self).__init__(*args, **kwargs)
+
+        self.fields["answer"] = forms.CharField(required=True,
             widget=CodeMirrorTextarea(
                 mode="python",
                 theme="default",
                 config={
                     "fixedGutter": True,
                     "indentUnit": 4,
+                    "readOnly": read_only,
                     }))
-
-    def __init__(self, *args, **kwargs):
-        super(PythonCodeForm, self).__init__(*args, **kwargs)
-
-        self.fields["answer"].widget.attrs["autofocus"] = None
 
     def clean(self):
         # FIXME Should try compilation
@@ -958,18 +957,15 @@ class PythonCodeQuestion(PageBase):
             answer_data, answer_is_final):
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
-            form = PythonCodeForm(answer)
+            form = PythonCodeForm(answer_is_final, answer)
         else:
             answer = None
-            form = PythonCodeForm()
-
-        if answer_is_final:
-            form.fields['answer'].widget.attrs['readonly'] = True
+            form = PythonCodeForm(answer_is_final)
 
         return (form, None)
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return (PythonCodeForm(post_data, files_data), None)
+        return (PythonCodeForm(False, post_data, files_data), None)
 
     def answer_data(self, page_context, page_data, form):
         return {"answer": form.cleaned_data["answer"].strip()}
