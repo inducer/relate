@@ -232,6 +232,8 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
     raw_id_fields = ("participation",)
 
+    save_on_top = True
+
 admin.site.register(FlowSession, FlowSessionAdmin)
 
 # }}}
@@ -309,6 +311,8 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
     raw_id_fields = ("flow_session", "page_data")
 
     inlines = (FlowPageVisitGradeInline,)
+
+    save_on_top = True
 
 admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 

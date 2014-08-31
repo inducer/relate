@@ -15,6 +15,8 @@ Allow time mark + time
 
 Grade view
 
+- Restrict analytics to students
+
 Ideas
 =====
 
@@ -49,6 +51,7 @@ Ideas
 - Multi MC question
 - Rank/order question
 - TextQuestions with answers yielding different grades
+
 
 Rejected ideas
 ==============
