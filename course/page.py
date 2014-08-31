@@ -29,7 +29,6 @@ from course.content import remove_prefix
 from django.utils.safestring import mark_safe
 import django.forms as forms
 
-from codemirror import CodeMirrorTextarea
 from courseflow.utils import StyledForm
 
 import re
@@ -761,6 +760,8 @@ class PythonCodeForm(StyledForm):
     def __init__(self, read_only, *args, **kwargs):
         super(PythonCodeForm, self).__init__(*args, **kwargs)
 
+        from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+
         self.fields["answer"] = forms.CharField(required=True,
             widget=CodeMirrorTextarea(
                 mode="python",
@@ -769,6 +770,16 @@ class PythonCodeForm(StyledForm):
                     "fixedGutter": True,
                     "indentUnit": 4,
                     "readOnly": read_only,
+                    "extraKeys": CodeMirrorJavascript("""
+                        {
+                          "Tab": function(cm)
+                          {
+                            var spaces = \
+                                    Array(cm.getOption("indentUnit") + 1).join(" ");
+                            cm.replaceSelection(spaces);
+                          }
+                        }
+                    """)
                     }))
 
     def clean(self):
