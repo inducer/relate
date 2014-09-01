@@ -821,7 +821,10 @@ def request_python_run(run_req, run_timeout):
 
         dresult = docker_cnx.create_container(
                 image=settings.CF_DOCKER_CFRUNPY_IMAGE,
-                command=["/opt/cfrunpy/cfrunpy", "-1"],
+                command=[
+                    "/opt/cfrunpy/cfrunpy-venv/bin/python",
+                    "/opt/cfrunpy/cfrunpy",
+                    "-1"],
                 mem_limit=256e6,
                 user="cfrunpy")
 
