@@ -182,13 +182,6 @@ class FlowPageDataInline(admin.TabularInline):
     extra = 0
 
 
-class FlowPageVisitInline(admin.TabularInline):
-    model = FlowPageVisit
-    extra = 0
-
-    raw_id_fields = ("page_data",)
-
-
 class FlowSessionAdmin(admin.ModelAdmin):
     def get_participant(self, obj):
         if obj.participation is None:
@@ -228,7 +221,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "for_credit",
             )
 
-    inlines = (FlowPageDataInline, FlowPageVisitInline)
+    inlines = (FlowPageDataInline,)
 
     raw_id_fields = ("participation",)
 
