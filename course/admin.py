@@ -201,6 +201,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             )
 
     list_display = (
+            "id",
             "flow_id",
             "get_participant",
             "course",
@@ -269,6 +270,11 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
     get_participant.short_description = "Participant"
     get_participant.admin_order_field = "flow_session__participation"
 
+    def get_flow_session_id(self, obj):
+        return obj.flow_session.id
+    get_flow_session_id.short_description = "Flow Session ID"
+    get_flow_session_id.admin_order_field = "flow_session__id"
+
     list_filter = (
             "flow_session__participation__course",
             "flow_session__flow_id",
@@ -277,19 +283,18 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             )
     date_hierarchy = "visit_time"
     list_display = (
+            "id",
             "get_course",
             "get_flow_id",
             "get_page_id",
             "get_participant",
+            "get_flow_session_id",
             "visit_time",
-            "remote_address",
             "is_graded_answer",
+            "is_synthetic",
             )
     list_display_links = (
-            "get_course",
-            "get_flow_id",
-            "get_page_id",
-            "visit_time",
+            "id",
             )
 
     search_fields = (
