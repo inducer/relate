@@ -193,7 +193,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
     get_participant.admin_order_field = "participation__user"
 
     search_fields = (
-            "id",
+            "=id",
             "flow_id",
             "participation__user__username",
             "participation__user__first_name",
@@ -293,13 +293,13 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             )
 
     search_fields = (
-            "id",
+            "=id",
             "flow_session__flow_id",
             "page_data__group_id",
             "page_data__page_id",
-            "participation__user__username",
-            "participation__user__first_name",
-            "participation__user__last_name",
+            "flow_session__participation__user__username",
+            "flow_session__participation__user__first_name",
+            "flow_session__participation__user__last_name",
             )
 
     raw_id_fields = ("flow_session", "page_data")
