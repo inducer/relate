@@ -114,14 +114,26 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade, grade_data=Non
 
 # {{{ finish flow
 
+def get_flow_session_graded_answers_qset(flow_session):
+    from django.db.models import Q
+    qset = (FlowPageVisit.objects
+            .filter(flow_session=flow_session)
+            .filter(Q(answer__isnull=False) | Q(is_synthetic=True)))
+
+    if not flow_session.in_progress:
+        # Ungraded answers *can* show up in non-in-progress flows as a result
+        # of a race between a 'save' and the 'end session'. If this happens,
+        # we'll go ahead and ignore those.
+        qset = qset.filter(is_graded_answer=True)
+
+    return qset
+
+
 def assemble_answer_visits(flow_session):
     answer_visits = [None] * flow_session.page_count
 
-    from course.models import FlowPageVisit
-    from django.db.models import Q
-    answer_page_visits = (FlowPageVisit.objects
-            .filter(flow_session=flow_session)
-            .filter(Q(answer__isnull=False) | Q(is_synthetic=True))
+    answer_page_visits = (
+            get_flow_session_graded_answers_qset(flow_session)
             .order_by("visit_time"))
 
     for page_visit in answer_page_visits:
