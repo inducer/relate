@@ -537,7 +537,7 @@ def add_buttons_to_form(fpctx, form):
             form.helper.add_input(
                     Submit("save_and_finish",
                         mark_safe("Save answer and finish &raquo;"),
-                        css_class="cf_save_button"))
+                        css_class="cf-save-button"))
 
     return form
 
