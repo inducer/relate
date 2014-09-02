@@ -470,6 +470,8 @@ class FlowAccessException(models.Model):
     creator = models.ForeignKey(User, null=True)
     creation_time = models.DateTimeField(default=now, db_index=True)
 
+    comment = models.TextField(blank=True, null=True)
+
     def __unicode__(self):
         return "Access exception for '%s' to '%s' in '%s'" % (
                 self.participation.user, self.flow_id,
