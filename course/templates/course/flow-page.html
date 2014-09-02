@@ -52,23 +52,24 @@
 
   <form
     action="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.ordinal %}"
+    class="navigation-form"
     method="POST">
 
     {% csrf_token %}
 
     <div class="well flow-well">
       {% if page_data.ordinal > 0 %}
-        <a class="btn btn-default"
+        <a class="btn btn-default cf-nav-button"
           href="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.previous_ordinal %}"
           role="button">&laquo; Previous</a>
       {% endif %}
       {% if page_data.next_ordinal < flow_session.page_count %}
-        <a class="btn btn-default"
+        <a class="btn btn-default cf-nav-button"
           href="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.next_ordinal %}"
           role="button">Next &raquo;</a>
       {% endif %}
       <div style="float:right">
-        <button type="submit" name="finish" class="btn btn-default">End session</button>
+        <button type="submit" name="finish" class="btn btn-default cf-nav-button">End session</button>
       </div>
       <div class="progress flow-progress">
         <div class="progress-bar progress-bar-success" role="progressbar"
@@ -82,4 +83,64 @@
     </div>
   </form>
 
+  {# {{{ change listening, navigation confirmation #}
+
+  <script type="text/javascript">
+
+    function activate_change_listening()
+    {
+      var input_changed = false;
+
+      // {{{ listen for codemirror changes
+
+      function on_cm_change(cm, change_obj)
+      {
+        input_changed = true;
+      }
+
+      $("div.CodeMirror").each(
+          function ()
+          {
+            var cm = this.CodeMirror;
+            cm.on("change", on_cm_change);
+          });
+
+      // }}}
+
+      // {{{ listen for other input changes
+
+      function on_input_change(evt)
+      {
+        input_changed = true;
+      }
+
+      $(":checkbox").on("change", on_input_change);
+      $(":radio").on("change", on_input_change);
+      $(":text").on("change", on_input_change);
+      $("textarea").on("change", on_input_change);
+
+      // }}}
+
+      $(window).on('beforeunload',
+          function()
+          {
+            if (input_changed)
+              return "You have unsaved changes on this page.";
+          });
+
+      function before_save(evt)
+      {
+        input_changed = false;
+      }
+
+      $(".cf-save-button").on("click", before_save);
+    }
+
+    activate_change_listening();
+  </script>
+
+  {# }}} #}
+
 {% endblock %}
+
+{# vim: foldmethod=marker #}

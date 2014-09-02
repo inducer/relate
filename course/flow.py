@@ -504,14 +504,14 @@ def add_buttons_to_form(fpctx, form):
     from crispy_forms.layout import Submit
     form.helper.add_input(
             Submit("save", "Save answer",
-                css_class="col-lg-offset-2"))
+                css_class="col-lg-offset-2 cf-save-button"))
 
     if fpctx.will_receive_feedback():
         if flow_permission.change_answer in fpctx.permissions:
             form.helper.add_input(
                     Submit(
                         "submit", "Submit answer for grading",
-                        accesskey="g"))
+                        accesskey="g", css_class="cf-save-button"))
         else:
             form.helper.add_input(Submit("submit", "Submit final answer"))
     else:
@@ -519,11 +519,13 @@ def add_buttons_to_form(fpctx, form):
         if fpctx.page_data.ordinal + 1 < fpctx.flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next",
-                        mark_safe("Save answer and move on &raquo;")))
+                        mark_safe("Save answer and move on &raquo;"),
+                        css_class="cf-save-button"))
         else:
             form.helper.add_input(
                     Submit("save_and_finish",
-                        mark_safe("Save answer and finish &raquo;")))
+                        mark_safe("Save answer and finish &raquo;"),
+                        css_class="cf_save_button"))
 
     return form
 
