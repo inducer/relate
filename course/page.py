@@ -448,7 +448,12 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         from sympy import simplify
         answer_sym = parse_sympy(s)
 
-        if simplify(answer_sym - self.pattern_sym) == 0:
+        try:
+            simp_result = simplify(answer_sym - self.pattern_sym)
+        except Exception:
+            return 0
+
+        if simp_result == 0:
             return 1
         else:
             return 0
