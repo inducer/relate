@@ -807,6 +807,7 @@ def request_python_run(run_req, run_timeout):
     import socket
     import errno
     from httplib import BadStatusLine
+    from docker.errors import APIError as DockerAPIError
 
     debug = False
     if debug:
@@ -928,7 +929,13 @@ def request_python_run(run_req, run_timeout):
             debug_print(docker_cnx.logs(container_id))
             debug_print("-----------END DOCKER LOGS for %s" % container_id)
 
-            docker_cnx.stop(container_id, timeout=3)
+            try:
+                docker_cnx.stop(container_id, timeout=3)
+            except DockerAPIError:
+                # That's OK--the container might have stopped on its
+                # own already.
+                pass
+
             docker_cnx.remove_container(container_id)
 
 
