@@ -13,7 +13,8 @@ Validation for presence of grade_aggregation_strategy
 
 Allow time mark + time
 
-Grade view
+- Student grade view
+- Instructor grade view
 
 - Restrict analytics to students
 
