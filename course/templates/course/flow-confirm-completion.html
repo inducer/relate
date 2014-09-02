@@ -24,6 +24,13 @@
     </p>
   {% endif %}
 
+  If you choose to end your session, the following things will happen:
+  <ul>
+    <li>You will be prevented from making further changes to your answers.</li>
+    <li>All your currently saved answers, if not graded already, will be graded.</li>
+    <li>If possible, a final grade will be computed from all saved, graded answers.</li>
+  </ul>
+
   <div class="well flow-well">
     <form method="POST">
       {% csrf_token %}
@@ -32,7 +39,7 @@
         href="{% url "course.flow.view_flow_page" course.identifier flow_identifier last_page_nr %}"
         role="button">&laquo; Go back</a>
 
-      <button type="submit" name="submit" class="btn btn-primary">Confirm: End session</button>
+      <button type="submit" name="submit" class="btn btn-primary">Confirm: Submit answers and end session</button>
     </form>
   </div>
 
