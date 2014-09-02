@@ -408,6 +408,13 @@ class GradeChangeAdmin(admin.ModelAdmin):
             )
     date_hierarchy = "grade_time"
 
+    search_fields = (
+            "opportunity__name",
+            "participation__user__username",
+            "participation__user__first_name",
+            "participation__user__last_name",
+            )
+
     list_filter = (
             "opportunity__course",
             "opportunity",
