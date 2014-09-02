@@ -410,6 +410,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
 
     search_fields = (
             "opportunity__name",
+            "opportunity__flow_id",
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
