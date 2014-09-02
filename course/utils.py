@@ -243,15 +243,20 @@ class FlowPageContext(FlowContext):
         previous_answer_visits = (FlowPageVisit.objects
                 .filter(flow_session=flow_session)
                 .filter(page_data=page_data)
-                .filter(Q(answer__isnull=False) | Q(is_synthetic=True))
-                .order_by("-visit_time"))
+                .filter(Q(answer__isnull=False) | Q(is_synthetic=True)))
+
+        if not self.flow_session.in_progress:
+            # Ungraded answers *can* show up in non-in-progress flows as a result
+            # of a race between a 'save' and the 'end session'. If this happens,
+            # we'll go ahead and ignore those.
+            previous_answer_visits = \
+                    previous_answer_visits.filter(is_graded_answer=True)
+
+        previous_answer_visits = previous_answer_visits.order_by("-visit_time")
 
         self.prev_answer_visit = None
         for prev_visit in previous_answer_visits[:1]:
             self.prev_answer_visit = prev_visit
-
-            if not self.flow_session.in_progress:
-                assert prev_visit.is_graded_answer, prev_visit.id
 
         # }}}
 
