@@ -19,11 +19,12 @@ Allow time mark + time
 - Restrict analytics to students
 
 - Add "show correctness after completion" privilege
+  Add to prelec quizzes
+
+- Force regrade (fix issues in combinations quiz)
 
 Ideas
 =====
-
-- Grade superseding after rule change
 
 - Flow results analytics
   --> time taken per question
