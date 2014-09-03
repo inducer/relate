@@ -534,7 +534,7 @@ class TextQuestion(PageBase):
         if not any(matcher.correct_answer_text() is not None
                 for matcher in self.matchers):
             raise ValidationError("%s: no matcher is able to provide a plain-text "
-                    "correct answer")
+                    "correct answer" % location)
 
         if vctx is not None:
             validate_markup(vctx, location, page_desc.prompt)
