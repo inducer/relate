@@ -275,12 +275,20 @@ def view_calendar(pctx):
 
         if description:
             event_json["url"] = "#event-%d" % event.id
+
+            start_time = event.time
+            end_time = event.end_time
+
+            if event.all_day:
+                start_time = start_time.date()
+                end_time = end_time.date()
+
             event_info_list.append(
                     EventInfo(
                         id=event.id,
                         human_title=human_title,
-                        start_time=event.time,
-                        end_time=event.end_time,
+                        start_time=start_time,
+                        end_time=end_time,
                         description=description
                         ))
 
