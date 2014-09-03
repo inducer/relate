@@ -60,6 +60,7 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc):
     rules = []
 
     attr_names = [
+            "id",
             "roles",
             "start",
             "end",
@@ -230,7 +231,7 @@ class FlowContext(CoursePageContext):
         # {{{ figure out permissions
 
         from course.views import get_now_or_fake_time
-        self.permissions, self.stipulations = get_flow_permissions(
+        self.permissions, self.current_access_rule = get_flow_permissions(
                 self.course, self.participation, self.role,
                 flow_identifier, current_flow_desc,
                 get_now_or_fake_time(request))
@@ -242,6 +243,13 @@ class FlowContext(CoursePageContext):
         return (
                 flow_permission.see_correctness in self.permissions
                 or flow_permission.see_answer in self.permissions)
+
+    @property
+    def stipulations(self):
+        from warnings import warn
+        warn("FlowContext.stipulations is deprecated--use '.current_access_rule'",
+                DeprecationWarning)
+        return self.current_access_rule
 
     @property
     def page_count(self):

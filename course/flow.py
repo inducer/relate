@@ -312,7 +312,7 @@ def finish_flow_session(fctx, flow_session):
     if grade_info is not None:
         points = grade_info.points
 
-        if hasattr(fctx.stipulations, "credit_percent"):
+        if fctx.current_access_rule.credit_percent is not None:
             comment = "Counted at %.1f%% of %.1f points" % (
                     fctx.stipulations.credit_percent, points)
             points = points * fctx.stipulations.credit_percent / 100
@@ -381,7 +381,7 @@ def start_flow(request, course_identifier, flow_identifier):
            .order_by("start_time"))
     past_session_count = past_sessions.count()
 
-    if hasattr(fctx.stipulations, "allowed_session_count"):
+    if fctx.current_access_rule.allowed_session_count is not None:
         allowed_another_session = (
                 past_session_count < fctx.stipulations.allowed_session_count)
     else:
@@ -447,6 +447,7 @@ def start_flow(request, course_identifier, flow_identifier):
             session.flow_id = flow_identifier
             session.in_progress = True
             session.for_credit = "start_credit" in request.POST
+            session.access_rules_id = fctx.current_access_rule.id
             session.save()
 
             request.session["flow_session_id"] = session.id

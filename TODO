@@ -1,10 +1,5 @@
 - model docs
 
-- Improve access-denied error for time-based rule on flow
-
-- In-progress sessions at deadlines...?
-  -> Grading rule set ID
-
 - per-page permission filter
 
 - ending on new version, resume, ...
@@ -39,7 +34,6 @@ Ideas
   -> use a media search path
 - flow overview
 - Instant flow request
-- time limits, extra time?
 - Student tags, adapt homepage
 
 - Flow group ordering, max page count, question/page tags
@@ -64,3 +58,4 @@ Rejected ideas
 - Live chat via candy?
 - configuration store
 - Email me my code
+- time limits, extra time?
