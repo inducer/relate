@@ -67,7 +67,9 @@ def may_impersonate(user):
 
 
 class ImpersonateForm(StyledForm):
-    user = forms.ModelChoiceField(queryset=User.objects, required=True,
+    user = forms.ModelChoiceField(
+            queryset=User.objects.order_by("username"),
+            required=True,
             help_text="Select user to impersonate.")
 
     def __init__(self, *args, **kwargs):
