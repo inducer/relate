@@ -243,6 +243,7 @@ def view_calendar(pctx):
         event_json = {
                 "id": event.id,
                 "start": event.time.isoformat(),
+                "allDay": event.all_day,
                 }
         if event.end_time is not None:
             event_json["end"] = event.end_time.isoformat()
