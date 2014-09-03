@@ -929,13 +929,10 @@ def request_python_run(run_req, run_timeout):
             debug_print("-----------END DOCKER LOGS for %s" % container_id)
 
             try:
-                docker_cnx.stop(container_id, timeout=3)
+                docker_cnx.remove_container(container_id, force=True)
             except DockerAPIError:
-                # That's OK--the container might have stopped on its
-                # own already.
+                # Oh well. No need to bother the students with this nonsense.
                 pass
-
-            docker_cnx.remove_container(container_id)
 
 
 class PythonCodeQuestion(PageBase):
