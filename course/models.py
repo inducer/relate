@@ -166,6 +166,10 @@ class Event(models.Model):
     time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
 
+    all_day = models.BooleanField(default=False,
+            help_text="Only affects the rendering in the class calendar, "
+            "in that a start time is not shown")
+
     class Meta:
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
