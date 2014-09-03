@@ -12,28 +12,74 @@
   <form method="POST">
     {% csrf_token %}
 
-    <ul>
-    {% if grade_aggregation_strategy %}
-      <li>
-        If multiple grades are available, the policy will be to 
-        '{{ grade_aggregation_strategy }}'.
-      </li>
-    {% endif %}
-    {% if stipulations.allowed_session_count %}
-      <li>
-      {{ stipulations.allowed_session_count }}
-      session{{ stipulations.allowed_session_count|pluralize }} will be allowed.
-      </li>
-    {% endif %}
-    {% if stipulations.credit_percent %}
-      <li>
-      You will receive {{ stipulations.credit_percent }}% credit for
-      completing this session for-credit.
-      </li>
-    {% endif %}
-    </ul>
+    {# {{{ describe rules #}
+    {% if rules or grade_aggregation_strategy %}
+    <div class="well">
+      <h3 class="start-well-title">Rules</h3>
+      {% if grade_aggregation_strategy %}
+        <p>
+          If multiple grades are available, the policy will be to
+          '{{ grade_aggregation_strategy }}'.
+        </p>
+      {% endif %}
+      {% for rule in rules %}
+        {% if rule.is_current %}
+          <div class="current-access-rule">
+        {% else %}
+          <div>
+        {% endif %}
+        {% if rule.start != None %}
+          {% if rule.end != None %}
+            The following rules apply between
+            <i>{{ rule.start }}</i>
+            and
+            <i>{{ rule.end }}</i>:
+          {% else %}
+            The following rules apply from <i>{{ rule.start }}</i>:
+          {% endif %}
+        {% else %}
+          {% if rule.end != None %}
+          The following rules apply until <i>{{ rule.end }}</i>:
+          {% else %}
+            Unless specified otherwise above, the following rules apply:
+          {% endif %}
+        {% endif %}
 
-    {% if may_start_credit or may_start_no_credit or past_sessions%}
+        {% if rule.is_exception %}
+        (This rule is an exception that only applies to you.)
+        {% endif %}
+
+        {% if rule.is_current %}
+        <b>(currently in effect)</b>
+        {% endif %}
+
+        <ul>
+          {% if rule.permissions %}
+            <li>You may: <i>{{ rule.human_readable_permissions |join:", " }}</i>.
+          {% else %}
+            <li>You are not allowed to interact with this flow.</li>
+          {% endif %}
+
+          {% if rule.credit_percent != None %}
+            <li>
+            You receive {{ rule.credit_percent }}% credit for
+            completing this session for-credit.
+            </li>
+          {% endif %}
+          {% if rule.allowed_session_count %}
+            <li>
+            {{ rule.allowed_session_count }}
+            session{{ rule.allowed_session_count|pluralize }} permitted.
+            </li>
+          {% endif %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {# }}} #}
+
+    {% if may_start_credit or may_start_no_credit or past_sessions %}
       <div class="well">
         {% if past_sessions %}
           <h3 class="start-well-title">Past sessions</h3>
@@ -106,3 +152,5 @@
   </form>
 
 {% endblock %}
+
+{# vim: foldmethod=marker #}

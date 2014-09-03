@@ -71,3 +71,6 @@ div.progress:hover  span.stats-percentage{
   background: #eee;
 }
 
+.current-access-rule {
+  background: #dcdcdc;
+}

@@ -364,9 +364,7 @@ RESUME_RE = re.compile("^resume_([0-9]+)$")
 def start_flow(request, course_identifier, flow_identifier):
     fctx = FlowContext(request, course_identifier, flow_identifier)
 
-    from course.models import flow_permission
-    if flow_permission.view not in fctx.permissions:
-        raise PermissionDenied()
+    may_view = flow_permission.view in fctx.permissions
 
     have_in_progress_session = (FlowSession.objects
             .filter(
@@ -406,6 +404,10 @@ def start_flow(request, course_identifier, flow_identifier):
             if resume_session.participation != fctx.participation:
                 raise PermissionDenied("not your session")
 
+            if not may_view:
+                raise PermissionDenied("may not resume session without "
+                        "'view' permission")
+
             if resume_session.participation is None:
                 raise PermissionDenied("can't resume anonymous session")
 
@@ -426,13 +428,17 @@ def start_flow(request, course_identifier, flow_identifier):
         elif ("start_no_credit" in request.POST
                 or "start_credit" in request.POST):
 
+            if not may_view:
+                raise PermissionDenied("may not start session without "
+                        "'view' permission")
+
             if not allowed_another_session:
                 raise PermissionDenied("new session would exceed "
                         "allowed session count limit exceed")
 
             if have_in_progress_session:
                 raise PermissionDenied("cannot start flow when other flow "
-                        "is already in progress")
+                        "session is already in progress")
 
             session = FlowSession()
             session.course = fctx.course
@@ -460,15 +466,18 @@ def start_flow(request, course_identifier, flow_identifier):
 
     else:
         may_start_credit = (
-                not have_in_progress_session
+                may_view
+                and not have_in_progress_session
                 and allowed_another_session
                 and flow_permission.start_credit in fctx.permissions)
         may_start_no_credit = (
-                not have_in_progress_session
+                may_view
+                and not have_in_progress_session
                 and allowed_another_session
                 and flow_permission.start_no_credit in fctx.permissions)
         may_review = (
-                flow_permission.view_past in fctx.permissions)
+                may_view
+                and flow_permission.view_past in fctx.permissions)
 
         if hasattr(fctx.flow_desc, "grade_aggregation_strategy"):
             from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
@@ -477,6 +486,37 @@ def start_flow(request, course_identifier, flow_identifier):
                     [fctx.flow_desc.grade_aggregation_strategy])
         else:
             grade_aggregation_strategy_text = None
+
+        # {{{ fish out relevant rules
+
+        from course.utils import get_flow_access_rules
+        rules = get_flow_access_rules(fctx.course, fctx.participation,
+                flow_identifier, fctx.flow_desc)
+
+        from course.views import get_now_or_fake_time
+        now_datetime = get_now_or_fake_time(fctx.request)
+
+        relevant_rules = []
+        found_current = False
+        for rule in rules:
+            if rule.roles is not None:
+                if fctx.role not in rule.roles:
+                    continue
+
+            rule.is_current = False
+            if not found_current:
+                if (
+                        (rule.start is None
+                            or now_datetime >= rule.start)
+                        or
+                        (rule.end is None
+                            or now_datetime <= rule.end)):
+                    rule.is_current = True
+                    found_current = True
+
+            relevant_rules.append(rule)
+
+        # }}}
 
         return render(request, "course/flow-start.html", {
             "participation": fctx.participation,
@@ -489,12 +529,14 @@ def start_flow(request, course_identifier, flow_identifier):
             grade_aggregation_strategy_text,
             "flow_identifier": flow_identifier,
 
+            "rules": relevant_rules,
+            "now": now_datetime,
+
             "may_start_credit": may_start_credit,
             "may_start_no_credit": may_start_no_credit,
             "may_review": may_review,
 
             "past_sessions": past_sessions,
-            "stipulations": fctx.stipulations,
             })
 
 # }}}
@@ -794,6 +836,9 @@ def finish_flow_session_view(request, course_identifier, flow_identifier):
 
     (answered_count, unanswered_count) = count_answered(
             fctx, fctx.flow_session, answer_visits)
+
+    if flow_permission.view not in fctx.permissions:
+        raise PermissionDenied()
 
     def render_finish_response(template, **kwargs):
         render_args = {

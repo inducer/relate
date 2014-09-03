@@ -33,7 +33,7 @@ from course.views import (
         )
 from course.content import (
         get_course_repo, get_course_desc, get_flow_desc,
-        dict_to_struct, parse_date_spec, get_active_commit_sha)
+        parse_date_spec, get_active_commit_sha)
 from course.models import (
         Course,
         FlowAccessException,
@@ -45,71 +45,109 @@ from course.models import (
 
 # {{{ flow permissions
 
-def get_flow_permissions(course, participation, role, flow_id, flow_desc,
-        now_datetime):
-    # {{{ interpret flow rules
+class FlowAccessRule(object):
+    def __init__(self, **attrs):
+        for k, v in attrs.items():
+            setattr(self, k, v)
 
-    flow_rule = None
+    def human_readable_permissions(self):
+        from course.models import FLOW_PERMISSION_CHOICES
+        permission_dict = dict(FLOW_PERMISSION_CHOICES)
+        return [permission_dict[p] for p in self.permissions]
 
-    if not hasattr(flow_desc, "access_rules"):
-        flow_rule = dict_to_struct(
-                {"permissions":
-                    [flow_permission.view, flow_permission.start_no_credit]})
-    else:
-        for rule in flow_desc.access_rules:
-            if hasattr(rule, "roles"):
-                if role not in rule.roles:
-                    continue
 
-            if hasattr(rule, "start"):
-                start_date = parse_date_spec(course, rule.start)
-                if now_datetime < start_date:
-                    continue
+def get_flow_access_rules(course, participation, flow_id, flow_desc):
+    rules = []
 
-            if hasattr(rule, "end"):
-                end_date = parse_date_spec(course, rule.end)
-                if end_date < now_datetime:
-                    continue
-
-            flow_rule = rule
-            break
-
-    # }}}
+    attr_names = [
+            "roles",
+            "start",
+            "end",
+            "allowed_session_count",
+            "credit_percent",
+            "permissions",
+            ]
 
     # {{{ scan for exceptions in database
 
     for exc in (
             FlowAccessException.objects
-            .filter(participation=participation, flow_id=flow_id)
+            .filter(
+                participation=participation,
+                flow_id=flow_id)
             .order_by("expiration")):
 
-        if exc.expiration is not None and exc.expiration < now_datetime:
-            continue
+        attrs = {
+                "is_exception": True,
+                "id": "exception",
+                "permissions": [entry.permission for entry in exc.entries.all()],
+                }
+        if exc.expiration is not None:
+            attrs["end"] = exc.expiration
 
-        exc_stipulations = exc.stipulations
-        if not isinstance(exc_stipulations, dict):
-            exc_stipulations = {}
+        if exc.stipulations is not None and isinstance(exc.stipulations, dict):
+            attrs.update(exc.stipulations)
 
-        stipulations = {}
-
-        if flow_rule is not None:
-            stipulations.update(
-                    (key, val)
-                    for key, val in flow_rule.__dict__.iteritems()
-                    if not key.startswith("_"))
-
-        stipulations.update(exc_stipulations)
-        stipulations = dict_to_struct(stipulations)
-
-        return (
-                [entry.permission for entry in exc.entries.all()],
-                stipulations
-                )
+        rules.append(FlowAccessRule(**attrs))
 
     # }}}
 
-    if flow_rule is not None:
-        return flow_rule.permissions, flow_rule
+    if not hasattr(flow_desc, "access_rules"):
+        rules.append(
+                FlowAccessRule(**{
+                    "permissions": [
+                        flow_permission.view,
+                        flow_permission.start_no_credit],
+                    "is_exception": False,
+                    }))
+
+    else:
+        for rule in flow_desc.access_rules:
+            attrs = dict(
+                    (attr_name, getattr(rule, attr_name))
+                    for attr_name in attr_names
+                    if hasattr(rule, attr_name))
+
+            if "start" in attrs:
+                attrs["start"] = parse_date_spec(course, attrs["start"])
+            if "end" in attrs:
+                attrs["end"] = parse_date_spec(course, attrs["end"])
+
+            rules.append(FlowAccessRule(**attrs))
+
+    # {{{ set unavailable attrs to None
+
+    def add_attrs_with_nones(rule):
+        for attr_name in attr_names:
+            if not hasattr(rule, attr_name):
+                setattr(rule, attr_name, None)
+
+    for rule in rules:
+        add_attrs_with_nones(rule, )
+
+    # }}}
+
+    return rules
+
+
+def get_flow_permissions(course, participation, role, flow_id, flow_desc,
+        now_datetime):
+    rules = get_flow_access_rules(course, participation, flow_id, flow_desc)
+
+    for rule in rules:
+        if rule.roles is not None:
+            if role not in rule.roles:
+                continue
+
+        if rule.start is not None:
+            if now_datetime < rule.start:
+                continue
+
+        if rule.end is not None:
+            if rule.end < now_datetime:
+                continue
+
+        return rule.permissions, rule
 
     raise ValueError("Flow access rules of flow '%s' did not resolve "
             "to access answer for '%s'" % (flow_id, participation))

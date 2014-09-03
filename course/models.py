@@ -452,13 +452,13 @@ class flow_permission:
     see_answer = "see_answer"
 
 FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view, "View flow"),
+        (flow_permission.view, "View the flow"),
         (flow_permission.view_past, "Review past attempts"),
-        (flow_permission.start_credit, "Start for-credit session"),
-        (flow_permission.start_no_credit, "Start not-for-credit session"),
+        (flow_permission.start_credit, "Start a for-credit session"),
+        (flow_permission.start_no_credit, "Start a not-for-credit session"),
 
         (flow_permission.change_answer, "Change already-graded answer"),
-        (flow_permission.see_correctness, "See whether answer is correct"),
+        (flow_permission.see_correctness, "See whether an answer is correct"),
         (flow_permission.see_answer, "See the correct answer"),
         )
 
