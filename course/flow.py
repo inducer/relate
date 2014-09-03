@@ -46,7 +46,8 @@ from course.utils import (
 
 # {{{ grade page visit
 
-def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade, grade_data=None):
+def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
+        grade_data=None, graded_at_git_commit_sha=None):
     if not visit.is_graded_answer:
         raise RuntimeError("cannot grade ungraded answer")
 
@@ -102,6 +103,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade, grade_data=Non
     grade.visit = visit
     grade.grade_data = grade_data
     grade.max_points = page.max_points(visit.page_data)
+    grade.graded_at_git_commit_sha = graded_at_git_commit_sha
 
     if answer_feedback is not None:
         grade.correctness = answer_feedback.correctness
@@ -283,7 +285,8 @@ def grade_page_visits(fctx, flow_session, answer_visits):
             answer_visits[i] = answer_visit
 
         if answer_visit is not None:
-            grade_page_visit(answer_visit)
+            grade_page_visit(answer_visit,
+                    graded_at_git_commit_sha=fctx.flow_commit_sha)
 
 
 def finish_flow_session(fctx, flow_session):
@@ -623,6 +626,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                     grade = FlowPageVisitGrade()
                     grade.visit = page_visit
                     grade.max_points = fpctx.page.max_points(page_data.data)
+                    grade.graded_at_git_commit_sha = fpctx.flow_commit_sha
 
                     if feedback is not None:
                         grade.correctness = feedback.correctness

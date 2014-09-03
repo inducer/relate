@@ -401,6 +401,9 @@ class FlowPageVisitGrade(models.Model):
     grader = models.ForeignKey(User, null=True, blank=True)
     grade_time = models.DateTimeField(db_index=True, default=now)
 
+    graded_at_git_commit_sha = models.CharField(
+            max_length=200, null=True, blank=True)
+
     # This data should be recomputable, but we'll cache it here,
     # because it might be very expensive (container-launch expensive
     # for code questions, for example) to recompute.
