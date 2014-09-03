@@ -463,6 +463,24 @@ FLOW_PERMISSION_CHOICES = (
         )
 
 
+def validate_stipulations(stip):
+    if not isinstance(stip, dict):
+        raise ValidationError("stipulations must be a dictionary")
+    allowed_keys = set(["credit_percent", "allowed_session_count"])
+    if not set(stip.keys()) <= allowed_keys:
+        raise ValidationError("unrecognized keys in stipulations: %s"
+                % ", ".join(set(stip.keys()) - allowed_keys))
+
+    if "credit_percent" in stip and not isinstance(
+            stip["credit_percent"], (int, float)):
+        raise ValidationError("credit_percent must be a float")
+    if ("allowed_session_count" in stip
+            and (
+                not isinstance(stip["allowed_session_count"], int)
+                or stip["allowed_session_count"] < 0)):
+        raise ValidationError("allowed_session_count must be a non-negative integer")
+
+
 class FlowAccessException(models.Model):
     participation = models.ForeignKey(Participation, db_index=True)
     flow_id = models.CharField(max_length=200, blank=False, null=False)
@@ -472,7 +490,8 @@ class FlowAccessException(models.Model):
             help_text="A dictionary of the same things that can be added "
             "to a flow access rule, such as allowed_session_count or "
             "credit_percent. If not specified here, values will default "
-            "to the stipulations in the course content.")
+            "to the stipulations in the course content.",
+            validators=[validate_stipulations])
 
     creator = models.ForeignKey(User, null=True)
     creation_time = models.DateTimeField(default=now, db_index=True)
