@@ -1080,6 +1080,14 @@ class PythonCodeQuestion(PageBase):
         response = dict_to_struct(response_dict)
 
         feedback_bits = []
+        if hasattr(response, "points"):
+            correctness = response.points
+            feedback_bits.append(
+                    "<p><b>%s</b></p>"
+                    % get_auto_feedback(correctness))
+        else:
+            correctness = None
+
         if response.result == "success":
             pass
         elif response.result in [
@@ -1101,23 +1109,21 @@ class PythonCodeQuestion(PageBase):
                     "specifies that your code may take at most %s seconds to run. "
                     "It took longer than that and was aborted.</p>"
                     % self.page_desc.timeout)
+
+            correctness = 0
         elif response.result == "user_compile_error":
             feedback_bits.append(
                     "<p>Your code failed to compile. An error message is below.</p>")
+
+            correctness = 0
         elif response.result == "user_error":
             feedback_bits.append(
                     "<p>Your code failed with an exception. "
                     "A traceback is below.</p>")
+
+            correctness = 0
         else:
             raise RuntimeError("invalid cfrunpy result: %s" % response.result)
-
-        if hasattr(response, "points"):
-            correctness = response.points
-            feedback_bits.append(
-                    "<p><b>%s</b></p>"
-                    % get_auto_feedback(correctness))
-        else:
-            correctness = None
 
         if hasattr(response, "feedback") and response.feedback:
             feedback_bits.append(
