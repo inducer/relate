@@ -1,8 +1,8 @@
 CourseFlow
 ==========
 
-"I just want to ask my students some quiz questions online. How hard could it
-possibly be?"
+*"I just want to ask my students some quiz questions online. How hard could it
+possibly be?"*
 
 CourseFlow is a `Django <https://docs.djangoproject.com/>`_-based courseware
 package that lets students participate in online activities. Each such activity
