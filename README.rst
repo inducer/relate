@@ -19,7 +19,7 @@ CourseFlow is set apart by the following features:
   Instructors can preview newly-authored content while students work with
   prior versions, all from the same instance of CourseFlow.
 * In-class instant messaging via XMPP.
-  Works well with `xmpp-popup <https://github.com/indcuer/xmpp-popup`_.
+  Works well with `xmpp-popup <https://github.com/indcuer/xmpp-popup>`_.
 
 Installation
 ------------
