@@ -235,7 +235,9 @@ def view_calendar(pctx):
 
     event_info_list = []
 
-    for event in Event.objects.order_by("time"):
+    for event in (Event.objects
+            .filter(course=pctx.course)
+            .order_by("time")):
         kind_desc = event_kinds_desc.get(event.kind)
 
         human_title = unicode(event)
