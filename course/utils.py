@@ -67,6 +67,7 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc):
             "allowed_session_count",
             "credit_percent",
             "permissions",
+            "is_exception",
             ]
 
     # {{{ scan for exceptions in database
@@ -249,6 +250,7 @@ class FlowContext(CoursePageContext):
         from warnings import warn
         warn("FlowContext.stipulations is deprecated--use '.current_access_rule'",
                 DeprecationWarning)
+
         return self.current_access_rule
 
     @property

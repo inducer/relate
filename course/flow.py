@@ -509,13 +509,19 @@ def start_flow(request, course_identifier, flow_identifier):
                 if (
                         (rule.start is None
                             or now_datetime >= rule.start)
-                        or
+                        and
                         (rule.end is None
                             or now_datetime <= rule.end)):
                     rule.is_current = True
                     found_current = True
 
             relevant_rules.append(rule)
+
+            if (rule.start is None
+                    and rule.end is None
+                    and not rule.is_exception):
+                # Catch-all as far as this user is concerned.
+                break
 
         # }}}
 
