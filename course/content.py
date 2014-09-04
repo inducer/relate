@@ -354,6 +354,85 @@ class InvalidDatespec(ValueError):
         self.datespec = datespec
 
 
+AT_TIME_RE = re.compile(r"^(.*)\s*@\s*([0-2]?[0-9])\:([0-9][0-9])\s*$")
+
+
+class AtTimePostprocessor(object):
+    def __init__(self, hour, minute, second=0):
+        self.hour = hour
+        self.minute = minute
+        self.second = second
+
+    @classmethod
+    def parse(cls, s):
+        match = AT_TIME_RE.match(s)
+        if match is not None:
+            hour = int(match.group(2))
+            minute = int(match.group(3))
+
+            if not (0 <= hour < 24):
+                raise InvalidDatespec(s)
+
+            if not (0 <= minute < 60):
+                raise InvalidDatespec(s)
+
+            return match.group(1), AtTimePostprocessor(hour, minute)
+        else:
+            return s, None
+
+    def apply(self, dtm):
+        from pytz import timezone
+        server_tz = timezone(settings.TIME_ZONE)
+
+        return dtm.astimezone(server_tz).replace(
+                    hour=self.hour,
+                    minute=self.minute,
+                    second=self.second)
+
+
+PLUS_DELTA_RE = re.compile(r"^(.*)\s*([+-])\s*([0-9]+)\s+"
+    "(weeks?|days?|hours?|minutes?)$")
+
+
+class PlusDeltaPostprocessor(object):
+    def __init__(self, count, period):
+        self.count = count
+        self.period = period
+
+    @classmethod
+    def parse(cls, s):
+        match = PLUS_DELTA_RE.match(s)
+        if match is not None:
+            count = int(match.group(3))
+            if match.group(2) == "-":
+                count = -count
+            period = match.group(4)
+
+            return match.group(1), PlusDeltaPostprocessor(count, period)
+        else:
+            return s, None
+
+    def apply(self, dtm):
+        if self.period.startswith("week"):
+            d = datetime.timedelta(weeks=self.count)
+        elif self.period.startswith("day"):
+            d = datetime.timedelta(days=self.count)
+        elif self.period.startswith("hour"):
+            d = datetime.timedelta(hours=self.count)
+        elif self.period.startswith("minute"):
+            d = datetime.timedelta(minutes=self.count)
+        else:
+            raise InvalidDatespec("invalid period: %s" % self.period)
+
+        return dtm + d
+
+
+DATESPEC_POSTPROCESSORS = [
+        AtTimePostprocessor,
+        PlusDeltaPostprocessor,
+        ]
+
+
 def parse_date_spec(course, datespec, return_now_on_error=True):
     if isinstance(datespec, datetime.datetime):
         return datespec
@@ -362,22 +441,50 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
 
     datespec = datespec.strip()
 
+    # {{{ parse postprocessors
+
+    postprocs = []
+    while True:
+        parsed_one = False
+        for pp_class in DATESPEC_POSTPROCESSORS:
+            datespec, postproc = pp_class.parse(datespec)
+            if postproc is not None:
+                parsed_one = True
+                postprocs.insert(0, postproc)
+                break
+
+        datespec = datespec.strip()
+
+        if not parsed_one:
+            break
+
+    # }}}
+
+    def apply_postprocs(dtime):
+        for postproc in postprocs:
+            dtime = postproc.apply(dtime)
+
+        return dtime
+
     match = DATE_RE.match(datespec)
     if match:
-        return datetime.date(
-                int(match.group(1)),
-                int(match.group(2)),
-                int(match.group(3)))
+        return apply_postprocs(
+                datetime.date(
+                    int(match.group(1)),
+                    int(match.group(2)),
+                    int(match.group(3))))
 
     from course.models import Event
 
     match = TRAILING_NUMERAL_RE.match(datespec)
     if match:
         try:
-            return Event.objects.get(
-                    course=course,
-                    kind=match.group(1),
-                    ordinal=int(match.group(2))).time
+            return apply_postprocs(
+                    Event.objects.get(
+                        course=course,
+                        kind=match.group(1),
+                        ordinal=int(match.group(2))).time)
+
         except ObjectDoesNotExist:
             if return_now_on_error:
                 return now()
@@ -385,10 +492,12 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
                 raise InvalidDatespec(datespec)
 
     try:
-        return Event.objects.get(
-                course=course,
-                kind=datespec,
-                ordinal=None).time
+        return apply_postprocs(
+                Event.objects.get(
+                    course=course,
+                    kind=datespec,
+                    ordinal=None).time)
+
     except ObjectDoesNotExist:
         if return_now_on_error:
             return now()
