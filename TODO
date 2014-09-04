@@ -16,6 +16,10 @@ Validation for presence of grade_aggregation_strategy
 
 - Force regrade (fix issues in combinations quiz)
 
+- Fix analytics:
+  (value smaller than min) -> None
+  only use last graded submission if multiple-submit
+
 Ideas
 =====
 
