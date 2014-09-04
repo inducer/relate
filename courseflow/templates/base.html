@@ -68,7 +68,7 @@
                 <li role="presentation" class="divider"></li>
                 <li role="presentation" class="dropdown-header">Test/Troubleshoot</li>
                 {% if currently_impersonating %}
-                  <li><a class="navbar-link" href="{% url "course.auth.stop_impersonating" %}">Stop impersonating</a></li>
+                  <li><a href="{% url "course.auth.stop_impersonating" %}">Stop impersonating</a></li>
                 {% else %}
                   <li><a href="{% url "course.auth.impersonate" %}">Impersonate user</a></li>
                 {% endif %}
