@@ -1,11 +1,11 @@
 {% extends "course/course-base.html" %}
 
 {% block title %}
-  Grade book - Courseflow
+  Grade book: {{ opportunity.name }} - Courseflow
 {% endblock %}
 
 {% block content %}
-  <h1>Grade book</h1>
+  <h1>Grade book: {{ opportunity.name }} <tt>({{ opportunity.identifer }})</tt></h1>
 
   <table class="table table-condensed table-striped">
     <thead>
@@ -25,10 +25,10 @@
         </td>
         {% for grade in grades %}
           <td>
-            {% if grade.state == None %}
+            {% if grade.grade_state_machine.state == None %}
               -
-            {% elif grade.state == grade_state_change_types.graded %}
-              {{ grade.percentage|floatformat:1 }}%
+            {% elif grade.grade_state_machine.state == grade_state_change_types.graded %}
+              {{ grade.grade_state_machine.percentage|floatformat:1 }}%
             {% else %}
               (Unknown)
             {% endif %}

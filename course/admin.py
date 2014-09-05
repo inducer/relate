@@ -367,7 +367,13 @@ admin.site.register(FlowAccessException, FlowAccessExceptionAdmin)
 # {{{ grading
 
 class GradingOpportunityAdmin(admin.ModelAdmin):
-    list_display = ("course",  "name", "due_time", "identifier",)
+    list_display = (
+            "course",
+            "name",
+            "due_time",
+            "identifier",
+            "shown_in_grade_book",
+            )
     list_filter = ("course",)
 
 admin.site.register(GradingOpportunity, GradingOpportunityAdmin)

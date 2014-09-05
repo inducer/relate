@@ -75,6 +75,9 @@ def view_gradebook(pctx):
             .prefetch_related("user"))
 
     grade_changes = list(GradeChange.objects
+            .filter(
+                opportunity__course=pctx.course,
+                opportunity__shown_in_grade_book=True)
             .order_by(
                 "participation__user__last_name",
                 "participation__user__first_name",
