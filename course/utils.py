@@ -251,8 +251,6 @@ class FlowContext(CoursePageContext):
                 now_datetime=now_datetime,
                 rule_id=rule_id)
 
-        print self.current_access_rule.id
-
         # }}}
 
     def will_receive_feedback(self):
