@@ -95,9 +95,11 @@ def view_gradebook(pctx):
         while (
                 idx < len(grade_changes)
                 and (
-                    grade_changes[idx].participation.user.last_name,
-                    grade_changes[idx].participation.user.first_name)
-                < (participation.user.last_name, participation.user.first_name)):
+                    grade_changes[idx].participation.user.last_name.lower(),
+                    grade_changes[idx].participation.user.first_name.lower())
+                < (
+                    participation.user.last_name.lower(),
+                    participation.user.first_name.lower())):
             idx += 1
 
         grade_row = []
