@@ -25,13 +25,7 @@
         </td>
         {% for grade in grades %}
           <td>
-            {% if grade.state == None %}
-              -
-            {% elif grade.state == grade_state_change_types.graded %}
-              {{ grade.percentage|floatformat:1 }}%
-            {% else %}
-              (Unknown)
-            {% endif %}
+            {{ grade.stringify_state }}
           </td>
         {% endfor %}
       </tr>

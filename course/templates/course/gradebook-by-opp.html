@@ -5,35 +5,69 @@
 {% endblock %}
 
 {% block content %}
-  <h1>Grade book: {{ opportunity.name }} <tt>({{ opportunity.identifer }})</tt></h1>
+  <h1>Grade book: {{ opportunity.name }} </h1>
+
+  <table class="table table-condensed">
+    <thead>
+      <th>Property</th><th>Value</th>
+    </thead>
+    <tbody>
+    <tr>
+      <td>Identifier</td><td><tt>{{ opportunity.identifier }}</tt></td>
+    </tr>
+    <tr>
+      <td>Due</td><td><tt>{{ opportunity.due_time }}</tt></td>
+    </tr>
+    <tr>
+      <td>Aggregation strategy</td><td><tt>{{ opportunity.aggregation_strategy }}</tt></td>
+    </tr>
+    {% if opportunity.flow_id %}
+    <tr>
+      <td>Flow</td><td><tt><a href="{% url "course.flow.start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+    </tr>
+    {% endif %}
+  </table>
 
   <table class="table table-condensed table-striped">
     <thead>
       <th>User ID</th>
       <th>Name</th>
-      {% for opp in grading_opportunities %}
-      <th><a href="{% url "course.grades.view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</th>
-      {% endfor %}
+      <th>Overall grade</th>
+      <th>Sessions</th>
     </thead>
     <tbody>
-      {% for participation, grades in grade_table %}
+      {% for participation, grade_info in grade_table %}
       <tr>
         <td>{{ participation.user.username }}</td>
         <td>
           {{ participation.user.last_name }},
           {{ participation.user.first_name }}
         </td>
-        {% for grade in grades %}
-          <td>
-            {% if grade.grade_state_machine.state == None %}
-              -
-            {% elif grade.grade_state_machine.state == grade_state_change_types.graded %}
-              {{ grade.grade_state_machine.percentage|floatformat:1 }}%
-            {% else %}
-              (Unknown)
-            {% endif %}
-          </td>
-        {% endfor %}
+        <td>
+          {{ grade_info.grade_state_machine.stringify_state }}
+        </td>
+        <td>
+          {% if grade_info.flow_sessions %}
+            <ul>
+              {% for flow_session in grade_info.flow_sessions %}
+                <li>
+                  {% if flow_session.for_credit %}
+                    <span class="label label-danger">for credit</span>
+                  {% else %}
+                    <span class="label label-success">not for credit</span>
+                  {% endif %}
+                  {% if flow_session.in_progress %}
+                    <span class="label label-warning">in progress</span>
+                  {% else %}
+                    <span class="label label-success">finished</span>
+                    ({{ flow_session.completion_time }})
+                  {% endif %}
+                  (Rules: <tt>{{ flow_session.access_rules_id }}</tt>)
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

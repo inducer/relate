@@ -727,6 +727,17 @@ class GradeStateMachine(object):
         else:
             raise ValueError("invalid grade aggregation strategy '%s'" % strategy)
 
+    def stringify_state(self):
+        if self.state is None:
+            return "-"
+        elif self.state == grade_state_change_types.graded:
+            result = "%.1f%%" % self.percentage()
+            if len(self.valid_percentages) > 1:
+                result += " (/%d)" % len(self.valid_percentages)
+            return result
+        else:
+            return "(other state)"
+
 # }}}
 
 

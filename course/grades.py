@@ -34,7 +34,8 @@ from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from course.models import (
         Participation, participation_role, participation_status,
         GradingOpportunity, GradeChange, GradeStateMachine,
-        grade_state_change_types)
+        grade_state_change_types,
+        FlowSession)
 
 
 # {{{ student grade book
@@ -137,10 +138,10 @@ def view_gradebook(pctx):
 
 # {{{ grades by grading opportunity
 
-class GradeInfo(object):
-    def __init__(self, grade_state_machine, sessions):
+class OpportunityGradeInfo(object):
+    def __init__(self, grade_state_machine, flow_sessions):
         self.grade_state_machine = grade_state_machine
-        self.sessions = sessions
+        self.flow_sessions = flow_sessions
 
 
 @course_view
@@ -190,7 +191,6 @@ def view_grades_by_opportunity(pctx, opp_id):
         my_grade_changes = []
         while (
                 idx < len(grade_changes)
-                and grade_changes[idx].opportunity.pk == opp.pk
                 and grade_changes[idx].participation.pk == participation.pk):
             my_grade_changes.append(grade_changes[idx])
             idx += 1
@@ -198,18 +198,26 @@ def view_grades_by_opportunity(pctx, opp_id):
         state_machine = GradeStateMachine()
         state_machine.consume(my_grade_changes)
 
-        grade_table.append(
-                GradeInfo(
-                    participation=participation,
-                    opportunity=opp,
-                    grade_state_machine=state_machine))
+        if opportunity.flow_id:
+            flow_sessions = (FlowSession.objects
+                    .filter(
+                        participation=participation,
+                        flow_id=opportunity.flow_id,
+                        )
+                    .order_by("start_time"))
+        else:
+            flow_sessions = None
 
-        grade_table.append(grade_row)
+        grade_table.append(
+                OpportunityGradeInfo(
+                    grade_state_machine=state_machine,
+                    flow_sessions=flow_sessions))
 
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,
         "participations": participations,
         "grade_state_change_types": grade_state_change_types,
+        "grade_table": zip(participations, grade_table),
         })
 
 # }}}
