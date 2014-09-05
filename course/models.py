@@ -560,7 +560,7 @@ class GradingOpportunity(models.Model):
         unique_together = (("course", "identifier"),)
 
     def __unicode__(self):
-        return "%s in %s" % (self.name, self.course)
+        return "%s (%s) in %s" % (self.name, self.identifier, self.course)
 
 
 class grade_state_change_types:
