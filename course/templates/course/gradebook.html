@@ -26,7 +26,7 @@
         {% for grade in grades %}
           <td>
             {% if grade.grade_state_machine.state == None %}
-              (None)
+              -
             {% elif grade.grade_state_machine.state == grade_state_change_types.graded %}
               {{ grade.grade_state_machine.percentage|floatformat:1 }}%
             {% else %}
