@@ -35,7 +35,7 @@ from django.utils.safestring import mark_safe
 
 from django.db import transaction
 
-from crispy_forms.helper import FormHelper
+from courseflow.utils import StyledForm, StyledModelForm
 from crispy_forms.layout import Submit
 
 from course.models import (
@@ -105,7 +105,7 @@ def get_dulwich_client_and_remote_path_from_course(course):
 
 # {{{ new course setup
 
-class CourseCreationForm(forms.ModelForm):
+class CourseCreationForm(StyledModelForm):
     class Meta:
         model = Course
         fields = (
@@ -118,16 +118,11 @@ class CourseCreationForm(forms.ModelForm):
             "email")
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", "Validate and create",
                     css_class="col-lg-offset-2"))
-
-        super(CourseCreationForm, self).__init__(*args, **kwargs)
 
 
 @login_required
@@ -220,13 +215,8 @@ def set_up_new_course(request):
 
 # {{{ fetch
 
-class GitFetchForm(forms.Form):
+class GitFetchForm(StyledForm):
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
-
         super(GitFetchForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(Submit("fetch", "Fetch"))
@@ -318,14 +308,11 @@ def fetch_course_updates(pctx):
 
 # {{{ update
 
-class GitUpdateForm(forms.Form):
+class GitUpdateForm(StyledForm):
     new_sha = forms.CharField(required=True)
 
     def __init__(self, previewing, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        super(GitUpdateForm, self).__init__(*args, **kwargs)
 
         if previewing:
             self.helper.add_input(
@@ -340,7 +327,6 @@ class GitUpdateForm(forms.Form):
                 Submit("update", "Validate and update"))
         self.helper.add_input(
                 Submit("fetch", mark_safe("&laquo; Fetch again")))
-        super(GitUpdateForm, self).__init__(*args, **kwargs)
 
 
 @login_required
