@@ -12,7 +12,7 @@
       <th>User ID</th>
       <th>Name</th>
       {% for opp in grading_opportunities %}
-        <th>{{ opp.name }}</th>
+        <th>{{ opp.name }} <tt style="font-size:x-small">({{ opp.identifier }})</th>
       {% endfor %}
     </thead>
     <tbody>
