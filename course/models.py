@@ -553,6 +553,9 @@ class GradingOpportunity(models.Model):
             choices=GRADE_AGGREGATION_STRATEGY_CHOICES)
 
     due_time = models.DateTimeField(default=None, blank=True, null=True)
+    creation_time = models.DateTimeField(default=now)
+
+    shown_in_grade_book = models.BooleanField(default=True)
 
     class Meta:
         verbose_name_plural = "grading opportunities"

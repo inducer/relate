@@ -79,6 +79,11 @@ urlpatterns = patterns('',
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/gradebook/$",
         "course.grades.view_gradebook",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grades-by-opportunity/"
+        "/(?P<opp_id>[0-9]+)/$",
+        "course.grades.view_grades_by_opportunity",),
 
     # {{{ enrollment
 

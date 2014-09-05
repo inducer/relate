@@ -7,12 +7,12 @@
 {% block content %}
   <h1>Grade book</h1>
 
-  <table class="table table-condensed">
+  <table class="table table-condensed table-striped">
     <thead>
       <th>User ID</th>
       <th>Name</th>
       {% for opp in grading_opportunities %}
-        <th>{{ opp.name }} <tt style="font-size:x-small">({{ opp.identifier }})</th>
+      <th><a href="{% url "course.grades.view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</th>
       {% endfor %}
     </thead>
     <tbody>
@@ -25,10 +25,10 @@
         </td>
         {% for grade in grades %}
           <td>
-            {% if grade.grade_state_machine.state == None %}
+            {% if gradestate == None %}
               -
-            {% elif grade.grade_state_machine.state == grade_state_change_types.graded %}
-              {{ grade.grade_state_machine.percentage|floatformat:1 }}%
+            {% elif grade.state == grade_state_change_types.graded %}
+              {{ grade.percentage|floatformat:1 }}%
             {% else %}
               (Unknown)
             {% endif %}
