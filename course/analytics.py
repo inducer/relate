@@ -36,7 +36,8 @@ from course.utils import course_view, render_course_page, PageInstanceCache
 from course.models import (
         FlowSession,
         FlowPageVisit,
-        participation_role)
+        participation_role,
+        flow_permission)
 
 from course.content import (get_flow_desc, get_flow_commit_sha)
 
@@ -193,6 +194,17 @@ class Histogram(object):
 
 
 # {{{ flow analytics
+
+def can_be_multiple_submit(pctx, flow_desc):
+    if not hasattr(flow_desc, "access_rules"):
+        return False
+
+    for rule in flow_desc.access_rules:
+        if flow_permission.change_answer in rule.permissions:
+            return True
+
+    return False
+
 
 def make_grade_histogram(pctx, flow_identifier):
     qset = FlowSession.objects.filter(

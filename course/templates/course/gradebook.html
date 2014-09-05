@@ -1,0 +1,42 @@
+{% extends "course/course-base.html" %}
+
+{% block title %}
+  Grade book - Courseflow
+{% endblock %}
+
+{% block content %}
+  <h1>Grade book</h1>
+
+  <table class="table table-condensed">
+    <thead>
+      <th>User ID</th>
+      <th>Name</th>
+      {% for opp in grading_opportunities %}
+        <th>{{ opp.name }}</th>
+      {% endfor %}
+    </thead>
+    <tbody>
+      {% for participation, grades in grade_table %}
+      <tr>
+        <td>{{ participation.user.username }}</td>
+        <td>
+          {{ participation.user.last_name }},
+          {{ participation.user.first_name }}
+        </td>
+        {% for grade in grades %}
+          <td>
+            {% if grade.grade_state_machine.state == None %}
+              (None)
+            {% elif grade.grade_state_machine.state == grade_state_change_types.graded %}
+              {{ grade.grade_state_machine.percentage|floatformat:1 }}%
+            {% else %}
+              (Unknown)
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
+

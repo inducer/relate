@@ -45,13 +45,17 @@ urlpatterns = patterns('',
         "course.auth.user_profile",
         ),
 
-    # troubleshooting
+    # {{{ troubleshooting
+
     url(r'^user/impersonate/$', 'course.auth.impersonate'),
     url(r'^user/stop_impersonating/$', 'course.auth.stop_impersonating'),
 
     url(r'^time/set-fake-time/$', 'course.views.set_fake_time'),
 
-    # course
+    # }}}
+
+    # {{{ course
+
     url(r'^$', 'course.views.home', name='home'),
 
     url(r"^course"
@@ -60,14 +64,24 @@ urlpatterns = patterns('',
         "course.views.course_page",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/grades/$",
-        "course.views.view_grades",),
-    url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/instant-message/$",
         "course.im.send_instant_message",),
 
-    # enrollment
+    # }}}
+
+    # {{{ grading
+
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/my-grades/$",
+        "course.grades.view_my_grades",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/gradebook/$",
+        "course.grades.view_gradebook",),
+
+    # {{{ enrollment
+
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/enroll/$",
@@ -77,14 +91,20 @@ urlpatterns = patterns('',
         "/preapprove/$",
         "course.enrollment.create_preapprovals",),
 
-    # media
+    # }}}
+
+    # {{{ media
+
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/media/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<media_path>.*)$",
         "course.views.get_media",),
 
-    # calendar
+    # }}}
+
+    # {{{ calendar
+
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/check-events/$",
@@ -102,7 +122,10 @@ urlpatterns = patterns('',
         "/calendar/$",
         "course.calendar.view_calendar",),
 
-    # versioning
+    # }}}
+
+    # {{{ versioning
+
     url(r"^new-course/$",
         "course.versioning.set_up_new_course"),
     url(r"^course"
@@ -114,7 +137,10 @@ urlpatterns = patterns('',
         "/update/$",
         "course.versioning.update_course",),
 
-    # flow-related
+    # }}}
+
+    # {{{ flow-related
+
     url(r"^course"
          "/(?P<course_identifier>[-a-zA-Z0-9]+)"
          "/flow"
@@ -137,7 +163,10 @@ urlpatterns = patterns('',
         "/$",
         "course.flow.finish_flow_session_view",),
 
-    # analytics
+    # }}}
+
+    # {{{ analytics
+
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow-analytics"
@@ -159,6 +188,8 @@ urlpatterns = patterns('',
         "/$",
         "course.analytics.page_analytics",),
 
+    # }}}
+
     url(r'^admin/', include(admin.site.urls)),
 )
 
@@ -167,3 +198,5 @@ if settings.CF_MAINTENANCE_MODE:
         # course
         url(r'^.*$', 'course.views.maintenance'),
     )
+
+# vim: fdm=marker

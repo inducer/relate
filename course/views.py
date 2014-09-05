@@ -220,17 +220,4 @@ def fake_time_context_processor(request):
 # }}}
 
 
-# {{{ grading
-
-@course_view
-def view_grades(pctx):
-    messages.add_message(pctx.request, messages.ERROR,
-            "Grade viewing is not yet implemented. (Sorry!) It will be "
-            "once you start accumulating a sufficient number of grades.")
-
-    return redirect("course.views.course_page", pctx.course.identifier)
-
-# }}}
-
-
 # vim: foldmethod=marker
