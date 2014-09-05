@@ -20,6 +20,8 @@ Validation for presence of grade_aggregation_strategy
   (value smaller than min) -> None
   only use last graded submission if multiple-submit
 
+- Stipulations default to same as class (from FAE)
+
 Ideas
 =====
 

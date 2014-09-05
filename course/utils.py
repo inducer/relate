@@ -133,13 +133,16 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc):
 
 
 def get_flow_permissions(course, participation, role, flow_id, flow_desc,
-        now_datetime):
+        now_datetime, rule_id):
     rules = get_flow_access_rules(course, participation, flow_id, flow_desc)
 
     for rule in rules:
         if rule.roles is not None:
             if role not in rule.roles:
                 continue
+
+        if rule_id is not None and rule_id == rule.id:
+            return rule.permissions, rule
 
         if rule.start is not None:
             if now_datetime < rule.start:
@@ -231,11 +234,24 @@ class FlowContext(CoursePageContext):
 
         # {{{ figure out permissions
 
-        from course.views import get_now_or_fake_time
+        # Each session sticks to 'its' assigned rules.
+        # If those are not known, use the ones that were relevant
+        # when the flow started.
+        if flow_session is not None:
+            rule_id = flow_session.access_rules_id
+            now_datetime = flow_session.start_time
+        else:
+            from course.views import get_now_or_fake_time
+            rule_id = None
+            now_datetime = get_now_or_fake_time(request)
+
         self.permissions, self.current_access_rule = get_flow_permissions(
                 self.course, self.participation, self.role,
                 flow_identifier, current_flow_desc,
-                get_now_or_fake_time(request))
+                now_datetime=now_datetime,
+                rule_id=rule_id)
+
+        print self.current_access_rule.id
 
         # }}}
 
