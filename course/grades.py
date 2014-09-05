@@ -78,18 +78,47 @@ def view_gradebook(pctx):
             .order_by("user__last_name", "user__first_name")
             .prefetch_related("user"))
 
+    grade_changes = list(GradeChange.objects
+            .order_by(
+                "participation__user__last_name",
+                "participation__user__first_name",
+                "opportunity__identifier",
+                "grade_time")
+            .prefetch_related("participation")
+            .prefetch_related("participation__user")
+            .prefetch_related("opportunity"))
+
+    idx = 0
+
     grade_table = []
     for participation in participations:
+        while (
+                idx < len(grade_changes)
+                and (
+                    grade_changes[idx].participation.user.last_name,
+                    grade_changes[idx].participation.user.first_name)
+                < (participation.user.last_name, participation.user.first_name)):
+            idx += 1
+
         grade_row = []
         for opp in grading_opps:
-            grade_changes = (GradeChange.objects
-                    .filter(
-                        participation=participation,
-                        opportunity=opp)
-                    .order_by("grade_time"))
+            while (
+                    idx < len(grade_changes)
+                    and grade_changes[idx].participation.pk == participation.pk
+                    and grade_changes[idx].opportunity.identifier < opp.identifier
+                    ):
+                idx += 1
+
+            my_grade_changes = []
+            while (
+                    idx < len(grade_changes)
+                    and grade_changes[idx].opportunity.pk == opp.pk
+                    and grade_changes[idx].participation.pk == participation.pk):
+                my_grade_changes.append(grade_changes[idx])
+                idx += 1
 
             state_machine = GradeStateMachine()
-            state_machine.consume(grade_changes)
+            state_machine.consume(my_grade_changes)
 
             grade_row.append(
                     GradeInfo(
