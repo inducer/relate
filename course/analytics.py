@@ -93,6 +93,8 @@ class Histogram(object):
         if isinstance(value, basestring):
             self.string_weights[value] = \
                     self.string_weights.get(value, 0) + weight
+        elif value is None:
+            self.add_data_point("(None)", weight)
         else:
             if (self.num_max_value is not None
                     and value > self.num_max_value):

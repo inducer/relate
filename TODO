@@ -17,10 +17,13 @@ Validation for presence of grade_aggregation_strategy
 - Force regrade (fix issues in combinations quiz)
 
 - Fix analytics:
-  (value smaller than min) -> None
   only use last graded submission if multiple-submit
 
 - Stipulations default to same as class (from FAE)
+
+- Reopen session admin action
+
+- Fix docker reliability
 
 Ideas
 =====
