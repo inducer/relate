@@ -60,7 +60,10 @@ def view_gradebook(pctx):
         raise PermissionDenied("must be instructor or TA to view grades")
 
     grading_opps = list((GradingOpportunity.objects
-            .filter(course=pctx.course)
+            .filter(
+                course=pctx.course,
+                shown_in_grade_book=True,
+                )
             .order_by("identifier")))
 
     participations = list(Participation.objects
