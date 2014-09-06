@@ -290,7 +290,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
     # {{{ end sessions form
 
-    end_sessions_form = None
+    batch_session_ops_form = None
     if pctx.role == participation_role.instructor and opportunity.flow_id:
         cursor = connection.cursor()
         cursor.execute("select distinct access_rules_id from course_flowsession "
@@ -300,7 +300,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
         request = pctx.request
         if request.method == "POST":
-            end_sessions_form = ModifySessionsForm(
+            batch_session_ops_form = ModifySessionsForm(
                     rule_ids, request.POST, request.FILES)
             if "end" in request.POST:
                 op = "end"
@@ -309,8 +309,8 @@ def view_grades_by_opportunity(pctx, opp_id):
             else:
                 raise SuspiciousOperation("invalid operation")
 
-            if end_sessions_form.is_valid():
-                rule_id = end_sessions_form.cleaned_data["rule_id"]
+            if batch_session_ops_form.is_valid():
+                rule_id = batch_session_ops_form.cleaned_data["rule_id"]
                 if rule_id == RULE_ID_NONE_STRING:
                     rule_id = None
                 try:
@@ -335,7 +335,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                             "Error: %s %s" % (type(e), str(e)))
 
         else:
-            end_sessions_form = ModifySessionsForm(rule_ids)
+            batch_session_ops_form = ModifySessionsForm(rule_ids)
 
     # }}}
 
@@ -402,7 +402,7 @@ def view_grades_by_opportunity(pctx, opp_id):
         "participations": participations,
         "grade_state_change_types": grade_state_change_types,
         "grade_table": grade_table,
-        "end_sessions_form": end_sessions_form,
+        "batch_session_ops_form": batch_session_ops_form,
         })
 
 # }}}
