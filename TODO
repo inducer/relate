@@ -14,6 +14,8 @@
 
 - Fix docker reliability
 
+- Instant flow request
+
 Ideas
 =====
 
@@ -31,7 +33,6 @@ Ideas
   -> localize an elaborate question and all its 'stuff' (JS, media)
   -> use a media search path
 - flow overview
-- Instant flow request
 - Student tags, adapt homepage
 
 - Flow group ordering, max page count, question/page tags
