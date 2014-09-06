@@ -65,7 +65,7 @@
             <li>
               You are not allowed to interact with this flow.
               {% if not user.is_authenticated %}
-                <a href="{% url "course.auth.sign_in" %}">Sign in</a> to get started.
+                <a href="{% url student_sign_in_view %}">Sign in</a> to get started.
               {% elif participation == None %}
                 Enroll in this course to get started.
               {% endif %}
