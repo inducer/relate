@@ -25,6 +25,8 @@ CourseFlow is set apart by the following features:
 * In-class instant messaging via XMPP.
   Works well with `xmpp-popup <https://github.com/inducer/xmpp-popup>`_.
 
+[See it in action](https://courseflow.cs.illinois.edu/course/cs357-f14)
+
 Installation
 ------------
 
