@@ -428,7 +428,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "state",
             )
 
-    raw_id_fields = ("flow_session",)
+    raw_id_fields = ("participation", "flow_session",)
 
 admin.site.register(GradeChange, GradeChangeAdmin)
 

@@ -1,7 +1,5 @@
 {% extends "course/course-base.html" %}
 
-{% load crispy_forms_tags %}
-
 {% block title %}
   Grade book: {{ opportunity.name }} - Courseflow
 {% endblock %}
@@ -48,13 +46,19 @@
       {% for gchange in grade_changes %}
       <tr>
         <td>{{ gchange.grade_time }}</td>
-        <td>{{ gchange.state }}</td>
         <td>
+          {% if gchange.is_superseded %}<s>{% endif %}
+          {{ gchange.state }}
+          {% if gchange.is_superseded %}</s>{% endif %}
+        </td>
+        <td>
+          {% if gchange.is_superseded %}<s>{% endif %}
           {% if gchange.points != None %}
             {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
             points
             ({{ gchange.percentage|floatformat:1 }}%)
           {% endif %}
+          {% if gchange.is_superseded %}</s>{% endif %}
         </td>
         <td>
           {% if gchange.comment %}
@@ -65,6 +69,10 @@
             (by {{ gchange.creator.last_name }}, {{ gchange.creator.first_name }})
           {% else %}
             (machine-generated)
+          {% endif %}
+
+          {% if gchange.flow_session != None %}
+          (from flow session {{ gchange.flow_session.id }})
           {% endif %}
         </td>
       </tr>
@@ -85,71 +93,100 @@
   {% if flow_sessions %}
     <h2>Flow sessions</h2>
 
-    <table class="table table-condensed table-striped">
-      <thead>
-        <tr>
-          <th>Start time</th>
-          <th>State</th>
-          <th>Rules</th>
-          <th>Result</th>
-          <th>Pages</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for flow_session in flow_sessions %}
+    <form method="POST">
+      {% csrf_token %}
+      <table class="table table-condensed table-striped">
+        <thead>
           <tr>
-            <td>{{ flow_session.start_time }}</td>
-            <td>
-              {% if flow_session.for_credit %}
-                <span class="label label-danger">for credit</span>
-              {% else %}
-                <span class="label label-success">not for credit</span>
-              {% endif %}
-              {% if flow_session.in_progress %}
-                <span class="label label-warning">in progress</span>
-              {% else %}
-                <span class="label label-success">finished</span>
-                ({{ flow_session.completion_time }})
-              {% endif %}
-            </td>
-            <td>
-              {% if flow_session.access_rules_id %}
-                <tt>{{ flow_session.access_rules_id  }}</tt>
-              {% else %}
-                (None)
-              {% endif %}
-            </td>
-            <td>
-              {% if flow_session.max_points %}
-                <b>{{ flow_session.points|floatformat }}</b>
-                out of
-                {{ flow_session.max_points|floatformat }}
-
-                (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
-              {% else %}
-                (none)
-              {% endif %}
-
-            </td>
-            <td>
-              <ul>
-              {% for visit in flow_session.answer_visits %}
-                {% if visit %}
-                  <li>
-                    Page {{ visit.page_data.ordinal }}:
-                    (<tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt>)
-                    {{ visit.get_most_recent_grade.percentage }}%
-                    ({{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }} points)
-
-                  </li>
-                {% endif %}
-              {% endfor %}
-              </ul>
-            </td>
+            <th>ID</th>
+            <th>State</th>
+            <th>Result</th>
+            <th>Pages</th>
+            {% if allow_session_actions %}
+              <th>Actions</th>
+            {% endif %}
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
+        </thead>
+        <tbody>
+          {% for flow_session in flow_sessions %}
+            <tr>
+              <td>{{ flow_session.id }}</td>
+              <td>
+                {% if flow_session.for_credit %}
+                  <span class="label label-danger">for credit</span>
+                {% else %}
+                  <span class="label label-success">not for credit</span>
+                {% endif %}
+                {% if flow_session.in_progress %}
+                  <span class="label label-warning">in progress</span>
+                {% else %}
+                  <span class="label label-success">finished</span>
+                {% endif %}
+                <hr>
+                <p>
+                  <b>Rules:</b>
+                  {% if flow_session.access_rules_id %}
+                    <tt>{{ flow_session.access_rules_id  }}</tt>
+                  {% else %}
+                    (None)
+                  {% endif %}
+                </p>
+                <p>
+                  <b>Started:</b> {{ flow_session.start_time }}
+                </p>
+                {% if not flow_session.in_progress %}
+                  <p>
+                    <b>Completed:</b> {{ flow_session.completion_time }}
+                  </p>
+                {% endif %}
+              </td>
+              <td>
+                {% if flow_session.max_points %}
+                  <b>{{ flow_session.points|floatformat }}</b>
+                  out of
+                  {{ flow_session.max_points|floatformat }}
 
+                  (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                {% else %}
+                  (none)
+                {% endif %}
+
+              </td>
+              <td>
+                <table class="table">
+                {% for visit in flow_session.answer_visits %}
+                  {% if visit %}
+                    <tr>
+                      <td>Page {{ visit.page_data.ordinal }}</td>
+                      <td><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></td>
+                      <td>{{ visit.get_most_recent_grade.percentage }}%</td>
+                      <td>({{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }} points)</td>
+
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+                </table>
+              </td>
+              {% if allow_session_actions %}
+                <td>
+                  {% if flow_session.in_progress %}
+                    <button type="submit" name="end_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                      End and grade
+                    </button>
+                  {% else %}
+                    <button type="submit" name="reopen_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                      Reopen
+                    </button>
+                    <button type="submit" name="regrade_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                      Regrade
+                    </button>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+  {% endif %}
 {% endblock %}

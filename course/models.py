@@ -667,8 +667,9 @@ class GradeStateMachine(object):
         self.state = None
         self.last_grade_time = None
         self.valid_percentages = []
+        self.flow_session_id_to_gchange = {}
 
-    def _consume_grade_change(self, gchange):
+    def _consume_grade_change(self, gchange, set_is_superseded):
         if self.opportunity is None:
             self.opportunity = gchange.opportunity
             self.due_time = self.opportunity.due_time
@@ -692,7 +693,15 @@ class GradeStateMachine(object):
                 raise ValueError("cannot accept grade after due date")
 
             self.state = gchange.state
-            self.valid_percentages.append(gchange.percentage())
+            if gchange.flow_session is not None:
+                if (set_is_superseded and
+                        gchange.flow_session.id in self.flow_session_id_to_gchange):
+                    self.flow_session_id_to_gchange[gchange.flow_session.id] \
+                            .is_superseded = True
+                self.flow_session_id_to_gchange[gchange.flow_session.id] \
+                        = gchange
+            else:
+                self.valid_percentages.append(gchange.percentage())
 
         elif gchange.state == grade_state_change_types.unavailable:
             self._clear_grades()
@@ -719,9 +728,16 @@ class GradeStateMachine(object):
         else:
             raise RuntimeError("invalid grade change state '%s'" % gchange.state)
 
-    def consume(self, iterable):
+    def consume(self, iterable, set_is_superseded=False):
         for gchange in iterable:
-            self._consume_grade_change(gchange)
+            gchange.is_superseded = False
+            self._consume_grade_change(gchange, set_is_superseded)
+
+        self.valid_percentages.extend(
+                gchange.percentage()
+                for gchange in self.flow_session_id_to_gchange.values())
+
+        del self.flow_session_id_to_gchange
 
         return self
 

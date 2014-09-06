@@ -259,7 +259,8 @@ def gather_grade_info(flow_session, answer_visits):
             incorrect_count=incorrect_count)
 
 
-def grade_page_visits(fctx, flow_session, answer_visits):
+@transaction.atomic
+def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
     for i in range(len(answer_visits)):
         answer_visit = answer_visits[i]
 
@@ -285,12 +286,15 @@ def grade_page_visits(fctx, flow_session, answer_visits):
 
             answer_visits[i] = answer_visit
 
-        if (answer_visit is not None and not answer_visit.grades.count()):
+        if (answer_visit is not None
+                and (not answer_visit.grades.count() or force_regrade)):
             grade_page_visit(answer_visit,
                     graded_at_git_commit_sha=fctx.flow_commit_sha)
 
 
-def finish_flow_session(fctx, flow_session, current_access_rule):
+@transaction.atomic
+def finish_flow_session(fctx, flow_session, current_access_rule,
+        force_regrade=False):
     if not flow_session.in_progress:
         raise RuntimeError("Can't end a session that's already ended")
 
@@ -302,7 +306,8 @@ def finish_flow_session(fctx, flow_session, current_access_rule):
     is_graded_flow = bool(answered_count + unanswered_count)
 
     if is_graded_flow:
-        grade_page_visits(fctx, flow_session, answer_visits)
+        grade_page_visits(fctx, flow_session, answer_visits,
+                force_regrade=force_regrade)
 
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
@@ -355,6 +360,54 @@ def finish_flow_session(fctx, flow_session, current_access_rule):
         gchange.save()
 
     return grade_info
+
+
+def reopen_session(session):
+    if session.in_progress:
+        raise RuntimeError("Can't reopen a session that's already in progress")
+    if session.participation is None:
+        raise RuntimeError("Can't reopen anonymous sessions")
+
+    other_in_progress_sessions = (FlowSession.objects
+            .filter(
+                participation=session.participation,
+                flow_id=session.flow_id,
+                in_progress=True,
+                participation__isnull=False)
+            .exclude(id=session.id))
+
+    if other_in_progress_sessions.count():
+        raise RuntimeError("Can't open multiple sessions at once")
+
+    session.in_progress = True
+    session.points = None
+    session.max_points = None
+    session.completion_time = None
+    session.save()
+
+
+def finish_flow_session_standalone(repo, course, session, force_regrade=False):
+    assert session.participation is not None
+
+    from course.utils import FlowContext
+    from course.flow import finish_flow_session
+
+    from django.utils.timezone import now
+
+    fctx = FlowContext(repo, course, session.flow_id, flow_session=session)
+
+    current_access_rule = fctx.get_current_access_rule(
+            session, session.participation.role, session.participation,
+            now())
+
+    finish_flow_session(fctx, session, current_access_rule,
+            force_regrade=force_regrade)
+
+
+@transaction.atomic
+def regrade_session(repo, course, session):
+    reopen_session(session)
+    finish_flow_session_standalone(repo, course, session, force_regrade=True)
 
 # }}}
 

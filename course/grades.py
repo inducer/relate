@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import re
 
 from django.shortcuts import (  # noqa
         redirect, get_object_or_404)
@@ -175,7 +176,7 @@ class EndSessionsForm(StyledForm):
 
 
 @transaction.atomic
-def end_in_progress_sessions(repo, course, flow_id, rule_id):
+def finish_in_progress_sessions(repo, course, flow_id, rule_id):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
@@ -184,22 +185,14 @@ def end_in_progress_sessions(repo, course, flow_id, rule_id):
                 in_progress=True,
                 ))
 
-    from django.utils.timezone import now
-    now_datetime = now()
+    count = 0
 
+    from course.flow import finish_flow_session_standalone
     for session in sessions:
-        assert session.participation is not None
+        finish_flow_session_standalone(repo, course, session)
+        count += 1
 
-        from course.utils import FlowContext
-        from course.flow import finish_flow_session
-
-        fctx = FlowContext(repo, course, flow_id, flow_session=session)
-
-        current_access_rule = fctx.get_current_access_rule(
-                session, session.participation.role, session.participation,
-                now_datetime)
-
-        finish_flow_session(fctx, session, current_access_rule)
+    return count
 
 
 RULE_ID_NONE_STRING = "<<<NONE>>>"
@@ -242,8 +235,12 @@ def view_grades_by_opportunity(pctx, opp_id):
                 rule_id = end_sessions_form.cleaned_data["rule_id"]
                 if rule_id == RULE_ID_NONE_STRING:
                     rule_id = None
-                end_in_progress_sessions(pctx.repo, pctx.course, opportunity.flow_id,
+                count = finish_in_progress_sessions(
+                        pctx.repo, pctx.course, opportunity.flow_id,
                         rule_id)
+
+                messages.add_message(pctx.request, messages.SUCCESS,
+                        "%d sessions ended." % count)
         else:
             end_sessions_form = EndSessionsForm(rule_ids)
 
@@ -326,6 +323,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     participation = get_object_or_404(Participation,
             id=int(participation_id))
 
+    if participation.course != pctx.course:
+        raise SuspiciousOperation("participation does not match course")
+
     if pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
@@ -338,22 +338,76 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
+    # {{{ modify sessions form
+
+    if pctx.role in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        allow_session_actions = True
+
+        request = pctx.request
+        if pctx.request.method == "POST":
+            action_re = re.compile("^(end|reopen|regrade)_([0-9]+)$")
+            for key in request.POST.keys():
+                action_match = action_re.match(key)
+                if action_match:
+                    break
+
+            if not action_match:
+                raise SuspiciousOperation("unknown action")
+
+            session = FlowSession.objects.get(id=int(action_match.group(2)))
+            op = action_match.group(1)
+
+            from course.flow import (
+                    reopen_session,
+                    regrade_session,
+                    finish_flow_session_standalone)
+
+            try:
+                if op == "end":
+                    finish_flow_session_standalone(
+                            pctx.repo, pctx.course, session)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session ended.")
+
+                elif op == "regrade":
+                    regrade_session(
+                            pctx.repo, pctx.course, session)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session regraded.")
+
+                elif op == "reopen":
+                    reopen_session(session)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session reopened.")
+
+                else:
+                    raise SuspiciousOperation("invalid session operation")
+
+            except Exception as e:
+                messages.add_message(pctx.request, messages.ERROR,
+                        "Error: %s %s" % (type(e), str(e)))
+    else:
+        allow_session_actions = False
+
+    # }}}
+
     grade_changes = list(GradeChange.objects
             .filter(
                 opportunity=opportunity,
                 participation=participation)
-            .order_by(
-                "grade_time")
+            .order_by("grade_time")
             .prefetch_related("participation")
             .prefetch_related("participation__user")
             .prefetch_related("creator")
             .prefetch_related("opportunity"))
 
     state_machine = GradeStateMachine()
-    state_machine.consume(grade_changes)
+    state_machine.consume(grade_changes, set_is_superseded=True)
 
     if opportunity.flow_id is not None:
-        flow_sessions = (FlowSession.objects
+        flow_sessions = list(FlowSession.objects
                 .filter(
                     participation=participation,
                     flow_id=opportunity.flow_id,
@@ -370,6 +424,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         "grade_changes": grade_changes,
         "state_machine": state_machine,
         "flow_sessions": flow_sessions,
+        "allow_session_actions": allow_session_actions,
         })
+
+# }}}
 
 # vim: foldmethod=marker
