@@ -362,22 +362,23 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
     return grade_info
 
 
-def reopen_session(session):
+def reopen_session(session, force=False):
     if session.in_progress:
         raise RuntimeError("Can't reopen a session that's already in progress")
     if session.participation is None:
         raise RuntimeError("Can't reopen anonymous sessions")
 
-    other_in_progress_sessions = (FlowSession.objects
-            .filter(
-                participation=session.participation,
-                flow_id=session.flow_id,
-                in_progress=True,
-                participation__isnull=False)
-            .exclude(id=session.id))
+    if not force:
+        other_in_progress_sessions = (FlowSession.objects
+                .filter(
+                    participation=session.participation,
+                    flow_id=session.flow_id,
+                    in_progress=True,
+                    participation__isnull=False)
+                .exclude(id=session.id))
 
-    if other_in_progress_sessions.count():
-        raise RuntimeError("Can't open multiple sessions at once")
+        if other_in_progress_sessions.count():
+            raise RuntimeError("Can't open multiple sessions at once")
 
     session.in_progress = True
     session.points = None
@@ -406,7 +407,7 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False):
 
 @transaction.atomic
 def regrade_session(repo, course, session):
-    reopen_session(session)
+    reopen_session(session, force=True)
     finish_flow_session_standalone(repo, course, session, force_regrade=True)
 
 # }}}
