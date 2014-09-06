@@ -1,0 +1,35 @@
+{% extends "course/course-base.html" %}
+
+{% block title %}
+  My Grades - Courseflow
+{% endblock %}
+
+{% block content %}
+  <h1>My Grades</h1>
+
+  <table class="table table-condensed table-striped">
+    <thead>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Grade</th>
+      <th>Date</th>
+    </thead>
+    <tbody>
+      {% for grade_info in grade_table %}
+      <tr>
+        <td><tt>{{ grade_info.opportunity.identifier }}</tt></td>
+        <td>{{ grade_info.opportunity.name }}</td>
+        <td>
+          <a href="{% url "course.grades.view_single_grade" course.identifier participation.id grade_info.opportunity.id %}"
+            >{{ grade_info.grade_state_machine.stringify_state }}</a>
+        </td>
+        <td>
+          {{ grade_info.grade_state_machine.last_graded_time }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
+
+

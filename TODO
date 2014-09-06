@@ -7,21 +7,14 @@
 Validation for presence of grade_aggregation_strategy
 
 - Student grade view
-- Instructor grade view
-
-- Restrict analytics to students
 
 - Add "show correctness after completion" privilege
   Add to prelec quizzes
-
-- Force regrade (fix issues in combinations quiz)
 
 - Fix analytics:
   only use last graded submission if multiple-submit
 
 - Stipulations default to same as class (from FAE)
-
-- Reopen session admin action
 
 - Fix docker reliability
 
@@ -66,3 +59,5 @@ Rejected ideas
 - configuration store
 - Email me my code
 - time limits, extra time?
+- Restrict analytics to students
+  (bad idea: should at least include unenrolled to allow quick in-class work)

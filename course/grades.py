@@ -49,11 +49,61 @@ from course.models import (
 
 @course_view
 def view_my_grades(pctx):
-    messages.add_message(pctx.request, messages.ERROR,
-            "Grade viewing is not yet implemented. (Sorry!) It will be "
-            "once you start accumulating a sufficient number of grades.")
+    if pctx.participation is None:
+        raise PermissionDenied("must be enrolled to view grades")
 
-    return redirect("course.views.course_page", pctx.course.identifier)
+    # NOTE: It's important that these two queries are sorted consistently,
+    # also consistently with the code below.
+    grading_opps = list((GradingOpportunity.objects
+            .filter(
+                course=pctx.course,
+                shown_in_grade_book=True,
+                )
+            .order_by("identifier")))
+
+    grade_changes = list(GradeChange.objects
+            .filter(
+                participation=pctx.participation,
+                opportunity__course=pctx.course,
+                opportunity__shown_in_grade_book=True)
+            .order_by(
+                "participation__id",
+                "opportunity__identifier",
+                "grade_time")
+            .prefetch_related("participation")
+            .prefetch_related("participation__user")
+            .prefetch_related("opportunity"))
+
+    idx = 0
+
+    grade_table = []
+    for opp in grading_opps:
+        while (
+                idx < len(grade_changes)
+                and grade_changes[idx].opportunity.identifier < opp.identifier
+                ):
+            idx += 1
+
+        my_grade_changes = []
+        while (
+                idx < len(grade_changes)
+                and grade_changes[idx].opportunity.pk == opp.pk):
+            my_grade_changes.append(grade_changes[idx])
+            idx += 1
+
+        state_machine = GradeStateMachine()
+        state_machine.consume(my_grade_changes)
+
+        grade_table.append(
+                GradeInfo(
+                    opportunity=opp,
+                    grade_state_machine=state_machine))
+
+    return render_course_page(pctx, "course/gradebook-participant.html", {
+        "grade_table": grade_table,
+        "grading_opportunities": grading_opps,
+        "grade_state_change_types": grade_state_change_types,
+        })
 
 # }}}
 

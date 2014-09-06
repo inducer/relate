@@ -658,6 +658,7 @@ class GradeStateMachine(object):
         self.state = None
         self._clear_grades()
         self.due_time = None
+        self.last_graded_time = None
         self.last_report_time = None
 
         # applies to *all* grade changes
@@ -702,6 +703,8 @@ class GradeStateMachine(object):
                         = gchange
             else:
                 self.valid_percentages.append(gchange.percentage())
+
+            self.last_graded_time = gchange.grade_time
 
         elif gchange.state == grade_state_change_types.unavailable:
             self._clear_grades()
