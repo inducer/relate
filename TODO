@@ -4,10 +4,6 @@
 
 - ending on new version, resume, ...
 
-Validation for presence of grade_aggregation_strategy
-
-- Student grade view
-
 - Add "show correctness after completion" privilege
   Add to prelec quizzes
 
@@ -20,6 +16,8 @@ Validation for presence of grade_aggregation_strategy
 
 Ideas
 =====
+
+- Validation for presence of grade_aggregation_strategy
 
 - Flow results analytics
   --> time taken per question
