@@ -33,7 +33,7 @@ from course.views import (
         )
 from course.content import (
         get_course_repo, get_course_desc, get_flow_desc,
-        parse_date_spec, get_active_commit_sha)
+        parse_date_spec, get_course_commit_sha)
 from course.models import (
         Course,
         FlowAccessException,
@@ -132,7 +132,7 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc):
     return rules
 
 
-def get_flow_permissions(course, participation, role, flow_id, flow_desc,
+def get_current_flow_access_rule(course, participation, role, flow_id, flow_desc,
         now_datetime, rule_id):
     rules = get_flow_access_rules(course, participation, flow_id, flow_desc)
 
@@ -142,7 +142,7 @@ def get_flow_permissions(course, participation, role, flow_id, flow_desc,
                 continue
 
         if rule_id is not None and rule_id == rule.id:
-            return rule.permissions, rule
+            return rule
 
         if rule.start is not None:
             if now_datetime < rule.start:
@@ -152,7 +152,7 @@ def get_flow_permissions(course, participation, role, flow_id, flow_desc,
             if rule.end < now_datetime:
                 continue
 
-        return rule.permissions, rule
+        return rule
 
     raise ValueError("Flow access rules of flow '%s' did not resolve "
             "to access answer for '%s'" % (flow_id, participation))
@@ -161,12 +161,13 @@ def get_flow_permissions(course, participation, role, flow_id, flow_desc,
 def instantiate_flow_page_with_ctx(fctx, page_data):
     from course.content import get_flow_page_desc
     page_desc = get_flow_page_desc(
-            fctx.flow_session, fctx.flow_desc, page_data.group_id, page_data.page_id)
+            fctx.flow_identifier, fctx.flow_desc,
+            page_data.group_id, page_data.page_id)
 
     from course.content import instantiate_flow_page
     return instantiate_flow_page(
             "course '%s', flow '%s', page '%s/%s'"
-            % (fctx.course_identifier, fctx.flow_identifier,
+            % (fctx.course.identifier, fctx.flow_identifier,
                 page_data.group_id, page_data.page_id),
             fctx.repo, page_desc, fctx.flow_commit_sha)
 
@@ -187,7 +188,7 @@ class CoursePageContext(object):
         from course.views import check_course_state
         check_course_state(self.course, self.role)
 
-        self.course_commit_sha = get_active_commit_sha(
+        self.course_commit_sha = get_course_commit_sha(
                 self.course, self.participation)
 
         self.repo = get_course_repo(self.course)
@@ -195,12 +196,15 @@ class CoursePageContext(object):
                 self.course_commit_sha)
 
 
-class FlowContext(CoursePageContext):
-    def __init__(self, request, course_identifier, flow_identifier,
-            flow_session=None):
-        CoursePageContext.__init__(self, request, course_identifier)
+class FlowContext(object):
+    def __init__(self, repo, course, flow_identifier,
+            participation=None, flow_session=None):
+        """*participation* and *flow_session* are not stored and only used
+        to figure out versioning of the flow content.
+        """
 
-        self.flow_session = flow_session
+        self.repo = repo
+        self.course = course
         self.flow_identifier = flow_identifier
 
         from course.content import get_flow_commit_sha
@@ -211,29 +215,33 @@ class FlowContext(CoursePageContext):
         # Fall back to 'old' version if current git version does not
         # contain this flow any more.
 
+        self.course_commit_sha = get_course_commit_sha(
+                self.course, participation)
+
         try:
             current_flow_desc_sha = self.course_commit_sha
-            current_flow_desc = get_flow_desc(self.repo, self.course,
+            self.current_flow_desc = get_flow_desc(self.repo, self.course,
                     flow_identifier, current_flow_desc_sha)
         except ObjectDoesNotExist:
-            if self.flow_session is None:
+            if flow_session is None:
                 raise http.Http404()
 
-            current_flow_desc_sha = self.flow_session.active_git_commit_sha.encode()
-            current_flow_desc = get_flow_desc(self.repo, self.course,
+            current_flow_desc_sha = flow_session.active_git_commit_sha.encode()
+            self.current_flow_desc = get_flow_desc(self.repo, self.course,
                     flow_identifier, current_flow_desc_sha)
 
         self.flow_commit_sha = get_flow_commit_sha(
-                self.course, self.participation,
-                current_flow_desc, self.flow_session)
+                self.course, participation,
+                self.current_flow_desc, flow_session)
+
         if self.flow_commit_sha == current_flow_desc_sha:
-            self.flow_desc = current_flow_desc
+            self.flow_desc = self.current_flow_desc
         else:
             self.flow_desc = get_flow_desc(self.repo, self.course,
                 flow_identifier, self.flow_commit_sha)
 
-        # {{{ figure out permissions
-
+    def get_current_access_rule(self,
+            flow_session, role, participation, now_datetime):
         # Each session sticks to 'its' assigned rules.
         # If those are not known, use the ones that were relevant
         # when the flow started.
@@ -241,35 +249,13 @@ class FlowContext(CoursePageContext):
             rule_id = flow_session.access_rules_id
             now_datetime = flow_session.start_time
         else:
-            from course.views import get_now_or_fake_time
             rule_id = None
-            now_datetime = get_now_or_fake_time(request)
 
-        self.permissions, self.current_access_rule = get_flow_permissions(
-                self.course, self.participation, self.role,
-                flow_identifier, current_flow_desc,
+        return get_current_flow_access_rule(
+                self.course, participation, role,
+                self.flow_identifier, self.current_flow_desc,
                 now_datetime=now_datetime,
                 rule_id=rule_id)
-
-        # }}}
-
-    def will_receive_feedback(self):
-        from course.models import flow_permission
-        return (
-                flow_permission.see_correctness in self.permissions
-                or flow_permission.see_answer in self.permissions)
-
-    @property
-    def stipulations(self):
-        from warnings import warn
-        warn("FlowContext.stipulations is deprecated--use '.current_access_rule'",
-                DeprecationWarning)
-
-        return self.current_access_rule
-
-    @property
-    def page_count(self):
-        return self.flow_session.page_count
 
 
 class FlowPageContext(FlowContext):
@@ -280,10 +266,10 @@ class FlowPageContext(FlowContext):
     which is used for in the page API.
     """
 
-    def __init__(self, request, course_identifier, flow_identifier,
-            ordinal, flow_session):
-        FlowContext.__init__(self, request, course_identifier, flow_identifier,
-                flow_session=flow_session)
+    def __init__(self, repo, course, flow_identifier, ordinal,
+             participation, flow_session):
+        FlowContext.__init__(self, repo, course, flow_identifier,
+                participation, flow_session=flow_session)
 
         from course.models import FlowPageData
         page_data = self.page_data = get_object_or_404(
@@ -316,18 +302,6 @@ class FlowPageContext(FlowContext):
     @property
     def ordinal(self):
         return self.page_data.ordinal
-
-    @property
-    def percentage_done(self):
-        return int(100*(self.ordinal+1)/self.page_count)
-
-    def create_visit(self, request):
-        page_visit = FlowPageVisit()
-        page_visit.flow_session = self.flow_session
-        page_visit.page_data = self.page_data
-        page_visit.remote_address = request.META['REMOTE_ADDR']
-        page_visit.save()
-
 
 # }}}
 

@@ -30,18 +30,19 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import transaction
 from django.utils.safestring import mark_safe
+from course.views import get_now_or_fake_time
 
 import re
 
 from course.models import (
-        participation_role,
         FlowSession, FlowPageData, FlowPageVisit, FlowPageVisitGrade,
         flow_permission,
         GradeChange)
 
 from course.utils import (
         FlowContext, FlowPageContext,
-        instantiate_flow_page_with_ctx)
+        instantiate_flow_page_with_ctx,
+        course_view, render_course_page)
 
 
 # {{{ grade page visit
@@ -213,9 +214,9 @@ class GradeInfo(object):
         return 100*self.incorrect_count/self.total_count()
 
 
-def gather_grade_info(fctx, answer_visits):
+def gather_grade_info(flow_session, answer_visits):
     all_page_data = (FlowPageData.objects
-            .filter(flow_session=fctx.flow_session)
+            .filter(flow_session=flow_session)
             .order_by("ordinal"))
 
     points = 0
@@ -284,19 +285,19 @@ def grade_page_visits(fctx, flow_session, answer_visits):
 
             answer_visits[i] = answer_visit
 
-        if answer_visit is not None:
+        if (answer_visit is not None and not answer_visit.grades.count()):
             grade_page_visit(answer_visit,
                     graded_at_git_commit_sha=fctx.flow_commit_sha)
 
 
-def finish_flow_session(fctx, flow_session):
+def finish_flow_session(fctx, flow_session, current_access_rule):
     if not flow_session.in_progress:
         raise RuntimeError("Can't end a session that's already ended")
 
     answer_visits = assemble_answer_visits(flow_session)
 
     (answered_count, unanswered_count) = count_answered(
-            fctx, fctx.flow_session, answer_visits)
+            fctx, flow_session, answer_visits)
 
     is_graded_flow = bool(answered_count + unanswered_count)
 
@@ -305,17 +306,17 @@ def finish_flow_session(fctx, flow_session):
 
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
-    grade_info = gather_grade_info(fctx, answer_visits)
+    grade_info = gather_grade_info(flow_session, answer_visits)
 
     comment = None
 
     if grade_info is not None:
         points = grade_info.points
 
-        if fctx.current_access_rule.credit_percent is not None:
+        if current_access_rule.credit_percent is not None:
             comment = "Counted at %.1f%% of %.1f points" % (
-                    fctx.stipulations.credit_percent, points)
-            points = points * fctx.stipulations.credit_percent / 100
+                    current_access_rule.credit_percent, points)
+            points = points * current_access_rule.credit_percent / 100
     else:
         points = None
 
@@ -334,17 +335,17 @@ def finish_flow_session(fctx, flow_session):
     flow_session.save()
 
     if (is_graded_flow
-            and fctx.participation is not None
+            and flow_session.participation is not None
             and grade_info is not None
             and flow_session.for_credit):
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
-                fctx.course, fctx.flow_identifier, fctx.flow_desc)
+                flow_session.course, flow_session.flow_id, fctx.flow_desc)
 
         from course.models import grade_state_change_types
         gchange = GradeChange()
         gchange.opportunity = gopp
-        gchange.participation = fctx.participation
+        gchange.participation = flow_session.participation
         gchange.state = grade_state_change_types.graded
         gchange.points = points
         gchange.max_points = grade_info.max_points
@@ -364,29 +365,37 @@ RESUME_RE = re.compile("^resume_([0-9]+)$")
 
 
 @transaction.atomic
-def start_flow(request, course_identifier, flow_identifier):
-    fctx = FlowContext(request, course_identifier, flow_identifier)
+@course_view
+def start_flow(pctx, flow_identifier):
+    request = pctx.request
 
-    may_view = flow_permission.view in fctx.permissions
+    now_datetime = get_now_or_fake_time(request)
+    fctx = FlowContext(pctx.repo, pctx.course, flow_identifier,
+            participation=pctx.participation)
+
+    current_access_rule = fctx.get_current_access_rule(
+            None, pctx.role, pctx.participation, now_datetime)
+
+    may_view = flow_permission.view in current_access_rule.permissions
 
     have_in_progress_session = (FlowSession.objects
             .filter(
-                participation=fctx.participation,
+                participation=pctx.participation,
                 flow_id=fctx.flow_identifier,
                 in_progress=True,
                 participation__isnull=False,
                 )).count() > 0
     past_sessions = (FlowSession.objects
             .filter(
-                participation=fctx.participation,
+                participation=pctx.participation,
                 flow_id=fctx.flow_identifier,
                 participation__isnull=False)
            .order_by("start_time"))
     past_session_count = past_sessions.count()
 
-    if fctx.current_access_rule.allowed_session_count is not None:
+    if current_access_rule.allowed_session_count is not None:
         allowed_another_session = (
-                past_session_count < fctx.stipulations.allowed_session_count)
+                past_session_count < current_access_rule.allowed_session_count)
     else:
         allowed_another_session = True
 
@@ -404,7 +413,7 @@ def start_flow(request, course_identifier, flow_identifier):
 
             resume_session = get_object_or_404(FlowSession, pk=resume_session_id)
 
-            if resume_session.participation != fctx.participation:
+            if resume_session.participation != pctx.participation:
                 raise PermissionDenied("not your session")
 
             if not may_view:
@@ -417,14 +426,14 @@ def start_flow(request, course_identifier, flow_identifier):
             if resume_session.flow_id != fctx.flow_identifier:
                 raise SuspiciousOperation("flow id mismatch on resume")
 
-            if not (flow_permission.view_past in fctx.permissions
+            if not (flow_permission.view_past in current_access_rule.permissions
                     or resume_session.in_progress):
                 raise PermissionDenied("not allowed to resume session")
 
             request.session["flow_session_id"] = resume_session_id
 
             return redirect("course.flow.view_flow_page",
-                    course_identifier,
+                    pctx.course.identifier,
                     flow_identifier,
                     0)
 
@@ -445,23 +454,23 @@ def start_flow(request, course_identifier, flow_identifier):
 
             session = FlowSession()
             session.course = fctx.course
-            session.participation = fctx.participation
+            session.participation = pctx.participation
             session.active_git_commit_sha = fctx.flow_commit_sha.decode()
             session.flow_id = flow_identifier
             session.in_progress = True
             session.for_credit = "start_credit" in request.POST
-            session.access_rules_id = fctx.current_access_rule.id
+            session.access_rules_id = current_access_rule.id
             session.save()
 
             request.session["flow_session_id"] = session.id
 
             page_count = set_up_flow_session_page_data(fctx.repo, session,
-                    course_identifier, fctx.flow_desc, fctx.flow_commit_sha)
+                    pctx.course.identifier, fctx.flow_desc, fctx.flow_commit_sha)
             session.page_count = page_count
             session.save()
 
             return redirect("course.flow.view_flow_page",
-                    course_identifier,
+                    pctx.course.identifier,
                     flow_identifier,
                     0)
 
@@ -473,15 +482,16 @@ def start_flow(request, course_identifier, flow_identifier):
                 may_view
                 and not have_in_progress_session
                 and allowed_another_session
-                and flow_permission.start_credit in fctx.permissions)
+                and flow_permission.start_credit in current_access_rule.permissions)
         may_start_no_credit = (
                 may_view
                 and not have_in_progress_session
                 and allowed_another_session
-                and flow_permission.start_no_credit in fctx.permissions)
+                and (flow_permission.start_no_credit
+                    in current_access_rule.permissions))
         may_review = (
                 may_view
-                and flow_permission.view_past in fctx.permissions)
+                and flow_permission.view_past in current_access_rule.permissions)
 
         if hasattr(fctx.flow_desc, "grade_aggregation_strategy"):
             from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
@@ -494,17 +504,14 @@ def start_flow(request, course_identifier, flow_identifier):
         # {{{ fish out relevant rules
 
         from course.utils import get_flow_access_rules
-        rules = get_flow_access_rules(fctx.course, fctx.participation,
+        rules = get_flow_access_rules(fctx.course, pctx.participation,
                 flow_identifier, fctx.flow_desc)
-
-        from course.views import get_now_or_fake_time
-        now_datetime = get_now_or_fake_time(fctx.request)
 
         relevant_rules = []
         found_current = False
         for rule in rules:
             if rule.roles is not None:
-                if fctx.role not in rule.roles:
+                if pctx.role not in rule.roles:
                     continue
 
             rule.is_current = False
@@ -528,13 +535,8 @@ def start_flow(request, course_identifier, flow_identifier):
 
         # }}}
 
-        return render(request, "course/flow-start.html", {
-            "participation": fctx.participation,
-            "course_desc": fctx.course_desc,
-            "course": fctx.course,
+        return render_course_page(pctx, "course/flow-start.html", {
             "flow_desc": fctx.flow_desc,
-            "role": fctx.role,
-            "participation_role": participation_role,
             "grade_aggregation_strategy":
             grade_aggregation_strategy_text,
             "flow_identifier": flow_identifier,
@@ -567,14 +569,20 @@ def find_current_flow_session(request, flow_identifier):
     return flow_session
 
 
-def add_buttons_to_form(fpctx, form):
+def will_receive_feedback(permissions):
+    return (
+            flow_permission.see_correctness in permissions
+            or flow_permission.see_answer in permissions)
+
+
+def add_buttons_to_form(form, fpctx, flow_session, permissions):
     from crispy_forms.layout import Submit
     form.helper.add_input(
             Submit("save", "Save answer",
                 css_class="col-lg-offset-2 cf-save-button"))
 
-    if fpctx.will_receive_feedback():
-        if flow_permission.change_answer in fpctx.permissions:
+    if will_receive_feedback(permissions):
+        if flow_permission.change_answer in permissions:
             form.helper.add_input(
                     Submit(
                         "submit", "Submit answer for grading",
@@ -583,7 +591,7 @@ def add_buttons_to_form(fpctx, form):
             form.helper.add_input(Submit("submit", "Submit final answer"))
     else:
         # Only offer 'save and move on' if student will receive no feedback
-        if fpctx.page_data.ordinal + 1 < fpctx.flow_session.page_count:
+        if fpctx.page_data.ordinal + 1 < flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next",
                         mark_safe("Save answer and move on &raquo;"),
@@ -606,7 +614,18 @@ def get_pressed_button(form):
     raise SuspiciousOperation("could not find which button was pressed")
 
 
-def view_flow_page(request, course_identifier, flow_identifier, ordinal):
+def create_flow_page_visit(request, flow_session, page_data):
+    page_visit = FlowPageVisit()
+    page_visit.flow_session = flow_session
+    page_visit.page_data = page_data
+    page_visit.remote_address = request.META['REMOTE_ADDR']
+    page_visit.save()
+
+
+@course_view
+def view_flow_page(pctx, flow_identifier, ordinal):
+    request = pctx.request
+
     flow_session = find_current_flow_session(request, flow_identifier)
 
     if flow_session is None:
@@ -615,22 +634,27 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 "Redirected to flow start page.")
 
         return redirect("course.flow.start_flow",
-                course_identifier,
+                pctx.course.identifier,
                 flow_identifier)
 
-    fpctx = FlowPageContext(request, course_identifier, flow_identifier,
-            ordinal, flow_session)
+    fpctx = FlowPageContext(pctx.repo, pctx.course, flow_identifier, ordinal,
+            participation=pctx.participation,
+            flow_session=flow_session)
+
+    current_access_rule = fpctx.get_current_access_rule(
+            flow_session, pctx.role, pctx.participation,
+            get_now_or_fake_time(request))
 
     page_context = fpctx.page_context
     page_data = fpctx.page_data
 
-    if flow_permission.view not in fpctx.permissions:
+    if flow_permission.view not in current_access_rule.permissions:
         raise PermissionDenied("not allowed to view flow")
 
     if request.method == "POST":
         if "finish" in request.POST:
             return redirect("course.flow.finish_flow_session_view",
-                    course_identifier, flow_identifier)
+                    pctx.course.identifier, flow_identifier)
         else:
             # reject answer update if flow is not in-progress
             if not flow_session.in_progress:
@@ -639,7 +663,8 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
             # reject if previous answer was final
             if (fpctx.prev_answer_visit is not None
                     and fpctx.prev_answer_visit.is_graded_answer
-                    and flow_permission.change_answer not in fpctx.permissions):
+                    and flow_permission.change_answer
+                        not in current_access_rule.permissions):
                 raise PermissionDenied("already have final answer")
 
             form, form_html = fpctx.page.post_form(
@@ -655,7 +680,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                         "Answer saved.")
 
                 page_visit = FlowPageVisit()
-                page_visit.flow_session = fpctx.flow_session
+                page_visit.flow_session = flow_session
                 page_visit.page_data = fpctx.page_data
                 page_visit.remote_address = request.META['REMOTE_ADDR']
 
@@ -667,8 +692,9 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
                 answer_was_graded = page_visit.is_graded_answer
                 may_change_answer = (
-                        not answer_was_graded
-                        or flow_permission.change_answer in fpctx.permissions)
+                    not answer_was_graded
+                    or flow_permission.change_answer
+                    in current_access_rule.permissions)
 
                 feedback = fpctx.page.grade(
                         page_context, page_data.data, page_visit.answer,
@@ -689,15 +715,17 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                     del grade
 
                 if (pressed_button == "save_and_next"
-                        and not fpctx.will_receive_feedback()):
+                        and not will_receive_feedback(
+                            current_access_rule.permissions)):
                     return redirect("course.flow.view_flow_page",
-                            course_identifier,
+                            pctx.course.identifier,
                             flow_identifier,
                             fpctx.ordinal + 1)
                 elif (pressed_button == "save_and_finish"
-                        and not fpctx.will_receive_feedback()):
+                        and not will_receive_feedback(
+                            current_access_rule.permissions)):
                     return redirect("course.flow.finish_flow_session_view",
-                            course_identifier, flow_identifier)
+                            pctx.course.identifier, flow_identifier)
                 else:
                     form, form_html = fpctx.page.make_form(
                             page_context, page_data.data,
@@ -711,8 +739,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
             else:
                 # form did not validate
-
-                fpctx.create_visit(request)
+                create_flow_page_visit(request, flow_session, fpctx.page_data)
 
                 answer_was_graded = False
                 may_change_answer = True
@@ -723,7 +750,7 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
                 # continue at common flow page generation below
 
     else:
-        fpctx.create_visit(request)
+        create_flow_page_visit(request, flow_session, fpctx.page_data)
 
         if fpctx.prev_answer_visit is not None:
             answer_was_graded = fpctx.prev_answer_visit.is_graded_answer
@@ -732,10 +759,11 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 
         may_change_answer = (
                 (not answer_was_graded
-                    or flow_permission.change_answer in fpctx.permissions)
+                    or (flow_permission.change_answer
+                        in current_access_rule.permissions))
 
                 # can happen if no answer was ever saved
-                and fpctx.flow_session.in_progress)
+                and flow_session.in_progress)
 
         if fpctx.page.expects_answer():
             if fpctx.prev_answer_visit is not None:
@@ -759,7 +787,8 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
     # form, form_html, may_change_answer, answer_was_graded, feedback
 
     if form is not None and may_change_answer:
-        form = add_buttons_to_form(fpctx, form)
+        form = add_buttons_to_form(form, fpctx, flow_session,
+                current_access_rule.permissions)
 
     show_correctness = None
     show_answer = None
@@ -767,8 +796,9 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
     shown_feedback = None
 
     if fpctx.page.expects_answer() and answer_was_graded:
-        show_correctness = flow_permission.see_correctness in fpctx.permissions
-        show_answer = flow_permission.see_answer in fpctx.permissions
+        show_correctness = (
+                flow_permission.see_correctness in current_access_rule.permissions)
+        show_answer = flow_permission.see_answer in current_access_rule.permissions
 
         if show_correctness or show_answer:
             shown_feedback = feedback
@@ -786,18 +816,12 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         del context
 
     args = {
-        "course": fpctx.course,
-        "course_desc": fpctx.course_desc,
         "flow_identifier": fpctx.flow_identifier,
         "flow_desc": fpctx.flow_desc,
         "ordinal": fpctx.ordinal,
         "page_data": fpctx.page_data,
-        "percentage": fpctx.percentage_done,
-        "flow_session": fpctx.flow_session,
-        "participation": fpctx.participation,
-
-        "role": fpctx.role,
-        "participation_role": participation_role,
+        "percentage": int(100*(fpctx.ordinal+1) / flow_session.page_count),
+        "flow_session": flow_session,
 
         "title": title, "body": body,
         "form": form,
@@ -805,14 +829,15 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
         "feedback": shown_feedback,
         "show_correctness": show_correctness,
         "may_change_answer": may_change_answer,
-        "will_receive_feedback": fpctx.will_receive_feedback(),
+        "will_receive_feedback":
+        will_receive_feedback(current_access_rule.permissions),
         "show_answer": show_answer,
     }
 
     if fpctx.page.expects_answer():
         args["max_points"] = fpctx.page.max_points(fpctx.page_data)
 
-    return render(request, "course/flow-page.html", args)
+    return render_course_page(pctx, "course/flow-page.html", args)
 
     # }}}
 
@@ -822,7 +847,10 @@ def view_flow_page(request, course_identifier, flow_identifier, ordinal):
 # {{{ view: finish flow
 
 @transaction.atomic
-def finish_flow_session_view(request, course_identifier, flow_identifier):
+@course_view
+def finish_flow_session_view(pctx, flow_identifier):
+    request = pctx.request
+
     flow_session = find_current_flow_session(request, flow_identifier)
 
     if flow_session is None:
@@ -831,11 +859,16 @@ def finish_flow_session_view(request, course_identifier, flow_identifier):
                 "Redirected to flow start page.")
 
         return redirect("course.flow.start_flow",
-                course_identifier,
+                pctx.course.identifier,
                 flow_identifier)
 
-    fctx = FlowContext(request, course_identifier, flow_identifier,
+    fctx = FlowContext(pctx.repo, pctx.course, flow_identifier,
+            participation=pctx.participation,
             flow_session=flow_session)
+
+    current_access_rule = fctx.get_current_access_rule(
+            flow_session, pctx.role, pctx.participation,
+            get_now_or_fake_time(request))
 
     answer_visits = assemble_answer_visits(flow_session)
 
@@ -845,24 +878,19 @@ def finish_flow_session_view(request, course_identifier, flow_identifier):
             fctx.flow_desc.completion_text)
 
     (answered_count, unanswered_count) = count_answered(
-            fctx, fctx.flow_session, answer_visits)
+            fctx, flow_session, answer_visits)
 
-    if flow_permission.view not in fctx.permissions:
+    if flow_permission.view not in current_access_rule.permissions:
         raise PermissionDenied()
 
     def render_finish_response(template, **kwargs):
         render_args = {
-            "course": fctx.course,
-            "course_desc": fctx.course_desc,
             "flow_identifier": fctx.flow_identifier,
             "flow_desc": fctx.flow_desc,
-            "participation": fctx.participation,
-            "role": fctx.role,
-            "participation_role": participation_role,
         }
 
         render_args.update(kwargs)
-        return render(request, template, render_args)
+        return render_course_page(pctx, template, render_args)
 
     if request.method == "POST":
         if "submit" not in request.POST:
@@ -875,7 +903,7 @@ def finish_flow_session_view(request, course_identifier, flow_identifier):
 
         request.session["flow_session_id"] = None
 
-        grade_info = finish_flow_session(fctx, flow_session)
+        grade_info = finish_flow_session(fctx, flow_session, current_access_rule)
 
         if answered_count + unanswered_count:
             # This is a graded flow.
@@ -917,7 +945,7 @@ def finish_flow_session_view(request, course_identifier, flow_identifier):
 
     elif not flow_session.in_progress:
         # Just reviewing: re-show grades.
-        grade_info = gather_grade_info(fctx, answer_visits)
+        grade_info = gather_grade_info(flow_session, answer_visits)
 
         return render_finish_response(
                 "course/flow-completion-grade.html",

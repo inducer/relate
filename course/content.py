@@ -678,19 +678,10 @@ def get_course_commit_sha(course, participation):
     return sha.encode()
 
 
-def get_active_commit_sha(course, participation):
-    from warnings import warn
-    warn("get_active_commit_sha is deprecated--use "
-            "get_course_commit_sha instead",
-            stacklevel=2)
-
-    return get_course_commit_sha(course, participation)
-
-
 def get_flow_commit_sha(course, participation, flow_desc, flow_session):
     if (not getattr(flow_desc, "sticky_versioning", True)
             or flow_session is None):
-        return get_active_commit_sha(course, participation)
+        return get_course_commit_sha(course, participation)
     else:
         return flow_session.active_git_commit_sha.encode()
 

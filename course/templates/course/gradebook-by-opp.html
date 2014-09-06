@@ -1,5 +1,7 @@
 {% extends "course/course-base.html" %}
 
+{% load crispy_forms_tags %}
+
 {% block title %}
   Grade book: {{ opportunity.name }} - Courseflow
 {% endblock %}
@@ -63,6 +65,10 @@
                     ({{ flow_session.completion_time }})
                   {% endif %}
                   (Rules: <tt>{{ flow_session.access_rules_id }}</tt>)
+                  {% if flow_session.points %}
+                    {{ flow_session.points|floatformat:1 }}/{{ flow_session.max_points|floatformat:1 }}
+                    points
+                  {% endif %}
                 </li>
               {% endfor %}
             </ul>
@@ -72,5 +78,13 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {% if end_sessions_form %}
+    <div class="well">
+      <h3 class="well-start-title">End in-progress sessions</h3>
+      {% crispy end_sessions_form %}
+    </div>
+  {% endif %}
+
 {% endblock %}
 
