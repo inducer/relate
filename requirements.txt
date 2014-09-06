@@ -1,5 +1,4 @@
-# Django>=1.7 once released
-https://www.djangoproject.com/download/1.7c1/tarball/
+django>=1.7
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms>=1.4.0

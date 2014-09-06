@@ -23,7 +23,7 @@ CourseFlow is set apart by the following features:
 * Statistics of student answers.
 * Allows live quizzes in the classroom.
 * In-class instant messaging via XMPP.
-  Works well with `xmpp-popup <https://github.com/indcuer/xmpp-popup>`_.
+  Works well with `xmpp-popup <https://github.com/inducer/xmpp-popup>`_.
 
 Installation
 ------------
