@@ -316,6 +316,11 @@ class FlowSession(models.Model):
         else:
             return None
 
+    def answer_visits(self):
+        # only use this from templates
+        from course.flow import assemble_answer_visits
+        return assemble_answer_visits(self)
+
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data")
@@ -427,6 +432,18 @@ class FlowPageVisitGrade(models.Model):
     # separately for efficiency.
 
     feedback = JSONField(null=True, blank=True)
+
+    def percentage(self):
+        if self.correctness is not None:
+            return 100*self.correctness
+        else:
+            return None
+
+    def value(self):
+        if self.correctness is not None and self.max_points is not None:
+            return self.correctness * self.max_points
+        else:
+            return None
 
     # }}}
 
@@ -624,7 +641,10 @@ class GradeChange(models.Model):
                     "in the same course")
 
     def percentage(self):
-        return 100*self.points/self.max_points
+        if self.max_points is not None:
+            return 100*self.points/self.max_points
+        else:
+            return None
 
 # }}}
 

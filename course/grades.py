@@ -349,11 +349,27 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             .prefetch_related("creator")
             .prefetch_related("opportunity"))
 
+    state_machine = GradeStateMachine()
+    state_machine.consume(grade_changes)
+
+    if opportunity.flow_id is not None:
+        flow_sessions = (FlowSession.objects
+                .filter(
+                    participation=participation,
+                    flow_id=opportunity.flow_id,
+                    )
+                .order_by("start_time"))
+
+    else:
+        flow_sessions = None
+
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
         "grade_participation": participation,
         "grade_state_change_types": grade_state_change_types,
         "grade_changes": grade_changes,
+        "state_machine": state_machine,
+        "flow_sessions": flow_sessions,
         })
 
 # vim: foldmethod=marker
