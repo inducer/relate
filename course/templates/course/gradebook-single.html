@@ -1,0 +1,85 @@
+{% extends "course/course-base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}
+  Grade book: {{ opportunity.name }} - Courseflow
+{% endblock %}
+
+{% block content %}
+  <h1>Understand a grade: {{ opportunity.name }} </h1>
+
+  <table class="table table-condensed">
+    <thead>
+      <th>Property</th><th>Value</th>
+    </thead>
+    <tbody>
+    <tr>
+      <td>Participant</td>
+      <td>
+        {{ grade_participation.user.last_name }}, {{ grade_participation.user.first_name }}
+        ({{ grade_participation.user.username }})
+      </td>
+    </tr>
+    <tr>
+      <td>Identifier</td><td><tt>{{ opportunity.identifier }}</tt></td>
+    </tr>
+    {% if opportunity.due_time != None %}
+      <tr>
+        <td>Due</td><td><tt>{{ opportunity.due_time }}</tt></td>
+      </tr>
+    {% endif %}
+    <tr>
+      <td>Aggregation strategy</td><td><tt>{{ opportunity.aggregation_strategy }}</tt></td>
+    </tr>
+    {% if opportunity.flow_id %}
+    <tr>
+      <td>Flow</td><td><tt><a href="{% url "course.flow.start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+    </tr>
+    {% endif %}
+  </table>
+
+  <h2>Grade history</h2>
+  <table class="table table-condensed table-striped">
+    <thead>
+      <th>Date</th>
+      <th>What</th>
+      <th>Grade</th>
+      <th>Further Information</th>
+    </thead>
+    <tbody>
+      {% for gchange in grade_changes %}
+      <tr>
+        <td>{{ gchange.grade_time }}</td>
+        <td>{{ gchange.state }}</td>
+        <td>
+          {% if gchange.points != None %}
+            {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
+            points
+            ({{ gchange.percentage|floatformat:1 }}%)
+          {% endif %}
+        </td>
+        <td>
+          {% if gchange.comment %}
+            {{ gchange.comment }}
+          {% endif %}
+
+          {% if gchange.creator != None %}
+            (by {{ gchange.creator.last_name }}, {{ gchange.creator.first_name }})
+          {% else %}
+            (machine-generated)
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if end_sessions_form %}
+    <div class="well">
+      <h3 class="well-start-title">End in-progress sessions</h3>
+      {% crispy end_sessions_form %}
+    </div>
+  {% endif %}
+
+{% endblock %}

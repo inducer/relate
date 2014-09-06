@@ -46,7 +46,8 @@
           {{ participation.user.first_name }}
         </td>
         <td>
-          {{ grade_info.grade_state_machine.stringify_state }}
+          <a href="{% url "course.grades.view_single_grade" course.identifier participation.id opportunity.id %}"
+            >{{ grade_info.grade_state_machine.stringify_state }}</a>
         </td>
         <td>
           {% if grade_info.flow_sessions %}
@@ -65,7 +66,7 @@
                     ({{ flow_session.completion_time }})
                   {% endif %}
                   (Rules: <tt>{{ flow_session.access_rules_id }}</tt>)
-                  {% if flow_session.points %}
+                  {% if flow_session.points != None %}
                     {{ flow_session.points|floatformat:1 }}/{{ flow_session.max_points|floatformat:1 }}
                     points
                   {% endif %}
@@ -87,4 +88,3 @@
   {% endif %}
 
 {% endblock %}
-

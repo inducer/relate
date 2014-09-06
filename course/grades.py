@@ -59,6 +59,12 @@ def view_my_grades(pctx):
 
 # {{{ teacher grade book
 
+class GradeInfo:
+    def __init__(self, opportunity, grade_state_machine):
+        self.opportunity = opportunity
+        self.grade_state_machine = grade_state_machine
+
+
 @course_view
 def view_gradebook(pctx):
     if pctx.role not in [
@@ -124,7 +130,10 @@ def view_gradebook(pctx):
             state_machine = GradeStateMachine()
             state_machine.consume(my_grade_changes)
 
-            grade_row.append(state_machine)
+            grade_row.append(
+                    GradeInfo(
+                        opportunity=opp,
+                        grade_state_machine=state_machine))
 
         grade_table.append(grade_row)
 
@@ -308,5 +317,43 @@ def view_grades_by_opportunity(pctx, opp_id):
         })
 
 # }}}
+
+
+# {{{ view single grade
+
+@course_view
+def view_single_grade(pctx, participation_id, opportunity_id):
+    participation = get_object_or_404(Participation,
+            id=int(participation_id))
+
+    if pctx.role in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        pass
+    elif pctx.role == participation_role.student:
+        if participation != pctx.participation:
+            raise PermissionDenied("may not view other people's grades")
+    else:
+        raise PermissionDenied()
+
+    opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
+
+    grade_changes = list(GradeChange.objects
+            .filter(
+                opportunity=opportunity,
+                participation=participation)
+            .order_by(
+                "grade_time")
+            .prefetch_related("participation")
+            .prefetch_related("participation__user")
+            .prefetch_related("creator")
+            .prefetch_related("opportunity"))
+
+    return render_course_page(pctx, "course/gradebook-single.html", {
+        "opportunity": opportunity,
+        "grade_participation": participation,
+        "grade_state_change_types": grade_state_change_types,
+        "grade_changes": grade_changes,
+        })
 
 # vim: foldmethod=marker
