@@ -940,7 +940,7 @@ def finish_flow_session_view(pctx, flow_identifier):
 
         return render_finish_response(
                 "course/flow-completion.html",
-                last_page_nr=fctx.page_count-1,
+                last_page_nr=flow_session.page_count-1,
                 completion_text=completion_text)
 
     elif not flow_session.in_progress:
@@ -956,7 +956,7 @@ def finish_flow_session_view(pctx, flow_identifier):
         # confirm ending flow
         return render_finish_response(
                 "course/flow-confirm-completion.html",
-                last_page_nr=fctx.page_count-1,
+                last_page_nr=flow_session.page_count-1,
                 answered_count=answered_count,
                 unanswered_count=unanswered_count,
                 total_count=answered_count+unanswered_count)
