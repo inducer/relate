@@ -62,7 +62,14 @@
           {% if rule.permissions %}
             <li>You may: <i>{{ rule.human_readable_permissions |join:", " }}</i>.
           {% else %}
-            <li>You are not allowed to interact with this flow.</li>
+            <li>
+              You are not allowed to interact with this flow.
+              {% if not user.is_authenticated %}
+                <a href="{% url "course.auth.sign_in" %}">Sign in</a> to get started.
+              {% elif participation is None %}
+                Enroll in this course to get started.
+              {% endif %}
+            </li>
           {% endif %}
 
           {% if rule.credit_percent != None %}
