@@ -192,6 +192,15 @@ def end_in_progress_sessions(repo, course, flow_id, rule_id):
         finish_flow_session(fctx, session, current_access_rule)
 
 
+RULE_ID_NONE_STRING = "<<<NONE>>>"
+
+def mangle_rule_id(rule_id):
+    if rule_id is None:
+        return RULE_ID_NONE_STRING
+    else:
+        rule_id
+
+
 @course_view
 def view_grades_by_opportunity(pctx, opp_id):
     if pctx.role not in [
@@ -212,15 +221,18 @@ def view_grades_by_opportunity(pctx, opp_id):
         cursor.execute("select distinct access_rules_id from course_flowsession "
                 "where course_id = %s and flow_id = %s "
                 "order by access_rules_id", (pctx.course.id, opportunity.flow_id))
-        rule_ids = [row[0] for row in cursor.fetchall()]
+        rule_ids = [mangle_rule_id(row[0]) for row in cursor.fetchall()]
 
         request = pctx.request
         if request.method == "POST":
             end_sessions_form = EndSessionsForm(
                     rule_ids, request.POST, request.FILES)
             if end_sessions_form.is_valid():
+                rule_id = end_sessions_form.cleaned_data["rule_id"]
+                if rule_id == RULE_ID_NONE_STRING:
+                    rule_id = None
                 end_in_progress_sessions(pctx.repo, pctx.course, opportunity.flow_id,
-                        end_sessions_form.cleaned_data["rule_id"])
+                        rule_id)
         else:
             end_sessions_form = EndSessionsForm(rule_ids)
 
