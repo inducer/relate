@@ -101,7 +101,9 @@
             <th>ID</th>
             <th>State</th>
             <th>Result</th>
-            <th>Pages</th>
+            {% if show_page_grades %}
+              <th>Pages</th>
+            {% endif %}
             {% if allow_session_actions %}
               <th>Actions</th>
             {% endif %}
@@ -141,32 +143,45 @@
                 {% endif %}
               </td>
               <td>
-                {% if flow_session.max_points %}
-                  <b>{{ flow_session.points|floatformat }}</b>
-                  out of
-                  {{ flow_session.max_points|floatformat }}
+                {% if flow_session.max_points != None %}
+                  {% if flow_session.points != None %}
+                    <b>{{ flow_session.points|floatformat:1 }}</b>
+                    /
+                    {{ flow_session.max_points|floatformat:1 }}
 
-                  (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                    (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                  {% else %}
+                    (grade missing)
+                    ({{ flow_session.max_points|floatformat:1 }} points achievable)
+                  {% endif %}
                 {% else %}
                   (none)
                 {% endif %}
 
               </td>
-              <td>
-                <table class="table">
-                {% for visit in flow_session.answer_visits %}
-                  {% if visit %}
-                    <tr>
-                      <td>Page {{ visit.page_data.ordinal }}</td>
-                      <td><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></td>
-                      <td>{{ visit.get_most_recent_grade.percentage }}%</td>
-                      <td>({{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }} points)</td>
 
-                    </tr>
-                  {% endif %}
-                {% endfor %}
-                </table>
-              </td>
+              {% if show_page_grades %}
+                <td>
+                  <table class="table">
+                  {% for visit in flow_session.answer_visits %}
+                    {% if visit %}
+                      <tr>
+                        <td>Page {{ visit.page_data.ordinal }}</td>
+                        <td><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></td>
+                        {% if visit.get_most_recent_grade != None %}
+                          <td>{{ visit.get_most_recent_grade.percentage }}%</td>
+                          <td>({{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }} points)</td>
+                        {% else %}
+                          <td>(no grade)</td>
+                          <td></td>
+                        {% endif %}
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                  </table>
+                </td>
+              {% endif %}
+
               {% if allow_session_actions %}
                 <td>
                   {% if flow_session.in_progress %}

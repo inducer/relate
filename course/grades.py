@@ -425,6 +425,10 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         "state_machine": state_machine,
         "flow_sessions": flow_sessions,
         "allow_session_actions": allow_session_actions,
+        "show_page_grades": pctx.role in [
+            participation_role.instructor,
+            participation_role.teaching_assistant
+            ],
         })
 
 # }}}
