@@ -130,7 +130,8 @@ def view_gradebook(pctx):
 
     grade_table = sorted(zip(participations, grade_table),
             key=lambda (participation, grades):
-                (participation.user.last_name, participation.user.first_name))
+                (participation.user.last_name.lower(),
+                    participation.user.first_name.lower()))
 
     return render_course_page(pctx, "course/gradebook.html", {
         "grade_table": grade_table,
@@ -295,7 +296,8 @@ def view_grades_by_opportunity(pctx, opp_id):
 
     grade_table = sorted(zip(participations, grade_table),
             key=lambda (participation, grades):
-                (participation.user.last_name, participation.user.first_name))
+                (participation.user.last_name.lower(),
+                    participation.user.first_name.lower()))
 
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,
