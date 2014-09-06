@@ -44,6 +44,9 @@
         <td>
           {{ participation.user.last_name }},
           {{ participation.user.first_name }}
+          {% if participation.role != participation_role.student %}
+            ({{ participation.role }})
+          {% endif %}
         </td>
         <td>
           <a href="{% url "course.grades.view_single_grade" course.identifier participation.id opportunity.id %}"

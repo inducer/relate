@@ -135,8 +135,7 @@ def view_gradebook(pctx):
     participations = list(Participation.objects
             .filter(
                 course=pctx.course,
-                status=participation_status.active,
-                role=participation_role.student,)
+                status=participation_status.active)
             .order_by("id")
             .prefetch_related("user"))
 
@@ -211,9 +210,9 @@ class OpportunityGradeInfo(object):
         self.flow_sessions = flow_sessions
 
 
-class EndSessionsForm(StyledForm):
+class ModifySessionsForm(StyledForm):
     def __init__(self, rule_ids, *args, **kwargs):
-        super(EndSessionsForm, self).__init__(*args, **kwargs)
+        super(ModifySessionsForm, self).__init__(*args, **kwargs)
 
         self.fields["rule_id"] = forms.ChoiceField(
                 choices=tuple(
@@ -221,8 +220,10 @@ class EndSessionsForm(StyledForm):
                     for rule_id in rule_ids))
 
         self.helper.add_input(
-                Submit("submit", "End sessions and grade",
+                Submit("end", "End sessions and grade",
                     css_class="col-lg-offset-2"))
+        self.helper.add_input(
+                Submit("regrade", "Regrade ended sessions"))
 
 
 @transaction.atomic
@@ -240,6 +241,26 @@ def finish_in_progress_sessions(repo, course, flow_id, rule_id):
     from course.flow import finish_flow_session_standalone
     for session in sessions:
         finish_flow_session_standalone(repo, course, session)
+        count += 1
+
+    return count
+
+
+@transaction.atomic
+def regrade_ended_sessions(repo, course, flow_id, rule_id):
+    sessions = (FlowSession.objects
+            .filter(
+                course=course,
+                flow_id=flow_id,
+                access_rules_id=rule_id,
+                in_progress=False,
+                ))
+
+    count = 0
+
+    from course.flow import regrade_session
+    for session in sessions:
+        regrade_session(repo, course, session)
         count += 1
 
     return count
@@ -279,20 +300,42 @@ def view_grades_by_opportunity(pctx, opp_id):
 
         request = pctx.request
         if request.method == "POST":
-            end_sessions_form = EndSessionsForm(
+            end_sessions_form = ModifySessionsForm(
                     rule_ids, request.POST, request.FILES)
+            if "end" in request.POST:
+                op = "end"
+            elif "regrade" in request.POST:
+                op = "regrade"
+            else:
+                raise SuspiciousOperation("invalid operation")
+
             if end_sessions_form.is_valid():
                 rule_id = end_sessions_form.cleaned_data["rule_id"]
                 if rule_id == RULE_ID_NONE_STRING:
                     rule_id = None
-                count = finish_in_progress_sessions(
-                        pctx.repo, pctx.course, opportunity.flow_id,
-                        rule_id)
+                try:
+                    if op == "end":
+                        count = finish_in_progress_sessions(
+                                pctx.repo, pctx.course, opportunity.flow_id,
+                                rule_id)
 
-                messages.add_message(pctx.request, messages.SUCCESS,
-                        "%d sessions ended." % count)
+                        messages.add_message(pctx.request, messages.SUCCESS,
+                                "%d session(s) ended." % count)
+                    elif op == "regrade":
+                        count = regrade_ended_sessions(
+                                pctx.repo, pctx.course, opportunity.flow_id,
+                                rule_id)
+
+                        messages.add_message(pctx.request, messages.SUCCESS,
+                                "%d session(s) regraded." % count)
+                    else:
+                        raise SuspiciousOperation("invalid operation")
+                except Exception as e:
+                    messages.add_message(pctx.request, messages.ERROR,
+                            "Error: %s %s" % (type(e), str(e)))
+
         else:
-            end_sessions_form = EndSessionsForm(rule_ids)
+            end_sessions_form = ModifySessionsForm(rule_ids)
 
     # }}}
 
@@ -302,8 +345,7 @@ def view_grades_by_opportunity(pctx, opp_id):
     participations = list(Participation.objects
             .filter(
                 course=pctx.course,
-                status=participation_status.active,
-                role=participation_role.student,)
+                status=participation_status.active)
             .order_by("id")
             .prefetch_related("user"))
 

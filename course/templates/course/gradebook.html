@@ -22,6 +22,9 @@
         <td>
           {{ participation.user.last_name }},
           {{ participation.user.first_name }}
+          {% if participation.role != participation_role.student %}
+            ({{ participation.role }})
+          {% endif %}
         </td>
         {% for grade_info in grades %}
           <td>
