@@ -35,60 +35,64 @@
   </table>
 
   <h2>Grade history</h2>
-  <table class="table table-condensed table-striped">
-    <thead>
-      <th>Date</th>
-      <th>What</th>
-      <th>Grade</th>
-      <th>Further Information</th>
-    </thead>
-    <tbody>
-      {% for gchange in grade_changes %}
-      <tr>
-        <td>{{ gchange.grade_time }}</td>
-        <td>
-          {% if gchange.is_superseded %}<s>{% endif %}
-          {{ gchange.state }}
-          {% if gchange.is_superseded %}</s>{% endif %}
-        </td>
-        <td>
-          {% if gchange.is_superseded %}<s>{% endif %}
-          {% if gchange.points != None %}
-            {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
-            points
-            ({{ gchange.percentage|floatformat:1 }}%)
-          {% endif %}
-          {% if gchange.is_superseded %}</s>{% endif %}
-        </td>
-        <td>
-          {% if gchange.comment %}
-            {{ gchange.comment }}
-          {% endif %}
+  {% if not grade_changes%}
+    (no grade data available)
+  {% else %}
+    <table class="table table-condensed table-striped">
+      <thead>
+        <th>Date</th>
+        <th>What</th>
+        <th>Grade</th>
+        <th>Further Information</th>
+      </thead>
+      <tbody>
+        {% for gchange in grade_changes %}
+        <tr>
+          <td>{{ gchange.grade_time }}</td>
+          <td>
+            {% if gchange.is_superseded %}<s>{% endif %}
+            {{ gchange.state }}
+            {% if gchange.is_superseded %}</s>{% endif %}
+          </td>
+          <td>
+            {% if gchange.is_superseded %}<s>{% endif %}
+            {% if gchange.points != None %}
+              {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
+              points
+              ({{ gchange.percentage|floatformat:1 }}%)
+            {% endif %}
+            {% if gchange.is_superseded %}</s>{% endif %}
+          </td>
+          <td>
+            {% if gchange.comment %}
+              {{ gchange.comment }}
+            {% endif %}
 
-          {% if gchange.creator != None %}
-            (by {{ gchange.creator.last_name }}, {{ gchange.creator.first_name }})
-          {% else %}
-            (machine-generated)
-          {% endif %}
+            {% if gchange.creator != None %}
+              (by {{ gchange.creator.last_name }}, {{ gchange.creator.first_name }})
+            {% else %}
+              (machine-generated)
+            {% endif %}
 
-          {% if gchange.flow_session != None %}
-          (from flow session {{ gchange.flow_session.id }})
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      <tr>
-        <td><b>Overall grade</b></td>
-        <td></td>
-        <td>
-          <b>{{ state_machine.stringify_state }}</b>
-        </td>
-        <td>
-          (Aggregation strategy: {{ opportunity.aggregation_strategy }})
-        </td>
-      </tr>
-    </tbody>
-  </table>
+            {% if gchange.flow_session != None %}
+            (from flow session {{ gchange.flow_session.id }})
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td><b>Overall grade</b></td>
+          <td></td>
+          <td>
+            <b>{{ state_machine.stringify_state }}</b>
+          </td>
+          <td>
+            (Aggregation strategy: {{ opportunity.aggregation_strategy }})
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  {% endif %}
 
   {% if flow_sessions %}
     <h2>Flow sessions</h2>
