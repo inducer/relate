@@ -172,7 +172,7 @@
                       <tr>
                         <td>Page {{ visit.page_data.ordinal }}</td>
                         <td><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></td>
-                        {% if visit.get_most_recent_grade != None %}
+                        {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
                           <td>{{ visit.get_most_recent_grade.percentage }}%</td>
                           <td>({{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }} points)</td>
                         {% else %}
