@@ -210,7 +210,7 @@ def view_grades_by_opportunity(pctx, opp_id):
     if pctx.role == participation_role.instructor and opportunity.flow_id:
         cursor = connection.cursor()
         cursor.execute("select distinct access_rules_id from course_flowsession "
-                "where course_id == %s and flow_id = %s "
+                "where course_id = %s and flow_id = %s "
                 "order by access_rules_id", (pctx.course.id, opportunity.flow_id))
         rule_ids = [row[0] for row in cursor.fetchall()]
 
