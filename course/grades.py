@@ -194,11 +194,12 @@ def end_in_progress_sessions(repo, course, flow_id, rule_id):
 
 RULE_ID_NONE_STRING = "<<<NONE>>>"
 
+
 def mangle_rule_id(rule_id):
     if rule_id is None:
         return RULE_ID_NONE_STRING
     else:
-        rule_id
+        return rule_id
 
 
 @course_view
