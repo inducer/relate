@@ -406,6 +406,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "state",
             "points",
             "get_percentage",
+            "attempt_id",
             "grade_time",
             )
     list_display_links = (
@@ -420,6 +421,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
+            "attempt_id",
             )
 
     list_filter = (

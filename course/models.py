@@ -607,12 +607,24 @@ GRADE_STATE_CHANGE_CHOICES = (
 
 
 class GradeChange(models.Model):
+    """Per 'grading opportunity', each participant may accumulate multiple grades
+    that are aggregated according to :attr:`GradingOpportunity.aggregation_strategy`.
+
+    In addition, for each opportunity, grade changes are grouped by their 'attempt'
+    identifier, where later grades with the same :attr:`attempt_id` supersede earlier
+    ones.
+    """
     opportunity = models.ForeignKey(GradingOpportunity)
 
     participation = models.ForeignKey(Participation)
 
     state = models.CharField(max_length=50,
             choices=GRADE_STATE_CHANGE_CHOICES)
+
+    attempt_id = models.CharField(max_length=50, null=True, blank=True,
+            help_text="Grade changes are grouped by their 'attempt ID' "
+            "where later grades with the same attempt ID supersede earlier "
+            "ones.")
 
     points = models.DecimalField(max_digits=10, decimal_places=2,
             blank=True, null=True)
@@ -668,7 +680,7 @@ class GradeStateMachine(object):
         self.state = None
         self.last_grade_time = None
         self.valid_percentages = []
-        self.flow_session_id_to_gchange = {}
+        self.attempt_id_to_gchange = {}
 
     def _consume_grade_change(self, gchange, set_is_superseded):
         if self.opportunity is None:
@@ -694,12 +706,12 @@ class GradeStateMachine(object):
                 raise ValueError("cannot accept grade after due date")
 
             self.state = gchange.state
-            if gchange.flow_session is not None:
+            if gchange.attempt_id is not None:
                 if (set_is_superseded and
-                        gchange.flow_session.id in self.flow_session_id_to_gchange):
-                    self.flow_session_id_to_gchange[gchange.flow_session.id] \
+                        gchange.attempt_id in self.attempt_id_to_gchange):
+                    self.attempt_id_to_gchange[gchange.attempt_id] \
                             .is_superseded = True
-                self.flow_session_id_to_gchange[gchange.flow_session.id] \
+                self.attempt_id_to_gchange[gchange.attempt_id] \
                         = gchange
             else:
                 self.valid_percentages.append(gchange.percentage())
@@ -738,9 +750,9 @@ class GradeStateMachine(object):
 
         self.valid_percentages.extend(
                 gchange.percentage()
-                for gchange in self.flow_session_id_to_gchange.values())
+                for gchange in self.attempt_id_to_gchange.values())
 
-        del self.flow_session_id_to_gchange
+        del self.attempt_id_to_gchange
 
         return self
 
