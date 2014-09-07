@@ -5,7 +5,28 @@
 {% endblock %}
 
 {% block content %}
-  <h1>My Grades</h1>
+  {% if grade_participation.pk == participation.pk %}
+    <h1>My Grades</h1>
+  {% else %}
+    <h1>Grades</h1>
+
+    <table class="table table-condensed">
+      <thead>
+        <th>Property</th><th>Value</th>
+      </thead>
+      <tbody>
+      <tr>
+        <td>Username</td>
+        <td>{{ grade_participation.user.username }}</td>
+      </tr>
+      <tr>
+        <td>Name</td>
+        <td>
+          {{ grade_participation.user.last_name }}, {{ grade_participation.user.first_name }}
+        </td>
+      </tr>
+    </table>
+  {% endif %}
 
   <table class="table table-condensed table-striped">
     <thead>

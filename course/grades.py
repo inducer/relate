@@ -48,9 +48,24 @@ from course.models import (
 # {{{ student grade book
 
 @course_view
-def view_my_grades(pctx):
+def view_participant_grades(pctx, participation_id=None):
     if pctx.participation is None:
         raise PermissionDenied("must be enrolled to view grades")
+
+    if participation_id is not None:
+        grade_participation = Participation.objects.get(id=int(participation_id))
+    else:
+        grade_participation = pctx.participation
+
+    if pctx.role in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        pass
+    elif pctx.role == participation_role.student:
+        if grade_participation != pctx.participation:
+            raise PermissionDenied("may not view other people's grades")
+    else:
+        raise PermissionDenied()
 
     # NOTE: It's important that these two queries are sorted consistently,
     # also consistently with the code below.
@@ -63,7 +78,7 @@ def view_my_grades(pctx):
 
     grade_changes = list(GradeChange.objects
             .filter(
-                participation=pctx.participation,
+                participation=grade_participation,
                 opportunity__course=pctx.course,
                 opportunity__shown_in_grade_book=True)
             .order_by(
@@ -101,6 +116,7 @@ def view_my_grades(pctx):
 
     return render_course_page(pctx, "course/gradebook-participant.html", {
         "grade_table": grade_table,
+        "grade_participation": grade_participation,
         "grading_opportunities": grading_opps,
         "grade_state_change_types": grade_state_change_types,
         })

@@ -25,7 +25,7 @@
       {% if course.course_xmpp_id %}
       <li><a href="{% url "course.im.send_instant_message" course.identifier %}">Send instant message</a></li>
       {% endif %}
-      <li><a href="{% url "course.grades.view_my_grades" course.identifier %}">View grades</a></li>
+      <li><a href="{% url "course.grades.view_participant_grades" course.identifier %}">View grades</a></li>
       <li><a href="{% url "course.calendar.view_calendar" course.identifier %}">View calendar</a></li>
     </ul>
   </li>

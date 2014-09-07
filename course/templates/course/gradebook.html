@@ -18,7 +18,7 @@
     <tbody>
       {% for participation, grades in grade_table %}
       <tr>
-        <td>{{ participation.user.username }}</td>
+        <td><a href="{% url "course.grades.view_participant_grades" course.identifier participation.id %}">{{ participation.user.username }}</a></td>
         <td>
           {{ participation.user.last_name }},
           {{ participation.user.first_name }}

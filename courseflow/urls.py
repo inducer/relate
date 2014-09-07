@@ -73,8 +73,14 @@ urlpatterns = patterns('',
 
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/grading/$",
-        "course.grades.view_my_grades",),
+        "/grading/my/$",
+        "course.grades.view_participant_grades",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grading/participant"
+        "/(?P<participation_id>[0-9]+)"
+        "/$",
+        "course.grades.view_participant_grades",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/grading/all/$",
@@ -92,6 +98,8 @@ urlpatterns = patterns('',
         "/(?P<opportunity_id>[0-9]+)"
         "/$",
         "course.grades.view_single_grade",),
+
+    # }}}
 
     # {{{ enrollment
 
