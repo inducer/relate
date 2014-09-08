@@ -4,9 +4,6 @@
 
 - ending on new version, resume, ...
 
-- Add "show correctness after completion" privilege
-  Add to prelec quizzes
-
 - Fix analytics:
   only use last graded submission if multiple-submit
 

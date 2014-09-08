@@ -852,7 +852,12 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
     if fpctx.page.expects_answer() and answer_was_graded:
         show_correctness = (
-                flow_permission.see_correctness in current_access_rule.permissions)
+                flow_permission.see_correctness in current_access_rule.permissions
+                or (
+                    (flow_permission.see_correctness_after_completion
+                        in current_access_rule.permissions)
+                    and not flow_session.in_progress))
+
         show_answer = flow_permission.see_answer in current_access_rule.permissions
 
         if show_correctness or show_answer:
