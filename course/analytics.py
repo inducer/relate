@@ -272,7 +272,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
             if is_multiple_submit and connection.features.can_distinct_on_fields:
                 visits = (visits
-                        .distinct("page_data", "visit_time")
+                        .distinct("page_data")
                         .order_by("page_data", "-visit_time"))
 
             visits = (visits
