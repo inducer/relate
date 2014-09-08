@@ -8,8 +8,7 @@
 {% endblock %}
 
 {% block brand %}
-  {{ course_desc.number}}:
-  {{ course_desc.name}}
+  {{ course_desc.number}}
   {{ course_desc.run}}
 {% endblock %}
 {% block brand_link %}{% url "course.views.course_page" course.identifier %}{% endblock %}
