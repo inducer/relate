@@ -18,12 +18,7 @@ Ideas
 
 - web hooks for auto-fetch and auto-preview
 
-- comment box http://jsfiddle.net/9Le8X/2/
-- question bank
-  -> localize an elaborate question and all its 'stuff' (JS, media)
-  -> use a media search path
 - flow overview
-- Student tags, adapt homepage
 
 - Flow group ordering, max page count, question/page tags
 
@@ -50,3 +45,8 @@ Rejected ideas
 - time limits, extra time?
 - Restrict analytics to students
   (bad idea: should at least include unenrolled to allow quick in-class work)
+- comment box http://jsfiddle.net/9Le8X/2/
+- Student tags, adapt homepage
+- question bank
+  -> localize an elaborate question and all its 'stuff' (JS, media)
+  -> use a media search path

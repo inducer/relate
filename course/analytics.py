@@ -194,6 +194,9 @@ class Histogram(object):
 
 
 def is_flow_multiple_submit(flow_desc):
+    if not hasattr(flow_desc, "access_rules"):
+        return False
+
     for rule in flow_desc.access_rules:
         if flow_permission.change_answer in rule.permissions:
             return True
