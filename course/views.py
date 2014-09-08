@@ -27,7 +27,8 @@ THE SOFTWARE.
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages  # noqa
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.core.exceptions import (
+        PermissionDenied, ObjectDoesNotExist, SuspiciousOperation)
 import django.forms as forms
 import django.views.decorators.http as http_dec
 from django import http
@@ -40,7 +41,9 @@ from courseflow.utils import StyledForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_role_and_participation
-from course.models import (Course, participation_role)
+from course.models import (
+        Course, participation_role,
+        InstantFlowRequest)
 
 from course.content import (get_course_repo, get_course_desc)
 from course.utils import course_view, render_course_page
@@ -217,6 +220,97 @@ def fake_time_context_processor(request):
             "fake_time": get_fake_time(request),
             }
 
+# }}}
+
+
+# {{{ instant flow requests
+
+class InstantFlowRequestForm(StyledForm):
+    def __init__(self, flow_ids, *args, **kwargs):
+        super(InstantFlowRequestForm, self).__init__(*args, **kwargs)
+
+        self.fields["flow_id"] = forms.ChoiceField(
+                choices=[(fid, fid) for fid in flow_ids],
+                initial=participation_role.student,
+                required=True)
+        self.fields["duration_in_minutes"] = forms.IntegerField(
+                required=True, initial=20)
+
+        self.helper.add_input(
+                Submit("add", "Add", css_class="col-lg-offset-2"))
+        self.helper.add_input(
+                Submit("cancel", "Cancel all"))
+
+
+@course_view
+def manage_instant_flow_requests(pctx):
+    if pctx.role != participation_role.instructor:
+        raise PermissionDenied("must be instructor to manage instant flow requests")
+
+    # {{{ find available flow ids
+
+    from course.content import get_repo_blob
+
+    flow_ids = []
+    try:
+        flows_tree = get_repo_blob(pctx.repo, "flows",
+                pctx.course_commit_sha)
+    except ObjectDoesNotExist:
+        # That's OK--no flows yet.
+        pass
+    else:
+        for entry in flows_tree.items():
+            if entry.path.endswith(".yml"):
+                flow_ids.append(entry.path[:-4])
+
+    flow_ids.sort()
+
+    # }}}
+
+    request = pctx.request
+    if request.method == "POST":
+        form = InstantFlowRequestForm(flow_ids, request.POST, request.FILES)
+        if "add" in request.POST:
+            op = "add"
+        elif "cancel" in request.POST:
+            op = "cancel"
+        else:
+            raise SuspiciousOperation("invalid operation")
+
+        now_datetime = get_now_or_fake_time(pctx.request)
+
+        if form.is_valid():
+            if op == "add":
+
+                from datetime import timedelta
+                ifr = InstantFlowRequest()
+                ifr.course = pctx.course
+                ifr.flow_id = form.cleaned_data["flow_id"]
+                ifr.start_time = now_datetime
+                ifr.end_time = (
+                        now_datetime + timedelta(
+                            minutes=form.cleaned_data["duration_in_minutes"]))
+                ifr.save()
+
+            elif op == "cancel":
+                (InstantFlowRequest.objects
+                        .filter(
+                            course=pctx.course,
+                            start_time__lte=now_datetime,
+                            end_time__gte=now_datetime,
+                            cancelled=False)
+                        .order_by("start_time")
+                        .update(cancelled=True))
+            else:
+                raise SuspiciousOperation("invalid operation")
+
+    else:
+        form = InstantFlowRequestForm(flow_ids)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": "Manage Instant Flow Requests",
+    })
 # }}}
 
 

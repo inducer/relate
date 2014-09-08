@@ -39,7 +39,8 @@ from course.models import (
         FlowAccessException,
         FlowPageVisit,
         participation_role,
-        flow_permission
+        flow_permission,
+        InstantFlowRequest
         )
 
 
@@ -317,8 +318,23 @@ def course_view(f):
     return wrapper
 
 
-def render_course_page(pctx, template_name, args):
+def render_course_page(pctx, template_name, args,
+        allow_instant_flow_requests=True):
     args = args.copy()
+
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(pctx.request)
+
+    if allow_instant_flow_requests:
+        instant_flow_requests = list((InstantFlowRequest.objects
+                .filter(
+                    course=pctx.course,
+                    start_time__lte=now_datetime,
+                    end_time__gte=now_datetime,
+                    cancelled=False)
+                .order_by("start_time")))
+    else:
+        instant_flow_requests = []
 
     args.update({
         "course": pctx.course,
@@ -326,6 +342,9 @@ def render_course_page(pctx, template_name, args):
         "participation": pctx.participation,
         "role": pctx.role,
         "participation_role": participation_role,
+        "num_instant_flow_requests": len(instant_flow_requests),
+        "instant_flow_requests":
+        [(i+1, r) for i, r in enumerate(instant_flow_requests)],
         })
 
     return render(pctx.request, template_name, args)

@@ -64,6 +64,10 @@
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">Participation</li>
       <li><a href="{% url "course.enrollment.create_preapprovals" course.identifier %}">Preapprove enrollments</a></li>
+
+      <li role="presentation" class="divider"></li>
+      <li role="presentation" class="dropdown-header">Instant flow requests</li>
+      <li><a href="{% url "course.views.manage_instant_flow_requests" course.identifier %}">Manage instant flow requests</a></li>
     </ul>
   </li>
   {% endif %}
@@ -87,4 +91,26 @@
     </div>
   {% endif %}
 
+{% endblock %}
+
+{% block nav_recommendations %}
+  {% if instant_flow_requests %}
+    <div class="alert alert-info">
+      {% if num_instant_flow_requests == 1 %}
+        There is an interactive activity going on right now.
+        {% for i, req in instant_flow_requests %}
+          <a class="btn btn-primary"
+            href="{% url "course.flow.start_flow" course.identifier req.flow_id %}"
+            role="button"><b>Go to activity &raquo;</b></a>
+        {% endfor %}
+      {% else %}
+        There are some interactive activities going on right now.
+        {% for i, req in instant_flow_requests %}
+          <a class="btn btn-primary"
+            href="{% url "course.flow.start_flow" course.identifier req.flow_id %}"
+            role="button"><b>Go to activity {{ i }} &raquo;</b></a>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endif %}
 {% endblock %}

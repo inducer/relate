@@ -185,6 +185,12 @@ urlpatterns = patterns('',
         "/$",
         "course.flow.finish_flow_session_view",),
 
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/instant-flow"
+        "/$",
+        "course.views.manage_instant_flow_requests",),
+
     # }}}
 
     # {{{ analytics

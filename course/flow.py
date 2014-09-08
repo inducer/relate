@@ -603,7 +603,8 @@ def start_flow(pctx, flow_identifier):
             "may_review": may_review,
 
             "past_sessions": past_sessions,
-            })
+            },
+            allow_instant_flow_requests=False)
 
 # }}}
 
@@ -891,7 +892,9 @@ def view_flow_page(pctx, flow_identifier, ordinal):
     if fpctx.page.expects_answer():
         args["max_points"] = fpctx.page.max_points(fpctx.page_data)
 
-    return render_course_page(pctx, "course/flow-page.html", args)
+    return render_course_page(
+            pctx, "course/flow-page.html", args,
+            allow_instant_flow_requests=False)
 
     # }}}
 
@@ -944,7 +947,9 @@ def finish_flow_session_view(pctx, flow_identifier):
         }
 
         render_args.update(kwargs)
-        return render_course_page(pctx, template, render_args)
+        return render_course_page(
+                pctx, template, render_args,
+                allow_instant_flow_requests=False)
 
     if request.method == "POST":
         if "submit" not in request.POST:

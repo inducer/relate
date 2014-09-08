@@ -265,6 +265,7 @@ class InstantFlowRequest(models.Model):
     flow_id = models.CharField(max_length=200)
     start_time = models.DateTimeField(default=now)
     end_time = models.DateTimeField()
+    cancelled = models.BooleanField(default=False)
 
 
 # {{{ flow session tracking
