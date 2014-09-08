@@ -81,7 +81,7 @@
           {% if rule.allowed_session_count %}
             <li>
             {{ rule.allowed_session_count }}
-            session{{ rule.allowed_session_count|pluralize }} permitted.
+            attempt{{ rule.allowed_session_count|pluralize }} permitted.
             </li>
           {% endif %}
         </ul>
