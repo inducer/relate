@@ -468,6 +468,7 @@ class flow_permission:
 
     change_answer = "change_answer"
     see_correctness = "see_correctness"
+    see_correctness_after_completion = "see_correctness_after_completion"
     see_answer = "see_answer"
 
 FLOW_PERMISSION_CHOICES = (
@@ -478,6 +479,8 @@ FLOW_PERMISSION_CHOICES = (
 
         (flow_permission.change_answer, "Change already-graded answer"),
         (flow_permission.see_correctness, "See whether an answer is correct"),
+        (flow_permission.see_correctness_after_completion,
+            "See whether an answer is correct after completing the flow"),
         (flow_permission.see_answer, "See the correct answer"),
         )
 
@@ -501,6 +504,32 @@ def validate_stipulations(stip):
                 not isinstance(stip["allowed_session_count"], int)
                 or stip["allowed_session_count"] < 0)):
         raise ValidationError("allowed_session_count must be a non-negative integer")
+
+
+def _get_current_access_rule(participation, flow_id):
+    course = participation.course
+
+    from course.content import (
+            get_course_repo,
+            get_course_commit_sha,
+            get_flow_desc)
+
+    repo = get_course_repo(course)
+
+    course_commit_sha = get_course_commit_sha(course, participation)
+
+    try:
+        flow_desc = get_flow_desc(repo, course,
+                flow_id.encode(), course_commit_sha)
+    except ObjectDoesNotExist:
+        return None
+    else:
+        from course.utils import get_current_flow_access_rule
+        from django.utils.timezone import now
+
+        return get_current_flow_access_rule(course, participation,
+                participation.role, flow_id, flow_desc,
+                now(), rule_id=None, use_exceptions=False)
 
 
 class FlowAccessException(models.Model):
@@ -527,30 +556,9 @@ class FlowAccessException(models.Model):
 
     def save(self, *args, **kwargs):
         if self.stipulations is None:
-            course = self.participation.course
+            rule = _get_current_access_rule(self.participation, self.flow_id)
 
-            from course.content import (
-                    get_course_repo,
-                    get_course_commit_sha,
-                    get_flow_desc)
-
-            repo = get_course_repo(course)
-
-            course_commit_sha = get_course_commit_sha(course, self.participation)
-
-            try:
-                flow_desc = get_flow_desc(repo, course,
-                        self.flow_id.encode(), course_commit_sha)
-            except ObjectDoesNotExist:
-                pass
-            else:
-                from course.utils import get_current_flow_access_rule
-                from django.utils.timezone import now
-
-                rule = get_current_flow_access_rule(course, self.participation,
-                        self.participation.role, self.flow_id, flow_desc,
-                        now(), rule_id=None)
-
+            if rule is not None:
                 self.stipulations = {}
                 if rule.allowed_session_count is not None:
                     self.stipulations["allowed_session_count"] = \
@@ -560,6 +568,15 @@ class FlowAccessException(models.Model):
                             rule.credit_percent
 
         super(FlowAccessException, self).save(*args, **kwargs)
+
+        if not self.entries.count():
+            rule = _get_current_access_rule(self.participation, self.flow_id)
+            if rule is not None:
+                for perm in rule.permissions:
+                    faee = FlowAccessExceptionEntry()
+                    faee.exception = self
+                    faee.permission = perm
+                    faee.save()
 
 
 class FlowAccessExceptionEntry(models.Model):

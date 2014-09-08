@@ -56,7 +56,8 @@ class FlowAccessRule(object):
         return [permission_dict[p] for p in self.permissions]
 
 
-def get_flow_access_rules(course, participation, flow_id, flow_desc):
+def get_flow_access_rules(course, participation, flow_id, flow_desc,
+        use_exceptions=True):
     rules = []
 
     attr_names = [
@@ -72,25 +73,26 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc):
 
     # {{{ scan for exceptions in database
 
-    for exc in (
-            FlowAccessException.objects
-            .filter(
-                participation=participation,
-                flow_id=flow_id)
-            .order_by("expiration")):
+    if use_exceptions:
+        for exc in (
+                FlowAccessException.objects
+                .filter(
+                    participation=participation,
+                    flow_id=flow_id)
+                .order_by("expiration")):
 
-        attrs = {
-                "is_exception": True,
-                "id": "exception",
-                "permissions": [entry.permission for entry in exc.entries.all()],
-                }
-        if exc.expiration is not None:
-            attrs["end"] = exc.expiration
+            attrs = {
+                    "is_exception": True,
+                    "id": "exception",
+                    "permissions": [entry.permission for entry in exc.entries.all()],
+                    }
+            if exc.expiration is not None:
+                attrs["end"] = exc.expiration
 
-        if exc.stipulations is not None and isinstance(exc.stipulations, dict):
-            attrs.update(exc.stipulations)
+            if exc.stipulations is not None and isinstance(exc.stipulations, dict):
+                attrs.update(exc.stipulations)
 
-        rules.append(FlowAccessRule(**attrs))
+            rules.append(FlowAccessRule(**attrs))
 
     # }}}
 
@@ -133,8 +135,9 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc):
 
 
 def get_current_flow_access_rule(course, participation, role, flow_id, flow_desc,
-        now_datetime, rule_id):
-    rules = get_flow_access_rules(course, participation, flow_id, flow_desc)
+        now_datetime, rule_id, use_exceptions=True):
+    rules = get_flow_access_rules(course, participation, flow_id, flow_desc,
+            use_exceptions=use_exceptions)
 
     for rule in rules:
         if rule.roles is not None:
