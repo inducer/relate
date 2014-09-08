@@ -193,6 +193,14 @@ class Histogram(object):
 # }}}
 
 
+def is_flow_multiple_submit(flow_desc):
+    for rule in flow_desc.access_rules:
+        if flow_permission.change_answer in rule.permissions:
+            return True
+
+    return False
+
+
 # {{{ flow analytics
 
 def can_be_multiple_submit(pctx, flow_desc):
@@ -244,6 +252,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
             pctx.course_commit_sha)
 
+    is_multiple_submit = is_flow_multiple_submit(flow_desc)
+
     page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
 
     page_info_list = []
@@ -258,7 +268,14 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
                         is_graded_answer=True,
-                        )
+                        ))
+
+            if is_multiple_submit and connection.features.can_distinct_on_fields:
+                visits = (visits
+                        .distinct("page_data", "visit_time")
+                        .order_by("page_data", "-visit_time"))
+
+            visits = (visits
                     .prefetch_related("flow_session")
                     .prefetch_related("page_data"))
 
@@ -363,6 +380,8 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
             pctx.course_commit_sha)
 
+    is_multiple_submit = is_flow_multiple_submit(flow_desc)
+
     page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
 
     visits = (FlowPageVisit.objects
@@ -371,7 +390,14 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
                 is_graded_answer=True,
-                )
+                ))
+
+    if is_multiple_submit and connection.features.can_distinct_on_fields:
+        visits = (visits
+                .distinct("page_data", "visit_time")
+                .order_by("page_data", "-visit_time"))
+
+    visits = (visits
             .prefetch_related("flow_session")
             .prefetch_related("page_data"))
 
