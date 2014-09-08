@@ -29,6 +29,7 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist
 
 from jsonfield import JSONField
 
@@ -482,6 +483,9 @@ FLOW_PERMISSION_CHOICES = (
 
 
 def validate_stipulations(stip):
+    if stip is None:
+        return
+
     if not isinstance(stip, dict):
         raise ValidationError("stipulations must be a dictionary")
     allowed_keys = set(["credit_percent", "allowed_session_count"])
@@ -520,6 +524,42 @@ class FlowAccessException(models.Model):
         return "Access exception for '%s' to '%s' in '%s'" % (
                 self.participation.user, self.flow_id,
                 self.participation.course)
+
+    def save(self, *args, **kwargs):
+        if self.stipulations is None:
+            course = self.participation.course
+
+            from course.content import (
+                    get_course_repo,
+                    get_course_commit_sha,
+                    get_flow_desc)
+
+            repo = get_course_repo(course)
+
+            course_commit_sha = get_course_commit_sha(course, self.participation)
+
+            try:
+                flow_desc = get_flow_desc(repo, course,
+                        self.flow_id.encode(), course_commit_sha)
+            except ObjectDoesNotExist:
+                pass
+            else:
+                from course.utils import get_current_flow_access_rule
+                from django.utils.timezone import now
+
+                rule = get_current_flow_access_rule(course, self.participation,
+                        self.participation.role, self.flow_id, flow_desc,
+                        now(), rule_id=None)
+
+                self.stipulations = {}
+                if rule.allowed_session_count is not None:
+                    self.stipulations["allowed_session_count"] = \
+                            rule.allowed_session_count
+                if rule.credit_percent is not None:
+                    self.stipulations["credit_percent"] = \
+                            rule.credit_percent
+
+        super(FlowAccessException, self).save(*args, **kwargs)
 
 
 class FlowAccessExceptionEntry(models.Model):

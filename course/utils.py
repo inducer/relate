@@ -37,7 +37,6 @@ from course.content import (
 from course.models import (
         Course,
         FlowAccessException,
-        FlowPageVisit,
         participation_role,
         flow_permission,
         InstantFlowRequest

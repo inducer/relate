@@ -10,11 +10,7 @@
 - Fix analytics:
   only use last graded submission if multiple-submit
 
-- Stipulations default to same as class (from FAE)
-
 - Fix docker reliability
-
-- Instant flow request
 
 Ideas
 =====
