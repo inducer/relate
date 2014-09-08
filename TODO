@@ -4,9 +4,6 @@
 
 - ending on new version, resume, ...
 
-- Fix analytics:
-  only use last graded submission if multiple-submit
-
 - Fix docker reliability
 
 Ideas
