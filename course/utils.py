@@ -144,8 +144,13 @@ def get_current_flow_access_rule(course, participation, role, flow_id, flow_desc
             if role not in rule.roles:
                 continue
 
-        if rule_id is not None and rule_id == rule.id:
-            return rule
+        if rule_id is not None:
+            if rule_id == rule.id:
+                # irrespective of date, tested below
+                return rule
+
+            if rule_id != rule.id:
+                continue
 
         if rule.start is not None:
             if now_datetime < rule.start:
@@ -157,8 +162,13 @@ def get_current_flow_access_rule(course, participation, role, flow_id, flow_desc
 
         return rule
 
-    raise ValueError("Flow access rules of flow '%s' did not resolve "
-            "to access answer for '%s'" % (flow_id, participation))
+    if rule_id is not None:
+        raise ValueError("Flow access rules of flow '%s' did not resolve "
+                "to access answer for '%s', with specified rule id '%s'"
+                % (flow_id, participation, rule_id))
+    else:
+        raise ValueError("Flow access rules of flow '%s' did not resolve "
+                "to access answer for '%s'" % (flow_id, participation))
 
 
 def instantiate_flow_page_with_ctx(fctx, page_data):
