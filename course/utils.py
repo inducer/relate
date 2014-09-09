@@ -27,6 +27,7 @@ THE SOFTWARE.
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
+from django.core.exceptions import ObjectDoesNotExist
 
 from course.views import (
         get_role_and_participation
@@ -289,14 +290,21 @@ class FlowPageContext(FlowContext):
                 FlowPageData, flow_session=flow_session, ordinal=ordinal)
 
         from course.content import get_flow_page_desc
-        self.page_desc = get_flow_page_desc(
-                flow_session, self.flow_desc, page_data.group_id, page_data.page_id)
+        try:
+            self.page_desc = get_flow_page_desc(
+                    flow_session, self.flow_desc, page_data.group_id,
+                    page_data.page_id)
+        except ObjectDoesNotExist:
+            self.page_desc = None
+            self.page = None
+            self.page_context = None
+        else:
+            self.page = instantiate_flow_page_with_ctx(self, page_data)
 
-        self.page = instantiate_flow_page_with_ctx(self, page_data)
-
-        from course.page import PageContext
-        self.page_context = PageContext(
-                course=self.course, repo=self.repo, commit_sha=self.flow_commit_sha)
+            from course.page import PageContext
+            self.page_context = PageContext(
+                    course=self.course, repo=self.repo,
+                    commit_sha=self.flow_commit_sha)
 
         # {{{ dig for previous answers
 

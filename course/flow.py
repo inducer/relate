@@ -697,6 +697,31 @@ def view_flow_page(pctx, flow_identifier, ordinal):
             participation=pctx.participation,
             flow_session=flow_session)
 
+    if fpctx.page_desc is None:
+        messages.add_message(request, messages.ERROR,
+                "Your session does not match the course content and needs "
+                "to be reset. Course staff have been notified about this issue. "
+                "Please get in touch with them to get help.")
+
+        from django.template.loader import render_to_string
+        message = render_to_string("course/session-mismatch.txt", {
+            "page_data": fpctx.page_data,
+            "course": pctx.course,
+            "user": pctx.request.user,
+            })
+
+        from django.core.mail import send_mail
+        from django.conf import settings
+        send_mail("[%s] session mismatch with course content"
+                % pctx.course.identifier,
+                message,
+                settings.ROBOT_EMAIL_FROM,
+                recipient_list=[pctx.course.email])
+
+        return redirect("course.flow.start_flow",
+                pctx.course.identifier,
+                flow_identifier)
+
     current_access_rule = fpctx.get_current_access_rule(
             flow_session, pctx.role, pctx.participation,
             get_now_or_fake_time(request))
