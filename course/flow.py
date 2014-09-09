@@ -352,6 +352,7 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
         gchange.opportunity = gopp
         gchange.participation = flow_session.participation
         gchange.state = grade_state_change_types.graded
+        gchange.attempt_id = "flow-session-%d" % flow_session.id
         gchange.points = points
         gchange.max_points = grade_info.max_points
         # creator left as NULL
