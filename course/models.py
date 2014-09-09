@@ -276,7 +276,8 @@ class FlowSession(models.Model):
     # 'participation' is nullable.
     course = models.ForeignKey(Course)
 
-    participation = models.ForeignKey(Participation, null=True, blank=True)
+    participation = models.ForeignKey(Participation, null=True, blank=True,
+            db_index=True)
     active_git_commit_sha = models.CharField(max_length=200)
     flow_id = models.CharField(max_length=200, db_index=True)
     start_time = models.DateTimeField(default=now)
@@ -299,7 +300,7 @@ class FlowSession(models.Model):
     result_comment = models.TextField(blank=True, null=True)
 
     class Meta:
-        ordering = ("course", "participation", "-start_time")
+        ordering = ("course", "-start_time")
 
     def __unicode__(self):
         if self.participation is None:
