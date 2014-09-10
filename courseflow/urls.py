@@ -99,6 +99,13 @@ urlpatterns = patterns('',
         "/$",
         "course.grades.view_single_grade",),
 
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grading"
+        "/csv-import"
+        "/$",
+        "course.grades.import_grades",),
+
     # }}}
 
     # {{{ enrollment

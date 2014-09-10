@@ -39,6 +39,9 @@
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">Grades</li>
       <li><a href="{% url "course.grades.view_gradebook" course.identifier %}">Grade book</a></li>
+      {% if role == participation_role.instructor %}
+      <li><a href="{% url "course.grades.import_grades" course.identifier %}">Import Grades</a></li>
+      {% endif %}
     </ul>
   </li>
   {% endif %}

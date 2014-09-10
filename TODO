@@ -6,12 +6,16 @@
 
 - Fix docker reliability
 
-- Manual grade entry
-
 - Show correct solution for plain pages
+
+- Deferred grading (essays etc, per question)
+- Grading stages
+  (Autograder: works, TA: code not fishy)
 
 Ideas
 =====
+
+- Manual grade entry
 
 - Validation for presence of grade_aggregation_strategy
 
@@ -26,10 +30,6 @@ Ideas
 
 - Flow group ordering, max page count, question/page tags
 
-- Deferred grading (essays etc, per question)
-- Grading stages
-  (Autograder: works, TA: code not fishy)
-
 - Custom matcher classes
 
 - Name X out of Y question
@@ -37,7 +37,6 @@ Ideas
 - Multi MC question
 - Rank/order question
 - TextQuestions with answers yielding different grades
-
 
 Rejected ideas
 ==============

@@ -34,6 +34,7 @@ from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import connection
 from django import forms
 from django.db import transaction
+from django.utils.timezone import now
 
 from courseflow.utils import StyledForm
 from crispy_forms.layout import Submit
@@ -348,7 +349,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
-                            "Error: %s %s" % (type(e), str(e)))
+                            "Error: %s %s" % (type(e).__name__, str(e)))
 
         else:
             batch_session_ops_form = ModifySessionsForm(rule_ids)
@@ -446,7 +447,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
-    # {{{ modify sessions form
+    # {{{ modify sessions buttons
 
     if pctx.role in [
             participation_role.instructor,
@@ -495,7 +496,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        "Error: %s %s" % (type(e), str(e)))
+                        "Error: %s %s" % (type(e).__name__, str(e)))
     else:
         allow_session_actions = False
 
@@ -537,6 +538,165 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             participation_role.instructor,
             participation_role.teaching_assistant
             ],
+        })
+
+# }}}
+
+
+# {{{ import grades
+
+class ImportGradesForm(StyledForm):
+    def __init__(self, course, *args, **kwargs):
+        super(ImportGradesForm, self).__init__(*args, **kwargs)
+
+        self.fields["grading_opportunity"] = forms.ModelChoiceField(
+            queryset=(GradingOpportunity.objects
+                .filter(course=course)
+                .order_by("identifier")))
+
+        self.fields["attempt_id"] = forms.CharField(
+                initial="main",
+                required=True)
+        self.fields["file"] = forms.FileField()
+
+        self.fields["format"] = forms.ChoiceField(
+                choices=(
+                    ("csvhead", "CSV with Header"),
+                    ("csv", "CSV"),
+                    ))
+
+        self.fields["id_column"] = forms.IntegerField(
+                help_text="1-based column index for the Email or NetID "
+                "used to locate student record",
+                min_value=1)
+        self.fields["points_column"] = forms.IntegerField(
+                help_text="1-based column index for the (numerical) grade",
+                min_value=1)
+        self.fields["feedback_column"] = forms.IntegerField(
+                help_text="1-based column index for further (textual) feedback",
+                min_value=1, required=False)
+        self.fields["max_points"] = forms.DecimalField(
+            initial=100)
+
+        self.helper.add_input(
+                Submit("preview", "Preview",
+                    css_class="col-lg-offset-2"))
+        self.helper.add_input(
+                Submit("import", "Import"))
+
+
+def find_participant_from_id(course, id_str):
+    id_str = id_str.strip()
+
+    matches = (Participation.objects
+            .filter(
+                course=course,
+                role=participation_role.student,
+                user__email__istartswith=id_str)
+            .prefetch_related("user"))
+
+    surviving_matches = []
+    for match in matches:
+        if match.user.email == id_str:
+            surviving_matches.append(match)
+            continue
+
+        email = match.user.email
+        at_index = email.index("@")
+        assert at_index > 0
+        uid = email[:at_index]
+
+        if uid == id_str:
+            surviving_matches.append(match)
+            continue
+
+    if not surviving_matches:
+        raise ValueError("no participant found for '%s'" % id_str)
+    if len(surviving_matches) > 1:
+        raise ValueError("more than one participant found for '%s'" % id_str)
+
+    return surviving_matches[0]
+
+
+def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
+        id_column, points_column, feedback_column, max_points,
+        creator, grade_time, has_header):
+    result = []
+
+    import csv
+
+    spamreader = csv.reader(file_contents)
+    for row in spamreader:
+        if has_header:
+            has_header = False
+            continue
+
+        gchange = GradeChange()
+        result.append(gchange)
+        gchange.opportunity = grading_opportunity
+        gchange.participation = find_participant_from_id(course, row[id_column-1])
+        gchange.state = grade_state_change_types.graded
+        gchange.attempt_id = attempt_id
+        gchange.points = float(row[points_column-1])
+        gchange.max_points = max_points
+        if feedback_column is not None:
+            gchange.comment = row[feedback_column-1]
+
+        gchange.creator = creator
+        gchange.grade_time = grade_time
+
+    return result
+
+
+@course_view
+@transaction.atomic
+def import_grades(pctx):
+    if pctx.role != participation_role.instructor:
+        raise PermissionDenied()
+
+    form_text = ""
+    request = pctx.request
+    if request.method == "POST":
+        form = ImportGradesForm(
+                pctx.course, request.POST, request.FILES)
+
+        is_import = "import" in request.POST
+        if form.is_valid():
+            try:
+                grade_changes = csv_to_grade_changes(
+                        course=pctx.course,
+                        grading_opportunity=form.cleaned_data["grading_opportunity"],
+                        attempt_id=form.cleaned_data["attempt_id"],
+                        file_contents=request.FILES["file"],
+                        id_column=form.cleaned_data["id_column"],
+                        points_column=form.cleaned_data["points_column"],
+                        feedback_column=form.cleaned_data["feedback_column"],
+                        max_points=form.cleaned_data["max_points"],
+                        creator=request.user,
+                        grade_time=now(),
+                        has_header=form.cleaned_data["format"] == "csvhead")
+            except Exception as e:
+                messages.add_message(pctx.request, messages.ERROR,
+                        "Error: %s %s" % (type(e).__name__, str(e)))
+            else:
+                if is_import:
+                    GradeChange.objects.bulk_create(grade_changes)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "%d grades imported." % len(grade_changes))
+                else:
+                    from django.template.loader import render_to_string
+                    form_text = render_to_string(
+                            "course/grade-import-preview.html", {
+                                "grade_changes": grade_changes,
+                                })
+
+    else:
+        form = ImportGradesForm(pctx.course)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": "Import Grade Data",
+        "form": form,
+        "form_text": form_text,
         })
 
 # }}}
