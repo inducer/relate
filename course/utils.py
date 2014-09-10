@@ -259,7 +259,10 @@ class FlowContext(object):
         # Each session sticks to 'its' assigned rules.
         # If those are not known, use the ones that were relevant
         # when the flow started.
-        if flow_session is not None:
+        #
+        # Note that this stickiness stops as soon as the flow is
+        # no longer in progress.
+        if flow_session is not None and flow_session.in_progress:
             rule_id = flow_session.access_rules_id
             now_datetime = flow_session.start_time
         else:
