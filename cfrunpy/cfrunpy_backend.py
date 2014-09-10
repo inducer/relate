@@ -83,6 +83,14 @@ PROTOCOL
 
         Optional.
 
+    .. attribute:: figures
+
+        A list of ``(index, mime_type, string)``, where *string* is a
+        base64-encoded representation of the figure. *index* will usually
+        correspond to the matplotlib figure number.
+
+        Optional.
+
     .. attribute:: points
 
         A number between 0 and 1 (inclusive).
@@ -241,6 +249,29 @@ def run_code(result, run_req):
     if not (feedback.points is None or 0 <= feedback.points <= 1):
         raise ValueError("grade point value is invalid: %s"
                 % feedback.points)
+
+    # {{{ export plots
+
+    if "matplotlib" in sys.modules:
+        import matplotlib.pyplot as pt
+        from io import BytesIO
+        from base64 import b64encode
+
+        format = "png"
+        mime = "image/png"
+        figures = []
+
+        for fignum in pt.get_fignums():
+            pt.figure(fignum)
+            bio = BytesIO()
+            pt.savefig(bio, format=format)
+
+            figures.append(
+                (fignum, mime, b64encode(bio.getvalue()).decode()))
+
+        result["figures"] = figures
+
+    # }}}
 
     result["points"] = feedback.points
     result["feedback"] = feedback.feedback_items

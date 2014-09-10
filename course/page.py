@@ -1144,6 +1144,20 @@ class PythonCodeQuestion(PageBase):
             feedback_bits.append(
                     "<p>Your code printed the following error messages:"
                     "<pre>%s</pre></p>" % html_escape(response.stderr))
+        if hasattr(response, "figures"):
+            fig_lines = [
+                    "<p>Your code produced the following plots:</p>",
+                    '<dl class="result-figure-list">',
+                    ]
+
+            for nr, mime_type, b64data in response.figures:
+                fig_lines.extend([
+                        "<dt>Figure %d<dt>" % nr,
+                        '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
+                        % (nr, mime_type, b64data)])
+
+            fig_lines.append("</dl>")
+            feedback_bits.extend(fig_lines)
 
         return AnswerFeedback(
                 correctness=correctness,

@@ -18,7 +18,11 @@ CourseFlow is set apart by the following features:
 * Versioning of content through deep integration with `git <https://git-scm.org>`_.
   Instructors can preview newly-authored content while students work with
   prior versions, all from the same instance of CourseFlow.
-* Auto-graded code questions, with sandboxing.
+* Code questions:
+    * Allow students to write Python code into a text box
+    * Sandboxed execution
+    * Automatic grading
+    * Plotting through integration with `matplotlib <http://matplotlib.org>`_
 * Class calendar and grade book included.
 * Statistics of student answers.
 * Allows live quizzes in the classroom.

@@ -6,10 +6,14 @@
 
 - Fix docker reliability
 
+- Manual grade entry
+
+- Show correct solution for plain pages
+
+- Correct solution permissions vs. use permissions from in-progress flow
+
 Ideas
 =====
-
-- Plotting in cfrunpy
 
 - Validation for presence of grade_aggregation_strategy
 
