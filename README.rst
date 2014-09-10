@@ -20,7 +20,7 @@ CourseFlow is set apart by the following features:
   prior versions, all from the same instance of CourseFlow.
 * Code questions:
 
-  * Allow students to write Python code into a text box
+  * Allow students to write Python code into a text box (with syntax highlighting)
   * Sandboxed execution
   * Automatic grading
   * Plotting through integration with `matplotlib <http://matplotlib.org>`_
