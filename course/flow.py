@@ -644,7 +644,9 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
                         "submit", "Submit answer for grading",
                         accesskey="g", css_class="cf-save-button"))
         else:
-            form.helper.add_input(Submit("submit", "Submit final answer"))
+            form.helper.add_input(
+                    Submit("submit", "Submit final answer",
+                        css_class="cf-save-button"))
     else:
         # Only offer 'save and move on' if student will receive no feedback
         if fpctx.page_data.ordinal + 1 < flow_session.page_count:
