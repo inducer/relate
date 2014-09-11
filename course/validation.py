@@ -63,7 +63,7 @@ def validate_role(location, role):
                 % (location, role))
 
 
-def validate_struct(location, obj, required_attrs, allowed_attrs):
+def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
     """
     :arg required_attrs: an attribute validation list (see below)
     :arg allowed_attrs: an attribute validation list (see below)
@@ -95,15 +95,24 @@ def validate_struct(location, obj, required_attrs, allowed_attrs):
                 present_attrs.remove(attr)
                 val = getattr(obj, attr)
 
+                is_markup = False
+                if allowed_types == "markup":
+                    allowed_types = str
+                    is_markup = True
+
                 if allowed_types == str:
                     # Love you, too, Python 2.
                     allowed_types = (str, unicode)
+                print location, attr, allowed_types
 
                 if not isinstance(val, allowed_types):
                     raise ValidationError("%s: attribute '%s' has "
                             "wrong type: got '%s', expected '%s'"
                             % (location, attr, type(val).__name__,
                             html_escape(str(allowed_types))))
+
+                if is_markup:
+                    validate_markup(ctx, "%s: attribute %s" % (location, attr), val)
 
     if present_attrs:
         raise ValidationError("%s: extraneous attribute(s) '%s'"
@@ -166,6 +175,7 @@ def validate_markup(ctx, location, markup_str):
 
 def validate_chunk_rule(ctx, location, chunk_rule):
     validate_struct(
+            ctx,
             location,
             chunk_rule,
             required_attrs=[
@@ -198,13 +208,14 @@ def validate_chunk_rule(ctx, location, chunk_rule):
 
 def validate_chunk(ctx, location, chunk):
     validate_struct(
+            ctx,
             location,
             chunk,
             required_attrs=[
                 ("title", str),
                 ("id", str),
                 ("rules", list),
-                ("content", str),
+                ("content", "markup"),
                 ],
             allowed_attrs=[]
             )
@@ -214,11 +225,10 @@ def validate_chunk(ctx, location, chunk):
                 "%s, rule %d" % (location, i+1),
                 rule)
 
-    validate_markup(ctx, location, chunk.content)
-
 
 def validate_course_desc_struct(ctx, location, course_desc):
     validate_struct(
+            ctx,
             location,
             course_desc,
             required_attrs=[
@@ -277,6 +287,7 @@ def validate_flow_page(ctx, location, page_desc):
 
 def validate_flow_group(ctx, location, grp):
     validate_struct(
+            ctx,
             location,
             grp,
             required_attrs=[
@@ -318,6 +329,7 @@ def validate_flow_permission(ctx, location, permission):
 
 def validate_flow_access_rule(ctx, location, rule):
     validate_struct(
+            ctx,
             location,
             rule,
             required_attrs=[
@@ -359,13 +371,14 @@ def validate_flow_access_rule(ctx, location, rule):
 
 def validate_flow_desc(ctx, location, flow_desc):
     validate_struct(
+            ctx,
             location,
             flow_desc,
             required_attrs=[
                 ("title", str),
-                ("description", str),
+                ("description", "markup"),
                 ("groups", list),
-                ("completion_text", str),
+                ("completion_text", "markup"),
                 ],
             allowed_attrs=[
                 ("access_rules", list),
@@ -460,6 +473,7 @@ def validate_flow_desc(ctx, location, flow_desc):
 
 def validate_calendar_desc_struct(ctx, location, events_desc):
     validate_struct(
+            ctx,
             location,
             events_desc,
             required_attrs=[

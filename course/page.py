@@ -171,6 +171,9 @@ class PageBase(object):
 
         The page identifier.
 
+    .. automethod:: required_attrs
+    .. automethod:: allowed_attrs
+
     .. automethod:: make_page_data
     .. automethod:: title
     .. automethod:: body
@@ -182,14 +185,53 @@ class PageBase(object):
     .. automethod:: grade
     """
 
-    def __init__(self, vctx, location, id):
+    def __init__(self, vctx, location, page_desc):
         """
         :arg vctx: a :class:`course.validation.ValidationContext`, or None
             if no validation is desired
         """
 
         self.location = location
-        self.id = id
+
+        from courseflow.utils import Struct
+        if isinstance(page_desc, Struct):
+            if vctx is not None:
+                validate_struct(
+                        vctx,
+                        location,
+                        page_desc,
+                        required_attrs=self.required_attrs(),
+                        allowed_attrs=self.allowed_attrs())
+
+            self.page_desc = page_desc
+
+        else:
+            from warnings import warn
+            warn("Not passing page_desc to PageBase.__init__ is deprecated",
+                    DeprecationWarning)
+            id = page_desc
+            del page_desc
+
+            self.id = id
+
+    def required_attrs(self):
+        """Required attributes, as accepted by
+        :func:`course.validation.validate_struct`.
+        Subclasses should only add to, not remove entries from this.
+        """
+
+        return (
+            ("id", str),
+            ("type", str),
+            )
+
+    def allowed_attrs(self):
+        """Allowed attributes, as accepted by
+        :func:`course.validation.validate_struct`.
+        Subclasses should only add to, not remove entries from this.
+        """
+
+        return ()
 
     def make_page_data(self):
         """Return (possibly randomly generated) data that is used to generate
@@ -277,30 +319,40 @@ class PageBase(object):
 # }}}
 
 
-class Page(PageBase):
-    """A page showing static content."""
+# {{{ utility base classes
 
-    def __init__(self, vctx, location, page_desc):
-        validate_struct(
-                location,
-                page_desc,
-                required_attrs=[
-                    ("type", str),
-                    ("id", str),
-                    ("content", str),
-                    ("title", str),
-                    ],
-                allowed_attrs=[],
+class PageBaseWithTitle(PageBase):
+    def required_attrs(self):
+        return super(PageBaseWithTitle, self).required_attrs() + (
+                ("title", str),
                 )
-
-        PageBase.__init__(self, vctx, location, page_desc.id)
-        self.page_desc = page_desc
-
-        if vctx is not None:
-            validate_markup(vctx, location, page_desc.content)
 
     def title(self, page_context, page_data):
         return self.page_desc.title
+
+
+class PageBaseWithValue(PageBase):
+    def required_attrs(self):
+        return super(PageBaseWithValue, self).required_attrs() + (
+                ("value", (int, float)),
+                )
+
+    def expects_answer(self):
+        return True
+
+    def max_points(self, page_data):
+        return self.page_desc.value
+
+# }}}
+
+
+class Page(PageBaseWithTitle):
+    """A page showing static content."""
+
+    def required_attrs(self):
+        return super(Page, self).required_attrs() + (
+            ("content", "markup"),
+            )
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.content)
@@ -504,21 +556,9 @@ def parse_matcher(vctx, location, answer):
 # }}}
 
 
-class TextQuestion(PageBase):
+class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
     def __init__(self, vctx, location, page_desc):
-        validate_struct(
-                location,
-                page_desc,
-                required_attrs=[
-                    ("type", str),
-                    ("id", str),
-                    ("value", (int, float)),
-                    ("title", str),
-                    ("answers", list),
-                    ("prompt", str),
-                    ],
-                allowed_attrs=[],
-                )
+        super(TextQuestion, self).__init__(vctx, location, page_desc)
 
         if len(page_desc.answers) == 0:
             raise ValidationError("%s: at least one answer must be provided"
@@ -536,23 +576,14 @@ class TextQuestion(PageBase):
             raise ValidationError("%s: no matcher is able to provide a plain-text "
                     "correct answer" % location)
 
-        if vctx is not None:
-            validate_markup(vctx, location, page_desc.prompt)
-
-        PageBase.__init__(self, vctx, location, page_desc.id)
-        self.page_desc = page_desc
-
-    def title(self, page_context, page_data):
-        return self.page_desc.title
+    def required_attrs(self):
+        return super(TextQuestion, self).required_attrs() + (
+                ("prompt", "markup"),
+                ("answers", list),
+                )
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
-
-    def expects_answer(self):
-        return True
-
-    def max_points(self, page_data):
-        return self.page_desc.value
 
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
@@ -619,7 +650,7 @@ class ChoiceAnswerForm(StyledForm):
         self.fields["choice"] = field
 
 
-class ChoiceQuestion(PageBase):
+class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     CORRECT_TAG = "~CORRECT~"
 
     @classmethod
@@ -632,21 +663,7 @@ class ChoiceQuestion(PageBase):
         return s
 
     def __init__(self, vctx, location, page_desc):
-        validate_struct(
-                location,
-                page_desc,
-                required_attrs=[
-                    ("type", str),
-                    ("id", str),
-                    ("value", (int, float)),
-                    ("title", str),
-                    ("choices", list),
-                    ("prompt", str),
-                    ],
-                allowed_attrs=[
-                    ("shuffle", bool),
-                    ],
-                )
+        super(ChoiceQuestion, self).__init__(vctx, location, page_desc)
 
         correct_choice_count = 0
         for choice in page_desc.choices:
@@ -661,29 +678,24 @@ class ChoiceQuestion(PageBase):
             raise ValidationError("%s: one or more correct answer(s) "
                     "expected, %d found" % (location, correct_choice_count))
 
-        if vctx is not None:
-            validate_markup(vctx, location, page_desc.prompt)
+    def required_attrs(self):
+        return super(ChoiceQuestion, self).required_attrs() + (
+                ("prompt", "markup"),
+                ("choices", list),
+                )
 
-        PageBase.__init__(self, vctx, location, page_desc.id)
-        self.page_desc = page_desc
-        self.shuffle = getattr(self.page_desc, "shuffle", False)
-
-    def title(self, page_context, page_data):
-        return self.page_desc.title
+    def allowed_attrs(self):
+        return super(ChoiceQuestion, self).allowed_attrs() + (
+                ("shuffle", bool),
+                )
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def expects_answer(self):
-        return True
-
-    def max_points(self, page_data):
-        return self.page_desc.value
-
     def make_page_data(self):
         import random
         perm = range(len(self.page_desc.choices))
-        if self.shuffle:
+        if getattr(self.page_desc, "shuffle", False):
             random.shuffle(perm)
 
         return {"permutation": perm}
@@ -935,45 +947,24 @@ def request_python_run(run_req, run_timeout):
                 pass
 
 
-class PythonCodeQuestion(PageBase):
-    def __init__(self, vctx, location, page_desc):
-        validate_struct(
-                location,
-                page_desc,
-                required_attrs=[
-                    ("type", str),
-                    ("id", str),
-                    ("value", (int, float)),
-                    ("title", str),
-                    ("prompt", str),
-                    ("timeout", (int, float)),
-                    ],
-                allowed_attrs=[
-                    ("setup_code", str),
-                    ("names_for_user", list),
-                    ("names_from_user", list),
-                    ("test_code", str),
-                    ("correct_code", str),
-                    ],
+class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
+    def required_attrs(self):
+        return super(PythonCodeQuestion, self).required_attrs() + (
+                ("prompt", "markup"),
+                ("timeout", (int, float)),
                 )
 
-        if vctx is not None:
-            validate_markup(vctx, location, page_desc.prompt)
-
-        PageBase.__init__(self, vctx, location, page_desc.id)
-        self.page_desc = page_desc
-
-    def title(self, page_context, page_data):
-        return self.page_desc.title
+    def allowed_attrs(self):
+        return super(PythonCodeQuestion, self).allowed_attrs() + (
+                ("setup_code", str),
+                ("names_for_user", list),
+                ("names_from_user", list),
+                ("test_code", str),
+                ("correct_code", str),
+                )
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
-
-    def expects_answer(self):
-        return True
-
-    def max_points(self, page_data):
-        return self.page_desc.value
 
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
