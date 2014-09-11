@@ -917,6 +917,10 @@ def view_flow_page(pctx, flow_identifier, ordinal):
         "feedback": shown_feedback,
         "show_correctness": show_correctness,
         "may_change_answer": may_change_answer,
+        "may_change_graded_answer": (
+            (flow_permission.change_answer
+                        in current_access_rule.permissions)
+            and flow_session.in_progress),
         "will_receive_feedback":
         will_receive_feedback(current_access_rule.permissions),
         "show_answer": show_answer,
