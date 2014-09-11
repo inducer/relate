@@ -80,3 +80,8 @@ div.progress:hover  span.stats-percentage{
   margin-left: 3em;
   margin-bottom: 1ex;
 }
+
+.calendar-descriptions dd {
+  margin-left: 3em;
+  margin-bottom: 1ex;
+}
