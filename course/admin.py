@@ -70,6 +70,14 @@ class UserStatusAdmin(admin.ModelAdmin):
     def __unicode__(self):
         return u"%s in status %s" % (self.user, self.status)
 
+    # {{{ permissions
+
+    def has_add_permission(self, request):
+        # These are created only through the course creation form.
+        return False
+
+    # }}}
+
 admin.site.register(UserStatus, UserStatusAdmin)
 
 # }}}
@@ -97,6 +105,14 @@ class CourseAdmin(admin.ModelAdmin):
     form = CourseAdminForm
 
     save_on_top = True
+
+    # {{{ permissions
+
+    def has_add_permission(self, request):
+        # These are created only through the course creation form.
+        return False
+
+    # }}}
 
 admin.site.register(Course, CourseAdmin)
 
@@ -229,6 +245,14 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
     save_on_top = True
 
+    # {{{ permissions
+
+    def has_add_permission(self, request):
+        # These are created only automatically.
+        return False
+
+    # }}}
+
 admin.site.register(FlowSession, FlowSessionAdmin)
 
 # }}}
@@ -312,6 +336,14 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
     inlines = (FlowPageVisitGradeInline,)
 
     save_on_top = True
+
+    # {{{ permissions
+
+    def has_add_permission(self, request):
+        # These are created only automatically.
+        return False
+
+    # }}}
 
 admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 
@@ -466,6 +498,14 @@ class InstantMessageAdmin(admin.ModelAdmin):
             "participation__user__first_name",
             "participation__user__last_name",
             )
+
+    # {{{ permissions
+
+    def has_add_permission(self, request):
+        # These are created only automatically.
+        return False
+
+    # }}}
 
 admin.site.register(InstantMessage, InstantMessageAdmin)
 
