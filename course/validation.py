@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import division, print_function
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -613,10 +613,15 @@ def validate_course_on_filesystem_script_entrypoint():
     args = parser.parse_args()
 
     fake_repo = FileSystemFakeRepo(args.root)
-    validate_course_content(
+    warnings = validate_course_content(
             fake_repo,
             args.course_file, args.events_file,
             validate_sha=fake_repo, datespec_callback=None)
+
+    if warnings:
+        print("WARNINGS:")
+        for w in warnings:
+            print("***", w.location, w.text)
 
 # }}}
 
