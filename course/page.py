@@ -100,10 +100,6 @@ class AnswerFeedback(object):
         indicating the degree of correctness of the
         answer. May be *None*.
 
-    .. attribute:: correct_answer
-
-        Text (as a full sentence) describing the correct answer.
-
     .. attribute:: feedback
 
         Text (at least as a full sentence, or even multi-paragraph HTML)
@@ -120,7 +116,7 @@ class AnswerFeedback(object):
         if no answer was provided.
     """
 
-    def __init__(self, correctness, correct_answer, feedback=None,
+    def __init__(self, correctness, feedback=None,
             normalized_answer=NoNormalizedAnswerAvailable()):
         if correctness is not None:
             if correctness < 0 or correctness > 1:
@@ -130,14 +126,12 @@ class AnswerFeedback(object):
             feedback = get_auto_feedback(correctness)
 
         self.correctness = correctness
-        self.correct_answer = correct_answer
         self.feedback = feedback
         self.normalized_answer = normalized_answer
 
     def as_json(self):
         result = {
                 "correctness": self.correctness,
-                "correct_answer": self.correct_answer,
                 "feedback": self.feedback,
                 }
 
@@ -150,7 +144,6 @@ class AnswerFeedback(object):
     def from_json(json):
         return AnswerFeedback(
                 correctness=json["correctness"],
-                correct_answer=json["correct_answer"],
                 feedback=json["feedback"],
                 normalized_answer=json.get("normalized_answer",
                     NoNormalizedAnswerAvailable())
@@ -185,6 +178,7 @@ class PageBase(object):
     .. automethod:: make_form
     .. automethod:: post_form
     .. automethod:: grade
+    .. automethod:: correct_answer
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -359,6 +353,12 @@ class PageBase(object):
 
         raise NotImplementedError()
 
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        """The correct answer to this page's interaction, formatted as HTML,
+        or *None*.
+        """
+        return None
+
 # }}}
 
 
@@ -397,11 +397,22 @@ class Page(PageBaseWithTitle):
             ("content", "markup"),
             )
 
+    def allowed_attrs(self):
+        return super(Page, self).required_attrs() + (
+            ("correct_answer", "markup"),
+            )
+
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.content)
 
     def expects_answer(self):
         return False
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        if hasattr(self.page_desc, "correct_answer"):
+            return markup_to_html(page_context, self.page_desc.correct_answer)
+        else:
+            return None
 
 
 # {{{ text question
@@ -649,6 +660,27 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data, grade_data):
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.")
+
+        answer = answer_data["answer"]
+
+        correctness, correct_answer_text = max(
+                (matcher.grade(answer), matcher.correct_answer_text())
+                for matcher in self.matchers)
+
+        normalized_answer = answer
+        if not any(matcher.is_case_sensitive for matcher in self.matchers):
+            normalized_answer = normalized_answer.lower()
+
+        return AnswerFeedback(
+                correctness=correctness,
+                normalized_answer=normalized_answer)
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        # FIXME: Could use 'best' match to answer
+
         CA_PATTERN = "A correct answer is: '%s'."
 
         for matcher in self.matchers:
@@ -658,28 +690,7 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         assert unspec_correct_answer_text
 
-        if answer_data is None:
-            return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.",
-                    correct_answer=CA_PATTERN % unspec_correct_answer_text)
-
-        answer = answer_data["answer"]
-
-        correctness, correct_answer_text = max(
-                (matcher.grade(answer), matcher.correct_answer_text())
-                for matcher in self.matchers)
-
-        if correct_answer_text is None:
-            correct_answer_text = unspec_correct_answer_text
-
-        normalized_answer = answer
-        if not any(matcher.is_case_sensitive for matcher in self.matchers):
-            normalized_answer = normalized_answer.lower()
-
-        return AnswerFeedback(
-                correctness=correctness,
-                correct_answer=CA_PATTERN % correct_answer_text,
-                normalized_answer=normalized_answer)
+        return CA_PATTERN % unspec_correct_answer_text
 
 # }}}
 
@@ -784,36 +795,39 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     def answer_data(self, page_context, page_data, form):
         return {"choice": form.cleaned_data["choice"]}
 
-    def grade(self, page_context, page_data, answer_data, grade_data):
-        unpermuted_correct_indices = []
+    def unpermuted_correct_indices(self):
+        result = []
         for i, choice_text in enumerate(self.page_desc.choices):
             if choice_text.startswith(self.CORRECT_TAG):
-                unpermuted_correct_indices.append(i)
+                result.append(i)
 
-        correct_answer_text = ("A correct answer is:%s"
-                % self.process_choice_string(
-                    page_context,
-                    self.page_desc.choices[unpermuted_correct_indices[0]]).lstrip())
+        return result
 
+    def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.",
-                    correct_answer=correct_answer_text,
                     normalized_answer=None)
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
 
-        if permutation[choice] in unpermuted_correct_indices:
+        if permutation[choice] in self.unpermuted_correct_indices():
             correctness = 1
         else:
             correctness = 0
 
         return AnswerFeedback(correctness=correctness,
-                correct_answer=correct_answer_text,
                 normalized_answer=self.process_choice_string(
                     page_context,
                     self.page_desc.choices[permutation[choice]]))
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        corr_idx = self.unpermuted_correct_indices()[0]
+        return ("A correct answer is:%s"
+                % self.process_choice_string(
+                    page_context,
+                    self.page_desc.choices[corr_idx]).lstrip())
 
 # }}}
 
@@ -1033,17 +1047,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         from courseflow.utils import html_escape
 
-        if hasattr(self.page_desc, "correct_code"):
-            correct_answer = (
-                    "The following code is a valid answer:<pre>%s</pre>"
-                    % html_escape(self.page_desc.correct_code))
-        else:
-            correct_answer = ""
-
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.",
-                    correct_answer=correct_answer,
                     normalized_answer=None)
 
         user_code = answer_data["answer"]
@@ -1199,8 +1205,17 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         return AnswerFeedback(
                 correctness=correctness,
-                correct_answer=correct_answer,
                 feedback="\n".join(feedback_bits))
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        from courseflow.utils import html_escape
+
+        if hasattr(self.page_desc, "correct_code"):
+            return (
+                    "The following code is a valid answer:<pre>%s</pre>"
+                    % html_escape(self.page_desc.correct_code))
+        else:
+            return None
 
 # }}}
 

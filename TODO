@@ -2,8 +2,6 @@
 
 - Fix docker reliability
 
-- Show correct solution for plain pages
-
 - Deferred grading (essays etc, per question)
 - Grading stages
   (Autograder: works, TA: code not fishy)

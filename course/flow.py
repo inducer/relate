@@ -709,6 +709,8 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
     page_context = fpctx.page_context
     page_data = fpctx.page_data
+    answer_data = None
+    grade_data = None
 
     if flow_permission.view not in permissions:
         raise PermissionDenied("not allowed to view flow")
@@ -746,7 +748,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                 page_visit.page_data = fpctx.page_data
                 page_visit.remote_address = request.META['REMOTE_ADDR']
 
-                page_visit.answer = fpctx.page.answer_data(
+                answer_data = page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
                         form)
                 page_visit.is_graded_answer = pressed_button == "submit"
@@ -827,9 +829,17 @@ def view_flow_page(pctx, flow_identifier, ordinal):
         if fpctx.page.expects_answer():
             if fpctx.prev_answer_visit is not None:
                 answer_data = fpctx.prev_answer_visit.answer
-                feedback = fpctx.prev_answer_visit.get_most_recent_feedback()
+
+                most_recent_grade = fpctx.prev_answer_visit.get_most_recent_grade()
+                if most_recent_grade is not None:
+                    from course.page import AnswerFeedback
+                    feedback = AnswerFeedback.from_json(most_recent_grade.feedback)
+                    grade_data = most_recent_grade.grade_data
+                else:
+                    feedback = None
+                    grade_data = None
+
             else:
-                answer_data = None
                 feedback = None
 
             form, form_html = fpctx.page.make_form(
@@ -866,9 +876,21 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
         if show_correctness or show_answer:
             shown_feedback = feedback
+    elif fpctx.page.expects_answer() and not answer_was_graded:
+        # Don't show answer yet
+        pass
+    else:
+        show_answer = flow_permission.see_answer in permissions
 
     title = fpctx.page.title(page_context, page_data.data)
     body = fpctx.page.body(page_context, page_data.data)
+
+    if show_answer:
+        correct_answer = fpctx.page.correct_answer(
+                page_context, page_data.data,
+                answer_data, grade_data)
+    else:
+        correct_answer = None
 
     # {{{ render flow page
 
@@ -890,7 +912,10 @@ def view_flow_page(pctx, flow_identifier, ordinal):
         "title": title, "body": body,
         "form": form,
         "form_html": form_html,
+
         "feedback": shown_feedback,
+        "correct_answer": correct_answer,
+
         "show_correctness": show_correctness,
         "may_change_answer": may_change_answer,
         "may_change_graded_answer": (
