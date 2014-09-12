@@ -586,6 +586,9 @@ class FlowAccessExceptionEntry(models.Model):
     permission = models.CharField(max_length=50,
             choices=FLOW_PERMISSION_CHOICES)
 
+    class Meta:
+        verbose_name_plural = "flow access exception entries"
+
     def __unicode__(self):
         return self.permission
 

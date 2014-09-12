@@ -727,11 +727,13 @@ def view_flow_page(pctx, flow_identifier, ordinal):
     current_access_rule = fpctx.get_current_access_rule(
             flow_session, pctx.role, pctx.participation,
             get_now_or_fake_time(request))
+    permissions = fpctx.page.get_modified_permissions_for_page(
+            current_access_rule.permissions)
 
     page_context = fpctx.page_context
     page_data = fpctx.page_data
 
-    if flow_permission.view not in current_access_rule.permissions:
+    if flow_permission.view not in permissions:
         raise PermissionDenied("not allowed to view flow")
 
     if request.method == "POST":
@@ -747,7 +749,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
             if (fpctx.prev_answer_visit is not None
                     and fpctx.prev_answer_visit.is_graded_answer
                     and flow_permission.change_answer
-                        not in current_access_rule.permissions):
+                        not in permissions):
                 raise PermissionDenied("already have final answer")
 
             form, form_html = fpctx.page.post_form(
@@ -777,7 +779,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                 may_change_answer = (
                     not answer_was_graded
                     or flow_permission.change_answer
-                    in current_access_rule.permissions)
+                    in permissions)
 
                 feedback = fpctx.page.grade(
                         page_context, page_data.data, page_visit.answer,
@@ -798,15 +800,13 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                     del grade
 
                 if (pressed_button == "save_and_next"
-                        and not will_receive_feedback(
-                            current_access_rule.permissions)):
+                        and not will_receive_feedback(permissions)):
                     return redirect("course.flow.view_flow_page",
                             pctx.course.identifier,
                             flow_identifier,
                             fpctx.ordinal + 1)
                 elif (pressed_button == "save_and_finish"
-                        and not will_receive_feedback(
-                            current_access_rule.permissions)):
+                        and not will_receive_feedback(permissions)):
                     return redirect("course.flow.finish_flow_session_view",
                             pctx.course.identifier, flow_identifier)
                 else:
@@ -842,8 +842,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
         may_change_answer = (
                 (not answer_was_graded
-                    or (flow_permission.change_answer
-                        in current_access_rule.permissions))
+                    or (flow_permission.change_answer in permissions))
 
                 # can happen if no answer was ever saved
                 and flow_session.in_progress)
@@ -871,7 +870,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
     if form is not None and may_change_answer:
         form = add_buttons_to_form(form, fpctx, flow_session,
-                current_access_rule.permissions)
+                permissions)
 
     show_correctness = None
     show_answer = None
@@ -880,13 +879,13 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
     if fpctx.page.expects_answer() and answer_was_graded:
         show_correctness = (
-                flow_permission.see_correctness in current_access_rule.permissions
+                flow_permission.see_correctness in permissions
                 or (
                     (flow_permission.see_correctness_after_completion
-                        in current_access_rule.permissions)
+                        in permissions)
                     and not flow_session.in_progress))
 
-        show_answer = flow_permission.see_answer in current_access_rule.permissions
+        show_answer = flow_permission.see_answer in permissions
 
         if show_correctness or show_answer:
             shown_feedback = feedback
@@ -919,10 +918,9 @@ def view_flow_page(pctx, flow_identifier, ordinal):
         "may_change_answer": may_change_answer,
         "may_change_graded_answer": (
             (flow_permission.change_answer
-                        in current_access_rule.permissions)
+                        in permissions)
             and flow_session.in_progress),
-        "will_receive_feedback":
-        will_receive_feedback(current_access_rule.permissions),
+        "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": show_answer,
     }
 

@@ -49,6 +49,8 @@ from course.models import (
 class FlowAccessRule(object):
     def __init__(self, **attrs):
         for k, v in attrs.items():
+            if k == "permissions":
+                v = set(v)
             setattr(self, k, v)
 
     def human_readable_permissions(self):

@@ -29,7 +29,7 @@ from course.content import remove_prefix
 from django.utils.safestring import mark_safe
 import django.forms as forms
 
-from courseflow.utils import StyledForm
+from courseflow.utils import StyledForm, Struct
 
 import re
 import sys
@@ -174,6 +174,7 @@ class PageBase(object):
     .. automethod:: required_attrs
     .. automethod:: allowed_attrs
 
+    .. automethod:: get_modified_permissions_for_page
     .. automethod:: make_page_data
     .. automethod:: title
     .. automethod:: body
@@ -193,7 +194,6 @@ class PageBase(object):
 
         self.location = location
 
-        from courseflow.utils import Struct
         if isinstance(page_desc, Struct):
             if vctx is not None:
                 validate_struct(
@@ -202,6 +202,31 @@ class PageBase(object):
                         page_desc,
                         required_attrs=self.required_attrs(),
                         allowed_attrs=self.allowed_attrs())
+
+                # {{{ validate access_rules
+
+                if hasattr(page_desc, "access_rules"):
+                    ar_loc = "%s: access rules" % location
+                    validate_struct(
+                            vctx,
+                            ar_loc,
+                            page_desc.access_rules,
+                            required_attrs=(),
+                            allowed_attrs=(
+                                ("add_permissions", list),
+                                ("remove_permissions", list),
+                                ))
+
+                    from course.validation import validate_flow_permission
+                    for attr in ["add_permissions", "remove_permissions"]:
+                        if hasattr(page_desc.access_rules, attr):
+                            for perm in page_desc.access_rules.add_permissions:
+                                validate_flow_permission(
+                                        vctx,
+                                        "%s: %s" % (ar_loc, attr),
+                                        perm)
+
+                    # }}}
 
             self.page_desc = page_desc
 
@@ -231,7 +256,24 @@ class PageBase(object):
         Subclasses should only add to, not remove entries from this.
         """
 
-        return ()
+        return (
+            ("access_rules", Struct),
+            )
+
+    def get_modified_permissions_for_page(self, permissions):
+        permissions = set(permissions)
+
+        if hasattr(self.page_desc, "access_rules"):
+            if hasattr(self.page_desc.access_rules, "add_permissions"):
+                for perm in self.page_desc.access_rules.add_permissions:
+                    permissions.add(perm)
+
+            if hasattr(self.page_desc.access_rules, "remove_permissions"):
+                for perm in self.page_desc.access_rules.remove_permissions:
+                    if perm in permissions:
+                        permissions.remove(perm)
+
+        return permissions
 
     def make_page_data(self):
         """Return (possibly randomly generated) data that is used to generate
@@ -315,6 +357,8 @@ class PageBase(object):
         """
 
         raise NotImplementedError()
+
+
 
 # }}}
 
