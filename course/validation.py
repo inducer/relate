@@ -51,7 +51,7 @@ def validate_identifier(location, s):
 
 
 def validate_role(location, role):
-    from course.models import participation_role
+    from course.constants import participation_role
 
     if role not in [
             participation_role.instructor,
@@ -103,7 +103,6 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
                 if allowed_types == str:
                     # Love you, too, Python 2.
                     allowed_types = (str, unicode)
-                print location, attr, allowed_types
 
                 if not isinstance(val, allowed_types):
                     raise ValidationError("%s: attribute '%s' has "
@@ -156,13 +155,17 @@ class ValidationContext(object):
 # {{{ course page validation
 
 def validate_markup(ctx, location, markup_str):
+    def reverse_func(*args, **kwargs):
+        pass
+
     from course.content import markup_to_html
     try:
         markup_to_html(
                 course=None,
                 repo=ctx.repo,
                 commit_sha=ctx.commit_sha,
-                text=markup_str)
+                text=markup_str,
+                reverse_func=reverse_func)
     except:
         from traceback import print_exc
         print_exc()
@@ -321,7 +324,7 @@ def validate_flow_group(ctx, location, grp):
 
 
 def validate_flow_permission(ctx, location, permission):
-    from course.models import FLOW_PERMISSION_CHOICES
+    from course.constants import FLOW_PERMISSION_CHOICES
     if permission not in dict(FLOW_PERMISSION_CHOICES):
         raise ValidationError("%s: invalid flow permission '%s'"
                 % (location, permission))
@@ -412,13 +415,13 @@ def validate_flow_desc(ctx, location, flow_desc):
                 "this will be required in 2015.x.")
 
     if hasattr(flow_desc, "grade_aggregation_strategy"):
-        from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
+        from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
         if flow_desc.grade_aggregation_strategy not in \
                 dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
             raise ValidationError("%s: invalid grade aggregation strategy"
                     % location)
     else:
-        from course.models import flow_permission
+        from course.constants import flow_permission
         if flow_permission.start_credit in encountered_permissions:
             raise ValidationError(
                     "%s: flow which can be used for credit must have "
@@ -493,7 +496,8 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
     from course.content import get_yaml_from_repo
     try:
         return get_yaml_from_repo(
-                repo=repo, full_name=full_name, commit_sha=commit_sha)
+                repo=repo, full_name=full_name, commit_sha=commit_sha,
+                cached=False)
     except:
         from traceback import print_exc
         print_exc()
@@ -519,7 +523,7 @@ def validate_course_content(repo, course_file, events_file,
     try:
         from course.content import get_yaml_from_repo
         events_desc = get_yaml_from_repo(repo, events_file,
-                commit_sha=validate_sha)
+                commit_sha=validate_sha, cached=False)
     except ObjectDoesNotExist:
         # That's OK--no calendar info.
         pass
@@ -533,6 +537,9 @@ def validate_course_content(repo, course_file, events_file,
         pass
     else:
         for entry in flows_tree.items():
+            if not entry.path.endswith(".yml"):
+                continue
+
             location = "flows/%s" % entry.path
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
@@ -540,6 +547,76 @@ def validate_course_content(repo, course_file, events_file,
             validate_flow_desc(ctx, location, flow_desc)
 
     return ctx.warnings
+
+# }}}
+
+
+# {{{ validation script support
+
+class FileSystemFakeRepo(object):
+    def __init__(self, root):
+        self.root = root
+
+    def __getitem__(self, sha):
+        return sha
+
+    @property
+    def tree(self):
+        return FileSystemFakeRepoTree(self.root)
+
+
+class FileSystemFakeRepoTreeEntry(object):
+    def __init__(self, path):
+        self.path = path
+
+
+class FileSystemFakeRepoTree(object):
+    def __init__(self, root):
+        self.root = root
+
+    def __getitem__(self, name):
+        from os.path import join, isdir, exists
+        name = join(self.root, name)
+
+        if not exists(name):
+            raise ObjectDoesNotExist(name)
+
+        # returns mode, "sha"
+        if isdir(name):
+            return None, FileSystemFakeRepoTree(name)
+        else:
+            return None, FileSystemFakeRepoFile(name)
+
+    def items(self):
+        import os
+        return [FileSystemFakeRepoTreeEntry(n) for n in os.listdir(self.root)]
+
+
+class FileSystemFakeRepoFile(object):
+    def __init__(self, name):
+        self.name = name
+
+    @property
+    def data(self):
+        with open(self.name, "rb") as inf:
+            return inf.read()
+
+
+def validate_course_on_filesystem_script_entrypoint():
+    import os
+    import argparse
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument("--course-file", default="course.yml")
+    parser.add_argument("--events-file", default="events.yml")
+    parser.add_argument('root', default=os.getcwd())
+
+    args = parser.parse_args()
+
+    fake_repo = FileSystemFakeRepo(args.root)
+    validate_course_content(
+            fake_repo,
+            args.course_file, args.events_file,
+            validate_sha=fake_repo, datespec_callback=None)
 
 # }}}
 

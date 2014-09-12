@@ -31,20 +31,20 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
 from django.core.exceptions import ObjectDoesNotExist
 
+from course.constants import (  # noqa
+        user_status, USER_STATUS_CHOICES,
+        participation_role, PARTICIPATION_ROLE_CHOICES,
+        participation_status, PARTICIPATION_STATUS_CHOICES,
+        flow_permission, FLOW_PERMISSION_CHOICES,
+        grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
+        grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
+        )
+
+
 from jsonfield import JSONField
 
 
 # {{{ user status
-
-class user_status:
-    unconfirmed = "unconfirmed"
-    active = "active"
-
-USER_STATUS_CHOICES = (
-        (user_status.unconfirmed, "Unconfirmed"),
-        (user_status.active, "Active"),
-        )
-
 
 def get_user_status(user):
     try:
@@ -183,36 +183,6 @@ class Event(models.Model):
 
 
 # {{{ participation
-
-class participation_role:
-    instructor = "instructor"
-    teaching_assistant = "ta"
-    student = "student"
-    unenrolled = "unenrolled"
-
-
-PARTICIPATION_ROLE_CHOICES = (
-        (participation_role.instructor, "Instructor"),
-        (participation_role.teaching_assistant, "Teaching Assistant"),
-        (participation_role.student, "Student"),
-        # unenrolled is only used internally
-        )
-
-
-class participation_status:
-    requested = "requested"
-    active = "active"
-    dropped = "dropped"
-    denied = "denied"
-
-
-PARTICIPATION_STATUS_CHOICES = (
-        (participation_status.requested, "Requested"),
-        (participation_status.active, "Active"),
-        (participation_status.dropped, "Dropped"),
-        (participation_status.denied, "Denied"),
-        )
-
 
 class Participation(models.Model):
     user = models.ForeignKey(User)
@@ -448,8 +418,6 @@ class FlowPageVisitGrade(models.Model):
         else:
             return None
 
-    # }}}
-
     class Meta:
         # These must be distinguishable, to figure out what came later.
         unique_together = (("visit", "grade_time"),)
@@ -458,33 +426,10 @@ class FlowPageVisitGrade(models.Model):
 
 # }}}
 
+# }}}
+
 
 # {{{ flow access
-
-class flow_permission:
-    view = "view"
-    view_past = "view_past"
-    start_credit = "start_credit"
-    start_no_credit = "start_no_credit"
-
-    change_answer = "change_answer"
-    see_correctness = "see_correctness"
-    see_correctness_after_completion = "see_correctness_after_completion"
-    see_answer = "see_answer"
-
-FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view, "View the flow"),
-        (flow_permission.view_past, "Review past attempts"),
-        (flow_permission.start_credit, "Start a for-credit session"),
-        (flow_permission.start_no_credit, "Start a not-for-credit session"),
-
-        (flow_permission.change_answer, "Change already-graded answer"),
-        (flow_permission.see_correctness, "See whether an answer is correct"),
-        (flow_permission.see_correctness_after_completion,
-            "See whether an answer is correct after completing the flow"),
-        (flow_permission.see_answer, "See the correct answer"),
-        )
-
 
 def validate_stipulations(stip):
     if stip is None:
@@ -597,25 +542,6 @@ class FlowAccessExceptionEntry(models.Model):
 
 # {{{ grading
 
-class grade_aggregation_strategy:
-    max_grade = "max_grade"
-    avg_grade = "avg_grade"
-    min_grade = "min_grade"
-
-    use_earliest = "use_earliest"
-    use_latest = "use_latest"
-
-
-GRADE_AGGREGATION_STRATEGY_CHOICES = (
-        (grade_aggregation_strategy.max_grade, "Use the max grade"),
-        (grade_aggregation_strategy.avg_grade, "Use the avg grade"),
-        (grade_aggregation_strategy.min_grade, "Use the min grade"),
-
-        (grade_aggregation_strategy.use_earliest, "Use the earliest grade"),
-        (grade_aggregation_strategy.use_latest, "Use the latest grade"),
-        )
-
-
 class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course)
 
@@ -643,29 +569,6 @@ class GradingOpportunity(models.Model):
 
     def __unicode__(self):
         return "%s (%s) in %s" % (self.name, self.identifier, self.course)
-
-
-class grade_state_change_types:
-    grading_started = "grading_started"
-    graded = "graded"
-    retrieved = "retrieved"
-    unavailable = "unavailable"
-    extension = "extension"
-    report_sent = "report_sent"
-    do_over = "do_over"
-    exempt = "exempt"
-
-
-GRADE_STATE_CHANGE_CHOICES = (
-        (grade_state_change_types.grading_started, 'Grading started'),
-        (grade_state_change_types.graded, 'Graded'),
-        (grade_state_change_types.retrieved, 'Retrieved'),
-        (grade_state_change_types.unavailable, 'Unavailable'),
-        (grade_state_change_types.extension, 'Extension'),
-        (grade_state_change_types.report_sent, 'Report sent'),
-        (grade_state_change_types.do_over, 'Do-over'),
-        (grade_state_change_types.exempt, 'Exempt'),
-        )
 
 
 class GradeChange(models.Model):

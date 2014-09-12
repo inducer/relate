@@ -8,3 +8,6 @@ local_settings.py
 .sw[opn]
 doc/_build
 components
+
+*.egg-info
+build

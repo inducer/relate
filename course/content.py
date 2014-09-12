@@ -30,9 +30,7 @@ import re
 import datetime
 
 from django.utils.timezone import now
-from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
-import django.core.cache as cache
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -97,6 +95,7 @@ def get_repo_blob(repo, full_name, commit_sha):
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
     cache_key = "%%%1".join((repo.controldir(), full_name, commit_sha))
 
+    import django.core.cache as cache
     def_cache = cache.caches["default"]
     result = def_cache.get(cache_key)
     if result is not None:
@@ -111,6 +110,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
     cache_key = "%DICT%%2".join((repo.controldir(), full_name, commit_sha))
 
+    import django.core.cache as cache
     def_cache = cache.caches["default"]
     result = def_cache.get(cache_key)
     if result is not None:
@@ -124,19 +124,22 @@ def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
     return result
 
 
-def get_yaml_from_repo(repo, full_name, commit_sha):
-    cache_key = "%%%2".join((repo.controldir(), full_name, commit_sha))
+def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
+    if cached:
+        cache_key = "%%%2".join((repo.controldir(), full_name, commit_sha))
 
-    def_cache = cache.caches["default"]
-    result = def_cache.get(cache_key)
-    if result is not None:
-        return result
+        import django.core.cache as cache
+        def_cache = cache.caches["default"]
+        result = def_cache.get(cache_key)
+        if result is not None:
+            return result
 
     from yaml import load
     result = dict_to_struct(
             load(get_repo_blob(repo, full_name, commit_sha).data))
 
-    def_cache.add(cache_key, result, None)
+    if cached:
+        def_cache.add(cache_key, result, None)
 
     return result
 
@@ -201,11 +204,12 @@ class TagProcessingHTMLParser(HTMLParser):
 
 
 class LinkFixerTreeprocessor(Treeprocessor):
-    def __init__(self, md, course, commit_sha):
+    def __init__(self, md, course, commit_sha, reverse_func):
         Treeprocessor.__init__(self)
         self.md = md
         self.course = course
         self.commit_sha = commit_sha
+        self.reverse_func = reverse_func
 
     def get_course_identifier(self):
         if self.course is None:
@@ -216,19 +220,19 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_url(self, url):
         if url.startswith("flow:"):
             flow_id = url[5:]
-            return reverse("course.flow.start_flow",
+            return self.reverse_func("course.flow.start_flow",
                         args=(self.get_course_identifier(), flow_id))
 
         elif url.startswith("media:"):
             media_path = url[6:]
-            return reverse("course.views.get_media",
+            return self.reverse_func("course.views.get_media",
                         args=(
                             self.get_course_identifier(),
                             self.commit_sha,
                             media_path))
 
         elif url.strip() == "calendar:":
-            return reverse("course.calendar.view_calendar",
+            return self.reverse_func("course.calendar.view_calendar",
                         args=(self.get_course_identifier(),))
 
         return None
@@ -280,14 +284,16 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
 
 class LinkFixerExtension(Extension):
-    def __init__(self, course, commit_sha):
+    def __init__(self, course, commit_sha, reverse_func):
         Extension.__init__(self)
         self.course = course
         self.commit_sha = commit_sha
+        self.reverse_func = reverse_func
 
     def extendMarkdown(self, md, md_globals):
         md.treeprocessors["courseflow_link_fixer"] = \
-                LinkFixerTreeprocessor(md, self.course, self.commit_sha)
+                LinkFixerTreeprocessor(md, self.course, self.commit_sha,
+                        reverse_func=self.reverse_func)
 
 
 class GitTemplateLoader(BaseTemplateLoader):
@@ -321,7 +327,11 @@ def remove_prefix(prefix, s):
 JINJA_PREFIX = "[JINJA]"
 
 
-def markup_to_html(course, repo, commit_sha, text):
+def markup_to_html(course, repo, commit_sha, text, reverse_func=None):
+    if reverse_func is None:
+        from django.core.urlresolvers import reverse
+        reverse_func = reverse
+
     if text.lstrip().startswith(JINJA_PREFIX):
         text = remove_prefix(JINJA_PREFIX, text.lstrip())
 
@@ -334,7 +344,7 @@ def markup_to_html(course, repo, commit_sha, text):
     import markdown
     return markdown.markdown(text,
         extensions=[
-            LinkFixerExtension(course, commit_sha),
+            LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
             MathJaxExtension(),
             "extra",
             "codehilite",

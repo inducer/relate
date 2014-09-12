@@ -26,13 +26,11 @@ THE SOFTWARE.
 
 
 import django.forms as forms
-from crispy_forms.helper import FormHelper
-
-from django.conf import settings
 
 
 class StyledForm(forms.Form):
     def __init__(self, *args, **kwargs):
+        from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
@@ -43,6 +41,7 @@ class StyledForm(forms.Form):
 
 class StyledModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
+        from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
@@ -52,6 +51,7 @@ class StyledModelForm(forms.ModelForm):
 
 
 def settings_context_processor(request):
+    from django.conf import settings
     return {
         "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
         "maintenance_mode": settings.CF_MAINTENANCE_MODE,
