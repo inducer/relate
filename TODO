@@ -2,8 +2,6 @@
 
 - per-page permission filter
 
-- ending on new version, resume, ...
-
 - Fix docker reliability
 
 - Show correct solution for plain pages
@@ -14,8 +12,12 @@
 
 - Cast Choice options to string
 
+- Include rules on 'understand a grade' page
+
 Ideas
 =====
+
+- ending on new version, resume, ...
 
 - Make admin site multi-course capable
   https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.has_add_permission
