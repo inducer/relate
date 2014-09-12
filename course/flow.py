@@ -244,12 +244,13 @@ def gather_grade_info(flow_session, answer_visits):
         max_points += grade.max_points
         points += grade.max_points*feedback.correctness
 
-        if feedback.correctness == 1:
-            fully_correct_count += 1
-        elif feedback.correctness == 0:
-            incorrect_count += 1
-        else:
-            partially_correct_count += 1
+        if grade.max_points > 0:
+            if feedback.correctness == 1:
+                fully_correct_count += 1
+            elif feedback.correctness == 0:
+                incorrect_count += 1
+            else:
+                partially_correct_count += 1
 
     return GradeInfo(
             points=points,
