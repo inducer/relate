@@ -1,0 +1,74 @@
+<div class="well">
+  <h3 class="start-well-title">Rules</h3>
+  {% if grade_aggregation_strategy %}
+    <p>
+      If multiple grades are available, the policy will be to
+      '{{ grade_aggregation_strategy }}'.
+    </p>
+  {% endif %}
+  {% for rule in rules %}
+    {% if rule.is_current %}
+      <div class="current-access-rule">
+    {% else %}
+      <div>
+    {% endif %}
+
+    {% if rule.start != None %}
+      {% if rule.end != None %}
+        The following rules apply between
+        <i>{{ rule.start }}</i>
+        and
+        <i>{{ rule.end }}</i>:
+      {% else %}
+        The following rules apply from <i>{{ rule.start }}</i>:
+      {% endif %}
+    {% else %}
+      {% if rule.end != None %}
+      The following rules apply until <i>{{ rule.end }}</i>:
+      {% else %}
+        Unless specified otherwise above, the following rules apply:
+      {% endif %}
+    {% endif %}
+
+    {% if rule.is_exception %}
+    (This rule is an exception that only applies to you.)
+    {% endif %}
+
+    {% if rule.id %}
+    (<tt>{{ rule.id }}</tt>)
+    {% endif %}
+
+    {% if rule.is_current %}
+    <b>(currently in effect)</b>
+    {% endif %}
+
+    <ul>
+      {% if rule.permissions %}
+        <li>You may: <i>{{ rule.human_readable_permissions |join:", " }}</i>.
+      {% else %}
+        <li>
+          You are not allowed to interact with this flow.
+          {% if not user.is_authenticated %}
+            <a href="{% url student_sign_in_view %}">Sign in</a> to get started.
+          {% elif participation == None %}
+            Enroll in this course to get started.
+          {% endif %}
+        </li>
+      {% endif %}
+
+      {% if rule.credit_percent != None %}
+        <li>
+        You receive {{ rule.credit_percent }}% credit for
+        completing this flow for-credit.
+        </li>
+      {% endif %}
+      {% if rule.allowed_session_count %}
+        <li>
+        {{ rule.allowed_session_count }}
+        attempt{{ rule.allowed_session_count|pluralize }} permitted.
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>

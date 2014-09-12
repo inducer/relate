@@ -34,6 +34,8 @@
     {% endif %}
   </table>
 
+  {# {{{ grade history #}
+
   <h2>Grade history</h2>
   {% if not grade_changes%}
     (no grade data available)
@@ -94,8 +96,16 @@
     </table>
   {% endif %}
 
+  {# }}} #}
+
+  {# {{{ flow-related #}
+
   {% if flow_sessions %}
     <h2>Flow sessions</h2>
+
+    {% if flow_rules or flow_grade_aggregation_strategy %}
+      {% include "course/flow-rules.html" with rules=flow_rules grade_aggregation_strategy=flow_grade_aggregation_strategy %}
+    {% endif %}
 
     <form method="POST">
       {% csrf_token %}
@@ -208,4 +218,9 @@
       </table>
     </form>
   {% endif %}
+
+  {# }}} #}
+
 {% endblock %}
+
+{# vim: set foldmethod=marker: #}

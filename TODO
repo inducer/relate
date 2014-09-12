@@ -8,9 +8,7 @@
 - Grading stages
   (Autograder: works, TA: code not fishy)
 
-- Cast Choice options to string
-
-- Include rules on 'understand a grade' page
+- Separate validation script
 
 Ideas
 =====
@@ -22,8 +20,6 @@ Ideas
   https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.get_queryset
 
 - Manual grade entry
-
-- Validation for presence of grade_aggregation_strategy
 
 - Flow results analytics
   --> time taken per question

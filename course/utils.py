@@ -137,6 +137,36 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc,
     return rules
 
 
+def get_relevant_rules(rules, role, now_datetime):
+    relevant_rules = []
+    found_current = False
+    for rule in rules:
+        if rule.roles is not None:
+            if role not in rule.roles:
+                continue
+
+        rule.is_current = False
+        if not found_current:
+            if (
+                    (rule.start is None
+                        or now_datetime >= rule.start)
+                    and
+                    (rule.end is None
+                        or now_datetime <= rule.end)):
+                rule.is_current = True
+                found_current = True
+
+        relevant_rules.append(rule)
+
+        if (rule.start is None
+                and rule.end is None
+                and not rule.is_exception):
+            # Catch-all as far as this user is concerned.
+            break
+
+    return relevant_rules
+
+
 def get_current_flow_access_rule(course, participation, role, flow_id, flow_desc,
         now_datetime, rule_id, use_exceptions=True):
     rules = get_flow_access_rules(course, participation, flow_id, flow_desc,

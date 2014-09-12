@@ -523,8 +523,31 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     )
                 .order_by("start_time"))
 
+        # {{{ fish out grade rules
+
+        from course.content import get_flow_desc
+
+        flow_desc = get_flow_desc(
+                pctx.repo, pctx.course, opportunity.flow_id,
+                pctx.course_commit_sha)
+        from course.utils import (
+                get_flow_access_rules,
+                get_relevant_rules)
+        all_flow_rules = get_flow_access_rules(pctx.course, pctx.participation,
+                opportunity.flow_id, flow_desc)
+
+        relevant_flow_rules = get_relevant_rules(
+                all_flow_rules, pctx.participation.role, now())
+
+        flow_grade_aggregation_strategy = getattr(
+                flow_desc, "grade_aggregation_strategy", None)
+
+        # }}}
+
     else:
         flow_sessions = None
+        relevant_flow_rules = None
+        flow_grade_aggregation_strategy = None
 
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
@@ -538,6 +561,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             participation_role.instructor,
             participation_role.teaching_assistant
             ],
+
+        "flow_rules": relevant_flow_rules,
+        "flow_grade_aggregation_strategy": flow_grade_aggregation_strategy,
         })
 
 # }}}
