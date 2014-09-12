@@ -211,6 +211,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
     search_fields = (
             "=id",
             "flow_id",
+            "access_rules_id",
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
@@ -222,6 +223,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "get_participant",
             "course",
             "start_time",
+            "access_rules_id",
             "in_progress",
             "for_credit",
             )
@@ -237,6 +239,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "flow_id",
             "in_progress",
             "for_credit",
+            "access_rules_id",
             )
 
     inlines = (FlowPageDataInline,)
