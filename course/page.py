@@ -33,6 +33,7 @@ from courseflow.utils import StyledForm, Struct
 
 import re
 import sys
+import six
 
 
 __doc__ = """
@@ -357,8 +358,6 @@ class PageBase(object):
         """
 
         raise NotImplementedError()
-
-
 
 # }}}
 
@@ -710,7 +709,11 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         super(ChoiceQuestion, self).__init__(vctx, location, page_desc)
 
         correct_choice_count = 0
-        for choice in page_desc.choices:
+        for choice_idx, choice in enumerate(page_desc.choices):
+            if not isinstance(choice, six.string_types):
+                raise ValidationError("%s, choice %d: not a string"
+                        % (location, choice_idx+1))
+
             if choice.startswith(self.CORRECT_TAG):
                 correct_choice_count += 1
 
