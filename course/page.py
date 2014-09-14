@@ -303,24 +303,20 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
-    def answer_data(self, page_context, page_data, form):
-        raise NotImplementedError()
+    def answer_data(self, page_context, page_data, form, files_data):
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
         """
+        raise NotImplementedError()
 
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
         """
         :arg answer_data: value returned by :meth:`answer_data`.
              May be *None*.
-        :return: a tuple (form, form_html), where *form* is a
-            :class:`django.forms.Form` instance with *answer_data* prepopulated.
+        :return:
+            a :class:`django.forms.Form` instance with *answer_data* prepopulated.
             If *answer_is_final* is *True*, the form should be read-only.
-
-            *form_html* is the HTML of the rendered form. If *None*, the form
-            will automatically be rendered using
-            :func:`crispy_forms.utils.render_crispy_form`.
         """
 
         raise NotImplementedError()
@@ -329,16 +325,19 @@ class PageBase(object):
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
-        :return: a tuple (form, form_html), where *form* is a
+        :return: a
             :class:`django.forms.Form` instance with *answer_data* prepopulated.
             If *answer_is_final* is *True*, the form should be read-only.
-
-            *form_html* is the HTML of the rendered form. It should not include
-            a ``<form>`` HTML tag or a Django CSRF token. If *None*, the form
-            will automatically be rendered using
-            :func:`crispy_forms.utils.render_crispy_form`.
         """
         raise NotImplementedError()
+
+    def form_to_html(self, request, form, answer_data):
+        """Returns an HTML rendering of *form*."""
+
+        from crispy_forms.utils import render_crispy_form
+        from django.template import RequestContext
+        context = RequestContext(request, {})
+        return render_crispy_form(form, context=context)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         """Grade the answer contained in *answer_data*.
@@ -651,12 +650,12 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
         if answer_is_final:
             form.fields['answer'].widget.attrs['readonly'] = True
 
-        return (form, None)
+        return form
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return (TextAnswerForm(self.matchers, post_data, files_data), None)
+        return TextAnswerForm(self.matchers, post_data, files_data)
 
-    def answer_data(self, page_context, page_data, form):
+    def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data, grade_data):
@@ -784,15 +783,13 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         if answer_is_final:
             form.fields['choice'].widget.attrs['disabled'] = True
 
-        return (form, None)
+        return form
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return (
-                self.make_choice_form(
-                    page_context, page_data, post_data, files_data),
-                None)
+        return self.make_choice_form(
+                    page_context, page_data, post_data, files_data)
 
-    def answer_data(self, page_context, page_data, form):
+    def answer_data(self, page_context, page_data, form, files_data):
         return {"choice": form.cleaned_data["choice"]}
 
     def unpermuted_correct_indices(self):
@@ -1036,12 +1033,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             answer = None
             form = PythonCodeForm(answer_is_final)
 
-        return (form, None)
+        return form
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return (PythonCodeForm(False, post_data, files_data), None)
+        return PythonCodeForm(False, post_data, files_data)
 
-    def answer_data(self, page_context, page_data, form):
+    def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data, grade_data):
@@ -1216,6 +1213,105 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     % html_escape(self.page_desc.correct_code))
         else:
             return None
+
+# }}}
+
+
+# {{{ upload question
+
+class FileUploadForm(StyledForm):
+    uploaded_file = forms.FileField(required=True)
+
+    def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
+        super(FileUploadForm, self).__init__(*args, **kwargs)
+
+        self.max_file_size = maximum_megabytes * 1024**2
+        self.mime_types = mime_types
+
+    def clean_uploaded_file(self):
+        uploaded_file = self.cleaned_data['uploaded_file']
+        if uploaded_file.content_type in self.mime_types:
+            from django.template.defaultfilters import filesizeformat
+
+            if uploaded_file._size > self.max_file_size:
+                raise forms.ValidationError(
+                        "Please keep file size under %s. "
+                        "Current filesize is %s."
+                        % (filesizeformat(self.max_file_size),
+                            filesizeformat(uploaded_file._size)))
+        else:
+            raise forms.ValidationError("File has unsupported type"
+                    "--must be one of: %s" % (", ".join(self.mime_types)))
+
+        return uploaded_file
+
+
+class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue):
+    ALLOWED_MIME_TYPES = [
+            "application/pdf",
+            ]
+
+    def __init__(self, vctx, location, page_desc):
+        super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
+
+        if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
+            raise ValidationError("%s: unrecognized mime types '%s'"
+                    % (location, ", ".join(
+                        set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))))
+
+    def required_attrs(self):
+        return super(FileUploadQuestion, self).required_attrs() + (
+                ("prompt", "markup"),
+                ("mime_types", list),
+                ("maximum_megabytes", (int, float)),
+                )
+
+    def body(self, page_context, page_data):
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    @staticmethod
+    def files_data_to_answer_data(files_data):
+        files_data["uploaded_file"].seek(0)
+        buf = files_data["uploaded_file"].read()
+
+        from base64 import b64encode
+        return {
+                "base64_data": b64encode(buf),
+                "mime_type": files_data["uploaded_file"].content_type,
+                }
+
+    def make_form(self, page_context, page_data,
+            answer_data, answer_is_final):
+        form = FileUploadForm(
+                self.page_desc.maximum_megabytes, self.page_desc.mime_types)
+        return form
+
+    def post_form(self, page_context, page_data, post_data, files_data):
+        form = FileUploadForm(
+                self.page_desc.maximum_megabytes, self.page_desc.mime_types,
+                post_data, files_data)
+        return form
+
+    def form_to_html(self, request, form, answer_data):
+        ctx = {"form": form}
+        if answer_data is not None:
+            ctx["mime_type"] = answer_data["mime_type"]
+            ctx["data_url"] = "data:%s;base64,%s" % (
+                answer_data["mime_type"],
+                answer_data["base64_data"],
+                )
+
+        from django.template import RequestContext
+        from django.template.loader import render_to_string
+        return render_to_string(
+                "course/file-upload-form.html",
+                RequestContext(request, ctx))
+
+    def answer_data(self, page_context, page_data, form, files_data):
+        return self.files_data_to_answer_data(files_data)
+
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        return None
 
 # }}}
 

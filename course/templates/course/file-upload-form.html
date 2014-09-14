@@ -1,0 +1,13 @@
+{% load crispy_forms_tags %}
+
+{% if data_url %}
+  <object data="{{ data_url }}" type="{{ mime_type }}" width="100%" height="800px" align="middle">
+    <p>(Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline.)</p>
+  </object>
+  <hr>
+  <div class="col-lg-offset-2" style="margin-bottom:2ex">
+    <a href="{{ data_url }}">Review uploaded file</a>
+  </div>
+{% endif %}
+
+{% crispy form %}

@@ -731,9 +731,9 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                         not in permissions):
                 raise PermissionDenied("already have final answer")
 
-            form, form_html = fpctx.page.post_form(
+            form = fpctx.page.post_form(
                     fpctx.page_context, fpctx.page_data.data,
-                    post_data=request.POST, files_data=request.POST)
+                    post_data=request.POST, files_data=request.FILES)
 
             pressed_button = get_pressed_button(form)
 
@@ -750,7 +750,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
                 answer_data = page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
-                        form)
+                        form, request.FILES)
                 page_visit.is_graded_answer = pressed_button == "submit"
                 page_visit.save()
 
@@ -789,7 +789,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                     return redirect("course.flow.finish_flow_session_view",
                             pctx.course.identifier, flow_identifier)
                 else:
-                    form, form_html = fpctx.page.make_form(
+                    form = fpctx.page.make_form(
                             page_context, page_data.data,
                             page_visit.answer, not may_change_answer)
 
@@ -832,8 +832,13 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
                 most_recent_grade = fpctx.prev_answer_visit.get_most_recent_grade()
                 if most_recent_grade is not None:
-                    from course.page import AnswerFeedback
-                    feedback = AnswerFeedback.from_json(most_recent_grade.feedback)
+                    if most_recent_grade.feedback is not None:
+                        from course.page import AnswerFeedback
+                        feedback = AnswerFeedback.from_json(
+                                most_recent_grade.feedback)
+                    else:
+                        feedback = None
+
                     grade_data = most_recent_grade.grade_data
                 else:
                     feedback = None
@@ -842,12 +847,11 @@ def view_flow_page(pctx, flow_identifier, ordinal):
             else:
                 feedback = None
 
-            form, form_html = fpctx.page.make_form(
+            form = fpctx.page.make_form(
                     page_context, page_data.data,
                     answer_data, not may_change_answer)
         else:
             form = None
-            form_html = None
             feedback = None
 
     # start common flow page generation
@@ -894,12 +898,10 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
     # {{{ render flow page
 
-    if form is not None and form_html is None:
-        from crispy_forms.utils import render_crispy_form
-        from django.template import RequestContext
-        context = RequestContext(request, {})
-        form_html = render_crispy_form(form, context=context)
-        del context
+    if form is not None:
+        form_html = fpctx.page.form_to_html(pctx.request, form, answer_data)
+    else:
+        form_html = None
 
     args = {
         "flow_identifier": fpctx.flow_identifier,
