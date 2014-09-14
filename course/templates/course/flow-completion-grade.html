@@ -11,7 +11,7 @@
   <div class="well flow-well">
     <p>
     You have achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
-    {{ grade_info.max_points|floatformat }} 
+    {{ grade_info.max_points|floatformat }}
     points.
     {% if grade_info.max_points != grade_info.max_reachable_points %}
       (Note that some questions aren't graded yet, so you grade will likely
