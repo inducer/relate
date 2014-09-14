@@ -10,30 +10,46 @@
   <h1>Results: {{flow_desc.title}}</h1>
   <div class="well flow-well">
     <p>
-    You have achieved <b>{{ grade_info.points|floatformat }}</b> out of
-    {{ grade_info.max_points|floatformat }} possible points.
-    (That's <b>{{ grade_info.points_percent|floatformat }}%</b>.)
+    You have achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
+    {{ grade_info.max_points|floatformat }} 
+    points.
+    {% if grade_info.max_points != grade_info.max_reachable_points %}
+      (Note that some questions aren't graded yet, so you grade will likely
+      change.)
+    {% else %}
+      (That's <b>{{ grade_info.points_percent|floatformat }}%</b>.)
+    {% endif %}
+
     </p>
 
     <div class="progress">
       <div class="progress-bar progress-bar-success"
-        style="width: {{ grade_info.points_percent|floatformat }}%"></div>
+        style="width: {{ grade_info.points_percent|floatformat:8 }}%"></div>
       <div class="progress-bar progress-bar-danger"
-        style="width: {{ grade_info.missed_points_percent|floatformat }}%"></div>
+        style="width: {{ grade_info.missed_points_percent|floatformat:8 }}%"></div>
+      <div class="progress-bar progress-bar-info"
+        style="width: {{ grade_info.unreachable_points_percent|floatformat:8 }}%"></div>
     </div>
 
-    <p>You have answered {{ grade_info.fully_correct_count }} questions
+    <p>
+    You have answered {{ grade_info.fully_correct_count }} questions
     correctly, {{ grade_info.partially_correct_count }} questions
     partially correctly, and {{ grade_info.incorrect_count }} questions
-    incorrectly.</p>
+    incorrectly.
+    {% if grade_info.unknown_count %}
+    The grade for {{ grade_info.unknown_count }} questions is not yet known.
+    {% endif %}
+    </p>
 
     <div class="progress">
       <div class="progress-bar progress-bar-success"
-        style="width: {{ grade_info.fully_correct_percent|floatformat }}%"></div>
+        style="width: {{ grade_info.fully_correct_percent|floatformat:8 }}%"></div>
       <div class="progress-bar progress-bar-warning"
-        style="width: {{ grade_info.partially_correct_percent|floatformat }}%"></div>
+        style="width: {{ grade_info.partially_correct_percent|floatformat:8 }}%"></div>
       <div class="progress-bar progress-bar-danger"
-        style="width: {{ grade_info.incorrect_percent|floatformat }}%"></div>
+        style="width: {{ grade_info.incorrect_percent|floatformat:8 }}%"></div>
+      <div class="progress-bar progress-bar-info"
+        style="width: {{ grade_info.unknown_percent|floatformat:8 }}%"></div>
     </div>
   </div>
   {% endif %}

@@ -46,7 +46,7 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if flow_session.max_points %}
+                  {% if flow_session.points_percentage %}
                     <b>{{ flow_session.points|floatformat }}</b>
                     out of
                     {{ flow_session.max_points|floatformat }}

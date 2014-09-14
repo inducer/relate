@@ -62,6 +62,8 @@
               {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
               points
               ({{ gchange.percentage|floatformat:1 }}%)
+            {% else %}
+              (no grade)
             {% endif %}
             {% if gchange.is_superseded %}</s>{% endif %}
           </td>

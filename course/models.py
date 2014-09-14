@@ -284,7 +284,9 @@ class FlowSession(models.Model):
                     self.flow_id)
 
     def points_percentage(self):
-        if self.max_points:
+        if self.points is None:
+            return None
+        elif self.max_points:
             return 100*self.points/self.max_points
         else:
             return None
@@ -622,7 +624,7 @@ class GradeChange(models.Model):
                     "in the same course")
 
     def percentage(self):
-        if self.max_points is not None:
+        if self.max_points is not None and self.points is not None:
             return 100*self.points/self.max_points
         else:
             return None
@@ -719,7 +721,8 @@ class GradeStateMachine(object):
 
         self.valid_percentages.extend(
                 gchange.percentage()
-                for gchange in self.attempt_id_to_gchange.values())
+                for gchange in self.attempt_id_to_gchange.values()
+                if gchange.percentage() is not None)
 
         del self.attempt_id_to_gchange
 
@@ -753,10 +756,13 @@ class GradeStateMachine(object):
         elif self.state == grade_state_change_types.exempt:
             return "(exempt)"
         elif self.state == grade_state_change_types.graded:
-            result = "%.1f%%" % self.percentage()
-            if len(self.valid_percentages) > 1:
-                result += " (/%d)" % len(self.valid_percentages)
-            return result
+            if self.valid_percentages:
+                result = "%.1f%%" % self.percentage()
+                if len(self.valid_percentages) > 1:
+                    result += " (/%d)" % len(self.valid_percentages)
+                return result
+            else:
+                return "(no grade)"
         else:
             return "(other state)"
 

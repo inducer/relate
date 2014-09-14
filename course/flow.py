@@ -180,40 +180,80 @@ def count_answered(fctx, flow_session, answer_visits):
 
 
 class GradeInfo(object):
+    """
+    .. attribute:: points
+
+        The final grade, in points. May be *None* if the grade is not yet
+        final.
+    """
+
     def __init__(self,
-            points, max_points,
-            fully_correct_count, partially_correct_count, incorrect_count):
+            points, provisional_points, max_points, max_reachable_points,
+            fully_correct_count, partially_correct_count, incorrect_count,
+            unknown_count):
         self.points = points
+        self.provisional_points = provisional_points
         self.max_points = max_points
+        self.max_reachable_points = max_reachable_points
         self.fully_correct_count = fully_correct_count
         self.partially_correct_count = partially_correct_count
         self.incorrect_count = incorrect_count
+        self.unknown_count = unknown_count
+
+    # Rounding to larger than 100% will break the percent bars on the
+    # flow results page.
+    FULL_PERCENT = 99.99
 
     def points_percent(self):
+        """Only to be used for visualization purposes."""
+
         if self.max_points is None or self.max_points == 0:
             if self.points == 0:
                 return 100
             else:
                 return 0
         else:
-            return 100*self.points/self.max_points
+            return self.FULL_PERCENT*self.provisional_points/self.max_points
 
     def missed_points_percent(self):
-        return 100 - self.points_percent()
+        """Only to be used for visualization purposes."""
+
+        return (self.FULL_PERCENT
+                - self.points_percent()
+                - self.unreachable_points_percent())
+
+    def unreachable_points_percent(self):
+        """Only to be used for visualization purposes."""
+
+        if (self.max_points is None
+                or self.max_reachable_points is None
+                or self.max_points == 0):
+            return 0
+        else:
+            return self.FULL_PERCENT*(
+                    self.max_points - self.max_reachable_points)/self.max_points
 
     def total_count(self):
         return (self.fully_correct_count
                 + self.partially_correct_count
-                + self.incorrect_count)
+                + self.incorrect_count
+                + self.unknown_count)
 
     def fully_correct_percent(self):
-        return 100*self.fully_correct_count/self.total_count()
+        """Only to be used for visualization purposes."""
+        return self.FULL_PERCENT*self.fully_correct_count/self.total_count()
 
     def partially_correct_percent(self):
-        return 100*self.partially_correct_count/self.total_count()
+        """Only to be used for visualization purposes."""
+        return self.FULL_PERCENT*self.partially_correct_count/self.total_count()
 
     def incorrect_percent(self):
-        return 100*self.incorrect_count/self.total_count()
+        """Only to be used for visualization purposes."""
+        return self.FULL_PERCENT*self.incorrect_count/self.total_count()
+
+    def unknown_percent(self):
+        """Only to be used for visualization purposes."""
+        return self.FULL_PERCENT*self.unknown_count/self.total_count()
 
 
 def gather_grade_info(flow_session, answer_visits):
@@ -222,10 +262,13 @@ def gather_grade_info(flow_session, answer_visits):
             .order_by("ordinal"))
 
     points = 0
+    provisional_points = 0
     max_points = 0
+    max_reachable_points = 0
     fully_correct_count = 0
     partially_correct_count = 0
     incorrect_count = 0
+    unknown_count = 0
 
     for i, page_data in enumerate(all_page_data):
         assert i == page_data.ordinal
@@ -243,11 +286,21 @@ def gather_grade_info(flow_session, answer_visits):
         else:
             feedback = None
 
-        if feedback is None or feedback.correctness is None:
-            return None
-
         max_points += grade.max_points
-        points += grade.max_points*feedback.correctness
+
+        if feedback is None or feedback.correctness is None:
+            unknown_count += 1
+            points = None
+            continue
+
+        max_reachable_points += grade.max_points
+
+        page_points = grade.max_points*feedback.correctness
+
+        if points is not None:
+            points += page_points
+
+        provisional_points += page_points
 
         if grade.max_points > 0:
             if feedback.correctness == 1:
@@ -259,10 +312,14 @@ def gather_grade_info(flow_session, answer_visits):
 
     return GradeInfo(
             points=points,
+            provisional_points=provisional_points,
             max_points=max_points,
+            max_reachable_points=max_reachable_points,
+
             fully_correct_count=fully_correct_count,
             partially_correct_count=partially_correct_count,
-            incorrect_count=incorrect_count)
+            incorrect_count=incorrect_count,
+            unknown_count=unknown_count)
 
 
 @transaction.atomic
@@ -341,32 +398,27 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
 
     is_graded_flow = bool(answered_count + unanswered_count)
     grade_info = gather_grade_info(flow_session, answer_visits)
+    assert grade_info is not None
 
     comment = None
+    points = grade_info.points
 
-    if grade_info is not None:
-        points = grade_info.points
+    if points is not None and current_access_rule.credit_percent is not None:
+        comment = "Counted at %.1f%% of %.1f points" % (
+                current_access_rule.credit_percent, points)
+        points = points * current_access_rule.credit_percent / 100
 
-        if current_access_rule.credit_percent is not None:
-            comment = "Counted at %.1f%% of %.1f points" % (
-                    current_access_rule.credit_percent, points)
-            points = points * current_access_rule.credit_percent / 100
-    else:
-        points = None
-
-    if grade_info is not None:
-        flow_session.points = points
-        flow_session.max_points = grade_info.max_points
-    else:
-        flow_session.points = None
-        flow_session.max_points = None
+    flow_session.points = points
+    flow_session.max_points = grade_info.max_points
 
     flow_session.result_comment = comment
     flow_session.save()
 
+    # Need to save grade record even if no grade is available yet, because
+    # a grade record may *already* be saved, and that one might be mistaken
+    # for the current one.
     if (is_graded_flow
             and flow_session.participation is not None
-            and grade_info is not None
             and flow_session.for_credit):
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
@@ -1008,6 +1060,7 @@ def finish_flow_session_view(pctx, flow_identifier):
 
     (answered_count, unanswered_count) = count_answered(
             fctx, flow_session, answer_visits)
+    is_graded_flow = bool(answered_count + unanswered_count)
 
     if flow_permission.view not in current_access_rule.permissions:
         raise PermissionDenied()
@@ -1031,32 +1084,17 @@ def finish_flow_session_view(pctx, flow_identifier):
             raise PermissionDenied("Can't end a session that's already ended")
 
         # Actually end the flow session
-
         request.session["flow_session_id"] = None
 
         grade_info = finish_flow_session(fctx, flow_session, current_access_rule)
 
-        if answered_count + unanswered_count:
-            # This is a graded flow.
-
-            if grade_info is None:
-                messages.add_message(request, messages.INFO,
-                        "A grade for your work has not yet been assigned. "
-                        "Please check back later for grade information.")
-
-                return render_finish_response(
-                        "course/flow-completion.html",
-                        last_page_nr=None,
-                        completion_text=completion_text)
-
+        if is_graded_flow:
             return render_finish_response(
                     "course/flow-completion-grade.html",
                     completion_text=completion_text,
                     grade_info=grade_info)
 
         else:
-            # {{{ no grade
-
             return render_finish_response(
                     "course/flow-completion.html",
                     last_page_nr=None,
@@ -1064,7 +1102,7 @@ def finish_flow_session_view(pctx, flow_identifier):
 
             # }}}
 
-    if (answered_count + unanswered_count == 0
+    if (not is_graded_flow
             and fctx.flow_commit_sha == fctx.course_commit_sha):
         # Not serious--no questions in flow, and no new version available.
         # No need to end the flow visit.
