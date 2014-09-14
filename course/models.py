@@ -386,11 +386,11 @@ class FlowPageVisitGrade(models.Model):
     graded_at_git_commit_sha = models.CharField(
             max_length=200, null=True, blank=True)
 
+    grade_data = JSONField(null=True, blank=True)
+
     # This data should be recomputable, but we'll cache it here,
     # because it might be very expensive (container-launch expensive
     # for code questions, for example) to recompute.
-
-    grade_data = JSONField(null=True, blank=True)
 
     max_points = models.FloatField(null=True, blank=True,
             help_text="Point value of this question when receiving "
@@ -423,6 +423,10 @@ class FlowPageVisitGrade(models.Model):
         unique_together = (("visit", "grade_time"),)
 
         ordering = ("visit", "grade_time")
+
+    def __unicode__(self):
+        return "grade of %s: %s" % (
+                self.visit, self.percentage())
 
 # }}}
 
