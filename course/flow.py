@@ -317,6 +317,29 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
 
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
+    from django.utils.timezone import now
+    flow_session.completion_time = now()
+    flow_session.in_progress = False
+
+    return grade_flow_session(fctx, flow_session, current_access_rule,
+            answer_visits)
+
+
+def grade_flow_session(fctx, flow_session, current_access_rule,
+        answer_visits=None):
+    """Updates the grade on an existing flow session and logs a
+    grade change with the grade records subsystem.
+    """
+
+    if answer_visits is None:
+        answer_visits = assemble_answer_visits(flow_session)
+
+    (answered_count, unanswered_count) = count_answered(
+            fctx, flow_session, answer_visits)
+
+    is_graded_flow = bool(answered_count + unanswered_count)
+
+    is_graded_flow = bool(answered_count + unanswered_count)
     grade_info = gather_grade_info(flow_session, answer_visits)
 
     comment = None
@@ -330,10 +353,6 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
             points = points * current_access_rule.credit_percent / 100
     else:
         points = None
-
-    from django.utils.timezone import now
-    flow_session.completion_time = now()
-    flow_session.in_progress = False
 
     if grade_info is not None:
         flow_session.points = points
@@ -911,7 +930,8 @@ def view_flow_page(pctx, flow_identifier, ordinal):
     # {{{ render flow page
 
     if form is not None:
-        form_html = fpctx.page.form_to_html(pctx.request, form, answer_data)
+        form_html = fpctx.page.form_to_html(
+                pctx.request, page_context, form, answer_data)
     else:
         form_html = None
 

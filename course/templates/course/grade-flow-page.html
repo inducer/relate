@@ -16,20 +16,27 @@
     </thead>
     <tbody>
     <tr>
-      <td>Participant</td>
+      <td>Flow session</td>
       <td>
+        <tt><a href="{% url "course.grades.view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
+        for 
         {{ flow_session.participation.user.last_name }}, {{ flow_session.participation.user.first_name }}
         ({{ flow_session.participation.user.username }})
       </td>
     </tr>
     <tr>
-      <td>Flow</td><td><tt><a href="{% url "course.grades.view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt></td>
-    </tr>
-    <tr>
       <td>Session</td>
       <td>
-        {% include "course/flow-session-state.html" %}
-        &middot; ID: {{ flow_session.id }}
+        {% if prev_flow_session_id != None %}
+          <a href="{% url "course.grading.grade_flow_page" course.identifier prev_flow_session_id page_data.ordinal %}"
+             accesskey="p"><i class="fa fa-chevron-left"></i></a>
+        {% endif %}
+        ID: {{ flow_session.id }}
+        {% if next_flow_session_id %}
+          <a href="{% url "course.grading.grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}"
+             accesskey="n"><i class="fa fa-chevron-right"></i></a>
+        {% endif %}
+        &middot;{% include "course/flow-session-state.html" %}
         &middot; Start: {{ flow_session.start_time }}
 
       </td>
@@ -93,6 +100,14 @@
       {% endif %}
     </div>
   </div>
+
+  {# }}} #}
+
+  {# {{{ grading form #}
+
+  {% if grading_form_html != None %}
+    {{ grading_form_html|safe }}
+  {% endif %}
 
   {# }}} #}
 {% endblock %}

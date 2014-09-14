@@ -86,7 +86,7 @@ def get_auto_feedback(correctness):
         return "Your answer is mostly correct. (%.1f %%)" \
                 % (100*correctness)
     elif correctness is None:
-        return "The correctness of your answer could not be determined."
+        return "(No information on correctness of answer.)"
     else:
         return "Your answer is somewhat correct. (%.1f %%)" \
                 % (100*correctness)
@@ -347,7 +347,7 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
-    def form_to_html(self, request, form, answer_data):
+    def form_to_html(self, request, page_context, form, answer_data):
         """Returns an HTML rendering of *form*."""
 
         from crispy_forms.utils import render_crispy_form
@@ -387,7 +387,7 @@ class PageBase(object):
 
         return grade_data
 
-    def grading_form_to_html(self, request, grading_form, grade_data):
+    def grading_form_to_html(self, request, page_context, grading_form, grade_data):
         """Returns an HTML rendering of *grading_form*."""
 
         from crispy_forms.utils import render_crispy_form
@@ -452,31 +452,45 @@ class PageBaseWithValue(PageBase):
 
 class HumanTextFeedbackForm(StyledForm):
     released = forms.BooleanField(
-            initial=False,
+            initial=False, required=False,
             help_text="Whether the grade and feedback below are to be shown "
-            "to the student")
-    grade_percent = forms.DecimalField(
-            decimal_places=1,
+            "to student")
+    grade_percent = forms.FloatField(
             min_value=0,
             max_value=1000,  # allow excessive extra credit
-            help_text="Grade assigned, in percent")
+            help_text="Grade assigned, in percent",
+            required=False)
     feedback_text = forms.CharField(
             widget=forms.Textarea(),
+            required=False,
             help_text="Feedback to be shown to the student, using "
             "CourseFlow-flavored Markdown")
+    notes = forms.CharField(
+            widget=forms.Textarea(),
+            help_text="Internal notes, not shown to student",
+            required=False)
 
     def __init__(self, *args, **kwargs):
         super(HumanTextFeedbackForm, self).__init__(*args, **kwargs)
 
 
 class PageBaseWithHumanTextFeedback(PageBase):
+    grade_data_attrs = ["released", "grade_percent", "feedback_text", "notes"]
+
     def required_attrs(self):
-        return super(PageBaseWithValue, self).required_attrs() + (
+        return super(PageBaseWithHumanTextFeedback, self).required_attrs() + (
                 ("rubric", "markup"),
                 )
 
     def make_grading_form(self, page_context, page_data, grade_data):
-        return HumanTextFeedbackForm()
+        if grade_data is not None:
+            form_data = {}
+            for k in self.grade_data_attrs:
+                form_data[k] = grade_data[k]
+
+            return HumanTextFeedbackForm(form_data)
+        else:
+            return HumanTextFeedbackForm()
 
     def post_grading_form(self, page_context, page_data, grade_data,
             post_data, files_data):
@@ -485,14 +499,55 @@ class PageBaseWithHumanTextFeedback(PageBase):
     def update_grade_data_from_grading_form(self, page_context, page_data,
             grade_data, grading_form, files_data):
 
+        if grade_data is None:
+            grade_data = {}
+        for k in self.grade_data_attrs:
+            grade_data[k] = grading_form.cleaned_data[k]
+
         return grade_data
 
-    def grading_form_to_html(self, request, grading_form, grade_data):
-        # FIXME: Render rubric
-        from crispy_forms.utils import render_crispy_form
+    def grading_form_to_html(self, request, page_context, grading_form, grade_data):
+        ctx = {
+                "form": grading_form,
+                "rubric": markup_to_html(page_context, self.page_desc.rubric)
+                }
+
         from django.template import RequestContext
-        context = RequestContext(request, {})
-        return render_crispy_form(grading_form, context=context)
+        from django.template.loader import render_to_string
+        return render_to_string(
+                "course/human-feedback-form.html",
+                RequestContext(request, ctx))
+
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        """This method is appropriate if the grade consists *only* of the
+        feedback provided by humans. If more complicated/combined feedback
+        is desired, a subclass would likely override this.
+        """
+
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.")
+
+        if grade_data is None:
+            return None
+
+        if not grade_data["released"]:
+            return None
+
+        if grade_data["grade_percent"] is not None:
+            correctness = grade_data["grade_percent"]/100
+            feedback_text = "<p>%s</p>" % get_auto_feedback(correctness)
+
+            if grade_data["feedback_text"]:
+                feedback_text += (
+                        "<p>The following feedback was provided:<p>"
+                        + markup_to_html(page_context, grade_data["feedback_text"]))
+
+            return AnswerFeedback(
+                    correctness=correctness,
+                    feedback=feedback_text)
+        else:
+            return None
 
 # }}}
 
@@ -1404,7 +1459,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 post_data, files_data)
         return form
 
-    def form_to_html(self, request, form, answer_data):
+    def form_to_html(self, request, page_context, form, answer_data):
         ctx = {"form": form}
         if answer_data is not None:
             ctx["mime_type"] = answer_data["mime_type"]
@@ -1421,9 +1476,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
     def answer_data(self, page_context, page_data, form, files_data):
         return self.files_data_to_answer_data(files_data)
-
-    def grade(self, page_context, page_data, answer_data, grade_data):
-        return None
 
 # }}}
 

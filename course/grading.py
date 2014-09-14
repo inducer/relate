@@ -32,10 +32,10 @@ from django.core.exceptions import (  # noqa
         PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
 from django import http
+from django.utils.timezone import now
 
 from course.models import (
-        FlowSession, FlowPageData, FlowPageVisit, FlowPageVisitGrade,
-        GradeChange,
+        FlowSession, FlowPageVisitGrade,
         get_flow_grading_opportunity)
 from course.constants import participation_role
 from course.utils import (
@@ -46,8 +46,6 @@ from course.utils import (
 @course_view
 @transaction.atomic
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
-    # request = pctx.request
-
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
@@ -64,6 +62,29 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     if fpctx.page_desc is None:
         raise http.Http404()
+
+    # {{{ enable flow session zapping
+
+    all_flow_sessions = list(FlowSession.objects
+            .filter(
+                course=pctx.course,
+                flow_id=flow_session.flow_id,
+                in_progress=flow_session.in_progress,
+                for_credit=flow_session.for_credit)
+            .order_by(
+                "participation__user__last_name",
+                "start_time"))
+
+    next_flow_session_id = None
+    prev_flow_session_id = None
+    for i, other_flow_session in enumerate(all_flow_sessions):
+        if other_flow_session.pk == flow_session.pk:
+            if i > 0:
+                prev_flow_session_id = all_flow_sessions[i-1].id
+            if i + 1 < len(all_flow_sessions):
+                next_flow_session_id = all_flow_sessions[i+1].id
+
+    # }}}
 
     # {{{ reproduce student view
 
@@ -96,7 +117,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         feedback = None
 
     if form is not None:
-        form_html = fpctx.page.form_to_html(pctx.request, form, answer_data)
+        form_html = fpctx.page.form_to_html(
+                pctx.request, fpctx.page_context, form, answer_data)
     else:
         form_html = None
 
@@ -109,6 +131,75 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # }}}
 
+    # {{{ grading form
+
+    if fpctx.page.expects_answer() and fpctx.prev_answer_visit is not None:
+        request = pctx.request
+        if pctx.request.method == "POST":
+            grading_form = fpctx.page.post_grading_form(
+                    fpctx.page_context, fpctx.page_data, grade_data,
+                    request.POST, request.FILES)
+            if grading_form.is_valid():
+                grade_data = fpctx.page.update_grade_data_from_grading_form(
+                        fpctx.page_context, fpctx.page_data, grade_data,
+                        grading_form, request.FILES)
+
+                feedback = fpctx.page.grade(
+                        fpctx.page_context, fpctx.page_data,
+                        answer_data, grade_data)
+
+                if feedback is not None:
+                    correctness = feedback.correctness
+                else:
+                    correctness = None
+
+                if feedback is not None:
+                    feedback_json = feedback.as_json()
+                else:
+                    feedback_json = None
+
+                grade = FlowPageVisitGrade(
+                        visit=fpctx.prev_answer_visit,
+                        grader=pctx.request.user,
+                        graded_at_git_commit_sha=fpctx.flow_commit_sha,
+
+                        grade_data=grade_data,
+
+                        max_points=fpctx.page.max_points(fpctx.page_data),
+                        correctness=correctness,
+                        feedback=feedback_json)
+
+                grade.save()
+
+                current_access_rule = fpctx.get_current_access_rule(
+                        flow_session, flow_session.participation.role,
+                        flow_session.participation, now())
+
+                from course.flow import grade_flow_session
+                grade_flow_session(fpctx, flow_session, current_access_rule)
+
+        else:
+            grading_form = fpctx.page.make_grading_form(
+                    fpctx.page_context, fpctx.page_data, grade_data)
+
+    else:
+        grading_form = None
+
+    if grading_form is not None:
+        from crispy_forms.layout import Submit
+        grading_form.helper.add_input(
+                Submit(
+                    "submit", "Submit",
+                    accesskey="s",
+                    css_class="col-lg-offset-2 cf-grading-save-button"))
+
+        grading_form_html = fpctx.page.grading_form_to_html(
+                pctx.request, fpctx.page_context, grading_form, grade_data)
+
+    else:
+        grading_form_html = None
+
+    # }}}
 
     grading_opportunity = get_flow_grading_opportunity(
             pctx.course, flow_session.flow_id, fpctx.flow_desc)
@@ -132,6 +223,12 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "points_awarded": points_awarded,
 
                 "grading_opportunity": grading_opportunity,
+
+                "prev_flow_session_id": prev_flow_session_id,
+                "next_flow_session_id": next_flow_session_id,
+
+                "grading_form": grading_form,
+                "grading_form_html": grading_form_html,
             })
 
 
