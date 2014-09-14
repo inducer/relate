@@ -28,7 +28,6 @@ import re
 
 from django.shortcuts import (  # noqa
         redirect, get_object_or_404)
-from course.utils import course_view, render_course_page
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import connection
@@ -39,6 +38,7 @@ from django.utils.timezone import now
 from courseflow.utils import StyledForm
 from crispy_forms.layout import Submit
 
+from course.utils import course_view, render_course_page
 from course.models import (
         Participation, participation_role, participation_status,
         GradingOpportunity, GradeChange, GradeStateMachine,

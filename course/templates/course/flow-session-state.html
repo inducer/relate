@@ -1,0 +1,10 @@
+{% if flow_session.for_credit %}
+  <span class="label label-danger">for credit</span>
+{% else %}
+  <span class="label label-success">not for credit</span>
+{% endif %}
+{% if flow_session.in_progress %}
+  <span class="label label-warning">in progress</span>
+{% else %}
+  <span class="label label-success">finished</span>
+{% endif %}

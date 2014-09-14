@@ -128,16 +128,7 @@
             <tr>
               <td>{{ flow_session.id }}</td>
               <td>
-                {% if flow_session.for_credit %}
-                  <span class="label label-danger">for credit</span>
-                {% else %}
-                  <span class="label label-success">not for credit</span>
-                {% endif %}
-                {% if flow_session.in_progress %}
-                  <span class="label label-warning">in progress</span>
-                {% else %}
-                  <span class="label label-success">finished</span>
-                {% endif %}
+                {% include "course/flow-session-state.html" %}
                 <hr>
                 <p>
                   <b>Rules:</b>
@@ -181,7 +172,9 @@
                     {% if visit %}
                       <tr>
                         <td>Page {{ visit.page_data.ordinal }}</td>
-                        <td><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></td>
+                        <td>
+                          <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
+                        </td>
                         {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
                           <td>{{ visit.get_most_recent_grade.percentage }}%</td>
                           <td>({{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }} points)</td>

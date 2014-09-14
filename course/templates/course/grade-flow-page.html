@@ -1,0 +1,100 @@
+{% extends "course/course-base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}
+   {{ page_data.group_id }}/{{ page_data.page_id }} - {{ flow_identifier}} - Grading - CourseFlow
+{% endblock %}
+
+{% block content %}
+  <h1>Grading: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt></h1>
+
+  {# {{{ header table #}
+  <table class="table table-condensed">
+    <thead>
+      <th>Property</th><th>Value</th>
+    </thead>
+    <tbody>
+    <tr>
+      <td>Participant</td>
+      <td>
+        {{ flow_session.participation.user.last_name }}, {{ flow_session.participation.user.first_name }}
+        ({{ flow_session.participation.user.username }})
+      </td>
+    </tr>
+    <tr>
+      <td>Flow</td><td><tt><a href="{% url "course.grades.view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt></td>
+    </tr>
+    <tr>
+      <td>Session</td>
+      <td>
+        {% include "course/flow-session-state.html" %}
+        &middot; ID: {{ flow_session.id }}
+        &middot; Start: {{ flow_session.start_time }}
+
+      </td>
+    </tr>
+    <tr>
+      <td>Page number</td>
+      <td>
+        {% if page_data.ordinal > 0 %}
+          <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
+             ><i class="fa fa-chevron-left"></i></a>
+        {% endif %}
+        {{ ordinal }}
+        {% if page_data.next_ordinal < flow_session.page_count %}
+          <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
+             ><i class="fa fa-chevron-right"></i></a>
+        {% endif %}
+      </td>
+    </tr>
+    {% if max_points != None %}
+    <tr>
+      <td>Points awarded</td>
+      <td>
+        {% if points_awarded != None %}
+          {{ points_awarded|floatformat:1 }}
+        {% else %}
+          (unknown)
+        {% endif %}
+        /
+        {{ max_points|floatformat:1 }} point{{ max_points|pluralize }}
+      </td>
+    </tr>
+    {% endif %}
+  </table>
+  {# }}} #}
+
+  {# {{{ student view #}
+
+  <div class="panel panel-default">
+    <div class="panel-heading">Student view</div>
+    <div class="panel-body">
+      {{ body|safe }}
+
+      {% if form_html %}
+        <div class="well">
+          {{ form_html|safe }}
+        </div>
+      {% endif %}
+
+      {% if feedback %}
+        <div class="alert
+          {% if feedback.correctness == 1 %}
+            alert-success
+          {% elif feedback.correctness == 0 %}
+            alert-danger
+          {% else%}
+            alert-info
+          {% endif %}
+          ">
+            <p>{{ feedback.feedback|safe }}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# }}} #}
+{% endblock %}
+
+{# vim: set foldmethod=marker: #}

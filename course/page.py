@@ -174,9 +174,23 @@ class PageBase(object):
     .. automethod:: body
     .. automethod:: expects_answer
     .. automethod:: max_points
+
+    .. rubric:: Student Input
+
     .. automethod:: answer_data
     .. automethod:: make_form
     .. automethod:: post_form
+    .. automethod:: form_to_html
+
+    .. rubric:: Grader Input
+
+    .. automethod:: make_grading_form
+    .. automethod:: post_grading_form
+    .. automethod:: update_grade_data_from_grading_form
+    .. automethod:: grading_form_to_html
+
+    .. rubric:: Grading/Feedback
+
     .. automethod:: grade
     .. automethod:: correct_answer
     """
@@ -303,6 +317,8 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
+    # {{{ student input
+
     def answer_data(self, page_context, page_data, form, files_data):
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
@@ -339,13 +355,57 @@ class PageBase(object):
         context = RequestContext(request, {})
         return render_crispy_form(form, context=context)
 
+    # }}}
+
+    # {{{ grader input
+
+    def make_grading_form(self, page_context, page_data, grade_data):
+        """
+        :arg grade_data: value returned by
+            :meth:`update_grade_data_from_grading_form`.  May be *None*.
+        :return:
+            a :class:`django.forms.Form` instance with *grade_data* prepopulated.
+        """
+        return None
+
+    def post_grading_form(self, page_context, page_data, grade_data,
+            post_data, files_data):
+        """Return a form with the POST response from *post_data* and *files_data*
+        filled in.
+
+        :return: a
+            :class:`django.forms.Form` instance with *grade_data* prepopulated.
+        """
+        raise NotImplementedError()
+
+    def update_grade_data_from_grading_form(self, page_context, page_data,
+            grade_data, grading_form, files_data):
+        """Return an updated version of *grade_data*, which is a
+        JSON-persistable object reflecting data on grading of this response.
+        This will be passed to other methods as *grade_data*.
+        """
+
+        return grade_data
+
+    def grading_form_to_html(self, request, grading_form, grade_data):
+        """Returns an HTML rendering of *grading_form*."""
+
+        from crispy_forms.utils import render_crispy_form
+        from django.template import RequestContext
+        context = RequestContext(request, {})
+        return render_crispy_form(grading_form, context=context)
+
+    # }}}
+
+    # {{{ grading/feedback
+
     def grade(self, page_context, page_data, answer_data, grade_data):
         """Grade the answer contained in *answer_data*.
 
         :arg answer_data: value returned by :meth:`answer_data`,
             or *None*, which means that no answer was supplied.
-        :arg grade_data: is a (currently unimplemented) interface to
-            feed in persisted information from deferred/human grading.
+        :arg grade_data: value updated by
+            :meth:`update_grade_data_from_grading_form`
         :return: a :class:`AnswerFeedback` instanstance, or *None* if the
             grade is not yet available.
         """
@@ -357,6 +417,8 @@ class PageBase(object):
         or *None*.
         """
         return None
+
+    # }}}
 
 # }}}
 
@@ -384,6 +446,55 @@ class PageBaseWithValue(PageBase):
 
     def max_points(self, page_data):
         return self.page_desc.value
+
+
+# {{{ human text feedback page base
+
+class HumanTextFeedbackForm(StyledForm):
+    released = forms.BooleanField(
+            initial=False,
+            help_text="Whether the grade and feedback below are to be shown "
+            "to the student")
+    grade_percent = forms.DecimalField(
+            decimal_places=1,
+            min_value=0,
+            max_value=1000,  # allow excessive extra credit
+            help_text="Grade assigned, in percent")
+    feedback_text = forms.CharField(
+            widget=forms.Textarea(),
+            help_text="Feedback to be shown to the student, using "
+            "CourseFlow-flavored Markdown")
+
+    def __init__(self, *args, **kwargs):
+        super(HumanTextFeedbackForm, self).__init__(*args, **kwargs)
+
+
+class PageBaseWithHumanTextFeedback(PageBase):
+    def required_attrs(self):
+        return super(PageBaseWithValue, self).required_attrs() + (
+                ("rubric", "markup"),
+                )
+
+    def make_grading_form(self, page_context, page_data, grade_data):
+        return HumanTextFeedbackForm()
+
+    def post_grading_form(self, page_context, page_data, grade_data,
+            post_data, files_data):
+        return HumanTextFeedbackForm(post_data, files_data)
+
+    def update_grade_data_from_grading_form(self, page_context, page_data,
+            grade_data, grading_form, files_data):
+
+        return grade_data
+
+    def grading_form_to_html(self, request, grading_form, grade_data):
+        # FIXME: Render rubric
+        from crispy_forms.utils import render_crispy_form
+        from django.template import RequestContext
+        context = RequestContext(request, {})
+        return render_crispy_form(grading_form, context=context)
+
+# }}}
 
 # }}}
 
@@ -1246,7 +1357,8 @@ class FileUploadForm(StyledForm):
         return uploaded_file
 
 
-class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue):
+class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
+        PageBaseWithHumanTextFeedback):
     ALLOWED_MIME_TYPES = [
             "application/pdf",
             ]

@@ -27,7 +27,9 @@ THE SOFTWARE.
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import (
+        PermissionDenied, SuspiciousOperation,
+        ObjectDoesNotExist)
 from django.db import transaction
 from django.utils.safestring import mark_safe
 from course.views import get_now_or_fake_time
@@ -235,8 +237,11 @@ def gather_grade_info(flow_session, answer_visits):
         grade = answer_visits[i].get_most_recent_grade()
         assert grade is not None
 
-        from course.page import AnswerFeedback
-        feedback = AnswerFeedback.from_json(grade.feedback)
+        if grade.feedback is not None:
+            from course.page import AnswerFeedback
+            feedback = AnswerFeedback.from_json(grade.feedback)
+        else:
+            feedback = None
 
         if feedback is None or feedback.correctness is None:
             return None
@@ -589,15 +594,21 @@ def start_flow(pctx, flow_identifier):
 
 # {{{ view: flow page
 
-def find_current_flow_session(request, flow_identifier):
+def find_current_flow_session(request, course, flow_identifier):
     flow_session = None
     flow_session_id = request.session.get("flow_session_id")
 
     if flow_session_id is not None:
-        flow_sessions = list(FlowSession.objects.filter(id=flow_session_id))
+        try:
+            flow_session = FlowSession.objects.get(id=flow_session_id)
+        except ObjectDoesNotExist:
+            return None
 
-        if flow_sessions and flow_sessions[0].flow_id == flow_identifier:
-            flow_session, = flow_sessions
+        if flow_session.course.pk != course.pk:
+            return None
+
+        if flow_session.flow_id != flow_identifier:
+            return None
 
     return flow_session
 
@@ -661,7 +672,8 @@ def create_flow_page_visit(request, flow_session, page_data):
 def view_flow_page(pctx, flow_identifier, ordinal):
     request = pctx.request
 
-    flow_session = find_current_flow_session(request, flow_identifier)
+    flow_session = find_current_flow_session(
+            request, pctx.course, flow_identifier)
 
     if flow_session is None:
         messages.add_message(request, messages.WARNING,
@@ -947,7 +959,8 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 def finish_flow_session_view(pctx, flow_identifier):
     request = pctx.request
 
-    flow_session = find_current_flow_session(request, flow_identifier)
+    flow_session = find_current_flow_session(
+            request, pctx.course, flow_identifier)
 
     if flow_session is None:
         messages.add_message(request, messages.WARNING,

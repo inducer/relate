@@ -57,15 +57,8 @@
             <ul>
               {% for flow_session in grade_info.flow_sessions %}
                 <li>
-                  {% if flow_session.for_credit %}
-                    <span class="label label-danger">for credit</span>
-                  {% else %}
-                    <span class="label label-success">not for credit</span>
-                  {% endif %}
-                  {% if flow_session.in_progress %}
-                    <span class="label label-warning">in progress</span>
-                  {% else %}
-                    <span class="label label-success">finished</span>
+                  {% include "course/flow-session-state.html" %}
+                  {% if not flow_session.in_progress %}
                     ({{ flow_session.completion_time }})
                   {% endif %}
                   (Rules: <tt>{{ flow_session.access_rules_id }}</tt>)

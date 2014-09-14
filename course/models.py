@@ -745,7 +745,7 @@ class GradeStateMachine(object):
 
     def stringify_state(self):
         if self.state is None:
-            return "-"
+            return "(no grade)"
         elif self.state == grade_state_change_types.exempt:
             return "(exempt)"
         elif self.state == grade_state_change_types.graded:
