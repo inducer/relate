@@ -34,18 +34,20 @@
     });
   </script>
 
-  <dl class="calendar-descriptions" style="margin-top:3em">
-    {% for event_info in event_info_list %}
-      <dt>
-      <a name="event-{{ event_info.id }}"></a>
-      {{ event_info.human_title }}
-      ({{ event_info.start_time }}{% if event_info.end_time %} - {{ event_info.end_time }}{% endif %})
-      </dt>
-      <dd>
+  <div style="margin-top:3ex">
+  {% for event_info in event_info_list %}
+    <a name="event-{{ event_info.id }}"></a>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <b>{{ event_info.human_title }}</b>
+        ({{ event_info.start_time }}{% if event_info.end_time %} - {{ event_info.end_time }}{% endif %})
+      </div>
+      <div class="panel-body">
         {{ event_info.description|safe }}
-      </dd>
-    {% endfor%}
-  </dl>
+      </div>
+    </div>
+  {% endfor%}
+  </div>
 
 {% endblock %}
 
