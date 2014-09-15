@@ -24,6 +24,7 @@ CourseFlow is set apart by the following features:
   * Sandboxed execution
   * Automatic grading
   * Plotting through integration with `matplotlib <http://matplotlib.org>`_
+  * Optional second-stage grading by a human
 
 * Class calendar and grade book included.
 * Statistics of student answers.

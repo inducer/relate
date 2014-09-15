@@ -149,6 +149,12 @@ class AnswerFeedback(object):
                     NoNormalizedAnswerAvailable())
                 )
 
+    def percentage(self):
+        if self.correctness is not None:
+            return 100*self.correctness
+        else:
+            return None
+
 # }}}
 
 
@@ -463,7 +469,7 @@ class HumanTextFeedbackForm(StyledForm):
     feedback_text = forms.CharField(
             widget=forms.Textarea(),
             required=False,
-            help_text="Feedback to be shown to the student, using "
+            help_text="Feedback to be shown to student, using "
             "CourseFlow-flavored Markdown")
     notes = forms.CharField(
             widget=forms.Textarea(),
@@ -1379,6 +1385,85 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     % html_escape(self.page_desc.correct_code))
         else:
             return None
+
+# }}}
+
+
+# {{{ python code question with human feedback
+
+class PythonCodeQuestionWithHumanTextFeedback(
+        PythonCodeQuestion, PageBaseWithHumanTextFeedback):
+
+    def __init__(self, vctx, location, page_desc):
+        super(PythonCodeQuestionWithHumanTextFeedback, self).__init__(
+                vctx, location, page_desc)
+
+        if (vctx is not None
+                and self.page_desc.human_feedback_value >= self.page_desc.value):
+            raise ValidationError(
+                    "human_feedback_value greater than overall "
+                    "value of question")
+
+    def required_attrs(self):
+        return super(
+                PythonCodeQuestionWithHumanTextFeedback, self).required_attrs() + (
+            ("human_feedback_value", (int, float)),
+            )
+
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        """This method is appropriate if the grade consists *only* of the
+        feedback provided by humans. If more complicated/combined feedback
+        is desired, a subclass would likely override this.
+        """
+
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback="No answer provided.")
+
+        if grade_data is not None and not grade_data["released"]:
+            grade_data = None
+
+        code_feedback = PythonCodeQuestion.grade(self, page_context,
+                page_data, answer_data, grade_data)
+
+        correctness = None
+        percentage = None
+        if (code_feedback is not None
+                and code_feedback.correctness is not None
+                and grade_data is not None
+                and grade_data["grade_percent"] is not None):
+            correctness = (
+                    code_feedback.correctness
+                    * (self.page_desc.value - self.page_desc.human_feedback_value)
+
+                    + grade_data["grade_percent"] / 100
+                    * self.page_desc.human_feedback_value
+                    ) / self.page_desc.value
+            percentage = correctness * 100
+
+        human_feedback_percentage = None
+        human_feedback_text = None
+
+        if grade_data is not None:
+            if grade_data["feedback_text"] is not None:
+                human_feedback_text = markup_to_html(
+                        page_context, grade_data["feedback_text"])
+
+            human_feedback_percentage = grade_data["grade_percent"]
+
+        from django.template.loader import render_to_string
+        feedback = render_to_string(
+                "course/feedback-code-with-human.html",
+                {
+                    "percentage": percentage,
+                    "code_feedback": code_feedback,
+                    "human_feedback_text": human_feedback_text,
+                    "human_feedback_percentage": human_feedback_percentage,
+                    })
+
+        return AnswerFeedback(
+                correctness=correctness,
+                feedback=feedback)
 
 # }}}
 
