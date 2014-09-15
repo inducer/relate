@@ -49,7 +49,9 @@ from course.content import (get_flow_desc, get_flow_commit_sha)
 def flow_list(pctx):
     if pctx.role not in [
             participation_role.teaching_assistant,
-            participation_role.instructor]:
+            participation_role.instructor,
+            participation_role.observer,
+            ]:
         raise PermissionDenied("must be at least TA to view analytics")
 
     cursor = connection.cursor()
@@ -348,7 +350,9 @@ def make_time_histogram(pctx, flow_identifier):
 def flow_analytics(pctx, flow_identifier):
     if pctx.role not in [
             participation_role.teaching_assistant,
-            participation_role.instructor]:
+            participation_role.instructor,
+            participation_role.observer,
+            ]:
         raise PermissionDenied("must be at least TA to view analytics")
 
     return render_course_page(pctx, "course/analytics-flow.html", {
@@ -377,7 +381,9 @@ class AnswerStats(object):
 def page_analytics(pctx, flow_identifier, group_id, page_id):
     if pctx.role not in [
             participation_role.teaching_assistant,
-            participation_role.instructor]:
+            participation_role.instructor,
+            participation_role.observer,
+            ]:
         raise PermissionDenied("must be at least TA to view analytics")
 
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,

@@ -14,10 +14,11 @@
 {% block brand_link %}{% url "course.views.course_page" course.identifier %}{% endblock %}
 
 {% block navbar %}
+  {% with participation_role as pr %}
   {% block page_navbar %}
   {% endblock %}
 
-  {% if role != participation_role.unenrolled %}
+  {% if role != pr.unenrolled %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Student<b class="caret"></b></a>
     <ul class="dropdown-menu">
@@ -30,23 +31,25 @@
   </li>
   {% endif %}
 
-  {% if role == participation_role.instructor or role == participation_role.teaching_assistant %}
+  {% if role == pr.instructor or role == pr.teaching_assistant or role == pr.observer %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Teaching tools<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li role="presentation" class="dropdown-header">Analytics</li>
       <li><a href="{% url "course.analytics.flow_list" course.identifier %}">Overview</a></li>
-      <li role="presentation" class="divider"></li>
-      <li role="presentation" class="dropdown-header">Grades</li>
-      <li><a href="{% url "course.grades.view_gradebook" course.identifier %}">Grade book</a></li>
-      {% if role == participation_role.instructor %}
-      <li><a href="{% url "course.grades.import_grades" course.identifier %}">Import Grades</a></li>
+      {% if role == pr.instructor or role == pr.teaching_assistant %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">Grades</li>
+        <li><a href="{% url "course.grades.view_gradebook" course.identifier %}">Grade book</a></li>
+      {% endif %}
+      {% if role == pr.instructor %}
+        <li><a href="{% url "course.grades.import_grades" course.identifier %}">Import Grades</a></li>
       {% endif %}
     </ul>
   </li>
   {% endif %}
 
-  {% if role == participation_role.instructor %}
+  {% if role == pr.instructor %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Instructor<b class="caret"></b></a>
     <ul class="dropdown-menu">
@@ -73,7 +76,7 @@
     </ul>
   </li>
   {% endif %}
-
+  {% endwith %}
 {% endblock %}
 
 {% block version_advice %}
@@ -92,7 +95,6 @@
       '{{participation.temporary_role}}' role would see.
     </div>
   {% endif %}
-
 {% endblock %}
 
 {% block nav_recommendations %}
