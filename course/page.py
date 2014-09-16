@@ -555,12 +555,25 @@ class PageBaseWithHumanTextFeedback(PageBase):
         else:
             return None
 
-# }}}
+
+class PageBaseWithCorrectAnswer(PageBase):
+    def allowed_attrs(self):
+        return super(PageBaseWithCorrectAnswer, self).required_attrs() + (
+            ("correct_answer", "markup"),
+            )
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        if hasattr(self.page_desc, "correct_answer"):
+            return markup_to_html(page_context, self.page_desc.correct_answer)
+        else:
+            return None
 
 # }}}
 
+# }}}
 
-class Page(PageBaseWithTitle):
+
+class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle):
     """A page showing static content."""
 
     def required_attrs(self):
@@ -568,22 +581,11 @@ class Page(PageBaseWithTitle):
             ("content", "markup"),
             )
 
-    def allowed_attrs(self):
-        return super(Page, self).required_attrs() + (
-            ("correct_answer", "markup"),
-            )
-
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.content)
 
     def expects_answer(self):
         return False
-
-    def correct_answer(self, page_context, page_data, answer_data, grade_data):
-        if hasattr(self.page_desc, "correct_answer"):
-            return markup_to_html(page_context, self.page_desc.correct_answer)
-        else:
-            return None
 
 
 # {{{ text question
@@ -1498,7 +1500,7 @@ class FileUploadForm(StyledForm):
 
 
 class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
-        PageBaseWithHumanTextFeedback):
+        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
     ALLOWED_MIME_TYPES = [
             "application/pdf",
             ]
@@ -1516,6 +1518,11 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 ("prompt", "markup"),
                 ("mime_types", list),
                 ("maximum_megabytes", (int, float)),
+                )
+
+    def allowed_attrs(self):
+        return super(FileUploadQuestion, self).allowed_attrs() + (
+                ("correct_answer", "markup"),
                 )
 
     def body(self, page_context, page_data):
