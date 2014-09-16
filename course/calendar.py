@@ -254,7 +254,7 @@ def view_calendar(pctx):
             if "color" in kind_desc:
                 event_json["color"] = kind_desc["color"]
             if "title" in kind_desc:
-                if event.ordinal:
+                if event.ordinal is not None:
                     human_title = kind_desc["title"].format(nr=event.ordinal)
                 else:
                     human_title = kind_desc["title"]
