@@ -1,0 +1,17 @@
+{{ prompt_html|safe }}
+
+{% if initial_code %}
+  <div class="panel panel-default" markdown="block">
+    <div class="panel-heading">
+      <a data-toggle="collapse" href="#starter-code">
+        Starter code
+        <span style="font-size:x-small">(click to view)</span>
+      </a>
+    </div>
+    <div id="starter-code" class="panel-collapse collapse">
+     <div class="panel-body">
+       <pre>{{ initial_code }}</pre>
+     </div>
+    </div>
+  </div>
+{% endif %}

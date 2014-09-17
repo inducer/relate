@@ -1006,7 +1006,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 # {{{ python code question
 
 class PythonCodeForm(StyledForm):
-    def __init__(self, read_only, *args, **kwargs):
+    def __init__(self, read_only, initial_code, *args, **kwargs):
         super(PythonCodeForm, self).__init__(*args, **kwargs)
 
         from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
@@ -1029,7 +1029,8 @@ class PythonCodeForm(StyledForm):
                           }
                         }
                     """)
-                    }))
+                    }),
+                initial=initial_code)
 
     def clean(self):
         # FIXME Should try compilation
@@ -1193,24 +1194,48 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("names_from_user", list),
                 ("test_code", str),
                 ("correct_code", str),
+                ("initial_code", str),
                 )
 
+    def _initial_code(self):
+        result = getattr(self.page_desc, "initial_code", None)
+        if result is not None:
+            return result.strip()
+        else:
+            return result
+
     def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
+        from django.template.loader import render_to_string
+        return render_to_string(
+                "course/prompt-code-question.html",
+                {
+                    "prompt_html":
+                    markup_to_html(page_context, self.page_desc.prompt),
+                    "initial_code": self._initial_code()
+                    })
 
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
-            form = PythonCodeForm(answer_is_final, answer)
+            form = PythonCodeForm(
+                    answer_is_final,
+                    self._initial_code(),
+                    answer)
         else:
             answer = None
-            form = PythonCodeForm(answer_is_final)
+            form = PythonCodeForm(
+                    answer_is_final,
+                    self._initial_code(),
+                    )
 
         return form
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return PythonCodeForm(False, post_data, files_data)
+        return PythonCodeForm(
+                False,
+                self._initial_code(),
+                post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data["answer"].strip()}
