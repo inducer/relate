@@ -9,7 +9,12 @@
 
   <h2>Grade Distribution</h2>
 
-  <p>{{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }} </p>
+  <p>
+    {{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }}
+    {% if participant_count != None %}
+      (from {{ participant_count }} distinct participants)
+    {% endif %}
+  </p>
 
   {{ grade_histogram.html|safe }}
 

@@ -345,6 +345,19 @@ def make_time_histogram(pctx, flow_identifier):
     return hist
 
 
+def count_participants(pctx, flow_identifier):
+    if not connection.features.can_distinct_on_fields:
+        return None
+
+    qset = (FlowSession.objects
+            .filter(
+                course=pctx.course,
+                flow_id=flow_identifier)
+            .order_by("participation")
+            .distinct("participation"))
+    return qset.count()
+
+
 @login_required
 @course_view
 def flow_analytics(pctx, flow_identifier):
@@ -360,6 +373,7 @@ def flow_analytics(pctx, flow_identifier):
         "grade_histogram": make_grade_histogram(pctx, flow_identifier),
         "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_identifier),
         "time_histogram": make_time_histogram(pctx, flow_identifier),
+        "participant_count": count_participants(pctx, flow_identifier),
         })
 
 # }}}
