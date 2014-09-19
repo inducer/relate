@@ -222,13 +222,19 @@ class GitFetchForm(StyledForm):
         self.helper.add_input(Submit("fetch", "Fetch"))
 
 
-def is_parent_commit(repo, potential_parent, child):
+def is_parent_commit(repo, potential_parent, child, max_history_check_size=None):
     queue = [repo[parent] for parent in child.parents]
 
     while queue:
         entry = queue.pop()
         if entry == potential_parent:
             return True
+
+        if max_history_check_size is not None:
+            max_history_check_size -= 1
+
+            if max_history_check_size == 0:
+                return False
 
         queue.extend(repo[parent] for parent in entry.parents)
 
@@ -259,7 +265,8 @@ def fetch_course_updates_inner(pctx):
 
                 remote_refs = client.fetch(remote_path, repo)
                 remote_head = remote_refs["HEAD"]
-                if is_parent_commit(repo, repo[remote_head], repo["HEAD"]):
+                if is_parent_commit(repo, repo[remote_head], repo["HEAD"],
+                        max_history_check_size=10):
                     raise RuntimeError("fetch would discard commits, refusing")
 
                 repo["HEAD"] = remote_head
