@@ -1401,7 +1401,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         return AnswerFeedback(
                 correctness=correctness,
-                feedback="\n".join(feedback_bits))
+                feedback="\n".join(feedback_bits),
+                normalized_answer="<pre>%s</pre>" % user_code)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         from courseflow.utils import html_escape
