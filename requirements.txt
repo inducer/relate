@@ -25,10 +25,8 @@ pytz
 # Course content is stored in YAML.
 pyyaml
 
-# dulwich does not yet support Python3
-# Using git version for fix to https://github.com/jelmer/dulwich/issues/135
-dulwich
-paramiko
+# Course content is stored in git repositories.
+pygit2
 
 # A date picker widget
 django-bootstrap3-datetimepicker

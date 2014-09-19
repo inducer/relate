@@ -20,7 +20,7 @@ ALLOWED_HOSTS = [
 #     }
 # }
 
-# Recommended, because dulwich is kind of slow in retrieving stuff.
+# Recommended, because retrieving data from git can be slow.
 #
 # CACHES = {
 #   'default': {

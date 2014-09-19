@@ -40,9 +40,7 @@ CourseFlow is set apart by the following features:
 Installation
 ------------
 
-CourseFlow currently works with Python 2.7. (This is because `dulwich
-<https://www.samba.org/~jelmer/dulwich/>`_, a dependency, does not yet support
-Python 3.)
+CourseFlow currently works with Python 2.7.
 
 Install `bower <http://bower.io/>`_ and its dependencies, as described on its
 web page.
@@ -63,6 +61,10 @@ Enter the courseflow directory::
 Install the dependencies::
 
     pip install -r requirements.txt
+
+You may need to install `libgit2
+<http://www.pygit2.org/install.html#quick-install>`_ for this to go through
+without errors.
 
 Copy (and, optionally, edit) the example configuration::
 

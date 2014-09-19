@@ -51,7 +51,7 @@ def get_course_repo_path(course):
     return join(settings.GIT_ROOT, course.identifier)
 
 
-# All this because dulwich is stateful and not reentrant.
+# It's unclear that libgit2 is reentrant.
 _THREAD_LOCAL_STORAGE = threading.local()
 
 
@@ -67,8 +67,8 @@ def get_course_repo(course):
     try:
         return get_course_repos_dict()[course.pk]
     except KeyError:
-        from dulwich.repo import Repo
-        repo = Repo(get_course_repo_path(course))
+        from pygit2 import Repository
+        repo = Repository(get_course_repo_path(course))
 
         get_course_repos_dict()[course.pk] = repo
 
@@ -78,22 +78,20 @@ def get_course_repo(course):
 def get_repo_blob(repo, full_name, commit_sha):
     names = full_name.split("/")
 
-    tree_sha = repo[commit_sha].tree
-    tree = repo[tree_sha]
+    tree_or_blob = repo[commit_sha].tree
 
     try:
-        for name in names[:-1]:
-            mode, blob_sha = tree[name.encode()]
-            tree = repo[blob_sha]
+        for name in names:
+            tree_entry = tree_or_blob[name.encode()]
+            tree_or_blob = repo[tree_entry.id]
 
-        mode, blob_sha = tree[names[-1].encode()]
-        return repo[blob_sha]
+        return tree_or_blob
     except KeyError:
         raise ObjectDoesNotExist("resource '%s' not found" % full_name)
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
-    cache_key = "%%%1".join((repo.controldir(), full_name, commit_sha))
+    cache_key = "%%%1".join((repo.path, full_name, commit_sha))
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
@@ -108,7 +106,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
 
 def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
-    cache_key = "%DICT%%2".join((repo.controldir(), full_name, commit_sha))
+    cache_key = "%DICT%%2".join((repo.path, full_name, commit_sha))
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
@@ -126,7 +124,7 @@ def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     if cached:
-        cache_key = "%%%2".join((repo.controldir(), full_name, commit_sha))
+        cache_key = "%%%2".join((repo.path, full_name, commit_sha))
 
         import django.core.cache as cache
         def_cache = cache.caches["default"]
