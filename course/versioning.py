@@ -43,64 +43,50 @@ from course.models import (
         Participation, participation_role, participation_status)
 
 from course.utils import course_view, render_course_page
-import paramiko
-import paramiko.client
+import pygit2
 
 
-class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
-    def missing_host_key(self, client, hostname, key):
-        # simply accept the key
-        return
+class PyGit2RemoteWithSSHKey(pygit2.Remote):
+    def __init__(self, repo, url, ssh_private_key):
+        super(PyGit2RemoteWithSSHKey, self).__init__(repo, url)
+        self.ssh_private_key = ssh_private_key
+
+        self.fetched_tips = {}
 
 
-class DulwichParamikoSSHVendor(object):
-    def __init__(self, ssh_kwargs):
-        self.ssh_kwargs = ssh_kwargs
-
-    def run_command(self, host, command, username=None, port=None,
-                    progress_stderr=None):
-        if port is None:
-            port = 22
-
-        client = paramiko.SSHClient()
-
-        client.set_missing_host_key_policy(AutoAcceptPolicy())
-        client.connect(host, username=username, port=port,
-                       **self.ssh_kwargs)
-
-        channel = client.get_transport().open_session()
-
-        channel.exec_command(*command)
-
-        from dulwich.client import ParamikoWrapper
-        return ParamikoWrapper(
-            client, channel, progress_stderr=progress_stderr)
+CF_REMOTE_NAME = "courseflow-fetch"
 
 
-def get_dulwich_client_and_remote_path_from_course(course):
-    ssh_kwargs = {}
-    if course.ssh_private_key:
-        from StringIO import StringIO
-        key_file = StringIO(course.ssh_private_key.encode())
-        ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
+def mop_up_remote(repo):
+    for r in repo.remotes:
+        if r.name == CF_REMOTE_NAME:
+            r.delete()
 
-    def get_dulwich_ssh_vendor():
-        vendor = DulwichParamikoSSHVendor(ssh_kwargs)
-        return vendor
 
-    # writing to another module's global variable: gross!
-    import dulwich.client
-    dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor
+def get_git_remote_from_course(repo, course):
+    mop_up_remote(repo)
+    remote = repo.create_remote(
+            CF_REMOTE_NAME,
+            course.git_source)
 
-    from dulwich.client import get_transport_and_path
-    client, remote_path = get_transport_and_path(
-            course.git_source.encode())
+    try:
+        fetched_tips = {}
 
-    # Work around
-    # https://bugs.launchpad.net/dulwich/+bug/1025886
-    client._fetch_capabilities.remove('thin-pack')
+        def update_tips(refname, old, new):
+            fetched_tips[refname] = (old, new)
 
-    return client, remote_path
+        def credentials(url, username_from_url, allowed_types):
+            return pygit2.Keypair(
+                    username=username_from_url,
+                    privkey=course.ssh_private_key)
+
+        remote.update_tips = update_tips
+        remote.credentials = credentials
+
+        return remote, fetched_tips
+
+    finally:
+        mop_up_remote(repo)
 
 
 # {{{ new course setup
@@ -145,15 +131,15 @@ def set_up_new_course(request):
 
                 try:
                     with transaction.atomic():
-                        from dulwich.repo import Repo
-                        repo = Repo.init(repo_path)
+                        repo = pygit2.init_repository(
+                                repo_path,
+                                bare=True)
 
-                        client, remote_path = \
-                            get_dulwich_client_and_remote_path_from_course(
-                                    new_course)
+                        remote, fetched_tips = get_git_remote_from_course(
+                                repo, new_course)
 
-                        remote_refs = client.fetch(remote_path, repo)
-                        new_sha = repo["HEAD"] = remote_refs["HEAD"]
+                        remote.fetch()
+                        (_, new_sha), = fetched_tips.values()
 
                         from course.validation import validate_course_content
                         validate_course_content(
@@ -223,14 +209,9 @@ class GitFetchForm(StyledForm):
 
 
 def is_parent_commit(repo, potential_parent, child):
-    queue = [repo[parent] for parent in child.parents]
-
-    while queue:
-        entry = queue.pop()
-        if entry == potential_parent:
+    for commit in repo.walk(child.id):
+        if commit.id == potential_parent.id:
             return True
-
-        queue.extend(repo[parent] for parent in entry.parents)
 
     return False
 
@@ -252,19 +233,23 @@ def fetch_course_updates_inner(pctx):
                 if not pctx.course.git_source:
                     raise RuntimeError("no git source URL specified")
 
-                log_lines.append("Pre-fetch head is at '%s'" % repo.head())
+                log_lines.append("Pre-fetch head is at '%s'" % repo.head.target)
 
-                client, remote_path = \
-                    get_dulwich_client_and_remote_path_from_course(pctx.course)
+                remote, fetched_tips = get_git_remote_from_course(repo, pctx.course)
 
-                remote_refs = client.fetch(remote_path, repo)
-                remote_head = remote_refs["HEAD"]
-                if is_parent_commit(repo, repo[remote_head], repo["HEAD"]):
+                remote.fetch()
+                (_, remote_head), = fetched_tips.values()
+
+                if (repo[remote_head].id != repo[repo.head.target].id
+                        and is_parent_commit(
+                            repo,
+                            repo[remote_head],
+                            repo[repo.head.target])):
                     raise RuntimeError("fetch would discard commits, refusing")
 
-                repo["HEAD"] = remote_head
+                repo.reset(remote_head, pygit2.GIT_RESET_SOFT)
 
-                log_lines.append("Post-fetch head is at '%s'" % repo.head())
+                log_lines.append("Post-fetch head is at '%s'" % repo.head.target)
 
             except Exception:
                 was_successful = False
@@ -412,12 +397,12 @@ def update_course(pctx):
 
     if response_form is None:
         form = GitUpdateForm(previewing,
-                {"new_sha": repo.head()})
+                {"new_sha": str(repo.head.target)})
 
     text_lines = [
             "<b>Current git HEAD:</b> %s (%s)" % (
-                repo.head(),
-                repo[repo.head()].message),
+                str(repo.head.target),
+                repo[repo.head.target].message),
             "<b>Public active git SHA:</b> %s (%s)" % (
                 course.active_git_commit_sha,
                 repo[course.active_git_commit_sha.encode()].message),

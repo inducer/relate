@@ -536,11 +536,11 @@ def validate_course_content(repo, course_file, events_file,
         # That's OK--no flows yet.
         pass
     else:
-        for entry in flows_tree.items():
-            if not entry.path.endswith(".yml"):
+        for entry in flows_tree:
+            if not entry.name.endswith(".yml"):
                 continue
 
-            location = "flows/%s" % entry.path
+            location = "flows/%s" % entry.name
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
@@ -566,13 +566,21 @@ class FileSystemFakeRepo(object):
 
 
 class FileSystemFakeRepoTreeEntry(object):
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, name):
+        self.name = name
+
+    @property
+    def id(self):
+        return self
 
 
 class FileSystemFakeRepoTree(object):
     def __init__(self, root):
         self.root = root
+
+    @property
+    def id(self):
+        return self
 
     def __getitem__(self, name):
         from os.path import join, isdir, exists
@@ -581,20 +589,25 @@ class FileSystemFakeRepoTree(object):
         if not exists(name):
             raise ObjectDoesNotExist(name)
 
-        # returns mode, "sha"
         if isdir(name):
-            return None, FileSystemFakeRepoTree(name)
+            return FileSystemFakeRepoTree(name)
         else:
-            return None, FileSystemFakeRepoFile(name)
+            return FileSystemFakeRepoFile(name)
 
-    def items(self):
+    def __iter__(self):
         import os
-        return [FileSystemFakeRepoTreeEntry(n) for n in os.listdir(self.root)]
+        return iter([
+            FileSystemFakeRepoTreeEntry(n)
+            for n in os.listdir(self.root)])
 
 
 class FileSystemFakeRepoFile(object):
     def __init__(self, name):
         self.name = name
+
+    @property
+    def id(self):
+        return self
 
     @property
     def data(self):
