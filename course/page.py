@@ -442,8 +442,8 @@ class PageBaseWithTitle(PageBase):
 
 
 class PageBaseWithValue(PageBase):
-    def required_attrs(self):
-        return super(PageBaseWithValue, self).required_attrs() + (
+    def allowed_attrs(self):
+        return super(PageBaseWithValue, self).allowed_attrs() + (
                 ("value", (int, float)),
                 )
 
@@ -451,7 +451,7 @@ class PageBaseWithValue(PageBase):
         return True
 
     def max_points(self, page_data):
-        return self.page_desc.value
+        return getattr(self.page_desc, "value", 1)
 
 
 # {{{ human text feedback page base
@@ -613,11 +613,14 @@ class TextAnswerForm(StyledForm):
 class TextAnswerMatcher(object):
     """Abstract interface for matching text answers.
 
-    .. attribute:: prefix
+    .. attribute:: type
     .. attribute:: is_case_sensitive
+    .. attribute:: pattern_type
+
+        "struct" or "string"
     """
 
-    def __init__(self, location, pattern):
+    def __init__(self, vctx, location, pattern):
         pass
 
     def validate(self, s):
@@ -637,10 +640,11 @@ class TextAnswerMatcher(object):
 
 
 class CaseSensitivePlainMatcher(TextAnswerMatcher):
-    prefix = "case_sens_plain"
+    type = "case_sens_plain"
     is_case_sensitive = True
+    pattern_type = "string"
 
-    def __init__(self, location, pattern):
+    def __init__(self, vctx, location, pattern):
         self.pattern = pattern
 
     def grade(self, s):
@@ -651,19 +655,21 @@ class CaseSensitivePlainMatcher(TextAnswerMatcher):
 
 
 class PlainMatcher(CaseSensitivePlainMatcher):
-    prefix = "plain"
+    type = "plain"
     is_case_sensitive = False
+    pattern_type = "string"
 
     def grade(self, s):
         return int(self.pattern.lower() == s.lower())
 
 
 class RegexMatcher(TextAnswerMatcher):
-    prefix = "regex"
+    type = "regex"
     re_flags = re.I
     is_case_sensitive = False
+    pattern_type = "string"
 
-    def __init__(self, location, pattern):
+    def __init__(self, vctx, location, pattern):
         try:
             self.pattern = re.compile(pattern, self.re_flags)
         except:
@@ -684,9 +690,10 @@ class RegexMatcher(TextAnswerMatcher):
 
 
 class CaseSensitiveRegexMatcher(RegexMatcher):
-    prefix = "case_sens_regex"
+    type = "case_sens_regex"
     re_flags = 0
     is_case_sensitive = True
+    pattern_type = "string"
 
 
 def parse_sympy(s):
@@ -702,10 +709,11 @@ def parse_sympy(s):
 
 
 class SymbolicExpressionMatcher(TextAnswerMatcher):
-    prefix = "sym_expr"
+    type = "sym_expr"
     is_case_sensitive = True
+    pattern_type = "string"
 
-    def __init__(self, location, pattern):
+    def __init__(self, vctx, location, pattern):
         self.pattern = pattern
 
         try:
@@ -741,12 +749,62 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         return self.pattern
 
 
+class FloatMatcher(TextAnswerMatcher):
+    type = "float"
+    is_case_sensitive = False
+    pattern_type = "struct"
+
+    def __init__(self, vctx, location, matcher_desc):
+        self.matcher_desc = matcher_desc
+
+        validate_struct(
+                vctx,
+                location,
+                matcher_desc,
+                required_attrs=(
+                    ("type", str),
+                    ("value", (int, float)),
+                    ),
+                allowed_attrs=(
+                    ("rtol", (int, float)),
+                    ("atol", (int, float)),
+                    ),
+                )
+
+    def validate(self, s):
+        try:
+            float(s)
+        except:
+            tp, e, _ = sys.exc_info()
+            raise forms.ValidationError("%s: %s"
+                    % (tp.__name__, str(e)))
+
+    def grade(self, s):
+        answer_float = float(s)
+
+        if hasattr(self.matcher_desc, "atol"):
+            if (abs(answer_float - self.matcher_desc.value)
+                    >= self.matcher_desc.atol):
+                return 0
+        if hasattr(self.matcher_desc, "rtol"):
+            if (abs(answer_float - self.matcher_desc.value)
+                    / abs(self.matcher_desc.value)
+                    >= self.matcher_desc.rtol):
+                return 0
+
+        return 1
+
+    def correct_answer_text(self):
+        return str(self.matcher_desc.value)
+
+
 TEXT_ANSWER_MATCHER_CLASSES = [
         CaseSensitivePlainMatcher,
         PlainMatcher,
         RegexMatcher,
         CaseSensitiveRegexMatcher,
         SymbolicExpressionMatcher,
+        FloatMatcher,
         ]
 
 
@@ -754,31 +812,56 @@ MATCHER_RE = re.compile(r"^\<([a-zA-Z0-9_:.]+)\>(.*)$")
 MATCHER_RE_2 = re.compile(r"^([a-zA-Z0-9_.]+):(.*)$")
 
 
-def parse_matcher(vctx, location, answer):
-    match = MATCHER_RE.match(answer)
+def get_matcher_class(location, matcher_type, pattern_type):
+    for matcher_class in TEXT_ANSWER_MATCHER_CLASSES:
+        if matcher_class.type == matcher_type:
+
+            if matcher_class.pattern_type != pattern_type:
+                raise ValidationError("%s: %s only accepts '%s' patterns"
+                        % (location, matcher_class.__name__, pattern_type))
+
+            return matcher_class
+
+    raise ValidationError("%s: unknown match type '%s'"
+            % (location, matcher_type))
+
+
+def parse_matcher_string(vctx, location, matcher_desc):
+    match = MATCHER_RE.match(matcher_desc)
 
     if match is not None:
-        matcher_prefix = match.group(1)
+        matcher_type = match.group(1)
         pattern = match.group(2)
     else:
-        match = MATCHER_RE_2.match(answer)
+        match = MATCHER_RE_2.match(matcher_desc)
 
         if match is None:
             raise ValidationError("%s: does not specify match type"
                     % location)
 
-        matcher_prefix = match.group(1)
+        matcher_type = match.group(1)
         pattern = match.group(2)
 
         if vctx is not None:
             vctx.add_warning(location, "uses deprecated 'matcher:answer' style")
 
-    for matcher_class in TEXT_ANSWER_MATCHER_CLASSES:
-        if matcher_class.prefix == matcher_prefix:
-            return matcher_class(location, pattern)
+    return (get_matcher_class(location, matcher_type, "string")
+            (vctx, location, pattern))
 
-    raise ValidationError("%s: unknown match type '%s'"
-            % (location, matcher_prefix))
+
+def parse_matcher(vctx, location, matcher_desc):
+    if isinstance(matcher_desc, (str, unicode)):
+        return parse_matcher_string(vctx, location, matcher_desc)
+    else:
+        if not isinstance(matcher_desc, Struct):
+            raise ValidationError("%s: must be struct or string"
+                    % location)
+
+        if not hasattr(matcher_desc, "type"):
+            raise ValidationError("%s: matcher must supply 'type'" % location)
+
+        return (get_matcher_class(location, matcher_desc.type, "struct")
+            (vctx, location, matcher_desc))
 
 # }}}
 
@@ -1435,8 +1518,10 @@ class PythonCodeQuestionWithHumanTextFeedback(
     def required_attrs(self):
         return super(
                 PythonCodeQuestionWithHumanTextFeedback, self).required_attrs() + (
-            ("human_feedback_value", (int, float)),
-            )
+                        # value is otherwise optional, but we require it here
+                        ("value", (int, float)),
+                        ("human_feedback_value", (int, float)),
+                        )
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         """This method is appropriate if the grade consists *only* of the
