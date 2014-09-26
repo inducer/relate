@@ -1510,7 +1510,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 vctx, location, page_desc)
 
         if (vctx is not None
-                and self.page_desc.human_feedback_value >= self.page_desc.value):
+                and self.page_desc.human_feedback_value > self.page_desc.value):
             raise ValidationError(
                     "human_feedback_value greater than overall "
                     "value of question")
@@ -1552,6 +1552,11 @@ class PythonCodeQuestionWithHumanTextFeedback(
                     + grade_data["grade_percent"] / 100
                     * self.page_desc.human_feedback_value
                     ) / self.page_desc.value
+            percentage = correctness * 100
+        elif (self.page_desc.human_feedback_value == self.page_desc.value
+                and grade_data is not None
+                and grade_data["grade_percent"] is not None):
+            correctness = grade_data["grade_percent"] / 100
             percentage = correctness * 100
 
         human_feedback_percentage = None
