@@ -281,17 +281,17 @@ def fetch_course_updates_inner(pctx):
             else:
                 log = "\n".join(log_lines)
 
+            if was_successful:
+                messages.add_message(pctx.request, messages.SUCCESS,
+                        "Fetch successful.")
+                return redirect(
+                        "course.versioning.update_course",
+                        pctx.course.identifier)
+
             return render_course_page(pctx, 'course/course-bulk-result.html', {
                 "process_description": "Fetch course updates via git",
                 "log": log,
-                "status": ((
-                        "Fetch successful. "
-                        '<a href="%s" class="btn btn-primary">Update &raquo;</a>'
-                        % reverse("course.versioning.update_course",
-                            args=(pctx.course.identifier,))
-                        )
-                        if was_successful
-                        else "Pull failed. See above for error."),
+                "status": "Fetch failed. See above for error.",
                 "was_successful": was_successful,
                 })
         else:
