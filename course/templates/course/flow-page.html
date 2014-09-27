@@ -39,7 +39,7 @@
       {% endif %}
       ">
         <p>{{ feedback.feedback|safe }}</p>
-      {% if show_answer and feedback.correctness < 1 and correct_answer %}
+      {% if show_answer and correct_answer %}
         <p>{{ correct_answer|safe }}</p>
       {% endif %}
     </div>
