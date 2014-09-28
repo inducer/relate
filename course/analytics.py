@@ -289,6 +289,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                     .prefetch_related("flow_session")
                     .prefetch_related("page_data"))
 
+            answer_expected = False
+
             title = None
             for visit in visits:
                 flow_commit_sha = get_flow_commit_sha(
@@ -296,6 +298,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         visit.flow_session)
                 page = page_cache.get_page(group_desc.id, page_desc.id,
                         flow_commit_sha)
+
+                answer_expected = answer_expected or page.expects_answer()
 
                 from course.page import PageContext
                 grading_page_context = PageContext(
@@ -316,6 +320,9 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         points += answer_feedback.correctness
 
                     total_count += 1
+
+            if not answer_expected:
+                continue
 
             page_info_list.append(
                     PageAnswerStats(
