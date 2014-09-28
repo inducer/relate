@@ -38,14 +38,15 @@
           style="width: {{ astats.average_correctness_percent|floatformat:1 }}%">
           <span class="stats-percentage">{{ astats.average_correctness_percent|floatformat:1 }}%</span>
         </div>
-        <div class="progress-bar progress-bar-warning" role="progressbar"
-          aria-valuenow="{{ astats.average_emptiness_percent }}" aria-valuemin="0" aria-valuemax="100"
-          style="width: {{ astats.average_emptiness_percent|floatformat:1 }}%">
-          <span class="stats-percentage">{{ astats.average_emptiness_percent|floatformat:1 }}%</span>
         <div class="progress-bar progress-bar-danger" role="progressbar"
           aria-valuenow="{{ astats.average_wrongness_percent }}" aria-valuemin="0" aria-valuemax="100"
           style="width: {{ astats.average_wrongness_percent|floatformat:1 }}%">
           <span class="stats-percentage">{{ astats.average_wrongness_percent|floatformat:1 }}%</span>
+        </div>
+        <div class="progress-bar progress-bar-warning" role="progressbar"
+          aria-valuenow="{{ astats.average_emptiness_percent }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ astats.average_emptiness_percent|floatformat:1 }}%">
+          <span class="stats-percentage">{{ astats.average_emptiness_percent|floatformat:1 }}%</span>
         </div>
       </div>
     </div>
