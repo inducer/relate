@@ -13,6 +13,9 @@
 
 - What if access rules cease to exist?
 
+- Granting exceptions should switch the user's current session
+  to the new rule.
+
 Ideas
 =====
 

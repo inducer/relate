@@ -39,7 +39,7 @@
       <tr>
         <td>{{ grade_info.opportunity.name }}</td>
         <td>
-          <a href="{% url "course.grades.view_single_grade" course.identifier participation.id grade_info.opportunity.id %}"
+          <a href="{% url "course.grades.view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
             >{{ grade_info.grade_state_machine.stringify_state }}</a>
         </td>
         <td>
