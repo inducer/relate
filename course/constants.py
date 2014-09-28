@@ -80,6 +80,7 @@ class flow_permission:
     see_correctness = "see_correctness"
     see_correctness_after_completion = "see_correctness_after_completion"
     see_answer = "see_answer"
+    see_answer_after_completion = "see_answer_after_completion"
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view, "View the flow"),
@@ -92,6 +93,8 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.see_correctness_after_completion,
             "See whether an answer is correct after completing the flow"),
         (flow_permission.see_answer, "See the correct answer"),
+        (flow_permission.see_answer_after_completion,
+            "See the correct answer after completing the flow"),
         )
 
 
