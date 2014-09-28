@@ -515,6 +515,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     state_machine = GradeStateMachine()
     state_machine.consume(grade_changes, set_is_superseded=True)
 
+    flow_grade_aggregation_strategy_text = None
+
     if opportunity.flow_id is not None:
         flow_sessions = list(FlowSession.objects
                 .filter(
@@ -533,21 +535,23 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         from course.utils import (
                 get_flow_access_rules,
                 get_relevant_rules)
-        all_flow_rules = get_flow_access_rules(pctx.course, pctx.participation,
-                opportunity.flow_id, flow_desc)
+        all_flow_rules = get_flow_access_rules(pctx.course,
+                participation, opportunity.flow_id, flow_desc)
 
         relevant_flow_rules = get_relevant_rules(
                 all_flow_rules, pctx.participation.role, now())
 
-        flow_grade_aggregation_strategy = getattr(
-                flow_desc, "grade_aggregation_strategy", None)
+        if hasattr(flow_desc, "grade_aggregation_strategy"):
+            from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
+            flow_grade_aggregation_strategy_text = (
+                    dict(GRADE_AGGREGATION_STRATEGY_CHOICES)
+                    [flow_desc.grade_aggregation_strategy])
 
         # }}}
 
     else:
         flow_sessions = None
         relevant_flow_rules = None
-        flow_grade_aggregation_strategy = None
 
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
@@ -563,7 +567,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             ],
 
         "flow_rules": relevant_flow_rules,
-        "flow_grade_aggregation_strategy": flow_grade_aggregation_strategy,
+        "flow_grade_aggregation_strategy": flow_grade_aggregation_strategy_text,
         })
 
 # }}}

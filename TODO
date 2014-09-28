@@ -2,9 +2,6 @@
 
 - Fix docker reliability
 
-- Don't display 'max_grade' in grade book rules display
-- Use exceptions in grade book rules display
-
 - Supply data to cfrunpy
 
 - Unanswered questions for unanswered statistics q?
