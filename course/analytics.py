@@ -307,7 +307,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
                 if (answer_feedback is not None
                         and answer_feedback.correctness is not None):
-                    if visit.answer_data is not None:
+                    if visit.answer is not None:
                         answer_count += 1
                         assert answer_feedback.correctness == 0
                     else:
