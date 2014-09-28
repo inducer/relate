@@ -29,13 +29,19 @@
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
       {{ astats.title }}
-      ({{ astats.answer_count }} response{{ astats.answer_count|pluralize }})
+      ({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
+      {{ astats.total_count }} response{{ astats.total_count|pluralize }} total)
 
       <div class="progress">
-        <div class="progress-bar progress-bar-info" role="progressbar"
+        <div class="progress-bar progress-bar-success" role="progressbar"
           aria-valuenow="{{ astats.average_correctness_percent }}" aria-valuemin="0" aria-valuemax="100"
           style="width: {{ astats.average_correctness_percent|floatformat:1 }}%">
           <span class="stats-percentage">{{ astats.average_correctness_percent|floatformat:1 }}%</span>
+        </div>
+        <div class="progress-bar progress-bar-warning" role="progressbar"
+          aria-valuenow="{{ astats.average_emptiness_percent }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ astats.average_emptiness_percent|floatformat:1 }}%">
+          <span class="stats-percentage">{{ astats.average_emptiness_percent|floatformat:1 }}%</span>
         </div>
       </div>
     </div>

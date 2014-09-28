@@ -238,11 +238,12 @@ def make_grade_histogram(pctx, flow_identifier):
 
 class PageAnswerStats(object):
     def __init__(self, group_id, page_id, title, average_correctness,
-            answer_count, url=None):
+            average_emptiness, answer_count, url=None):
         self.group_id = group_id
         self.page_id = page_id
         self.title = title
         self.average_correctness_percent = 100*average_correctness
+        self.average_emptiness_percent = 100*average_emptiness
         self.answer_count = answer_count
         self.url = url
 
@@ -265,7 +266,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     for group_desc in flow_desc.groups:
         for page_desc in group_desc.pages:
             points = 0
-            count = 0
+            answer_count = 0
+            total_count = 0
 
             visits = (FlowPageVisit.objects
                     .filter(
@@ -304,16 +306,24 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
                 if (answer_feedback is not None
                         and answer_feedback.correctness is not None):
-                    count += 1
-                    points += answer_feedback.correctness
+                    if visit.answer_data is not None:
+                        answer_count += 1
+                        assert answer_feedback.correctness == 0
+                    else:
+                        points += answer_feedback.correctness
+
+                    total_count += 1
 
             page_info_list.append(
                     PageAnswerStats(
                         group_id=group_desc.id,
                         page_id=page_desc.id,
                         title=title,
-                        average_correctness=safe_div(points, count),
-                        answer_count=count,
+                        average_correctness=safe_div(points, total_count),
+                        average_emptiness=safe_div(
+                            total_count - answer_count, total_count),
+                        answer_count=answer_count,
+                        total_count=total_count,
                         url=reverse(
                             "course.analytics.page_analytics",
                             args=(
