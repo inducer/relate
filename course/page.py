@@ -431,14 +431,58 @@ class PageBase(object):
 
 # {{{ utility base classes
 
+TITLE_RE = re.compile(ur"^\#\s*(\w.*)", re.UNICODE)
+
+
+def extract_title_from_markup(markup_text):
+    lines = markup_text.split("\n")
+
+    for l in lines[:5]:
+        match = TITLE_RE.match(l)
+        if match is not None:
+            return match.group(1)
+
+    return None
+
+
 class PageBaseWithTitle(PageBase):
-    def required_attrs(self):
-        return super(PageBaseWithTitle, self).required_attrs() + (
+    def __init__(self, vctx, location, page_desc):
+        super(PageBaseWithTitle, self).__init__(vctx, location, page_desc)
+
+        title = None
+        try:
+            title = self.page_desc.title
+        except AttributeError:
+            pass
+
+        if title is None:
+            try:
+                md_body = self.markup_body_for_title()
+            except NotImplementedError:
+                from warnings import warn
+                warn("PageBaseWithTitle subclass '%s' does not implement "
+                        "markdown_body_for_title()"
+                        % type(self).__name__)
+            else:
+                title = extract_title_from_markup(md_body)
+
+        if title is None:
+            raise ValidationError(
+                    "%s: no title found in body or title attribute"
+                    % (location))
+
+        self._title = title
+
+    def allowed_attrs(self):
+        return super(PageBaseWithTitle, self).allowed_attrs() + (
                 ("title", str),
                 )
 
+    def markup_body_for_title(self):
+        raise NotImplementedError()
+
     def title(self, page_context, page_data):
-        return self.page_desc.title
+        return self._title
 
 
 class PageBaseWithValue(PageBase):
@@ -558,7 +602,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
 class PageBaseWithCorrectAnswer(PageBase):
     def allowed_attrs(self):
-        return super(PageBaseWithCorrectAnswer, self).required_attrs() + (
+        return super(PageBaseWithCorrectAnswer, self).allowed_attrs() + (
             ("correct_answer", "markup"),
             )
 
@@ -580,6 +624,9 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle):
         return super(Page, self).required_attrs() + (
             ("content", "markup"),
             )
+
+    def markup_body_for_title(self):
+        return self.page_desc.content
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.content)
@@ -892,6 +939,9 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("answers", list),
                 )
 
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
+
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
@@ -1002,6 +1052,9 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         return super(ChoiceQuestion, self).allowed_attrs() + (
                 ("shuffle", bool),
                 )
+
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
@@ -1286,6 +1339,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             return result.strip()
         else:
             return result
+
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
 
     def body(self, page_context, page_data):
         from django.template.loader import render_to_string
@@ -1640,6 +1696,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         return super(FileUploadQuestion, self).allowed_attrs() + (
                 ("correct_answer", "markup"),
                 )
+
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
