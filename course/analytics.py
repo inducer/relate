@@ -238,13 +238,14 @@ def make_grade_histogram(pctx, flow_identifier):
 
 class PageAnswerStats(object):
     def __init__(self, group_id, page_id, title, average_correctness,
-            average_emptiness, answer_count, url=None):
+            average_emptiness, answer_count, total_count, url=None):
         self.group_id = group_id
         self.page_id = page_id
         self.title = title
         self.average_correctness_percent = 100*average_correctness
         self.average_emptiness_percent = 100*average_emptiness
         self.answer_count = answer_count
+        self.total_count = total_count
         self.url = url
 
 
