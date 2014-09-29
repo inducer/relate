@@ -11,7 +11,7 @@
   margin-bottom:0px;
 }
 
-.flow-progress > div {
+.flow-progress div {
   background-color:#ddd;
   text-color:#eee;
 }

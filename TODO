@@ -11,8 +11,6 @@
 - Granting exceptions should switch the user's current session
   to the new rule.
 
-- Generic flow regrade (also for not-for-credit)
-
 Ideas
 =====
 
