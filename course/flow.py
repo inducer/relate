@@ -32,19 +32,25 @@ from django.core.exceptions import (
         ObjectDoesNotExist)
 from django.db import transaction
 from django.utils.safestring import mark_safe
-from course.views import get_now_or_fake_time
+from django import forms
+
+from courseflow.utils import StyledForm
+from crispy_forms.layout import Submit
 
 import re
 
+from course.constants import (
+        flow_permission,
+        participation_role)
 from course.models import (
         FlowSession, FlowPageData, FlowPageVisit, FlowPageVisitGrade,
-        flow_permission,
         GradeChange)
 
 from course.utils import (
         FlowContext, FlowPageContext,
         instantiate_flow_page_with_ctx,
         course_view, render_course_page)
+from course.views import get_now_or_fake_time
 
 
 # {{{ grade page visit
@@ -375,7 +381,12 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
     from django.utils.timezone import now
-    flow_session.completion_time = now()
+    if flow_session.completion_time is None:
+        # We shouldn't change completion_time. It reflects when the student
+        # *actually* finished the session.
+
+        flow_session.completion_time = now()
+
     flow_session.in_progress = False
 
     return grade_flow_session(fctx, flow_session, current_access_rule,
@@ -461,7 +472,10 @@ def reopen_session(session, force=False):
     session.in_progress = True
     session.points = None
     session.max_points = None
-    session.completion_time = None
+
+    # We shouldn't change completion_time. It reflects when the student
+    # finished the session.
+
     session.save()
 
 
@@ -485,8 +499,21 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False):
 
 @transaction.atomic
 def regrade_session(repo, course, session):
-    reopen_session(session, force=True)
-    finish_flow_session_standalone(repo, course, session, force_regrade=True)
+    if session.in_progress:
+        fctx = FlowContext(repo, course, session.flow_id, flow_session=session)
+
+        answer_visits = assemble_answer_visits(session)
+
+        for i in range(len(answer_visits)):
+            answer_visit = answer_visits[i]
+
+            if answer_visit is not None and answer_visit.get_most_recent_grade():
+                # Only make a new grade if there already is one.
+                grade_page_visit(answer_visit,
+                        graded_at_git_commit_sha=fctx.flow_commit_sha)
+    else:
+        reopen_session(session, force=True)
+        finish_flow_session_standalone(repo, course, session, force_regrade=True)
 
 # }}}
 
@@ -1111,8 +1138,6 @@ def finish_flow_session_view(pctx, flow_identifier):
                     last_page_nr=None,
                     completion_text=completion_text)
 
-            # }}}
-
     if (not is_graded_flow
             and fctx.flow_commit_sha == fctx.course_commit_sha):
         # Not serious--no questions in flow, and no new version available.
@@ -1140,6 +1165,93 @@ def finish_flow_session_view(pctx, flow_identifier):
                 answered_count=answered_count,
                 unanswered_count=unanswered_count,
                 total_count=answered_count+unanswered_count)
+
+# }}}
+
+
+# {{{ view: regrade flow
+
+class RegradeFlowForm(StyledForm):
+    def __init__(self, flow_ids, *args, **kwargs):
+        super(RegradeFlowForm, self).__init__(*args, **kwargs)
+
+        self.fields["flow_id"] = forms.ChoiceField(
+                choices=[(fid, fid) for fid in flow_ids],
+                initial=participation_role.student,
+                required=True)
+        self.fields["access_rules_id"] = forms.CharField(
+                required=False,
+                help_text="If non-empty, limit the regrading to sessions started "
+                "under this access rules ID.")
+        self.fields["regraded_session_in_progress"] = forms.ChoiceField(
+                choices=(
+                    ("any", "Regrade in-progress and not-in-progress sessions"),
+                    ("yes", "Regrade in-progress sessions only"),
+                    ("no", "Regrade not-in-progress sessions only"),
+                    ))
+
+        self.helper.add_input(
+                Submit("regrade", "Regrade", css_class="col-lg-offset-2"))
+
+
+@transaction.atomic
+def _regrade_sessions(repo, course, sessions):
+    count = 0
+
+    from course.flow import regrade_session
+    for session in sessions:
+        regrade_session(repo, course, session)
+        count += 1
+
+    return count
+
+
+@course_view
+def regrade_not_for_credit_flows_view(pctx):
+    if pctx.role != participation_role.instructor:
+        raise PermissionDenied("must be instructor to regrade flows")
+
+    from course.content import list_flow_ids
+    flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
+
+    request = pctx.request
+    if request.method == "POST":
+        form = RegradeFlowForm(flow_ids, request.POST, request.FILES)
+        if form.is_valid():
+            sessions = (FlowSession.objects
+                    .filter(
+                        course=pctx.course,
+                        flow_id=form.cleaned_data["flow_id"],
+                        for_credit=False))
+            if form.cleaned_data["access_rules_id"]:
+                sessions = sessions.filter(
+                        access_rules_id=form.cleaned_data["access_rules_id"])
+
+            inprog_value = {
+                    "any": None,
+                    "yes": True,
+                    "no": False,
+                    }[form.cleaned_data["regraded_session_in_progress"]]
+
+            if inprog_value is not None:
+                sessions = sessions.filter(
+                        in_progress=inprog_value)
+
+            count = _regrade_sessions(pctx.repo, pctx.course, sessions)
+
+            messages.add_message(request, messages.SUCCESS,
+                    "%d sessions regraded." % count)
+    else:
+        form = RegradeFlowForm(flow_ids)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_text":
+        "<p>This regrading process only considers not-for-credit flow "
+        "sessions. If you would like to regrade for-credit flows, "
+        "use the corresponding functionality in the grade book.</p>",
+        "form_description": "Regrade not-for-credit Flow Sessions",
+    })
 
 # }}}
 

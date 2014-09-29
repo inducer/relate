@@ -247,25 +247,8 @@ def manage_instant_flow_requests(pctx):
     if pctx.role != participation_role.instructor:
         raise PermissionDenied("must be instructor to manage instant flow requests")
 
-    # {{{ find available flow ids
-
-    from course.content import get_repo_blob
-
-    flow_ids = []
-    try:
-        flows_tree = get_repo_blob(pctx.repo, "flows",
-                pctx.course_commit_sha)
-    except ObjectDoesNotExist:
-        # That's OK--no flows yet.
-        pass
-    else:
-        for entry in flows_tree.items():
-            if entry.path.endswith(".yml"):
-                flow_ids.append(entry.path[:-4])
-
-    flow_ids.sort()
-
-    # }}}
+    from course.content import list_flow_ids
+    flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
 
     request = pctx.request
     if request.method == "POST":

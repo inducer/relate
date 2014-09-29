@@ -206,6 +206,12 @@ urlpatterns = patterns('',
         "/$",
         "course.views.manage_instant_flow_requests",),
 
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/regrade-not-for-credit-flows"
+        "/$",
+        "course.flow.regrade_not_for_credit_flows_view",),
+
     # }}}
 
     # {{{ analytics

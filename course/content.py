@@ -696,4 +696,18 @@ def get_flow_commit_sha(course, participation, flow_desc, flow_session):
         return flow_session.active_git_commit_sha.encode()
 
 
+def list_flow_ids(repo, commit_sha):
+    flow_ids = []
+    try:
+        flows_tree = get_repo_blob(repo, "flows", commit_sha)
+    except ObjectDoesNotExist:
+        # That's OK--no flows yet.
+        pass
+    else:
+        for entry in flows_tree.items():
+            if entry.path.endswith(".yml"):
+                flow_ids.append(entry.path[:-4])
+
+    return sorted(flow_ids)
+
 # vim: foldmethod=marker
