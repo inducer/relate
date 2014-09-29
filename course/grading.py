@@ -88,6 +88,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # {{{ reproduce student view
 
+    form = None
+    feedback = None
+    answer_data = None
+
     if fpctx.page.expects_answer():
         if fpctx.prev_answer_visit is not None:
             answer_data = fpctx.prev_answer_visit.answer
@@ -112,9 +116,6 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         form = fpctx.page.make_form(
                 fpctx.page_context, fpctx.page_data.data,
                 answer_data, answer_is_final=True)
-    else:
-        form = None
-        feedback = None
 
     if form is not None:
         form_html = fpctx.page.form_to_html(
