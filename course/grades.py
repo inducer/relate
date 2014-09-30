@@ -632,7 +632,7 @@ class ImportGradesForm(StyledForm):
 
 
 def find_participant_from_id(course, id_str):
-    id_str = id_str.strip()
+    id_str = id_str.strip().lower()
 
     matches = (Participation.objects
             .filter(
@@ -643,11 +643,11 @@ def find_participant_from_id(course, id_str):
 
     surviving_matches = []
     for match in matches:
-        if match.user.email == id_str:
+        if match.user.email.lower() == id_str:
             surviving_matches.append(match)
             continue
 
-        email = match.user.email
+        email = match.user.email.lower()
         at_index = email.index("@")
         assert at_index > 0
         uid = email[:at_index]
