@@ -61,10 +61,12 @@ def view_participant_grades(pctx, participation_id=None):
     if pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        pass
+        is_student_viewing = False
     elif pctx.role == participation_role.student:
         if grade_participation != pctx.participation:
             raise PermissionDenied("may not view other people's grades")
+
+        is_student_viewing = True
     else:
         raise PermissionDenied()
 
@@ -94,6 +96,14 @@ def view_participant_grades(pctx, participation_id=None):
 
     grade_table = []
     for opp in grading_opps:
+        if is_student_viewing:
+            if not (opp.shown_in_grade_book
+                    and opp.shown_in_student_grade_book):
+                continue
+        else:
+            if not opp.shown_in_grade_book:
+                continue
+
         while (
                 idx < len(grade_changes)
                 and grade_changes[idx].opportunity.identifier < opp.identifier
@@ -435,17 +445,23 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     if participation.course != pctx.course:
         raise SuspiciousOperation("participation does not match course")
 
+    opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
+
     if pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        pass
+        if opportunity.shown_in_grade_book:
+            messages.add_message(pctx.request, messages.INFO,
+                    "This grade is not shown in the grade book.")
+
     elif pctx.role == participation_role.student:
         if participation != pctx.participation:
             raise PermissionDenied("may not view other people's grades")
+        if not (opportunity.shown_in_grade_book
+                and opportunity.shown_in_student_grade_book):
+            raise PermissionDenied("grade has not been released")
     else:
         raise PermissionDenied()
-
-    opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
     # {{{ modify sessions buttons
 

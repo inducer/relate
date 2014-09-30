@@ -567,6 +567,7 @@ class GradingOpportunity(models.Model):
     creation_time = models.DateTimeField(default=now)
 
     shown_in_grade_book = models.BooleanField(default=True)
+    shown_in_student_grade_book = models.BooleanField(default=True)
 
     class Meta:
         verbose_name_plural = "grading opportunities"
