@@ -533,7 +533,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     flow_grade_aggregation_strategy_text = None
 
-    if opportunity.flow_id is not None:
+    if opportunity.flow_id:
         flow_sessions = list(FlowSession.objects
                 .filter(
                     participation=participation,
