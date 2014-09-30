@@ -450,9 +450,12 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     if pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        if opportunity.shown_in_grade_book:
+        if not opportunity.shown_in_grade_book:
             messages.add_message(pctx.request, messages.INFO,
                     "This grade is not shown in the grade book.")
+        if not opportunity.shown_in_student_grade_book:
+            messages.add_message(pctx.request, messages.INFO,
+                    "This grade is not shown in the student grade book.")
 
     elif pctx.role == participation_role.student:
         if participation != pctx.participation:
