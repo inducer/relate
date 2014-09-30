@@ -637,7 +637,7 @@ def find_participant_from_id(course, id_str):
     matches = (Participation.objects
             .filter(
                 course=course,
-                role=participation_role.student,
+                status=participation_status.active,
                 user__email__istartswith=id_str)
             .prefetch_related("user"))
 
