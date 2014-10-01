@@ -674,14 +674,16 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
 
     import csv
 
+    total_count = 0
     spamreader = csv.reader(file_contents)
     for row in spamreader:
         if has_header:
             has_header = False
             continue
 
+        total_count += 1
+
         gchange = GradeChange()
-        result.append(gchange)
         gchange.opportunity = grading_opportunity
         gchange.participation = find_participant_from_id(course, row[id_column-1])
         gchange.state = grade_state_change_types.graded
@@ -694,7 +696,25 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
         gchange.creator = creator
         gchange.grade_time = grade_time
 
-    return result
+        last_grades = (GradeChange.objects
+                .filter(
+                    opportunity=grading_opportunity,
+                    participation=gchange.participation,
+                    attempt_id=gchange.attempt_id)
+                .order_by("-grade_time")[:1])
+
+        if last_grades.count():
+            last_grade, = last_grades
+
+            if (last_grade.status == grade_state_change_types.graded
+                    and last_grade.points == gchange.points
+                    and last_grade.max_points == gchange.max_points
+                    and last_grade.comment == gchange.comment):
+                continue
+
+            result.append(gchange)
+
+    return total_count, result
 
 
 @course_view
@@ -712,7 +732,7 @@ def import_grades(pctx):
         is_import = "import" in request.POST
         if form.is_valid():
             try:
-                grade_changes = csv_to_grade_changes(
+                total_count, grade_changes = csv_to_grade_changes(
                         course=pctx.course,
                         grading_opportunity=form.cleaned_data["grading_opportunity"],
                         attempt_id=form.cleaned_data["attempt_id"],
@@ -728,6 +748,11 @@ def import_grades(pctx):
                 messages.add_message(pctx.request, messages.ERROR,
                         "Error: %s %s" % (type(e).__name__, str(e)))
             else:
+                if total_count != len(grade_changes):
+                    messages.add_message(pctx.request, messages.INFO,
+                            "%d grades found, %d unchanged."
+                            % (total_count, total_count - len(grade_changes)))
+
                 if is_import:
                     GradeChange.objects.bulk_create(grade_changes)
                     messages.add_message(pctx.request, messages.SUCCESS,
