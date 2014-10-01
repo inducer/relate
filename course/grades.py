@@ -706,7 +706,7 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
         if last_grades.count():
             last_grade, = last_grades
 
-            if (last_grade.status == grade_state_change_types.graded
+            if (last_grade.state == grade_state_change_types.graded
                     and last_grade.points == gchange.points
                     and last_grade.max_points == gchange.max_points
                     and last_grade.comment == gchange.comment):
