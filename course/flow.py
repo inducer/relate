@@ -53,6 +53,15 @@ from course.utils import (
 from course.views import get_now_or_fake_time
 
 
+def get_flow_session_id_map(request):
+    result = request.session.setdefault("flow_session_id_map", {})
+
+    # Tell Django: This session has been modified, persist it.
+    request.session["flow_session_id_map"] = result
+
+    return result
+
+
 # {{{ grade page visit
 
 def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
@@ -589,7 +598,7 @@ def start_flow(pctx, flow_identifier):
                     or resume_session.in_progress):
                 raise PermissionDenied("not allowed to resume session")
 
-            request.session["flow_session_id"] = resume_session_id
+            get_flow_session_id_map(request)[flow_identifier] = resume_session_id
 
             return redirect("course.flow.view_flow_page",
                     pctx.course.identifier,
@@ -621,7 +630,7 @@ def start_flow(pctx, flow_identifier):
             session.access_rules_id = current_access_rule.id
             session.save()
 
-            request.session["flow_session_id"] = session.id
+            get_flow_session_id_map(request)[flow_identifier] = session.id
 
             page_count = set_up_flow_session_page_data(fctx.repo, session,
                     pctx.course.identifier, fctx.flow_desc, fctx.flow_commit_sha)
@@ -694,7 +703,7 @@ def start_flow(pctx, flow_identifier):
 
 def find_current_flow_session(request, course, flow_identifier):
     flow_session = None
-    flow_session_id = request.session.get("flow_session_id")
+    flow_session_id = get_flow_session_id_map(request).get(flow_identifier)
 
     if flow_session_id is not None:
         try:
@@ -1122,7 +1131,7 @@ def finish_flow_session_view(pctx, flow_identifier):
             raise PermissionDenied("Can't end a session that's already ended")
 
         # Actually end the flow session
-        request.session["flow_session_id"] = None
+        get_flow_session_id_map(request)[flow_identifier] = None
 
         grade_info = finish_flow_session(fctx, flow_session, current_access_rule)
 
