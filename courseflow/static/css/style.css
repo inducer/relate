@@ -39,6 +39,14 @@ code {
   color: #333;
 }
 
+.cf-calendar-event:target .panel-heading {
+  background-color: #ddf;
+}
+
+.cf-calendar-event:target .panel-body {
+  background-color: #f8f8f8;
+}
+
 /* {{{ histograms */
 
 div.histogram > table {
