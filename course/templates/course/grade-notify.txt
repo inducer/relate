@@ -1,0 +1,15 @@
+Dear {{ participation.user.first_name }},
+
+You have a new notification regarding your work on the problem
+with title
+
+  {{ page_title }}
+
+in {{ flow_session.flow_id }} of {{ course.identifier }}. The
+full text of the feedback follows.
+
+-------------------------------------------------------------------
+{{ feedback_text|safe }}
+-------------------------------------------------------------------
+
+- CourseFlow staff

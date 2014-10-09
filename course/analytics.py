@@ -305,7 +305,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                 grading_page_context = PageContext(
                         course=pctx.course,
                         repo=pctx.repo,
-                        commit_sha=flow_commit_sha)
+                        commit_sha=flow_commit_sha,
+                        flow_session=visit.flow_session)
 
                 title = page.title(grading_page_context, visit.page_data.data)
 
@@ -460,7 +461,8 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
         grading_page_context = PageContext(
                 course=pctx.course,
                 repo=pctx.repo,
-                commit_sha=flow_commit_sha)
+                commit_sha=flow_commit_sha,
+                flow_session=visit.flow_session)
 
         title = page.title(grading_page_context, visit.page_data.data)
         body = page.body(grading_page_context, visit.page_data.data)

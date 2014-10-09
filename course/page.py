@@ -28,6 +28,7 @@ from course.validation import validate_struct, ValidationError, validate_markup
 from course.content import remove_prefix
 from django.utils.safestring import mark_safe
 import django.forms as forms
+from django.contrib import messages
 
 from courseflow.utils import StyledForm, Struct
 
@@ -50,15 +51,17 @@ class PageContext(object):
     .. attribute:: course
     .. attribute:: repo
     .. attribute:: commit_sha
+    .. attribute:: flow_session
 
     Note that this is different from :class:`course.utils.FlowPageContext`,
     which is used internally by the flow views.
     """
 
-    def __init__(self, course, repo, commit_sha):
+    def __init__(self, course, repo, commit_sha, flow_session):
         self.course = course
         self.repo = repo
         self.commit_sha = commit_sha
+        self.flow_session = flow_session
 
 
 def markup_to_html(page_context, text):
@@ -515,6 +518,11 @@ class HumanTextFeedbackForm(StyledForm):
             required=False,
             help_text="Feedback to be shown to student, using "
             "CourseFlow-flavored Markdown")
+    notify = forms.BooleanField(
+            initial=False, required=False,
+            help_text="Checking this box and submitting the form "
+            "will notify the participant "
+            "with a generic message containing the feedback text")
     notes = forms.CharField(
             widget=forms.Textarea(),
             help_text="Internal notes, not shown to student",
@@ -553,6 +561,26 @@ class PageBaseWithHumanTextFeedback(PageBase):
             grade_data = {}
         for k in self.grade_data_attrs:
             grade_data[k] = grading_form.cleaned_data[k]
+
+        if grading_form.cleaned_data["notify"]:
+            from django.template.loader import render_to_string
+            message = render_to_string("course/grade-notify.txt", {
+                "page_title": self.title(page_context, page_data),
+                "course": page_context.course,
+                "participation": page_context.flow_session.participation,
+                "feedback_text": grade_data["feedback_text"],
+                "flow_session": page_context.flow_session,
+                })
+
+            from django.core.mail import send_mail
+            from django.conf import settings
+            send_mail("[%s:%s] New notification"
+                    % (page_context.course.identifier,
+                        page_context.flow_session.flow_id),
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[
+                        page_context.flow_session.participation.user.email])
 
         return grade_data
 

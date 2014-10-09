@@ -339,7 +339,8 @@ class FlowPageContext(FlowContext):
             from course.page import PageContext
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
-                    commit_sha=self.flow_commit_sha)
+                    commit_sha=self.flow_commit_sha,
+                    flow_session=flow_session)
 
         # {{{ dig for previous answers
 

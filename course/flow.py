@@ -111,7 +111,8 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     grading_page_context = PageContext(
             course=course,
             repo=repo,
-            commit_sha=flow_commit_sha)
+            commit_sha=flow_commit_sha,
+            flow_session=flow_session)
 
     answer_feedback = page.grade(
             grading_page_context, visit.page_data.data,
