@@ -82,7 +82,7 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc,
                 .filter(
                     participation=participation,
                     flow_id=flow_id)
-                .order_by("expiration")):
+                .order_by("-creation_time")):
 
             attrs = {
                     "is_exception": True,
