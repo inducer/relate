@@ -242,7 +242,6 @@ class InstantFlowRequestForm(StyledForm):
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
-                initial=participation_role.student,
                 required=True)
         self.fields["duration_in_minutes"] = forms.IntegerField(
                 required=True, initial=20)
