@@ -11,6 +11,12 @@
 - Granting exceptions should switch the user's current session
   to the new rule.
 
+- flow overview
+
+- code window resize
+
+- escape student answers in analytics
+
 Ideas
 =====
 
@@ -32,8 +38,6 @@ Ideas
 - record end flow with a null page visit
 
 - web hooks for auto-fetch and auto-preview
-
-- flow overview
 
 - Flow group ordering, max page count, question/page tags
 
