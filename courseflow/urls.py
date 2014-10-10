@@ -212,6 +212,26 @@ urlpatterns = patterns('',
         "/$",
         "course.flow.regrade_not_for_credit_flows_view",),
 
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grant-exception"
+        "/$",
+        "course.views.grant_exception",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grant-exception"
+        "/(?P<participation_id>[0-9]+)"
+        "/(?P<flow_id>[-a-zA-Z0-9]+)"
+        "/$",
+        "course.views.grant_exception_stage_2",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grant-exception"
+        "/(?P<participation_id>[0-9]+)"
+        "/(?P<flow_id>[-a-zA-Z0-9]+)"
+        "/(?P<base_ruleset>[-_a-zA-Z0-9]+)"
+        "/$",
+        "course.views.grant_exception_stage_3",),
     # }}}
 
     # {{{ analytics

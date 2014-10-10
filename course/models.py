@@ -458,32 +458,6 @@ def validate_stipulations(stip):
         raise ValidationError("allowed_session_count must be a non-negative integer")
 
 
-def _get_current_access_rule(participation, flow_id):
-    course = participation.course
-
-    from course.content import (
-            get_course_repo,
-            get_course_commit_sha,
-            get_flow_desc)
-
-    repo = get_course_repo(course)
-
-    course_commit_sha = get_course_commit_sha(course, participation)
-
-    try:
-        flow_desc = get_flow_desc(repo, course,
-                flow_id.encode(), course_commit_sha)
-    except ObjectDoesNotExist:
-        return None
-    else:
-        from course.utils import get_current_flow_access_rule
-        from django.utils.timezone import now
-
-        return get_current_flow_access_rule(course, participation,
-                participation.role, flow_id, flow_desc,
-                now(), rule_id=None, use_exceptions=False)
-
-
 class FlowAccessException(models.Model):
     participation = models.ForeignKey(Participation, db_index=True)
     flow_id = models.CharField(max_length=200, blank=False, null=False)
@@ -505,30 +479,6 @@ class FlowAccessException(models.Model):
         return "Access exception for '%s' to '%s' in '%s'" % (
                 self.participation.user, self.flow_id,
                 self.participation.course)
-
-    def save(self, *args, **kwargs):
-        if self.stipulations is None:
-            rule = _get_current_access_rule(self.participation, self.flow_id)
-
-            if rule is not None:
-                self.stipulations = {}
-                if rule.allowed_session_count is not None:
-                    self.stipulations["allowed_session_count"] = \
-                            rule.allowed_session_count
-                if rule.credit_percent is not None:
-                    self.stipulations["credit_percent"] = \
-                            rule.credit_percent
-
-        super(FlowAccessException, self).save(*args, **kwargs)
-
-        if not self.entries.count():
-            rule = _get_current_access_rule(self.participation, self.flow_id)
-            if rule is not None:
-                for perm in rule.permissions:
-                    faee = FlowAccessExceptionEntry()
-                    faee.exception = self
-                    faee.permission = perm
-                    faee.save()
 
 
 class FlowAccessExceptionEntry(models.Model):

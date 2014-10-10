@@ -32,6 +32,8 @@ from django.core.exceptions import (
 import django.forms as forms
 import django.views.decorators.http as http_dec
 from django import http
+from django.utils.safestring import mark_safe
+from django.db import transaction
 
 from django.views.decorators.cache import cache_control
 
@@ -41,9 +43,18 @@ from courseflow.utils import StyledForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_role_and_participation
+from course.constants import (
+        participation_role,
+        participation_status,
+        FLOW_PERMISSION_CHOICES,
+        )
 from course.models import (
-        Course, participation_role,
-        InstantFlowRequest)
+        Course,
+        InstantFlowRequest,
+        Participation,
+        FlowAccessException,
+        FlowAccessExceptionEntry,
+        FlowSession)
 
 from course.content import (get_course_repo, get_course_desc)
 from course.utils import course_view, render_course_page
@@ -294,6 +305,244 @@ def manage_instant_flow_requests(pctx):
         "form": form,
         "form_description": "Manage Instant Flow Requests",
     })
+# }}}
+
+
+# {{{ flow access exceptions
+
+class ExceptionStage1Form(StyledForm):
+    def __init__(self, course, flow_ids, *args, **kwargs):
+        super(ExceptionStage1Form, self).__init__(*args, **kwargs)
+
+        self.fields["participation"] = forms.ModelChoiceField(
+                queryset=Participation.objects.filter(
+                    course=course,
+                    status=participation_status.active,
+                    ),
+                required=True,
+                help_text="Select participant for whom exception is to be granted.")
+        self.fields["flow_id"] = forms.ChoiceField(
+                choices=[(fid, fid) for fid in flow_ids],
+                required=True)
+
+        self.helper.add_input(
+                Submit(
+                    "next", mark_safe("Next &raquo;"),
+                    css_class="col-lg-offset-2"))
+
+
+@course_view
+def grant_exception(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to grant exceptions")
+
+    from course.content import list_flow_ids
+    flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
+
+    request = pctx.request
+    if request.method == "POST":
+        form = ExceptionStage1Form(pctx.course, flow_ids, request.POST)
+
+        if form.is_valid():
+            return redirect("course.views.grant_exception_stage_2",
+                    pctx.course.identifier,
+                    form.cleaned_data["participation"].id,
+                    form.cleaned_data["flow_id"])
+
+    else:
+        form = ExceptionStage1Form(pctx.course, flow_ids)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": "Grant Exception",
+    })
+
+
+class ExceptionStage2Form(StyledForm):
+    def __init__(self, base_ruleset_choices, *args, **kwargs):
+        super(ExceptionStage2Form, self).__init__(*args, **kwargs)
+
+        self.fields["base_ruleset"] = forms.ChoiceField(
+                choices=(
+                    (brc, brc)
+                    for brc in base_ruleset_choices),
+                help_text="Select rule set on which the exception is to be based.")
+
+        self.helper.add_input(
+                Submit(
+                    "next", mark_safe("Next &raquo;"),
+                    css_class="col-lg-offset-2"))
+
+
+@course_view
+def grant_exception_stage_2(pctx, participation_id, flow_id):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to grant exceptions")
+
+    participation = get_object_or_404(Participation, id=participation_id)
+
+    from course.content import get_flow_desc
+    try:
+        flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
+                pctx.course_commit_sha)
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    if not hasattr(flow_desc, "access_rules"):
+        messages.add_message(pctx.request, messages.ERROR,
+                "Flow '%s' does not declare access rules."
+                % flow_id)
+        return redirect("course.views.grant_exception",
+                pctx.course.identifier)
+
+    base_ruleset_choices = [rule.id for rule in flow_desc.access_rules]
+
+    request = pctx.request
+    if request.method == "POST":
+        form = ExceptionStage2Form(base_ruleset_choices, request.POST)
+
+        if form.is_valid():
+            return redirect(
+                    "course.views.grant_exception_stage_3",
+                    pctx.course.identifier,
+                    participation.id,
+                    flow_id,
+                    form.cleaned_data["base_ruleset"])
+
+    else:
+        form = ExceptionStage2Form(base_ruleset_choices)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": "Grant Exception",
+    })
+
+
+class ExceptionStage3Form(StyledForm):
+    update_session = forms.BooleanField(
+            help_text="Check to update the participant's current session "
+            "to use the exception as its rule set.",
+            initial=True)
+    expiration = forms.DateTimeField(
+            widget=DateTimePicker(
+                options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
+            required=False)
+    allowed_session_count = forms.IntegerField(required=False)
+    credit_percent = forms.IntegerField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(ExceptionStage3Form, self).__init__(*args, **kwargs)
+
+        for key, name in FLOW_PERMISSION_CHOICES:
+            self.fields[key] = forms.BooleanField(label=name, required=False)
+
+        self.fields["comment"] = forms.CharField(
+                widget=forms.Textarea, required=True)
+
+        self.helper.add_input(
+                Submit(
+                    "save", "Save",
+                    css_class="col-lg-offset-2"))
+
+
+@course_view
+@transaction.atomic
+def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to grant exceptions")
+
+    participation = get_object_or_404(Participation, id=participation_id)
+
+    from course.content import get_flow_desc
+    try:
+        flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
+                pctx.course_commit_sha)
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    if not hasattr(flow_desc, "access_rules"):
+        messages.add_message(pctx.request, messages.ERROR,
+                "Flow '%s' does not declare access rules."
+                % flow_id)
+        return redirect("course.views.grant_exception",
+                pctx.course.identifier)
+
+    ruleset = None
+    for def_ruleset in flow_desc.access_rules:
+        if def_ruleset.id == base_ruleset:
+            ruleset = def_ruleset
+
+    if ruleset is None:
+        raise http.Http404()
+
+    STIPULATION_KEYS = ["allowed_session_count", "credit_percent"]
+
+    request = pctx.request
+    if request.method == "POST":
+        form = ExceptionStage3Form(request.POST)
+
+        if form.is_valid():
+            fae = FlowAccessException()
+            fae.participation = participation
+            fae.flow_id = flow_id
+            fae.expiration = form.cleaned_data["expiration"]
+            fae.stipulations = {}
+            for stip_key in STIPULATION_KEYS:
+                if form.cleaned_data[stip_key] is not None:
+                    fae.stipulations[stip_key] = form.cleaned_data[stip_key]
+            fae.creator = pctx.request.user
+            fae.comment = form.cleaned_data["comment"]
+            fae.save()
+
+            for key, _ in FLOW_PERMISSION_CHOICES:
+                faee = FlowAccessExceptionEntry()
+                faee.exception = fae
+                faee.permission = key
+                faee.save()
+
+            if form.cleaned_data["update_session"]:
+                sessions = FlowSession.objects.filter(
+                        participation=participation,
+                        flow_id=flow_id,
+                        in_progress=True)
+
+                assert sessions.count() <= 1
+                for session in sessions:
+                    session.access_rules_id = "exception"
+                    session.save()
+
+            messages.add_message(pctx.request, messages.SUCCESS,
+                    "Exception granted.")
+            return redirect(
+                    "course.views.grant_exception",
+                    pctx.course.identifier)
+
+    else:
+        data = {
+                "update_session": True,
+                }
+        for perm in ruleset.permissions:
+            data[perm] = True
+
+        for stip_key in STIPULATION_KEYS:
+            if hasattr(ruleset, stip_key):
+                data[stip_key] = getattr(ruleset, stip_key)
+
+        form = ExceptionStage3Form(data)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": "Grant Exception",
+        "form_text": "<div class='well'>Granting exception to '%s' for '%s'.</div>"
+        % (participation, flow_id),
+    })
+
 # }}}
 
 

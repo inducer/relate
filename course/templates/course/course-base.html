@@ -46,6 +46,10 @@
         <li><a href="{% url "course.grades.import_grades" course.identifier %}">Import Grades</a></li>
         <li><a href="{% url "course.flow.regrade_not_for_credit_flows_view" course.identifier %}">Regrade not-for-credit flow</a></li>
       {% endif %}
+      <li role="presentation" class="divider"></li>
+      <li role="presentation" class="dropdown-header">Exceptions</li>
+      <li><a href="{% url "course.views.grant_exception" course.identifier %}">Grant exception</a></li>
+      <li><a href="{% url "admin:course_flowaccessexception_changelist" %}" target="_blank">Show exceptions</a></li>
     </ul>
   </li>
   {% endif %}

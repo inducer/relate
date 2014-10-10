@@ -393,6 +393,9 @@ class FlowAccessExceptionAdmin(admin.ModelAdmin):
 
     raw_id_fields = ("participation",)
 
+    def has_add_permission(self, request):
+        # These are created only automatically.
+        return False
 
 admin.site.register(FlowAccessException, FlowAccessExceptionAdmin)
 
