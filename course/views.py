@@ -500,10 +500,11 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
             fae.save()
 
             for key, _ in FLOW_PERMISSION_CHOICES:
-                faee = FlowAccessExceptionEntry()
-                faee.exception = fae
-                faee.permission = key
-                faee.save()
+                if form.cleaned_data[key]:
+                    faee = FlowAccessExceptionEntry()
+                    faee.exception = fae
+                    faee.permission = key
+                    faee.save()
 
             if form.cleaned_data["update_session"]:
                 sessions = FlowSession.objects.filter(
