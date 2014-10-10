@@ -264,10 +264,13 @@ def run_code(result, run_req):
         for fignum in pt.get_fignums():
             pt.figure(fignum)
             bio = BytesIO()
-            pt.savefig(bio, format=format)
-
-            figures.append(
-                (fignum, mime, b64encode(bio.getvalue()).decode()))
+            try:
+                pt.savefig(bio, format=format)
+            except:
+                pass
+            else:
+                figures.append(
+                    (fignum, mime, b64encode(bio.getvalue()).decode()))
 
         result["figures"] = figures
 
