@@ -70,6 +70,29 @@ PARTICIPATION_STATUS_CHOICES = (
         )
 
 
+class flow_session_expriration_mode:
+    end = "end"
+    roll_over = "roll_over"
+
+FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
+        (flow_session_expriration_mode.end, "End session and grade"),
+        (flow_session_expriration_mode.roll_over, "Roll over to new rules"),
+        )
+
+
+def is_expiration_mode_allowed(expmode, permissions):
+    if expmode == flow_session_expriration_mode.roll_over:
+        if (flow_permission.set_roll_over_expiration_mode
+                in permissions):
+            return True
+    elif expmode == flow_session_expriration_mode.end:
+        return True
+    else:
+        raise ValueError("unknown expiration mode")
+
+    return False
+
+
 class flow_permission:
     view = "view"
     view_past = "view_past"
@@ -81,6 +104,7 @@ class flow_permission:
     see_correctness_after_completion = "see_correctness_after_completion"
     see_answer = "see_answer"
     see_answer_after_completion = "see_answer_after_completion"
+    set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view, "View the flow"),
@@ -95,6 +119,8 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.see_answer, "See the correct answer"),
         (flow_permission.see_answer_after_completion,
             "See the correct answer after completing the flow"),
+        (flow_permission.set_roll_over_expiration_mode,
+            "Set the session to 'roll over' expiration mode"),
         )
 
 

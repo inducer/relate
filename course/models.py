@@ -29,13 +29,13 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
-from django.core.exceptions import ObjectDoesNotExist
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
         participation_role, PARTICIPATION_ROLE_CHOICES,
         participation_status, PARTICIPATION_STATUS_CHOICES,
         flow_permission, FLOW_PERMISSION_CHOICES,
+        flow_session_expriration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
         )
@@ -257,6 +257,9 @@ class FlowSession(models.Model):
     in_progress = models.BooleanField(default=None)
     for_credit = models.BooleanField(default=None)
     access_rules_id = models.CharField(max_length=200, null=True)
+    expiration_mode = models.CharField(max_length=20, null=True,
+            default=flow_session_expriration_mode.end,
+            choices=FLOW_SESSION_EXPIRATION_MODE_CHOICES)
 
     # Non-normal: These fields can be recomputed, albeit at great expense.
     #

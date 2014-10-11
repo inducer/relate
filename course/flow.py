@@ -33,6 +33,7 @@ from django.core.exceptions import (
 from django.db import transaction
 from django.utils.safestring import mark_safe
 from django import forms
+from django import http
 
 from courseflow.utils import StyledForm
 from crispy_forms.layout import Submit
@@ -41,7 +42,10 @@ import re
 
 from course.constants import (
         flow_permission,
-        participation_role)
+        participation_role,
+        flow_session_expriration_mode,
+        FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+        is_expiration_mode_allowed)
 from course.models import (
         FlowSession, FlowPageData, FlowPageVisit, FlowPageVisitGrade,
         GradeChange)
@@ -627,6 +631,13 @@ def start_flow(pctx, flow_identifier):
             session.active_git_commit_sha = fctx.flow_commit_sha.decode()
             session.flow_id = flow_identifier
             session.in_progress = True
+
+            if (flow_permission.set_roll_over_expiration_mode
+                    in current_access_rule.permissions):
+                session.expiration_mode = flow_session_expriration_mode.roll_over
+            else:
+                session.expiration_mode = flow_session_expriration_mode.end
+
             session.for_credit = "start_credit" in request.POST
             session.access_rules_id = current_access_rule.id
             session.save()
@@ -1035,6 +1046,12 @@ def view_flow_page(pctx, flow_identifier, ordinal):
     else:
         form_html = None
 
+    expiration_mode_choices = []
+
+    for key, descr in FLOW_SESSION_EXPIRATION_MODE_CHOICES:
+        if is_expiration_mode_allowed(key, current_access_rule.permissions):
+            expiration_mode_choices.append((key, descr))
+
     args = {
         "flow_identifier": fpctx.flow_identifier,
         "flow_desc": fpctx.flow_desc,
@@ -1058,6 +1075,10 @@ def view_flow_page(pctx, flow_identifier, ordinal):
             and flow_session.in_progress),
         "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": show_answer,
+
+        "expiration_mode_choices": expiration_mode_choices,
+        "expiration_mode_choice_count": len(expiration_mode_choices),
+        "expiration_mode": flow_session.expiration_mode,
     }
 
     if fpctx.page.expects_answer():
@@ -1068,6 +1089,40 @@ def view_flow_page(pctx, flow_identifier, ordinal):
             allow_instant_flow_requests=False)
 
     # }}}
+
+
+@course_view
+def update_expiration_mode(pctx, flow_session_id):
+    if pctx.request.method != "POST":
+        raise SuspiciousOperation("only POST allowed")
+
+    flow_session = get_object_or_404(FlowSession, id=flow_session_id)
+
+    if flow_session.participation != pctx.participation:
+        raise PermissionDenied("may only change your own flow sessions")
+    if not flow_session.in_progress:
+        raise PermissionDenied("may only change in-progress flow sessions")
+
+    expmode = pctx.request.POST.get("expiration_mode")
+    if not any(expmode == em_key
+            for em_key, _ in FLOW_SESSION_EXPIRATION_MODE_CHOICES):
+        raise SuspiciousOperation("invalid expiration mode")
+
+    fctx = FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
+            participation=pctx.participation,
+            flow_session=flow_session)
+
+    current_access_rule = fctx.get_current_access_rule(
+            flow_session, pctx.role, pctx.participation,
+            get_now_or_fake_time(pctx.request))
+
+    if is_expiration_mode_allowed(expmode, current_access_rule.permissions):
+        flow_session.expiration_mode = expmode
+        flow_session.save()
+
+        return http.HttpResponse("OK")
+    else:
+        raise PermissionDenied()
 
 # }}}
 
