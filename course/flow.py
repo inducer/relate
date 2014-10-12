@@ -679,7 +679,10 @@ def start_flow(pctx, flow_identifier):
                 session.expiration_mode = flow_session_expriration_mode.end
 
             session.for_credit = "start_credit" in request.POST
-            session.access_rules_id = current_access_rule.id
+
+            if getattr(current_access_rule, "sticky", False):
+                session.access_rules_id = current_access_rule.id
+
             session.save()
 
             get_flow_session_id_map(request)[flow_identifier] = session.id

@@ -322,6 +322,7 @@ def validate_flow_group(ctx, location, grp):
 
     validate_identifier(location, grp.id)
 
+
 def validate_flow_permission(ctx, location, permission):
     from course.constants import FLOW_PERMISSION_CHOICES
     if permission not in dict(FLOW_PERMISSION_CHOICES):
@@ -344,6 +345,7 @@ def validate_flow_access_rule(ctx, location, rule):
                 ("credit_percent", (int, float)),
                 ("allowed_session_count", int),
                 ("id", str),
+                ("sticky", bool),
                 ]
             )
 
