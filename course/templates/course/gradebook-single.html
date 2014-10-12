@@ -168,7 +168,12 @@
                 {% else %}
                   (none)
                 {% endif %}
-
+                {% if flow_session.result_comment %}
+                  <p>
+                  <b> Notes:</b>
+                  {{ flow_session.result_comment|linebreaks }}
+                  </p>
+                {% endif %}
               </td>
 
               {% if show_page_grades %}

@@ -402,6 +402,7 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
         flow_session.completion_time = now()
 
     flow_session.in_progress = False
+    flow_session.save()
 
     return grade_flow_session(fctx, flow_session, current_access_rule,
             answer_visits)
@@ -463,7 +464,7 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
     flow_session.points = points
     flow_session.max_points = grade_info.max_points
 
-    flow_session.result_comment = comment
+    flow_session.append_comment(comment)
     flow_session.save()
 
     # Need to save grade record even if no grade is available yet, because
@@ -514,9 +515,12 @@ def reopen_session(session, force=False):
     session.points = None
     session.max_points = None
 
-    # We shouldn't change completion_time. It reflects when the student
-    # finished the session.
+    from django.utils.timezone import now
+    session.append_comment(
+            "Session reopened at %s, previous completion time was '%s'."
+            % (now(), session.completion_time))
 
+    session.completion_time = None
     session.save()
 
 

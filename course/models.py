@@ -286,6 +286,15 @@ class FlowSession(models.Model):
                     self.id,
                     self.flow_id)
 
+    def append_comment(self, s):
+        if s is None:
+            return
+
+        if self.result_comment:
+            self.result_comment += "\n" + s
+        else:
+            self.result_comment = s
+
     def points_percentage(self):
         if self.points is None:
             return None
