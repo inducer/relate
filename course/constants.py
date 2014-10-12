@@ -79,7 +79,8 @@ class flow_session_expriration_mode:
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
         (flow_session_expriration_mode.end, "End session and grade"),
-        (flow_session_expriration_mode.roll_over, "Roll over to new rules"),
+        (flow_session_expriration_mode.roll_over,
+            "Keep session and apply new rules"),
         )
 
 
