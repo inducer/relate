@@ -49,7 +49,9 @@
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">Exceptions</li>
       <li><a href="{% url "course.views.grant_exception" course.identifier %}">Grant exception</a></li>
+      {% if user.is_staff %}
       <li><a href="{% url "admin:course_flowaccessexception_changelist" %}" target="_blank">Show exceptions</a></li>
+      {% endif %}
     </ul>
   </li>
   {% endif %}
