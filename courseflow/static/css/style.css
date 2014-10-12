@@ -16,6 +16,37 @@ table.past-flow-session-table {
   margin-bottom: 2ex;
 }
 
+/* {{{ gradebook table */
+
+.gradebook-outer {
+  position: relative;
+  width: 100%;
+}
+div.gradebook-container {
+  width: calc(100% - 15em);
+  overflow-x:scroll;
+  margin-left:15em;
+  overflow-y:visible;
+}
+.gradebook th {
+  height: 15ex;
+  vertical-align:bottom;
+}
+table.gradebook {
+  border-collapse:separate;
+}
+.gradebook td {
+    white-space:nowrap;
+}
+.gradebook .headcol {
+    position:absolute;
+    width:15em;
+    left:0;
+}
+
+/* }}} */
+
+
 /* {{{ flow page */
 
 .flow-well {
@@ -112,3 +143,5 @@ div.progress:hover  span.stats-percentage{
   margin-left: 3em;
   margin-bottom: 1ex;
 }
+
+/* vim: set foldmethod=marker: */
