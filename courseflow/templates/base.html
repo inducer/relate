@@ -14,13 +14,15 @@
     <title>{%block title %}CourseFlow{% endblock %}</title>
 
     <link href="{% static "bootstrap/dist/css/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "jqueryui/themes/smoothness/jquery-ui.css" %}" rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/css/style.css" >
     <link rel="stylesheet" href="{% static "fontawesome/css/font-awesome.css" %}">
+    <link rel="stylesheet" href="/static/css/style.css" >
 
     {# Don't be tempted to move all this JS stuff down to the end. #}
     {# The datepicker generates inline JS that relies on this being loaded. #}
     <script src="{% static "jquery/dist/jquery.js" %}"></script>
+    <script src="{% static "jqueryui/jquery-ui.js" %}"></script>
     <script src="{% static "bootstrap/dist/js/bootstrap.js" %}"></script>
 
     {%block header_extra %}{% endblock %}

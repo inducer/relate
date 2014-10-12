@@ -89,6 +89,7 @@ BOWER_INSTALLED_APPS = (
     "MathJax",
     "codemirror",
     "fullcalendar",
+    "jqueryui",
     )
 
 CODEMIRROR_PATH = "codemirror"
