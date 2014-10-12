@@ -91,6 +91,7 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc,
                     }
             if exc.expiration is not None:
                 attrs["end"] = exc.expiration
+            attrs["sticky"] = exc.is_sticky
 
             if exc.stipulations is not None and isinstance(exc.stipulations, dict):
                 attrs.update(exc.stipulations)

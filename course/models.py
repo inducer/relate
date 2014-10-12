@@ -485,6 +485,12 @@ class FlowAccessException(models.Model):
     creator = models.ForeignKey(User, null=True)
     creation_time = models.DateTimeField(default=now, db_index=True)
 
+    is_sticky = models.BooleanField(
+            default=False,
+            help_text="Check if a flow started under this "
+            "exception rule set should stay "
+            "under this rule set until it is expired.")
+
     comment = models.TextField(blank=True, null=True)
 
     def __unicode__(self):

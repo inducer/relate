@@ -304,6 +304,7 @@ def manage_instant_flow_requests(pctx):
         "form": form,
         "form_description": "Manage Instant Flow Requests",
     })
+
 # }}}
 
 
@@ -430,6 +431,12 @@ class ExceptionStage3Form(StyledForm):
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
             required=False)
+    is_sticky = forms.BooleanField(
+            required=False,
+            help_text="Check if a flow started under this "
+            "exception rule set should stay "
+            "under this rule set until it is expired.")
+
     allowed_session_count = forms.IntegerField(required=False)
     credit_percent = forms.IntegerField(required=False)
 
@@ -496,6 +503,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
                 if form.cleaned_data[stip_key] is not None:
                     fae.stipulations[stip_key] = form.cleaned_data[stip_key]
             fae.creator = pctx.request.user
+            fae.is_sticky = form.cleaned_data["is_sticky"]
             fae.comment = form.cleaned_data["comment"]
             fae.save()
 
