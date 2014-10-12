@@ -71,7 +71,10 @@ PARTICIPATION_STATUS_CHOICES = (
 
 
 class flow_session_expriration_mode:
+    # always allowed
     end = "end"
+
+    # allowed by special permission below
     roll_over = "roll_over"
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (

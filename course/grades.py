@@ -247,10 +247,32 @@ class ModifySessionsForm(StyledForm):
                     for rule_id in rule_ids))
 
         self.helper.add_input(
-                Submit("end", "End sessions and grade",
+                Submit("expire", "Expire sessions",
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
+                Submit("end", "End sessions and grade"))
+        self.helper.add_input(
                 Submit("regrade", "Regrade ended sessions"))
+
+
+@transaction.atomic
+def expire_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime):
+    sessions = (FlowSession.objects
+            .filter(
+                course=course,
+                flow_id=flow_id,
+                access_rules_id=rule_id,
+                in_progress=True,
+                ))
+
+    count = 0
+
+    from course.flow import expire_flow_session_standalone
+    for session in sessions:
+        expire_flow_session_standalone(repo, course, session, now_datetime)
+        count += 1
+
+    return count
 
 
 @transaction.atomic
@@ -305,6 +327,9 @@ def mangle_rule_id(rule_id):
 
 @course_view
 def view_grades_by_opportunity(pctx, opp_id):
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(pctx.request)
+
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
@@ -315,7 +340,7 @@ def view_grades_by_opportunity(pctx, opp_id):
     if pctx.course != opportunity.course:
         raise SuspiciousOperation("opportunity from wrong course")
 
-    # {{{ end sessions form
+    # {{{ batch sessions form
 
     batch_session_ops_form = None
     if pctx.role == participation_role.instructor and opportunity.flow_id:
@@ -329,7 +354,9 @@ def view_grades_by_opportunity(pctx, opp_id):
         if request.method == "POST":
             batch_session_ops_form = ModifySessionsForm(
                     rule_ids, request.POST, request.FILES)
-            if "end" in request.POST:
+            if "expire" in request.POST:
+                op = "expire"
+            elif "end" in request.POST:
                 op = "end"
             elif "regrade" in request.POST:
                 op = "regrade"
@@ -341,7 +368,14 @@ def view_grades_by_opportunity(pctx, opp_id):
                 if rule_id == RULE_ID_NONE_STRING:
                     rule_id = None
                 try:
-                    if op == "end":
+                    if op == "expire":
+                        count = expire_in_progress_sessions(
+                                pctx.repo, pctx.course, opportunity.flow_id,
+                                rule_id, now_datetime)
+
+                        messages.add_message(pctx.request, messages.SUCCESS,
+                                "%d session(s) expired." % count)
+                    elif op == "end":
                         count = finish_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
                                 rule_id)
@@ -439,6 +473,9 @@ def view_grades_by_opportunity(pctx, opp_id):
 
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(pctx.request)
+
     participation = get_object_or_404(Participation,
             id=int(participation_id))
 
@@ -475,7 +512,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
         request = pctx.request
         if pctx.request.method == "POST":
-            action_re = re.compile("^(end|reopen|regrade)_([0-9]+)$")
+            action_re = re.compile("^(expire|end|reopen|regrade)_([0-9]+)$")
             for key in request.POST.keys():
                 action_match = action_re.match(key)
                 if action_match:
@@ -490,10 +527,17 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             from course.flow import (
                     reopen_session,
                     regrade_session,
+                    expire_flow_session_standalone,
                     finish_flow_session_standalone)
 
             try:
-                if op == "end":
+                if op == "expire":
+                    expire_flow_session_standalone(
+                            pctx.repo, pctx.course, session, now_datetime)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session expired.")
+
+                elif op == "end":
                     finish_flow_session_standalone(
                             pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,

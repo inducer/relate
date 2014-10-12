@@ -407,6 +407,33 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
             answer_visits)
 
 
+@transaction.atomic
+def expire_flow_session(fctx, flow_session, current_access_rule, now_datetime):
+    if not flow_session.in_progress:
+        raise RuntimeError("Can't expire a session that's not in progress")
+    if flow_session.participation is None:
+        raise RuntimeError("Can't expire an anonymous flow session")
+
+    if flow_session.expiration_mode == flow_session_expriration_mode.roll_over:
+        from course.utils import get_current_flow_access_rule
+        new_rules = get_current_flow_access_rule(flow_session.course,
+                flow_session.participation, flow_session.participation.role,
+                flow_session.flow_id, fctx.flow_desc, now_datetime,
+                rule_id=None, use_exceptions=True)
+
+        flow_session.access_rules_id = new_rules.id
+        if not is_expiration_mode_allowed(
+                flow_session.expiration_mode, new_rules.permissions):
+            flow_session.expiration_mode = flow_session_expriration_mode.end
+        flow_session.save()
+
+    elif flow_session.expiration_mode == flow_session_expriration_mode.end:
+        return finish_flow_session(fctx, flow_session, current_access_rule)
+    else:
+        raise ValueError("invalid expiration mode '%s' on flow session ID %d"
+                % (flow_session.expiration_mode, flow_session.id))
+
+
 def grade_flow_session(fctx, flow_session, current_access_rule,
         answer_visits=None):
     """Updates the grade on an existing flow session and logs a
@@ -497,7 +524,6 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False):
     assert session.participation is not None
 
     from course.utils import FlowContext
-    from course.flow import finish_flow_session
 
     from django.utils.timezone import now
 
@@ -509,6 +535,20 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False):
 
     finish_flow_session(fctx, session, current_access_rule,
             force_regrade=force_regrade)
+
+
+def expire_flow_session_standalone(repo, course, session, now_datetime):
+    assert session.participation is not None
+
+    from course.utils import FlowContext
+
+    fctx = FlowContext(repo, course, session.flow_id, flow_session=session)
+
+    current_access_rule = fctx.get_current_access_rule(
+            session, session.participation.role, session.participation,
+            now_datetime)
+
+    expire_flow_session(fctx, session, current_access_rule, now_datetime)
 
 
 @transaction.atomic

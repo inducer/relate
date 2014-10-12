@@ -10,11 +10,15 @@
   <h1>Results: {{flow_desc.title}}</h1>
   <div class="well flow-well">
     <p>
-    You have achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
+    You have
+    {% if grade_info.max_points != grade_info.max_reachable_points %}
+      <b>(so far)</b>
+    {% endif %}
+    achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
     {{ grade_info.max_points|floatformat }}
     points.
     {% if grade_info.max_points != grade_info.max_reachable_points %}
-      (Note that some questions aren't graded yet, so you grade will likely
+      (Some questions are not graded yet, so your grade will likely
       change.)
     {% else %}
       (That's <b>{{ grade_info.points_percent|floatformat }}%</b>.)

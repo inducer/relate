@@ -141,6 +141,10 @@
                   {% endif %}
                 </p>
                 <p>
+                  <b>Expiration mode:</b>
+                  <tt>{{ flow_session.expiration_mode  }}</tt>
+                </p>
+                <p>
                   <b>Started:</b> {{ flow_session.start_time }}
                 </p>
                 {% if not flow_session.in_progress %}
@@ -194,6 +198,9 @@
               {% if allow_session_actions %}
                 <td>
                   {% if flow_session.in_progress %}
+                    <button type="submit" name="expire_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                      Expire
+                    </button>
                     <button type="submit" name="end_{{flow_session.id}}" class="btn btn-primary btn-xs">
                       End and grade
                     </button>

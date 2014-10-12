@@ -8,12 +8,11 @@
 
 - What if access rules cease to exist?
 
-- Granting exceptions should switch the user's current session
-  to the new rule.
-
 - flow overview
 
 - escape student answers in analytics
+
+- stickiness of access rules should be controlled by flag
 
 Ideas
 =====
