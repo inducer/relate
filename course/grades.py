@@ -276,7 +276,7 @@ def expire_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime):
 
 
 @transaction.atomic
-def finish_in_progress_sessions(repo, course, flow_id, rule_id):
+def finish_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
@@ -289,7 +289,8 @@ def finish_in_progress_sessions(repo, course, flow_id, rule_id):
 
     from course.flow import finish_flow_session_standalone
     for session in sessions:
-        finish_flow_session_standalone(repo, course, session)
+        finish_flow_session_standalone(repo, course, session,
+                now_datetime=now_datetime)
         count += 1
 
     return count
@@ -378,7 +379,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                     elif op == "end":
                         count = finish_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id)
+                                rule_id, now_datetime)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) ended." % count)
@@ -539,7 +540,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
                 elif op == "end":
                     finish_flow_session_standalone(
-                            pctx.repo, pctx.course, session)
+                            pctx.repo, pctx.course, session,
+                            now_datetime=now_datetime)
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session ended.")
 

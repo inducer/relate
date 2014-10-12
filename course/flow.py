@@ -377,7 +377,7 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
 
 @transaction.atomic
 def finish_flow_session(fctx, flow_session, current_access_rule,
-        force_regrade=False):
+        force_regrade=False, now_datetime=None):
     if not flow_session.in_progress:
         raise RuntimeError("Can't end a session that's already ended")
 
@@ -394,12 +394,11 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
 
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
-    from django.utils.timezone import now
-    if flow_session.completion_time is None:
-        # We shouldn't change completion_time. It reflects when the student
-        # *actually* finished the session.
+    if now_datetime is None:
+        from django.utils.timezone import now
+        now_datetime = now()
 
-        flow_session.completion_time = now()
+    flow_session.completion_time = now_datetime
 
     flow_session.in_progress = False
     flow_session.save()
@@ -429,7 +428,8 @@ def expire_flow_session(fctx, flow_session, current_access_rule, now_datetime):
         flow_session.save()
 
     elif flow_session.expiration_mode == flow_session_expriration_mode.end:
-        return finish_flow_session(fctx, flow_session, current_access_rule)
+        return finish_flow_session(fctx, flow_session, current_access_rule,
+                now_datetime=now_datetime)
     else:
         raise ValueError("invalid expiration mode '%s' on flow session ID %d"
                 % (flow_session.expiration_mode, flow_session.id))
@@ -493,7 +493,7 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
     return grade_info
 
 
-def reopen_session(session, force=False):
+def reopen_session(session, force=False, suppress_log=False):
     if session.in_progress:
         raise RuntimeError("Can't reopen a session that's already in progress")
     if session.participation is None:
@@ -515,30 +515,34 @@ def reopen_session(session, force=False):
     session.points = None
     session.max_points = None
 
-    from django.utils.timezone import now
-    session.append_comment(
-            "Session reopened at %s, previous completion time was '%s'."
-            % (now(), session.completion_time))
+    if not suppress_log:
+        from django.utils.timezone import now
+        session.append_comment(
+                "Session reopened at %s, previous completion time was '%s'."
+                % (now(), session.completion_time))
 
     session.completion_time = None
     session.save()
 
 
-def finish_flow_session_standalone(repo, course, session, force_regrade=False):
+def finish_flow_session_standalone(repo, course, session, force_regrade=False,
+        now_datetime=None):
     assert session.participation is not None
 
     from course.utils import FlowContext
 
-    from django.utils.timezone import now
+    if now_datetime is None:
+        from django.utils.timezone import now
+        now_datetime = now()
 
     fctx = FlowContext(repo, course, session.flow_id, flow_session=session)
 
     current_access_rule = fctx.get_current_access_rule(
             session, session.participation.role, session.participation,
-            now())
+            now_datetime)
 
     finish_flow_session(fctx, session, current_access_rule,
-            force_regrade=force_regrade)
+            force_regrade=force_regrade, now_datetime=now_datetime)
 
 
 def expire_flow_session_standalone(repo, course, session, now_datetime):
@@ -570,8 +574,16 @@ def regrade_session(repo, course, session):
                 grade_page_visit(answer_visit,
                         graded_at_git_commit_sha=fctx.flow_commit_sha)
     else:
-        reopen_session(session, force=True)
-        finish_flow_session_standalone(repo, course, session, force_regrade=True)
+        prev_completion_time = session.completion_time
+
+        from django.utils.timezone import now
+        session.append_comment("Session regraded at %s." % now())
+        session.save()
+
+        reopen_session(session, force=True, suppress_log=True)
+        finish_flow_session_standalone(
+                repo, course, session, force_regrade=True,
+                now_datetime=prev_completion_time)
 
 # }}}
 
@@ -1179,6 +1191,8 @@ def update_expiration_mode(pctx, flow_session_id):
 @transaction.atomic
 @course_view
 def finish_flow_session_view(pctx, flow_identifier):
+    now_datetime = get_now_or_fake_time(pctx.request)
+
     request = pctx.request
 
     flow_session = find_current_flow_session(
@@ -1236,7 +1250,9 @@ def finish_flow_session_view(pctx, flow_identifier):
         # Actually end the flow session
         get_flow_session_id_map(request)[flow_identifier] = None
 
-        grade_info = finish_flow_session(fctx, flow_session, current_access_rule)
+        grade_info = finish_flow_session(
+                fctx, flow_session, current_access_rule,
+                now_datetime=now_datetime)
 
         if is_graded_flow:
             return render_finish_response(
