@@ -28,7 +28,7 @@ from course.validation import validate_struct, ValidationError, validate_markup
 from course.content import remove_prefix
 from django.utils.safestring import mark_safe
 import django.forms as forms
-from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 
 from courseflow.utils import StyledForm, Struct
 
@@ -1346,6 +1346,18 @@ def request_python_run(run_req, run_timeout):
 
 
 class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
+    def __init__(self, vctx, location, page_desc):
+        super(PythonCodeQuestion, self).__init__(vctx, location, page_desc)
+
+        if vctx is not None and hasattr(page_desc, "data_files"):
+            for data_file in page_desc.data_files:
+                try:
+                    from course.content import get_repo_blob
+                    get_repo_blob(vctx.repo, data_file, vctx.commit_sha)
+                except ObjectDoesNotExist:
+                    raise ValidationError("%s: data file '%s' not found"
+                            % (location, data_file))
+
     def required_attrs(self):
         return super(PythonCodeQuestion, self).required_attrs() + (
                 ("prompt", "markup"),
@@ -1360,6 +1372,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("test_code", str),
                 ("correct_code", str),
                 ("initial_code", str),
+                ("data_files", list),
                 )
 
     def _initial_code(self):
@@ -1430,6 +1443,19 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         transfer_attr("names_for_user")
         transfer_attr("names_from_user")
         transfer_attr("test_code")
+
+        if hasattr(self.page_desc, "data_files"):
+            run_req["data_files"] = {}
+
+            from course.content import get_repo_blob
+
+            for data_file in self.page_desc.data_files:
+                from base64 import b64encode
+                run_req["data_files"][data_file] = \
+                        b64encode(
+                                get_repo_blob(
+                                    page_context.repo, data_file,
+                                    page_context.commit_sha).data)
 
         try:
             response_dict = request_python_run(run_req,
@@ -1597,8 +1623,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
         if (vctx is not None
                 and self.page_desc.human_feedback_value > self.page_desc.value):
             raise ValidationError(
-                    "human_feedback_value greater than overall "
-                    "value of question")
+                    "%s: human_feedback_value greater than overall "
+                    "value of question" % location)
 
     def required_attrs(self):
         return super(

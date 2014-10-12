@@ -29,7 +29,7 @@ import socketserver
 import json
 import sys
 import io
-from cfrunpy_backend import dict_to_struct, run_code, package_exception
+from cfrunpy_backend import Struct, run_code, package_exception
 from http.server import BaseHTTPRequestHandler
 
 PORT = 9941
@@ -76,7 +76,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
 
             print("CFRUNPY RECEIVED %d bytes" % len(recv_data),
                     file=prev_stderr)
-            run_req = dict_to_struct(json.loads(recv_data.decode("utf-8")))
+            run_req = Struct(json.loads(recv_data.decode("utf-8")))
             print("REQUEST: %r" % run_req, file=prev_stderr)
 
             stdout = io.StringIO()

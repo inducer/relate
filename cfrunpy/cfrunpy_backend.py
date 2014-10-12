@@ -42,6 +42,10 @@ PROTOCOL
 
     .. attribute:: test_code
 
+    .. attribute:: data_files
+
+        a dictionary from data file names to their contents
+
     .. attribute:: compile_only
 
         :class:`bool`
@@ -110,19 +114,10 @@ PROTOCOL
 class Struct(object):
     def __init__(self, entries):
         for name, val in entries.items():
-            self.__dict__[name] = dict_to_struct(val)
+            self.__dict__[name] = val
 
     def __repr__(self):
         return repr(self.__dict__)
-
-
-def dict_to_struct(data):
-    if isinstance(data, list):
-        return [dict_to_struct(d) for d in data]
-    elif isinstance(data, dict):
-        return Struct(data)
-    else:
-        return data
 
 # }}}
 
@@ -194,10 +189,17 @@ def run_code(result, run_req):
 
     # {{{ run code
 
+    data_files = {}
+    if hasattr(run_req, "data_files"):
+        from base64 import b64decode
+        for name, contents in run_req.data_files.items():
+            data_files[name] = b64decode(contents.encode())
+
     feedback = Feedback()
     maint_ctx = {
             "feedback": feedback,
             "user_code": user_code,
+            "data_files": data_files,
             "GradingComplete": GradingComplete,
             }
 
