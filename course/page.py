@@ -1008,9 +1008,10 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
         if not any(matcher.is_case_sensitive for matcher in self.matchers):
             normalized_answer = normalized_answer.lower()
 
+        from django.utils.html import escape
         return AnswerFeedback(
                 correctness=correctness,
-                normalized_answer=normalized_answer)
+                normalized_answer=escape(normalized_answer))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
