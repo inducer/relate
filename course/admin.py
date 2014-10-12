@@ -226,6 +226,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "access_rules_id",
             "in_progress",
             "for_credit",
+            "expiration_mode",
             )
     list_display_links = (
             "flow_id",
@@ -240,6 +241,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "in_progress",
             "for_credit",
             "access_rules_id",
+            "expiration_mode",
             )
 
     inlines = (FlowPageDataInline,)
