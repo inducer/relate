@@ -72,12 +72,6 @@
               {{ gchange.comment }}
             {% endif %}
 
-            {% if gchange.creator != None %}
-              (by {{ gchange.creator.last_name }}, {{ gchange.creator.first_name }})
-            {% else %}
-              (machine-generated)
-            {% endif %}
-
             {% if gchange.flow_session != None %}
             (from flow session {{ gchange.flow_session.id }})
             {% endif %}
