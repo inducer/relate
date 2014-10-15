@@ -315,10 +315,12 @@ class ExceptionStage1Form(StyledForm):
         super(ExceptionStage1Form, self).__init__(*args, **kwargs)
 
         self.fields["participation"] = forms.ModelChoiceField(
-                queryset=Participation.objects.filter(
-                    course=course,
-                    status=participation_status.active,
-                    ),
+                queryset=(Participation.objects
+                    .filter(
+                        course=course,
+                        status=participation_status.active,
+                        )
+                    .order_by("user__username")),
                 required=True,
                 help_text="Select participant for whom exception is to be granted.")
         self.fields["flow_id"] = forms.ChoiceField(
@@ -431,7 +433,7 @@ class ExceptionStage3Form(StyledForm):
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
             required=False)
-    is_sticky = forms.BooleanField(
+    sticky = forms.BooleanField(
             required=False,
             help_text="Check if a flow started under this "
             "exception rule set should stay "
@@ -503,7 +505,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
                 if form.cleaned_data[stip_key] is not None:
                     fae.stipulations[stip_key] = form.cleaned_data[stip_key]
             fae.creator = pctx.request.user
-            fae.is_sticky = form.cleaned_data["is_sticky"]
+            fae.is_sticky = form.cleaned_data["sticky"]
             fae.comment = form.cleaned_data["comment"]
             fae.save()
 
@@ -534,6 +536,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
     else:
         data = {
                 "update_session": True,
+                "sticky": getattr(ruleset, "sticky", False),
                 }
         for perm in ruleset.permissions:
             data[perm] = True
