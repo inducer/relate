@@ -1209,7 +1209,7 @@ class InvalidPingResponse(RuntimeError):
     pass
 
 
-def request_python_run(run_req, run_timeout):
+def request_python_run(run_req, run_timeout, image=None):
     import json
     import httplib
     from django.conf import settings
@@ -1235,8 +1235,11 @@ def request_python_run(run_req, run_timeout):
                 base_url='unix://var/run/docker.sock',
                 version='1.12', timeout=docker_timeout)
 
+        if image is None:
+            image = settings.CF_DOCKER_CFRUNPY_IMAGE
+
         dresult = docker_cnx.create_container(
-                image=settings.CF_DOCKER_CFRUNPY_IMAGE,
+                image=image,
                 command=[
                     "/opt/cfrunpy/cfrunpy",
                     "-1"],

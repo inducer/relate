@@ -44,7 +44,9 @@ PROTOCOL
 
     .. attribute:: data_files
 
-        a dictionary from data file names to their contents
+        A dictionary from data file names to their
+        base64-cencoded contents.
+        Optional.
 
     .. attribute:: compile_only
 
