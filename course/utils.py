@@ -72,6 +72,7 @@ def get_flow_access_rules(course, participation, flow_id, flow_desc,
             "credit_percent",
             "permissions",
             "is_exception",
+            "sticky",
             ]
 
     # {{{ scan for exceptions in database
