@@ -526,7 +526,7 @@ def reopen_session(session, force=False, suppress_log=False):
 
 
 def finish_flow_session_standalone(repo, course, session, force_regrade=False,
-        now_datetime=None):
+        now_datetime=None, past_end_only=False):
     assert session.participation is not None
 
     from course.utils import FlowContext
@@ -541,11 +541,19 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False,
             session, session.participation.role, session.participation,
             now_datetime)
 
+    if (past_end_only
+            and current_access_rule.end is not None
+            and now_datetime < current_access_rule.end):
+        return False
+
     finish_flow_session(fctx, session, current_access_rule,
             force_regrade=force_regrade, now_datetime=now_datetime)
 
+    return True
 
-def expire_flow_session_standalone(repo, course, session, now_datetime):
+
+def expire_flow_session_standalone(repo, course, session, now_datetime,
+        past_end_only=False):
     assert session.participation is not None
 
     from course.utils import FlowContext
@@ -556,7 +564,14 @@ def expire_flow_session_standalone(repo, course, session, now_datetime):
             session, session.participation.role, session.participation,
             now_datetime)
 
+    if (past_end_only
+            and current_access_rule.end is not None
+            and now_datetime < current_access_rule.end):
+        return False
+
     expire_flow_session(fctx, session, current_access_rule, now_datetime)
+
+    return True
 
 
 @transaction.atomic
@@ -696,7 +711,7 @@ def start_flow(pctx, flow_identifier):
 
             session.for_credit = "start_credit" in request.POST
 
-            if getattr(current_access_rule, "sticky", False):
+            if current_access_rule.sticky is not None and current_access_rule.sticky:
                 session.access_rules_id = current_access_rule.id
 
             session.save()

@@ -150,7 +150,7 @@ def view_gradebook(pctx):
             participation_role.teaching_assistant]:
         raise PermissionDenied("must be instructor or TA to view grades")
 
-    # NOTE: It's important that these three queries are sorted consistently,
+    # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
     grading_opps = list((GradingOpportunity.objects
             .filter(
@@ -245,6 +245,11 @@ class ModifySessionsForm(StyledForm):
                 choices=tuple(
                     (rule_id, str(rule_id))
                     for rule_id in rule_ids))
+        self.fields["past_end_only"] = forms.BooleanField(
+                required=False,
+                initial=True,
+                help_text="Only act on in-progress sessions that are past "
+                "their access rule's end date (applies to 'expire' and 'end')")
 
         self.helper.add_input(
                 Submit("expire", "Expire sessions",
@@ -256,7 +261,8 @@ class ModifySessionsForm(StyledForm):
 
 
 @transaction.atomic
-def expire_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime):
+def expire_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime,
+        past_end_only):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
@@ -269,14 +275,16 @@ def expire_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime):
 
     from course.flow import expire_flow_session_standalone
     for session in sessions:
-        expire_flow_session_standalone(repo, course, session, now_datetime)
-        count += 1
+        if expire_flow_session_standalone(repo, course, session, now_datetime,
+                past_end_only):
+            count += 1
 
     return count
 
 
 @transaction.atomic
-def finish_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime):
+def finish_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime,
+        past_end_only):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
@@ -289,9 +297,9 @@ def finish_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime):
 
     from course.flow import finish_flow_session_standalone
     for session in sessions:
-        finish_flow_session_standalone(repo, course, session,
-                now_datetime=now_datetime)
-        count += 1
+        if finish_flow_session_standalone(repo, course, session,
+                now_datetime=now_datetime, past_end_only=past_end_only):
+            count += 1
 
     return count
 
@@ -366,20 +374,24 @@ def view_grades_by_opportunity(pctx, opp_id):
 
             if batch_session_ops_form.is_valid():
                 rule_id = batch_session_ops_form.cleaned_data["rule_id"]
+                past_end_only = batch_session_ops_form.cleaned_data["past_end_only"]
+
                 if rule_id == RULE_ID_NONE_STRING:
                     rule_id = None
                 try:
                     if op == "expire":
                         count = expire_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id, now_datetime)
+                                rule_id, now_datetime,
+                                past_end_only=past_end_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) expired." % count)
                     elif op == "end":
                         count = finish_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id, now_datetime)
+                                rule_id, now_datetime,
+                                past_end_only=past_end_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) ended." % count)
@@ -401,7 +413,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
     # }}}
 
-    # NOTE: It's important that these three queries are sorted consistently,
+    # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
 
     participations = list(Participation.objects
