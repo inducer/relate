@@ -90,6 +90,8 @@ BOWER_INSTALLED_APPS = (
     "codemirror",
     "fullcalendar",
     "jqueryui",
+    "datatables",
+    "datatables-fixedcolumns",
     )
 
 CODEMIRROR_PATH = "codemirror"
