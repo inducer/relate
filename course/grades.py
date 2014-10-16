@@ -734,7 +734,14 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
         gchange.participation = find_participant_from_id(course, row[id_column-1])
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = attempt_id
-        gchange.points = float(row[points_column-1])
+
+        points_str = row[points_column-1].strip()
+        # Moodle's "NULL" grades look like this.
+        if points_str in ["-", ""]:
+            gchange.points = None
+        else:
+            gchange.points = float(points_str)
+
         gchange.max_points = max_points
         if feedback_column is not None:
             gchange.comment = row[feedback_column-1]
