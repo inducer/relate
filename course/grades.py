@@ -783,7 +783,7 @@ def csv_to_grade_changes(
         if last_grades.count():
             last_grade, = last_grades
 
-            if not (last_grade.state == grade_state_change_types.graded):
+            if last_grade.state == grade_state_change_types.graded:
 
                 updated = []
                 if last_grade.points != gchange.points:
