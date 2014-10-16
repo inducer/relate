@@ -413,8 +413,13 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
             "due_time",
             "identifier",
             "shown_in_grade_book",
+            "shown_in_student_grade_book",
             )
-    list_filter = ("course",)
+    list_filter = (
+            "course",
+            "shown_in_grade_book",
+            "shown_in_student_grade_book",
+            )
 
 admin.site.register(GradingOpportunity, GradingOpportunityAdmin)
 
