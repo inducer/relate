@@ -783,10 +783,23 @@ def csv_to_grade_changes(
         if last_grades.count():
             last_grade, = last_grades
 
-            if not (last_grade.state == grade_state_change_types.graded
-                    and last_grade.points == gchange.points
-                    and last_grade.max_points == gchange.max_points
-                    and last_grade.comment == gchange.comment):
+            if not (last_grade.state == grade_state_change_types.graded):
+
+                updated = []
+                if last_grade.points != gchange.points:
+                    updated.append("points")
+                if last_grade.max_points != gchange.max_points:
+                    updated.append("max_points")
+                if last_grade.comment != gchange.comment:
+                    updated.append("comment")
+
+                if updated:
+                    log_lines.append("%s: %s updated" % (
+                        gchange.participation,
+                        ", ".join(updated)))
+
+                    result.append(gchange)
+            else:
                 result.append(gchange)
 
         else:
