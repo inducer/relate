@@ -742,6 +742,7 @@ def csv_to_grade_changes(
                     course, row[id_column-1])
         except ParticipantNotFound as e:
             log_lines.append(e)
+            continue
 
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = attempt_id
