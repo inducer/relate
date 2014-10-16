@@ -719,6 +719,18 @@ def find_participant_from_id(course, id_str):
     return surviving_matches[0]
 
 
+def fix_decimal(s):
+    if "," in s and "." not in s:
+        comma_count = len([c for c in s if c == ","])
+        if comma_count == 1:
+            return s.replace(",", ".")
+        else:
+            return s
+
+    else:
+        return s
+
+
 def csv_to_grade_changes(
         log_lines,
         course, grading_opportunity, attempt_id, file_contents,
@@ -752,7 +764,7 @@ def csv_to_grade_changes(
         if points_str in ["-", ""]:
             gchange.points = None
         else:
-            gchange.points = float(points_str)
+            gchange.points = float(fix_decimal(points_str))
 
         gchange.max_points = max_points
         if feedback_column is not None:
