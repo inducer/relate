@@ -1349,6 +1349,12 @@ def request_python_run(run_req, run_timeout, image=None):
 
 
 class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
+    """
+    Deep copy semantics
+
+    Predefined symbols: ``feedback``, ``user_code``
+    """
+
     def __init__(self, vctx, location, page_desc):
         super(PythonCodeQuestion, self).__init__(vctx, location, page_desc)
 
