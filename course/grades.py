@@ -680,6 +680,10 @@ class ImportGradesForm(StyledForm):
                 Submit("import", "Import"))
 
 
+class ParticipantNotFound(ValueError):
+    pass
+
+
 def find_participant_from_id(course, id_str):
     id_str = id_str.strip().lower()
 
@@ -706,14 +710,18 @@ def find_participant_from_id(course, id_str):
             continue
 
     if not surviving_matches:
-        raise ValueError("no participant found for '%s'" % id_str)
+        raise ParticipantNotFound(
+                "no participant found for '%s'" % id_str)
     if len(surviving_matches) > 1:
-        raise ValueError("more than one participant found for '%s'" % id_str)
+        raise ParticipantNotFound(
+                "more than one participant found for '%s'" % id_str)
 
     return surviving_matches[0]
 
 
-def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
+def csv_to_grade_changes(
+        log_lines,
+        course, grading_opportunity, attempt_id, file_contents,
         id_column, points_column, feedback_column, max_points,
         creator, grade_time, has_header):
     result = []
@@ -727,11 +735,14 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
             has_header = False
             continue
 
-        total_count += 1
-
         gchange = GradeChange()
         gchange.opportunity = grading_opportunity
-        gchange.participation = find_participant_from_id(course, row[id_column-1])
+        try:
+            gchange.participation = find_participant_from_id(
+                    course, row[id_column-1])
+        except ParticipantNotFound as e:
+            log_lines.append(e)
+
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = attempt_id
 
@@ -768,6 +779,8 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
         else:
             result.append(gchange)
 
+        total_count += 1
+
     return total_count, result
 
 
@@ -778,6 +791,9 @@ def import_grades(pctx):
         raise PermissionDenied()
 
     form_text = ""
+
+    log_lines = []
+
     request = pctx.request
     if request.method == "POST":
         form = ImportGradesForm(
@@ -787,6 +803,7 @@ def import_grades(pctx):
         if form.is_valid():
             try:
                 total_count, grade_changes = csv_to_grade_changes(
+                        log_lines=log_lines,
                         course=pctx.course,
                         grading_opportunity=form.cleaned_data["grading_opportunity"],
                         attempt_id=form.cleaned_data["attempt_id"],
@@ -807,15 +824,23 @@ def import_grades(pctx):
                             "%d grades found, %d unchanged."
                             % (total_count, total_count - len(grade_changes)))
 
+                from django.template.loader import render_to_string
+
                 if is_import:
                     GradeChange.objects.bulk_create(grade_changes)
+                    form_text = render_to_string(
+                            "course/grade-import-preview.html", {
+                                "show_grade_changes": True,
+                                "log_lines": log_lines,
+                                })
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "%d grades imported." % len(grade_changes))
                 else:
-                    from django.template.loader import render_to_string
                     form_text = render_to_string(
                             "course/grade-import-preview.html", {
+                                "show_grade_changes": True,
                                 "grade_changes": grade_changes,
+                                "log_lines": log_lines,
                                 })
 
     else:
