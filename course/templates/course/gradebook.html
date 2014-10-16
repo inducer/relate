@@ -49,18 +49,13 @@
   </table>
 
   <script type="text/javascript">
-    $(document).ready(
-        function ()
-        {
-          var tbl = $("table.gradebook").dataTable({
-              "scrollY": "900px",
-              "scrollX": true,
-              "scrollCollapse": true,
-              "paging": true,
-              "ordering": false,
-          } );
-          new $.fn.dataTable.FixedColumns(tbl);
-        })
+    var tbl = $("table.gradebook").dataTable({
+        "scrollX": true,
+        "scrollCollapse": true,
+        "paging": true,
+        "ordering": false,
+    } );
+    new $.fn.dataTable.FixedColumns(tbl);
   </script>
 
 {% endblock %}
