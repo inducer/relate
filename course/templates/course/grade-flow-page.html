@@ -7,6 +7,12 @@
 {% endblock %}
 
 {% block content %}
+  <style>
+    body {
+      overflow-y: scroll;
+    }
+  </style>
+
   <h1>Grading: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt></h1>
 
   {# {{{ header table #}
@@ -25,34 +31,46 @@
       </td>
     </tr>
     <tr>
-      <td>Session</td>
       <td>
         {% if prev_flow_session_id != None %}
           <a href="{% url "course.grading.grade_flow_page" course.identifier prev_flow_session_id page_data.ordinal %}"
-             accesskey="p"><i class="fa fa-chevron-left"></i></a>
+             accesskey="p" class="btn btn-default btn-xs" title="Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
+        {% else %}
+          <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-left"></i></a>
         {% endif %}
-        ID: {{ flow_session.id }}
         {% if next_flow_session_id %}
           <a href="{% url "course.grading.grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}"
-             accesskey="n"><i class="fa fa-chevron-right"></i></a>
+             accesskey="n" class="btn btn-default btn-xs" title="Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
+        {% else %}
+          <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>
         {% endif %}
+        Session
+      </td>
+      <td>
+        ID: {{ flow_session.id }}
         &middot;{% include "course/flow-session-state.html" %}
         &middot; Start: {{ flow_session.start_time }}
 
       </td>
     </tr>
     <tr>
-      <td>Page number</td>
       <td>
         {% if page_data.ordinal > 0 %}
           <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-             ><i class="fa fa-chevron-left"></i></a>
+              class="btn btn-default btn-xs"><i class="fa fa-chevron-left"></i></a>
+        {% else %}
+          <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-left"></i></a>
         {% endif %}
-        {{ ordinal }}
         {% if page_data.next_ordinal < flow_session.page_count %}
           <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-             ><i class="fa fa-chevron-right"></i></a>
+              class="btn btn-default btn-xs"><i class="fa fa-chevron-right"></i></a>
+        {% else %}
+          <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>
         {% endif %}
+        Page number
+      </td>
+      <td>
+        {{ ordinal }}
       </td>
     </tr>
     {% if max_points != None %}
