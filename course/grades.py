@@ -843,7 +843,7 @@ def import_grades(pctx):
                     GradeChange.objects.bulk_create(grade_changes)
                     form_text = render_to_string(
                             "course/grade-import-preview.html", {
-                                "show_grade_changes": True,
+                                "show_grade_changes": False,
                                 "log_lines": log_lines,
                                 })
                     messages.add_message(pctx.request, messages.SUCCESS,
