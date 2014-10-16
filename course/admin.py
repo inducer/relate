@@ -420,6 +420,12 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
             "shown_in_grade_book",
             "shown_in_student_grade_book",
             )
+    list_editable = (
+            "name",
+            "identifier",
+            "shown_in_grade_book",
+            "shown_in_student_grade_book",
+            )
 
 admin.site.register(GradingOpportunity, GradingOpportunityAdmin)
 
