@@ -67,6 +67,11 @@ urlpatterns = patterns('',
         "/instant-message/$",
         "course.im.send_instant_message",),
 
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/markup-sandbox/$",
+        "course.views.view_markup_sandbox",),
+
     # }}}
 
     # {{{ grading

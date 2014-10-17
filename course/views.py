@@ -557,4 +557,50 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
 # }}}
 
 
+# {{{ markup sandbox
+
+class MarkupSandboxForm(StyledForm):
+    markup = forms.CharField(
+            help_text=mark_safe(
+                "Enter <a href=\"http://documen.tician.de/"
+                "courseflow/content.html#courseflow-markup\">"
+                "CourseFlow markup</a>."),
+            widget=forms.Textarea)
+
+    def __init__(self, *args, **kwargs):
+        super(MarkupSandboxForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit(
+                    "preview", "Preview",
+                    css_class="col-lg-offset-2"))
+
+
+@course_view
+def view_markup_sandbox(pctx):
+    request = pctx.request
+    form_text = ""
+
+    if request.method == "POST":
+        form = MarkupSandboxForm(request.POST)
+
+        if form.is_valid():
+            from course.content import markup_to_html
+            form_text = markup_to_html(
+                    pctx.course, pctx.repo, pctx.course_commit_sha,
+                    form.cleaned_data["markup"])
+            form_text = "<div class=\"well\">%s</div>" % form_text
+
+    else:
+        form = MarkupSandboxForm()
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_text": form_text,
+        "form_description": "CourseFlow Markup Sandbox",
+    })
+
+# }}}
+
+
 # vim: foldmethod=marker

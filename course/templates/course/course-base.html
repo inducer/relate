@@ -52,6 +52,9 @@
       {% if user.is_staff %}
       <li><a href="{% url "admin:course_flowaccessexception_changelist" %}" target="_blank">Show exceptions</a></li>
       {% endif %}
+      <li role="presentation" class="divider"></li>
+      <li role="presentation" class="dropdown-header">Markup</li>
+      <li><a href="{% url "course.views.view_markup_sandbox" course.identifier %}">Markup sandbox</a></li>
     </ul>
   </li>
   {% endif %}
