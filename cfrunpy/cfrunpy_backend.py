@@ -228,32 +228,6 @@ def run_code(result, run_req):
         package_exception(result, "user_error")
         return
 
-    if hasattr(run_req, "names_from_user"):
-        for name in run_req.names_from_user:
-            if name not in user_ctx:
-                result["result"] = "success"
-                result["points"] = 0
-                result["feedback"] = [
-                        "Required answer variable '%s' is not defined."
-                        % name
-                        ]
-                return result
-
-            maint_ctx[name] = user_ctx[name]
-
-    if test_code is not None:
-        try:
-            exec(test_code, maint_ctx)
-        except GradingComplete:
-            pass
-        except:
-            package_exception(result, "test_error")
-            return
-
-    if not (feedback.points is None or 0 <= feedback.points <= 1):
-        raise ValueError("grade point value is invalid: %s"
-                % feedback.points)
-
     # {{{ export plots
 
     if "matplotlib" in sys.modules:
@@ -279,6 +253,32 @@ def run_code(result, run_req):
         result["figures"] = figures
 
     # }}}
+
+    if hasattr(run_req, "names_from_user"):
+        for name in run_req.names_from_user:
+            if name not in user_ctx:
+                result["result"] = "success"
+                result["points"] = 0
+                result["feedback"] = [
+                        "Required answer variable '%s' is not defined."
+                        % name
+                        ]
+                return result
+
+            maint_ctx[name] = user_ctx[name]
+
+    if test_code is not None:
+        try:
+            exec(test_code, maint_ctx)
+        except GradingComplete:
+            pass
+        except:
+            package_exception(result, "test_error")
+            return
+
+    if not (feedback.points is None or 0 <= feedback.points <= 1):
+        raise ValueError("grade point value is invalid: %s"
+                % feedback.points)
 
     result["points"] = feedback.points
     result["feedback"] = feedback.feedback_items
