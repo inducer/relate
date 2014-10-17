@@ -1488,6 +1488,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         Python code to prepare the environment for the participants
         answer.
 
+    .. attribute:: show_setup_code
+
+        Optional. ``True`` or ``False``. If true, the :attr:`setup_code`
+        will be shown to the participant.
+
     .. attribute:: names_for_user
 
         Optional.
@@ -1509,6 +1514,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         Optional.
         Symbols that the participant's code is expected to define.
         These will be made available to the :attr:`test_code`.
+
+    .. attribute:: show_test_code
+
+        Optional. ``True`` or ``False``. If true, the :attr:`test_code`
+        will be shown to the participant.
 
     .. attribute:: correct_code_explanation
 
@@ -1576,9 +1586,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     def allowed_attrs(self):
         return super(PythonCodeQuestion, self).allowed_attrs() + (
                 ("setup_code", str),
+                ("show_setup_code", bool),
                 ("names_for_user", list),
                 ("names_from_user", list),
                 ("test_code", str),
+                ("show_test_code", bool),
                 ("correct_code_explanation", "markup"),
                 ("correct_code", str),
                 ("initial_code", str),
@@ -1602,7 +1614,13 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 {
                     "prompt_html":
                     markup_to_html(page_context, self.page_desc.prompt),
-                    "initial_code": self._initial_code()
+                    "initial_code": self._initial_code(),
+                    "show_setup_code": getattr(
+                        self.page_desc, "show_setup_code", False),
+                    "setup_code": getattr(self.page_desc, "setup_code", ""),
+                    "show_test_code": getattr(
+                        self.page_desc, "show_test_code", False),
+                    "test_code": getattr(self.page_desc, "test_code", ""),
                     })
 
     def make_form(self, page_context, page_data,

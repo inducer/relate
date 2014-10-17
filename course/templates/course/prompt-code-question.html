@@ -1,5 +1,28 @@
 {{ prompt_html|safe }}
 
+{% if show_setup_code or show_test_code %}
+  <div class="panel panel-default" markdown="block">
+    <div class="panel-heading">
+      <a data-toggle="collapse" href="#starter-code">
+        Grading code
+        <span style="font-size:x-small">(click to view)</span>
+      </a>
+    </div>
+    <div id="starter-code" class="panel-collapse collapse">
+     <div class="panel-body">
+      {% if show_setup_code and setup_code %}
+        Set-up:
+         <pre>{{ setup_code }}</pre>
+      {% endif %}
+      {% if show_test_code and test_code %}
+        Grading
+         <pre>{{ test_code }}</pre>
+      {% endif %}
+     </div>
+    </div>
+  </div>
+{% endif %}
+
 {% if initial_code %}
   <div class="panel panel-default" markdown="block">
     <div class="panel-heading">
