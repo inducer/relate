@@ -561,13 +561,13 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
 
 class MarkupSandboxForm(StyledForm):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, vim_mode, *args, **kwargs):
         super(MarkupSandboxForm, self).__init__(*args, **kwargs)
 
         from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
         self.fields["markup"] = forms.CharField(
-                required=True,
+                required=False,
                 widget=CodeMirrorTextarea(
                     mode="markdown",
                     theme="default",
@@ -575,6 +575,7 @@ class MarkupSandboxForm(StyledForm):
                         "fixedGutter": True,
                         "autofocus": True,
                         "indentUnit": 2,
+                        "vimMode": vim_mode,
                         "extraKeys": CodeMirrorJavascript("""
                             {
                               "Tab": function(cm)
@@ -592,6 +593,10 @@ class MarkupSandboxForm(StyledForm):
                     "CourseFlow markup</a>."
                     "Press Alt/Cmd+(Shift+)P to preview."))
 
+        self.fields["vim_mode"] = forms.BooleanField(
+                required=False,
+                help_text="Submit form after changing this field")
+
         self.helper.add_input(
                 Submit(
                     "preview", "Preview",
@@ -602,25 +607,27 @@ class MarkupSandboxForm(StyledForm):
 @course_view
 def view_markup_sandbox(pctx):
     request = pctx.request
-    form_text = ""
+    preview_text = ""
 
+    vim_mode = False
     if request.method == "POST":
-        form = MarkupSandboxForm(request.POST)
+        form = MarkupSandboxForm(False, request.POST)
 
         if form.is_valid():
+            vim_mode = form.cleaned_data["vim_mode"]
             from course.content import markup_to_html
-            form_text = markup_to_html(
+            preview_text = markup_to_html(
                     pctx.course, pctx.repo, pctx.course_commit_sha,
                     form.cleaned_data["markup"])
-            form_text = "<div class=\"well\">%s</div>" % form_text
+
+        form = MarkupSandboxForm(vim_mode, request.POST)
 
     else:
-        form = MarkupSandboxForm()
+        form = MarkupSandboxForm(False)
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
+    return render_course_page(pctx, "course/markup-sandbox.html", {
         "form": form,
-        "form_text": form_text,
-        "form_description": "Markup Sandbox",
+        "preview_text": preview_text,
     })
 
 # }}}
