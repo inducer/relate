@@ -66,16 +66,6 @@ in :file:`/etc/default/docker.io`.
 Tips
 ====
 
-Syntax highlighting
--------------------
-
-You can obtain Vim syntax highlighting for OpenCL C inlined in Python by
-checking `this file
-<https://github.com/pyopencl/pyopencl/blob/master/contrib/pyopencl.vim>`_.
-
-Note that the triple-quoted strings containing the source must start with
-`"""//CL// ..."""`.
-
 User-visible Changes
 ====================
 

@@ -74,7 +74,7 @@ These rules are automatically checked as part of setting a new revision of the
 This helps avoid mistakes and ensures that the students always see a working
 site.
 
-CourseFlow validation is also available as a stand-alone script :cmd:`cf-validate`.
+CourseFlow validation is also available as a stand-alone script :command:`cf-validate`.
 This runs independently of git and the web site on the content developer's
 computer and provides validation feedback without having to commit and
 upload the content to a CourseFlow site. This script can be installed by running::
