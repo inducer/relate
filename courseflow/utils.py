@@ -57,19 +57,6 @@ def settings_context_processor(request):
         "maintenance_mode": settings.CF_MAINTENANCE_MODE,
         }
 
-HTML_ESCAPE_TABLE = {
-    "&": "&amp;",
-    '"': "&quot;",
-    "'": "&apos;",
-    ">": "&gt;",
-    "<": "&lt;",
-    }
-
-
-def html_escape(text):
-    """Produce entities within text."""
-    return "".join(HTML_ESCAPE_TABLE.get(c, c) for c in text)
-
 
 # {{{ dict_to_struct
 

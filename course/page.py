@@ -29,6 +29,7 @@ from course.content import remove_prefix
 from django.utils.safestring import mark_safe
 import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils.html import escape
 
 from courseflow.utils import StyledForm, Struct
 
@@ -1068,7 +1069,6 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
         if not any(matcher.is_case_sensitive for matcher in self.matchers):
             normalized_answer = normalized_answer.lower()
 
-        from django.utils.html import escape
         return AnswerFeedback(
                 correctness=correctness,
                 normalized_answer=escape(normalized_answer))
@@ -1624,7 +1624,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def grade(self, page_context, page_data, answer_data, grade_data):
-        from courseflow.utils import html_escape
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
@@ -1765,21 +1764,21 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             feedback_bits.append(
                     "<p>Here is some feedback on your code:"
                     "<ul>%s</ul></p>" % "".join(
-                        "<li>%s</li>" % html_escape(fb_item)
+                        "<li>%s</li>" % escape(fb_item)
                         for fb_item in response.feedback))
         if hasattr(response, "traceback") and response.traceback:
             feedback_bits.append(
                     "<p>This is the exception traceback:"
-                    "<pre>%s</pre></p>" % html_escape(response.traceback))
+                    "<pre>%s</pre></p>" % escape(response.traceback))
             print repr(response.traceback)
         if hasattr(response, "stdout") and response.stdout:
             feedback_bits.append(
                     "<p>Your code printed the following output:<pre>%s</pre></p>"
-                    % html_escape(response.stdout))
+                    % escape(response.stdout))
         if hasattr(response, "stderr") and response.stderr:
             feedback_bits.append(
                     "<p>Your code printed the following error messages:"
-                    "<pre>%s</pre></p>" % html_escape(response.stderr))
+                    "<pre>%s</pre></p>" % escape(response.stderr))
         if hasattr(response, "figures"):
             fig_lines = [
                     "<p>Your code produced the following plots:</p>",

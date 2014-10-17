@@ -30,9 +30,10 @@ import six
 import sys
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils.html import escape
 
 from course.content import get_repo_blob
-from courseflow.utils import html_escape, Struct
+from courseflow.utils import Struct
 
 
 # {{{ validation tools
@@ -108,7 +109,7 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
                     raise ValidationError("%s: attribute '%s' has "
                             "wrong type: got '%s', expected '%s'"
                             % (location, attr, type(val).__name__,
-                            html_escape(str(allowed_types))))
+                            escape(str(allowed_types))))
 
                 if is_markup:
                     validate_markup(ctx, "%s: attribute %s" % (location, attr), val)
