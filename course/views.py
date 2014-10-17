@@ -597,7 +597,7 @@ def view_markup_sandbox(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text": form_text,
-        "form_description": "CourseFlow Markup Sandbox",
+        "form_description": "Markup Sandbox",
     })
 
 # }}}
