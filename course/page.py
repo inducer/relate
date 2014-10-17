@@ -646,7 +646,35 @@ class PageBaseWithCorrectAnswer(PageBase):
 
 
 class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle):
-    """A page showing static content."""
+    """
+    A page showing static content.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``Page``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: content
+
+        The page's content, in :ref:`markup`.
+
+    .. attribute:: correct_answer
+
+        Optional.
+        Content that is revealed when answers are visible
+        (see :ref:`flow-permissions`). Written in :ref:`markup`.
+    """
 
     def required_attrs(self):
         return super(Page, self).required_attrs() + (
@@ -942,6 +970,38 @@ def parse_matcher(vctx, location, matcher_desc):
 
 
 class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
+    """
+    A page asking for a textual answer
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``TextQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: answers
+
+        TODO
+    """
+
     def __init__(self, vctx, location, page_desc):
         super(TextQuestion, self).__init__(vctx, location, page_desc)
 
@@ -1040,6 +1100,44 @@ class ChoiceAnswerForm(StyledForm):
 
 
 class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
+    """
+    A page asking the participant to choose one of multiple answers.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``ChoiceQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: choices
+
+        A list of choices, each in :ref:`markup`. Correct
+        choices are indicated by the prefix ``~CORRECT~``.
+
+    .. attribute:: shuffle
+
+        Optional. ``True`` or ``False``. If true, the choices will
+        be presented in random order.
+    """
+
     CORRECT_TAG = "~CORRECT~"
 
     @classmethod
@@ -1350,9 +1448,104 @@ def request_python_run(run_req, run_timeout, image=None):
 
 class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     """
-    Deep copy semantics
+    An auto-graded question allowing an answer consisting of Python code.
+    All user code as well as all code specified as part of the problem
+    is in Python 3.
 
-    Predefined symbols: ``feedback``, ``user_code``
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``PythonCodeQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: timeout
+
+        A number, giving the number of seconds for which setup code,
+        the given answer code, and the test code (combined) will be
+        allowed to run.
+
+    .. attribute:: setup_code
+
+        Optional.
+        Python code to prepare the environment for the participants
+        answer.
+
+    .. attribute:: names_for_user
+
+        Optional.
+        Symbols defined at the end of the :attr:`setup_code` that will be
+        made available to the participant's code.
+
+        A deep copy (using the standard library function :func:`copy.deepcopy`)
+        of these values is made, to prevent the user from modifying trusted
+        state of the grading code.
+
+    .. attribute:: names_from_user
+
+        Optional.
+        Symbols that the participant's code is expected to define.
+        These will be made available to the :attr:`test_code`.
+
+    .. attribute:: test_code
+
+        Optional.
+        Symbols that the participant's code is expected to define.
+        These will be made available to the :attr:`test_code`.
+
+    .. attribute:: correct_code
+
+        Optional.
+        Code that is revealed when answers are visible
+        (see :ref:`flow-permissions`).
+
+    .. attribute:: initial_code
+
+        Optional.
+        Code present in the code input field when the participant first starts
+        working on their solution.
+
+    .. attribute:: data_files
+
+        Optional.
+        A list of file names in the :ref:`git-repo` whose contents will be made
+        available to :attr:`setup_code` and :attr:`test_code` through the
+        ``data_files`` dictionary. (see below)
+
+    The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
+
+    * ``GradingComplete``: An exception class that can be raised to indicated
+      that the grading code has concluded.
+
+    * ``feedback``: A class instance with three methods::
+
+          feedback.set_points(0.5) # 0<=points<=1 (usually)
+          feedback.add_feedback("This was wrong")
+
+          # combines the above two and raises GradingComplete
+          feedback.finish(0, "This was wrong")
+
+    * ``data_files``: A dictionary mapping file names from :attr:`data_files`
+      to :class:`bytes` instances with that file's contents.
+
+    * ``user_code``: The user code being tested, as a string.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -1624,6 +1817,22 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
 class PythonCodeQuestionWithHumanTextFeedback(
         PythonCodeQuestion, PageBaseWithHumanTextFeedback):
+    """
+    A question allowing an answer consisting of Python code.
+    This page type allows both automatic grading and grading
+    by a human grader.
+
+    The allowed attributes are the same as those of
+    :class:`PythonCodeQuestion`, with the following additional,
+    required attribute:
+
+    .. attribute:: human_feedback_value
+
+        A number. The point value of the feedback component
+        by the human grader (who will grade on a 0-100 scale,
+        which is scaled to yield :attr:`human_feedback_value`
+        at 100).
+    """
 
     def __init__(self, vctx, location, page_desc):
         super(PythonCodeQuestionWithHumanTextFeedback, self).__init__(
@@ -1733,6 +1942,49 @@ class FileUploadForm(StyledForm):
 
 class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
+    """
+    A page allowing the submission of a file upload that will be
+    graded with text feedback by a human grader.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``Page``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: prompt
+
+        The page's content, in :ref:`markup`.
+
+    .. attribute:: mime_types
+
+        A list of `MIME types <https://en.wikipedia.org/wiki/Internet_media_type>`_
+        that the question will accept.
+        Only ``application/pdf`` is allowed for the moment.
+
+    .. attribute:: maximum_megabytes
+
+        The largest file size
+        (in `Mebibyte <https://en.wikipedia.org/wiki/Mebibyte>`)
+        that the page will accept.
+
+    .. attribute:: correct_answer
+
+        Optional.
+        Content that is revealed when answers are visible
+        (see :ref:`flow-permissions`). Written in :ref:`markup`.
+    """
+
     ALLOWED_MIME_TYPES = [
             "application/pdf",
             ]

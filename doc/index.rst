@@ -15,6 +15,7 @@ something completely different.
 
     content.rst
     flow.rst
+    grading.rst
     misc.rst
 
 * :ref:`genindex`

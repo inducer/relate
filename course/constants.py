@@ -98,6 +98,33 @@ def is_expiration_mode_allowed(expmode, permissions):
 
 
 class flow_permission:
+    """
+    .. attribute:: view
+    .. attribute:: view_past
+    .. attribute:: start_credit
+    .. attribute:: start_no_credit
+
+    .. attribute:: change_answer
+
+        Grants permission to change an already-graded answer,
+        which may then be graded again. Useful for
+        :class:`course.page.PythonCodeQuestion` to allow
+        iterative debugging.
+
+    .. attribute:: see_correctness
+
+    .. attribute:: see_correctness_after_completion
+    .. attribute:: see_answer
+    .. attribute:: see_answer_after_completion
+    .. attribute:: set_roll_over_expiration_mode
+
+        Grants permission to let a student choose to let a flow
+        "expire" into the then-current set of access rules
+        instead of into being submitted for grading.
+
+        See :ref:`flow-life-cycle`.
+
+    """
     view = "view"
     view_past = "view_past"
     start_credit = "start_credit"
