@@ -560,18 +560,37 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
 # {{{ markup sandbox
 
 class MarkupSandboxForm(StyledForm):
-    markup = forms.CharField(
-            help_text=mark_safe(
-                "Enter <a href=\"http://documen.tician.de/"
-                "courseflow/content.html#courseflow-markup\">"
-                "CourseFlow markup</a>."
-                "Press Alt/Cmd+(Shift+)P to preview."),
-            widget=forms.Textarea)
 
     def __init__(self, *args, **kwargs):
         super(MarkupSandboxForm, self).__init__(*args, **kwargs)
 
-        self.fields["markup"].widget.attrs["autofocus"] = None
+        from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+
+        self.fields["markup"] = forms.CharField(
+                required=True,
+                widget=CodeMirrorTextarea(
+                    mode="markdown",
+                    theme="default",
+                    config={
+                        "fixedGutter": True,
+                        "autofocus": True,
+                        "indentUnit": 2,
+                        "extraKeys": CodeMirrorJavascript("""
+                            {
+                              "Tab": function(cm)
+                              {
+                                var spaces = \
+                                    Array(cm.getOption("indentUnit") + 1).join(" ");
+                                cm.replaceSelection(spaces);
+                              }
+                            }
+                        """)
+                    }),
+                help_text=mark_safe(
+                    "Enter <a href=\"http://documen.tician.de/"
+                    "courseflow/content.html#courseflow-markup\">"
+                    "CourseFlow markup</a>."
+                    "Press Alt/Cmd+(Shift+)P to preview."))
 
         self.helper.add_input(
                 Submit(
