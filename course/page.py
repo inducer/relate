@@ -1282,6 +1282,7 @@ class PythonCodeForm(StyledForm):
                     "fixedGutter": True,
                     "indentUnit": 4,
                     "readOnly": read_only,
+                    "autofocus": not read_only,
                     "extraKeys": CodeMirrorJavascript("""
                         {
                           "Tab": function(cm)
