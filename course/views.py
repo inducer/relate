@@ -590,7 +590,7 @@ class MarkupSandboxForm(StyledForm):
                 help_text=mark_safe(
                     "Enter <a href=\"http://documen.tician.de/"
                     "courseflow/content.html#courseflow-markup\">"
-                    "CourseFlow markup</a>."
+                    "CourseFlow markup</a>. "
                     "Press Alt/Cmd+(Shift+)P to preview."))
 
         self.fields["vim_mode"] = forms.BooleanField(
@@ -616,9 +616,17 @@ def view_markup_sandbox(pctx):
         if form.is_valid():
             vim_mode = form.cleaned_data["vim_mode"]
             from course.content import markup_to_html
-            preview_text = markup_to_html(
-                    pctx.course, pctx.repo, pctx.course_commit_sha,
-                    form.cleaned_data["markup"])
+            try:
+                preview_text = markup_to_html(
+                        pctx.course, pctx.repo, pctx.course_commit_sha,
+                        form.cleaned_data["markup"])
+            except:
+                import sys
+                tp, e, _ = sys.exc_info()
+
+                messages.add_message(pctx.request, messages.ERROR,
+                        "Markup failed to render: "
+                        "%s: %s" % (tp.__name__, e))
 
         form = MarkupSandboxForm(vim_mode, request.POST)
 
