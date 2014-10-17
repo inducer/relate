@@ -1510,6 +1510,13 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         Symbols that the participant's code is expected to define.
         These will be made available to the :attr:`test_code`.
 
+    .. attribute:: correct_code_explanation
+
+        Optional.
+        Code that is revealed when answers are visible
+        (see :ref:`flow-permissions`). This is shown before
+        :attr:`correct_code` as an explanation.
+
     .. attribute:: correct_code
 
         Optional.
@@ -1572,6 +1579,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("names_for_user", list),
                 ("names_from_user", list),
                 ("test_code", str),
+                ("correct_code_explanation", "markup"),
                 ("correct_code", str),
                 ("initial_code", str),
                 ("data_files", list),
@@ -1800,14 +1808,19 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 normalized_answer="<pre>%s</pre>" % user_code)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
-        from courseflow.utils import html_escape
+        result = ""
+
+        if hasattr(self.page_desc, "correct_code_explanation"):
+            result += markup_to_html(
+                    page_context,
+                    self.page_desc.correct_code_explanation),
 
         if hasattr(self.page_desc, "correct_code"):
-            return (
+            result += (
                     "The following code is a valid answer:<pre>%s</pre>"
-                    % html_escape(self.page_desc.correct_code))
-        else:
-            return None
+                    % escape(self.page_desc.correct_code))
+
+        return result
 
 # }}}
 
