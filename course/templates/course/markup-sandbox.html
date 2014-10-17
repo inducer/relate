@@ -11,7 +11,9 @@
   <h1>Markup Sandbox</h1>
   {% if preview_text %}
   <div class="well">
-    {{ preview_text|safe }}
+    <div style="max-height:700px; overflow-y:scroll">
+      {{ preview_text|safe }}
+    </div>
   </div>
   {% endif %}
   <div class="well">
