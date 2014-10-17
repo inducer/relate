@@ -1708,7 +1708,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "test_error"]:
             error_msg_parts = ["RESULT: %s" % response_dict["result"]]
             for key, val in sorted(response_dict.items()):
-                if key != "result" and val:
+                if (key not in ["result", "figures"]
+                        and val
+                        and isinstance(val, (str, unicode))):
                     error_msg_parts.append("-------------------------------------")
                     error_msg_parts.append(key)
                     error_msg_parts.append("-------------------------------------")
