@@ -95,6 +95,10 @@ linked page provides a (mostly) complete definition of the language.  A
 10-minute `tutorial <http://markdowntutorial.com/>`_ is available to provide a
 quick, approachable overview of Markdown.
 
+To allow easy experimentation with markup, CourseFlow has a "markup sandbox" in
+the "Teaching tools" menu where the rendered form of any CourseFlow markup can
+be previewed.
+
 In addition to standard Markdown, the following extensions are
 supported:
 
@@ -128,6 +132,15 @@ LaTeX-based mathematics
 Use ``$...$`` to enclose inline math
 and ``$$...$$`` to enclose display math. This feature is provided
 by `MathJax <http://www.mathjax.org/>`_.
+
+If you would like to use AMSMath-style LaTeX environments, wrap them
+in ``$$...$$``::
+
+    $$
+    \begin{align*}
+    ...
+    \end{align*}
+    $$
 
 Symbols and Icons
 ^^^^^^^^^^^^^^^^^
