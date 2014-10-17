@@ -564,16 +564,20 @@ class MarkupSandboxForm(StyledForm):
             help_text=mark_safe(
                 "Enter <a href=\"http://documen.tician.de/"
                 "courseflow/content.html#courseflow-markup\">"
-                "CourseFlow markup</a>."),
+                "CourseFlow markup</a>."
+                "Press Alt/Cmd+(Shift+)P to preview."),
             widget=forms.Textarea)
 
     def __init__(self, *args, **kwargs):
         super(MarkupSandboxForm, self).__init__(*args, **kwargs)
 
+        self.fields["markup"].widget.attrs["autofocus"] = None
+
         self.helper.add_input(
                 Submit(
                     "preview", "Preview",
-                    css_class="col-lg-offset-2"))
+                    css_class="col-lg-offset-2",
+                    accesskey="p"))
 
 
 @course_view
