@@ -48,7 +48,7 @@ same as your system user name, or whatever `whoami` returned above) and select
 "Set up new course".
 
 Additional setup steps for Docker
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 (TODO)
 
