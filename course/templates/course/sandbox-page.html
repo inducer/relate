@@ -7,6 +7,16 @@
   <script src="{% static "codemirror/keymap/vim.js" %}"></script>
 {% endblock %}
 
+{% block title %}
+  {% if title %}
+    [SB] {{ title }}
+  {% else %}
+    Page Sandbox
+  {% endif %}
+  -
+  CourseFlow
+{% endblock %}
+
 {% block root_container %}
   <div class="sandbox-page-editor">
     <div class="row">

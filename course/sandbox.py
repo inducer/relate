@@ -212,6 +212,7 @@ def view_page_sandbox(pctx):
                 commit_sha=pctx.course_commit_sha,
                 flow_session=None)
 
+        title = page.title(page_context, page_data)
         body = page.body(page_context, page_data)
 
         feedback = None
@@ -251,6 +252,7 @@ def view_page_sandbox(pctx):
             "page_errors": page_errors,
             "form": edit_form,  # to placate form.media
             "have_valid_page": True,
+            "title": title,
             "body": body,
             "page_form_html": page_form_html,
             "feedback": feedback,
