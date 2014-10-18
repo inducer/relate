@@ -35,6 +35,9 @@ from courseflow.utils import StyledForm
 from course.utils import course_view, render_course_page
 
 
+CF_SANDBOX_VIM_MODE = "CF_SANDBOX_VIM_MODE"
+
+
 # {{{ sandbox form
 
 class SandboxForm(StyledForm):
@@ -70,7 +73,7 @@ class SandboxForm(StyledForm):
                     help_text + " Press Alt/Cmd+(Shift+)P to preview."))
 
         self.fields["vim_mode"] = forms.BooleanField(
-                required=False)
+                required=False, initial=vim_mode)
 
         self.helper.add_input(
                 Submit(
@@ -97,12 +100,15 @@ def view_markup_sandbox(pctx):
                 help_text,
                 data)
 
-    vim_mode = False
+    vim_mode = pctx.request.session.get(CF_SANDBOX_VIM_MODE, False)
+
     if request.method == "POST":
         form = make_form(request.POST)
 
         if form.is_valid():
-            vim_mode = form.cleaned_data["vim_mode"]
+            pctx.request.session[CF_SANDBOX_VIM_MODE] = \
+                    vim_mode = form.cleaned_data["vim_mode"]
+
             from course.content import markup_to_html
             try:
                 preview_text = markup_to_html(
@@ -150,13 +156,14 @@ def view_page_sandbox(pctx):
                 "Enter YAML markup for a flow page.",
                 data)
 
-    vim_mode = False
+    vim_mode = pctx.request.session.get(CF_SANDBOX_VIM_MODE, False)
 
     if is_preview_post:
         edit_form = make_form(pctx.request.POST)
 
         if edit_form.is_valid():
-            vim_mode = edit_form.cleaned_data["vim_mode"]
+            pctx.request.session[CF_SANDBOX_VIM_MODE] = \
+                    vim_mode = edit_form.cleaned_data["vim_mode"]
 
             try:
                 new_page_source = edit_form.cleaned_data["content"]
