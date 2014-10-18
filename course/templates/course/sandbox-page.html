@@ -50,24 +50,26 @@
           </div>
         {% endif %}
 
-        <div class="alert
-          {% if feedback.correctness == 1 %}
-            alert-success
-          {% elif feedback.correctness == 0 %}
-            alert-danger
-          {% else%}
-            alert-info
-          {% endif %}
-          ">
-          {% if feedback %}
-            <p>{{ feedback.feedback|safe }}</p>
-          {% endif %}
-          {% if correct_answer %}
-            <p>{{ correct_answer|safe }}</p>
-          {% endif %}
-        </div>
+        {% if feedback or correct_answer %}
+          <div class="alert
+            {% if feedback.correctness == 1 %}
+              alert-success
+            {% elif feedback.correctness == 0 %}
+              alert-danger
+            {% else%}
+              alert-info
+            {% endif %}
+            ">
+            {% if feedback %}
+              <p>{{ feedback.feedback|safe }}</p>
+            {% endif %}
+            {% if correct_answer %}
+              <p>{{ correct_answer|safe }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
       {% else %}
-        <span class="text-muted">(Page preview appears here)</span>
+        <span class="text-muted" style="margin-top:30px">(Page preview appears here)</span>
       {% endif %}
     </div>
   </div>
