@@ -142,9 +142,11 @@ def view_page_sandbox(pctx):
     from courseflow.utils import dict_to_struct
     import yaml
 
-    SESSION_KEY = "cf_validate_sandbox_page"
+    PAGE_SESSION_KEY = "cf_validated_sandbox_page"
+    ANSWER_DATA_SESSION_KEY = "cf_page_sandbox_answer_data"
+
     request = pctx.request
-    page_source = pctx.request.session.get(SESSION_KEY)
+    page_source = pctx.request.session.get(PAGE_SESSION_KEY)
 
     page_errors = None
 
@@ -186,7 +188,7 @@ def view_page_sandbox(pctx):
 
             else:
                 # Yay, it did validate.
-                request.session[SESSION_KEY] = page_source = new_page_source
+                request.session[PAGE_SESSION_KEY] = page_source = new_page_source
 
             del new_page_source
 
@@ -215,8 +217,27 @@ def view_page_sandbox(pctx):
         title = page.title(page_context, page_data)
         body = page.body(page_context, page_data)
 
-        feedback = None
+        # {{{ try to recover answer_data
+
         answer_data = None
+
+        stored_answer_data_tuple = \
+                pctx.request.session.get(ANSWER_DATA_SESSION_KEY)
+
+        # Session storage uses JSON and may turn tuples into lists.
+        if (isinstance(stored_answer_data_tuple, (list, tuple))
+                and len(stored_answer_data_tuple) == 2):
+            print "AZZ"
+            stored_answer_data_page_id, stored_answer_data = \
+                    stored_answer_data_tuple
+
+            if stored_answer_data_page_id == page_desc.id:
+                print "BZZ"
+                answer_data = stored_answer_data
+
+        # }}}
+
+        feedback = None
         page_form_html = None
 
         if page.expects_answer():
@@ -232,9 +253,12 @@ def view_page_sandbox(pctx):
                     feedback = page.grade(page_context, page_data, answer_data,
                             grade_data=None)
 
+                    pctx.request.session[ANSWER_DATA_SESSION_KEY] = (
+                            page_desc.id, answer_data)
+
             else:
                 page_form = page.make_form(page_context, page_data,
-                        None, answer_is_final=False)
+                        answer_data, answer_is_final=False)
 
             if page_form is not None:
                 page_form.helper.add_input(
