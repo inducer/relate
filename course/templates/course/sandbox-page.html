@@ -18,6 +18,12 @@
 
       <h1>Page Sandbox</h1>
 
+      {% if page_errors %}
+        <div class="alert alert-danger">
+          {{ page_errors | safe }}
+        </div>
+      {% endif %}
+
       <div class="well">
         {% crispy edit_form %}
       </div>
