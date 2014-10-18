@@ -58,14 +58,6 @@ code {
 
 /* }}} */
 
-.cf-calendar-event:target .panel-heading {
-  background-color: #ddf;
-}
-
-.cf-calendar-event:target .panel-body {
-  background-color: #f8f8f8;
-}
-
 /* {{{ histograms */
 
 div.histogram > table {
@@ -94,6 +86,8 @@ div.progress:hover  span.stats-percentage{
 
 /* }}} */
 
+/* {{{ calendar */
+
 .fc-other-month {
   background: #eee;
 }
@@ -112,5 +106,39 @@ div.progress:hover  span.stats-percentage{
   margin-left: 3em;
   margin-bottom: 1ex;
 }
+
+.cf-calendar-event:target .panel-heading {
+  background-color: #ddf;
+}
+
+.cf-calendar-event:target .panel-body {
+  background-color: #f8f8f8;
+}
+
+/* }}} */
+
+.sandbox-page-editor {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 50%;
+  padding-left:50px;
+  padding-right:50px;
+}
+.sandbox-page-preview {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 50%;
+  bottom: 0;
+  overflow-y: scroll;
+  padding-left:50px;
+  padding-right:50px;
+}
+
+.sandbox-page-editor .CodeMirror {
+  height:800px;
+}
+
 
 /* vim: set foldmethod=marker: */

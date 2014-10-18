@@ -107,6 +107,7 @@
       </div>
     </div>
 
+    {% block root_container %}
     <div class="container">
 
       {% for message in messages %}
@@ -138,6 +139,7 @@
       {% endblock %}
 
     </div>
+    {% endblock %}
 
     <!-- JavaScript
     ================================================== -->

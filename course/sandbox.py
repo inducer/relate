@@ -38,7 +38,8 @@ from course.utils import course_view, render_course_page
 # {{{ sandbox form
 
 class SandboxForm(StyledForm):
-    def __init__(self, initial_text, editor_mode, vim_mode, help_text, *args, **kwargs):
+    def __init__(self, initial_text,
+            editor_mode, vim_mode, help_text, *args, **kwargs):
         super(SandboxForm, self).__init__(*args, **kwargs)
 
         from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
@@ -69,8 +70,7 @@ class SandboxForm(StyledForm):
                     help_text + " Press Alt/Cmd+(Shift+)P to preview."))
 
         self.fields["vim_mode"] = forms.BooleanField(
-                required=False,
-                help_text="Submit form after changing this field")
+                required=False)
 
         self.helper.add_input(
                 Submit(
@@ -140,6 +140,8 @@ def view_page_sandbox(pctx):
     request = pctx.request
     page_source = pctx.request.session.get(SESSION_KEY)
 
+    page_errors = None
+
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
     def make_form(data=None):
@@ -171,7 +173,7 @@ def view_page_sandbox(pctx):
                 import sys
                 tp, e, _ = sys.exc_info()
 
-                messages.add_message(pctx.request, messages.ERROR,
+                page_errors = (
                         "Page failed to load/validate: "
                         "%s: %s" % (tp.__name__, e))
 
@@ -228,7 +230,8 @@ def view_page_sandbox(pctx):
 
             if page_form is not None:
                 page_form.helper.add_input(
-                        Submit("submit", "Submit answer", accesskey="g"))
+                        Submit("submit", "Submit answer", accesskey="g",
+                            css_class="col-lg-offset-2"))
                 page_form_html = page.form_to_html(
                         pctx.request, page_context, page_form, answer_data)
 
@@ -238,6 +241,7 @@ def view_page_sandbox(pctx):
 
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
+            "page_errors": page_errors,
             "form": edit_form,  # to placate form.media
             "have_valid_page": True,
             "body": body,
@@ -252,6 +256,7 @@ def view_page_sandbox(pctx):
             "edit_form": edit_form,
             "form": edit_form,  # to placate form.media
             "have_valid_page": False,
+            "page_errors": page_errors,
         })
 
 # }}}
