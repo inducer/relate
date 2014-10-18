@@ -227,12 +227,10 @@ def view_page_sandbox(pctx):
         # Session storage uses JSON and may turn tuples into lists.
         if (isinstance(stored_answer_data_tuple, (list, tuple))
                 and len(stored_answer_data_tuple) == 2):
-            print "AZZ"
             stored_answer_data_page_id, stored_answer_data = \
                     stored_answer_data_tuple
 
             if stored_answer_data_page_id == page_desc.id:
-                print "BZZ"
                 answer_data = stored_answer_data
 
         # }}}
