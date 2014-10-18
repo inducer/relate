@@ -69,8 +69,13 @@ urlpatterns = patterns('',
 
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/markup-sandbox/$",
-        "course.views.view_markup_sandbox",),
+        "/sandbox/markup/$",
+        "course.sandbox.view_markup_sandbox",),
+
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/sandbox/page/$",
+        "course.sandbox.view_page_sandbox",),
 
     # }}}
 

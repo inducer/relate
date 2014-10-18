@@ -1,0 +1,83 @@
+{% extends "course/course-base.html" %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+
+{%block header_extra %}
+  <script src="{% static "codemirror/keymap/vim.js" %}"></script>
+{% endblock %}
+
+{% block content %}
+  <div class="alert alert-warning" style="float:right" id="save-warning">
+    <i class="fa fa-warning"></i>
+    What you type into this page is not saved once you navigate away.
+    Please make sure to retain a copy.
+  </div>
+
+  <h1>Page Sandbox</h1>
+
+  <div class="well">
+    {% crispy edit_form %}
+  </div>
+
+  <hr>
+
+  {% if have_valid_page %}
+    {{ body|safe }}
+
+    {% if page_form_html %}
+      <div class="well">
+        {{ page_form_html|safe }}
+      </div>
+    {% endif %}
+
+    <div class="alert
+      {% if feedback.correctness == 1 %}
+        alert-success
+      {% elif feedback.correctness == 0 %}
+        alert-danger
+      {% else%}
+        alert-info
+      {% endif %}
+      ">
+      {% if feedback %}
+        <p>{{ feedback.feedback|safe }}</p>
+      {% endif %}
+      {% if correct_answer %}
+        <p>{{ correct_answer|safe }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# {{{ codemirror resizing #}
+
+  <script type="text/javascript">
+    window.setTimeout(
+        function() { $("#save-warning").fadeOut() },
+        5000);
+  </script>
+
+  {# }}} #}
+
+  {# {{{ codemirror resizing #}
+
+  <script type="text/javascript">
+    $("div.CodeMirror")
+    .resizable({
+          resize: function (event, ui)
+          {
+            $("div.CodeMirror").each(
+              function ()
+              {
+                var cm = this.CodeMirror;
+                cm.refresh();
+              });
+          }
+      });
+  </script>
+
+  {# }}} #}
+
+{% endblock %}
+
+

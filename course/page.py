@@ -54,6 +54,8 @@ class PageContext(object):
     .. attribute:: commit_sha
     .. attribute:: flow_session
 
+        May be None.
+
     Note that this is different from :class:`course.utils.FlowPageContext`,
     which is used internally by the flow views.
     """
@@ -563,7 +565,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
         for k in self.grade_data_attrs:
             grade_data[k] = grading_form.cleaned_data[k]
 
-        if grading_form.cleaned_data["notify"]:
+        if grading_form.cleaned_data["notify"] and page_context.flow_session:
             from django.template.loader import render_to_string
             message = render_to_string("course/grade-notify.txt", {
                 "page_title": self.title(page_context, page_data),
@@ -1282,7 +1284,7 @@ class PythonCodeForm(StyledForm):
                     "fixedGutter": True,
                     "indentUnit": 4,
                     "readOnly": read_only,
-                    "autofocus": not read_only,
+                    # "autofocus": not read_only,
                     "extraKeys": CodeMirrorJavascript("""
                         {
                           "Tab": function(cm)
