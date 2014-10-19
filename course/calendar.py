@@ -236,7 +236,9 @@ def view_calendar(pctx):
     event_info_list = []
 
     for event in (Event.objects
-            .filter(course=pctx.course)
+            .filter(
+                course=pctx.course,
+                shown_in_calendar=True)
             .order_by("time")):
         kind_desc = event_kinds_desc.get(event.kind)
 

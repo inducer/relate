@@ -171,6 +171,8 @@ class Event(models.Model):
             help_text="Only affects the rendering in the class calendar, "
             "in that a start time is not shown")
 
+    shown_in_calendar = models.BooleanField(default=True)
+
     class Meta:
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
