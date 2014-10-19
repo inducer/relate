@@ -35,8 +35,10 @@ CourseFlow is set apart by the following features:
   easy-to-use support for integrating HTML5 video into course content
   without the need for third-party content hosting.
 
+More information around the web:
+
 * `See it in action <https://courseflow.cs.illinois.edu/course/cs357-f14>`_
-* `Documentation <http://documen.tician.de>`_
+* `Documentation <http://documen.tician.de/courseflow>`_
 
 Installation
 ------------
