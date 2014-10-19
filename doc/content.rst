@@ -18,7 +18,7 @@ One revision ("commit") of the git repository is always viewed as the "current"
 one. This is the one being shown to all visitors. In addition, each user (with
 sufficient privileges) may be previewing a different version of their choosing.
 
-.. _yaml:
+.. _yaml-files:
 
 YAML
 ----
@@ -259,17 +259,33 @@ database. This data serves two purposes:
 Since this data may vary from one run of the course to the next, it is stored
 along with other by-run-varying data such as grades data and not in the
 :ref:`git-repo`.) A user interface to create and manipulate events is provided
-in the "Instructor" menu.
+in the "Instructor" menu. The same menu also contains a menu item to audit
+the course content for references to symbolic event names that are not
+defined.
 
-For example, to create contiguously numbered ``lecture`` events
+For example, to create contiguously numbered ``lecture`` events for a
+lecture occuring on a Tuesday/Thursday schedule, perform the following
+sequence of steps:
+
+* Create a recurring, weekly event for the Tuesday lectures, with a
+  starting ordinal of 1. ("Create recurring events" in the "Instructor"
+  menu.)
+
+* Create a recurring, weekly event for the Thursday lectures, with a
+  starting ordinal of 100, to avoid clashing with the previously assigned
+  ordinals. ("Create recurring events" in the "Instructor" menu.)
+
+* Renumber the events with the relevant symbolic name. ("Renumber events"
+  in the "Instructor" menu.) This assigns new ordinals to all events with
+  the specified symbolic name by increasing order in time.
 
 .. _datespec:
 
 Specifying dates in CourseFlow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In various places around its YAML documents, CourseFlow allows dates to
-be specified. The following formats are supported:
+In various places around its :ref:`YAML documents <yaml-files>`, CourseFlow
+allows dates to be specified. The following formats are supported:
 
 * ``symbolic_name ordinal`` (e.g. ``lecture 13``) to refer to :ref:`calendear
   events <events>` with an ordinal.
