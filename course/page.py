@@ -1369,6 +1369,8 @@ def request_python_run(run_req, run_timeout, image=None):
 
         # {{{ ping until response received
 
+        from traceback import format_exc
+
         while True:
             try:
                 connection = httplib.HTTPConnection('localhost', port)
@@ -1384,8 +1386,6 @@ def request_python_run(run_req, run_timeout, image=None):
                 break
 
             except socket.error as e:
-                from traceback import format_exc
-
                 if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
                     if time() - start_time < docker_timeout:
                         sleep(0.1)
