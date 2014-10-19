@@ -18,6 +18,8 @@ One revision ("commit") of the git repository is always viewed as the "current"
 one. This is the one being shown to all visitors. In addition, each user (with
 sufficient privileges) may be previewing a different version of their choosing.
 
+.. _yaml:
+
 YAML
 ----
 
@@ -62,6 +64,24 @@ Here's an example::
 
      ...
 
+On system lock-in
+-----------------
+
+One key feature of CourseFlow is that the content you write for it is versatile
+and easy to repurpose. To start, everything you write for CourseFlow is just
+a readable, plain text file, so there are no retrieval or interpretation issues.
+
+Next, the `pandoc <http://johnmacfarlane.net/pandoc/>`_ tool can be used to
+export :ref:`markup` to essentially any other markup format under the sun,
+including LaTeX, HTML, MediaWiki, Microsoft Word, and many more.
+
+Further, YAML files are quite easy to read and traverse in most programming languages,
+facilitating automated coversion.  `This example Python script
+<https://github.com/inducer/courseflow/blob/master/contrib/flow-to-worksheet>`_
+provided as part of CourseFlow takes a flow and converts it to a paper-based
+worksheet. To do so, it makes use of `pypandoc
+<https://pypi.python.org/pypi/pypandoc>`_ and `PyYAML <http://pyyaml.org/>`_.
+
 Validation
 ----------
 
@@ -102,29 +122,31 @@ be previewed.
 In addition to standard Markdown, the following extensions are
 supported:
 
-Linking to flows
-^^^^^^^^^^^^^^^^
+Custom URLs
+^^^^^^^^^^^
 
-The URL schema ``flow:flow-name`` provides a link to the start page of a
-flow.
+A few custom URL schemas are provided to facilitate easy linking around
+a CourseFlow site:
 
-In Markdown, this might look like this::
+* The URL schema ``flow:flow-name`` provides a link to the start page of a
+  flow.
 
-    Please take [today's quiz](flow:quiz-lecture-17).
+  In Markdown, this might look like this::
 
-This resolves to a link to the flow contained in
-:file:`flows/quiz-lecture-17.yml`.
+      Please take [today's quiz](flow:quiz-lecture-17).
 
-URL schema for media (e.g. images)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  This resolves to a link to the flow contained in
+  :file:`flows/quiz-lecture-17.yml`.
 
-The URL schema ``media:some/file/name.png``
-will be resolved to the file `media/some/file/name.png` in the 
-course's :ref:`git-repo`.
+* The URL schema ``media:some/file/name.png``
+  will be resolved to the file `media/some/file/name.png` in the
+  course's :ref:`git-repo`.
 
-In Markdown, this might look like this::
+  In Markdown, this might look like this::
 
-    ![A bouncing ball](media:images/bouncing-ball.gif)
+      ![A bouncing ball](media:images/bouncing-ball.gif)
+
+* The URL schema ``calendar:`` links to the course calendar page.
 
 LaTeX-based mathematics
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -214,7 +236,92 @@ This could then be used from wherever CourseFlow markup is allowed::
 
 to embed a YouTube player. (YouTube is a registered trademark.)
 
+
+.. _events:
+
 Calendar and Events
 -------------------
 
-...
+To allow course content to be reused easily from year to year, CourseFlow can
+assign symbolic names to particular dates in your course. For example, instead
+of writing ``2014-10-13``, you could write ``lecture 13`` or ``hw_due 5``.
+
+To achieve this, each course in CourseFlow can store a list of events in its
+database. This data serves two purposes:
+
+* It provides data for the course calendar, available from the "Student" menu.
+
+* It maps symbolic event names to concrete points in time, where each such
+  event name consists of a symbolic name (alphanumeric+underscores) plus an
+  optional number. For example, in ``lecture 13``, ``lecture`` is the symbolic
+  name, and ``13`` is the ordinal.
+
+Since this data may vary from one run of the course to the next, it is stored
+along with other by-run-varying data such as grades data and not in the
+:ref:`git-repo`.) A user interface to create and manipulate events is provided
+in the "Instructor" menu.
+
+For example, to create contiguously numbered ``lecture`` events
+
+.. _datespec:
+
+Specifying dates in CourseFlow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In various places around its YAML documents, CourseFlow allows dates to
+be specified. The following formats are supported:
+
+* ``symbolic_name ordinal`` (e.g. ``lecture 13``) to refer to :ref:`calendear
+  events <events>` with an ordinal.
+
+* ``symbolic_name`` (e.g. ``final_exam``) to refer to :ref:`calendear events <events>`
+  *without* an ordinal.
+
+* ISO-formatted dates (``2014-10-13``)
+
+* ISO-formatted times (``2014-10-13 14:13``)
+
+Each date may be modified by adding further modifiers:
+
+* ``+/- N (weeks|days|hours|minutes)`` (e.g. ``hw_due 3 + 1 week``)
+* ``@ 23:59`` (e.g. ``hw_due 3 @ 23:59``) to adjust the time of the event to
+  a given time-of-day.
+
+Multiple of these modifiers may occur. They are applied from left to right.
+
+.. events_yml
+
+The Calendear Information File: :file:`events.yml`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The calendar information file, by default named :file:`events.yml`,
+augments the calendar data in the database with descriptions and
+other meta-information. It has the following format::
+
+    event_kinds:
+        lecture:
+            title: Lecture {nr}
+            color: blue
+
+        exam:
+            title: Exam {nr}
+            color: red
+
+    events:
+        "lecture 1":
+            title: "Alternative title for lecture 1"
+            color: red
+            description: |
+                *Pre-lecture material:* [Linear algebra pre-quiz](flow:prequiz-linear-algebra) (not for credit)
+
+                * What is Scientific Computing?
+                * Python intro
+
+The first section, ``event_kinds`` provides color and titling information that
+applies to all events sharing a symbolic name. The second, `events` can be used
+to provide a more verbose description for each event that appears below the main
+calendar. Titles and colors can also be overriden for each event specifically.
+
+All attributes in each section are optional.
+
+.. # vim: textwidth=75

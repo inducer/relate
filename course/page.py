@@ -1863,10 +1863,17 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
     .. attribute:: human_feedback_value
 
+        Required.
         A number. The point value of the feedback component
         by the human grader (who will grade on a 0-100 scale,
         which is scaled to yield :attr:`human_feedback_value`
         at 100).
+
+    .. attribute:: rubric
+
+        Required.
+        The grading guideline for this question (for the human-graded component
+        of the question), in :ref:`markup`.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -1999,16 +2006,19 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
     .. attribute:: prompt
 
-        The page's content, in :ref:`markup`.
+        Required.
+        The prompt for this question, in :ref:`markup`.
 
     .. attribute:: mime_types
 
+        Required.
         A list of `MIME types <https://en.wikipedia.org/wiki/Internet_media_type>`_
         that the question will accept.
         Only ``application/pdf`` is allowed for the moment.
 
     .. attribute:: maximum_megabytes
 
+        Required.
         The largest file size
         (in `Mebibyte <https://en.wikipedia.org/wiki/Mebibyte>`)
         that the page will accept.
@@ -2018,6 +2028,17 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         Optional.
         Content that is revealed when answers are visible
         (see :ref:`flow-permissions`). Written in :ref:`markup`.
+
+    .. attribute:: correct_answer
+
+        Optional.
+        Content that is revealed when answers are visible
+        (see :ref:`flow-permissions`). Written in :ref:`markup`.
+
+    .. attribute:: rubric
+
+        Required.
+        The grading guideline for this question, in :ref:`markup`.
     """
 
     ALLOWED_MIME_TYPES = [
