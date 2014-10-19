@@ -257,15 +257,12 @@ def run_code(result, run_req):
     if hasattr(run_req, "names_from_user"):
         for name in run_req.names_from_user:
             if name not in user_ctx:
-                result["result"] = "success"
-                result["points"] = 0
-                result["feedback"] = [
+                feedback.add_feedback(
                         "Required answer variable '%s' is not defined."
-                        % name
-                        ]
-                return result
-
-            maint_ctx[name] = user_ctx[name]
+                        % name)
+                maint_ctx[name] = None
+            else:
+                maint_ctx[name] = user_ctx[name]
 
     if test_code is not None:
         try:
