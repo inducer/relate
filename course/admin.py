@@ -120,8 +120,14 @@ admin.site.register(Course, CourseAdmin)
 # {{{ events
 
 class EventAdmin(admin.ModelAdmin):
-    list_display = ("course", "kind", "ordinal", "time", "end_time")
-    list_filter = ("course", "kind")
+    list_display = (
+            "course",
+            "kind",
+            "ordinal",
+            "time",
+            "end_time",
+            "shown_in_calendar")
+    list_filter = ("course", "kind", "shown_in_calendar")
 
     date_hierarchy = "time"
 
