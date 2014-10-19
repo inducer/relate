@@ -333,8 +333,8 @@ other meta-information. It has the following format::
                 * What is Scientific Computing?
                 * Python intro
 
-The first section, ``event_kinds`` provides color and titling information that
-applies to all events sharing a symbolic name. The second, `events` can be used
+The first section, ``event_kinds``, provides color and titling information that
+applies to all events sharing a symbolic name. The second, `events`, can be used
 to provide a more verbose description for each event that appears below the main
 calendar. Titles and colors can also be overriden for each event specifically.
 
