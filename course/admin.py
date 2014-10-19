@@ -128,7 +128,7 @@ class EventAdmin(admin.ModelAdmin):
     def __unicode__(self):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
 
-    list_editable = ("ordinal", "time", "end_time")
+    list_editable = ("ordinal", "time", "end_time", "shown_in_calendar")
 
 admin.site.register(Event, EventAdmin)
 
