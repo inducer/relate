@@ -1,0 +1,131 @@
+#! /usr/bin/env python
+
+import sys
+import pypandoc
+from mako.template import Template
+
+
+class Struct(object):
+    def __init__(self, entries):
+        for name, val in entries.iteritems():
+            self.__dict__[name] = dict_to_struct(val)
+
+    def __repr__(self):
+        return repr(self.__dict__)
+
+
+def dict_to_struct(data):
+    if isinstance(data, list):
+        return [dict_to_struct(d) for d in data]
+    elif isinstance(data, dict):
+        return Struct(data)
+    else:
+        return data
+
+
+QUESTIONS_ONLY_TEMPLATE = Template(r"""
+% for i, q in enumerate(questions):
+    ${q}
+% endfor
+""", strict_undefined=True)
+
+
+TEMPLATE = Template(r"""
+\documentclass[11pt]{article}
+
+\usepackage{akteach}
+\usepackage{examtron}
+\pagestyle{empty}
+
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\sffamily\large\bfseries}
+  {Problem \thesection. }{0em}{}
+
+\begin{document}
+
+\akteachheader{Numerical Methods (CS 357)}%
+{Worksheet}
+
+% for i, q in enumerate(questions):
+    ${q}
+% endfor
+\end{document}
+""", strict_undefined=True)
+
+
+def convert_page(page):
+    if page.type in ["TextQuestion", "FileUploadQuestion"]:
+        prompt = pypandoc.convert(
+            page.prompt, 'latex',
+            format='markdown') + "\n\\vspace*{2cm}"
+        return (prompt)
+    elif page.type == "ChoiceQuestion":
+        prompt = pypandoc.convert(
+            page.prompt, 'latex',
+            format='markdown')
+
+        choices = [
+            "\item "
+            +
+            pypandoc.convert(
+                ch.replace("~CORRECT~", r"\correct "), 'latex',
+                format='markdown')
+            for ch in page.choices]
+
+        return (
+            "{}\n"
+            r"\begin{{examtronchoices}}"
+            "\n"
+            "{}\n"
+            r"\end{{examtronchoices}}"
+            "\n"
+            .format(
+                prompt,
+                "\n".join(choices))
+            )
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-1", "--one", action="store_true")
+    parser.add_argument("-q", "--questions-only", action="store_true")
+    parser.add_argument("input", default="-", nargs="?")
+    parser.add_argument("output", default="-", nargs="?")
+
+    args = parser.parse_args()
+
+    from yaml import load
+    if args.input == "-":
+        data = sys.stdin.read()
+    else:
+        with open(args.input, "r") as inf:
+            data = inf.read()
+
+    data = dict_to_struct(load(data))
+
+    questions = []
+
+    if not args.one:
+        flow_desc = data
+        for grp in flow_desc.groups:
+            for page in grp.pages:
+                questions.append(convert_page(page))
+        template = TEMPLATE
+        if args.questions_only:
+            template = QUESTIONS_ONLY_TEMPLATE
+
+        data = template.render(questions=questions)
+    else:
+        data = convert_page(data)
+
+    if args.output == "-":
+        sys.stdout.write(data)
+    else:
+        with open(args.output, "w") as outf:
+            outf.write(data)
+
+
+if __name__ == "__main__":
+    main()

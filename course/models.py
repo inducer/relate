@@ -737,6 +737,14 @@ class GradeStateMachine(object):
         else:
             return "(other state)"
 
+    def stringify_percentage(self):
+        if self.state == grade_state_change_types.graded:
+            if self.valid_percentages:
+                return "%.1f" % self.percentage()
+            else:
+                return u""
+        else:
+            return ""
 # }}}
 
 
