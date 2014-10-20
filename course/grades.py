@@ -86,7 +86,7 @@ def view_participant_grades(pctx, participation_id=None):
                 opportunity__shown_in_grade_book=True)
             .order_by(
                 "participation__id",
-                "opportunity__creation_time",
+                "opportunity__identifier",
                 "grade_time")
             .prefetch_related("participation")
             .prefetch_related("participation__user")
