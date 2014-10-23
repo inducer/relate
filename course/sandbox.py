@@ -30,8 +30,6 @@ from django.contrib import messages  # noqa
 
 from crispy_forms.layout import Submit
 
-from courseflow.utils import StyledForm
-
 from course.utils import course_view, render_course_page
 
 
@@ -40,10 +38,14 @@ CF_SANDBOX_VIM_MODE = "CF_SANDBOX_VIM_MODE"
 
 # {{{ sandbox form
 
-class SandboxForm(StyledForm):
+class SandboxForm(forms.Form):
     def __init__(self, initial_text,
             editor_mode, vim_mode, help_text, *args, **kwargs):
         super(SandboxForm, self).__init__(*args, **kwargs)
+
+        from crispy_forms.helper import FormHelper
+        self.helper = FormHelper()
+        self.helper.form_class = "form-horizontal"
 
         from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
@@ -78,7 +80,6 @@ class SandboxForm(StyledForm):
         self.helper.add_input(
                 Submit(
                     "preview", "Preview",
-                    css_class="col-lg-offset-2",
                     accesskey="p"))
 
 # }}}
