@@ -466,6 +466,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "get_course",
             "state",
             "points",
+            "max_points",
             "get_percentage",
             "attempt_id",
             "grade_time",
