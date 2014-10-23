@@ -453,7 +453,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
     get_participant.admin_order_field = "participation__user"
 
     def get_percentage(self, obj):
-        if obj.points is None or obj.max_mpoints is None:
+        if obj.points is None or obj.max_points is None:
             return None
         else:
             return round(100*obj.points/obj.max_points)
