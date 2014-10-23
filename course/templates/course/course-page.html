@@ -49,7 +49,7 @@
   {% endif %}
 
   {% for chunk in chunks %}
-  <a name="{{chunk.id}}"></a>
+  <a id="{{chunk.id}}"></a>
     {{chunk.html_content|safe}}
   {% endfor %}
 {% endblock %}
