@@ -258,7 +258,8 @@ class FlowSession(models.Model):
 
     in_progress = models.BooleanField(default=None)
     for_credit = models.BooleanField(default=None)
-    access_rules_id = models.CharField(max_length=200, null=True)
+    access_rules_id = models.CharField(max_length=200, null=True,
+            blank=True)
     expiration_mode = models.CharField(max_length=20, null=True,
             default=flow_session_expriration_mode.end,
             choices=FLOW_SESSION_EXPIRATION_MODE_CHOICES)
