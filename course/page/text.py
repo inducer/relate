@@ -530,7 +530,7 @@ class CourseFlowPageValidator(object):
             validate_flow_page(vctx, "submitted page", page_desc)
 
             if page_desc.type != self.validator_desc.page_type:
-                raise ValidationError("%s: page must be of type '%s'"
+                raise ValidationError("page must be of type '%s'"
                         % self.validator_desc.page_type)
 
         except:
