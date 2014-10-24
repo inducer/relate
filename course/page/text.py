@@ -31,28 +31,84 @@ from django.utils.html import escape
 
 from courseflow.utils import StyledForm, Struct
 from course.page.base import (
-        AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html)
+        AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
+        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer)
 
 import re
 import sys
 
 
 class TextAnswerForm(StyledForm):
-    answer = forms.CharField(required=True)
+    @staticmethod
+    def get_text_widget(widget_type, read_only=False, check_only=False):
+        """Returns None if no widget found."""
 
-    def __init__(self, matchers, *args, **kwargs):
+        if widget_type in [None, "text_input"]:
+            if check_only:
+                return True
+
+            widget = forms.TextInput()
+            widget.attrs["autofocus"] = None
+            if read_only:
+                widget.attrs["readonly"] = None
+            return widget
+
+        elif widget_type == "textarea":
+            if check_only:
+                return True
+
+            widget = forms.Textarea()
+            # widget.attrs["autofocus"] = None
+            if read_only:
+                widget.attrs["readonly"] = None
+            return widget
+
+        elif widget_type in ["editor:markdown", "editor:yaml"]:
+            if check_only:
+                return True
+
+            editor_mode = widget_type[widget_type.find(":")+1:]
+
+            from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+            return CodeMirrorTextarea(
+                    mode=editor_mode,
+                    theme="default",
+                    config={
+                        "fixedGutter": True,
+                        # "autofocus": True,
+                        "indentUnit": 2,
+                        "readOnly": read_only,
+                        "extraKeys": CodeMirrorJavascript("""
+                            {
+                              "Tab": function(cm)
+                              {
+                                var spaces = \
+                                    Array(cm.getOption("indentUnit") + 1).join(" ");
+                                cm.replaceSelection(spaces);
+                              }
+                            }
+                        """)
+                    })
+
+        else:
+            return None
+
+    def __init__(self, read_only, validators, *args, **kwargs):
+        widget_type = kwargs.pop("widget_type", "text_input")
+
         super(TextAnswerForm, self).__init__(*args, **kwargs)
 
-        self.matchers = matchers
-
-        self.fields["answer"].widget.attrs["autofocus"] = None
+        self.validators = validators
+        self.fields["answer"] = forms.CharField(
+                required=True,
+                widget=self.get_text_widget(widget_type, read_only))
 
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()
 
         answer = cleaned_data.get("answer", "")
-        for matcher in self.matchers:
-            matcher.validate(answer)
+        for validator in self.validators:
+            validator.validate(answer)
 
 
 # {{{ matchers
@@ -313,6 +369,8 @@ def parse_matcher(vctx, location, matcher_desc):
 # }}}
 
 
+# {{{ text question
+
 class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
     """
     A page asking for a textual answer
@@ -379,20 +437,23 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
+        read_only = answer_is_final
+
+        # matchers implement the validator interface, which makes
+        # passing matchers as validators possible.
+
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
-            form = TextAnswerForm(self.matchers, answer)
+            form = TextAnswerForm(read_only, self.matchers, answer)
         else:
             answer = None
-            form = TextAnswerForm(self.matchers)
-
-        if answer_is_final:
-            form.fields['answer'].widget.attrs['readonly'] = True
+            form = TextAnswerForm(read_only, self.matchers)
 
         return form
 
     def post_form(self, page_context, page_data, post_data, files_data):
-        return TextAnswerForm(self.matchers, post_data, files_data)
+        read_only = False
+        return TextAnswerForm(read_only, self.matchers, post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data["answer"].strip()}
@@ -429,5 +490,197 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
         assert unspec_correct_answer_text
 
         return CA_PATTERN % unspec_correct_answer_text
+
+# }}}
+
+
+# {{{ validators
+
+class CourseFlowPageValidator(object):
+    type = "cfpage"
+
+    def __init__(self, vctx, location, validator_desc):
+        self.validator_desc = validator_desc
+
+        validate_struct(
+                vctx,
+                location,
+                validator_desc,
+                required_attrs=(
+                    ("type", str),
+                    ),
+                allowed_attrs=(
+                    ("page_type", str),
+                    ),
+                )
+
+    def validate(self, new_page_source):
+        from courseflow.utils import dict_to_struct
+        import yaml
+
+        try:
+            page_desc = dict_to_struct(yaml.load(new_page_source))
+
+            from course.validation import validate_flow_page, ValidationContext
+            vctx = ValidationContext(
+                    # FIXME
+                    repo=None,
+                    commit_sha=None)
+
+            validate_flow_page(vctx, "submitted page", page_desc)
+
+            if page_desc.type != self.validator_desc.page_type:
+                raise ValidationError("%s: page must be of type '%s'"
+                        % self.validator_desc.page_type)
+
+        except:
+            import sys
+            tp, e, _ = sys.exc_info()
+
+            raise forms.ValidationError("%s: %s"
+                    % (tp.__name__, str(e)))
+
+
+TEXT_ANSWER_VALIDATOR_CLASSES = [
+        CourseFlowPageValidator,
+        ]
+
+
+def get_validator_class(location, validator_type):
+    for validator_class in TEXT_ANSWER_VALIDATOR_CLASSES:
+        if validator_class.type == validator_type:
+            return validator_class
+
+    raise ValidationError("%s: unknown validator type '%s'"
+            % (location, validator_type))
+
+
+def parse_validator(vctx, location, validator_desc):
+    if not isinstance(validator_desc, Struct):
+        raise ValidationError("%s: must be struct or string"
+                % location)
+
+    if not hasattr(validator_desc, "type"):
+        raise ValidationError("%s: matcher must supply 'type'" % location)
+
+    return (get_validator_class(location, validator_desc.type)
+        (vctx, location, validator_desc))
+
+# }}}
+
+
+# {{{ human-graded text question
+
+class HumanGradedTextQuestion(PageBaseWithTitle, PageBaseWithValue,
+        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
+    """
+    A page asking for a textual answer
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``HumanGradedTextQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: widget
+
+        Optional.
+        One of ``text_input`` (default), ``textarea``, ``editor:yaml``,
+        ``editor:markdown``.
+
+    .. attribute:: validators
+
+        Optional.
+        TODO
+
+    .. attribute:: correct_answer
+
+        Optional.
+        Content that is revealed when answers are visible
+        (see :ref:`flow-permissions`). Written in :ref:`markup`.
+
+    .. attribute:: rubric
+
+        Required.
+        The grading guideline for this question, in :ref:`markup`.
+    """
+
+    def __init__(self, vctx, location, page_desc):
+        super(HumanGradedTextQuestion, self).__init__(vctx, location, page_desc)
+
+        widget = TextAnswerForm.get_text_widget(
+                getattr(page_desc, "widget", None),
+                check_only=True)
+
+        if widget is None:
+            raise ValidationError("%s: unrecognized widget type '%s'"
+                    % (location, getattr(page_desc, "widget")))
+
+        self.validators = [
+                parse_validator(
+                    vctx,
+                    "%s, validator %d" % (location, i+1),
+                    answer)
+                for i, answer in enumerate(page_desc.validators)]
+
+    def required_attrs(self):
+        return super(HumanGradedTextQuestion, self).required_attrs() + (
+                ("prompt", "markup"),
+                )
+
+    def allowed_attrs(self):
+        return super(HumanGradedTextQuestion, self).allowed_attrs() + (
+                ("widget", str),
+                ("validators", list),
+                )
+
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
+
+    def body(self, page_context, page_data):
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def make_form(self, page_context, page_data,
+            answer_data, answer_is_final):
+        read_only = answer_is_final
+
+        if answer_data is not None:
+            answer = {"answer": answer_data["answer"]}
+            form = TextAnswerForm(read_only, self.validators, answer,
+                    widget_type=getattr(self.page_desc, "widget", None))
+        else:
+            answer = None
+            form = TextAnswerForm(read_only, self.validators,
+                    widget_type=getattr(self.page_desc, "widget", None))
+
+        return form
+
+    def post_form(self, page_context, page_data, post_data, files_data):
+        read_only = False
+        return TextAnswerForm(read_only, self.validators, post_data, files_data,
+                widget_type=getattr(self.page_desc, "widget", None))
+
+    def answer_data(self, page_context, page_data, form, files_data):
+        return {"answer": form.cleaned_data["answer"].strip()}
+
+# }}}
 
 # vim: foldmethod=marker

@@ -28,7 +28,7 @@ from course.page.base import (
         PageBase, AnswerFeedback, PageContext,
         markup_to_html)
 from course.page.static import Page
-from course.page.text import TextQuestion
+from course.page.text import TextQuestion, HumanGradedTextQuestion
 from course.page.choice import ChoiceQuestion
 from course.page.code import (
         PythonCodeQuestion, PythonCodeQuestionWithHumanTextFeedback)
@@ -36,9 +36,10 @@ from course.page.upload import FileUploadQuestion
 
 __all__ = (
         "PageBase", "AnswerFeedback", "PageContext",
-        "markup_to_html"
+        "markup_to_html",
         "Page",
-        "TextQuestion", "ChoiceQuestion",
+        "TextQuestion", "HumanGradedTextQuestion",
+        "ChoiceQuestion",
         "PythonCodeQuestion", "PythonCodeQuestionWithHumanTextFeedback",
         "FileUploadQuestion",
         )
