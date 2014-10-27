@@ -326,7 +326,7 @@ class ExceptionStage1Form(StyledForm):
                         course=course,
                         status=participation_status.active,
                         )
-                    .order_by("user__username")),
+                    .order_by("user__last_name")),
                 required=True,
                 help_text="Select participant for whom exception is to be granted.")
         self.fields["flow_id"] = forms.ChoiceField(
