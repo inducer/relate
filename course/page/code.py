@@ -62,11 +62,13 @@ class PythonCodeForm(StyledForm):
                     "edit/matchbrackets",
                     "comment/comment",
                     "display/fullscreen",
+                    "selection/active-line",
                     ),
                 config={
                     "fixedGutter": True,
                     "indentUnit": 4,
                     "matchBrackets": True,
+                    "styleActiveLine": True,
                     "readOnly": read_only,
                     # "autofocus": not read_only,
                     "extraKeys": CodeMirrorJavascript("""

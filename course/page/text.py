@@ -83,11 +83,13 @@ class TextAnswerForm(StyledForm):
                         "search/search",
                         "edit/matchbrackets",
                         "display/fullscreen",
+                        "selection/active-line",
                         ),
                     config={
                         "fixedGutter": True,
                         # "autofocus": True,
                         "matchBrackets": True,
+                        "styleActiveLine": True,
                         "indentUnit": 2,
                         "readOnly": read_only,
                         "extraKeys": CodeMirrorJavascript("""
