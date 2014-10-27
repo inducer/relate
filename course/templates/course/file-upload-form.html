@@ -1,12 +1,21 @@
 {% load crispy_forms_tags %}
 
 {% if data_url %}
-  <object data="{{ data_url }}" type="{{ mime_type }}" width="100%" height="800px" align="middle">
-    <p>(Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline.)</p>
-  </object>
-  <hr>
+  <div id="file_upload_viewer_div">
+  </div>
+  <script type="text/javascript">
+    function file_upload_embed_viewer() {
+      var data_url = $("#file_upload_donwload_link").attr("href");
+      $("#file_upload_viewer_div").html(
+        "<object data='" + data_url + "' type='{{ mime_type }}' width='100%' height='800px' align='middle'>"
+        + '<p>(Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline.)</p>'
+        + '</object><hr>');
+    }
+  </script>
   <div class="col-lg-offset-2" style="margin-bottom:2ex">
-    <a href="{{ data_url }}">Review uploaded file</a>
+    <a href="{{ data_url }}" id="file_upload_donwload_link">Review uploaded file</a>
+    &middot;
+    <a href="javascript:file_upload_embed_viewer()">Embed viewer</a>
   </div>
 {% endif %}
 

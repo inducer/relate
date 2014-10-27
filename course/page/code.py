@@ -343,6 +343,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if vctx is not None and hasattr(page_desc, "data_files"):
             for data_file in page_desc.data_files:
                 try:
+                    if not isinstance(data_file, str):
+                        raise ObjectDoesNotExist()
+
                     from course.content import get_repo_blob
                     get_repo_blob(vctx.repo, data_file, vctx.commit_sha)
                 except ObjectDoesNotExist:
