@@ -1133,6 +1133,9 @@ def view_flow_page(pctx, flow_identifier, ordinal):
         "page_data": fpctx.page_data,
         "percentage": int(100*(fpctx.ordinal+1) / flow_session.page_count),
         "flow_session": flow_session,
+        "page_numbers": zip(
+            range(flow_session.page_count),
+            range(1, flow_session.page_count+1)),
 
         "title": title, "body": body,
         "form": form,

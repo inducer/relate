@@ -56,6 +56,23 @@ code {
   color: #333;
 }
 
+.cf-flow-page-index {
+  margin-top: 6px;
+  padding-left: 20px;
+  float: left;
+}
+
+.cf-flow-page-number {
+  margin-right:3px;
+  min-width: 2em;
+  float: left;
+  text-align: center;
+}
+
+.cf-flow-page-number.cf-current {
+  background-color: #e8e8ff;
+}
+
 /* }}} */
 
 /* {{{ histograms */

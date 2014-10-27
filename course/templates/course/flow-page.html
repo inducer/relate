@@ -58,13 +58,22 @@
           </select>
         </div>
       {% endif %}
-      <div class="progress flow-progress">
-        <div class="progress-bar progress-bar-success" role="progressbar"
-          aria-valuenow="{{ page_data.next_ordinal }}"
-          aria-valuemin="0" aria-valuemax="{{ flow_session.page_count }}"
-          style="width:{{ percentage }}%">
-          {{ page_data.next_ordinal }} / {{ flow_session.page_count }}
-        </div>
+      <div class="cf-flow-page-index">
+        {% for page_nr, shown_page_nr in page_numbers %}
+          {% if page_nr == page_data.ordinal %}
+            <span class="cf-flow-page-number cf-current btn btn-default btn-xs disabled">{{ shown_page_nr }}</span>
+          {% else %}
+            <a href="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_nr %}">
+            <span class="cf-flow-page-number btn btn-default btn-xs
+              {% if page_nr < page_data.ordinal %}
+                cf-prior
+              {% else %}
+                cf-subsequent
+              {% endif %}
+              ">{{ shown_page_nr }}
+            </span></a>
+          {% endif %}
+        {% endfor %}
       </div>
       <div style="clear:both; height:0px"></div>
     </div>
