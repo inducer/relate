@@ -73,9 +73,21 @@ class TextAnswerForm(StyledForm):
             return CodeMirrorTextarea(
                     mode=editor_mode,
                     theme="default",
+                    addon_css=(
+                        "dialog/dialog",
+                        "display/fullscreen",
+                        ),
+                    addon_js=(
+                        "search/searchcursor",
+                        "dialog/dialog",
+                        "search/search",
+                        "edit/matchbrackets",
+                        "display/fullscreen",
+                        ),
                     config={
                         "fixedGutter": True,
                         # "autofocus": True,
+                        "matchBrackets": True,
                         "indentUnit": 2,
                         "readOnly": read_only,
                         "extraKeys": CodeMirrorJavascript("""
@@ -85,7 +97,11 @@ class TextAnswerForm(StyledForm):
                                 var spaces = \
                                     Array(cm.getOption("indentUnit") + 1).join(" ");
                                 cm.replaceSelection(spaces);
-                              }
+                              },
+                              "F9": function(cm) {
+                                  cm.setOption("fullScreen",
+                                    !cm.getOption("fullScreen"));
+                              },
                             }
                         """)
                     })

@@ -55,9 +55,21 @@ class SandboxForm(forms.Form):
                 widget=CodeMirrorTextarea(
                     mode=editor_mode,
                     theme="default",
+                    addon_css=(
+                        "dialog/dialog",
+                        "display/fullscreen",
+                        ),
+                    addon_js=(
+                        "search/searchcursor",
+                        "dialog/dialog",
+                        "search/search",
+                        "edit/matchbrackets",
+                        "display/fullscreen",
+                        ),
                     config={
                         "fixedGutter": True,
                         "autofocus": True,
+                        "matchBrackets": True,
                         "indentUnit": 2,
                         "vimMode": vim_mode,
                         "extraKeys": CodeMirrorJavascript("""
@@ -67,12 +79,17 @@ class SandboxForm(forms.Form):
                                 var spaces = \
                                     Array(cm.getOption("indentUnit") + 1).join(" ");
                                 cm.replaceSelection(spaces);
+                              },
+                              "F9": function(cm) {
+                                  cm.setOption("fullScreen",
+                                    !cm.getOption("fullScreen"));
                               }
                             }
                         """)
                     }),
                 help_text=mark_safe(
-                    help_text + " Press Alt/Cmd+(Shift+)P to preview."))
+                    help_text + " Press Alt/Cmd+(Shift+)P to preview. "
+                    "Press F9 to toggle full screen mode."))
 
         self.fields["vim_mode"] = forms.BooleanField(
                 required=False, initial=vim_mode)
@@ -143,8 +160,8 @@ def view_page_sandbox(pctx):
     from courseflow.utils import dict_to_struct
     import yaml
 
-    PAGE_SESSION_KEY = "cf_validated_sandbox_page"
-    ANSWER_DATA_SESSION_KEY = "cf_page_sandbox_answer_data"
+    PAGE_SESSION_KEY = "cf_validated_sandbox_page:" + pctx.course.identifier
+    ANSWER_DATA_SESSION_KEY = "cf_page_sandbox_answer_data:" + pctx.course.identifier
 
     request = pctx.request
     page_source = pctx.request.session.get(PAGE_SESSION_KEY)

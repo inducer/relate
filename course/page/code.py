@@ -46,26 +46,46 @@ class PythonCodeForm(StyledForm):
         from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
         self.fields["answer"] = forms.CharField(required=True,
+            initial=initial_code,
+            help_text="Hit F9 to toggle full screen mode.",
             widget=CodeMirrorTextarea(
                 mode="python",
                 theme="default",
+                addon_css=(
+                    "dialog/dialog",
+                    "display/fullscreen",
+                    ),
+                addon_js=(
+                    "search/searchcursor",
+                    "dialog/dialog",
+                    "search/search",
+                    "edit/matchbrackets",
+                    "comment/comment",
+                    "display/fullscreen",
+                    ),
                 config={
                     "fixedGutter": True,
                     "indentUnit": 4,
+                    "matchBrackets": True,
                     "readOnly": read_only,
                     # "autofocus": not read_only,
                     "extraKeys": CodeMirrorJavascript("""
                         {
+                          "Ctrl-/": "toggleComment",
                           "Tab": function(cm)
                           {
                             var spaces = \
                                     Array(cm.getOption("indentUnit") + 1).join(" ");
                             cm.replaceSelection(spaces);
+                          },
+                          "F9": function(cm) {
+                              cm.setOption("fullScreen",
+                                !cm.getOption("fullScreen"));
                           }
                         }
                     """)
                     }),
-                initial=initial_code)
+                )
 
     def clean(self):
         # FIXME Should try compilation
