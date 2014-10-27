@@ -310,11 +310,17 @@ def manage_instant_flow_requests(pctx):
 
 # {{{ flow access exceptions
 
+class ParticipationChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        user = obj.user
+        return "%s - %s, %s" % (user.email, user.last_name, user.first_name)
+
+
 class ExceptionStage1Form(StyledForm):
     def __init__(self, course, flow_ids, *args, **kwargs):
         super(ExceptionStage1Form, self).__init__(*args, **kwargs)
 
-        self.fields["participation"] = forms.ModelChoiceField(
+        self.fields["participation"] = ParticipationChoiceField(
                 queryset=(Participation.objects
                     .filter(
                         course=course,
