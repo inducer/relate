@@ -66,12 +66,14 @@ class SandboxForm(forms.Form):
                         "edit/matchbrackets",
                         "display/fullscreen",
                         "selection/active-line",
+                        "edit/trailingspace",
                         ),
                     config={
                         "fixedGutter": True,
                         "autofocus": True,
                         "matchBrackets": True,
                         "styleActiveLine": True,
+                        "showTrailingSpace": True,
                         "indentUnit": 2,
                         "vimMode": vim_mode,
                         "extraKeys": CodeMirrorJavascript("""
