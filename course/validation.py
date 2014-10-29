@@ -166,7 +166,8 @@ def validate_markup(ctx, location, markup_str):
                 repo=ctx.repo,
                 commit_sha=ctx.commit_sha,
                 text=markup_str,
-                reverse_func=reverse_func)
+                reverse_func=reverse_func,
+                validate_only=True)
     except:
         from traceback import print_exc
         print_exc()

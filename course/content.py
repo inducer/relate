@@ -43,6 +43,8 @@ from courseflow.utils import dict_to_struct
 
 import threading
 
+from yaml import load as load_yaml
+
 
 # {{{ repo interaction
 
@@ -116,8 +118,7 @@ def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
     if result is not None:
         return result
 
-    from yaml import load
-    result = load(get_repo_blob(repo, full_name, commit_sha).data)
+    result = load_yaml(get_repo_blob(repo, full_name, commit_sha).data)
 
     def_cache.add(cache_key, result, None)
 
@@ -134,9 +135,8 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         if result is not None:
             return result
 
-    from yaml import load
     result = dict_to_struct(
-            load(get_repo_blob(repo, full_name, commit_sha).data))
+            load_yaml(get_repo_blob(repo, full_name, commit_sha).data))
 
     if cached:
         def_cache.add(cache_key, result, None)
@@ -327,7 +327,8 @@ def remove_prefix(prefix, s):
 JINJA_PREFIX = "[JINJA]"
 
 
-def markup_to_html(course, repo, commit_sha, text, reverse_func=None):
+def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
+        validate_only=False):
     if reverse_func is None:
         from django.core.urlresolvers import reverse
         reverse_func = reverse
@@ -339,6 +340,9 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None):
         env = Environment(loader=GitTemplateLoader(repo, commit_sha))
         template = env.from_string(text)
         text = template.render()
+
+    if validate_only:
+        return
 
     from course.mdx_mathjax import MathJaxExtension
     import markdown
