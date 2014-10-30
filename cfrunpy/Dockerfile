@@ -8,7 +8,7 @@ ADD cfrunpy /opt/cfrunpy/
 ADD cfrunpy_backend.py /opt/cfrunpy/
 
 RUN apt-get update
-RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install python3-scipy python3-pip python3-matplotlib
+RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install python3-scipy python3-pip python3-matplotlib python3-pillow
 
 RUN sed -i s/TkAgg/Agg/ /etc/matplotlibrc
 RUN echo "savefig.dpi : 80" >> /etc/matplotlibrc
