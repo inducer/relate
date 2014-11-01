@@ -111,6 +111,7 @@ def main():
         flow_desc = data
         for grp in flow_desc.groups:
             for page in grp.pages:
+                print page.id
                 questions.append(convert_page(page))
         template = TEMPLATE
         if args.questions_only:

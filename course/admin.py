@@ -229,10 +229,11 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "get_participant",
             "course",
             "start_time",
+            "completion_time",
             "access_rules_id",
             "in_progress",
             "for_credit",
-            "expiration_mode",
+            #"expiration_mode",
             )
     list_display_links = (
             "flow_id",
