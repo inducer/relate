@@ -2,6 +2,7 @@
 
 import sys
 import pypandoc
+import re
 from mako.template import Template
 
 
@@ -54,7 +55,7 @@ TEMPLATE = Template(r"""
 """, strict_undefined=True)
 
 
-def convert_page(page):
+def convert_page_inner(page):
     if page.type in ["TextQuestion", "FileUploadQuestion"]:
         prompt = pypandoc.convert(
             page.prompt, 'latex',
@@ -71,7 +72,8 @@ def convert_page(page):
             pypandoc.convert(
                 ch.replace("~CORRECT~", r"\correct "), 'latex',
                 format='markdown')
-            for ch in page.choices]
+            for ch in page.choices
+            if ch is not None]
 
         return (
             "{}\n"
@@ -86,11 +88,45 @@ def convert_page(page):
             )
 
 
+TITLE_RE = re.compile(ur"^\#\s*(\w.*)", re.UNICODE)
+
+
+def extract_title_from_markup(markup_text):
+    lines = markup_text.split("\n")
+
+    for l in lines[:5]:
+        match = TITLE_RE.match(l)
+        if match is not None:
+            return match.group(1)
+
+    return None
+
+
+def convert_page(page, wrap_in_problem_env):
+    title = getattr(page, "title", None)
+    if title is None:
+        title = extract_title_from_markup(page.prompt)
+
+    if title is None:
+        title = ""
+
+    result = convert_page_inner(page)
+
+    if wrap_in_problem_env:
+        return (
+            "\\begin{{examtronproblem}}{{{title}}}\n"
+            "{body}\n"
+            "\\end{{examtronproblem}}\n".format(
+                title=title,
+                body=result))
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("-1", "--one", action="store_true")
     parser.add_argument("-q", "--questions-only", action="store_true")
+    parser.add_argument("-p", "--examtron-problem", action="store_true")
     parser.add_argument("input", default="-", nargs="?")
     parser.add_argument("output", default="-", nargs="?")
 
@@ -112,14 +148,14 @@ def main():
         for grp in flow_desc.groups:
             for page in grp.pages:
                 print page.id
-                questions.append(convert_page(page))
+                questions.append(convert_page(page, args.examtron_problem))
         template = TEMPLATE
         if args.questions_only:
             template = QUESTIONS_ONLY_TEMPLATE
 
         data = template.render(questions=questions)
     else:
-        data = convert_page(data)
+        data = convert_page(data, args.examtron_problem)
 
     if args.output == "-":
         sys.stdout.write(data)
