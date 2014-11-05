@@ -83,6 +83,10 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         |title-page-attr|
 
+    .. attribute:: value
+
+        |value-page-attr|
+
     .. attribute:: prompt
 
         Required.
@@ -143,6 +147,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         return super(FileUploadQuestion, self).allowed_attrs() + (
                 ("correct_answer", "markup"),
                 )
+
+    def human_feedback_point_value(self, page_context, page_data):
+        return self.page_desc.value
 
     def markup_body_for_title(self):
         return self.page_desc.prompt

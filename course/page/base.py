@@ -30,6 +30,7 @@ import re
 
 from course.validation import validate_struct, ValidationError
 from courseflow.utils import StyledForm, Struct
+from django.forms import ValidationError as FormValidationError
 
 
 class PageContext(object):
@@ -492,35 +493,83 @@ class PageBaseWithValue(PageBase):
 # {{{ human text feedback page base
 
 class HumanTextFeedbackForm(StyledForm):
-    released = forms.BooleanField(
-            initial=False, required=False,
-            help_text="Whether the grade and feedback below are to be shown "
-            "to student")
-    grade_percent = forms.FloatField(
-            min_value=0,
-            max_value=1000,  # allow excessive extra credit
-            help_text="Grade assigned, in percent",
-            required=False)
-    feedback_text = forms.CharField(
-            widget=forms.Textarea(),
-            required=False,
-            help_text="Feedback to be shown to student, using "
-            "CourseFlow-flavored Markdown")
-    notify = forms.BooleanField(
-            initial=False, required=False,
-            help_text="Checking this box and submitting the form "
-            "will notify the participant "
-            "with a generic message containing the feedback text")
-    notes = forms.CharField(
-            widget=forms.Textarea(),
-            help_text="Internal notes, not shown to student",
-            required=False)
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, point_value, *args, **kwargs):
         super(HumanTextFeedbackForm, self).__init__(*args, **kwargs)
+
+        self.point_value = point_value
+
+        self.fields["released"] = forms.BooleanField(
+                initial=False, required=False,
+                help_text="Whether the grade and feedback below are to be shown "
+                "to student")
+        self.fields["grade_percent"] = forms.FloatField(
+                min_value=0,
+                max_value=1000,  # allow excessive extra credit
+                help_text="Grade assigned, in percent",
+                required=False)
+
+        if point_value is not None:
+            self.fields["grade_points"] = forms.FloatField(
+                    min_value=0,
+                    help_text="Grade assigned, as points out of %.1f. "
+                    "Fill out either this or 'grade percent'." % point_value,
+                    required=False)
+
+        self.fields["feedback_text"] = forms.CharField(
+                widget=forms.Textarea(),
+                required=False,
+                help_text="Feedback to be shown to student, using "
+                "CourseFlow-flavored Markdown")
+        self.fields["notify"] = forms.BooleanField(
+                initial=False, required=False,
+                help_text="Checking this box and submitting the form "
+                "will notify the participant "
+                "with a generic message containing the feedback text")
+        self.fields["notes"] = forms.CharField(
+                widget=forms.Textarea(),
+                help_text="Internal notes, not shown to student",
+                required=False)
+
+    def clean(self):
+        if (self.point_value is not None
+                and self.cleaned_data["grade_percent"] is not None
+                and self.cleaned_data["grade_points"] is not None):
+            points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
+            direct_percent = self.cleaned_data["grade_percent"]
+
+            if abs(points_percent - direct_percent) > 0.1:
+                raise FormValidationError("Grade (percent) and Grade (points) "
+                        "disagree")
+
+        super(StyledForm, self).clean()
+
+    def cleaned_percent(self):
+        if self.point_value is None:
+            return self.cleaned_data["grade_percent"]
+        elif (self.cleaned_data["grade_percent"] is not None
+                and self.cleaned_data["grade_points"] is not None):
+            points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
+            direct_percent = self.cleaned_data["grade_percent"]
+
+            if abs(points_percent - direct_percent) > 0.1:
+                raise RuntimeError("Grade (percent) and Grade (points) "
+                        "disagree")
+
+            return max(points_percent, direct_percent)
+        elif self.cleaned_data["grade_percent"] is not None:
+            return self.cleaned_data["grade_percent"]
+
+        elif self.cleaned_data["grade_points"] is not None:
+            return 100*self.cleaned_data["grade_points"]/self.point_value
+
+        else:
+            return None
 
 
 class PageBaseWithHumanTextFeedback(PageBase):
+    """
+    .. automethod:: human_feedback_point_value
+    """
     grade_data_attrs = ["released", "grade_percent", "feedback_text", "notes"]
 
     def required_attrs(self):
@@ -528,19 +577,31 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 ("rubric", "markup"),
                 )
 
+    def human_feedback_point_value(self, page_context, page_data):
+        """Subclasses can override this to make the point value of the human feedback known,
+        which will enable grade entry in points.
+        """
+        return None
+
     def make_grading_form(self, page_context, page_data, grade_data):
+        human_feedback_point_value = self.human_feedback_point_value(
+                page_context, page_data)
+
         if grade_data is not None:
             form_data = {}
             for k in self.grade_data_attrs:
                 form_data[k] = grade_data[k]
 
-            return HumanTextFeedbackForm(form_data)
+            return HumanTextFeedbackForm(human_feedback_point_value, form_data)
         else:
-            return HumanTextFeedbackForm()
+            return HumanTextFeedbackForm(human_feedback_point_value)
 
     def post_grading_form(self, page_context, page_data, grade_data,
             post_data, files_data):
-        return HumanTextFeedbackForm(post_data, files_data)
+        human_feedback_point_value = self.human_feedback_point_value(
+                page_context, page_data)
+        return HumanTextFeedbackForm(
+                human_feedback_point_value, post_data, files_data)
 
     def update_grade_data_from_grading_form(self, page_context, page_data,
             grade_data, grading_form, files_data):
@@ -548,7 +609,10 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if grade_data is None:
             grade_data = {}
         for k in self.grade_data_attrs:
-            grade_data[k] = grading_form.cleaned_data[k]
+            if k == "grade_percent":
+                grade_data[k] = grading_form.cleaned_percent()
+            else:
+                grade_data[k] = grading_form.cleaned_data[k]
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             from django.template.loader import render_to_string

@@ -688,6 +688,9 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         ("human_feedback_value", (int, float)),
                         )
 
+    def human_feedback_point_value(self, page_context, page_data):
+        return self.page_desc.human_feedback_value
+
     def grade(self, page_context, page_data, answer_data, grade_data):
         """This method is appropriate if the grade consists *only* of the
         feedback provided by humans. If more complicated/combined feedback

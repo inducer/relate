@@ -670,6 +670,9 @@ class HumanGradedTextQuestion(PageBaseWithTitle, PageBaseWithValue,
                 ("validators", list),
                 )
 
+    def human_feedback_point_value(self, page_context, page_data):
+        return self.page_desc.value
+
     def markup_body_for_title(self):
         return self.page_desc.prompt
 
