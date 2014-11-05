@@ -327,6 +327,9 @@ class UserProfileForm(StyledModelForm):
 
 
 def user_profile(request):
+    if not request.user.is_authenticated():
+        raise PermissionDenied()
+
     if request.method == "POST":
         form = UserProfileForm(request.POST, instance=request.user)
         if form.is_valid():
