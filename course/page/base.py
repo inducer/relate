@@ -111,7 +111,8 @@ class AnswerFeedback(object):
     def __init__(self, correctness, feedback=None,
             normalized_answer=NoNormalizedAnswerAvailable()):
         if correctness is not None:
-            if correctness < 0 or correctness > 1:
+            # allow for extra credit
+            if correctness < 0 or correctness > 2:
                 raise ValueError("Invalid correctness value")
 
         if feedback is None:
