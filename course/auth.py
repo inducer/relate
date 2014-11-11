@@ -113,6 +113,7 @@ def stop_impersonating(request):
     if not hasattr(request, "courseflow_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 "Not currently impersonating anyone.")
+        return redirect("course.views.home")
 
     if request.method == 'POST':
         form = StopImpersonatingForm(request.POST)
