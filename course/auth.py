@@ -66,9 +66,14 @@ def may_impersonate(user):
     return user.is_staff
 
 
+class UserChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return "%s - %s, %s" % (obj.email, obj.last_name, obj.first_name)
+
+
 class ImpersonateForm(StyledForm):
-    user = forms.ModelChoiceField(
-            queryset=User.objects.order_by("username"),
+    user = UserChoiceField(
+            queryset=User.objects.order_by("last_name"),
             required=True,
             help_text="Select user to impersonate.")
 
