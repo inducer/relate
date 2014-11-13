@@ -239,5 +239,89 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "grading_form_html": grading_form_html,
             })
 
+# }}}
+
+
+# {{{ grading statistics
+
+@course_view
+def show_grading_statistics(pctx, flow_id):
+    grades = (FlowPageVisitGrade.objects
+            .filter(
+                visit__flow_session__course=pctx.course,
+                visit__flow_session__flow_id=flow_id)
+            .order_by(
+                "visit",
+                "grade_time")
+            .prefetch_related("visit")
+            .prefetch_related("grader")
+            .prefetch_related("visit__page_data"))
+
+    graders = set()
+
+    # tuples: (ordinal, id)
+    pages = set()
+
+    counts = {}
+    grader_counts = {}
+    page_counts = {}
+
+    def commit_grade_info(grade):
+        grader = grade.grader
+        page = (grade.visit.page_data.ordinal,
+                grade.visit.page_data.group_id + "/" + grade.visit.page_data.page_id)
+
+        graders.add(grader)
+        pages.add(page)
+
+        key = (page, grade.grader)
+        counts[key] = counts.get(key, 0) + 1
+
+        grader_counts[grader] = grader_counts.get(grader, 0) + 1
+        page_counts[page] = page_counts.get(page, 0) + 1
+
+    last_grade = None
+
+    for grade in grades:
+        if last_grade is not None and last_grade.visit != grade.visit:
+            commit_grade_info(last_grade)
+
+        last_grade = grade
+
+    if last_grade is None:
+        commit_grade_info(last_grade)
+
+    graders = sorted(graders,
+            key=lambda grader: grader.last_name if grader is not None else None)
+    pages = sorted(pages)
+
+    stats_table = [
+            [
+                counts.get((page, grader), 0)
+                for grader in graders
+                ]
+            for page in pages
+            ]
+    page_counts = [
+            page_counts.get(page, 0)
+            for page in pages
+            ]
+    grader_counts = [
+            grader_counts.get(grader, 0)
+            for grader in graders
+            ]
+
+    return render_course_page(
+            pctx,
+            "course/grading-statistics.html",
+            {
+                "flow_id": flow_id,
+                "pages": pages,
+                "graders": graders,
+                "pages_stats_counts": zip(pages, stats_table, page_counts),
+                "grader_counts": grader_counts,
+            })
+
+# }}}
 
 # vim: foldmethod=marker

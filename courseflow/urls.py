@@ -124,6 +124,13 @@ urlpatterns = patterns('',
         "/(?P<page_ordinal>[0-9]+)"
         "/$",
         "course.grading.grade_flow_page",),
+
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grading/statistics"
+        "/(?P<flow_id>[-a-zA-Z0-9]+)"
+        "/$",
+        "course.grading.show_grading_statistics",),
     # }}}
 
     # {{{ enrollment
