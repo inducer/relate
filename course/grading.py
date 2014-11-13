@@ -246,6 +246,11 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
 @course_view
 def show_grading_statistics(pctx, flow_id):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grading stats")
+
     grades = (FlowPageVisitGrade.objects
             .filter(
                 visit__flow_session__course=pctx.course,
