@@ -31,6 +31,7 @@ import re
 from course.validation import validate_struct, ValidationError
 from courseflow.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
+from django.utils.safestring import mark_safe
 
 
 class PageContext(object):
@@ -525,8 +526,10 @@ class HumanTextFeedbackForm(StyledForm):
         self.fields["feedback_text"] = forms.CharField(
                 widget=forms.Textarea(),
                 required=False,
-                help_text="Feedback to be shown to student, using "
-                "CourseFlow-flavored Markdown")
+                help_text=mark_safe("Feedback to be shown to student, using "
+                    "<a href='http://documen.tician.de/"
+                    "courseflow/content.html#courseflow-markup'>"
+                    "CourseFlow-flavored Markdown</a>"))
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text="Checking this box and submitting the form "
