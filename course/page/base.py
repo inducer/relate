@@ -500,21 +500,27 @@ class HumanTextFeedbackForm(StyledForm):
         self.point_value = point_value
 
         self.fields["released"] = forms.BooleanField(
-                initial=False, required=False,
+                initial=True, required=False,
                 help_text="Whether the grade and feedback below are to be shown "
                 "to student")
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
                 max_value=1000,  # allow excessive extra credit
                 help_text="Grade assigned, in percent",
-                required=False)
+                required=False,
+
+                # avoid unfortunate scroll wheel accidents reported by graders
+                widget=forms.TextInput)
 
         if point_value is not None:
             self.fields["grade_points"] = forms.FloatField(
                     min_value=0,
                     help_text="Grade assigned, as points out of %.1f. "
                     "Fill out either this or 'grade percent'." % point_value,
-                    required=False)
+                    required=False,
+
+                    # avoid unfortunate scroll wheel accidents reported by graders
+                    widget=forms.TextInput)
 
         self.fields["feedback_text"] = forms.CharField(
                 widget=forms.Textarea(),

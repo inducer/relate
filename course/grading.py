@@ -123,13 +123,6 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     else:
         form_html = None
 
-    max_points = None
-    points_awarded = None
-    if fpctx.page.expects_answer():
-        max_points = fpctx.page.max_points(fpctx.page_data)
-        if feedback is not None and feedback.correctness is not None:
-            points_awarded = max_points * feedback.correctness
-
     # }}}
 
     # {{{ grading form
@@ -199,6 +192,17 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     else:
         grading_form_html = None
+
+    # }}}
+
+    # {{{ compute points_awarded
+
+    max_points = None
+    points_awarded = None
+    if fpctx.page.expects_answer():
+        max_points = fpctx.page.max_points(fpctx.page_data)
+        if feedback is not None and feedback.correctness is not None:
+            points_awarded = max_points * feedback.correctness
 
     # }}}
 
