@@ -288,7 +288,7 @@ def show_grading_statistics(pctx, flow_id):
 
         last_grade = grade
 
-    if last_grade is None:
+    if last_grade is not None:
         commit_grade_info(last_grade)
 
     graders = sorted(graders,
