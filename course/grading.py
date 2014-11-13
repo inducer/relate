@@ -286,7 +286,7 @@ def show_grading_statistics(pctx, flow_id):
 
     last_grade = None
 
-    for grade in grades:
+    for grade in grades.iterator():
         if last_grade is not None and last_grade.visit != grade.visit:
             commit_grade_info(last_grade)
 
