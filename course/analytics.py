@@ -286,8 +286,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         .order_by("page_data", "-visit_time"))
 
             visits = (visits
-                    .prefetch_related("flow_session")
-                    .prefetch_related("page_data"))
+                    .select_related("flow_session")
+                    .select_related("page_data"))
 
             answer_expected = False
 
@@ -442,8 +442,8 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
                 .order_by("page_data", "-visit_time"))
 
     visits = (visits
-            .prefetch_related("flow_session")
-            .prefetch_related("page_data"))
+            .select_related("flow_session")
+            .select_related("page_data"))
 
     normalized_answer_and_correctness_to_count = {}
 

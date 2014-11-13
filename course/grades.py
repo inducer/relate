@@ -88,9 +88,9 @@ def view_participant_grades(pctx, participation_id=None):
                 "participation__id",
                 "opportunity__identifier",
                 "grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("opportunity"))
 
     idx = 0
 
@@ -164,7 +164,7 @@ def view_gradebook(pctx):
                 course=pctx.course,
                 status=participation_status.active)
             .order_by("id")
-            .prefetch_related("user"))
+            .select_related("user"))
 
     grade_changes = list(GradeChange.objects
             .filter(
@@ -174,9 +174,9 @@ def view_gradebook(pctx):
                 "participation__id",
                 "opportunity__identifier",
                 "grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("opportunity"))
 
     idx = 0
 
@@ -421,16 +421,16 @@ def view_grades_by_opportunity(pctx, opp_id):
                 course=pctx.course,
                 status=participation_status.active)
             .order_by("id")
-            .prefetch_related("user"))
+            .select_related("user"))
 
     grade_changes = list(GradeChange.objects
             .filter(opportunity=opportunity)
             .order_by(
                 "participation__id",
                 "grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("opportunity"))
 
     idx = 0
 
@@ -584,10 +584,10 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                 opportunity=opportunity,
                 participation=participation)
             .order_by("grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("creator")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("creator")
+            .select_related("opportunity"))
 
     state_machine = GradeStateMachine()
     state_machine.consume(grade_changes, set_is_superseded=True)
@@ -704,7 +704,7 @@ def find_participant_from_id(course, id_str):
                 course=course,
                 status=participation_status.active,
                 user__email__istartswith=id_str)
-            .prefetch_related("user"))
+            .select_related("user"))
 
     surviving_matches = []
     for match in matches:

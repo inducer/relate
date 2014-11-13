@@ -249,13 +249,17 @@ def show_grading_statistics(pctx, flow_id):
     grades = (FlowPageVisitGrade.objects
             .filter(
                 visit__flow_session__course=pctx.course,
-                visit__flow_session__flow_id=flow_id)
+                visit__flow_session__flow_id=flow_id,
+
+                # There are just way too many autograder grades, which makes this
+                # report super slow.
+                grader__isnull=False)
             .order_by(
                 "visit",
                 "grade_time")
-            .prefetch_related("visit")
-            .prefetch_related("grader")
-            .prefetch_related("visit__page_data"))
+            .select_related("visit")
+            .select_related("grader")
+            .select_related("visit__page_data"))
 
     graders = set()
 
