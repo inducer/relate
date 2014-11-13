@@ -255,7 +255,7 @@ def show_grading_statistics(pctx, flow_id):
                 # report super slow.
                 grader__isnull=False)
             .order_by(
-                "visit",
+                "visit__id",
                 "grade_time")
             .select_related("visit")
             .select_related("grader")
