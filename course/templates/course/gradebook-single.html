@@ -170,21 +170,30 @@
                 {% endif %}
               </td>
 
-              {% if show_page_grades %}
+              {% if show_page_grades and flow_session.answer_visits %}
                 <td>
-                  <table class="table">
+                  <table class="table table-striped table-condensed">
+                    <tr>
+                      <th></th>
+                      <th>Page ID</th>
+                      <th>Percent</th>
+                      <th>Points</th>
+                      <th>Grader</th>
+                    </tr>
                   {% for visit in flow_session.answer_visits %}
                     {% if visit %}
                       <tr>
-                        <td>Page {{ visit.page_data.ordinal }}</td>
+                        <td>{{ visit.page_data.ordinal }}</td>
                         <td>
                           <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
                         </td>
                         {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
                           <td>{{ visit.get_most_recent_grade.percentage }}%</td>
-                          <td>({{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }} points)</td>
+                          <td>{{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }}</td>
+                          <td>{{ visit.get_most_recent_grade.grader.username }} </td>
                         {% else %}
                           <td>(no grade)</td>
+                          <td></td>
                           <td></td>
                         {% endif %}
                       </tr>
