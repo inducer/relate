@@ -43,6 +43,8 @@ from course.utils import (
         FlowPageContext)
 
 
+# {{{ grading driver
+
 @course_view
 @transaction.atomic
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
@@ -152,7 +154,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 else:
                     feedback_json = None
 
-                grade = FlowPageVisitGrade(
+                most_recent_grade = FlowPageVisitGrade(
                         visit=fpctx.prev_answer_visit,
                         grader=pctx.request.user,
                         graded_at_git_commit_sha=fpctx.flow_commit_sha,
@@ -163,7 +165,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         correctness=correctness,
                         feedback=feedback_json)
 
-                grade.save()
+                most_recent_grade.save()
 
                 current_access_rule = fpctx.get_current_access_rule(
                         flow_session, flow_session.participation.role,
@@ -226,6 +228,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "feedback": feedback,
                 "max_points": max_points,
                 "points_awarded": points_awarded,
+                "most_recent_grade": most_recent_grade,
 
                 "grading_opportunity": grading_opportunity,
 

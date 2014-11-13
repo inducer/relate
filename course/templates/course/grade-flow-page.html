@@ -87,6 +87,19 @@
       </td>
     </tr>
     {% endif %}
+    {% if most_recent_grade != None %}
+    <tr>
+      <td>Graded</td>
+      <td>
+        {% if most_recent_grade.grader == None %}
+          (autograded)
+        {% else %}
+          by {{ most_recent_grade.grader.get_full_name }}
+        {% endif %}
+        at {{ most_recent_grade.grade_time }}
+      </td>
+    </tr>
+    {% endif %}
   </table>
   {# }}} #}
 
