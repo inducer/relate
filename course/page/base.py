@@ -193,6 +193,10 @@ class PageBase(object):
 
     .. automethod:: grade
     .. automethod:: correct_answer
+
+    .. rubric:: URL endpoints
+
+    .. automethod:: respond_to_url_endpoint
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -419,6 +423,12 @@ class PageBase(object):
         return None
 
     # }}}
+
+    def respond_to_url_endpoint(self,
+            page_context, page_data, answer_data, grade_data,
+            endpoint_identifier, request):
+        from django import http
+        raise http.Http404()
 
 # }}}
 

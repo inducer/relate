@@ -1204,6 +1204,55 @@ def update_expiration_mode(pctx, flow_session_id):
 # }}}
 
 
+# {{{ view: flow page url endpoint
+
+@course_view
+def view_flow_page_url_endpoint(pctx, flow_identifier, ordinal, endpoint_identifier):
+    request = pctx.request
+
+    flow_session = find_current_flow_session(
+            request, pctx.course, flow_identifier)
+
+    if flow_session is None:
+        raise http.Http404()
+
+    fpctx = FlowPageContext(pctx.repo, pctx.course, flow_identifier, ordinal,
+            participation=pctx.participation,
+            flow_session=flow_session)
+
+    if fpctx.page_desc is None:
+        raise http.Http404()
+
+    current_access_rule = fpctx.get_current_access_rule(
+            flow_session, pctx.role, pctx.participation,
+            get_now_or_fake_time(request))
+    permissions = fpctx.page.get_modified_permissions_for_page(
+            current_access_rule.permissions)
+
+    if flow_permission.view not in permissions:
+        raise PermissionDenied("not allowed to view flow")
+
+    page_context = fpctx.page_context
+    page_data = fpctx.page_data
+    answer_data = None
+    grade_data = None
+
+    if fpctx.page.expects_answer():
+        if fpctx.prev_answer_visit is not None:
+            answer_data = fpctx.prev_answer_visit.answer
+
+            most_recent_grade = fpctx.prev_answer_visit.get_most_recent_grade()
+            if most_recent_grade is not None:
+                    grade_data = most_recent_grade.grade_data
+
+
+
+
+
+
+# }}}
+
+
 # {{{ view: finish flow
 
 @transaction.atomic
