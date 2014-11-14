@@ -135,6 +135,52 @@ def view_participant_grades(pctx, participation_id=None):
 # }}}
 
 
+# {{{ participant list
+
+@course_view
+def view_participant_list(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
+    participations = list(Participation.objects
+            .filter(
+                course=pctx.course,
+                status=participation_status.active)
+            .order_by("id")
+            .select_related("user"))
+
+    return render_course_page(pctx, "course/gradebook-participant-list.html", {
+        "participations": participations,
+        })
+
+# }}}
+
+
+# {{{ grading opportunity list
+
+@course_view
+def view_grading_opportunity_list(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
+    grading_opps = list((GradingOpportunity.objects
+            .filter(
+                course=pctx.course,
+                shown_in_grade_book=True,
+                )
+            .order_by("identifier")))
+
+    return render_course_page(pctx, "course/gradebook-opp-list.html", {
+        "grading_opps": grading_opps,
+        })
+
+# }}}
+
+
 # {{{ teacher grade book
 
 class GradeInfo:

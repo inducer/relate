@@ -1,0 +1,48 @@
+{% extends "course/course-base.html" %}
+
+{% load static %}
+
+{% block title %}
+  List of Participants - Courseflow
+{% endblock %}
+
+{% block header_extra %}
+    {# the min.js version contains all dependencies #}
+    <script src="{% static "datatables/media/js/jquery.dataTables.min.js" %}"></script>
+    <link href="{% static "datatables/media/css/jquery.dataTables.min.css" %}" rel="stylesheet">
+
+    <script src="{% static "datatables-fixedcolumns/js/dataTables.fixedColumns.js" %}"></script>
+    <link href="{% static "datatables-fixedcolumns/css/dataTables.fixedColumns.css" %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+  <h1>List of Participants</h1>
+
+  <table class="gradebook-participants">
+    <thead>
+      <th class="datacol">Username</th>
+      <th class="datacol">Last Name</th>
+      <th class="datacol">First Name</th>
+      <th class="datacol">Status</th>
+    </thead>
+    <tbody>
+      {% for participation in participations %}
+      <tr>
+        <td class="headcol"><a href="{% url "course.grades.view_participant_grades" course.identifier participation.id %}">{{ participation.user.username }}</a></td>
+        <td class="datacol">{{ participation.user.last_name }}</td>
+        <td class="datacol">{{ participation.user.first_name }}</td>
+        <td class="datacol">{{ participation.role }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <script type="text/javascript">
+    var tbl = $("table.gradebook-participants").dataTable({
+        "scrollCollapse": true,
+        "paging": false,
+        "ordering": true,
+    } );
+  </script>
+
+{% endblock %}

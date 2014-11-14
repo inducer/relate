@@ -93,7 +93,15 @@ urlpatterns = patterns('',
         "course.grades.view_participant_grades",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/grading/all/$",
+        "/grading/participants/$",
+        "course.grades.view_participant_list",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grading/opportunities/$",
+        "course.grades.view_grading_opportunity_list",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grading/overview/$",
         "course.grades.view_gradebook",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"

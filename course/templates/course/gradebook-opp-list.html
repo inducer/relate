@@ -1,0 +1,69 @@
+{% extends "course/course-base.html" %}
+
+{% load static %}
+
+{% block title %}
+  List of Participants - Courseflow
+{% endblock %}
+
+{% block header_extra %}
+    {# the min.js version contains all dependencies #}
+    <script src="{% static "datatables/media/js/jquery.dataTables.min.js" %}"></script>
+    <link href="{% static "datatables/media/css/jquery.dataTables.min.css" %}" rel="stylesheet">
+
+    <script src="{% static "datatables-fixedcolumns/js/dataTables.fixedColumns.js" %}"></script>
+    <link href="{% static "datatables-fixedcolumns/css/dataTables.fixedColumns.css" %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+  <h1>List of Grading Opportunities</h1>
+
+  <table class="gradebook-opportunities">
+    <thead>
+      <th class="datacol">Name</th>
+      <th class="datacol">Flow ID</th>
+      <th class="datacol">Aggregation Strategy</th>
+      <th class="datacol">Due Time</th>
+      <th class="datacol">Shown to students</th>
+    </thead>
+    <tbody>
+      {% for opp in grading_opps %}
+      <tr>
+        <td class="datacol">
+          <a href="{% url "course.grades.view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
+          <span style="font-size:x-small">(<tt>{{ opp.identifier }}</tt>)</span>
+        </td>
+        <td class="datacol">
+          {% if opp.flow_id %}
+            <a href="{% url "course.flow.start_flow" course.identifier opp.flow_id %}">{{ opp.flow_id }}</a>
+          {% endif %}
+        </td>
+        <td class="datacol">{{ opp.aggregation_strategy }}</td>
+        <td class="datacol"
+         {% if  opp.due_time != None %}
+             data-order="{{ opp.due_time.isoformat }}"
+          {% else %}
+             data-order=""
+          {% endif %}
+          >{{ opp.due_time }}</td>
+        <td class="datacol">
+          {% if opp.shown_in_student_grade_book %}
+            <i class="fa fa-check-square-o"></i>
+          {% else %}
+            <i class="fa fa-square-o"></i>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <script type="text/javascript">
+    var tbl = $("table.gradebook-opportunities").dataTable({
+        "scrollCollapse": true,
+        "paging": false,
+        "ordering": true,
+    } );
+  </script>
+
+{% endblock %}
