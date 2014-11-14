@@ -29,7 +29,7 @@
     <tbody>
       {% for opp in grading_opps %}
       <tr>
-        <td class="datacol">
+        <td class="datacol" data-order="{{ opp.identifier }}">
           <a href="{% url "course.grades.view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
           <span style="font-size:x-small">(<tt>{{ opp.identifier }}</tt>)</span>
         </td>
