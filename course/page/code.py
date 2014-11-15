@@ -604,7 +604,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             feedback_bits.append(
                     "<p>Your code printed the following error messages:"
                     "<pre>%s</pre></p>" % escape(response.stderr))
-        if hasattr(response, "figures"):
+        if hasattr(response, "figures") and response.figures:
             fig_lines = [
                     "<p>Your code produced the following plots:</p>",
                     '<dl class="result-figure-list">',
