@@ -152,6 +152,55 @@ class Feedback:
         self.set_points(points)
         raise GradingComplete()
 
+    def _check_numpy_array_base(self, name, ref, data):
+        import numpy as np
+        assert isinstance(ref, np.ndarray)
+
+        if not isinstance(data, np.ndarray):
+            self.finish(0, "'%s' is not a numpy array" % name)
+
+        if ref.shape != data.shape:
+            self.finish(
+                    0, "'%s' does not have correct shape--"
+                    "got: '%s', expected: '%s'" % (
+                        name, data.shape, ref.shape))
+
+        if ref.dtype.kind != data.dtype.kind:
+            self.finish(
+                    0, "'%s' does not have correct data type--"
+                    "got: '%s', expected: '%s'" % (
+                        name, data.dtype.kind, ref.dtype.kind))
+
+    def check_numpy_array_allclose(self, name, ref, data, accuracy_critical=True,
+            rtol=1e-05, atol=1e-08):
+        import numpy as np
+
+        self._check_numpy_array_base(name, ref, data)
+        good = np.allclose(ref, data, rtol=rtol, atol=atol)
+
+        if not good:
+            self.add_feedback("'%s' is inaccurate" % name)
+
+        if accuracy_critical and not good:
+            self.set_points(0)
+            raise GradingComplete()
+
+        return good
+
+    def check_list(self, name, ref, data, entry_type=None):
+        assert isinstance(ref, list)
+        if not isinstance(data, list):
+            self.finish(0, "'%s' is not a list" % name)
+
+        if len(ref) != len(data):
+            self.finish(0, "'%s' has the wrong length--expected %d, got %d"
+              % (name, len(ref), len(list)))
+
+        if entry_type is not None:
+            for i, entry in enumerate(data):
+                if not isinstance(entry, entry_type):
+                    self.finish(0, "'%s[i]' has the wrong type" % (name, i))
+
 
 def run_code(result, run_req):
     # {{{ compile code

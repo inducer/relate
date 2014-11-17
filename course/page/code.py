@@ -351,13 +351,18 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     * ``GradingComplete``: An exception class that can be raised to indicated
       that the grading code has concluded.
 
-    * ``feedback``: A class instance with three methods::
+    * ``feedback``: A class instance with the following interface::
 
           feedback.set_points(0.5) # 0<=points<=1 (usually)
           feedback.add_feedback("This was wrong")
 
           # combines the above two and raises GradingComplete
           feedback.finish(0, "This was wrong")
+
+          feedback.check_numpy_array_allclose(name, ref, data,
+              accuracy_critical=True, rtol=1e-5, atol=1e-8)
+
+          feedback.check_list(name, ref, data, entry_type=None)
 
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.

@@ -13,6 +13,11 @@
 Ideas
 =====
 
+- Auto-expire
+
+- Do print() and plot() from testing code count?
+  Make a setting.
+
 - Session reset UI
 
 - Allow just viewing flow without any possibility for submission
