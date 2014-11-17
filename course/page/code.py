@@ -309,6 +309,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         Symbols that the participant's code is expected to define.
         These will be made available to the :attr:`test_code`.
 
+        This may contain the marker "###CORRECT_CODE###", which will
+        be replaced with the contents of :attr:`correct_code`, with
+        each line indented to the same depth as where the marker
+        is found. The line with this marker is only allowed to have
+        white space and the marker on it.
+
     .. attribute:: show_test_code
 
         Optional. ``True`` or ``False``. If true, the :attr:`test_code`
@@ -446,6 +452,31 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data["answer"].strip()}
 
+    def get_test_code(self):
+        test_code = getattr(self.page_desc, "test_code", None)
+        if test_code is None:
+            return test_code
+
+        correct_code = getattr(self.page_desc, "correct_code", None)
+        if correct_code is None:
+            correct_code = ""
+
+        import re
+        CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")
+
+        new_test_code_lines = []
+        for l in test_code.split("\n"):
+            match = CORRECT_CODE_TAG.match(l)
+            if match is not None:
+                prefix = match.group(1)
+                for cc_l in correct_code.split("\n"):
+                    new_test_code_lines.append(prefix+cc_l)
+            else:
+                new_test_code_lines.append(l)
+
+        print "\n".join(new_test_code_lines)
+        return "\n".join(new_test_code_lines)
+
     def grade(self, page_context, page_data, answer_data, grade_data):
 
         if answer_data is None:
@@ -466,7 +497,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         transfer_attr("setup_code")
         transfer_attr("names_for_user")
         transfer_attr("names_from_user")
-        transfer_attr("test_code")
+
+        if hasattr(self.page_desc, "test_code"):
+            run_req["test_code"] = self.get_test_code()
 
         if hasattr(self.page_desc, "data_files"):
             run_req["data_files"] = {}

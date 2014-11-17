@@ -18,6 +18,14 @@ One revision ("commit") of the git repository is always viewed as the "current"
 one. This is the one being shown to all visitors. In addition, each user (with
 sufficient privileges) may be previewing a different version of their choosing.
 
+.. note::
+
+    When editing CourseFlow git repositories on Windows, make sure that the
+    ``core.autocrlf`` option is set `appropriately
+    <https://help.github.com/articles/dealing-with-line-endings/>`_
+    (namely, so that line endings are represented in the 'UNIX' convention,
+    as a single newline character).
+
 .. _yaml-files:
 
 YAML
