@@ -91,6 +91,8 @@ Definining your own page types
 .. autofunction:: get_auto_feedback
 .. autoclass:: AnswerFeedback
 .. autoclass:: PageBase
+
+.. currentmodule:: course.page.base
 .. autoclass:: PageBaseWithTitle
 .. autoclass:: PageBaseWithHumanTextFeedback
 .. autoclass:: PageBaseWithCorrectAnswer

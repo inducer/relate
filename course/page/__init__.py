@@ -25,7 +25,8 @@ THE SOFTWARE.
 """
 
 from course.page.base import (
-        PageBase, AnswerFeedback, PageContext,
+        PageBase, AnswerFeedback, PageContext, NoNormalizedAnswerAvailable,
+        get_auto_feedback,
         markup_to_html)
 from course.page.static import Page
 from course.page.text import TextQuestion, HumanGradedTextQuestion
@@ -36,6 +37,7 @@ from course.page.upload import FileUploadQuestion
 
 __all__ = (
         "PageBase", "AnswerFeedback", "PageContext",
+        "NoNormalizedAnswerAvailable", "get_auto_feedback",
         "markup_to_html",
         "Page",
         "TextQuestion", "HumanGradedTextQuestion",
