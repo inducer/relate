@@ -199,7 +199,7 @@ class Feedback:
         if entry_type is not None:
             for i, entry in enumerate(data):
                 if not isinstance(entry, entry_type):
-                    self.finish(0, "'%s[i]' has the wrong type" % (name, i))
+                    self.finish(0, "'%s[%d]' has the wrong type" % (name, i))
 
 
 def run_code(result, run_req):
