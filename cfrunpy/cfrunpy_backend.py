@@ -194,7 +194,7 @@ class Feedback:
 
         if len(ref) != len(data):
             self.finish(0, "'%s' has the wrong length--expected %d, got %d"
-              % (name, len(ref), len(list)))
+              % (name, len(ref), len(data)))
 
         if entry_type is not None:
             for i, entry in enumerate(data):
