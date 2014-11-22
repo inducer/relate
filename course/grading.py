@@ -93,6 +93,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     form = None
     feedback = None
     answer_data = None
+    most_recent_grade = None
 
     if fpctx.page.expects_answer():
         if fpctx.prev_answer_visit is not None:
