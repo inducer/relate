@@ -480,6 +480,9 @@ def view_grades_by_opportunity(pctx, opp_id):
 
     idx = 0
 
+    finished_sessions = 0
+    total_sessions = 0
+
     grade_table = []
     for participation in participations:
         while (
@@ -504,6 +507,12 @@ def view_grades_by_opportunity(pctx, opp_id):
                         flow_id=opportunity.flow_id,
                         )
                     .order_by("start_time"))
+
+            for fsession in flow_sessions:
+                total_sessions += 1
+                if not fsession.in_progress:
+                    finished_sessions += 1
+
         else:
             flow_sessions = None
 
@@ -523,6 +532,9 @@ def view_grades_by_opportunity(pctx, opp_id):
         "grade_state_change_types": grade_state_change_types,
         "grade_table": grade_table,
         "batch_session_ops_form": batch_session_ops_form,
+
+        "total_sessions": total_sessions,
+        "finished_sessions": finished_sessions,
         })
 
 # }}}
