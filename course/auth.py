@@ -73,7 +73,9 @@ class UserChoiceField(forms.ModelChoiceField):
 
 class ImpersonateForm(StyledForm):
     user = UserChoiceField(
-            queryset=User.objects.order_by("last_name"),
+            queryset=(User.objects
+                .filter(user_status__status=user_status.active)
+                .order_by("last_name")),
             required=True,
             help_text="Select user to impersonate.")
 
