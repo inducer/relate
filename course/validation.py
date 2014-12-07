@@ -242,7 +242,9 @@ def validate_course_desc_struct(ctx, location, course_desc):
                 ("run", str),
                 ("chunks", list),
                 ],
-            allowed_attrs=[]
+            allowed_attrs=[
+                ("grade_summary_code", str),
+                ]
             )
 
     for i, chunk in enumerate(course_desc.chunks):

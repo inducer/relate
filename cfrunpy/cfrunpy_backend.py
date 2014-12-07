@@ -152,7 +152,7 @@ class Feedback:
         self.set_points(points)
         raise GradingComplete()
 
-    def _check_numpy_array_base(self, name, ref, data):
+    def check_numpy_array_features(self, name, ref, data):
         import numpy as np
         assert isinstance(ref, np.ndarray)
 
@@ -175,7 +175,7 @@ class Feedback:
             rtol=1e-05, atol=1e-08):
         import numpy as np
 
-        self._check_numpy_array_base(name, ref, data)
+        self.check_numpy_array_features(name, ref, data)
         good = np.allclose(ref, data, rtol=rtol, atol=atol)
 
         if not good:

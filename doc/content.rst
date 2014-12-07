@@ -245,6 +245,64 @@ This could then be used from wherever CourseFlow markup is allowed::
 to embed a YouTube player. (YouTube is a registered trademark.)
 
 
+.. _course_yml:
+
+The Course Information File
+---------------------------
+
+The highest-level information about a course is contained in a :ref:`YAML
+file <yaml-files>`_ that is typically named :file:`course.yml`. Other
+names may be specified, enabling multiple courses to be run from the same
+repository.
+
+The content of this file allows the following fields:
+
+.. class:: Course
+
+    .. attribute:: name
+    .. attribute:: number
+    .. attribute:: run
+    .. attribute:: chunks
+
+        A list of :ref:`course-chunks`.
+
+    .. attribute:: grade_summary_code
+
+        Python code to categorize grades and compute summary grades.
+
+        This code must be both valid Python version 2 and 3.
+
+        It has access to a the following variables:
+
+        * ``grades``: a dictionary that maps grade
+          identifiers to objects with the following attributes:
+
+          * ``points`` a non-negative floating-point number, or *None*
+          * ``max_points`` a non-negative floating-point number
+          * ``percentage`` a non-negative floating-point number, or *None*
+          * ``done`` whether a grade of *None* should be counted as zero
+            points
+
+          The code may modify this variable.
+
+        * ``grade_names``
+
+          The code may modify this variable.
+
+        It should create the following variables:
+
+        * ``categories`` a dictionary from grade identifiers to category
+          names.
+
+        * ``cat_order`` a list of tuples ``(category_name, grade_id_list)``
+          indicating (a) the order in which categories are displayed and
+          (b) the order in which grades are shown within each category.
+
+.. _course-chunks:
+
+Course Page Chunks
+^^^^^^^^^^^^^^^^^^
+
 .. _events:
 
 Calendar and Events
