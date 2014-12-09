@@ -136,6 +136,9 @@ class AnswerFeedback(object):
 
     @staticmethod
     def from_json(json):
+        if json is None:
+            return json
+
         return AnswerFeedback(
                 correctness=json["correctness"],
                 feedback=json["feedback"],
