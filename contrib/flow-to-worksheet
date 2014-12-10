@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+
 import sys
 import pypandoc
 import re
@@ -86,6 +88,9 @@ def convert_page_inner(page):
                 prompt,
                 "\n".join(choices))
             )
+    else:
+        print("*** WARNING: Unknown page type '%s'" % page.type,
+                file=sys.stderr)
 
 
 TITLE_RE = re.compile(ur"^\#\s*(\w.*)", re.UNICODE)
@@ -119,6 +124,8 @@ def convert_page(page, wrap_in_problem_env):
             "\\end{{examtronproblem}}\n".format(
                 title=title,
                 body=result))
+    else:
+        return result
 
 
 def main():
@@ -147,8 +154,9 @@ def main():
         flow_desc = data
         for grp in flow_desc.groups:
             for page in grp.pages:
-                print page.id
-                questions.append(convert_page(page, args.examtron_problem))
+                print(page.id)
+                converted = convert_page(page, args.examtron_problem)
+                questions.append(converted)
         template = TEMPLATE
         if args.questions_only:
             template = QUESTIONS_ONLY_TEMPLATE
