@@ -109,7 +109,7 @@ def extract_title_from_markup(markup_text):
 
 def convert_page(page, wrap_in_problem_env):
     title = getattr(page, "title", None)
-    if title is None:
+    if hasattr(page, "prompt") and title is None:
         title = extract_title_from_markup(page.prompt)
 
     if title is None:
