@@ -10,13 +10,28 @@
 
 - Page URL endpoints (see page-url-endpoints branch)
 
+- Don't allow access to for-credit flow if current rules don't allow it.
+
+- Distinguish max_sessions between for- and not-for-credit?
+
+- Don't make a new grade record if grade is unchanged
+
+- Don't overwrite grader feedback on regrade
+
+- 'Save and next' for grading
+
+- Fixed grading panel?
+
+- Separate bulk feedback from key feedback
+
+- Gray out insensitive codemirror
+
+- Note about changes on page sandbox
+
 Ideas
 =====
 
 - Auto-expire
-
-- Do print() and plot() from testing code count?
-  Make a setting.
 
 - Session reset UI
 
@@ -28,7 +43,7 @@ Ideas
   https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.has_add_permission
   https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.get_queryset
 
-- Manual grade entry
+- Manual grade entry/override
 
 - Flow results analytics
   --> time taken per question
