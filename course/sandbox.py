@@ -115,8 +115,8 @@ def view_markup_sandbox(pctx):
 
     def make_form(data=None):
         help_text = ("Enter <a href=\"http://documen.tician.de/"
-                "courseflow/content.html#courseflow-markup\">"
-                "CourseFlow markup</a>.")
+                "coursely/content.html#coursely-markup\">"
+                "Coursely markup</a>.")
         return SandboxForm(
                 None, "markdown", vim_mode,
                 help_text,
@@ -161,7 +161,7 @@ def view_markup_sandbox(pctx):
 
 @course_view
 def view_page_sandbox(pctx):
-    from courseflow.utils import dict_to_struct
+    from coursely.utils import dict_to_struct
     import yaml
 
     PAGE_SESSION_KEY = "cf_validated_sandbox_page:" + pctx.course.identifier

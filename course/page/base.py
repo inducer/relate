@@ -29,7 +29,7 @@ import django.forms as forms
 import re
 
 from course.validation import validate_struct, ValidationError
-from courseflow.utils import StyledForm, Struct
+from coursely.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
 
@@ -531,8 +531,8 @@ class HumanTextFeedbackForm(StyledForm):
                 required=False,
                 help_text=mark_safe("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
-                    "courseflow/content.html#courseflow-markup'>"
-                    "CourseFlow-flavored Markdown</a>"))
+                    "coursely/content.html#coursely-markup'>"
+                    "Coursely-flavored Markdown</a>"))
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text="Checking this box and submitting the form "

@@ -39,7 +39,7 @@ from django.views.decorators.cache import cache_control
 
 from crispy_forms.layout import Submit
 
-from courseflow.utils import StyledForm
+from coursely.utils import StyledForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_role_and_participation
@@ -174,7 +174,7 @@ class FakeTimeForm(StyledForm):
 
 
 def get_fake_time(request):
-    if "courseflow_fake_time" in request.session:
+    if "coursely_fake_time" in request.session:
         import datetime
 
         from django.conf import settings
@@ -182,7 +182,7 @@ def get_fake_time(request):
         tz = timezone(settings.TIME_ZONE)
         return tz.localize(
                 datetime.datetime.fromtimestamp(
-                    request.session["courseflow_fake_time"]))
+                    request.session["coursely_fake_time"]))
     else:
         return None
 
@@ -207,13 +207,13 @@ def set_fake_time(request):
             fake_time = form.cleaned_data["time"]
             if do_set:
                 import time
-                request.session["courseflow_fake_time"] = \
+                request.session["coursely_fake_time"] = \
                         time.mktime(fake_time.timetuple())
             else:
-                request.session.pop("courseflow_fake_time", None)
+                request.session.pop("coursely_fake_time", None)
 
     else:
-        if "courseflow_fake_time" in request.session:
+        if "coursely_fake_time" in request.session:
             form = FakeTimeForm({
                 "time": get_fake_time(request)
                 })

@@ -30,7 +30,7 @@ import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 
-from courseflow.utils import StyledForm
+from coursely.utils import StyledForm
 from course.page.base import (
         PageBaseWithTitle, markup_to_html, PageBaseWithValue,
         PageBaseWithHumanTextFeedback,
@@ -576,7 +576,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
-        from courseflow.utils import dict_to_struct
+        from coursely.utils import dict_to_struct
         response = dict_to_struct(response_dict)
 
         feedback_bits = []

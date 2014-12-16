@@ -3,7 +3,7 @@
 SECRET_KEY = '<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>'
 
 ALLOWED_HOSTS = [
-        "courseflow.example.com",
+        "coursely.example.com",
         ]
 
 # Uncomment this to use a real database. If left commented out, a local SQLite3
@@ -12,8 +12,8 @@ ALLOWED_HOSTS = [
 # DATABASES = {
 #     'default': {
 #         'ENGINE':'django.db.backends.postgresql_psycopg2',
-#         'NAME': 'courseflow',
-#         'USER': 'courseflow',
+#         'NAME': 'coursely',
+#         'USER': 'coursely',
 #         'PASSWORD': '<PASSWORD>',
 #         'HOST': '127.0.0.1',
 #         'PORT': '5432',
@@ -36,7 +36,7 @@ TEMPLATE_DEBUG = DEBUG
 # Your course git repositories will be stored under this directory.
 # Make sure it's writable by your web user.
 #
-# The default below makes them sit side-by-side with your courseflow checkout,
+# The default below makes them sit side-by-side with your coursely checkout,
 # which makes sense for development, but you probably want to change this
 # in production.
 #

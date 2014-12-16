@@ -39,7 +39,7 @@ from HTMLParser import HTMLParser
 
 from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
 
-from courseflow.utils import dict_to_struct
+from coursely.utils import dict_to_struct
 
 import threading
 
@@ -291,7 +291,7 @@ class LinkFixerExtension(Extension):
         self.reverse_func = reverse_func
 
     def extendMarkdown(self, md, md_globals):
-        md.treeprocessors["courseflow_link_fixer"] = \
+        md.treeprocessors["coursely_link_fixer"] = \
                 LinkFixerTreeprocessor(md, self.course, self.commit_sha,
                         reverse_func=self.reverse_func)
 

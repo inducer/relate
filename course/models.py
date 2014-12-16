@@ -95,7 +95,7 @@ class Course(models.Model):
     git_source = models.CharField(max_length=200, blank=True,
             help_text="A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
-            "<tt>git://github.com/inducer/courseflow-sample</tt> "
+            "<tt>git://github.com/inducer/coursely-sample</tt> "
             "to get some sample content.")
     ssh_private_key = models.TextField(blank=True,
             help_text="An SSH private key to use for Git authentication")
@@ -120,7 +120,7 @@ class Course(models.Model):
 
     email = models.EmailField(
             help_text="This email address will be used in the 'From' line "
-            "of automated emails sent by CourseFlow. It will also receive "
+            "of automated emails sent by Coursely. It will also receive "
             "notifications about required approvals.")
 
     # {{{ XMPP

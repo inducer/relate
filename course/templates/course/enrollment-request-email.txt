@@ -9,4 +9,4 @@ to approve or deny the request. To do so, select the course participations
 in question and use the "Approve enrollment" or "Deny enrollment" admin
 actions.
 
-- CourseFlow staff
+- Coursely staff

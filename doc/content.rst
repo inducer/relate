@@ -1,15 +1,15 @@
-Writing content for CourseFlow
-==============================
+Writing content for Coursely
+============================
 
 .. _git-repo:
 
 Git repository
 --------------
 
-In CourseFlow, one course corresponds to one Git repository.
+In Coursely, one course corresponds to one Git repository.
 
-Data for a course in CourseFlow is contained in a `git <http://git-scm.com/>`_
-repository. CourseFlow understands the structure of a repository and makes use
+Data for a course in Coursely is contained in a `git <http://git-scm.com/>`_
+repository. Coursely understands the structure of a repository and makes use
 of the version history present. For example, you could be previewing and
 testing some newly developed course content, while the students continue to
 work with a prior version until you make the new version explicitly available.
@@ -20,7 +20,7 @@ sufficient privileges) may be previewing a different version of their choosing.
 
 .. note::
 
-    When editing CourseFlow git repositories on Windows, make sure that the
+    When editing Coursely git repositories on Windows, make sure that the
     ``core.autocrlf`` option is set `appropriately
     <https://help.github.com/articles/dealing-with-line-endings/>`_
     (namely, so that line endings are represented in the 'UNIX' convention,
@@ -75,8 +75,8 @@ Here's an example::
 On system lock-in
 -----------------
 
-One key feature of CourseFlow is that the content you write for it is versatile
-and easy to repurpose. To start, everything you write for CourseFlow is just
+One key feature of Coursely is that the content you write for it is versatile
+and easy to repurpose. To start, everything you write for Coursely is just
 a readable, plain text file, so there are no retrieval or interpretation issues.
 
 Next, the `pandoc <http://johnmacfarlane.net/pandoc/>`_ tool can be used to
@@ -85,15 +85,15 @@ including LaTeX, HTML, MediaWiki, Microsoft Word, and many more.
 
 Further, YAML files are quite easy to read and traverse in most programming languages,
 facilitating automated coversion.  `This example Python script
-<https://github.com/inducer/courseflow/blob/master/contrib/flow-to-worksheet>`_
-provided as part of CourseFlow takes a flow and converts it to a paper-based
+<https://github.com/inducer/coursely/blob/master/contrib/flow-to-worksheet>`_
+provided as part of Coursely takes a flow and converts it to a paper-based
 worksheet. To do so, it makes use of `pypandoc
 <https://pypi.python.org/pypi/pypandoc>`_ and `PyYAML <http://pyyaml.org/>`_.
 
 Validation
 ----------
 
-While YAML lets you define *arbitrary* structures, CourseFlow imposes a number of rules
+While YAML lets you define *arbitrary* structures, Coursely imposes a number of rules
 on what your YAML documents should look like to be acceptable as course content.
 
 These rules are automatically checked as part of setting a new revision of the
@@ -102,29 +102,29 @@ These rules are automatically checked as part of setting a new revision of the
 This helps avoid mistakes and ensures that the students always see a working
 site.
 
-CourseFlow validation is also available as a stand-alone script :command:`cf-validate`.
+Coursely validation is also available as a stand-alone script :command:`cf-validate`.
 This runs independently of git and the web site on the content developer's
 computer and provides validation feedback without having to commit and
-upload the content to a CourseFlow site. This script can be installed by running::
+upload the content to a Coursely site. This script can be installed by running::
 
     sudo pip install -r requirements.txt
     sudo python setup.py install
 
-in the root directory of the CourseFlow distribution.
+in the root directory of the Coursely distribution.
 
 .. _markup:
 
-CourseFlow markup
+Coursely markup
 -----------------
 
-All bulk text in CourseFlow is written in `Markdown
+All bulk text in Coursely is written in `Markdown
 <http://daringfireball.net/projects/markdown/>`_, with a few extensions. The
 linked page provides a (mostly) complete definition of the language.  A
 10-minute `tutorial <http://markdowntutorial.com/>`_ is available to provide a
 quick, approachable overview of Markdown.
 
-To allow easy experimentation with markup, CourseFlow has a "markup sandbox" in
-the "Teaching tools" menu where the rendered form of any CourseFlow markup can
+To allow easy experimentation with markup, Coursely has a "markup sandbox" in
+the "Teaching tools" menu where the rendered form of any Coursely markup can
 be previewed.
 
 In addition to standard Markdown, the following extensions are
@@ -134,7 +134,7 @@ Custom URLs
 ^^^^^^^^^^^
 
 A few custom URL schemas are provided to facilitate easy linking around
-a CourseFlow site:
+a Coursely site:
 
 * The URL schema ``flow:flow-name`` provides a link to the start page of a
   flow.
@@ -175,7 +175,7 @@ in ``$$...$$``::
 Symbols and Icons
 ^^^^^^^^^^^^^^^^^
 
-CourseFlow includes `FontAwesome <http://fontawesome.io/>`_,
+Coursely includes `FontAwesome <http://fontawesome.io/>`_,
 a comprehensive symbol set by Dave Gandy.
 Symbols from `that set <http://fontawesome.io/icons/>`_ can be included as follows::
 
@@ -193,13 +193,13 @@ creates a box with a recessed appearance around the content::
       Exam 2 takes place **next week**. Make sure to [prepare early](flow:exam2-prep).
     </div>
 
-The attribute ``markdown="1"`` instructs CourseFlow to continue looking
+The attribute ``markdown="1"`` instructs Coursely to continue looking
 for Markdown formatting inside the HTML element.
 
 Video
 ^^^^^
 
-CourseFlow includes `VideoJS <http://www.videojs.com/>`_
+Coursely includes `VideoJS <http://www.videojs.com/>`_
 which lets you easily include HTML5 video in your course content.
 The following snippet shows an interactive video viewer::
 
@@ -230,7 +230,7 @@ of your :ref:`git-repo` containing the following text::
       </iframe>
     {%- endmacro %}
 
-This could then be used from wherever CourseFlow markup is allowed::
+This could then be used from wherever Coursely markup is allowed::
 
           [JINJA]
 
@@ -308,11 +308,11 @@ Course Page Chunks
 Calendar and Events
 -------------------
 
-To allow course content to be reused easily from year to year, CourseFlow can
+To allow course content to be reused easily from year to year, Coursely can
 assign symbolic names to particular dates in your course. For example, instead
 of writing ``2014-10-13``, you could write ``lecture 13`` or ``hw_due 5``.
 
-To achieve this, each course in CourseFlow can store a list of events in its
+To achieve this, each course in Coursely can store a list of events in its
 database. This data serves two purposes:
 
 * It provides data for the course calendar, available from the "Student" menu.
@@ -347,10 +347,10 @@ sequence of steps:
 
 .. _datespec:
 
-Specifying dates in CourseFlow
+Specifying dates in Coursely
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In various places around its :ref:`YAML documents <yaml-files>`, CourseFlow
+In various places around its :ref:`YAML documents <yaml-files>`, Coursely
 allows dates to be specified. The following formats are supported:
 
 * ``symbolic_name ordinal`` (e.g. ``lecture 13``) to refer to :ref:`calendear

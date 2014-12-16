@@ -28,7 +28,7 @@ THE SOFTWARE.
 import django.forms as forms
 from django.utils.safestring import mark_safe
 
-from courseflow.utils import StyledForm
+from coursely.utils import StyledForm
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html)
 from course.content import remove_prefix

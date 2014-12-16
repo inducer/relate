@@ -33,7 +33,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 
 from course.content import get_repo_blob
-from courseflow.utils import Struct
+from coursely.utils import Struct
 
 
 # {{{ validation tools

@@ -35,7 +35,7 @@ from django.utils.safestring import mark_safe
 from django import forms
 from django import http
 
-from courseflow.utils import StyledForm
+from coursely.utils import StyledForm
 from crispy_forms.layout import Submit
 
 import re

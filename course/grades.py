@@ -35,7 +35,7 @@ from django import forms
 from django.db import transaction
 from django.utils.timezone import now
 
-from courseflow.utils import StyledForm
+from coursely.utils import StyledForm
 from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
