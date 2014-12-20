@@ -81,10 +81,12 @@
     </tbody>
   </table>
 
-  <p>
-    {{ total_sessions }} total sessions
-    ({{ finished_sessions }} finished)
-  </p>
+  {% if opportunity.flow_id %}
+    <p>
+      {{ total_sessions }} total sessions
+      ({{ finished_sessions }} finished)
+    </p>
+  {% endif %}
 
   {% if batch_session_ops_form %}
     <div class="well">
