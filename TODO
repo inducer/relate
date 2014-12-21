@@ -25,6 +25,15 @@
 - MOSS submission
 
 - Kill sticky flow versioning
+  (No need to end non-ending session in this case, either)
+
+- Don't store current flow session in cookie, ever.
+
+- Change "end session" link for sessions that don't actually end.
+
+- [JINJA]/[/JINJA] in yaml files
+
+- Redo permissions system
 
 Ideas
 =====
