@@ -307,9 +307,13 @@ def export_gradebook_csv(pctx):
             ] + [grade_info.grade_state_machine.stringify_machine_readable_state()
                 for grade_info in grades])
 
-    return http.HttpResponse(
+    response = http.HttpResponse(
             csvfile.getvalue(),
             content_type="text/plain; charset=utf-8")
+    response['Content-Disposition'] = (
+            'attachment; filename="grades-%s.xls"'
+            % pctx.course.identifier)
+    return response
 
 # }}}
 
