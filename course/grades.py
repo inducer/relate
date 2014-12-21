@@ -304,6 +304,8 @@ class ModifySessionsForm(StyledForm):
                 Submit("end", "End sessions and grade"))
         self.helper.add_input(
                 Submit("regrade", "Regrade ended sessions"))
+        self.helper.add_input(
+                Submit("recalculate", "Recalculate grades of ended sessions"))
 
 
 @transaction.atomic
@@ -370,6 +372,26 @@ def regrade_ended_sessions(repo, course, flow_id, rule_id):
     return count
 
 
+@transaction.atomic
+def recalculate_ended_sessions(repo, course, flow_id, rule_id):
+    sessions = (FlowSession.objects
+            .filter(
+                course=course,
+                flow_id=flow_id,
+                access_rules_id=rule_id,
+                in_progress=False,
+                ))
+
+    count = 0
+
+    from course.flow import recalculate_session_grade
+    for session in sessions:
+        recalculate_session_grade(repo, course, session)
+        count += 1
+
+    return count
+
+
 RULE_ID_NONE_STRING = "<<<NONE>>>"
 
 
@@ -415,6 +437,8 @@ def view_grades_by_opportunity(pctx, opp_id):
                 op = "end"
             elif "regrade" in request.POST:
                 op = "regrade"
+            elif "recalculate" in request.POST:
+                op = "recalculate"
             else:
                 raise SuspiciousOperation("invalid operation")
 
@@ -433,6 +457,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) expired." % count)
+
                     elif op == "end":
                         count = finish_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
@@ -441,6 +466,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) ended." % count)
+
                     elif op == "regrade":
                         count = regrade_ended_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
@@ -448,6 +474,15 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) regraded." % count)
+
+                    elif op == "recalculate":
+                        count = recalculate_ended_sessions(
+                                pctx.repo, pctx.course, opportunity.flow_id,
+                                rule_id)
+
+                        messages.add_message(pctx.request, messages.SUCCESS,
+                                "%d session(s)' grade recalculated." % count)
+
                     else:
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
@@ -583,7 +618,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
         request = pctx.request
         if pctx.request.method == "POST":
-            action_re = re.compile("^(expire|end|reopen|regrade)_([0-9]+)$")
+            action_re = re.compile("^([a-z]+)_([0-9]+)$")
             for key in request.POST.keys():
                 action_match = action_re.match(key)
                 if action_match:
@@ -598,6 +633,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             from course.flow import (
                     reopen_session,
                     regrade_session,
+                    recalculate_session_grade,
                     expire_flow_session_standalone,
                     finish_flow_session_standalone)
 
@@ -615,16 +651,22 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session ended.")
 
+                elif op == "reopen":
+                    reopen_session(session)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session reopened.")
+
                 elif op == "regrade":
                     regrade_session(
                             pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session regraded.")
 
-                elif op == "reopen":
-                    reopen_session(session)
+                elif op == "recalculate":
+                    recalculate_session_grade(
+                            pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session reopened.")
+                            "Session grade recalculated.")
 
                 else:
                     raise SuspiciousOperation("invalid session operation")

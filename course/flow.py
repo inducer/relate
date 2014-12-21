@@ -644,6 +644,25 @@ def regrade_session(repo, course, session):
                 repo, course, session, force_regrade=True,
                 now_datetime=prev_completion_time)
 
+
+@transaction.atomic
+def recalculate_session_grade(repo, course, session):
+    """Only redoes the final grade determination without regrading
+    individual pages.
+    """
+
+    assert not session.in_progress
+
+    prev_completion_time = session.completion_time
+
+    session.append_comment("Session grade recomputed at %s." % local_now())
+    session.save()
+
+    reopen_session(session, force=True, suppress_log=True)
+    finish_flow_session_standalone(
+            repo, course, session, force_regrade=False,
+            now_datetime=prev_completion_time)
+
 # }}}
 
 
