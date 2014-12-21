@@ -35,7 +35,7 @@ from django.utils.safestring import mark_safe
 from django import forms
 from django import http
 
-from courseflow.utils import StyledForm
+from courseflow.utils import StyledForm, local_now, as_local_time
 from crispy_forms.layout import Submit
 
 import re
@@ -562,10 +562,9 @@ def reopen_session(session, force=False, suppress_log=False):
     session.max_points = None
 
     if not suppress_log:
-        from django.utils.timezone import now
         session.append_comment(
                 "Session reopened at %s, previous completion time was '%s'."
-                % (now(), session.completion_time))
+                % (local_now(), as_local_time(session.completion_time)))
 
     session.completion_time = None
     session.save()
@@ -637,8 +636,7 @@ def regrade_session(repo, course, session):
     else:
         prev_completion_time = session.completion_time
 
-        from django.utils.timezone import now
-        session.append_comment("Session regraded at %s." % now())
+        session.append_comment("Session regraded at %s." % local_now())
         session.save()
 
         reopen_session(session, force=True, suppress_log=True)
