@@ -481,7 +481,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 rule_id)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "%d session(s)' grade recalculated." % count)
+                                "Grade recalculated for %d session(s)." % count)
 
                     else:
                         raise SuspiciousOperation("invalid operation")
