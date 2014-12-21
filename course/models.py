@@ -514,6 +514,18 @@ class FlowAccessExceptionEntry(models.Model):
     def __unicode__(self):
         return self.permission
 
+
+# class FlowAccessException2(models.Model):
+#     flow_id = models.CharField(max_length=200, blank=False, null=False)
+#
+#     creator = models.ForeignKey(User, null=True)
+#     creation_time = models.DateTimeField(default=now, db_index=True)
+#
+#     comment = models.TextField(blank=True, null=True)
+#
+#     new_session_rules = YAMLField(blank=True, null=True)
+#     existing_session_rules = YAMLField(blank=True, null=True)
+
 # }}}
 
 
