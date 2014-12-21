@@ -311,7 +311,7 @@ def export_gradebook_csv(pctx):
             csvfile.getvalue(),
             content_type="text/plain; charset=utf-8")
     response['Content-Disposition'] = (
-            'attachment; filename="grades-%s.xls"'
+            'attachment; filename="grades-%s.csv"'
             % pctx.course.identifier)
     return response
 
