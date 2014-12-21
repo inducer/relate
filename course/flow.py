@@ -528,6 +528,10 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
                     and previous_grade_change.max_points == gchange.max_points
                     and previous_grade_change.comment == gchange.comment):
                 do_save = False
+        else:
+            # no previous grade changes
+            if points is None:
+                do_save = False
 
         if do_save:
             gchange.save()
