@@ -504,7 +504,28 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
         # creator left as NULL
         gchange.flow_session = flow_session
         gchange.comment = comment
-        gchange.save()
+
+        previous_grade_changes = list(GradeChange.objects
+                .filter(
+                    opportunity=gchange.opportunity,
+                    participation=gchange.participation,
+                    state=gchange.state,
+                    attempt_id=gchange.attempt_id,
+                    flow_session=gchange.flow_session)
+                .order_by("-grade_time")
+                [:1])
+
+        # only save if modified or no previous grades
+        do_save = True
+        if previous_grade_changes:
+            previous_grade_change, = previous_grade_changes
+            if (previous_grade_change.points == gchange.points
+                    and previous_grade_change.max_points == gchange.max_points
+                    and previous_grade_change.comment == gchange.comment):
+                do_save = False
+
+        if do_save:
+            gchange.save()
 
     return grade_info
 
