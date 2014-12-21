@@ -69,10 +69,14 @@ class TextAnswerForm(StyledForm):
 
             editor_mode = widget_type[widget_type.find(":")+1:]
 
+            theme = "default"
+            if read_only:
+                theme += " cf-readonly"
+
             from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
             return CodeMirrorTextarea(
                     mode=editor_mode,
-                    theme="default",
+                    theme=theme,
                     addon_css=(
                         "dialog/dialog",
                         "display/fullscreen",
@@ -91,7 +95,7 @@ class TextAnswerForm(StyledForm):
                         "matchBrackets": True,
                         "styleActiveLine": True,
                         "indentUnit": 2,
-                        "readOnly": read_only,
+                        "readOnly": "nocursor" if read_only else False,
                         "extraKeys": CodeMirrorJavascript("""
                             {
                               "Tab": function(cm)

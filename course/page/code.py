@@ -45,12 +45,16 @@ class PythonCodeForm(StyledForm):
 
         from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
+        theme = "default"
+        if read_only:
+            theme += " cf-readonly"
+
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
             help_text="Hit F9 to toggle full screen mode.",
             widget=CodeMirrorTextarea(
                 mode="python",
-                theme="default",
+                theme=theme,
                 addon_css=(
                     "dialog/dialog",
                     "display/fullscreen",
@@ -69,7 +73,7 @@ class PythonCodeForm(StyledForm):
                     "indentUnit": 4,
                     "matchBrackets": True,
                     "styleActiveLine": True,
-                    "readOnly": read_only,
+                    "readOnly": "nocursor" if read_only else False,
                     # "autofocus": not read_only,
                     "extraKeys": CodeMirrorJavascript("""
                         {
