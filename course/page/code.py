@@ -481,7 +481,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             else:
                 new_test_code_lines.append(l)
 
-        print "\n".join(new_test_code_lines)
         return "\n".join(new_test_code_lines)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
