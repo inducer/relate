@@ -77,6 +77,10 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     course = flow_session.course
     page_data = visit.page_data
 
+    most_recent_grade = visit.get_most_recent_grade()
+    if most_recent_grade is not None and grade_data is None:
+        grade_data = most_recent_grade.grade_data
+
     from course.content import (
             get_course_repo,
             get_course_commit_sha,
