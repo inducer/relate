@@ -43,6 +43,7 @@
         <li><a href="{% url "course.grades.view_participant_list" course.identifier %}">List of Participants</a></li>
         <li><a href="{% url "course.grades.view_grading_opportunity_list" course.identifier %}">List of Grading Opportunities</a></li>
         <li><a href="{% url "course.grades.view_gradebook" course.identifier %}">Grade book</a></li>
+        <li><a href="{% url "course.grades.export_gradebook_csv" course.identifier %}">Grade book (CSV export)</a></li>
       {% endif %}
       {% if role == pr.instructor %}
         <li><a href="{% url "course.grades.import_grades" course.identifier %}">Import Grades</a></li>

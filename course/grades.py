@@ -34,6 +34,7 @@ from django.db import connection
 from django import forms
 from django.db import transaction
 from django.utils.timezone import now
+from django import http
 
 from courseflow.utils import StyledForm
 from crispy_forms.layout import Submit
@@ -189,32 +190,26 @@ class GradeInfo:
         self.grade_state_machine = grade_state_machine
 
 
-@course_view
-def view_gradebook(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
-
+def get_grade_table(course):
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
     grading_opps = list((GradingOpportunity.objects
             .filter(
-                course=pctx.course,
+                course=course,
                 shown_in_grade_book=True,
                 )
             .order_by("identifier")))
 
     participations = list(Participation.objects
             .filter(
-                course=pctx.course,
+                course=course,
                 status=participation_status.active)
             .order_by("id")
             .select_related("user"))
 
     grade_changes = list(GradeChange.objects
             .filter(
-                opportunity__course=pctx.course,
+                opportunity__course=course,
                 opportunity__shown_in_grade_book=True)
             .order_by(
                 "participation__id",
@@ -260,6 +255,18 @@ def view_gradebook(pctx):
 
         grade_table.append(grade_row)
 
+    return participations, grading_opps, grade_table
+
+
+@course_view
+def view_gradebook(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
+    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+
     grade_table = sorted(zip(participations, grade_table),
             key=lambda (participation, grades):
                 (participation.user.last_name.lower(),
@@ -271,6 +278,38 @@ def view_gradebook(pctx):
         "participations": participations,
         "grade_state_change_types": grade_state_change_types,
         })
+
+
+@course_view
+def export_gradebook_csv(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to export grades")
+
+    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+
+    from six import BytesIO
+    csvfile = BytesIO()
+
+    import unicodecsv
+    fieldnames = ['user_name', 'last_name', 'first_name'] + [
+            gopp.identifier for gopp in grading_opps]
+
+    writer = unicodecsv.writer(csvfile, encoding="utf-8")
+    writer.writerow(fieldnames)
+
+    for participation, grades in zip(participations, grade_table):
+        writer.writerow([
+            participation.user.username,
+            participation.user.last_name,
+            participation.user.first_name,
+            ] + [grade_info.grade_state_machine.stringify_machine_readable_state()
+                for grade_info in grades])
+
+    return http.HttpResponse(
+            csvfile.getvalue(),
+            content_type="text/plain; charset=utf-8")
 
 # }}}
 

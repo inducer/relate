@@ -52,3 +52,6 @@ docker-py
 # For code highlighting, required via the CodeHilite extension to
 # Python-Markdown
 pygments
+
+# For grade export
+unicodecsv

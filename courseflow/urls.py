@@ -105,6 +105,10 @@ urlpatterns = patterns('',
         "course.grades.view_gradebook",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grading/overview/csv/$",
+        "course.grades.export_gradebook_csv",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/grading/by-opportunity"
         "/(?P<opp_id>[0-9]+)"
         "/$",
