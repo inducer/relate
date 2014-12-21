@@ -228,7 +228,6 @@ def view_calendar(pctx):
                 pctx.course.events_file, pctx.course_commit_sha)
     except ObjectDoesNotExist:
         event_descr = {}
-        print "ODN"
 
     event_kinds_desc = event_descr.get("event_kinds", {})
     event_info_desc = event_descr.get("events", {})
