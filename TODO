@@ -14,21 +14,17 @@
 
 - Distinguish max_sessions between for- and not-for-credit?
 
-- Don't make a new grade record if grade is unchanged
-
-- Don't overwrite grader feedback on regrade
-
 - 'Save and next' for grading
 
 - Fixed grading panel?
 
 - Separate bulk feedback from key feedback
 
-- Gray out insensitive codemirror
-
-- Note about changes on page sandbox
+- Note about alternate left/right submission on page sandbox
 
 - MOSS submission
+
+- Kill sticky flow versioning
 
 Ideas
 =====
@@ -38,8 +34,6 @@ Ideas
 - Session reset UI
 
 - Allow just viewing flow without any possibility for submission
-
-- ending on new version, resume, ...
 
 - Make admin site multi-course capable
   https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.has_add_permission
