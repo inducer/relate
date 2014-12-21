@@ -26,20 +26,6 @@ table.past-flow-session-table {
   float:left;
 }
 
-.flow-progress {
-  float:left;
-  width:15%;
-  margin-top: 0.8ex;
-  margin-left: 1.5em;
-  background-color:#fff;
-  margin-bottom:0px;
-}
-
-.flow-progress div {
-  background-color:#ddd;
-  text-color:#eee;
-}
-
 .flow-session-expiration-panel {
   float:right;
   white-space: nowrap;
