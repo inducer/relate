@@ -111,7 +111,7 @@
             <th>ID</th>
             <th>State</th>
             <th>Result</th>
-            {% if show_page_grades %}
+            {% if show_privileged_info %}
               <th>Pages</th>
             {% endif %}
             {% if allow_session_actions %}
@@ -162,7 +162,7 @@
                 {% else %}
                   (none)
                 {% endif %}
-                {% if flow_session.result_comment %}
+                {% if show_privileged_info and flow_session.result_comment %}
                   <p>
                   <b> Notes:</b>
                   {{ flow_session.result_comment|linebreaks }}
@@ -170,7 +170,7 @@
                 {% endif %}
               </td>
 
-              {% if show_page_grades and flow_session.answer_visits %}
+              {% if show_privileged_info and flow_session.answer_visits %}
                 <td>
                   <table class="table table-striped table-condensed">
                     <tr>
