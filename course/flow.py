@@ -216,7 +216,8 @@ def count_answered(fctx, flow_session, answer_visits):
 
 
 class GradeInfo(object):
-    """
+    """An object to hold a tally of points and page counts of various types in a flow.
+
     .. attribute:: points
 
         The final grade, in points. May be *None* if the grade is not yet
@@ -293,6 +294,10 @@ class GradeInfo(object):
 
 
 def gather_grade_info(flow_session, answer_visits):
+    """
+    :returns: a :class:`GradeInfo`
+    """
+
     all_page_data = (FlowPageData.objects
             .filter(flow_session=flow_session)
             .order_by("ordinal"))
