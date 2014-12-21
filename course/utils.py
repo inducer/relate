@@ -289,14 +289,15 @@ class FlowContext(object):
                 flow_identifier, self.flow_commit_sha)
 
     def get_current_access_rule(self,
-            flow_session, role, participation, now_datetime):
+            flow_session, role, participation, now_datetime,
+            obey_sticky=False):
         # Each session sticks to 'its' assigned rules.
         # If those are not known, use the ones that were relevant
         # when the flow started.
         #
         # Note that this stickiness stops as soon as the flow is
-        # no longer in progress.
-        if flow_session is not None and flow_session.in_progress:
+        # no longer in progress. (may be overriden by obey_sticky)
+        if flow_session is not None and (flow_session.in_progress or obey_sticky):
             rule_id = flow_session.access_rules_id
             now_datetime = flow_session.start_time
         else:

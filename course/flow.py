@@ -584,7 +584,7 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False,
 
     current_access_rule = fctx.get_current_access_rule(
             session, session.participation.role, session.participation,
-            now_datetime)
+            now_datetime, obey_sticky=True)
 
     if (past_end_only
             and current_access_rule.end is not None

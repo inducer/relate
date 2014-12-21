@@ -173,7 +173,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
                 current_access_rule = fpctx.get_current_access_rule(
                         flow_session, flow_session.participation.role,
-                        flow_session.participation, now())
+                        flow_session.participation, now(),
+                        obey_sticky=True)
 
                 from course.flow import grade_flow_session
                 grade_flow_session(fpctx, flow_session, current_access_rule)
