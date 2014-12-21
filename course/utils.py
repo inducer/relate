@@ -344,19 +344,15 @@ class FlowPageContext(FlowContext):
                     commit_sha=self.flow_commit_sha,
                     flow_session=flow_session)
 
-        # {{{ dig for previous answers
+        self._prev_answer_visit = False
 
-        from course.flow import get_flow_session_graded_answers_qset
-        previous_answer_visits = (
-                get_flow_session_graded_answers_qset(flow_session)
-                .filter(page_data=page_data)
-                .order_by("-visit_time"))
+    @property
+    def prev_answer_visit(self):
+        if self._prev_answer_visit is False:
+            from course.flow import get_prev_answer_visit
+            self._prev_answer_visit = get_prev_answer_visit(self.page_data)
 
-        self.prev_answer_visit = None
-        for prev_visit in previous_answer_visits[:1]:
-            self.prev_answer_visit = prev_visit
-
-        # }}}
+        return self._prev_answer_visit
 
     @property
     def ordinal(self):

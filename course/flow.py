@@ -158,6 +158,18 @@ def get_flow_session_graded_answers_qset(flow_session):
     return qset
 
 
+def get_prev_answer_visit(page_data):
+    previous_answer_visits = (
+            get_flow_session_graded_answers_qset(page_data.flow_session)
+            .filter(page_data=page_data)
+            .order_by("-visit_time"))
+
+    for prev_visit in previous_answer_visits[:1]:
+        return prev_visit
+
+    return None
+
+
 def assemble_answer_visits(flow_session):
     answer_visits = [None] * flow_session.page_count
 
