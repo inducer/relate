@@ -10,15 +10,11 @@
 
 - Page URL endpoints (see page-url-endpoints branch)
 
-- Don't allow access to for-credit flow if current rules don't allow it.
-
-- Distinguish max_sessions between for- and not-for-credit?
-
 - 'Save and next' for grading
 
 - Fixed grading panel?
 
-- Separate bulk feedback from key feedback
+- Separate bulk feedback from main feedback
 
 - Note about alternate left/right submission on page sandbox
 
