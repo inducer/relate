@@ -735,11 +735,6 @@ class PythonCodeQuestionWithHumanTextFeedback(
         return self.page_desc.human_feedback_value
 
     def grade(self, page_context, page_data, answer_data, grade_data):
-        """This method is appropriate if the grade consists *only* of the
-        feedback provided by humans. If more complicated/combined feedback
-        is desired, a subclass would likely override this.
-        """
-
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.")
