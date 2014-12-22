@@ -111,7 +111,7 @@
             <th>ID</th>
             <th>State</th>
             <th>Result</th>
-            {% if show_page_grades %}
+            {% if show_privileged_info %}
               <th>Pages</th>
             {% endif %}
             {% if allow_session_actions %}
@@ -162,7 +162,7 @@
                 {% else %}
                   (none)
                 {% endif %}
-                {% if flow_session.result_comment %}
+                {% if show_privileged_info and flow_session.result_comment %}
                   <p>
                   <b> Notes:</b>
                   {{ flow_session.result_comment|linebreaks }}
@@ -170,7 +170,7 @@
                 {% endif %}
               </td>
 
-              {% if show_page_grades and flow_session.answer_visits %}
+              {% if show_privileged_info and flow_session.answer_visits %}
                 <td>
                   <table class="table table-striped table-condensed">
                     <tr>
@@ -205,19 +205,27 @@
 
               {% if allow_session_actions %}
                 <td>
+                  <button type="submit" name="regrade_{{flow_session.id}}"
+                    class="btn btn-primary btn-xs cf-btn-xs-vert-spaced">
+                    Regrade
+                  </button>
                   {% if flow_session.in_progress %}
-                    <button type="submit" name="expire_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                    <button type="submit" name="expire_{{flow_session.id}}"
+                      class="btn btn-primary btn-xs cf-btn-xs-vert-spaced">
                       Expire
                     </button>
-                    <button type="submit" name="end_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                    <button type="submit" name="end_{{flow_session.id}}"
+                      class="btn btn-primary btn-xs cf-btn-xs-vert-spaced">
                       End and grade
                     </button>
                   {% else %}
-                    <button type="submit" name="reopen_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                    <button type="submit" name="reopen_{{flow_session.id}}"
+                      class="btn btn-primary btn-xs cf-btn-xs-vert-spaced">
                       Reopen
                     </button>
-                    <button type="submit" name="regrade_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                      Regrade
+                    <button type="submit" name="recalculate_{{flow_session.id}}"
+                      class="btn btn-primary btn-xs cf-btn-xs-vert-spaced">
+                      Recalculate grade
                     </button>
                   {% endif %}
                 </td>

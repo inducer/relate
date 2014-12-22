@@ -26,20 +26,6 @@ table.past-flow-session-table {
   float:left;
 }
 
-.flow-progress {
-  float:left;
-  width:15%;
-  margin-top: 0.8ex;
-  margin-left: 1.5em;
-  background-color:#fff;
-  margin-bottom:0px;
-}
-
-.flow-progress div {
-  background-color:#ddd;
-  text-color:#eee;
-}
-
 .flow-session-expiration-panel {
   float:right;
   white-space: nowrap;
@@ -153,6 +139,8 @@ div.progress:hover  span.stats-percentage{
   padding-right:50px;
 }
 
+/* {{{ codemirror */
+
 .sandbox-page-editor .CodeMirror {
   height:800px;
 }
@@ -166,6 +154,16 @@ div.progress:hover  span.stats-percentage{
    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAMCAYAAAAkuj5RAAAAAXNSR0IArs4c6QAAAGFJREFUSMft1LsRQFAQheHPowAKoACx3IgEKtaEHujDjORSgWTH/ZOdnZOcM/sgk/kFFWY0qV8foQwS4MKBCS3qR6ixBJvElOobYAtivseIE120FaowJPN75GMu8j/LfMwNjh4HUpwg4LUAAAAASUVORK5CYII=);
    background-position: right;
    background-repeat: no-repeat;
+}
+
+.CodeMirror.cm-s-cf-readonly {
+  background-color: #e8e8e8;
+}
+
+/* }}} */
+
+.cf-btn-xs-vert-spaced {
+  margin-bottom: 3px;
 }
 
 /* vim: set foldmethod=marker: */

@@ -45,12 +45,16 @@ class PythonCodeForm(StyledForm):
 
         from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
+        theme = "default"
+        if read_only:
+            theme += " cf-readonly"
+
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
             help_text="Hit F9 to toggle full screen mode.",
             widget=CodeMirrorTextarea(
                 mode="python",
-                theme="default",
+                theme=theme,
                 addon_css=(
                     "dialog/dialog",
                     "display/fullscreen",
@@ -481,7 +485,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             else:
                 new_test_code_lines.append(l)
 
-        print "\n".join(new_test_code_lines)
         return "\n".join(new_test_code_lines)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
@@ -732,11 +735,6 @@ class PythonCodeQuestionWithHumanTextFeedback(
         return self.page_desc.human_feedback_value
 
     def grade(self, page_context, page_data, answer_data, grade_data):
-        """This method is appropriate if the grade consists *only* of the
-        feedback provided by humans. If more complicated/combined feedback
-        is desired, a subclass would likely override this.
-        """
-
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback="No answer provided.")

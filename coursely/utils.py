@@ -58,6 +58,21 @@ def settings_context_processor(request):
         }
 
 
+def as_local_time(datetime):
+    from django.conf import settings
+    from pytz import timezone
+    tz = timezone(settings.TIME_ZONE)
+    return datetime.astimezone(tz)
+
+
+def local_now():
+    from django.conf import settings
+    from pytz import timezone
+    tz = timezone(settings.TIME_ZONE)
+    from datetime import datetime
+    return tz.localize(datetime.now())
+
+
 # {{{ dict_to_struct
 
 class Struct(object):

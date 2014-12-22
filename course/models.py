@@ -514,6 +514,18 @@ class FlowAccessExceptionEntry(models.Model):
     def __unicode__(self):
         return self.permission
 
+
+# class FlowAccessException2(models.Model):
+#     flow_id = models.CharField(max_length=200, blank=False, null=False)
+#
+#     creator = models.ForeignKey(User, null=True)
+#     creation_time = models.DateTimeField(default=now, db_index=True)
+#
+#     comment = models.TextField(blank=True, null=True)
+#
+#     new_session_rules = YAMLField(blank=True, null=True)
+#     existing_session_rules = YAMLField(blank=True, null=True)
+
 # }}}
 
 
@@ -737,6 +749,19 @@ class GradeStateMachine(object):
                 return u"- ∅ -"
         else:
             return "(other state)"
+
+    def stringify_machine_readable_state(self):
+        if self.state is None:
+            return u"NONE"
+        elif self.state == grade_state_change_types.exempt:
+            return "EXEMPT"
+        elif self.state == grade_state_change_types.graded:
+            if self.valid_percentages:
+                return "%.3f" % self.percentage()
+            else:
+                return u"NONE"
+        else:
+            return u"OTHER_STATE"
 
     def stringify_percentage(self):
         if self.state == grade_state_change_types.graded:

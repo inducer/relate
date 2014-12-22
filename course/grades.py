@@ -34,6 +34,7 @@ from django.db import connection
 from django import forms
 from django.db import transaction
 from django.utils.timezone import now
+from django import http
 
 from coursely.utils import StyledForm
 from crispy_forms.layout import Submit
@@ -189,32 +190,26 @@ class GradeInfo:
         self.grade_state_machine = grade_state_machine
 
 
-@course_view
-def view_gradebook(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
-
+def get_grade_table(course):
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
     grading_opps = list((GradingOpportunity.objects
             .filter(
-                course=pctx.course,
+                course=course,
                 shown_in_grade_book=True,
                 )
             .order_by("identifier")))
 
     participations = list(Participation.objects
             .filter(
-                course=pctx.course,
+                course=course,
                 status=participation_status.active)
             .order_by("id")
             .select_related("user"))
 
     grade_changes = list(GradeChange.objects
             .filter(
-                opportunity__course=pctx.course,
+                opportunity__course=course,
                 opportunity__shown_in_grade_book=True)
             .order_by(
                 "participation__id",
@@ -260,6 +255,18 @@ def view_gradebook(pctx):
 
         grade_table.append(grade_row)
 
+    return participations, grading_opps, grade_table
+
+
+@course_view
+def view_gradebook(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
+    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+
     grade_table = sorted(zip(participations, grade_table),
             key=lambda (participation, grades):
                 (participation.user.last_name.lower(),
@@ -271,6 +278,42 @@ def view_gradebook(pctx):
         "participations": participations,
         "grade_state_change_types": grade_state_change_types,
         })
+
+
+@course_view
+def export_gradebook_csv(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to export grades")
+
+    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+
+    from six import BytesIO
+    csvfile = BytesIO()
+
+    import unicodecsv
+    fieldnames = ['user_name', 'last_name', 'first_name'] + [
+            gopp.identifier for gopp in grading_opps]
+
+    writer = unicodecsv.writer(csvfile, encoding="utf-8")
+    writer.writerow(fieldnames)
+
+    for participation, grades in zip(participations, grade_table):
+        writer.writerow([
+            participation.user.username,
+            participation.user.last_name,
+            participation.user.first_name,
+            ] + [grade_info.grade_state_machine.stringify_machine_readable_state()
+                for grade_info in grades])
+
+    response = http.HttpResponse(
+            csvfile.getvalue(),
+            content_type="text/plain; charset=utf-8")
+    response['Content-Disposition'] = (
+            'attachment; filename="grades-%s.csv"'
+            % pctx.course.identifier)
+    return response
 
 # }}}
 
@@ -304,6 +347,8 @@ class ModifySessionsForm(StyledForm):
                 Submit("end", "End sessions and grade"))
         self.helper.add_input(
                 Submit("regrade", "Regrade ended sessions"))
+        self.helper.add_input(
+                Submit("recalculate", "Recalculate grades of ended sessions"))
 
 
 @transaction.atomic
@@ -370,6 +415,26 @@ def regrade_ended_sessions(repo, course, flow_id, rule_id):
     return count
 
 
+@transaction.atomic
+def recalculate_ended_sessions(repo, course, flow_id, rule_id):
+    sessions = (FlowSession.objects
+            .filter(
+                course=course,
+                flow_id=flow_id,
+                access_rules_id=rule_id,
+                in_progress=False,
+                ))
+
+    count = 0
+
+    from course.flow import recalculate_session_grade
+    for session in sessions:
+        recalculate_session_grade(repo, course, session)
+        count += 1
+
+    return count
+
+
 RULE_ID_NONE_STRING = "<<<NONE>>>"
 
 
@@ -415,6 +480,8 @@ def view_grades_by_opportunity(pctx, opp_id):
                 op = "end"
             elif "regrade" in request.POST:
                 op = "regrade"
+            elif "recalculate" in request.POST:
+                op = "recalculate"
             else:
                 raise SuspiciousOperation("invalid operation")
 
@@ -433,6 +500,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) expired." % count)
+
                     elif op == "end":
                         count = finish_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
@@ -441,6 +509,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) ended." % count)
+
                     elif op == "regrade":
                         count = regrade_ended_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
@@ -448,6 +517,15 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) regraded." % count)
+
+                    elif op == "recalculate":
+                        count = recalculate_ended_sessions(
+                                pctx.repo, pctx.course, opportunity.flow_id,
+                                rule_id)
+
+                        messages.add_message(pctx.request, messages.SUCCESS,
+                                "Grade recalculated for %d session(s)." % count)
+
                     else:
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
@@ -583,7 +661,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
         request = pctx.request
         if pctx.request.method == "POST":
-            action_re = re.compile("^(expire|end|reopen|regrade)_([0-9]+)$")
+            action_re = re.compile("^([a-z]+)_([0-9]+)$")
             for key in request.POST.keys():
                 action_match = action_re.match(key)
                 if action_match:
@@ -598,6 +676,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             from course.flow import (
                     reopen_session,
                     regrade_session,
+                    recalculate_session_grade,
                     expire_flow_session_standalone,
                     finish_flow_session_standalone)
 
@@ -615,16 +694,22 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session ended.")
 
+                elif op == "reopen":
+                    reopen_session(session)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session reopened.")
+
                 elif op == "regrade":
                     regrade_session(
                             pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session regraded.")
 
-                elif op == "reopen":
-                    reopen_session(session)
+                elif op == "recalculate":
+                    recalculate_session_grade(
+                            pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session reopened.")
+                            "Session grade recalculated.")
 
                 else:
                     raise SuspiciousOperation("invalid session operation")
@@ -696,7 +781,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         "state_machine": state_machine,
         "flow_sessions": flow_sessions,
         "allow_session_actions": allow_session_actions,
-        "show_page_grades": pctx.role in [
+        "show_privileged_info": pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant
             ],

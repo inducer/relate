@@ -289,14 +289,15 @@ class FlowContext(object):
                 flow_identifier, self.flow_commit_sha)
 
     def get_current_access_rule(self,
-            flow_session, role, participation, now_datetime):
+            flow_session, role, participation, now_datetime,
+            obey_sticky=False):
         # Each session sticks to 'its' assigned rules.
         # If those are not known, use the ones that were relevant
         # when the flow started.
         #
         # Note that this stickiness stops as soon as the flow is
-        # no longer in progress.
-        if flow_session is not None and flow_session.in_progress:
+        # no longer in progress. (may be overriden by obey_sticky)
+        if flow_session is not None and (flow_session.in_progress or obey_sticky):
             rule_id = flow_session.access_rules_id
             now_datetime = flow_session.start_time
         else:
@@ -344,19 +345,15 @@ class FlowPageContext(FlowContext):
                     commit_sha=self.flow_commit_sha,
                     flow_session=flow_session)
 
-        # {{{ dig for previous answers
+        self._prev_answer_visit = False
 
-        from course.flow import get_flow_session_graded_answers_qset
-        previous_answer_visits = (
-                get_flow_session_graded_answers_qset(flow_session)
-                .filter(page_data=page_data)
-                .order_by("-visit_time"))
+    @property
+    def prev_answer_visit(self):
+        if self._prev_answer_visit is False:
+            from course.flow import get_prev_answer_visit
+            self._prev_answer_visit = get_prev_answer_visit(self.page_data)
 
-        self.prev_answer_visit = None
-        for prev_visit in previous_answer_visits[:1]:
-            self.prev_answer_visit = prev_visit
-
-        # }}}
+        return self._prev_answer_visit
 
     @property
     def ordinal(self):

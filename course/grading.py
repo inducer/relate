@@ -93,6 +93,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     form = None
     feedback = None
     answer_data = None
+    grade_data = None
     most_recent_grade = None
 
     if fpctx.page.expects_answer():
@@ -130,7 +131,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # {{{ grading form
 
-    if fpctx.page.expects_answer() and fpctx.prev_answer_visit is not None:
+    if (fpctx.page.expects_answer()
+            and fpctx.prev_answer_visit is not None
+            and not flow_session.in_progress):
         request = pctx.request
         if pctx.request.method == "POST":
             grading_form = fpctx.page.post_grading_form(
@@ -170,7 +173,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
                 current_access_rule = fpctx.get_current_access_rule(
                         flow_session, flow_session.participation.role,
-                        flow_session.participation, now())
+                        flow_session.participation, now(),
+                        obey_sticky=True)
 
                 from course.flow import grade_flow_session
                 grade_flow_session(fpctx, flow_session, current_access_rule)

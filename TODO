@@ -8,36 +8,37 @@
 
 - Max extra credit policy
 
+- Separate bulk feedback from main feedback
+
+- MOSS submission
+
+- Kill sticky flow versioning
+  (No need to end non-ending session in this case, either)
+
+- Don't store current flow session in cookie, ever.
+
+- [JINJA]/[/JINJA] in yaml files
+
+- Redo permissions system
+
+Ideas
+=====
+
+- Note about alternate left/right submission on page sandbox
+
 - Page URL endpoints (see page-url-endpoints branch)
-
-- Don't allow access to for-credit flow if current rules don't allow it.
-
-- Distinguish max_sessions between for- and not-for-credit?
-
-- Don't make a new grade record if grade is unchanged
-
-- Don't overwrite grader feedback on regrade
 
 - 'Save and next' for grading
 
 - Fixed grading panel?
 
-- Separate bulk feedback from key feedback
-
-- Gray out insensitive codemirror
-
-- Note about changes on page sandbox
-
-Ideas
-=====
+- Change "end session" link for sessions that don't actually end.
 
 - Auto-expire
 
 - Session reset UI
 
 - Allow just viewing flow without any possibility for submission
-
-- ending on new version, resume, ...
 
 - Make admin site multi-course capable
   https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.has_add_permission

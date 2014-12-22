@@ -35,7 +35,7 @@ from django.utils.safestring import mark_safe
 from django import forms
 from django import http
 
-from coursely.utils import StyledForm
+from coursely.utils import StyledForm, local_now, as_local_time
 from crispy_forms.layout import Submit
 
 import re
@@ -76,6 +76,10 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     flow_session = visit.flow_session
     course = flow_session.course
     page_data = visit.page_data
+
+    most_recent_grade = visit.get_most_recent_grade()
+    if most_recent_grade is not None and grade_data is None:
+        grade_data = most_recent_grade.grade_data
 
     from course.content import (
             get_course_repo,
@@ -154,6 +158,18 @@ def get_flow_session_graded_answers_qset(flow_session):
     return qset
 
 
+def get_prev_answer_visit(page_data):
+    previous_answer_visits = (
+            get_flow_session_graded_answers_qset(page_data.flow_session)
+            .filter(page_data=page_data)
+            .order_by("-visit_time"))
+
+    for prev_visit in previous_answer_visits[:1]:
+        return prev_visit
+
+    return None
+
+
 def assemble_answer_visits(flow_session):
     answer_visits = [None] * flow_session.page_count
 
@@ -200,7 +216,8 @@ def count_answered(fctx, flow_session, answer_visits):
 
 
 class GradeInfo(object):
-    """
+    """An object to hold a tally of points and page counts of various types in a flow.
+
     .. attribute:: points
 
         The final grade, in points. May be *None* if the grade is not yet
@@ -277,6 +294,10 @@ class GradeInfo(object):
 
 
 def gather_grade_info(flow_session, answer_visits):
+    """
+    :returns: a :class:`GradeInfo`
+    """
+
     all_page_data = (FlowPageData.objects
             .filter(flow_session=flow_session)
             .order_by("ordinal"))
@@ -488,7 +509,32 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
         # creator left as NULL
         gchange.flow_session = flow_session
         gchange.comment = comment
-        gchange.save()
+
+        previous_grade_changes = list(GradeChange.objects
+                .filter(
+                    opportunity=gchange.opportunity,
+                    participation=gchange.participation,
+                    state=gchange.state,
+                    attempt_id=gchange.attempt_id,
+                    flow_session=gchange.flow_session)
+                .order_by("-grade_time")
+                [:1])
+
+        # only save if modified or no previous grades
+        do_save = True
+        if previous_grade_changes:
+            previous_grade_change, = previous_grade_changes
+            if (previous_grade_change.points == gchange.points
+                    and previous_grade_change.max_points == gchange.max_points
+                    and previous_grade_change.comment == gchange.comment):
+                do_save = False
+        else:
+            # no previous grade changes
+            if points is None:
+                do_save = False
+
+        if do_save:
+            gchange.save()
 
     return grade_info
 
@@ -516,10 +562,9 @@ def reopen_session(session, force=False, suppress_log=False):
     session.max_points = None
 
     if not suppress_log:
-        from django.utils.timezone import now
         session.append_comment(
                 "Session reopened at %s, previous completion time was '%s'."
-                % (now(), session.completion_time))
+                % (local_now(), as_local_time(session.completion_time)))
 
     session.completion_time = None
     session.save()
@@ -539,7 +584,7 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False,
 
     current_access_rule = fctx.get_current_access_rule(
             session, session.participation.role, session.participation,
-            now_datetime)
+            now_datetime, obey_sticky=True)
 
     if (past_end_only
             and current_access_rule.end is not None
@@ -591,14 +636,32 @@ def regrade_session(repo, course, session):
     else:
         prev_completion_time = session.completion_time
 
-        from django.utils.timezone import now
-        session.append_comment("Session regraded at %s." % now())
+        session.append_comment("Session regraded at %s." % local_now())
         session.save()
 
         reopen_session(session, force=True, suppress_log=True)
         finish_flow_session_standalone(
                 repo, course, session, force_regrade=True,
                 now_datetime=prev_completion_time)
+
+
+@transaction.atomic
+def recalculate_session_grade(repo, course, session):
+    """Only redoes the final grade determination without regrading
+    individual pages.
+    """
+
+    assert not session.in_progress
+
+    prev_completion_time = session.completion_time
+
+    session.append_comment("Session grade recomputed at %s." % local_now())
+    session.save()
+
+    reopen_session(session, force=True, suppress_log=True)
+    finish_flow_session_standalone(
+            repo, course, session, force_regrade=False,
+            now_datetime=prev_completion_time)
 
 # }}}
 
