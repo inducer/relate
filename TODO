@@ -8,15 +8,7 @@
 
 - Max extra credit policy
 
-- Page URL endpoints (see page-url-endpoints branch)
-
-- 'Save and next' for grading
-
-- Fixed grading panel?
-
 - Separate bulk feedback from main feedback
-
-- Note about alternate left/right submission on page sandbox
 
 - MOSS submission
 
@@ -25,14 +17,22 @@
 
 - Don't store current flow session in cookie, ever.
 
-- Change "end session" link for sessions that don't actually end.
-
 - [JINJA]/[/JINJA] in yaml files
 
 - Redo permissions system
 
 Ideas
 =====
+
+- Note about alternate left/right submission on page sandbox
+
+- Page URL endpoints (see page-url-endpoints branch)
+
+- 'Save and next' for grading
+
+- Fixed grading panel?
+
+- Change "end session" link for sessions that don't actually end.
 
 - Auto-expire
 
