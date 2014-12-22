@@ -95,7 +95,7 @@ class TextAnswerForm(StyledForm):
                         "matchBrackets": True,
                         "styleActiveLine": True,
                         "indentUnit": 2,
-                        "readOnly": "nocursor" if read_only else False,
+                        "readOnly": read_only,
                         "extraKeys": CodeMirrorJavascript("""
                             {
                               "Tab": function(cm)

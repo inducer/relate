@@ -73,7 +73,7 @@ class PythonCodeForm(StyledForm):
                     "indentUnit": 4,
                     "matchBrackets": True,
                     "styleActiveLine": True,
-                    "readOnly": "nocursor" if read_only else False,
+                    "readOnly": read_only,
                     # "autofocus": not read_only,
                     "extraKeys": CodeMirrorJavascript("""
                         {
