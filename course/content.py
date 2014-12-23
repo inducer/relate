@@ -114,7 +114,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     the given file in *repo* at *commit_sha*.
     """
 
-    cache_key = "%DICT%%2".join((repo.controldir(), full_name, commit_sha))
+    cache_key = "%RAW%%2".join((repo.controldir(), full_name, commit_sha))
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
