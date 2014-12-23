@@ -692,14 +692,6 @@ def get_course_commit_sha(course, participation):
     return sha.encode()
 
 
-def get_flow_commit_sha(course, participation, flow_desc, flow_session):
-    if (not getattr(flow_desc, "sticky_versioning", True)
-            or flow_session is None):
-        return get_course_commit_sha(course, participation)
-    else:
-        return flow_session.active_git_commit_sha.encode()
-
-
 def list_flow_ids(repo, commit_sha):
     flow_ids = []
     try:

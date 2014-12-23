@@ -39,7 +39,6 @@ to read and write by humans than XML.
 Here's an example::
 
     title: "Homework 3"
-    sticky_versioning: false
     description: |
 
         # Homework 3

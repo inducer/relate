@@ -84,7 +84,6 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     from course.content import (
             get_course_repo,
             get_course_commit_sha,
-            get_flow_commit_sha,
             get_flow_desc,
             get_flow_page_desc,
             instantiate_flow_page)
@@ -94,15 +93,8 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     course_commit_sha = get_course_commit_sha(
             course, flow_session.participation)
 
-    flow_desc_pre = get_flow_desc(repo, course,
-            flow_session.flow_id, course_commit_sha)
-
-    flow_commit_sha = get_flow_commit_sha(
-            course, flow_session.participation, flow_desc_pre,
-            visit.flow_session)
-
     flow_desc = get_flow_desc(repo, course,
-            flow_session.flow_id, flow_commit_sha)
+            flow_session.flow_id, course_commit_sha)
 
     page_desc = get_flow_page_desc(
             flow_session.flow_id,
@@ -113,13 +105,13 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
             location="flow '%s', group, '%s', page '%s'"
             % (flow_session.flow_id, page_data.group_id, page_data.page_id),
             repo=repo, page_desc=page_desc,
-            commit_sha=flow_commit_sha)
+            commit_sha=course_commit_sha)
 
     from course.page import PageContext
     grading_page_context = PageContext(
             course=course,
             repo=repo,
-            commit_sha=flow_commit_sha,
+            commit_sha=course_commit_sha,
             flow_session=flow_session)
 
     answer_feedback = page.grade(
@@ -393,7 +385,7 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
         if (answer_visit is not None
                 and (not answer_visit.grades.count() or force_regrade)):
             grade_page_visit(answer_visit,
-                    graded_at_git_commit_sha=fctx.flow_commit_sha)
+                    graded_at_git_commit_sha=fctx.course_commit_sha)
 
 
 @transaction.atomic
@@ -632,7 +624,7 @@ def regrade_session(repo, course, session):
             if answer_visit is not None and answer_visit.get_most_recent_grade():
                 # Only make a new grade if there already is one.
                 grade_page_visit(answer_visit,
-                        graded_at_git_commit_sha=fctx.flow_commit_sha)
+                        graded_at_git_commit_sha=fctx.course_commit_sha)
     else:
         prev_completion_time = session.completion_time
 
@@ -762,7 +754,7 @@ def start_flow(pctx, flow_identifier):
             session = FlowSession()
             session.course = fctx.course
             session.participation = pctx.participation
-            session.active_git_commit_sha = fctx.flow_commit_sha.decode()
+            session.active_git_commit_sha = pctx.course_commit_sha.decode()
             session.flow_id = flow_identifier
             session.in_progress = True
 
@@ -782,7 +774,7 @@ def start_flow(pctx, flow_identifier):
             get_flow_session_id_map(request)[flow_identifier] = session.id
 
             page_count = set_up_flow_session_page_data(fctx.repo, session,
-                    pctx.course.identifier, fctx.flow_desc, fctx.flow_commit_sha)
+                    pctx.course.identifier, fctx.flow_desc, pctx.course_commit_sha)
             session.page_count = page_count
             session.save()
 
@@ -1036,7 +1028,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                     grade = FlowPageVisitGrade()
                     grade.visit = page_visit
                     grade.max_points = fpctx.page.max_points(page_data.data)
-                    grade.graded_at_git_commit_sha = fpctx.flow_commit_sha
+                    grade.graded_at_git_commit_sha = pctx.course_commit_sha
 
                     if feedback is not None:
                         grade.correctness = feedback.correctness
@@ -1300,7 +1292,7 @@ def finish_flow_session_view(pctx, flow_identifier):
 
     from course.content import markup_to_html
     completion_text = markup_to_html(
-            fctx.course, fctx.repo, fctx.flow_commit_sha,
+            fctx.course, fctx.repo, pctx.course_commit_sha,
             fctx.flow_desc.completion_text)
 
     (answered_count, unanswered_count) = count_answered(
@@ -1347,10 +1339,8 @@ def finish_flow_session_view(pctx, flow_identifier):
                     last_page_nr=None,
                     completion_text=completion_text)
 
-    if (not is_graded_flow
-            and fctx.flow_commit_sha == fctx.course_commit_sha):
-        # Not serious--no questions in flow, and no new version available.
-        # No need to end the flow visit.
+    if not is_graded_flow:
+        # Not serious--no questions in flow.
 
         return render_finish_response(
                 "course/flow-completion.html",

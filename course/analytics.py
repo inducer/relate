@@ -39,7 +39,7 @@ from course.models import (
         participation_role,
         flow_permission)
 
-from course.content import (get_flow_desc, get_flow_commit_sha)
+from course.content import get_flow_desc
 
 
 # {{{ flow list
@@ -293,11 +293,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
             title = None
             for visit in visits:
-                flow_commit_sha = get_flow_commit_sha(
-                        pctx.course, pctx.participation, flow_desc,
-                        visit.flow_session)
                 page = page_cache.get_page(group_desc.id, page_desc.id,
-                        flow_commit_sha)
+                        pctx.course_commit_sha)
 
                 answer_expected = answer_expected or page.expects_answer()
 
@@ -305,7 +302,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                 grading_page_context = PageContext(
                         course=pctx.course,
                         repo=pctx.repo,
-                        commit_sha=flow_commit_sha,
+                        commit_sha=pctx.course_commit_sha,
                         flow_session=visit.flow_session)
 
                 title = page.title(grading_page_context, visit.page_data.data)
@@ -452,16 +449,13 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
     total_count = 0
 
     for visit in visits:
-        flow_commit_sha = get_flow_commit_sha(
-                pctx.course, pctx.participation, flow_desc,
-                visit.flow_session)
-        page = page_cache.get_page(group_id, page_id, flow_commit_sha)
+        page = page_cache.get_page(group_id, page_id, pctx.course_commit_sha)
 
         from course.page import PageContext
         grading_page_context = PageContext(
                 course=pctx.course,
                 repo=pctx.repo,
-                commit_sha=flow_commit_sha,
+                commit_sha=pctx.course_commit_sha,
                 flow_session=visit.flow_session)
 
         title = page.title(grading_page_context, visit.page_data.data)

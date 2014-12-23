@@ -217,7 +217,7 @@ def instantiate_flow_page_with_ctx(fctx, page_data):
             "course '%s', flow '%s', page '%s/%s'"
             % (fctx.course.identifier, fctx.flow_identifier,
                 page_data.group_id, page_data.page_id),
-            fctx.repo, page_desc, fctx.flow_commit_sha)
+            fctx.repo, page_desc, fctx.course_commit_sha)
 
 # }}}
 
@@ -255,38 +255,16 @@ class FlowContext(object):
         self.course = course
         self.flow_identifier = flow_identifier
 
-        from course.content import get_flow_commit_sha
         from django.core.exceptions import ObjectDoesNotExist
-
-        # Fetch 'current' version of the flow to compute permissions
-        # and versioning rules.
-        # Fall back to 'old' version if current git version does not
-        # contain this flow any more.
 
         self.course_commit_sha = get_course_commit_sha(
                 self.course, participation)
 
         try:
-            current_flow_desc_sha = self.course_commit_sha
-            self.current_flow_desc = get_flow_desc(self.repo, self.course,
-                    flow_identifier, current_flow_desc_sha)
-        except ObjectDoesNotExist:
-            if flow_session is None:
-                raise http.Http404()
-
-            current_flow_desc_sha = flow_session.active_git_commit_sha.encode()
-            self.current_flow_desc = get_flow_desc(self.repo, self.course,
-                    flow_identifier, current_flow_desc_sha)
-
-        self.flow_commit_sha = get_flow_commit_sha(
-                self.course, participation,
-                self.current_flow_desc, flow_session)
-
-        if self.flow_commit_sha == current_flow_desc_sha:
-            self.flow_desc = self.current_flow_desc
-        else:
             self.flow_desc = get_flow_desc(self.repo, self.course,
-                flow_identifier, self.flow_commit_sha)
+                    flow_identifier, self.course_commit_sha)
+        except ObjectDoesNotExist:
+            raise http.Http404()
 
     def get_current_access_rule(self,
             flow_session, role, participation, now_datetime,
@@ -305,7 +283,7 @@ class FlowContext(object):
 
         return get_current_flow_access_rule(
                 self.course, participation, role,
-                self.flow_identifier, self.current_flow_desc,
+                self.flow_identifier, self.flow_desc,
                 now_datetime=now_datetime,
                 rule_id=rule_id)
 
@@ -342,7 +320,7 @@ class FlowPageContext(FlowContext):
             from course.page import PageContext
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
-                    commit_sha=self.flow_commit_sha,
+                    commit_sha=self.course_commit_sha,
                     flow_session=flow_session)
 
         self._prev_answer_visit = False

@@ -161,7 +161,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 most_recent_grade = FlowPageVisitGrade(
                         visit=fpctx.prev_answer_visit,
                         grader=pctx.request.user,
-                        graded_at_git_commit_sha=fpctx.flow_commit_sha,
+                        graded_at_git_commit_sha=pctx.course_commit_sha,
 
                         grade_data=grade_data,
 

@@ -415,9 +415,9 @@ def validate_flow_desc(ctx, location, flow_desc):
                     "(i.e. have no attributes other than 'permissions')"
                     % location)
 
-    if not hasattr(flow_desc, "sticky_versioning"):
-        ctx.add_warning(location, "Flow is missing 'sticky_versioning' attribute - "
-                "this will be required in 2015.x.")
+    if hasattr(flow_desc, "sticky_versioning"):
+        ctx.add_warning(location, "Flow has 'sticky_versioning' attribute - "
+                "this is deprecated and ignored.")
 
     if hasattr(flow_desc, "grade_aggregation_strategy"):
         from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES

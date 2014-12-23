@@ -28,9 +28,6 @@ Per-page permissions
 Versioning
 ----------
 
-Explain implications of sticky_versioning
-
-
 .. _flow-life-cycle:
 
 Life cycle
