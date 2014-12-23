@@ -311,6 +311,18 @@ class FlowSession(models.Model):
         from course.flow import assemble_answer_visits
         return assemble_answer_visits(self)
 
+    def last_activity(self):
+        for visit in (FlowPageVisit.objects
+                .filter(
+                    flow_session=self,
+                    is_graded_answer=True,
+                    is_synthetic=False)
+                .order_by("-visit_time")
+                [:1]):
+            return visit.visit_time
+
+        return None
+
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data")
