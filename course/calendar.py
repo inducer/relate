@@ -222,9 +222,9 @@ def view_calendar(pctx):
 
     events_json = []
 
-    from course.content import get_yaml_from_repo_as_dict
+    from course.content import get_raw_yaml_from_repo
     try:
-        event_descr = get_yaml_from_repo_as_dict(pctx.repo,
+        event_descr = get_raw_yaml_from_repo(pctx.repo,
                 pctx.course.events_file, pctx.course_commit_sha)
     except ObjectDoesNotExist:
         event_descr = {}

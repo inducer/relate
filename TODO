@@ -18,6 +18,8 @@
 
 - Redo permissions system
 
+- Custom matcher classes
+
 Ideas
 =====
 
@@ -51,8 +53,6 @@ Ideas
 - web hooks for auto-fetch and auto-preview
 
 - Flow group ordering, max page count, question/page tags
-
-- Custom matcher classes
 
 - Name X out of Y question
 - Multi text question

@@ -109,7 +109,11 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     return result
 
 
-def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
+def get_raw_yaml_from_repo(repo, full_name, commit_sha):
+    """Return decoded YAML data structure from
+    the given file in *repo* at *commit_sha*.
+    """
+
     cache_key = "%DICT%%2".join((repo.controldir(), full_name, commit_sha))
 
     import django.core.cache as cache
@@ -126,6 +130,13 @@ def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
+    """Return decoded, struct-ified YAML data structure from
+    the given file in *repo* at *commit_sha*.
+
+    See :class:`courseflow.utils.Struct` for more on
+    struct-ification.
+    """
+
     if cached:
         cache_key = "%%%2".join((repo.controldir(), full_name, commit_sha))
 
