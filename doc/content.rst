@@ -71,6 +71,8 @@ Here's an example::
 
      ...
 
+TODO: Macro expansion in YAML
+
 On system lock-in
 -----------------
 

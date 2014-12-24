@@ -562,8 +562,14 @@ class FileSystemFakeRepo(object):
     def __init__(self, root):
         self.root = root
 
+    def controldir(self):
+        return self.root
+
     def __getitem__(self, sha):
         return sha
+
+    def __str__(self):
+        return "<FAKEREPO:%s>" % self.root
 
     @property
     def tree(self):

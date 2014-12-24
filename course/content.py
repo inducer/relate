@@ -30,7 +30,7 @@ import re
 import datetime
 
 from django.utils.timezone import now
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -95,9 +95,13 @@ def get_repo_blob(repo, full_name, commit_sha):
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
-    cache_key = "%%%1".join((repo.controldir(), full_name, commit_sha))
+    cache_key = "%%%1".join((repo.controldir(), full_name, str(commit_sha)))
 
-    import django.core.cache as cache
+    try:
+        import django.core.cache as cache
+    except ImproperlyConfigured:
+        return get_repo_blob(repo, full_name, commit_sha).data
+
     def_cache = cache.caches["default"]
     result = def_cache.get(cache_key)
     if result is not None:
@@ -106,6 +110,24 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     result = get_repo_blob(repo, full_name, commit_sha).data
 
     def_cache.add(cache_key, result, None)
+    return result
+
+
+JINJA_YAML_RE = re.compile(
+    r"^\[JINJA\]\s*$(.*?)^\[\/JINJA\]\s*$",
+    re.MULTILINE | re.DOTALL)
+
+
+def expand_yaml_macros(repo, commit_sha, yaml_str):
+    def compute_replacement(match):
+        jinja_src = match.group(1)
+
+        from jinja2 import Environment
+        env = Environment(loader=GitTemplateLoader(repo, commit_sha))
+        template = env.from_string(jinja_src)
+        return template.render()
+
+    result, _ = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
     return result
 
 
@@ -122,7 +144,10 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     if result is not None:
         return result
 
-    result = load_yaml(get_repo_blob(repo, full_name, commit_sha).data)
+    result = load_yaml(
+            expand_yaml_macros(
+                repo, commit_sha,
+                get_repo_blob(repo, full_name, commit_sha).data))
 
     def_cache.add(cache_key, result, None)
 
@@ -147,7 +172,10 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
             return result
 
     result = dict_to_struct(
-            load_yaml(get_repo_blob(repo, full_name, commit_sha).data))
+            load_yaml(
+                expand_yaml_macros(
+                    repo, commit_sha,
+                    get_repo_blob(repo, full_name, commit_sha).data)))
 
     if cached:
         def_cache.add(cache_key, result, None)
@@ -314,7 +342,7 @@ class GitTemplateLoader(BaseTemplateLoader):
 
     def get_source(self, environment, template):
         try:
-            data = get_repo_blob(self.repo, template, self.commit_sha).data
+            data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
         except ObjectDoesNotExist:
             raise TemplateNotFound(template)
 

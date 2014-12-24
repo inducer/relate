@@ -14,8 +14,6 @@
 
 - Don't store current flow session in cookie, ever.
 
-- [JINJA]/[/JINJA] in yaml files
-
 - Redo permissions system
 
 - Custom matcher classes
