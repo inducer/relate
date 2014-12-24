@@ -16,8 +16,6 @@
 
 - Custom matcher classes
 
-- Create grading opportunity at first flow open
-
 - Make is_graded_answer required
 
 Ideas

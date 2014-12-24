@@ -781,6 +781,14 @@ def start_flow(pctx, flow_identifier):
 
             session.save()
 
+            if session.for_credit:
+                # Create flow grading opportunity. This makes the flow
+                # show up in the grade book.
+
+                from course.models import get_flow_grading_opportunity
+                get_flow_grading_opportunity(
+                        pctx.course, flow_identifier, fctx.flow_desc)
+
             get_flow_session_id_map(request)[flow_identifier] = session.id
 
             page_count = set_up_flow_session_page_data(fctx.repo, session,
