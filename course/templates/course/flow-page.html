@@ -110,6 +110,9 @@
       {% endif %}
       ">
         <p>{{ feedback.feedback|safe }}</p>
+        {% if feedback.bulk_feedback %}
+          <p>{{ feedback.bulk_feedback|safe }}</p>
+        {% endif %}
       {% if show_answer and correct_answer %}
         <p>{{ correct_answer|safe }}</p>
       {% endif %}

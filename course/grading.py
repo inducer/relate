@@ -36,7 +36,10 @@ from django.utils.timezone import now
 
 from course.models import (
         FlowSession, FlowPageVisitGrade,
-        get_flow_grading_opportunity)
+        get_flow_grading_opportunity,
+        get_feedback_for_grade,
+        FlowPageBulkFeedback,
+        delete_other_bulk_feedback)
 from course.constants import participation_role
 from course.utils import (
         course_view, render_course_page,
@@ -102,13 +105,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
             most_recent_grade = fpctx.prev_answer_visit.get_most_recent_grade()
             if most_recent_grade is not None:
-                if most_recent_grade.feedback is not None:
-                    from course.page import AnswerFeedback
-                    feedback = AnswerFeedback.from_json(
-                            most_recent_grade.feedback)
-                else:
-                    feedback = None
-
+                feedback = get_feedback_for_grade(most_recent_grade)
                 grade_data = most_recent_grade.grade_data
             else:
                 feedback = None
@@ -154,9 +151,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                     correctness = None
 
                 if feedback is not None:
-                    feedback_json = feedback.as_json()
+                    feedback_json, bulk_feedback_json = feedback.as_json()
                 else:
-                    feedback_json = None
+                    feedback_json = bulk_feedback_json = None
 
                 most_recent_grade = FlowPageVisitGrade(
                         visit=fpctx.prev_answer_visit,
@@ -170,6 +167,14 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         feedback=feedback_json)
 
                 most_recent_grade.save()
+
+                delete_other_bulk_feedback(fpctx.prev_answer_visit.page_data)
+                if bulk_feedback_json is not None:
+                    FlowPageBulkFeedback(
+                            page_data=fpctx.prev_answer_visit.page_data,
+                            grade=most_recent_grade,
+                            bulk_feedback=bulk_feedback_json
+                            ).save()
 
                 current_access_rule = fpctx.get_current_access_rule(
                         flow_session, flow_session.participation.role,

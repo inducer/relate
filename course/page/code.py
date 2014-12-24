@@ -583,6 +583,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         response = dict_to_struct(response_dict)
 
         feedback_bits = []
+        bulk_feedback_bits = []
         if hasattr(response, "points"):
             correctness = response.points
             feedback_bits.append(
@@ -640,11 +641,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "<pre>%s</pre></p>" % escape(response.traceback))
             print repr(response.traceback)
         if hasattr(response, "stdout") and response.stdout:
-            feedback_bits.append(
+            bulk_feedback_bits.append(
                     "<p>Your code printed the following output:<pre>%s</pre></p>"
                     % escape(response.stdout))
         if hasattr(response, "stderr") and response.stderr:
-            feedback_bits.append(
+            bulk_feedback_bits.append(
                     "<p>Your code printed the following error messages:"
                     "<pre>%s</pre></p>" % escape(response.stderr))
         if hasattr(response, "figures") and response.figures:
@@ -660,11 +661,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         % (nr, mime_type, b64data)])
 
             fig_lines.append("</dl>")
-            feedback_bits.extend(fig_lines)
+            bulk_feedback_bits.extend(fig_lines)
 
         return AnswerFeedback(
                 correctness=correctness,
                 feedback="\n".join(feedback_bits),
+                bulk_feedback="\n".join(bulk_feedback_bits),
                 normalized_answer="<pre>%s</pre>" % user_code)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
@@ -787,6 +789,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
         return AnswerFeedback(
                 correctness=correctness,
-                feedback=feedback)
+                feedback=feedback,
+                bulk_feedback=code_feedback.bulk_feedback)
 
 # }}}

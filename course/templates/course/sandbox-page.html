@@ -62,6 +62,9 @@
             ">
             {% if feedback %}
               <p>{{ feedback.feedback|safe }}</p>
+              {% if feedback.bulk_feedback %}
+                <p>{{ feedback.bulk_feedback|safe }}</p>
+              {% endif %}
             {% endif %}
             {% if correct_answer %}
               <p>{{ correct_answer|safe }}</p>

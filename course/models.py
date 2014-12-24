@@ -28,7 +28,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
@@ -392,13 +392,7 @@ class FlowPageVisit(models.Model):
         return None
 
     def get_most_recent_feedback(self):
-        grade = self.get_most_recent_grade()
-
-        from course.page import AnswerFeedback
-        if grade is not None:
-            return AnswerFeedback.from_json(grade.feedback)
-        else:
-            return None
+        return get_feedback_for_grade(self.get_most_recent_grade())
 
 # }}}
 
@@ -456,6 +450,35 @@ class FlowPageVisitGrade(models.Model):
     def __unicode__(self):
         return "grade of %s: %s" % (
                 self.visit, self.percentage())
+
+
+class FlowPageBulkFeedback(models.Model):
+    # We're only storing one of these per page, because
+    # they're 'bulk' (i.e. big, like plots or program output)
+    page_data = models.OneToOneField(FlowPageData)
+    grade = models.ForeignKey(FlowPageVisitGrade)
+
+    bulk_feedback = JSONField(null=True, blank=True)
+
+
+def delete_other_bulk_feedback(page_data):
+    FlowPageBulkFeedback.objects.filter(page_data=page_data).delete()
+
+
+def get_feedback_for_grade(grade):
+    try:
+        bulk_feedback_json = FlowPageBulkFeedback.objects.get(
+                page_data=grade.visit.page_data,
+                grade=grade).bulk_feedback
+    except ObjectDoesNotExist:
+        bulk_feedback_json = None
+
+    from course.page import AnswerFeedback
+    if grade is not None:
+        return AnswerFeedback.from_json(
+                grade.feedback, bulk_feedback_json)
+    else:
+        return None
 
 # }}}
 

@@ -127,6 +127,9 @@
           {% endif %}
           ">
             <p>{{ feedback.feedback|safe }}</p>
+            {% if feedback.bulk_feedback %}
+              <p>{{ feedback.bulk_feedback|safe }}</p>
+            {% endif %}
         </div>
       {% endif %}
     </div>

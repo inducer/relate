@@ -47,7 +47,11 @@ from course.constants import (
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         is_expiration_mode_allowed)
 from course.models import (
-        FlowSession, FlowPageData, FlowPageVisit, FlowPageVisitGrade,
+        FlowSession, FlowPageData, FlowPageVisit,
+        FlowPageVisitGrade,
+        FlowPageBulkFeedback,
+        delete_other_bulk_feedback,
+        get_feedback_for_grade,
         GradeChange)
 
 from course.utils import (
@@ -124,11 +128,20 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     grade.max_points = page.max_points(visit.page_data)
     grade.graded_at_git_commit_sha = graded_at_git_commit_sha
 
+    bulk_feedback_json = None
     if answer_feedback is not None:
         grade.correctness = answer_feedback.correctness
-        grade.feedback = answer_feedback.as_json()
+        grade.feedback, bulk_feedback_json = answer_feedback.as_json()
 
     grade.save()
+
+    delete_other_bulk_feedback(page_data)
+    if bulk_feedback_json is not None:
+        FlowPageBulkFeedback(
+                page_data=page_data,
+                grade=grade,
+                bulk_feedback=bulk_feedback_json
+                ).save()
 
 # }}}
 
@@ -313,11 +326,7 @@ def gather_grade_info(flow_session, answer_visits):
         grade = answer_visits[i].get_most_recent_grade()
         assert grade is not None
 
-        if grade.feedback is not None:
-            from course.page import AnswerFeedback
-            feedback = AnswerFeedback.from_json(grade.feedback)
-        else:
-            feedback = None
+        feedback = get_feedback_for_grade(grade)
 
         max_points += grade.max_points
 
@@ -384,6 +393,7 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
 
         if (answer_visit is not None
                 and (not answer_visit.grades.count() or force_regrade)):
+            print "Grading", answer_visit
             grade_page_visit(answer_visit,
                     graded_at_git_commit_sha=fctx.course_commit_sha)
 
@@ -909,11 +919,11 @@ def get_pressed_button(form):
 
 
 def create_flow_page_visit(request, flow_session, page_data):
-    page_visit = FlowPageVisit()
-    page_visit.flow_session = flow_session
-    page_visit.page_data = page_data
-    page_visit.remote_address = request.META['REMOTE_ADDR']
-    page_visit.save()
+    FlowPageVisit(
+        flow_session=flow_session,
+        page_data=page_data,
+        remote_address=request.META['REMOTE_ADDR'],
+        is_graded_answer=False).save()
 
 
 @course_view
@@ -1030,11 +1040,22 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                     grade.max_points = fpctx.page.max_points(page_data.data)
                     grade.graded_at_git_commit_sha = pctx.course_commit_sha
 
+                    bulk_feedback_json = None
                     if feedback is not None:
                         grade.correctness = feedback.correctness
-                        grade.feedback = feedback.as_json()
+                        grade.feedback, bulk_feedback_json = feedback.as_json()
 
                     grade.save()
+
+                    print bulk_feedback_json
+
+                    delete_other_bulk_feedback(page_data)
+                    if bulk_feedback_json is not None:
+                        FlowPageBulkFeedback(
+                                page_data=page_data,
+                                grade=grade,
+                                bulk_feedback=bulk_feedback_json
+                                ).save()
 
                     del grade
 
@@ -1092,13 +1113,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
 
                 most_recent_grade = fpctx.prev_answer_visit.get_most_recent_grade()
                 if most_recent_grade is not None:
-                    if most_recent_grade.feedback is not None:
-                        from course.page import AnswerFeedback
-                        feedback = AnswerFeedback.from_json(
-                                most_recent_grade.feedback)
-                    else:
-                        feedback = None
-
+                    feedback = get_feedback_for_grade(most_recent_grade)
                     grade_data = most_recent_grade.grade_data
                 else:
                     feedback = None

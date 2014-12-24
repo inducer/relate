@@ -8,8 +8,6 @@
 
 - Max extra credit policy
 
-- Separate bulk feedback from main feedback
-
 - MOSS submission
 
 - Don't store current flow session in cookie, ever.
@@ -17,6 +15,10 @@
 - Redo permissions system
 
 - Custom matcher classes
+
+- Create grading opportunity at first flow open
+
+- Make is_graded_answer required
 
 Ideas
 =====
@@ -31,11 +33,7 @@ Ideas
 
 - Change "end session" link for sessions that don't actually end.
 
-- Auto-expire
-
 - Session reset UI
-
-- Allow just viewing flow without any possibility for submission
 
 - Make admin site multi-course capable
   https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.has_add_permission

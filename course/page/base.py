@@ -102,6 +102,8 @@ class AnswerFeedback(object):
         May be None, in which case generic feedback
         is generated from :attr:`correctness`.
 
+    .. attribute:: bulk_feedback
+
     .. attribute:: normalized_answer
 
         An HTML-formatted answer to be shown in analytics,
@@ -110,6 +112,7 @@ class AnswerFeedback(object):
     """
 
     def __init__(self, correctness, feedback=None,
+            bulk_feedback=None,
             normalized_answer=NoNormalizedAnswerAvailable()):
         if correctness is not None:
             # allow for extra credit
@@ -121,6 +124,7 @@ class AnswerFeedback(object):
 
         self.correctness = correctness
         self.feedback = feedback
+        self.bulk_feedback = bulk_feedback
         self.normalized_answer = normalized_answer
 
     def as_json(self):
@@ -128,22 +132,27 @@ class AnswerFeedback(object):
                 "correctness": self.correctness,
                 "feedback": self.feedback,
                 }
+        bulk_result = {
+                "bulk_feedback": self.bulk_feedback,
+                }
 
         if not isinstance(self.normalized_answer, NoNormalizedAnswerAvailable):
             result["normalized_answer"] = self.normalized_answer
 
-        return result
+        return result, bulk_result
 
     @staticmethod
-    def from_json(json):
+    def from_json(json, bulk_json):
         if json is None:
             return json
 
+        print bulk_json
         return AnswerFeedback(
                 correctness=json["correctness"],
                 feedback=json["feedback"],
                 normalized_answer=json.get("normalized_answer",
-                    NoNormalizedAnswerAvailable())
+                    NoNormalizedAnswerAvailable()),
+                bulk_feedback=bulk_json.get("bulk_feedback"),
                 )
 
     def percentage(self):
