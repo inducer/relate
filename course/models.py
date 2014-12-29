@@ -815,23 +815,16 @@ class GradeStateMachine(object):
 # {{{ flow <-> grading integration
 
 def get_flow_grading_opportunity(course, flow_id, flow_desc):
-    gopps = (GradingOpportunity.objects
-            .filter(course=course)
-            .filter(flow_id=flow_id))
+    gopp, created = GradingOpportunity.objects.get_or_create(
+            course=course,
+            flow_id=flow_id,
+            defaults=dict(
+                identifier="flow_"+flow_id.replace("-", "_"),
+                name="Flow: %s" % flow_desc.title,
+                aggregation_strategy=flow_desc.grade_aggregation_strategy,
+                ))
 
-    if gopps.count() == 0:
-        gopp = GradingOpportunity()
-        gopp.course = course
-        gopp.identifier = "flow_"+flow_id.replace("-", "_")
-        gopp.name = "Flow: %s" % flow_desc.title
-        gopp.aggregation_strategy = flow_desc.grade_aggregation_strategy
-        gopp.flow_id = flow_id
-        gopp.save()
-
-        return gopp
-    else:
-        gopp, = gopps
-        return gopp
+    return gopp
 
 # }}}
 

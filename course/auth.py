@@ -207,18 +207,11 @@ def sign_in_by_email(request):
             from django.contrib.auth.models import User
 
             email = form.cleaned_data["email"]
-            users = User.objects.filter(email__iexact=email)
+            user, created = User.objects.get_or_create(
+                    email__iexact=email,
+                    defaults=dict(username=email))
 
-            if users.count() > 1:
-                messages.add_message(request, messages.ERROR,
-                        "More than one user with this email. "
-                        "Please contact site staff.")
-                raise PermissionDenied("duplicate email")
-
-            if users.count() == 0:
-                user = User()
-                user.username = email
-                user.email = email
+            if created:
                 user.set_unusable_password()
                 user.save()
 
@@ -227,9 +220,7 @@ def sign_in_by_email(request):
                 ustatus.status = user_status.unconfirmed
                 ustatus.sign_in_key = make_sign_in_key(user)
                 ustatus.save()
-
-            elif users.count() == 1:
-                user, = users
+            else:
                 ustatus = user.user_status
                 ustatus.user = user
                 ustatus.sign_in_key = make_sign_in_key(user)

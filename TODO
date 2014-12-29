@@ -16,10 +16,10 @@
 
 - Make is_graded_answer required
 
-- QuerySet.get_or_create
-
 Ideas
 =====
+
+- Fix race condition in attempt_count checking
 
 - Make system to link to flow-internal pages
 
