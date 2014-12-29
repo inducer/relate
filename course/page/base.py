@@ -29,6 +29,7 @@ import django.forms as forms
 import re
 
 from course.validation import validate_struct, ValidationError
+from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from courseflow.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
@@ -116,7 +117,7 @@ class AnswerFeedback(object):
             normalized_answer=NoNormalizedAnswerAvailable()):
         if correctness is not None:
             # allow for extra credit
-            if correctness < 0 or correctness > 2:
+            if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
                 raise ValueError("Invalid correctness value")
 
         if feedback is None:
@@ -518,7 +519,7 @@ class HumanTextFeedbackForm(StyledForm):
                 "to student")
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
-                max_value=1000,  # allow excessive extra credit
+                max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
                 help_text="Grade assigned, in percent",
                 required=False,
 
@@ -528,6 +529,7 @@ class HumanTextFeedbackForm(StyledForm):
         if point_value is not None:
             self.fields["grade_points"] = forms.FloatField(
                     min_value=0,
+                    max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
                     help_text="Grade assigned, as points out of %.1f. "
                     "Fill out either this or 'grade percent'." % point_value,
                     required=False,

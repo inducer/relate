@@ -25,6 +25,10 @@ THE SOFTWARE.
 """
 
 
+# Allow 10x extra credit at the very most.
+MAX_EXTRA_CREDIT_FACTOR = 10
+
+
 class user_status:
     unconfirmed = "unconfirmed"
     active = "active"
