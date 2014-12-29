@@ -18,8 +18,12 @@
 
 - Make is_graded_answer required
 
+- QuerySet.get_or_create
+
 Ideas
 =====
+
+- Make system to link to flow-internal pages
 
 - Note about alternate left/right submission on page sandbox
 
