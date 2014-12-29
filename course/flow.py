@@ -61,15 +61,6 @@ from course.utils import (
 from course.views import get_now_or_fake_time
 
 
-def get_flow_session_id_map(request):
-    result = request.session.setdefault("flow_session_id_map", {})
-
-    # Tell Django: This session has been modified, persist it.
-    request.session["flow_session_id_map"] = result
-
-    return result
-
-
 # {{{ grade page visit
 
 def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
@@ -739,11 +730,9 @@ def start_flow(pctx, flow_identifier):
                     or resume_session.in_progress):
                 raise PermissionDenied("not allowed to resume session")
 
-            get_flow_session_id_map(request)[flow_identifier] = resume_session_id
-
             return redirect("course.flow.view_flow_page",
                     pctx.course.identifier,
-                    flow_identifier,
+                    resume_session_id,
                     0)
 
         elif ("start_no_credit" in request.POST
@@ -789,17 +778,13 @@ def start_flow(pctx, flow_identifier):
                 get_flow_grading_opportunity(
                         pctx.course, flow_identifier, fctx.flow_desc)
 
-            get_flow_session_id_map(request)[flow_identifier] = session.id
-
             page_count = set_up_flow_session_page_data(fctx.repo, session,
                     pctx.course.identifier, fctx.flow_desc, pctx.course_commit_sha)
             session.page_count = page_count
             session.save()
 
             return redirect("course.flow.view_flow_page",
-                    pctx.course.identifier,
-                    flow_identifier,
-                    0)
+                    pctx.course.identifier, session.id, 0)
 
         else:
             raise SuspiciousOperation("unrecognized POST action")
@@ -860,21 +845,24 @@ def start_flow(pctx, flow_identifier):
 
 # {{{ view: flow page
 
-def find_current_flow_session(request, course, flow_identifier):
-    flow_session = None
-    flow_session_id = get_flow_session_id_map(request).get(flow_identifier)
+def get_and_check_flow_session(pctx, flow_session_id):
+    try:
+        flow_session = FlowSession.objects.get(id=flow_session_id)
+    except ObjectDoesNotExist:
+        raise http.Http404()
 
-    if flow_session_id is not None:
-        try:
-            flow_session = FlowSession.objects.get(id=flow_session_id)
-        except ObjectDoesNotExist:
-            return None
+    if pctx.role in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        pass
+    elif pctx.role == participation_role.student:
+        if pctx.participation != flow_session.participation:
+            raise PermissionDenied("may not view other people's sessions")
+    else:
+        raise PermissionDenied()
 
-        if flow_session.course.pk != course.pk:
-            return None
-
-        if flow_session.flow_id != flow_identifier:
-            return None
+    if flow_session.course.pk != pctx.course.pk:
+        raise SuspiciousOperation()
 
     return flow_session
 
@@ -935,11 +923,13 @@ def create_flow_page_visit(request, flow_session, page_data):
 
 
 @course_view
-def view_flow_page(pctx, flow_identifier, ordinal):
+def view_flow_page(pctx, flow_session_id, ordinal):
     request = pctx.request
 
-    flow_session = find_current_flow_session(
-            request, pctx.course, flow_identifier)
+    flow_session_id = int(flow_session_id)
+    flow_session = get_and_check_flow_session(
+            pctx, flow_session_id)
+    flow_identifier = flow_session.flow_id
 
     if flow_session is None:
         messages.add_message(request, messages.WARNING,
@@ -996,7 +986,7 @@ def view_flow_page(pctx, flow_identifier, ordinal):
     if request.method == "POST":
         if "finish" in request.POST:
             return redirect("course.flow.finish_flow_session_view",
-                    pctx.course.identifier, flow_identifier)
+                    pctx.course.identifier, flow_session_id)
         else:
             # reject answer update if flow is not in-progress
             if not flow_session.in_progress:
@@ -1071,12 +1061,12 @@ def view_flow_page(pctx, flow_identifier, ordinal):
                         and not will_receive_feedback(permissions)):
                     return redirect("course.flow.view_flow_page",
                             pctx.course.identifier,
-                            flow_identifier,
+                            flow_session_id,
                             fpctx.ordinal + 1)
                 elif (pressed_button == "save_and_finish"
                         and not will_receive_feedback(permissions)):
                     return redirect("course.flow.finish_flow_session_view",
-                            pctx.course.identifier, flow_identifier)
+                            pctx.course.identifier, flow_session_id)
                 else:
                     form = fpctx.page.make_form(
                             page_context, page_data.data,
@@ -1286,22 +1276,15 @@ def update_expiration_mode(pctx, flow_session_id):
 
 @transaction.atomic
 @course_view
-def finish_flow_session_view(pctx, flow_identifier):
+def finish_flow_session_view(pctx, flow_session_id):
     now_datetime = get_now_or_fake_time(pctx.request)
 
     request = pctx.request
 
-    flow_session = find_current_flow_session(
-            request, pctx.course, flow_identifier)
-
-    if flow_session is None:
-        messages.add_message(request, messages.WARNING,
-                "No session record found for this flow. "
-                "Redirected to flow start page.")
-
-        return redirect("course.flow.start_flow",
-                pctx.course.identifier,
-                flow_identifier)
+    flow_session_id = int(flow_session_id)
+    flow_session = get_and_check_flow_session(
+            pctx, flow_session_id)
+    flow_identifier = flow_session.flow_id
 
     fctx = FlowContext(pctx.repo, pctx.course, flow_identifier,
             participation=pctx.participation,
@@ -1343,9 +1326,6 @@ def finish_flow_session_view(pctx, flow_identifier):
         if not flow_session.in_progress:
             raise PermissionDenied("Can't end a session that's already ended")
 
-        # Actually end the flow session
-        get_flow_session_id_map(request)[flow_identifier] = None
-
         grade_info = finish_flow_session(
                 fctx, flow_session, current_access_rule,
                 now_datetime=now_datetime)
@@ -1360,6 +1340,7 @@ def finish_flow_session_view(pctx, flow_identifier):
             return render_finish_response(
                     "course/flow-completion.html",
                     last_page_nr=None,
+                    flow_session=flow_session,
                     completion_text=completion_text)
 
     if not is_graded_flow:
@@ -1368,6 +1349,7 @@ def finish_flow_session_view(pctx, flow_identifier):
         return render_finish_response(
                 "course/flow-completion.html",
                 last_page_nr=flow_session.page_count-1,
+                flow_session=flow_session,
                 completion_text=completion_text)
 
     elif not flow_session.in_progress:
@@ -1384,6 +1366,7 @@ def finish_flow_session_view(pctx, flow_identifier):
         return render_finish_response(
                 "course/flow-confirm-completion.html",
                 last_page_nr=flow_session.page_count-1,
+                flow_session=flow_session,
                 answered_count=answered_count,
                 unanswered_count=unanswered_count,
                 total_count=answered_count+unanswered_count)

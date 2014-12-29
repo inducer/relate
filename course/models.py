@@ -98,7 +98,8 @@ class Course(models.Model):
             "<tt>git://github.com/inducer/courseflow-sample</tt> "
             "to get some sample content.")
     ssh_private_key = models.TextField(blank=True,
-            help_text="An SSH private key to use for Git authentication")
+            help_text="An SSH private key to use for Git authentication. "
+            "Not needed for the sample URL above.")
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
@@ -154,6 +155,8 @@ class Course(models.Model):
 # }}}
 
 
+# {{{ event
+
 class Event(models.Model):
     """An event is an identifier that can be used to specify dates in
     course content.
@@ -182,6 +185,8 @@ class Event(models.Model):
             return "%s %s" % (self.kind, self.ordinal)
         else:
             return self.kind
+
+# }}}
 
 
 # {{{ participation
@@ -479,8 +484,6 @@ def get_feedback_for_grade(grade):
                 grade.feedback, bulk_feedback_json)
     else:
         return None
-
-# }}}
 
 # }}}
 

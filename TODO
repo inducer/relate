@@ -10,8 +10,6 @@
 
 - MOSS submission
 
-- Don't store current flow session in cookie, ever.
-
 - Redo permissions system
 
 - Custom matcher classes

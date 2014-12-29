@@ -216,8 +216,8 @@ urlpatterns = patterns('',
          "course.flow.start_flow",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/flow"
-        "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+        "/flow-session/"
+        "/(?P<flow_session_id>[0-9]+)"
         "/(?P<ordinal>[0-9]+)"
         "/$",
         "course.flow.view_flow_page",),
@@ -230,8 +230,8 @@ urlpatterns = patterns('',
         "course.flow.update_expiration_mode",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/flow"
-        "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+        "/flow-session"
+        "/(?P<flow_session_id>[0-9]+)"
         "/finish"
         "/$",
         "course.flow.finish_flow_session_view",),
