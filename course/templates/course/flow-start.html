@@ -62,10 +62,15 @@
                     <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
                       Resume &raquo;
                     </button>
-                  {% elif may_review %}
-                    <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                      Review &raquo;
-                    </button>
+                  {% else %}
+                    <a href="{% url "course.flow.finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
+                      Results
+                    </a>
+                    {% if may_review %}
+                      <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
+                        Review &raquo;
+                      </button>
+                    {% endif %}
                   {% endif %}
                 </td>
               </tr>
