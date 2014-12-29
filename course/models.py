@@ -320,7 +320,7 @@ class FlowSession(models.Model):
         for visit in (FlowPageVisit.objects
                 .filter(
                     flow_session=self,
-                    is_graded_answer=True,
+                    answer__isnull=False,
                     is_synthetic=False)
                 .order_by("-visit_time")
                 [:1]):
@@ -370,6 +370,15 @@ class FlowPageVisit(models.Model):
     is_synthetic = models.BooleanField(default=False)
 
     answer = JSONField(null=True, blank=True)
+
+    # is_graded_answer may seem redundant with answers being
+    # non-NULL, but it isn't. This supports saved (but as
+    # yet ungraded) answers.
+
+    # NULL means it's not an answer at all.
+    #   (Should coincide with 'answer is None')
+    # True means it's a graded answer.
+    # False means it's just a saved answer.
     is_graded_answer = models.NullBooleanField()
 
     def __unicode__(self):
@@ -379,8 +388,8 @@ class FlowPageVisit(models.Model):
                 self.flow_session,
                 self.visit_time)
 
-        if self.is_graded_answer:
-            result += " (graded)"
+        if self.answer is not None:
+            result += " (with answer)"
 
         return result
 

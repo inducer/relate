@@ -177,11 +177,7 @@ def assemble_answer_visits(flow_session):
         answer_visits[page_visit.page_data.ordinal] = page_visit
 
         if not flow_session.in_progress:
-            # This is redundant with the answers being marked as
-            # final at the end of a flow, but that's OK.
-            #
-            # Note that this change is generally not persisted.
-            page_visit.is_graded_answer = True
+            assert page_visit.is_graded_answer is True
 
     return answer_visits
 
@@ -919,7 +915,7 @@ def create_flow_page_visit(request, flow_session, page_data):
         flow_session=flow_session,
         page_data=page_data,
         remote_address=request.META['REMOTE_ADDR'],
-        is_graded_answer=False).save()
+        is_graded_answer=None).save()
 
 
 @course_view

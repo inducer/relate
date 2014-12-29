@@ -277,6 +277,21 @@ class FlowPageVisitGradeInline(admin.TabularInline):
     extra = 0
 
 
+class HasAnswerListFilter(admin.SimpleListFilter):
+    title = 'has answer'
+
+    parameter_name = 'has_answer'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('y', 'Yes'),
+            ('n', 'No'),
+        )
+
+    def queryset(self, request, queryset):
+        return queryset.filter(answer__isnull=self.value() == "y")
+
+
 class FlowPageVisitAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.flow_session.course
@@ -306,16 +321,22 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
     get_participant.short_description = "Participant"
     get_participant.admin_order_field = "flow_session__participation"
 
+    def get_answer_is_null(self, obj):
+        return obj.answer is not None
+    get_answer_is_null.short_description = "Has answer"
+    get_answer_is_null.boolean = True
+
     def get_flow_session_id(self, obj):
         return obj.flow_session.id
     get_flow_session_id.short_description = "Flow Session ID"
     get_flow_session_id.admin_order_field = "flow_session__id"
 
     list_filter = (
-            "flow_session__participation__course",
-            "flow_session__flow_id",
+            HasAnswerListFilter,
             "is_graded_answer",
             "is_synthetic",
+            "flow_session__participation__course",
+            "flow_session__flow_id",
             )
     date_hierarchy = "visit_time"
     list_display = (
@@ -326,6 +347,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             "get_participant",
             "get_flow_session_id",
             "visit_time",
+            "get_answer_is_null",
             "is_graded_answer",
             "is_synthetic",
             )
