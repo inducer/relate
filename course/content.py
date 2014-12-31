@@ -28,6 +28,7 @@ from django.conf import settings
 
 import re
 import datetime
+import six
 
 from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
@@ -119,6 +120,9 @@ JINJA_YAML_RE = re.compile(
 
 
 def expand_yaml_macros(repo, commit_sha, yaml_str):
+    if isinstance(yaml_str, six.binary_type):
+        yaml_str = yaml_str.decode("utf-8")
+
     def compute_replacement(match):
         jinja_src = match.group(1)
 
