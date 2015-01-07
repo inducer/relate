@@ -196,10 +196,10 @@ class Histogram(object):
 
 
 def is_flow_multiple_submit(flow_desc):
-    if not hasattr(flow_desc, "access_rules"):
+    if not hasattr(flow_desc, "rules"):
         return False
 
-    for rule in flow_desc.access_rules:
+    for rule in flow_desc.rules.access:
         if flow_permission.change_answer in rule.permissions:
             return True
 
@@ -207,17 +207,6 @@ def is_flow_multiple_submit(flow_desc):
 
 
 # {{{ flow analytics
-
-def can_be_multiple_submit(pctx, flow_desc):
-    if not hasattr(flow_desc, "access_rules"):
-        return False
-
-    for rule in flow_desc.access_rules:
-        if flow_permission.change_answer in rule.permissions:
-            return True
-
-    return False
-
 
 def make_grade_histogram(pctx, flow_identifier):
     qset = FlowSession.objects.filter(

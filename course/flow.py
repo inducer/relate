@@ -38,14 +38,13 @@ from django import http
 from courseflow.utils import StyledForm, local_now, as_local_time
 from crispy_forms.layout import Submit
 
-import re
-
 from course.constants import (
         flow_permission,
         participation_role,
         flow_session_expriration_mode,
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-        is_expiration_mode_allowed)
+        is_expiration_mode_allowed,
+        flow_rule_kind)
 from course.models import (
         FlowSession, FlowPageData, FlowPageVisit,
         FlowPageVisitGrade,
@@ -57,7 +56,11 @@ from course.models import (
 from course.utils import (
         FlowContext, FlowPageContext,
         instantiate_flow_page_with_ctx,
-        course_view, render_course_page)
+        course_view, render_course_page,
+        get_new_session_rule,
+        get_session_access_rule,
+        get_session_grading_rule,
+        FlowSessionGradingRule)
 from course.views import get_now_or_fake_time
 
 
@@ -380,16 +383,17 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
 
         if (answer_visit is not None
                 and (not answer_visit.grades.count() or force_regrade)):
-            print "Grading", answer_visit
             grade_page_visit(answer_visit,
                     graded_at_git_commit_sha=fctx.course_commit_sha)
 
 
 @transaction.atomic
-def finish_flow_session(fctx, flow_session, current_access_rule,
+def finish_flow_session(fctx, flow_session, grading_rule,
         force_regrade=False, now_datetime=None):
     if not flow_session.in_progress:
         raise RuntimeError("Can't end a session that's already ended")
+
+    assert isinstance(grading_rule, FlowSessionGradingRule)
 
     answer_visits = assemble_answer_visits(flow_session)
 
@@ -413,39 +417,58 @@ def finish_flow_session(fctx, flow_session, current_access_rule,
     flow_session.in_progress = False
     flow_session.save()
 
-    return grade_flow_session(fctx, flow_session, current_access_rule,
+    return grade_flow_session(fctx, flow_session, grading_rule,
             answer_visits)
 
 
 @transaction.atomic
-def expire_flow_session(fctx, flow_session, current_access_rule, now_datetime):
+def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
+        past_due_only=False):
     if not flow_session.in_progress:
         raise RuntimeError("Can't expire a session that's not in progress")
     if flow_session.participation is None:
         raise RuntimeError("Can't expire an anonymous flow session")
 
+    assert isinstance(grading_rule, FlowSessionGradingRule)
+
+    if (past_due_only
+            and grading_rule.due is not None
+            and now_datetime < grading_rule.due):
+        return False
+
     if flow_session.expiration_mode == flow_session_expriration_mode.roll_over:
-        from course.utils import get_current_flow_access_rule
-        new_rules = get_current_flow_access_rule(flow_session.course,
+        new_session_rule = get_new_session_rule(flow_session.course,
                 flow_session.participation, flow_session.participation.role,
                 flow_session.flow_id, fctx.flow_desc, now_datetime,
-                rule_id=None, use_exceptions=True)
+                for_rollover=True)
 
-        flow_session.access_rules_id = new_rules.id
+        if new_session_rule is None:
+            # No new session allowed: finish.
+            return finish_flow_session(fctx, flow_session, grading_rule,
+                    now_datetime=now_datetime)
+
+        flow_session.access_rules_tag = new_session_rule.tag_session
+
+        access_rule = get_session_access_rule(flow_session,
+                flow_session.participation.role,
+                fctx.flow_desc, now_datetime)
+
         if not is_expiration_mode_allowed(
-                flow_session.expiration_mode, new_rules.permissions):
+                flow_session.expiration_mode, access_rule.permissions):
             flow_session.expiration_mode = flow_session_expriration_mode.end
         flow_session.save()
 
+        return True
+
     elif flow_session.expiration_mode == flow_session_expriration_mode.end:
-        return finish_flow_session(fctx, flow_session, current_access_rule,
+        return finish_flow_session(fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
     else:
         raise ValueError("invalid expiration mode '%s' on flow session ID %d"
                 % (flow_session.expiration_mode, flow_session.id))
 
 
-def grade_flow_session(fctx, flow_session, current_access_rule,
+def grade_flow_session(fctx, flow_session, grading_rule,
         answer_visits=None):
     """Updates the grade on an existing flow session and logs a
     grade change with the grade records subsystem.
@@ -466,10 +489,12 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
     comment = None
     points = grade_info.points
 
-    if points is not None and current_access_rule.credit_percent is not None:
+    if (points is not None
+            and grading_rule.credit_percent is not None
+            and grading_rule.credit_percent != 100):
         comment = "Counted at %.1f%% of %.1f points" % (
-                current_access_rule.credit_percent, points)
-        points = points * current_access_rule.credit_percent / 100
+                grading_rule.credit_percent, points)
+        points = points * grading_rule.credit_percent / 100
 
     flow_session.points = points
     flow_session.max_points = grade_info.max_points
@@ -481,11 +506,11 @@ def grade_flow_session(fctx, flow_session, current_access_rule,
     # a grade record may *already* be saved, and that one might be mistaken
     # for the current one.
     if (is_graded_flow
-            and flow_session.participation is not None
-            and flow_session.for_credit):
+            and flow_session.participation is not None):
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
-                flow_session.course, flow_session.flow_id, fctx.flow_desc)
+                flow_session.course, flow_session.flow_id, fctx.flow_desc,
+                grading_rule)
 
         from course.models import grade_state_change_types
         gchange = GradeChange()
@@ -560,7 +585,7 @@ def reopen_session(session, force=False, suppress_log=False):
 
 
 def finish_flow_session_standalone(repo, course, session, force_regrade=False,
-        now_datetime=None, past_end_only=False):
+        now_datetime=None, past_due_only=False):
     assert session.participation is not None
 
     from course.utils import FlowContext
@@ -571,41 +596,33 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False,
 
     fctx = FlowContext(repo, course, session.flow_id, flow_session=session)
 
-    current_access_rule = fctx.get_current_access_rule(
-            session, session.participation.role, session.participation,
-            now_datetime, obey_sticky=True)
+    grading_rule = get_session_grading_rule(
+            session, session.participation.role, fctx.flow_desc, now_datetime)
 
-    if (past_end_only
-            and current_access_rule.end is not None
-            and now_datetime < current_access_rule.end):
+    if (past_due_only
+            and grading_rule.due is not None
+            and now_datetime < grading_rule.due):
         return False
 
-    finish_flow_session(fctx, session, current_access_rule,
+    finish_flow_session(fctx, session, grading_rule,
             force_regrade=force_regrade, now_datetime=now_datetime)
 
     return True
 
 
 def expire_flow_session_standalone(repo, course, session, now_datetime,
-        past_end_only=False):
+        past_due_only=False):
     assert session.participation is not None
 
     from course.utils import FlowContext
 
     fctx = FlowContext(repo, course, session.flow_id, flow_session=session)
 
-    current_access_rule = fctx.get_current_access_rule(
-            session, session.participation.role, session.participation,
-            now_datetime)
+    grading_rule = get_session_grading_rule(
+            session, session.participation.role, fctx.flow_desc, now_datetime)
 
-    if (past_end_only
-            and current_access_rule.end is not None
-            and now_datetime < current_access_rule.end):
-        return False
-
-    expire_flow_session(fctx, session, current_access_rule, now_datetime)
-
-    return True
+    return expire_flow_session(fctx, session, grading_rule, now_datetime,
+            past_due_only=past_due_only)
 
 
 @transaction.atomic
@@ -640,7 +657,8 @@ def recalculate_session_grade(repo, course, session):
     individual pages.
     """
 
-    assert not session.in_progress
+    if session.in_progress:
+        raise RuntimeError("cannot recalculate grade on in-progress session")
 
     prev_completion_time = session.completion_time
 
@@ -657,9 +675,6 @@ def recalculate_session_grade(repo, course, session):
 
 # {{{ view: start flow
 
-RESUME_RE = re.compile("^resume_([0-9]+)$")
-
-
 @transaction.atomic
 @course_view
 def start_flow(pctx, flow_identifier):
@@ -669,110 +684,45 @@ def start_flow(pctx, flow_identifier):
     fctx = FlowContext(pctx.repo, pctx.course, flow_identifier,
             participation=pctx.participation)
 
-    current_access_rule = fctx.get_current_access_rule(
-            None, pctx.role, pctx.participation, now_datetime)
-
-    may_view = flow_permission.view in current_access_rule.permissions
-
-    have_in_progress_session = (FlowSession.objects
-            .filter(
-                participation=pctx.participation,
-                flow_id=fctx.flow_identifier,
-                in_progress=True,
-                participation__isnull=False,
-                )).count() > 0
-    past_sessions = (FlowSession.objects
-            .filter(
-                participation=pctx.participation,
-                flow_id=fctx.flow_identifier,
-                participation__isnull=False)
-           .order_by("start_time"))
-    past_session_count = past_sessions.count()
-
-    if current_access_rule.allowed_session_count is not None:
-        allowed_another_session = (
-                past_session_count < current_access_rule.allowed_session_count)
-    else:
-        allowed_another_session = True
+    new_session_rule = get_new_session_rule(pctx.course, pctx.participation,
+            pctx.role, flow_identifier, fctx.flow_desc, now_datetime)
 
     if request.method == "POST":
         from course.content import set_up_flow_session_page_data
 
-        resume_match = None
-        for post_key in request.POST:
-            resume_match = RESUME_RE.match(post_key)
-            if resume_match is not None:
-                break
+        if "start" in request.POST:
 
-        if resume_match is not None:
-            resume_session_id = int(resume_match.group(1))
+            if new_session_rule is None:
+                raise PermissionDenied("new session not allowed")
 
-            resume_session = get_object_or_404(FlowSession, pk=resume_session_id)
-
-            if resume_session.participation != pctx.participation:
-                raise PermissionDenied("not your session")
-
-            if not may_view:
-                raise PermissionDenied("may not resume session without "
-                        "'view' permission")
-
-            if resume_session.participation is None:
-                raise PermissionDenied("can't resume anonymous session")
-
-            if resume_session.flow_id != fctx.flow_identifier:
-                raise SuspiciousOperation("flow id mismatch on resume")
-
-            if not (flow_permission.view_past in current_access_rule.permissions
-                    or resume_session.in_progress):
-                raise PermissionDenied("not allowed to resume session")
-
-            return redirect("course.flow.view_flow_page",
-                    pctx.course.identifier,
-                    resume_session_id,
-                    0)
-
-        elif ("start_no_credit" in request.POST
-                or "start_credit" in request.POST):
-
-            if not may_view:
-                raise PermissionDenied("may not start session without "
-                        "'view' permission")
-
-            if not allowed_another_session:
-                raise PermissionDenied("new session would exceed "
-                        "allowed session count limit exceed")
-
-            if have_in_progress_session:
-                raise PermissionDenied("cannot start flow when other flow "
-                        "session is already in progress")
-
-            session = FlowSession()
-            session.course = fctx.course
-            session.participation = pctx.participation
-            session.active_git_commit_sha = pctx.course_commit_sha.decode()
-            session.flow_id = flow_identifier
-            session.in_progress = True
-
-            if (flow_permission.set_roll_over_expiration_mode
-                    in current_access_rule.permissions):
-                session.expiration_mode = flow_session_expriration_mode.roll_over
-            else:
-                session.expiration_mode = flow_session_expriration_mode.end
-
-            session.for_credit = "start_credit" in request.POST
-
-            if current_access_rule.sticky is not None and current_access_rule.sticky:
-                session.access_rules_id = current_access_rule.id
+            session = FlowSession(
+                course=fctx.course,
+                participation=pctx.participation,
+                active_git_commit_sha=pctx.course_commit_sha.decode(),
+                flow_id=flow_identifier,
+                in_progress=True,
+                expiration_mode=flow_session_expriration_mode.end,
+                access_rules_tag=new_session_rule.tag_session)
 
             session.save()
 
-            if session.for_credit:
-                # Create flow grading opportunity. This makes the flow
-                # show up in the grade book.
+            # Create flow grading opportunity. This makes the flow
+            # show up in the grade book.
 
-                from course.models import get_flow_grading_opportunity
-                get_flow_grading_opportunity(
-                        pctx.course, flow_identifier, fctx.flow_desc)
+            from course.utils import get_flow_rules
+            from course.models import get_flow_grading_opportunity
+            for grading_rule in get_flow_rules(
+                    fctx.flow_desc, flow_rule_kind.grading, pctx.participation,
+                    flow_identifier, now_datetime, consider_exceptions=False):
+                identifier = getattr(grading_rule, "grade_identifier", None)
+                if identifier is not None:
+                    get_flow_grading_opportunity(
+                            pctx.course, flow_identifier, fctx.flow_desc,
+                            FlowSessionGradingRule(
+                                grade_identifier=identifier,
+                                grade_aggregation_strategy=getattr(
+                                    grading_rule, "grade_aggregation_strategy"),
+                                ))
 
             page_count = set_up_flow_session_page_data(fctx.repo, session,
                     pctx.course.identifier, fctx.flow_desc, pctx.course_commit_sha)
@@ -786,53 +736,39 @@ def start_flow(pctx, flow_identifier):
             raise SuspiciousOperation("unrecognized POST action")
 
     else:
-        may_start_credit = (
-                may_view
-                and not have_in_progress_session
-                and allowed_another_session
-                and flow_permission.start_credit in current_access_rule.permissions)
-        may_start_no_credit = (
-                may_view
-                and not have_in_progress_session
-                and allowed_another_session
-                and (flow_permission.start_no_credit
-                    in current_access_rule.permissions))
-        may_review = (
-                may_view
-                and flow_permission.view_past in current_access_rule.permissions)
+        past_sessions = (FlowSession.objects
+                .filter(
+                    participation=pctx.participation,
+                    flow_id=fctx.flow_identifier,
+                    participation__isnull=False)
+               .order_by("start_time"))
 
-        if hasattr(fctx.flow_desc, "grade_aggregation_strategy"):
-            from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
-            grade_aggregation_strategy_text = (
-                    dict(GRADE_AGGREGATION_STRATEGY_CHOICES)
-                    [fctx.flow_desc.grade_aggregation_strategy])
-        else:
-            grade_aggregation_strategy_text = None
+        from collections import namedtuple
+        SessionProperties = namedtuple("SessionProperties",
+                ["may_view", "may_modify", "due", "grade_description"])
 
-        # {{{ fish out relevant rules
+        past_sessions_and_properties = []
+        for session in past_sessions:
+            access_rule = get_session_access_rule(
+                    session, pctx.role, fctx.flow_desc, now_datetime)
+            grading_rule = get_session_grading_rule(
+                    session, pctx.role, fctx.flow_desc, now_datetime)
 
-        from course.utils import (
-                get_flow_access_rules,
-                get_relevant_rules)
-        rules = get_flow_access_rules(fctx.course, pctx.participation,
-                flow_identifier, fctx.flow_desc)
-
-        # }}}
+            session_properties = SessionProperties(
+                    may_view=flow_permission.view in access_rule.permissions,
+                    may_modify=flow_permission.modify in access_rule.permissions,
+                    due=grading_rule.due,
+                    grade_description=grading_rule.description)
+            past_sessions_and_properties.append((session, session_properties))
 
         return render_course_page(pctx, "course/flow-start.html", {
             "flow_desc": fctx.flow_desc,
-            "grade_aggregation_strategy":
-            grade_aggregation_strategy_text,
             "flow_identifier": flow_identifier,
 
-            "rules": get_relevant_rules(rules, pctx.role, now_datetime),
             "now": now_datetime,
+            "may_start": new_session_rule is not None,
 
-            "may_start_credit": may_start_credit,
-            "may_start_no_credit": may_start_no_credit,
-            "may_review": may_review,
-
-            "past_sessions": past_sessions,
+            "past_sessions_and_properties": past_sessions_and_properties,
             },
             allow_instant_flow_requests=False)
 
@@ -965,11 +901,10 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 pctx.course.identifier,
                 flow_identifier)
 
-    current_access_rule = fpctx.get_current_access_rule(
-            flow_session, pctx.role, pctx.participation,
-            get_now_or_fake_time(request))
+    access_rule = get_session_access_rule(
+            flow_session, pctx.role, fpctx.flow_desc, get_now_or_fake_time(request))
     permissions = fpctx.page.get_modified_permissions_for_page(
-            current_access_rule.permissions)
+            access_rule.permissions)
 
     page_context = fpctx.page_context
     page_data = fpctx.page_data
@@ -984,9 +919,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             return redirect("course.flow.finish_flow_session_view",
                     pctx.course.identifier, flow_session_id)
         else:
-            # reject answer update if flow is not in-progress
-            if not flow_session.in_progress:
-                raise PermissionDenied("session is not in progress")
+            # reject answer update if modify permission not present
+            if flow_permission.modify not in permissions:
+                raise PermissionDenied("not permitted to modify flow")
 
             # reject if previous answer was final
             if (fpctx.prev_answer_visit is not None
@@ -1040,8 +975,6 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                         grade.feedback, bulk_feedback_json = feedback.as_json()
 
                     grade.save()
-
-                    print bulk_feedback_json
 
                     delete_other_bulk_feedback(page_data)
                     if bulk_feedback_json is not None:
@@ -1138,19 +1071,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     shown_feedback = None
 
     if fpctx.page.expects_answer() and answer_was_graded:
-        show_correctness = (
-                flow_permission.see_correctness in permissions
-                or (
-                    (flow_permission.see_correctness_after_completion
-                        in permissions)
-                    and not flow_session.in_progress))
+        show_correctness = flow_permission.see_correctness in permissions
 
-        show_answer = (
-                flow_permission.see_answer in permissions
-                or (
-                    (flow_permission.see_answer_after_completion
-                        in permissions)
-                    and not flow_session.in_progress))
+        show_answer = flow_permission.see_answer in permissions
 
         if show_correctness or show_answer:
             shown_feedback = feedback
@@ -1159,12 +1082,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         # Don't show answer yet
         pass
     else:
-        show_answer = (
-                flow_permission.see_answer in permissions
-                or (
-                    (flow_permission.see_answer_after_completion
-                        in permissions)
-                    and not flow_session.in_progress))
+        show_answer = flow_permission.see_answer in permissions
 
     title = fpctx.page.title(page_context, page_data.data)
     body = fpctx.page.body(page_context, page_data.data)
@@ -1187,7 +1105,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     expiration_mode_choices = []
 
     for key, descr in FLOW_SESSION_EXPIRATION_MODE_CHOICES:
-        if is_expiration_mode_allowed(key, current_access_rule.permissions):
+        if is_expiration_mode_allowed(key, permissions):
             expiration_mode_choices.append((key, descr))
 
     args = {
@@ -1253,11 +1171,11 @@ def update_expiration_mode(pctx, flow_session_id):
             participation=pctx.participation,
             flow_session=flow_session)
 
-    current_access_rule = fctx.get_current_access_rule(
-            flow_session, pctx.role, pctx.participation,
+    access_rule = get_session_access_rule(
+            flow_session, pctx.role, fctx.flow_desc,
             get_now_or_fake_time(pctx.request))
 
-    if is_expiration_mode_allowed(expmode, current_access_rule.permissions):
+    if is_expiration_mode_allowed(expmode, access_rule.permissions):
         flow_session.expiration_mode = expmode
         flow_session.save()
 
@@ -1286,9 +1204,8 @@ def finish_flow_session_view(pctx, flow_session_id):
             participation=pctx.participation,
             flow_session=flow_session)
 
-    current_access_rule = fctx.get_current_access_rule(
-            flow_session, pctx.role, pctx.participation,
-            get_now_or_fake_time(request))
+    access_rule = get_session_access_rule(
+            flow_session, pctx.role, fctx.flow_desc, now_datetime)
 
     answer_visits = assemble_answer_visits(flow_session)
 
@@ -1301,7 +1218,7 @@ def finish_flow_session_view(pctx, flow_session_id):
             fctx, flow_session, answer_visits)
     is_graded_flow = bool(answered_count + unanswered_count)
 
-    if flow_permission.view not in current_access_rule.permissions:
+    if flow_permission.view not in access_rule.permissions:
         raise PermissionDenied()
 
     def render_finish_response(template, **kwargs):
@@ -1322,8 +1239,14 @@ def finish_flow_session_view(pctx, flow_session_id):
         if not flow_session.in_progress:
             raise PermissionDenied("Can't end a session that's already ended")
 
+        # reject answer update if modify permission not present
+        if flow_permission.modify not in access_rule.permissions:
+            raise PermissionDenied("not permitted to modify flow")
+
+        grading_rule = get_session_grading_rule(
+                flow_session, pctx.role, fctx.flow_desc, now_datetime)
         grade_info = finish_flow_session(
-                fctx, flow_session, current_access_rule,
+                fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
 
         if is_graded_flow:
@@ -1380,10 +1303,10 @@ class RegradeFlowForm(StyledForm):
                 choices=[(fid, fid) for fid in flow_ids],
                 initial=participation_role.student,
                 required=True)
-        self.fields["access_rules_id"] = forms.CharField(
+        self.fields["access_rules_tag"] = forms.CharField(
                 required=False,
                 help_text="If non-empty, limit the regrading to sessions started "
-                "under this access rules ID.")
+                "under this access rules tag.")
         self.fields["regraded_session_in_progress"] = forms.ChoiceField(
                 choices=(
                     ("any", "Regrade in-progress and not-in-progress sessions"),
@@ -1422,11 +1345,10 @@ def regrade_not_for_credit_flows_view(pctx):
             sessions = (FlowSession.objects
                     .filter(
                         course=pctx.course,
-                        flow_id=form.cleaned_data["flow_id"],
-                        for_credit=False))
-            if form.cleaned_data["access_rules_id"]:
+                        flow_id=form.cleaned_data["flow_id"]))
+            if form.cleaned_data["access_rules_tag"]:
                 sessions = sessions.filter(
-                        access_rules_id=form.cleaned_data["access_rules_id"])
+                        access_rules_tag=form.cleaned_data["access_rules_tag"])
 
             inprog_value = {
                     "any": None,
@@ -1448,11 +1370,13 @@ def regrade_not_for_credit_flows_view(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text":
-        "<p>This regrading process only considers not-for-credit flow "
-        "sessions. If you would like to regrade for-credit flows, "
+        "<p>This regrading process is only intended for flows "
+        "that do not show up in the grade book."
+        "If you would like to regrade for-credit flows, "
         "use the corresponding functionality in the grade book.</p>",
         "form_description": "Regrade not-for-credit Flow Sessions",
     })
+
 
 # }}}
 

@@ -119,7 +119,7 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
                 % (location, ",".join(present_attrs)))
 
 
-datespec_types = (datetime.date, six.string_types)
+datespec_types = (datetime.date, six.string_types, datetime.datetime)
 
 # }}}
 
@@ -187,8 +187,8 @@ def validate_chunk_rule(ctx, location, chunk_rule):
                 ("weight", int),
                 ],
             allowed_attrs=[
-                ("start", (str, datetime.date)),
-                ("end", (str, datetime.date)),
+                ("start", datespec_types),
+                ("end", datespec_types),
                 ("role", str),
                 ("roles", list),
                 ("shown", bool),
@@ -327,54 +327,210 @@ def validate_flow_group(ctx, location, grp):
     validate_identifier(location, grp.id)
 
 
+# {{{ flow access rules
+
+def validate_new_session_rule(ctx, location, nrule, tags):
+    validate_struct(
+            ctx, location, nrule,
+            required_attrs=[],
+            allowed_attrs=[
+                ("if_after", datespec_types),
+                ("if_before", datespec_types),
+                ("if_has_role", list),
+                ("if_has_fewer_sessions_than", int),
+                ("tag_session", str),
+                ]
+            )
+
+    if hasattr(nrule, "if_after"):
+        ctx.encounter_datespec(location, nrule.if_after)
+    if hasattr(nrule, "if_before"):
+        ctx.encounter_datespec(location, nrule.if_before)
+    if hasattr(nrule, "if_has_role"):
+        for j, role in enumerate(nrule.if_has_role):
+            validate_role(
+                    "%s, role %d" % (location, j+1),
+                    role)
+
+    if hasattr(nrule, "tag_session"):
+        if nrule.tag_session not in tags:
+            raise ValidationError(
+                    "%s: invalid tag '%s'"
+                    % (location, nrule.tag_session))
+
+
+def validate_session_access_rule(ctx, location, arule, tags):
+    validate_struct(
+            ctx, location, arule,
+            required_attrs=[
+                ("permissions", list),
+                ],
+            allowed_attrs=[
+                ("if_after", datespec_types),
+                ("if_before", datespec_types),
+                ("if_has_role", list),
+                ("if_has_tag", str),
+                ("if_in_progress", bool),
+                ("if_completed_before", datespec_types),
+                ("message", datespec_types),
+                ]
+            )
+
+    if hasattr(arule, "if_after"):
+        ctx.encounter_datespec(location, arule.if_after)
+    if hasattr(arule, "if_before"):
+        ctx.encounter_datespec(location, arule.if_before)
+    if hasattr(arule, "if_completed_before"):
+        ctx.encounter_datespec(location, arule.if_completed_before)
+
+    if hasattr(arule, "if_has_role"):
+        for j, role in enumerate(arule.if_has_role):
+            validate_role(
+                    "%s, role %d" % (location, j+1),
+                    role)
+    if hasattr(arule, "if_has_tag"):
+        if arule.if_has_tag not in tags:
+            raise ValidationError(
+                    "%s: invalid tag '%s'"
+                    % (location, arule.if_has_tag))
+
+    for j, perm in enumerate(arule.permissions):
+        validate_flow_permission(
+                ctx,
+                "%s, permission %d" % (location, j+1),
+                perm)
+
+
+def validate_session_grading_rule(ctx, location, grule, tags):
+    """
+    :returns: whether the rule only applies conditionally
+    """
+
+    validate_struct(
+            ctx, location, grule,
+            required_attrs=[
+                ("grade_identifier", (type(None), str)),
+                ],
+            allowed_attrs=[
+                ("if_has_role", list),
+                ("if_has_tag", str),
+                ("if_completed_before", datespec_types),
+
+                ("credit_percent", (int, float)),
+                ("due", datespec_types),
+                ("grade_aggregation_strategy", str),
+                ("description", str),
+                ]
+            )
+
+    has_conditionals = False
+
+    if hasattr(grule, "if_completed_before"):
+        ctx.encounter_datespec(location, grule.if_completed_before)
+        has_conditionals = True
+
+    if hasattr(grule, "if_has_role"):
+        for j, role in enumerate(grule.if_has_role):
+            validate_role(
+                    "%s, role %d" % (location, j+1),
+                    role)
+        has_conditionals = True
+
+    if hasattr(grule, "if_has_tag"):
+        if grule.if_has_tag not in tags:
+            raise ValidationError(
+                    "%s: invalid tag '%s'"
+                    % (location, grule.if_has_tag))
+        has_conditionals = True
+
+    if hasattr(grule, "due"):
+        ctx.encounter_datespec(location, grule.due)
+
+    if grule.grade_identifier:
+        validate_identifier("%s: grade_identifier" % location,
+                grule.grade_identifier)
+        if not hasattr(grule, "grade_aggregation_strategy"):
+            raise ValidationError(
+                    "%s: grading rule that have a grade identifier (%s: %s) "
+                    "must have a grade_aggregation_strategy"
+                    % (location,
+                        type(grule.grade_identifier), grule.grade_identifier))
+        from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
+        if grule.grade_aggregation_strategy not in \
+                dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
+            raise ValidationError("%s: invalid grade aggregation strategy"
+                    % location)
+
+    return has_conditionals
+
+
+def validate_flow_rules(ctx, location, rules):
+    validate_struct(
+            ctx,
+            location + ", rules",
+            rules,
+            required_attrs=[
+                ("access", list),
+                ("grading", list),
+                ],
+            allowed_attrs=[
+                # may not start with an underscore
+                ("new_session", list),
+                ("tags", list),
+                ]
+            )
+
+    tags = getattr(rules, "tags", [])
+
+    for i, tag in enumerate(tags):
+        validate_identifier("%s: tag %d" % (location, i+1), tag)
+
+    # {{{ validate new-session rules
+
+    if hasattr(rules, "new_session"):
+        for i, nrule in enumerate(rules.new_session):
+            validate_new_session_rule(
+                    ctx, "%s, rules/new_session %d" % (location,  i+1),
+                    nrule, tags)
+
+    # }}}
+
+    # {{{ validate access rules
+
+    for i, arule in enumerate(rules.access):
+        validate_session_access_rule(
+                ctx,
+                location="%s, rules/access #%d"
+                % (location,  i+1), arule=arule, tags=tags)
+
+    # }}}
+
+    # {{{ validate grading rules
+
+    has_conditionals = None
+
+    for i, grule in enumerate(rules.grading):
+        has_conditionals = validate_session_grading_rule(
+                ctx,
+                location="%s, rules/grading #%d"
+                % (location,  i+1), grule=grule, tags=tags)
+
+    if has_conditionals:
+        raise ValidationError(
+                "%s, rules/grading: "
+                "last grading rule must be unconditional"
+                % location)
+
+    # }}}
+
+
 def validate_flow_permission(ctx, location, permission):
     from course.constants import FLOW_PERMISSION_CHOICES
     if permission not in dict(FLOW_PERMISSION_CHOICES):
         raise ValidationError("%s: invalid flow permission '%s'"
                 % (location, permission))
 
-
-def validate_flow_access_rule(ctx, location, rule):
-    validate_struct(
-            ctx,
-            location,
-            rule,
-            required_attrs=[
-                ("permissions", list),
-                ],
-            allowed_attrs=[
-                ("roles", list),
-                ("start", (datetime.date, str)),
-                ("end", (datetime.date, str)),
-                ("credit_percent", (int, float)),
-                ("allowed_session_count", int),
-                ("id", str),
-                ("sticky", bool),
-                ]
-            )
-
-    for i, perm in enumerate(rule.permissions):
-        validate_flow_permission(
-                ctx,
-                "%s, permission %d" % (location, i+1),
-                perm)
-
-    if hasattr(rule, "roles"):
-        for i, role in enumerate(rule.roles):
-            validate_role(
-                    "%s, role %d" % (location, i+1),
-                    role)
-
-    if hasattr(rule, "start"):
-        ctx.encounter_datespec(location, rule.start)
-
-    if hasattr(rule, "end"):
-        ctx.encounter_datespec(location, rule.end)
-
-    if not hasattr(rule, "id"):
-        ctx.add_warning(location,
-                "Access rule is missing 'id' attribute. "
-                "This will become required in 2015.x.")
+# }}}
 
 
 def validate_flow_desc(ctx, location, flow_desc):
@@ -389,49 +545,12 @@ def validate_flow_desc(ctx, location, flow_desc):
                 ("completion_text", "markup"),
                 ],
             allowed_attrs=[
-                ("access_rules", list),
-                ("grade_aggregation_strategy", str),
-                ("sticky_versioning", bool),
+                ("rules", Struct),
                 ]
             )
 
-    encountered_permissions = set()
-
-    if hasattr(flow_desc, "access_rules"):
-        for i, rule in enumerate(flow_desc.access_rules):
-            validate_flow_access_rule(ctx,
-                    "%s, access rule %d" % (location, i+1),
-                    rule)
-
-            encountered_permissions.update(rule.permissions)
-
-        last_rule = flow_desc.access_rules[-1]
-        if (
-                hasattr(last_rule, "roles")
-                or hasattr(last_rule, "start")
-                or hasattr(last_rule, "end")
-                ):
-            raise ValidationError("%s: last access rule must set default access "
-                    "(i.e. have no attributes other than 'permissions')"
-                    % location)
-
-    if hasattr(flow_desc, "sticky_versioning"):
-        ctx.add_warning(location, "Flow has 'sticky_versioning' attribute - "
-                "this is deprecated and ignored.")
-
-    if hasattr(flow_desc, "grade_aggregation_strategy"):
-        from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
-        if flow_desc.grade_aggregation_strategy not in \
-                dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
-            raise ValidationError("%s: invalid grade aggregation strategy"
-                    % location)
-    else:
-        from course.constants import flow_permission
-        if flow_permission.start_credit in encountered_permissions:
-            raise ValidationError(
-                    "%s: flow which can be used for credit must have "
-                    "grade_aggregation_strategy"
-                    % location)
+    if hasattr(flow_desc, "rules"):
+        validate_flow_rules(ctx, location, flow_desc.rules)
 
     # {{{ check for non-emptiness
 
@@ -510,7 +629,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
         tp, e, _ = sys.exc_info()
 
         raise ValidationError("%s: %s: %s" % (
-            full_name, tp.__name__, str(e)))
+            full_name, tp.__name__, unicode(e)))
 
 
 def validate_course_content(repo, course_file, events_file,
@@ -552,8 +671,6 @@ def validate_course_content(repo, course_file, events_file,
             validate_flow_desc(ctx, location, flow_desc)
 
     return ctx.warnings
-
-# }}}
 
 
 # {{{ validation script support

@@ -126,8 +126,10 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
     def compute_replacement(match):
         jinja_src = match.group(1)
 
-        from jinja2 import Environment
-        env = Environment(loader=GitTemplateLoader(repo, commit_sha))
+        from jinja2 import Environment, StrictUndefined
+        env = Environment(
+                loader=GitTemplateLoader(repo, commit_sha),
+                undefined=StrictUndefined)
         template = env.from_string(jinja_src)
         return template.render()
 
@@ -379,8 +381,10 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
     if text.lstrip().startswith(JINJA_PREFIX):
         text = remove_prefix(JINJA_PREFIX, text.lstrip())
 
-        from jinja2 import Environment
-        env = Environment(loader=GitTemplateLoader(repo, commit_sha))
+        from jinja2 import Environment, StrictUndefined
+        env = Environment(
+                loader=GitTemplateLoader(repo, commit_sha),
+                undefined=StrictUndefined)
         template = env.from_string(text)
         text = template.render()
 

@@ -92,6 +92,13 @@ def dict_to_struct(data):
     else:
         return data
 
+
+def struct_to_dict(data):
+    return dict(
+            (name, val)
+            for name, val in data.__dict__.iteritems()
+            if not name.startswith("_"))
+
 # }}}
 
 # vim: foldmethod=marker

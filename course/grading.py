@@ -32,7 +32,6 @@ from django.core.exceptions import (  # noqa
         PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
 from django import http
-from django.utils.timezone import now
 
 from course.models import (
         FlowSession, FlowPageVisitGrade,
@@ -43,7 +42,9 @@ from course.models import (
 from course.constants import participation_role
 from course.utils import (
         course_view, render_course_page,
+        get_session_grading_rule,
         FlowPageContext)
+from course.views import get_now_or_fake_time
 
 
 # {{{ grading driver
@@ -60,6 +61,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     if flow_session.course.pk != pctx.course.pk:
         raise SuspiciousOperation("Flow session not part of specified course")
+    if flow_session.participation is None:
+        raise SuspiciousOperation("Cannot grade anonymous session")
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
             page_ordinal, participation=flow_session.participation,
@@ -74,8 +77,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             .filter(
                 course=pctx.course,
                 flow_id=flow_session.flow_id,
-                in_progress=flow_session.in_progress,
-                for_credit=flow_session.for_credit)
+                in_progress=flow_session.in_progress)
             .order_by(
                 "participation__user__last_name",
                 "start_time"))
@@ -176,13 +178,12 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                             bulk_feedback=bulk_feedback_json
                             ).save()
 
-                current_access_rule = fpctx.get_current_access_rule(
+                grading_rule = get_session_grading_rule(
                         flow_session, flow_session.participation.role,
-                        flow_session.participation, now(),
-                        obey_sticky=True)
+                        fpctx.flow_desc, get_now_or_fake_time(request))
 
                 from course.flow import grade_flow_session
-                grade_flow_session(fpctx, flow_session, current_access_rule)
+                grade_flow_session(fpctx, flow_session, grading_rule)
 
         else:
             grading_form = fpctx.page.make_grading_form(
@@ -218,8 +219,13 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # }}}
 
+    grading_rule = get_session_grading_rule(
+            flow_session, flow_session.participation.role,
+            fpctx.flow_desc, get_now_or_fake_time(pctx.request))
+
     grading_opportunity = get_flow_grading_opportunity(
-            pctx.course, flow_session.flow_id, fpctx.flow_desc)
+            pctx.course, flow_session.flow_id, fpctx.flow_desc,
+            grading_rule)
 
     return render_course_page(
             pctx,

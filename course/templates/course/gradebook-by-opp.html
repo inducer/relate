@@ -66,7 +66,9 @@
                   {% if not flow_session.in_progress %}
                     ({{ flow_session.completion_time }})
                   {% endif %}
-                  (Rules: <tt>{{ flow_session.access_rules_id }}</tt>)
+                  {% if flow_session.access_rules_tag %}
+                    (Rules tag: <tt>{{ flow_session.access_rules_tag }}</tt>)
+                  {% endif %}
                   {% if flow_session.points != None %}
                     {{ flow_session.points|floatformat:1 }}/{{ flow_session.max_points|floatformat:1 }}
                     points

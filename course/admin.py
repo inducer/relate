@@ -30,7 +30,7 @@ from course.models import (
         InstantFlowRequest,
         FlowSession, FlowPageData,
         FlowPageVisit, FlowPageVisitGrade,
-        FlowAccessException, FlowAccessExceptionEntry,
+        FlowRuleException,
         GradingOpportunity, GradeChange, InstantMessage)
 from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
@@ -217,7 +217,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
     search_fields = (
             "=id",
             "flow_id",
-            "access_rules_id",
+            "access_rules_tag",
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
@@ -230,9 +230,8 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "course",
             "start_time",
             "completion_time",
-            "access_rules_id",
+            "access_rules_tag",
             "in_progress",
-            "for_credit",
             #"expiration_mode",
             )
     list_display_links = (
@@ -246,8 +245,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "course",
             "flow_id",
             "in_progress",
-            "for_credit",
-            "access_rules_id",
+            "access_rules_tag",
             "expiration_mode",
             )
 
@@ -386,14 +384,7 @@ admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 
 # {{{ flow access
 
-class FlowAccessExceptionEntryInline(admin.StackedInline):
-    model = FlowAccessExceptionEntry
-    extra = 5
-
-
-class FlowAccessExceptionAdmin(admin.ModelAdmin):
-    inlines = (FlowAccessExceptionEntryInline,)
-
+class FlowRuleExceptionAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
     get_course.short_description = "Course"
@@ -408,6 +399,7 @@ class FlowAccessExceptionAdmin(admin.ModelAdmin):
             "get_participant",
             "get_course",
             "flow_id",
+            "kind",
             "expiration",
             "creation_time",
             )
@@ -418,6 +410,7 @@ class FlowAccessExceptionAdmin(admin.ModelAdmin):
     list_filter = (
             "participation__course",
             "flow_id",
+            "kind",
             )
 
     date_hierarchy = "creation_time"
@@ -428,7 +421,7 @@ class FlowAccessExceptionAdmin(admin.ModelAdmin):
         # These are created only automatically.
         return False
 
-admin.site.register(FlowAccessException, FlowAccessExceptionAdmin)
+admin.site.register(FlowRuleException, FlowRuleExceptionAdmin)
 
 # }}}
 

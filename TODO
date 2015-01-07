@@ -8,8 +8,6 @@
 
 - MOSS submission
 
-- Redo permissions system
-
 - Custom matcher classes
 
 Ideas
@@ -20,6 +18,8 @@ Ideas
 - Make system to link to flow-internal pages
 
 - Note about alternate left/right submission on page sandbox
+
+- Exceptions specific to one session
 
 - Page URL endpoints (see page-url-endpoints branch)
 

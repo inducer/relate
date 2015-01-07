@@ -96,12 +96,8 @@
 
   {# {{{ flow-related #}
 
-  {% if flow_sessions %}
+  {% if flow_sessions_and_session_properties %}
     <h2>Flow sessions</h2>
-
-    {% if flow_rules or flow_grade_aggregation_strategy %}
-      {% include "course/flow-rules.html" with rules=flow_rules grade_aggregation_strategy=flow_grade_aggregation_strategy %}
-    {% endif %}
 
     <form method="POST">
       {% csrf_token %}
@@ -110,6 +106,7 @@
           <tr>
             <th>ID</th>
             <th>State</th>
+            <th>Due</th>
             <th>Result</th>
             {% if show_privileged_info %}
               <th>Pages</th>
@@ -120,20 +117,20 @@
           </tr>
         </thead>
         <tbody>
-          {% for flow_session in flow_sessions %}
+          {% for flow_session, session_properties in flow_sessions_and_session_properties %}
             <tr>
               <td>{{ flow_session.id }}</td>
               <td>
                 {% include "course/flow-session-state.html" %}
                 <hr>
-                <p>
-                  <b>Rules:</b>
-                  {% if flow_session.access_rules_id %}
-                    <tt>{{ flow_session.access_rules_id  }}</tt>
-                  {% else %}
-                    (None)
-                  {% endif %}
-                </p>
+                {% if flow_session.access_rules_tag %}
+                  <p>
+                    <b>Grading rules:</b>
+                    {% if session_properties.grade_description %}
+                      {{ session_properties.grade_description }}
+                    {% endif %}
+                  </p>
+                {% endif %}
                 <p>
                   <b>Expiration mode:</b>
                   <tt>{{ flow_session.expiration_mode  }}</tt>
@@ -150,6 +147,13 @@
                   </p>
                 {% endif %}
               </td>
+
+              <td>
+                {% if session_properties.due %}
+                  {{ session_properties.due }}
+                {% endif %}
+              </td>
+
               <td>
                 {% if flow_session.max_points != None %}
                   {% if flow_session.points != None %}

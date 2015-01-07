@@ -6,6 +6,7 @@ django-crispy-forms>=1.4.0
 # Page data, answer data, ... all represented in JSON. This makes that editable
 # in the Django admin.
 https://github.com/bradjasper/django-jsonfield/archive/postgresql.tar.gz
+django-yamlfield
 
 # For easy content formatting:
 markdown

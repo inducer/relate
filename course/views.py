@@ -52,9 +52,8 @@ from course.models import (
         Course,
         InstantFlowRequest,
         Participation,
-        FlowAccessException,
-        FlowAccessExceptionEntry,
-        FlowSession)
+        FlowSession,
+        FlowRuleException)
 
 from course.content import (get_course_repo, get_course_desc)
 from course.utils import course_view, render_course_page
@@ -368,15 +367,27 @@ def grant_exception(pctx):
     })
 
 
+def strify_session_for_exception(session):
+    from courseflow.utils import as_local_time
+    result = ("started at %s" % as_local_time(session.start_time)
+            .strftime('%b %d %Y - %I:%M %p'))
+
+    if session.access_rules_tag:
+        result += " tagged '%s'" % session.access_rules_tag
+
+    return result
+
+
 class ExceptionStage2Form(StyledForm):
-    def __init__(self, base_ruleset_choices, *args, **kwargs):
+    def __init__(self, sessions, *args, **kwargs):
         super(ExceptionStage2Form, self).__init__(*args, **kwargs)
 
-        self.fields["base_ruleset"] = forms.ChoiceField(
+        self.fields["session"] = forms.ChoiceField(
                 choices=(
-                    (brc, brc)
-                    for brc in base_ruleset_choices),
-                help_text="Select rule set on which the exception is to be based.")
+                    (session.id, strify_session_for_exception(session))
+                    for session in sessions),
+                help_text="Select the session on which the exception "
+                "should be based.")
 
         self.helper.add_input(
                 Submit(
@@ -393,25 +404,15 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     participation = get_object_or_404(Participation, id=participation_id)
 
-    from course.content import get_flow_desc
-    try:
-        flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
-                pctx.course_commit_sha)
-    except ObjectDoesNotExist:
-        raise http.Http404()
-
-    if not hasattr(flow_desc, "access_rules"):
-        messages.add_message(pctx.request, messages.ERROR,
-                "Flow '%s' does not declare access rules."
-                % flow_id)
-        return redirect("course.views.grant_exception",
-                pctx.course.identifier)
-
-    base_ruleset_choices = [rule.id for rule in flow_desc.access_rules]
+    sessions = (FlowSession.objects
+            .filter(
+                participation=pctx.participation,
+                flow_id=flow_id)
+           .order_by("start_time"))
 
     request = pctx.request
     if request.method == "POST":
-        form = ExceptionStage2Form(base_ruleset_choices, request.POST)
+        form = ExceptionStage2Form(sessions, request.POST)
 
         if form.is_valid():
             return redirect(
@@ -419,10 +420,10 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                     pctx.course.identifier,
                     participation.id,
                     flow_id,
-                    form.cleaned_data["base_ruleset"])
+                    form.cleaned_data["session"])
 
     else:
-        form = ExceptionStage2Form(base_ruleset_choices)
+        form = ExceptionStage2Form(sessions)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
@@ -431,28 +432,23 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
 
 class ExceptionStage3Form(StyledForm):
-    update_session = forms.BooleanField(
-            help_text="Check to update the participant's current session "
-            "to use the exception as its rule set.",
-            initial=True)
-    expiration = forms.DateTimeField(
+    access_expires = forms.DateTimeField(
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
             required=False)
-    sticky = forms.BooleanField(
-            required=False,
-            help_text="Check if a flow started under this "
-            "exception rule set should stay "
-            "under this rule set until it is expired.")
-
-    allowed_session_count = forms.IntegerField(required=False)
-    credit_percent = forms.IntegerField(required=False)
 
     def __init__(self, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
 
         for key, name in FLOW_PERMISSION_CHOICES:
             self.fields[key] = forms.BooleanField(label=name, required=False)
+
+        self.fields["due"] = forms.DateTimeField(
+                widget=DateTimePicker(
+                    options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
+                required=False)
+
+        self.fields["credit_percent"] = forms.IntegerField(required=False)
 
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True)
@@ -465,7 +461,7 @@ class ExceptionStage3Form(StyledForm):
 
 @course_view
 @transaction.atomic
-def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
+def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
@@ -480,58 +476,51 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
     except ObjectDoesNotExist:
         raise http.Http404()
 
-    if not hasattr(flow_desc, "access_rules"):
-        messages.add_message(pctx.request, messages.ERROR,
-                "Flow '%s' does not declare access rules."
-                % flow_id)
-        return redirect("course.views.grant_exception",
-                pctx.course.identifier)
+    session = FlowSession.objects.get(id=int(session_id))
 
-    ruleset = None
-    for def_ruleset in flow_desc.access_rules:
-        if def_ruleset.id == base_ruleset:
-            ruleset = def_ruleset
-
-    if ruleset is None:
-        raise http.Http404()
-
-    STIPULATION_KEYS = ["allowed_session_count", "credit_percent"]
+    now_datetime = get_now_or_fake_time(pctx.request)
+    from course.utils import (
+            get_session_access_rule,
+            get_session_grading_rule)
+    access_rule = get_session_access_rule(
+            session, pctx.role, flow_desc, now_datetime)
+    grading_rule = get_session_grading_rule(
+            session, pctx.role, flow_desc, now_datetime)
 
     request = pctx.request
     if request.method == "POST":
         form = ExceptionStage3Form(request.POST)
 
+        from course.constants import flow_rule_kind
+
         if form.is_valid():
-            fae = FlowAccessException()
-            fae.participation = participation
-            fae.flow_id = flow_id
-            fae.expiration = form.cleaned_data["expiration"]
-            fae.stipulations = {}
-            for stip_key in STIPULATION_KEYS:
-                if form.cleaned_data[stip_key] is not None:
-                    fae.stipulations[stip_key] = form.cleaned_data[stip_key]
-            fae.creator = pctx.request.user
-            fae.is_sticky = form.cleaned_data["sticky"]
-            fae.comment = form.cleaned_data["comment"]
-            fae.save()
+            permissions = [
+                    key
+                    for key, _ in FLOW_PERMISSION_CHOICES
+                    if form.cleaned_data[key]]
 
-            for key, _ in FLOW_PERMISSION_CHOICES:
-                if form.cleaned_data[key]:
-                    faee = FlowAccessExceptionEntry()
-                    faee.exception = fae
-                    faee.permission = key
-                    faee.save()
+            fre_access = FlowRuleException(
+                flow_id=flow_id,
+                participation=participation,
+                expiration=form.cleaned_data["access_expires"],
+                creator=pctx.request.user,
+                comment=form.cleaned_data["comment"],
+                kind=flow_rule_kind.access,
+                rule={"permissions": permissions})
+            fre_access.save()
 
-            if form.cleaned_data["update_session"]:
-                sessions = FlowSession.objects.filter(
-                        participation=participation,
-                        flow_id=flow_id,
-                        in_progress=True)
-
-                assert sessions.count() <= 1
-                for session in sessions:
-                    session.access_rules_id = "exception"
-                    session.save()
+            fre_grading = FlowRuleException(
+                flow_id=flow_id,
+                participation=participation,
+                creator=pctx.request.user,
+                comment=form.cleaned_data["comment"],
+                kind=flow_rule_kind.grading,
+                rule={
+                    "credit_percent": form.cleaned_data["credit_percent"],
+                    "due": form.cleaned_data["due"],
+                    "description": "Exception",
+                    })
+            fre_grading.save()
 
             messages.add_message(pctx.request, messages.SUCCESS,
                     "Exception granted.")
@@ -541,15 +530,11 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, base_ruleset):
 
     else:
         data = {
-                "update_session": True,
-                "sticky": getattr(ruleset, "sticky", False),
+                "credit_percent": grading_rule.credit_percent,
+                "due": grading_rule.due,
                 }
-        for perm in ruleset.permissions:
+        for perm in access_rule.permissions:
             data[perm] = True
-
-        for stip_key in STIPULATION_KEYS:
-            if hasattr(ruleset, stip_key):
-                data[stip_key] = getattr(ruleset, stip_key)
 
         form = ExceptionStage3Form(data)
 

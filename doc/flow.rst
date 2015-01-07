@@ -20,6 +20,9 @@ CourseFlow currently supports the following permissions:
 
 .. autoclass:: flow_permission
 
+The ``modify`` permission is automatically removed from
+a finished session.
+
 .. _page-permissions:
 
 Per-page permissions

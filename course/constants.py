@@ -104,9 +104,9 @@ def is_expiration_mode_allowed(expmode, permissions):
 class flow_permission:
     """
     .. attribute:: view
-    .. attribute:: view_past
-    .. attribute:: start_credit
-    .. attribute:: start_no_credit
+    .. attribute:: modify
+
+        Grants permission to submit answers and end the flow.
 
     .. attribute:: change_answer
 
@@ -117,9 +117,7 @@ class flow_permission:
 
     .. attribute:: see_correctness
 
-    .. attribute:: see_correctness_after_completion
     .. attribute:: see_answer
-    .. attribute:: see_answer_after_completion
     .. attribute:: set_roll_over_expiration_mode
 
         Grants permission to let a student choose to let a flow
@@ -130,32 +128,33 @@ class flow_permission:
 
     """
     view = "view"
-    view_past = "view_past"
-    start_credit = "start_credit"
-    start_no_credit = "start_no_credit"
-
+    modify = "modify"
     change_answer = "change_answer"
     see_correctness = "see_correctness"
-    see_correctness_after_completion = "see_correctness_after_completion"
     see_answer = "see_answer"
-    see_answer_after_completion = "see_answer_after_completion"
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view, "View the flow"),
-        (flow_permission.view_past, "Review past attempts"),
-        (flow_permission.start_credit, "Start a for-credit session"),
-        (flow_permission.start_no_credit, "Start a not-for-credit session"),
-
+        (flow_permission.modify, "Submit answers"),
         (flow_permission.change_answer, "Change already-graded answer"),
         (flow_permission.see_correctness, "See whether an answer is correct"),
-        (flow_permission.see_correctness_after_completion,
-            "See whether an answer is correct after completing the flow"),
         (flow_permission.see_answer, "See the correct answer"),
-        (flow_permission.see_answer_after_completion,
-            "See the correct answer after completing the flow"),
         (flow_permission.set_roll_over_expiration_mode,
             "Set the session to 'roll over' expiration mode"),
+        )
+
+
+class flow_rule_kind:
+    new_session = "new_session"
+    access = "access"
+    grading = "grading"
+
+
+FLOW_RULE_KIND_CHOICES = (
+        (flow_rule_kind.new_session, "New Session"),
+        (flow_rule_kind.access, "Session Access"),
+        (flow_rule_kind.grading, "Grading"),
         )
 
 

@@ -327,18 +327,18 @@ class OpportunityGradeInfo(object):
 
 
 class ModifySessionsForm(StyledForm):
-    def __init__(self, rule_ids, *args, **kwargs):
+    def __init__(self, session_rule_tags, *args, **kwargs):
         super(ModifySessionsForm, self).__init__(*args, **kwargs)
 
-        self.fields["rule_id"] = forms.ChoiceField(
+        self.fields["rule_tag"] = forms.ChoiceField(
                 choices=tuple(
-                    (rule_id, str(rule_id))
-                    for rule_id in rule_ids))
-        self.fields["past_end_only"] = forms.BooleanField(
+                    (rule_tag, str(rule_tag))
+                    for rule_tag in session_rule_tags))
+        self.fields["past_due_only"] = forms.BooleanField(
                 required=False,
                 initial=True,
                 help_text="Only act on in-progress sessions that are past "
-                "their access rule's end date (applies to 'expire' and 'end')")
+                "their access rule's due date (applies to 'expire' and 'end')")
 
         self.helper.add_input(
                 Submit("expire", "Expire sessions",
@@ -352,13 +352,13 @@ class ModifySessionsForm(StyledForm):
 
 
 @transaction.atomic
-def expire_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime,
-        past_end_only):
+def expire_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
+        past_due_only):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
                 flow_id=flow_id,
-                access_rules_id=rule_id,
+                access_rules_tag=rule_tag,
                 in_progress=True,
                 ))
 
@@ -367,20 +367,20 @@ def expire_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime,
     from course.flow import expire_flow_session_standalone
     for session in sessions:
         if expire_flow_session_standalone(repo, course, session, now_datetime,
-                past_end_only):
+                past_due_only=past_due_only):
             count += 1
 
     return count
 
 
 @transaction.atomic
-def finish_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime,
-        past_end_only):
+def finish_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
+        past_due_only):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
                 flow_id=flow_id,
-                access_rules_id=rule_id,
+                access_rules_tag=rule_tag,
                 in_progress=True,
                 ))
 
@@ -389,19 +389,19 @@ def finish_in_progress_sessions(repo, course, flow_id, rule_id, now_datetime,
     from course.flow import finish_flow_session_standalone
     for session in sessions:
         if finish_flow_session_standalone(repo, course, session,
-                now_datetime=now_datetime, past_end_only=past_end_only):
+                now_datetime=now_datetime, past_due_only=past_due_only):
             count += 1
 
     return count
 
 
 @transaction.atomic
-def regrade_ended_sessions(repo, course, flow_id, rule_id):
+def regrade_ended_sessions(repo, course, flow_id, rule_tag):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
                 flow_id=flow_id,
-                access_rules_id=rule_id,
+                access_rules_tag=rule_tag,
                 in_progress=False,
                 ))
 
@@ -416,12 +416,12 @@ def regrade_ended_sessions(repo, course, flow_id, rule_id):
 
 
 @transaction.atomic
-def recalculate_ended_sessions(repo, course, flow_id, rule_id):
+def recalculate_ended_sessions(repo, course, flow_id, rule_tag):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
                 flow_id=flow_id,
-                access_rules_id=rule_id,
+                access_rules_tag=rule_tag,
                 in_progress=False,
                 ))
 
@@ -435,14 +435,14 @@ def recalculate_ended_sessions(repo, course, flow_id, rule_id):
     return count
 
 
-RULE_ID_NONE_STRING = "<<<NONE>>>"
+RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 
-def mangle_rule_id(rule_id):
-    if rule_id is None:
-        return RULE_ID_NONE_STRING
+def mangle_session_access_rule_tag(rule_tag):
+    if rule_tag is None:
+        return RULE_TAG_NONE_STRING
     else:
-        return rule_id
+        return rule_tag
 
 
 @course_view
@@ -465,15 +465,16 @@ def view_grades_by_opportunity(pctx, opp_id):
     batch_session_ops_form = None
     if pctx.role == participation_role.instructor and opportunity.flow_id:
         cursor = connection.cursor()
-        cursor.execute("select distinct access_rules_id from course_flowsession "
+        cursor.execute("select distinct access_rules_tag from course_flowsession "
                 "where course_id = %s and flow_id = %s "
-                "order by access_rules_id", (pctx.course.id, opportunity.flow_id))
-        rule_ids = [mangle_rule_id(row[0]) for row in cursor.fetchall()]
+                "order by access_rules_tag", (pctx.course.id, opportunity.flow_id))
+        session_rule_tags = [
+                mangle_session_access_rule_tag(row[0]) for row in cursor.fetchall()]
 
         request = pctx.request
         if request.method == "POST":
             batch_session_ops_form = ModifySessionsForm(
-                    rule_ids, request.POST, request.FILES)
+                    session_rule_tags, request.POST, request.FILES)
             if "expire" in request.POST:
                 op = "expire"
             elif "end" in request.POST:
@@ -486,17 +487,17 @@ def view_grades_by_opportunity(pctx, opp_id):
                 raise SuspiciousOperation("invalid operation")
 
             if batch_session_ops_form.is_valid():
-                rule_id = batch_session_ops_form.cleaned_data["rule_id"]
-                past_end_only = batch_session_ops_form.cleaned_data["past_end_only"]
+                rule_tag = batch_session_ops_form.cleaned_data["rule_tag"]
+                past_due_only = batch_session_ops_form.cleaned_data["past_due_only"]
 
-                if rule_id == RULE_ID_NONE_STRING:
-                    rule_id = None
+                if rule_tag == RULE_TAG_NONE_STRING:
+                    rule_tag = None
                 try:
                     if op == "expire":
                         count = expire_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id, now_datetime,
-                                past_end_only=past_end_only)
+                                rule_tag, now_datetime,
+                                past_due_only=past_due_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) expired." % count)
@@ -504,8 +505,8 @@ def view_grades_by_opportunity(pctx, opp_id):
                     elif op == "end":
                         count = finish_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id, now_datetime,
-                                past_end_only=past_end_only)
+                                rule_tag, now_datetime,
+                                past_due_only=past_due_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) ended." % count)
@@ -513,7 +514,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                     elif op == "regrade":
                         count = regrade_ended_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id)
+                                rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) regraded." % count)
@@ -521,7 +522,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                     elif op == "recalculate":
                         count = recalculate_ended_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id)
+                                rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "Grade recalculated for %d session(s)." % count)
@@ -531,9 +532,10 @@ def view_grades_by_opportunity(pctx, opp_id):
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
                             "Error: %s %s" % (type(e).__name__, str(e)))
+                    raise
 
         else:
-            batch_session_ops_form = ModifySessionsForm(rule_ids)
+            batch_session_ops_form = ModifySessionsForm(session_rule_tags)
 
     # }}}
 
@@ -745,33 +747,29 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     )
                 .order_by("start_time"))
 
-        # {{{ fish out grade rules
+        from collections import namedtuple
+        SessionProperties = namedtuple("SessionProperties",
+                ["due", "grade_description"])
 
+        from course.utils import get_session_grading_rule
         from course.content import get_flow_desc
 
-        flow_desc = get_flow_desc(
-                pctx.repo, pctx.course, opportunity.flow_id,
-                pctx.course_commit_sha)
-        from course.utils import (
-                get_flow_access_rules,
-                get_relevant_rules)
-        all_flow_rules = get_flow_access_rules(pctx.course,
-                participation, opportunity.flow_id, flow_desc)
+        flow_desc = get_flow_desc(pctx.repo, pctx.course,
+                opportunity.flow_id, pctx.course_commit_sha)
 
-        relevant_flow_rules = get_relevant_rules(
-                all_flow_rules, pctx.participation.role, now())
+        flow_sessions_and_session_properties = []
+        for session in flow_sessions:
+            grading_rule = get_session_grading_rule(
+                    session, pctx.role, flow_desc, now_datetime)
 
-        if hasattr(flow_desc, "grade_aggregation_strategy"):
-            from course.models import GRADE_AGGREGATION_STRATEGY_CHOICES
-            flow_grade_aggregation_strategy_text = (
-                    dict(GRADE_AGGREGATION_STRATEGY_CHOICES)
-                    [flow_desc.grade_aggregation_strategy])
-
-        # }}}
+            session_properties = SessionProperties(
+                    due=grading_rule.due,
+                    grade_description=grading_rule.description)
+            flow_sessions_and_session_properties.append(
+                    (session, session_properties))
 
     else:
-        flow_sessions = None
-        relevant_flow_rules = None
+        flow_sessions_and_session_properties = None
 
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
@@ -779,14 +777,13 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         "grade_state_change_types": grade_state_change_types,
         "grade_changes": grade_changes,
         "state_machine": state_machine,
-        "flow_sessions": flow_sessions,
+        "flow_sessions_and_session_properties": flow_sessions_and_session_properties,
         "allow_session_actions": allow_session_actions,
         "show_privileged_info": pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant
             ],
 
-        "flow_rules": relevant_flow_rules,
         "flow_grade_aggregation_strategy": flow_grade_aggregation_strategy_text,
         })
 

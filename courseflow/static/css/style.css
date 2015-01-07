@@ -12,6 +12,11 @@ table.past-flow-session-table td {
   padding-top:4px;
 }
 
+table.past-flow-session-table th {
+  padding-right:1em;
+  padding-top:4px;
+}
+
 table.past-flow-session-table {
   margin-bottom: 2ex;
 }

@@ -216,7 +216,7 @@ urlpatterns = patterns('',
          "course.flow.start_flow",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/flow-session/"
+        "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<ordinal>[0-9]+)"
         "/$",
@@ -265,9 +265,10 @@ urlpatterns = patterns('',
         "/grant-exception"
         "/(?P<participation_id>[0-9]+)"
         "/(?P<flow_id>[-a-zA-Z0-9]+)"
-        "/(?P<base_ruleset>[-_a-zA-Z0-9]+)"
+        "/(?P<session_id>[0-9]+)"
         "/$",
         "course.views.grant_exception_stage_3",),
+
     # }}}
 
     # {{{ analytics

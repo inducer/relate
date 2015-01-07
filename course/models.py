@@ -38,10 +38,12 @@ from course.constants import (  # noqa
         flow_session_expriration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
+        flow_rule_kind, FLOW_RULE_KIND_CHOICES,
         )
 
 
 from jsonfield import JSONField
+from yamlfield.fields import YAMLField
 
 
 # {{{ user status
@@ -262,8 +264,7 @@ class FlowSession(models.Model):
     page_count = models.IntegerField(null=True, blank=True)
 
     in_progress = models.BooleanField(default=None)
-    for_credit = models.BooleanField(default=None)
-    access_rules_id = models.CharField(max_length=200, null=True,
+    access_rules_tag = models.CharField(max_length=200, null=True,
             blank=True)
     expiration_mode = models.CharField(max_length=20, null=True,
             default=flow_session_expriration_mode.end,
@@ -520,7 +521,11 @@ def validate_stipulations(stip):
         raise ValidationError("allowed_session_count must be a non-negative integer")
 
 
+# {{{ deprecated exception stuff
+
 class FlowAccessException(models.Model):
+    # deprecated
+
     participation = models.ForeignKey(Participation, db_index=True)
     flow_id = models.CharField(max_length=200, blank=False, null=False)
     expiration = models.DateTimeField(blank=True, null=True)
@@ -550,6 +555,8 @@ class FlowAccessException(models.Model):
 
 
 class FlowAccessExceptionEntry(models.Model):
+    # deprecated
+
     exception = models.ForeignKey(FlowAccessException,
             related_name="entries")
     permission = models.CharField(max_length=50,
@@ -561,17 +568,75 @@ class FlowAccessExceptionEntry(models.Model):
     def __unicode__(self):
         return self.permission
 
+# }}}
 
-# class FlowAccessException2(models.Model):
-#     flow_id = models.CharField(max_length=200, blank=False, null=False)
-#
-#     creator = models.ForeignKey(User, null=True)
-#     creation_time = models.DateTimeField(default=now, db_index=True)
-#
-#     comment = models.TextField(blank=True, null=True)
-#
-#     new_session_rules = YAMLField(blank=True, null=True)
-#     existing_session_rules = YAMLField(blank=True, null=True)
+
+class FlowRuleException(models.Model):
+    flow_id = models.CharField(max_length=200, blank=False, null=False)
+    participation = models.ForeignKey(Participation, db_index=True)
+    expiration = models.DateTimeField(blank=True, null=True)
+
+    creator = models.ForeignKey(User, null=True)
+    creation_time = models.DateTimeField(default=now, db_index=True)
+
+    comment = models.TextField(blank=True, null=True)
+
+    kind = models.CharField(max_length=50, blank=False, null=False,
+            choices=FLOW_RULE_KIND_CHOICES)
+    rule = YAMLField(blank=False, null=False)
+    active = models.BooleanField(default=True)
+
+    def __unicode__(self):
+        return "%s exception for '%s' to '%s' in '%s'" % (
+                self.kind,
+                self.participation.user, self.flow_id,
+                self.participation.course)
+
+    def clean(self):
+        if (self.kind == flow_rule_kind.grading
+                and self.expiration is not None):
+            raise ValidationError("grading rules may not expire")
+
+        from course.validation import (
+                ValidationError as ContentValidationError,
+                validate_new_session_rule,
+                validate_session_access_rule,
+                validate_session_grading_rule,
+                ValidationContext)
+        from course.content import (get_course_repo,
+                get_course_commit_sha,
+                get_flow_desc)
+
+        from courseflow.utils import dict_to_struct
+        rule = dict_to_struct(self.rule)
+
+        repo = get_course_repo(self.participation.course)
+        commit_sha = get_course_commit_sha(
+                self.participation.course, self.participation)
+        ctx = ValidationContext(
+                repo=repo,
+                commit_sha=commit_sha)
+
+        flow_desc = get_flow_desc(repo,
+                self.participation.course,
+                self.flow_id, commit_sha)
+
+        tags = None
+        if hasattr(flow_desc, "rules"):
+            tags = getattr(flow_desc.rules, "tags", None)
+
+        try:
+            if self.kind == flow_rule_kind.new_session:
+                validate_new_session_rule(ctx, unicode(self), rule, tags)
+            elif self.kind == flow_rule_kind.access:
+                validate_session_access_rule(ctx, unicode(self), rule, tags)
+            elif self.kind == flow_rule_kind.grading:
+                validate_session_grading_rule(ctx, unicode(self), rule, tags)
+            else:
+                raise ValidationError("invalid rule kind: "+self.kind)
+
+        except ContentValidationError as e:
+            raise ValidationError("invalid existing_session_rules: "+str(e))
 
 # }}}
 
@@ -823,14 +888,17 @@ class GradeStateMachine(object):
 
 # {{{ flow <-> grading integration
 
-def get_flow_grading_opportunity(course, flow_id, flow_desc):
+def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
+    from course.utils import FlowSessionGradingRule
+    assert isinstance(grading_rule, FlowSessionGradingRule)
+
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
             flow_id=flow_id,
             defaults=dict(
-                identifier="flow_"+flow_id.replace("-", "_"),
                 name="Flow: %s" % flow_desc.title,
-                aggregation_strategy=flow_desc.grade_aggregation_strategy,
+                identifier=grading_rule.grade_identifier,
+                aggregation_strategy=grading_rule.grade_aggregation_strategy,
                 ))
 
     return gopp

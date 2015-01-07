@@ -12,84 +12,86 @@
   <form method="POST">
     {% csrf_token %}
 
-    {% if rules or grade_aggregation_strategy %}
-      {% include "course/flow-rules.html" %}
+    {% if past_sessions_and_properties %}
+      <div class="well">
+        <h3 class="start-well-title">Past sessions</h3>
+
+        <table class="past-flow-session-table">
+          <tr>
+            <th>Start time</th>
+            <th>State</th>
+            <th>Grading rules</th>
+            <th>Due</th>
+            <th>Result</th>
+            <th>Actions</th>
+          </tr>
+          {% for flow_session, session_properties in past_sessions_and_properties %}
+            <tr>
+              <td>{{ flow_session.start_time }}</td>
+              <td>
+                {% include "course/flow-session-state.html" %}
+                {% if not flow_session.in_progress %}
+                  ({{ flow_session.completion_time }})
+                {% endif %}
+              </td>
+              <td>
+                {% if session_properties.grade_description %}
+                  {{ session_properties.grade_description }}
+                {% else %}
+                  (None)
+                {% endif %}
+              </td>
+              <td>
+                {% if session_properties.due %}
+                  {{ session_properties.due }}
+                {% endif %}
+              </td>
+              <td>
+                {% if flow_session.points_percentage %}
+                  <b>{{ flow_session.points|floatformat }}</b>
+                  out of
+                  {{ flow_session.max_points|floatformat }}
+
+                  (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                {% else %}
+                  (none)
+                {% endif %}
+
+              </td>
+              <td>
+                {% if session_properties.may_view %}
+                  <a href="{% url "course.flow.view_flow_page" course.identifier flow_session.id 0 %}" class="btn btn-primary btn-xs">
+                    {% if session_properties.may_modify %}
+                      Resume &raquo;
+                    {% else %}
+                      Review &raquo;
+                    {% endif %}
+                  </a>
+                {% endif %}
+
+                {% if not flow_session_properties.in_progress %}
+                  <a href="{% url "course.flow.finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
+                    Results
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      </div>
     {% endif %}
 
-    {% if may_start_credit or may_start_no_credit or past_sessions %}
-      <div class="well">
-        {% if past_sessions %}
-          <h3 class="start-well-title">Past sessions</h3>
+    {% if may_start %}
+      <button type="submit" name="start" class="btn btn-primary">
+        Start &raquo;
+      </button>
+    {% endif %}
 
-          <table class="past-flow-session-table">
-            <tr>
-              <th>Start time</th>
-              <th>State</th>
-              <th>Rules</th>
-              <th>Result</th>
-              <th>Actions</th>
-            </tr>
-            {% for flow_session in past_sessions %}
-              <tr>
-                <td>{{ flow_session.start_time }}</td>
-                <td>
-                  {% include "course/flow-session-state.html" %}
-                  {% if not flow_session.in_progress %}
-                    ({{ flow_session.completion_time }})
-                  {% endif %}
-                </td>
-                <td>
-                  {% if flow_session.access_rules_id %}
-                    <tt>{{ flow_session.access_rules_id  }}</tt>
-                  {% else %}
-                    (None)
-                  {% endif %}
-                </td>
-                <td>
-                  {% if flow_session.points_percentage %}
-                    <b>{{ flow_session.points|floatformat }}</b>
-                    out of
-                    {{ flow_session.max_points|floatformat }}
-
-                    (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
-                  {% else %}
-                    (none)
-                  {% endif %}
-
-                </td>
-                <td>
-                  {% if flow_session.in_progress %}
-                    <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                      Resume &raquo;
-                    </button>
-                  {% else %}
-                    <a href="{% url "course.flow.finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
-                      Results
-                    </a>
-                    {% if may_review %}
-                      <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                        Review &raquo;
-                      </button>
-                    {% endif %}
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </table>
-        {% endif %}
-
-        {% if may_start_no_credit %}
-          <button type="submit" name="start_no_credit" class="btn btn-primary">
-            {% if may_start_credit %}
-              Start without credit &raquo;
-            {% else %}
-              Start &raquo;
-            {% endif %}
-          </button>
-        {% endif %}
-        {% if may_start_credit %}
-          <button type="submit" name="start_credit" class="btn btn-primary">Start new for-credit attempt &raquo;</button>
-        {% endif %}
+    {% if may_start or past_sessions_and_properties %}
+    {% else %}
+      <div class="alert alert-info">
+      You do not have any existing sessions and are not allowed to start
+      a new one.
       </div>
     {% endif %}
   </form>
