@@ -495,6 +495,9 @@ DATESPEC_POSTPROCESSORS = [
 
 
 def parse_date_spec(course, datespec, return_now_on_error=True):
+    if datespec is None:
+        return None
+
     if isinstance(datespec, datetime.datetime):
         return datespec
     if isinstance(datespec, datetime.date):
