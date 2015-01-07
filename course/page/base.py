@@ -147,7 +147,6 @@ class AnswerFeedback(object):
         if json is None:
             return json
 
-        print bulk_json
         return AnswerFeedback(
                 correctness=json["correctness"],
                 feedback=json["feedback"],
