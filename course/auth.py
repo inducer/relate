@@ -209,7 +209,7 @@ def sign_in_by_email(request):
             email = form.cleaned_data["email"]
             user, created = User.objects.get_or_create(
                     email__iexact=email,
-                    defaults=dict(username=email))
+                    defaults=dict(username=email, email=email))
 
             if created:
                 user.set_unusable_password()
@@ -309,6 +309,7 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 
 # }}}
+
 
 # {{{ user profile
 
