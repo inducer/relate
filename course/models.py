@@ -407,7 +407,12 @@ class FlowPageVisit(models.Model):
         return None
 
     def get_most_recent_feedback(self):
-        return get_feedback_for_grade(self.get_most_recent_grade())
+        grade = self.get_most_recent_grade()
+
+        if grade is None:
+            return None
+        else:
+            return get_feedback_for_grade(grade)
 
 # }}}
 
