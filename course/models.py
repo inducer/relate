@@ -195,7 +195,7 @@ class Event(models.Model):
 
 class Participation(models.Model):
     user = models.ForeignKey(User)
-    course = models.ForeignKey(Course)
+    course = models.ForeignKey(Course, related_name="participations")
 
     enroll_time = models.DateTimeField(default=now)
     role = models.CharField(max_length=50,

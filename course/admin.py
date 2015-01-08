@@ -34,6 +34,32 @@ from course.models import (
         GradingOpportunity, GradeChange, InstantMessage)
 from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
+from course.constants import participation_role
+
+
+def _filter_courses_for_user(queryset, user):
+    if user.is_superuser:
+        return queryset
+    return queryset.filter(
+            participations__user=user,
+            participations__role=participation_role.instructor)
+
+
+def _filter_course_linked_obj_for_user(queryset, user):
+    if user.is_superuser:
+        return queryset
+    return queryset.filter(
+            course__participations__user=user,
+            course__participations__role=participation_role.instructor)
+
+
+def _filter_participation_linked_obj_for_user(queryset, user):
+    if user.is_superuser:
+        return queryset
+    irole = participation_role.instructor
+    return queryset.filter(
+        participation__course__participations__user=user,
+        participation__course__participations__role=irole)
 
 
 # {{{ user status
@@ -112,6 +138,10 @@ class CourseAdmin(admin.ModelAdmin):
         # These are created only through the course creation form.
         return False
 
+    def get_queryset(self, request):
+        qs = super(CourseAdmin, self).get_queryset(request)
+        return _filter_courses_for_user(qs, request.user)
+
     # }}}
 
 admin.site.register(Course, CourseAdmin)
@@ -135,6 +165,21 @@ class EventAdmin(admin.ModelAdmin):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
 
     list_editable = ("ordinal", "time", "end_time", "shown_in_calendar")
+
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(EventAdmin, self).get_queryset(request)
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(EventAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
+
+    # }}}
 
 admin.site.register(Event, EventAdmin)
 
@@ -175,16 +220,54 @@ class ParticipationAdmin(admin.ModelAdmin):
 
     actions = [approve_enrollment, deny_enrollment]
 
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(ParticipationAdmin, self).get_queryset(request)
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(ParticipationAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
+
+    # }}}
+
 admin.site.register(Participation, ParticipationAdmin)
 
 
 class ParticipationPreapprovalAdmin(admin.ModelAdmin):
-    list_display = ["email", "course", "role"]
-    list_filter = ["course", "role"]
+    list_display = ("email", "course", "role", "creation_time", "creator")
+    list_filter = ("course", "role")
 
     search_fields = (
             "email",
             )
+
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(ParticipationPreapprovalAdmin, self).get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    exclude = ("creator", "creation_time")
+
+    def save_model(self, request, obj, form, change):
+        obj.creator = request.user
+        obj.save()
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(ParticipationPreapprovalAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
+
+    # }}}
 
 admin.site.register(ParticipationPreapproval, ParticipationPreapprovalAdmin)
 
@@ -258,8 +341,19 @@ class FlowSessionAdmin(admin.ModelAdmin):
     # {{{ permissions
 
     def has_add_permission(self, request):
-        # These are created only automatically.
+        # These are only created automatically.
         return False
+
+    def get_queryset(self, request):
+        qs = super(FlowSessionAdmin, self).get_queryset(request)
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(FlowSessionAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
 
     # }}}
 
@@ -377,6 +471,14 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
         # These are created only automatically.
         return False
 
+    def get_queryset(self, request):
+        qs = super(FlowPageVisitAdmin, self).get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(
+            flow_session__course__participations__user=request.user,
+            flow_session__course__participations__role=participation_role.instructor)
+
     # }}}
 
 admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
@@ -419,9 +521,24 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
 
     raw_id_fields = ("participation",)
 
+    # {{{ permissions
+
     def has_add_permission(self, request):
-        # These are created only automatically.
+        # These are only created automatically.
         return False
+
+    def get_queryset(self, request):
+        qs = super(FlowRuleExceptionAdmin, self).get_queryset(request)
+        return _filter_participation_linked_obj_for_user(qs, request.user)
+
+    exclude = ("creator", "creation_time")
+
+    def save_model(self, request, obj, form, change):
+        obj.creator = request.user
+        obj.save()
+
+    # }}}
+
 
 admin.site.register(FlowRuleException, FlowRuleExceptionAdmin)
 
@@ -432,10 +549,10 @@ admin.site.register(FlowRuleException, FlowRuleExceptionAdmin)
 
 class GradingOpportunityAdmin(admin.ModelAdmin):
     list_display = (
-            "course",
             "name",
-            "due_time",
+            "course",
             "identifier",
+            "due_time",
             "shown_in_grade_book",
             "shown_in_student_grade_book",
             )
@@ -450,6 +567,23 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
             "shown_in_grade_book",
             "shown_in_student_grade_book",
             )
+
+    # {{{ permissions
+
+    exclude = ("creation_time",)
+
+    def get_queryset(self, request):
+        qs = super(GradingOpportunityAdmin, self).get_queryset(request)
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(GradingOpportunityAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
+
+    # }}}
 
 admin.site.register(GradingOpportunity, GradingOpportunityAdmin)
 
@@ -510,7 +644,21 @@ class GradeChangeAdmin(admin.ModelAdmin):
             "state",
             )
 
-    raw_id_fields = ("participation", "flow_session",)
+    raw_id_fields = ("participation", "flow_session", "opportunity")
+
+    # {{{ permission
+
+    def get_queryset(self, request):
+        qs = super(GradeChangeAdmin, self).get_queryset(request)
+        return _filter_participation_linked_obj_for_user(qs, request.user)
+
+    exclude = ("creator", "grade_time")
+
+    def save_model(self, request, obj, form, change):
+        obj.creator = request.user
+        obj.save()
+
+    # }}}
 
 admin.site.register(GradeChange, GradeChangeAdmin)
 
@@ -547,11 +695,17 @@ class InstantMessageAdmin(admin.ModelAdmin):
             "participation__user__last_name",
             )
 
+    raw_id_fields = ("participation",)
+
     # {{{ permissions
 
     def has_add_permission(self, request):
         # These are created only automatically.
         return False
+
+    def get_queryset(self, request):
+        qs = super(InstantMessageAdmin, self).get_queryset(request)
+        return _filter_participation_linked_obj_for_user(qs, request.user)
 
     # }}}
 

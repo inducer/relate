@@ -31,10 +31,6 @@ Ideas
 
 - Session reset UI
 
-- Make admin site multi-course capable
-  https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.has_add_permission
-  https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.get_queryset
-
 - Manual grade entry/override
 
 - Flow results analytics
