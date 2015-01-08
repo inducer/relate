@@ -39,7 +39,7 @@
 
   <div style="margin-top:3ex">
   {% for event_info in event_info_list %}
-    <div id="event-{{ event_info.id }}" class="panel panel-default cf-calendar-event">
+    <div id="event-{{ event_info.id }}" class="panel panel-default relate-calendar-event">
       <div class="panel-heading">
         <b>{{ event_info.human_title }}</b>
         ({{ event_info.start_time }}{% if event_info.end_time %} - {{ event_info.end_time }}{% endif %})

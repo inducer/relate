@@ -19,25 +19,25 @@
     <div class="well flow-well">
       <div class="flow-nav">
         {% if page_data.ordinal > 0 %}
-          <a class="btn btn-default cf-nav-button"
+          <a class="btn btn-default relate-nav-button"
             href="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
             role="button">&laquo; Previous</a>
         {% else %}
-          <a class="btn btn-default cf-nav-button disabled"
+          <a class="btn btn-default relate-nav-button disabled"
             href="#"
             role="button">&laquo; Previous</a>
         {% endif %}
         {% if page_data.next_ordinal < flow_session.page_count %}
-          <a class="btn btn-default cf-nav-button"
+          <a class="btn btn-default relate-nav-button"
             href="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
             role="button">Next &raquo;</a>
         {% else %}
-          <a class="btn btn-default cf-nav-button disabled"
+          <a class="btn btn-default relate-nav-button disabled"
             href="#" role="button">Next &raquo;</a>
         {% endif %}
       </div>
       <div style="float:right">
-        <button type="submit" name="finish" class="btn btn-default cf-nav-button">End session</button>
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session</button>
       </div>
       {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
         <div class="flow-session-expiration-panel">
@@ -58,17 +58,17 @@
           </select>
         </div>
       {% endif %}
-      <div class="cf-flow-page-index">
+      <div class="relate-flow-page-index">
         {% for page_nr, shown_page_nr in page_numbers %}
           {% if page_nr == page_data.ordinal %}
-            <span class="cf-flow-page-number cf-current btn btn-default btn-xs disabled">{{ shown_page_nr }}</span>
+            <span class="relate-flow-page-number relate-current btn btn-default btn-xs disabled">{{ shown_page_nr }}</span>
           {% else %}
             <a href="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_nr %}">
-            <span class="cf-flow-page-number btn btn-default btn-xs
+            <span class="relate-flow-page-number btn btn-default btn-xs
               {% if page_nr < page_data.ordinal %}
-                cf-prior
+                relate-prior
               {% else %}
-                cf-subsequent
+                relate-subsequent
               {% endif %}
               ">{{ shown_page_nr }}
             </span></a>
@@ -174,7 +174,7 @@
         input_changed = false;
       }
 
-      $(".cf-save-button").on("click", before_save);
+      $(".relate-save-button").on("click", before_save);
     }
 
     $(document).ready(activate_change_listening);

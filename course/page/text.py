@@ -71,7 +71,7 @@ class TextAnswerForm(StyledForm):
 
             theme = "default"
             if read_only:
-                theme += " cf-readonly"
+                theme += " relate-readonly"
 
             from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
             return CodeMirrorTextarea(

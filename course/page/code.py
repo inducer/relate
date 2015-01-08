@@ -47,7 +47,7 @@ class PythonCodeForm(StyledForm):
 
         theme = "default"
         if read_only:
-            theme += " cf-readonly"
+            theme += " relate-readonly"
 
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
