@@ -147,12 +147,17 @@ class AnswerFeedback(object):
         if json is None:
             return json
 
+        if bulk_json is not None:
+            bulk_feedback = bulk_json.get("bulk_feedback")
+        else:
+            bulk_feedback = None
+
         return AnswerFeedback(
                 correctness=json["correctness"],
                 feedback=json["feedback"],
                 normalized_answer=json.get("normalized_answer",
                     NoNormalizedAnswerAvailable()),
-                bulk_feedback=bulk_json.get("bulk_feedback"),
+                bulk_feedback=bulk_feedback,
                 )
 
     def percentage(self):
