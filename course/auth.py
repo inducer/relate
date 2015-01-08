@@ -43,7 +43,7 @@ from course.models import (
         Participation, participation_role, participation_status,
         )
 
-from courseflow.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm
 
 
 # {{{ impersonation
@@ -53,7 +53,7 @@ class ImpersonateMiddleware(object):
         if request.user.is_staff and 'impersonate_id' in request.session:
             imp_id = request.session['impersonate_id']
 
-            request.courseflow_impersonate_original_user = request.user
+            request.relate_impersonate_original_user = request.user
             if imp_id is not None:
                 try:
                     request.user = User.objects.get(id=imp_id)
@@ -117,7 +117,7 @@ class StopImpersonatingForm(forms.Form):
 
 
 def stop_impersonating(request):
-    if not hasattr(request, "courseflow_impersonate_original_user"):
+    if not hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 "Not currently impersonating anyone.")
         return redirect("course.views.home")
@@ -143,7 +143,7 @@ def stop_impersonating(request):
 def impersonation_context_processor(request):
     return {
             "currently_impersonating":
-            hasattr(request, "courseflow_impersonate_original_user"),
+            hasattr(request, "relate_impersonate_original_user"),
             }
 
 # }}}
@@ -236,7 +236,7 @@ def sign_in_by_email(request):
                 "home_uri": request.build_absolute_uri(reverse("course.views.home"))
                 })
             from django.core.mail import send_mail
-            send_mail("Your CourseFlow sign-in link", message,
+            send_mail("Your RELATE sign-in link", message,
                     settings.ROBOT_EMAIL_FROM, recipient_list=[email])
 
             messages.add_message(request, messages.INFO,

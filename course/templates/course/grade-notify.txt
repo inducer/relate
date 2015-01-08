@@ -12,4 +12,4 @@ full text of the feedback follows.
 {{ feedback_text|safe }}
 -------------------------------------------------------------------
 
-- CourseFlow staff
+- RELATE staff

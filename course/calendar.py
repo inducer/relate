@@ -36,7 +36,7 @@ from crispy_forms.layout import Submit
 
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from courseflow.utils import StyledForm
+from relate.utils import StyledForm
 from course.models import (participation_role, Event)
 
 

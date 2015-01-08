@@ -1,7 +1,7 @@
 Installation
 ============
 
-CourseFlow currently works with Python 2.7. (This is because `dulwich
+RELATE currently works with Python 2.7. (This is because `dulwich
 <https://www.samba.org/~jelmer/dulwich/>`_, a dependency, does not yet support
 Python 3.)
 
@@ -10,16 +10,16 @@ web page.
 
 (Optional) Make a virtualenv to install to::
 
-    virtualenv --system-site-packages my-courseflow-env
-    source my-courseflow-env/bin/activate
+    virtualenv --system-site-packages my-relate-env
+    source my-relate-env/bin/activate
 
 To install, clone the repository::
 
-    git clone git://github.com/inducer/courseflow
+    git clone git://github.com/inducer/relate
 
-Enter the courseflow directory::
+Enter the relate directory::
 
-    cd courseflow
+    cd relate
 
 Install the dependencies::
 
@@ -77,7 +77,7 @@ First public release.
 License
 =======
 
-CourseFlow is licensed to you under the MIT/X Consortium license:
+RELATE is licensed to you under the MIT/X Consortium license:
 
 Copyright (c) 2014 Andreas Klöckner and Contributors.
 

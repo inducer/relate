@@ -119,7 +119,7 @@ def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
             if exc.expiration is not None and now_datetime > exc.expiration:
                 continue
 
-            from courseflow.utils import dict_to_struct
+            from relate.utils import dict_to_struct
             rules.insert(0, dict_to_struct(exc.rule))
 
     return rules

@@ -20,4 +20,4 @@ for help. One possible recovery is to enable sticky versioning for the flow,
 another is to delete their flow session (and lose all their input so far in
 this flow).
 
-- CourseFlow staff
+- RELATE staff

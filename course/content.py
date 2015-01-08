@@ -40,7 +40,7 @@ from HTMLParser import HTMLParser
 
 from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
 
-from courseflow.utils import dict_to_struct
+from relate.utils import dict_to_struct
 
 import threading
 
@@ -164,7 +164,7 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     """Return decoded, struct-ified YAML data structure from
     the given file in *repo* at *commit_sha*.
 
-    See :class:`courseflow.utils.Struct` for more on
+    See :class:`relate.utils.Struct` for more on
     struct-ification.
     """
 
@@ -336,7 +336,7 @@ class LinkFixerExtension(Extension):
         self.reverse_func = reverse_func
 
     def extendMarkdown(self, md, md_globals):
-        md.treeprocessors["courseflow_link_fixer"] = \
+        md.treeprocessors["relate_link_fixer"] = \
                 LinkFixerTreeprocessor(md, self.course, self.commit_sha,
                         reverse_func=self.reverse_func)
 

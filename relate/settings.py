@@ -1,5 +1,5 @@
 """
-Django settings for courseflow project.
+Django settings for relate project.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/dev/topics/settings/
@@ -67,7 +67,7 @@ AUTHENTICATION_BACKENDS = (
 TEMPLATE_CONTEXT_PROCESSORS = (
         TEMPLATE_CONTEXT_PROCESSORS
         + (
-            "courseflow.utils.settings_context_processor",
+            "relate.utils.settings_context_processor",
             "course.auth.impersonation_context_processor",
             "course.views.fake_time_context_processor",
             )
@@ -98,14 +98,14 @@ CODEMIRROR_PATH = "codemirror"
 
 # }}}
 
-ROOT_URLCONF = 'courseflow.urls'
+ROOT_URLCONF = 'relate.urls'
 
-WSGI_APPLICATION = 'courseflow.wsgi.application'
+WSGI_APPLICATION = 'relate.wsgi.application'
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 TEMPLATE_DIRS = (
-        join(BASE_DIR, "courseflow", "templates"),
+        join(BASE_DIR, "relate", "templates"),
         )
 
 
@@ -137,14 +137,14 @@ LOGIN_REDIRECT_URL = "/"
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
 STATICFILES_DIRS = (
-        join(BASE_DIR, "courseflow", "static"),
+        join(BASE_DIR, "relate", "static"),
         )
 
 STATIC_URL = '/static/'
 
 STATIC_ROOT = join(BASE_DIR, "static")
 
-SESSION_COOKIE_NAME = 'courseflow_sessionid'
+SESSION_COOKIE_NAME = 'relate_sessionid'
 SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 for name, val in local_settings.items():

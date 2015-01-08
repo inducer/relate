@@ -29,7 +29,7 @@ from course.validation import validate_struct, ValidationError
 import django.forms as forms
 from django.utils.html import escape
 
-from courseflow.utils import StyledForm, Struct
+from relate.utils import StyledForm, Struct
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer)
@@ -518,7 +518,7 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
 
 # {{{ validators
 
-class CourseFlowPageValidator(object):
+class RELATEPageValidator(object):
     type = "cfpage"
 
     def __init__(self, vctx, location, validator_desc):
@@ -537,7 +537,7 @@ class CourseFlowPageValidator(object):
                 )
 
     def validate(self, new_page_source):
-        from courseflow.utils import dict_to_struct
+        from relate.utils import dict_to_struct
         import yaml
 
         try:
@@ -564,7 +564,7 @@ class CourseFlowPageValidator(object):
 
 
 TEXT_ANSWER_VALIDATOR_CLASSES = [
-        CourseFlowPageValidator,
+        RELATEPageValidator,
         ]
 
 

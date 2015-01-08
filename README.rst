@@ -1,23 +1,25 @@
-CourseFlow
-==========
+RELATE
+======
+
+A Resource Environment for Learning and TEaching (formerly known as CourseFlow)
 
 *"I just want to ask my students some quiz questions online. How hard could it
 possibly be?"*
 
-CourseFlow is a `Django <https://docs.djangoproject.com/>`_-based courseware
+RELATE is a `Django <https://docs.djangoproject.com/>`_-based courseware
 package that lets students participate in online activities. Each such activity
 is called a "flow". It flows over a couple of pages, each of which can be, say,
 a video, a quiz question, a page of text, or, within the confines of HTML,
 something completely different.
 
-CourseFlow is set apart by the following features:
+RELATE is set apart by the following features:
 
 * Emphasizes ease of authoring, using `YAML <https://en.wikipedia.org/wiki/YAML>`_,
   `Markdown <https://en.wikipedia.org/wiki/Markdown>`_ and Python.
-  See `example content <https://github.com/inducer/courseflow-sample>`_.
+  See `example content <https://github.com/inducer/relate-sample>`_.
 * Versioning of content through deep integration with `git <https://git-scm.org>`_.
   Instructors can preview newly-authored content while students work with
-  prior versions, all from the same instance of CourseFlow.
+  prior versions, all from the same instance of RELATE.
 * Code questions:
 
   * Allow students to write Python code into a text box (with syntax highlighting)
@@ -37,13 +39,13 @@ CourseFlow is set apart by the following features:
 
 More information around the web:
 
-* `See it in action <https://courseflow.cs.illinois.edu/course/cs357-f14>`_
-* `Documentation <http://documen.tician.de/courseflow>`_
+* `See it in action <https://relate.cs.illinois.edu/course/cs357-f14>`_
+* `Documentation <http://documen.tician.de/relate>`_
 
 Installation
 ------------
 
-See the `installation guide <http://documen.tician.de/courseflow/misc.html#installation>`_.
+See the `installation guide <http://documen.tician.de/relate/misc.html#installation>`_.
 
 License
 -------

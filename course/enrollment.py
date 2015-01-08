@@ -46,7 +46,7 @@ from course.models import (
 from course.views import get_role_and_participation
 from course.utils import course_view, render_course_page
 
-from courseflow.utils import StyledForm
+from relate.utils import StyledForm
 
 
 # {{{ enrollment

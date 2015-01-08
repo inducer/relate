@@ -19,4 +19,4 @@ One common reason for this may be that you may have used your personal email
 to sign in. If that is the case, please use the official account and
 try again.
 {% endif %}
-- CourseFlow staff
+- RELATE staff

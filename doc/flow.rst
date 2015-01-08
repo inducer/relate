@@ -1,7 +1,7 @@
 Flows
 =====
 
-All interactive content in CourseFlow is part of a *flow*.
+All interactive content in RELATE is part of a *flow*.
 
 
 .. _flow-access-rules:
@@ -14,7 +14,7 @@ Access rules
 Permissions
 -----------
 
-CourseFlow currently supports the following permissions:
+RELATE currently supports the following permissions:
 
 .. currentmodule:: course.constants
 

@@ -6,6 +6,6 @@ Details of the problem are below:
 
 {{ error_message|safe }}
 
-- CourseFlow
+- RELATE
 
 

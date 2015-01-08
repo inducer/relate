@@ -33,7 +33,7 @@ from course.page.base import (
         markup_to_html)
 from course.validation import ValidationError
 
-from courseflow.utils import StyledForm
+from relate.utils import StyledForm
 
 
 # {{{ upload question

@@ -35,7 +35,7 @@ from django.utils.safestring import mark_safe
 from django import forms
 from django import http
 
-from courseflow.utils import StyledForm, local_now, as_local_time
+from relate.utils import StyledForm, local_now, as_local_time
 from crispy_forms.layout import Submit
 
 from course.constants import (

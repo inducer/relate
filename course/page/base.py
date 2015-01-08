@@ -30,7 +30,7 @@ import re
 
 from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
-from courseflow.utils import StyledForm, Struct
+from relate.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
 
@@ -546,8 +546,8 @@ class HumanTextFeedbackForm(StyledForm):
                 required=False,
                 help_text=mark_safe("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
-                    "courseflow/content.html#courseflow-markup'>"
-                    "CourseFlow-flavored Markdown</a>"))
+                    "relate/content.html#courseflow-markup'>"
+                    "RELATE-flavored Markdown</a>"))
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text="Checking this box and submitting the form "
