@@ -287,7 +287,9 @@ class HasAnswerListFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
-        return queryset.filter(answer__isnull=self.value() == "y")
+        if self.value() is None:
+            return queryset
+        return queryset.filter(answer__isnull=self.value() != "y")
 
 
 class FlowPageVisitAdmin(admin.ModelAdmin):
