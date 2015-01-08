@@ -299,7 +299,7 @@ urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
 )
 
-if settings.CF_MAINTENANCE_MODE:
+if settings.RELATE_MAINTENANCE_MODE:
     urlpatterns = patterns('',
         # course
         url(r'^.*$', 'course.views.maintenance'),

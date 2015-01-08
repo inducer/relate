@@ -1,11 +1,11 @@
 FROM inducer/debian-i386
 MAINTAINER Andreas Kloeckner <inform@tiker.net>
 EXPOSE 9941
-RUN useradd cfrunpy
+RUN useradd runpy
 
-RUN mkdir -p /opt/cfrunpy
-ADD cfrunpy /opt/cfrunpy/
-ADD cfrunpy_backend.py /opt/cfrunpy/
+RUN mkdir -p /opt/runpy
+ADD runpy /opt/runpy/
+ADD runpy_backend.py /opt/runpy/
 
 RUN apt-get update
 RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install python3-scipy python3-pip python3-matplotlib python3-pillow

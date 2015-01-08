@@ -67,6 +67,6 @@ STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_email"
 
 # A string containing the image ID of the docker image to be used to run
 # student code. Docker should download the image on first run.
-CF_DOCKER_CFRUNPY_IMAGE = "inducer/cfrunpy-i386"
+RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 
-CF_MAINTENANCE_MODE = False
+RELATE_MAINTENANCE_MODE = False

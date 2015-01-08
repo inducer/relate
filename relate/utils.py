@@ -54,7 +54,7 @@ def settings_context_processor(request):
     from django.conf import settings
     return {
         "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
-        "maintenance_mode": settings.CF_MAINTENANCE_MODE,
+        "maintenance_mode": settings.RELATE_MAINTENANCE_MODE,
         }
 
 

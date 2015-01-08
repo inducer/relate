@@ -98,7 +98,7 @@ class PythonCodeForm(StyledForm):
         pass
 
 
-CFRUNPY_PORT = 9941
+RUNPY_PORT = 9941
 
 
 class InvalidPingResponse(RuntimeError):
@@ -132,15 +132,15 @@ def request_python_run(run_req, run_timeout, image=None):
                 version='1.12', timeout=docker_timeout)
 
         if image is None:
-            image = settings.CF_DOCKER_CFRUNPY_IMAGE
+            image = settings.RELATE_DOCKER_RUNPY_IMAGE
 
         dresult = docker_cnx.create_container(
                 image=image,
                 command=[
-                    "/opt/cfrunpy/cfrunpy",
+                    "/opt/runpy/runpy",
                     "-1"],
                 mem_limit=256e6,
-                user="cfrunpy")
+                user="runpy")
 
         container_id = dresult["Id"]
     else:
@@ -152,12 +152,12 @@ def request_python_run(run_req, run_timeout, image=None):
         if container_id is not None:
             docker_cnx.start(
                     container_id,
-                    port_bindings={CFRUNPY_PORT: ('127.0.0.1',)})
+                    port_bindings={RUNPY_PORT: ('127.0.0.1',)})
 
-            port_info, = docker_cnx.port(container_id, CFRUNPY_PORT)
+            port_info, = docker_cnx.port(container_id, RUNPY_PORT)
             port = int(port_info["HostPort"])
         else:
-            port = CFRUNPY_PORT
+            port = RUNPY_PORT
 
         from time import time, sleep
         start_time = time()
@@ -627,7 +627,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             correctness = 0
         else:
-            raise RuntimeError("invalid cfrunpy result: %s" % response.result)
+            raise RuntimeError("invalid runpy result: %s" % response.result)
 
         if hasattr(response, "feedback") and response.feedback:
             feedback_bits.append(
