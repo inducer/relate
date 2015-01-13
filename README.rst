@@ -1,7 +1,7 @@
 RELATE
 ======
 
-A Resource Environment for Learning and TEaching (formerly known as CourseFlow)
+Relate is an Environment for Learning and TEaching (formerly known as CourseFlow)
 
 *"I just want to ask my students some quiz questions online. How hard could it
 possibly be?"*
