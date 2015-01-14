@@ -28,7 +28,7 @@ THE SOFTWARE.
 from django.contrib.auth.decorators import login_required
 from course.utils import course_view, render_course_page
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.contrib import messages  # noqa
 import django.forms as forms
 
@@ -90,6 +90,40 @@ class RecurringEventForm(StyledForm):
 
 
 @transaction.atomic
+def _create_recurring_events_backend(course, time, kind, starting_ordinal, interval,
+        count, duration_in_minutes):
+    ordinal = starting_ordinal
+
+    import datetime
+
+    for i in xrange(count):
+        evt = Event()
+        evt.course = course
+        evt.kind = kind
+        evt.ordinal = ordinal
+        evt.time = time
+
+        if duration_in_minutes:
+            evt.end_time = evt.time + datetime.timedelta(
+                    minutes=duration_in_minutes)
+        try:
+            evt.save()
+        except IntegrityError:
+            raise RuntimeError("'%s %d' already exists." % (kind, ordinal))
+
+        if interval == "weekly":
+            date = time.date()
+            date += datetime.timedelta(weeks=1)
+            time = time.tzinfo.localize(
+                    datetime.datetime(date.year, date.month, date.day,
+                        time.hour, time.minute, time.second))
+            del date
+        else:
+            raise ValueError("unknown interval: %s" % interval)
+
+        ordinal += 1
+
+
 @login_required
 @course_view
 def create_recurring_events(pctx):
@@ -102,38 +136,21 @@ def create_recurring_events(pctx):
         form = RecurringEventForm(request.POST, request.FILES)
         if form.is_valid():
 
-            time = form.cleaned_data["time"]
-            ordinal = form.cleaned_data["starting_ordinal"]
-            interval = form.cleaned_data["interval"]
-
-            import datetime
-
-            for i in xrange(form.cleaned_data["count"]):
-                evt = Event()
-                evt.course = pctx.course
-                evt.kind = form.cleaned_data["kind"]
-                evt.ordinal = ordinal
-                evt.time = time
-
-                if form.cleaned_data["duration_in_minutes"]:
-                    evt.end_time = evt.time + datetime.timedelta(
-                            minutes=form.cleaned_data["duration_in_minutes"])
-                evt.save()
-
-                if interval == "weekly":
-                    date = time.date()
-                    date += datetime.timedelta(weeks=1)
-                    time = time.tzinfo.localize(
-                            datetime.datetime(date.year, date.month, date.day,
-                                time.hour, time.minute, time.second))
-                    del date
-                else:
-                    raise ValueError("unknown interval: %s" % interval)
-
-                ordinal += 1
-
-            messages.add_message(request, messages.SUCCESS,
-                    "Events created.")
+            try:
+                _create_recurring_events_backend(
+                        course=pctx.course,
+                        time=form.cleaned_data["time"],
+                        kind=form.cleaned_data["kind"],
+                        starting_ordinal=form.cleaned_data["starting_ordinal"],
+                        interval=form.cleaned_data["interval"],
+                        count=form.cleaned_data["count"],
+                        duration_in_minutes=form.cleaned_data["duration_in_minutes"])
+            except Exception as e:
+                messages.add_message(request, messages.ERROR,
+                        "%s: %s. No events created." % (type(e).__name__, str(e)))
+            else:
+                messages.add_message(request, messages.SUCCESS,
+                        "Events created.")
     else:
         form = RecurringEventForm()
 
