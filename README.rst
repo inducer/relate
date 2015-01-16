@@ -3,34 +3,34 @@ RELATE
 
 Relate is an Environment for Learning And TEaching (formerly known as CourseFlow)
 
-*"I just want to ask my students some quiz questions online. How hard could it
-possibly be?"*
+RELATE is a web-based courseware package.  It is set apart by the following
+features:
 
-RELATE is a `Django <https://docs.djangoproject.com/>`_-based courseware
-package that lets students participate in online activities. Each such activity
-is called a "flow". It flows over a couple of pages, each of which can be, say,
-a video, a quiz question, a page of text, or, within the confines of HTML,
-something completely different.
+* Focus on easy content creation
 
-RELATE is set apart by the following features:
+  * Simple, text-based format for reusable course content
+  * Based on standard `YAML <https://en.wikipedia.org/wiki/YAML>`_,
+    `Markdown <https://en.wikipedia.org/wiki/Markdown>`_
+  * Instructors can implement custom question/page types in Python.
 
-* Emphasizes ease of authoring, using `YAML <https://en.wikipedia.org/wiki/YAML>`_,
-  `Markdown <https://en.wikipedia.org/wiki/Markdown>`_ and Python.
   See `example content <https://github.com/inducer/relate-sample>`_.
+
+* Flexible rules for participation, access, and grading
 * Versioning of content through deep integration with `git <https://git-scm.org>`_.
   Instructors can preview newly-authored content while students work with
   prior versions, all from the same instance of RELATE.
+* Multiple courses can be hosted on the same installation
 * Code questions:
 
-  * Allow students to write Python code into a text box (with syntax highlighting)
+  * Allow students to write code into a text box (with syntax highlighting)
   * Sandboxed execution
   * Automatic grading
-  * Plotting through integration with `matplotlib <http://matplotlib.org>`_
+  * Plotting support
   * Optional second-stage grading by a human
 
-* Class calendar and grade book included.
-* Statistics of student answers.
-* Allows live quizzes in the classroom.
+* Class calendar and grade book functionality.
+* Statistics/analytics of student answers.
+* Facilitates live quizzes in the classroom.
 * In-class instant messaging via XMPP.
   Works well with `xmpp-popup <https://github.com/inducer/xmpp-popup>`_.
 * Built-in support for `VideoJS <http://www.videojs.com/>`_ offers
@@ -39,8 +39,8 @@ RELATE is set apart by the following features:
 
 More information around the web:
 
-* `See it in action <https://relate.cs.illinois.edu/course/cs357-f14>`_
 * `Documentation <http://documen.tician.de/relate>`_
+* `Source code <https://github.com/inducer/relate>`_
 
 Installation
 ------------
