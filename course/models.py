@@ -372,7 +372,7 @@ class FlowPageVisit(models.Model):
 
     answer = JSONField(null=True, blank=True)
 
-    # is_graded_answer may seem redundant with answers being
+    # is_submitted_answer may seem redundant with answers being
     # non-NULL, but it isn't. This supports saved (but as
     # yet ungraded) answers.
 
@@ -380,7 +380,7 @@ class FlowPageVisit(models.Model):
     #   (Should coincide with 'answer is None')
     # True means it's a graded answer.
     # False means it's just a saved answer.
-    is_graded_answer = models.NullBooleanField()
+    is_submitted_answer = models.NullBooleanField()
 
     def __unicode__(self):
         result = "'%s/%s' in '%s' on %s" % (

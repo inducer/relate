@@ -427,7 +427,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
 
     list_filter = (
             HasAnswerListFilter,
-            "is_graded_answer",
+            "is_submitted_answer",
             "is_synthetic",
             "flow_session__participation__course",
             "flow_session__flow_id",
@@ -442,7 +442,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             "get_flow_session_id",
             "visit_time",
             "get_answer_is_null",
-            "is_graded_answer",
+            "is_submitted_answer",
             "is_synthetic",
             )
     list_display_links = (

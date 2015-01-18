@@ -68,7 +68,7 @@ from course.views import get_now_or_fake_time
 
 def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
         grade_data=None, graded_at_git_commit_sha=None):
-    if not visit.is_graded_answer:
+    if not visit.is_submitted_answer:
         raise RuntimeError("cannot grade ungraded answer")
 
     flow_session = visit.flow_session
@@ -152,7 +152,7 @@ def get_flow_session_graded_answers_qset(flow_session):
         # Ungraded answers *can* show up in non-in-progress flows as a result
         # of a race between a 'save' and the 'end session'. If this happens,
         # we'll go ahead and ignore those.
-        qset = qset.filter(is_graded_answer=True)
+        qset = qset.filter(is_submitted_answer=True)
 
     return qset
 
@@ -180,7 +180,7 @@ def assemble_answer_visits(flow_session):
         answer_visits[page_visit.page_data.ordinal] = page_visit
 
         if not flow_session.in_progress:
-            assert page_visit.is_graded_answer is True
+            assert page_visit.is_submitted_answer is True
 
     return answer_visits
 
@@ -360,7 +360,7 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
         answer_visit = answer_visits[i]
 
         if answer_visit is not None:
-            answer_visit.is_graded_answer = True
+            answer_visit.is_submitted_answer = True
             answer_visit.save()
 
         else:
@@ -376,7 +376,7 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
             answer_visit.page_data = page_data
             answer_visit.is_synthetic = True
             answer_visit.answer = None
-            answer_visit.is_graded_answer = True
+            answer_visit.is_submitted_answer = True
             answer_visit.save()
 
             answer_visits[i] = answer_visit
@@ -854,7 +854,7 @@ def create_flow_page_visit(request, flow_session, page_data):
         flow_session=flow_session,
         page_data=page_data,
         remote_address=request.META['REMOTE_ADDR'],
-        is_graded_answer=None).save()
+        is_submitted_answer=None).save()
 
 
 @course_view
@@ -928,7 +928,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
             # reject if previous answer was final
             if (fpctx.prev_answer_visit is not None
-                    and fpctx.prev_answer_visit.is_graded_answer
+                    and fpctx.prev_answer_visit.is_submitted_answer
                     and flow_permission.change_answer
                         not in permissions):
                 raise PermissionDenied("already have final answer")
@@ -953,10 +953,10 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 answer_data = page_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
                         form, request.FILES)
-                page_visit.is_graded_answer = pressed_button == "submit"
+                page_visit.is_submitted_answer = pressed_button == "submit"
                 page_visit.save()
 
-                answer_was_graded = page_visit.is_graded_answer
+                answer_was_graded = page_visit.is_submitted_answer
                 may_change_answer = (
                     not answer_was_graded
                     or flow_permission.change_answer
@@ -966,7 +966,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                         page_context, page_data.data, page_visit.answer,
                         grade_data=None)
 
-                if page_visit.is_graded_answer:
+                if page_visit.is_submitted_answer:
                     grade = FlowPageVisitGrade()
                     grade.visit = page_visit
                     grade.max_points = fpctx.page.max_points(page_data.data)
@@ -1026,7 +1026,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         create_flow_page_visit(request, flow_session, fpctx.page_data)
 
         if fpctx.prev_answer_visit is not None:
-            answer_was_graded = fpctx.prev_answer_visit.is_graded_answer
+            answer_was_graded = fpctx.prev_answer_visit.is_submitted_answer
         else:
             answer_was_graded = False
 

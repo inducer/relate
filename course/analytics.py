@@ -266,7 +266,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         flow_session__flow_id=flow_identifier,
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
-                        is_graded_answer=True,
+                        is_submitted_answer=True,
                         ))
 
             if is_multiple_submit and connection.features.can_distinct_on_fields:
@@ -419,7 +419,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
                 flow_session__flow_id=flow_identifier,
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
-                is_graded_answer=True,
+                is_submitted_answer=True,
                 ))
 
     if is_multiple_submit and connection.features.can_distinct_on_fields:
