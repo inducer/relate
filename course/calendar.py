@@ -79,7 +79,7 @@ class RecurringEventForm(StyledForm):
             choices=(
                 ("weekly", "Weekly"),
                 ))
-    starting_ordinal = forms.IntegerField(required=True, initial=1)
+    starting_ordinal = forms.IntegerField(required=False, initial=1)
     count = forms.IntegerField(required=True)
 
     def __init__(self, *args, **kwargs):
@@ -87,6 +87,10 @@ class RecurringEventForm(StyledForm):
 
         self.helper.add_input(
                 Submit("submit", "Create", css_class="col-lg-offset-2"))
+
+
+class EventAlreadyExists(Exception):
+    pass
 
 
 @transaction.atomic
@@ -109,7 +113,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         try:
             evt.save()
         except IntegrityError:
-            raise RuntimeError("'%s %d' already exists" % (kind, ordinal))
+            raise EventAlreadyExists("'%s %d' already exists" % (kind, ordinal))
 
         if interval == "weekly":
             date = time.date()
@@ -135,22 +139,42 @@ def create_recurring_events(pctx):
     if request.method == "POST":
         form = RecurringEventForm(request.POST, request.FILES)
         if form.is_valid():
-
-            try:
-                _create_recurring_events_backend(
-                        course=pctx.course,
-                        time=form.cleaned_data["time"],
-                        kind=form.cleaned_data["kind"],
-                        starting_ordinal=form.cleaned_data["starting_ordinal"],
-                        interval=form.cleaned_data["interval"],
-                        count=form.cleaned_data["count"],
-                        duration_in_minutes=form.cleaned_data["duration_in_minutes"])
-            except Exception as e:
-                messages.add_message(request, messages.ERROR,
-                        "%s: %s. No events created." % (type(e).__name__, str(e)))
+            if form.cleaned_data["starting_ordinal"] is not None:
+                starting_ordinal = form.cleaned_data["starting_ordinal"]
+                starting_ordinal_specified = True
             else:
-                messages.add_message(request, messages.SUCCESS,
-                        "Events created.")
+                starting_ordinal = 1
+                starting_ordinal_specified = False
+
+            while True:
+                try:
+                    _create_recurring_events_backend(
+                            course=pctx.course,
+                            time=form.cleaned_data["time"],
+                            kind=form.cleaned_data["kind"],
+                            starting_ordinal=starting_ordinal,
+                            interval=form.cleaned_data["interval"],
+                            count=form.cleaned_data["count"],
+                            duration_in_minutes=(
+                                form.cleaned_data["duration_in_minutes"]))
+                except EventAlreadyExists as e:
+                    if starting_ordinal_specified:
+                        messages.add_message(request, messages.ERROR,
+                                "%s: %s. No events created." % (
+                                    type(e).__name__, str(e)))
+                    else:
+                        starting_ordinal += 10
+                        continue
+
+                except Exception as e:
+                    messages.add_message(request, messages.ERROR,
+                            "%s: %s. No events created." % (
+                                type(e).__name__, str(e)))
+                else:
+                    messages.add_message(request, messages.SUCCESS,
+                            "Events created.")
+
+                break
     else:
         form = RecurringEventForm()
 
