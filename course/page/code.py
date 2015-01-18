@@ -244,6 +244,36 @@ def request_python_run(run_req, run_timeout, image=None):
                 pass
 
 
+def request_python_run_with_retries(run_req, run_timeout, image=None, retry_count=3):
+    while True:
+        result = request_python_run(run_req, run_timeout, image=image)
+
+        if result["result"] != "uncaught_error":
+            return result
+
+        if ("traceback" in result
+                and "BadStatusLine" in result["traceback"]
+                and retry_count):
+
+            # Occasionally, we fail to send a POST to the container, even after
+            # the inital ping GET succeeded, for (for now) mysterious reasons.
+            # Just try again.
+
+            retry_count -= 1
+            continue
+
+        if ("traceback" in result
+                and "bind: address already in use" in result["traceback"]
+                and retry_count):
+
+            # https://github.com/docker/docker/issues/8714
+
+            retry_count -= 1
+            continue
+
+        return result
+
+
 class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     """
     An auto-graded question allowing an answer consisting of Python code.
@@ -525,7 +555,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                                     page_context.commit_sha).data)
 
         try:
-            response_dict = request_python_run(run_req,
+            response_dict = request_python_run_with_retries(run_req,
                     run_timeout=self.page_desc.timeout)
         except:
             from traceback import format_exc
