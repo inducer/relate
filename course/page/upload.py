@@ -58,6 +58,10 @@ class FileUploadForm(StyledForm):
                     % (filesizeformat(self.max_file_size),
                         filesizeformat(uploaded_file._size)))
 
+        if self.mime_types is not None and self.mime_types == ["application/pdf"]:
+            if uploaded_file.read()[:4] != "%PDF":
+                raise forms.ValidationError("Uploaded file is not a PDF.")
+
         return uploaded_file
 
 
