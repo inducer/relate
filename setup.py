@@ -8,7 +8,7 @@ from setuptools import setup
 # for deploying RELATE as a web service.
 
 setup(name="relate-validation",
-      version="2014.1",
+      version="2015.1",
       description="Installer for the RELATE validation script",
 
       scripts=["bin/relate-validate"],
