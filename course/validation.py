@@ -329,7 +329,7 @@ def validate_flow_group(ctx, location, grp):
 
 # {{{ flow access rules
 
-def validate_new_session_rule(ctx, location, nrule, tags):
+def validate_session_start_rule(ctx, location, nrule, tags):
     validate_struct(
             ctx, location, nrule,
             required_attrs=[],
@@ -339,6 +339,8 @@ def validate_new_session_rule(ctx, location, nrule, tags):
                 ("if_has_role", list),
                 ("if_has_fewer_sessions_than", int),
                 ("tag_session", str),
+                ("may_start_new_session", bool),
+                ("may_list_existing_sessions", bool),
                 ]
             )
 
@@ -351,6 +353,15 @@ def validate_new_session_rule(ctx, location, nrule, tags):
             validate_role(
                     "%s, role %d" % (location, j+1),
                     role)
+
+    if not hasattr(nrule, "may_start_new_session"):
+        ctx.add_warning(
+                location+", rules",
+                "attribute 'may_start_new_session' is not present")
+    if not hasattr(nrule, "may_list_existing_sessions"):
+        ctx.add_warning(
+                location+", rules",
+                "attribute 'may_list_existing_sessions' is not present")
 
     if hasattr(nrule, "tag_session"):
         if nrule.tag_session not in tags:
@@ -475,7 +486,7 @@ def validate_flow_rules(ctx, location, rules):
                 ],
             allowed_attrs=[
                 # may not start with an underscore
-                ("new_session", list),
+                ("start", list),
                 ("tags", list),
                 ]
             )
@@ -487,10 +498,10 @@ def validate_flow_rules(ctx, location, rules):
 
     # {{{ validate new-session rules
 
-    if hasattr(rules, "new_session"):
-        for i, nrule in enumerate(rules.new_session):
-            validate_new_session_rule(
-                    ctx, "%s, rules/new_session %d" % (location,  i+1),
+    if hasattr(rules, "start"):
+        for i, nrule in enumerate(rules.start):
+            validate_session_start_rule(
+                    ctx, "%s, rules/start %d" % (location,  i+1),
                     nrule, tags)
 
     # }}}

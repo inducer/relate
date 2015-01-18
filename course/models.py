@@ -604,7 +604,7 @@ class FlowRuleException(models.Model):
 
         from course.validation import (
                 ValidationError as ContentValidationError,
-                validate_new_session_rule,
+                validate_session_start_rule,
                 validate_session_access_rule,
                 validate_session_grading_rule,
                 ValidationContext)
@@ -631,8 +631,8 @@ class FlowRuleException(models.Model):
             tags = getattr(flow_desc.rules, "tags", None)
 
         try:
-            if self.kind == flow_rule_kind.new_session:
-                validate_new_session_rule(ctx, unicode(self), rule, tags)
+            if self.kind == flow_rule_kind.start:
+                validate_session_start_rule(ctx, unicode(self), rule, tags)
             elif self.kind == flow_rule_kind.access:
                 validate_session_access_rule(ctx, unicode(self), rule, tags)
             elif self.kind == flow_rule_kind.grading:

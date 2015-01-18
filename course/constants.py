@@ -146,13 +146,13 @@ FLOW_PERMISSION_CHOICES = (
 
 
 class flow_rule_kind:
-    new_session = "new_session"
+    start = "start"
     access = "access"
     grading = "grading"
 
 
 FLOW_RULE_KIND_CHOICES = (
-        (flow_rule_kind.new_session, "New Session"),
+        (flow_rule_kind.start, "Session Start"),
         (flow_rule_kind.access, "Session Access"),
         (flow_rule_kind.grading, "Grading"),
         )

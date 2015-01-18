@@ -57,7 +57,7 @@ from course.utils import (
         FlowContext, FlowPageContext,
         instantiate_flow_page_with_ctx,
         course_view, render_course_page,
-        get_new_session_rule,
+        get_session_start_rule,
         get_session_access_rule,
         get_session_grading_rule,
         FlowSessionGradingRule)
@@ -437,17 +437,17 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         return False
 
     if flow_session.expiration_mode == flow_session_expriration_mode.roll_over:
-        new_session_rule = get_new_session_rule(flow_session.course,
+        session_start_rule = get_session_start_rule(flow_session.course,
                 flow_session.participation, flow_session.participation.role,
                 flow_session.flow_id, fctx.flow_desc, now_datetime,
                 for_rollover=True)
 
-        if new_session_rule is None:
+        if not session_start_rule.may_start_new_session:
             # No new session allowed: finish.
             return finish_flow_session(fctx, flow_session, grading_rule,
                     now_datetime=now_datetime)
 
-        flow_session.access_rules_tag = new_session_rule.tag_session
+        flow_session.access_rules_tag = session_start_rule.tag_session
 
         access_rule = get_session_access_rule(flow_session,
                 flow_session.participation.role,
@@ -684,7 +684,7 @@ def start_flow(pctx, flow_identifier):
     fctx = FlowContext(pctx.repo, pctx.course, flow_identifier,
             participation=pctx.participation)
 
-    new_session_rule = get_new_session_rule(pctx.course, pctx.participation,
+    session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
             pctx.role, flow_identifier, fctx.flow_desc, now_datetime)
 
     if request.method == "POST":
@@ -692,7 +692,7 @@ def start_flow(pctx, flow_identifier):
 
         if "start" in request.POST:
 
-            if new_session_rule is None:
+            if not session_start_rule.may_start_new_session:
                 raise PermissionDenied("new session not allowed")
 
             session = FlowSession(
@@ -702,7 +702,7 @@ def start_flow(pctx, flow_identifier):
                 flow_id=flow_identifier,
                 in_progress=True,
                 expiration_mode=flow_session_expriration_mode.end,
-                access_rules_tag=new_session_rule.tag_session)
+                access_rules_tag=session_start_rule.tag_session)
 
             session.save()
 
@@ -736,37 +736,40 @@ def start_flow(pctx, flow_identifier):
             raise SuspiciousOperation("unrecognized POST action")
 
     else:
-        past_sessions = (FlowSession.objects
-                .filter(
-                    participation=pctx.participation,
-                    flow_id=fctx.flow_identifier,
-                    participation__isnull=False)
-               .order_by("start_time"))
+        if session_start_rule.may_list_existing_sessions:
+            past_sessions = (FlowSession.objects
+                    .filter(
+                        participation=pctx.participation,
+                        flow_id=fctx.flow_identifier,
+                        participation__isnull=False)
+                   .order_by("start_time"))
 
-        from collections import namedtuple
-        SessionProperties = namedtuple("SessionProperties",
-                ["may_view", "may_modify", "due", "grade_description"])
+            from collections import namedtuple
+            SessionProperties = namedtuple("SessionProperties",
+                    ["may_view", "may_modify", "due", "grade_description"])
 
-        past_sessions_and_properties = []
-        for session in past_sessions:
-            access_rule = get_session_access_rule(
-                    session, pctx.role, fctx.flow_desc, now_datetime)
-            grading_rule = get_session_grading_rule(
-                    session, pctx.role, fctx.flow_desc, now_datetime)
+            past_sessions_and_properties = []
+            for session in past_sessions:
+                access_rule = get_session_access_rule(
+                        session, pctx.role, fctx.flow_desc, now_datetime)
+                grading_rule = get_session_grading_rule(
+                        session, pctx.role, fctx.flow_desc, now_datetime)
 
-            session_properties = SessionProperties(
-                    may_view=flow_permission.view in access_rule.permissions,
-                    may_modify=flow_permission.modify in access_rule.permissions,
-                    due=grading_rule.due,
-                    grade_description=grading_rule.description)
-            past_sessions_and_properties.append((session, session_properties))
+                session_properties = SessionProperties(
+                        may_view=flow_permission.view in access_rule.permissions,
+                        may_modify=flow_permission.modify in access_rule.permissions,
+                        due=grading_rule.due,
+                        grade_description=grading_rule.description)
+                past_sessions_and_properties.append((session, session_properties))
+        else:
+            past_sessions_and_properties = []
 
         return render_course_page(pctx, "course/flow-start.html", {
             "flow_desc": fctx.flow_desc,
             "flow_identifier": flow_identifier,
 
             "now": now_datetime,
-            "may_start": new_session_rule is not None,
+            "may_start": session_start_rule.may_start_new_session,
 
             "past_sessions_and_properties": past_sessions_and_properties,
             },

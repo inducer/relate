@@ -53,9 +53,12 @@ class FlowSessionRuleBase(object):
             setattr(self, name, attrs.get(name))
 
 
-class NewFlowSessionRule(FlowSessionRuleBase):
+class FlowSessionStartRule(FlowSessionRuleBase):
     __slots__ = [
-            "tag_session"]
+            "tag_session",
+            "may_start_new_session",
+            "may_list_existing_sessions",
+            ]
 
 
 class FlowSessionAccessRule(FlowSessionRuleBase):
@@ -125,17 +128,19 @@ def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
     return rules
 
 
-def get_new_session_rule(course, participation, role, flow_id, flow_desc,
+def get_session_start_rule(course, participation, role, flow_id, flow_desc,
         now_datetime, for_rollover=False):
-    """Return a :class:`NewFlowSessionRule` if a new session is
+    """Return a :class:`FlowSessionStartRule` if a new session is
     permitted or *None* if no new session is allowed.
     """
 
-    rules = get_flow_rules(flow_desc, flow_rule_kind.new_session,
+    rules = get_flow_rules(flow_desc, flow_rule_kind.start,
             participation, flow_id, now_datetime)
 
     if not rules:
-        return NewFlowSessionRule()
+        return FlowSessionStartRule(
+                may_list_existing_sessions=False,
+                may_start_new_session=True)
 
     for rule in rules:
         if not _eval_generic_conditions(rule, course, role, now_datetime):
@@ -150,8 +155,12 @@ def get_new_session_rule(course, participation, role, flow_id, flow_desc,
             if session_count >= rule.if_has_fewer_sessions_than:
                 continue
 
-        return NewFlowSessionRule(
+        return FlowSessionStartRule(
                 tag_session=getattr(rule, "tag_session", None),
+                may_start_new_session=getattr(
+                    rule, "may_start_new_session", True),
+                may_list_existing_sessions=getattr(
+                    rule, "may_list_existing_sessions", True),
                 )
 
     return None
