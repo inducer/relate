@@ -109,7 +109,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         try:
             evt.save()
         except IntegrityError:
-            raise RuntimeError("'%s %d' already exists." % (kind, ordinal))
+            raise RuntimeError("'%s %d' already exists" % (kind, ordinal))
 
         if interval == "weekly":
             date = time.date()
