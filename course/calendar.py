@@ -79,7 +79,7 @@ class RecurringEventForm(StyledForm):
             choices=(
                 ("weekly", "Weekly"),
                 ))
-    starting_ordinal = forms.IntegerField(required=False, initial=1)
+    starting_ordinal = forms.IntegerField(required=False)
     count = forms.IntegerField(required=True)
 
     def __init__(self, *args, **kwargs):
