@@ -44,6 +44,8 @@ class ChoiceAnswerForm(StyledForm):
         self.fields["choice"] = field
 
 
+# {{{ choice question
+
 class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     """
     A page asking the participant to choose one of multiple answers.
@@ -185,8 +187,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.",
-                    normalized_answer=None)
+                    feedback="No answer provided.")
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
@@ -196,10 +197,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         else:
             correctness = 0
 
-        return AnswerFeedback(correctness=correctness,
-                normalized_answer=self.process_choice_string(
-                    page_context,
-                    self.page_desc.choices[permutation[choice]]))
+        return AnswerFeedback(correctness=correctness)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
@@ -207,3 +205,132 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[corr_idx]).lstrip())
+
+    def normalized_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        permutation = page_data["permutation"]
+        choice = answer_data["choice"]
+
+        return self.process_choice_string(
+                page_context,
+                self.page_desc.choices[permutation[choice]])
+
+# }}}
+
+
+# {{{ survey choice question
+
+class SurveyChoiceQuestion(PageBaseWithTitle):
+    """
+    A page asking the participant to choose one of multiple answers.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``ChoiceQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: choices
+
+        A list of choices, each in :ref:`markup`.
+    """
+
+    @classmethod
+    def process_choice_string(cls, page_context, s):
+        s = markup_to_html(page_context, s)
+        # allow HTML in option
+        s = mark_safe(s)
+
+        return s
+
+    def __init__(self, vctx, location, page_desc):
+        super(SurveyChoiceQuestion, self).__init__(vctx, location, page_desc)
+
+        for choice_idx, choice in enumerate(page_desc.choices):
+            if not isinstance(choice, six.string_types):
+                raise ValidationError("%s, choice %d: not a string"
+                        % (location, choice_idx+1))
+
+            if vctx is not None:
+                validate_markup(vctx, location, choice)
+
+    def required_attrs(self):
+        return super(SurveyChoiceQuestion, self).required_attrs() + (
+                ("prompt", "markup"),
+                ("choices", list),
+                )
+
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
+
+    def body(self, page_context, page_data):
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def make_choice_form(self, page_context, page_data, *args, **kwargs):
+
+        choices = tuple(
+                (i,  self.process_choice_string(
+                    page_context, self.page_desc.choices[i]))
+                for i in range(len(self.page_desc.choices)))
+
+        return ChoiceAnswerForm(
+            forms.TypedChoiceField(
+                choices=tuple(choices),
+                coerce=int,
+                widget=forms.RadioSelect()),
+            *args, **kwargs)
+
+    def make_form(self, page_context, page_data,
+            answer_data, answer_is_final):
+        if answer_data is not None:
+            form_data = {"choice": answer_data["choice"]}
+            form = self.make_choice_form(page_context, page_data, form_data)
+        else:
+            form = self.make_choice_form(page_context, page_data)
+
+        if answer_is_final:
+            form.fields['choice'].widget.attrs['disabled'] = True
+
+        return form
+
+    def post_form(self, page_context, page_data, post_data, files_data):
+        return self.make_choice_form(
+                    page_context, page_data, post_data, files_data)
+
+    def answer_data(self, page_context, page_data, form, files_data):
+        return {"choice": form.cleaned_data["choice"]}
+
+    def expects_answer(self):
+        return True
+
+    def is_answer_gradable(self):
+        return False
+
+    def normalized_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        choice = answer_data["choice"]
+
+        return self.process_choice_string(
+                page_context,
+                self.page_desc.choices[choice])
+# }}}
+
+# vim: foldmethod=marker

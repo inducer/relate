@@ -76,9 +76,17 @@ The following page types are predefined:
     An integer or a floating point number, representing the
     point value of the question.
 
+.. |text-widget-page-attr| replace::
+
+    Optional.
+    One of ``text_input`` (default), ``textarea``, ``editor:yaml``,
+    ``editor:markdown``.
+
 .. autoclass:: Page()
 .. autoclass:: TextQuestion()
+.. autoclass:: SurveyTextQuestion()
 .. autoclass:: ChoiceQuestion()
+.. autoclass:: SurveyChoiceQuestion()
 .. autoclass:: PythonCodeQuestion()
 .. autoclass:: PythonCodeQuestionWithHumanTextFeedback()
 .. autoclass:: FileUploadQuestion()
@@ -87,7 +95,6 @@ Definining your own page types
 ------------------------------
 
 .. autoclass:: PageContext
-.. autoclass:: NoNormalizedAnswerAvailable
 .. autofunction:: get_auto_feedback
 .. autoclass:: AnswerFeedback
 .. autoclass:: PageBase

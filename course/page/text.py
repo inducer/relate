@@ -27,7 +27,6 @@ THE SOFTWARE.
 
 from course.validation import validate_struct, ValidationError
 import django.forms as forms
-from django.utils.html import escape
 
 from relate.utils import StyledForm, Struct
 from course.page.base import (
@@ -131,6 +130,81 @@ class TextAnswerForm(StyledForm):
         answer = cleaned_data.get("answer", "")
         for validator in self.validators:
             validator.validate(answer)
+
+
+# {{{ validators
+
+class RELATEPageValidator(object):
+    type = "relate_page"
+
+    def __init__(self, vctx, location, validator_desc):
+        self.validator_desc = validator_desc
+
+        validate_struct(
+                vctx,
+                location,
+                validator_desc,
+                required_attrs=(
+                    ("type", str),
+                    ),
+                allowed_attrs=(
+                    ("page_type", str),
+                    ),
+                )
+
+    def validate(self, new_page_source):
+        from relate.utils import dict_to_struct
+        import yaml
+
+        try:
+            page_desc = dict_to_struct(yaml.load(new_page_source))
+
+            from course.validation import validate_flow_page, ValidationContext
+            vctx = ValidationContext(
+                    # FIXME
+                    repo=None,
+                    commit_sha=None)
+
+            validate_flow_page(vctx, "submitted page", page_desc)
+
+            if page_desc.type != self.validator_desc.page_type:
+                raise ValidationError("page must be of type '%s'"
+                        % self.validator_desc.page_type)
+
+        except:
+            import sys
+            tp, e, _ = sys.exc_info()
+
+            raise forms.ValidationError("%s: %s"
+                    % (tp.__name__, str(e)))
+
+
+TEXT_ANSWER_VALIDATOR_CLASSES = [
+        RELATEPageValidator,
+        ]
+
+
+def get_validator_class(location, validator_type):
+    for validator_class in TEXT_ANSWER_VALIDATOR_CLASSES:
+        if validator_class.type == validator_type:
+            return validator_class
+
+    raise ValidationError("%s: unknown validator type '%s'"
+            % (location, validator_type))
+
+
+def parse_validator(vctx, location, validator_desc):
+    if not isinstance(validator_desc, Struct):
+        raise ValidationError("%s: must be struct or string"
+                % location)
+
+    if not hasattr(validator_desc, "type"):
+        raise ValidationError("%s: matcher must supply 'type'" % location)
+
+    return (get_validator_class(location, validator_desc.type)
+        (vctx, location, validator_desc))
+
+# }}}
 
 
 # {{{ matchers
@@ -391,9 +465,116 @@ def parse_matcher(vctx, location, matcher_desc):
 # }}}
 
 
-# {{{ text question
+# {{{ text question base
 
-class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
+class TextQuestionBase(PageBaseWithTitle):
+    """
+    A page asking for a textual answer
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``TextQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: widget
+
+        |text-widget-page-attr|
+
+    """
+    def __init__(self, vctx, location, page_desc):
+        super(TextQuestionBase, self).__init__(vctx, location, page_desc)
+
+        widget = TextAnswerForm.get_text_widget(
+                getattr(page_desc, "widget", None),
+                check_only=True)
+
+        if widget is None:
+            raise ValidationError("%s: unrecognized widget type '%s'"
+                    % (location, getattr(page_desc, "widget")))
+
+    def required_attrs(self):
+        return super(TextQuestionBase, self).required_attrs() + (
+                ("prompt", "markup"),
+                )
+
+    def allowed_attrs(self):
+        return super(TextQuestionBase, self).allowed_attrs() + (
+                ("widget", str),
+                )
+
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
+
+    def body(self, page_context, page_data):
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def make_form(self, page_context, page_data,
+            answer_data, answer_is_final):
+        read_only = answer_is_final
+
+        if answer_data is not None:
+            answer = {"answer": answer_data["answer"]}
+            form = TextAnswerForm(read_only, [], answer,
+                    widget_type=getattr(self.page_desc, "widget", None))
+        else:
+            answer = None
+            form = TextAnswerForm(read_only, [],
+                    widget_type=getattr(self.page_desc, "widget", None))
+
+        return form
+
+    def post_form(self, page_context, page_data, post_data, files_data):
+        read_only = False
+        return TextAnswerForm(read_only, [], post_data, files_data,
+            widget_type=getattr(self.page_desc, "widget", None))
+
+    def answer_data(self, page_context, page_data, form, files_data):
+        return {"answer": form.cleaned_data["answer"].strip()}
+
+    def is_case_sensitive(self):
+        return True
+
+    def normalized_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        normalized_answer = answer_data["answer"]
+
+        if not self.is_case_sensitive():
+            normalized_answer = normalized_answer.lower()
+
+        from django.utils.html import escape
+        return escape(normalized_answer)
+
+# }}}
+
+
+class SurveyTextQuestion(TextQuestionBase):
+    def expects_answer(self):
+        return True
+
+    def is_answer_gradable(self):
+        return False
+
+
+# {{{
+
+class TextQuestion(TextQuestionBase, PageBaseWithValue):
     """
     A page asking for a textual answer
 
@@ -421,6 +602,10 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         The page's prompt, written in :ref:`markup`.
 
+    .. attribute:: widget
+
+        |text-widget-page-attr|
+
     .. attribute:: answers
 
         TODO
@@ -447,15 +632,8 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def required_attrs(self):
         return super(TextQuestion, self).required_attrs() + (
-                ("prompt", "markup"),
                 ("answers", list),
                 )
-
-    def markup_body_for_title(self):
-        return self.page_desc.prompt
-
-    def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
 
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
@@ -477,9 +655,6 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
         read_only = False
         return TextAnswerForm(read_only, self.matchers, post_data, files_data)
 
-    def answer_data(self, page_context, page_data, form, files_data):
-        return {"answer": form.cleaned_data["answer"].strip()}
-
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
@@ -491,13 +666,7 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
                 (matcher.grade(answer), matcher.correct_answer_text())
                 for matcher in self.matchers)
 
-        normalized_answer = answer
-        if not any(matcher.is_case_sensitive for matcher in self.matchers):
-            normalized_answer = normalized_answer.lower()
-
-        return AnswerFeedback(
-                correctness=correctness,
-                normalized_answer=escape(normalized_answer))
+        return AnswerFeedback(correctness=correctness)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
@@ -513,87 +682,15 @@ class TextQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         return CA_PATTERN % unspec_correct_answer_text
 
-# }}}
-
-
-# {{{ validators
-
-class RELATEPageValidator(object):
-    type = "cfpage"
-
-    def __init__(self, vctx, location, validator_desc):
-        self.validator_desc = validator_desc
-
-        validate_struct(
-                vctx,
-                location,
-                validator_desc,
-                required_attrs=(
-                    ("type", str),
-                    ),
-                allowed_attrs=(
-                    ("page_type", str),
-                    ),
-                )
-
-    def validate(self, new_page_source):
-        from relate.utils import dict_to_struct
-        import yaml
-
-        try:
-            page_desc = dict_to_struct(yaml.load(new_page_source))
-
-            from course.validation import validate_flow_page, ValidationContext
-            vctx = ValidationContext(
-                    # FIXME
-                    repo=None,
-                    commit_sha=None)
-
-            validate_flow_page(vctx, "submitted page", page_desc)
-
-            if page_desc.type != self.validator_desc.page_type:
-                raise ValidationError("page must be of type '%s'"
-                        % self.validator_desc.page_type)
-
-        except:
-            import sys
-            tp, e, _ = sys.exc_info()
-
-            raise forms.ValidationError("%s: %s"
-                    % (tp.__name__, str(e)))
-
-
-TEXT_ANSWER_VALIDATOR_CLASSES = [
-        RELATEPageValidator,
-        ]
-
-
-def get_validator_class(location, validator_type):
-    for validator_class in TEXT_ANSWER_VALIDATOR_CLASSES:
-        if validator_class.type == validator_type:
-            return validator_class
-
-    raise ValidationError("%s: unknown validator type '%s'"
-            % (location, validator_type))
-
-
-def parse_validator(vctx, location, validator_desc):
-    if not isinstance(validator_desc, Struct):
-        raise ValidationError("%s: must be struct or string"
-                % location)
-
-    if not hasattr(validator_desc, "type"):
-        raise ValidationError("%s: matcher must supply 'type'" % location)
-
-    return (get_validator_class(location, validator_desc.type)
-        (vctx, location, validator_desc))
+    def is_case_sensitive(self):
+        return any(matcher.is_case_sensitive for matcher in self.matchers)
 
 # }}}
 
 
 # {{{ human-graded text question
 
-class HumanGradedTextQuestion(PageBaseWithTitle, PageBaseWithValue,
+class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
     """
     A page asking for a textual answer
@@ -624,9 +721,7 @@ class HumanGradedTextQuestion(PageBaseWithTitle, PageBaseWithValue,
 
     .. attribute:: widget
 
-        Optional.
-        One of ``text_input`` (default), ``textarea``, ``editor:yaml``,
-        ``editor:markdown``.
+        |text-widget-page-attr|
 
     .. attribute:: validators
 
@@ -648,14 +743,6 @@ class HumanGradedTextQuestion(PageBaseWithTitle, PageBaseWithValue,
     def __init__(self, vctx, location, page_desc):
         super(HumanGradedTextQuestion, self).__init__(vctx, location, page_desc)
 
-        widget = TextAnswerForm.get_text_widget(
-                getattr(page_desc, "widget", None),
-                check_only=True)
-
-        if widget is None:
-            raise ValidationError("%s: unrecognized widget type '%s'"
-                    % (location, getattr(page_desc, "widget")))
-
         self.validators = [
                 parse_validator(
                     vctx,
@@ -663,48 +750,13 @@ class HumanGradedTextQuestion(PageBaseWithTitle, PageBaseWithValue,
                     answer)
                 for i, answer in enumerate(page_desc.validators)]
 
-    def required_attrs(self):
-        return super(HumanGradedTextQuestion, self).required_attrs() + (
-                ("prompt", "markup"),
-                )
-
     def allowed_attrs(self):
         return super(HumanGradedTextQuestion, self).allowed_attrs() + (
-                ("widget", str),
                 ("validators", list),
                 )
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.max_points(page_data)
-
-    def markup_body_for_title(self):
-        return self.page_desc.prompt
-
-    def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
-
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        read_only = answer_is_final
-
-        if answer_data is not None:
-            answer = {"answer": answer_data["answer"]}
-            form = TextAnswerForm(read_only, self.validators, answer,
-                    widget_type=getattr(self.page_desc, "widget", None))
-        else:
-            answer = None
-            form = TextAnswerForm(read_only, self.validators,
-                    widget_type=getattr(self.page_desc, "widget", None))
-
-        return form
-
-    def post_form(self, page_context, page_data, post_data, files_data):
-        read_only = False
-        return TextAnswerForm(read_only, self.validators, post_data, files_data,
-                widget_type=getattr(self.page_desc, "widget", None))
-
-    def answer_data(self, page_context, page_data, form, files_data):
-        return {"answer": form.cleaned_data["answer"].strip()}
 
 # }}}
 

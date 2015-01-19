@@ -67,10 +67,6 @@ def markup_to_html(page_context, text):
 
 # {{{ answer feedback type
 
-class NoNormalizedAnswerAvailable(object):
-    pass
-
-
 def get_auto_feedback(correctness):
     if correctness == 0:
         return "Your answer is not correct."
@@ -104,17 +100,9 @@ class AnswerFeedback(object):
         is generated from :attr:`correctness`.
 
     .. attribute:: bulk_feedback
-
-    .. attribute:: normalized_answer
-
-        An HTML-formatted answer to be shown in analytics,
-        or a :class:`NoNormalizedAnswerAvailable`, or *None*
-        if no answer was provided.
     """
 
-    def __init__(self, correctness, feedback=None,
-            bulk_feedback=None,
-            normalized_answer=NoNormalizedAnswerAvailable()):
+    def __init__(self, correctness, feedback=None, bulk_feedback=None):
         if correctness is not None:
             # allow for extra credit
             if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
@@ -126,7 +114,6 @@ class AnswerFeedback(object):
         self.correctness = correctness
         self.feedback = feedback
         self.bulk_feedback = bulk_feedback
-        self.normalized_answer = normalized_answer
 
     def as_json(self):
         result = {
@@ -136,9 +123,6 @@ class AnswerFeedback(object):
         bulk_result = {
                 "bulk_feedback": self.bulk_feedback,
                 }
-
-        if not isinstance(self.normalized_answer, NoNormalizedAnswerAvailable):
-            result["normalized_answer"] = self.normalized_answer
 
         return result, bulk_result
 
@@ -155,8 +139,6 @@ class AnswerFeedback(object):
         return AnswerFeedback(
                 correctness=json["correctness"],
                 feedback=json["feedback"],
-                normalized_answer=json.get("normalized_answer",
-                    NoNormalizedAnswerAvailable()),
                 bulk_feedback=bulk_feedback,
                 )
 
@@ -189,7 +171,9 @@ class PageBase(object):
     .. automethod:: make_page_data
     .. automethod:: title
     .. automethod:: body
+
     .. automethod:: expects_answer
+    .. automethod:: is_answer_gradable
     .. automethod:: max_points
 
     .. rubric:: Student Input
@@ -210,6 +194,7 @@ class PageBase(object):
 
     .. automethod:: grade
     .. automethod:: correct_answer
+    .. automethod:: normalized_answer
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -327,6 +312,15 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
+    def is_answer_gradable(self):
+        """
+        :return: a :class:`bool` indicating whether answers on this can
+            have :meth:`grade` called on them.
+
+        True by default.
+        """
+        return True
+
     def max_points(self, page_data):
         """
         :return: a :class:`int` or :class:`float` indicating how many points
@@ -432,6 +426,12 @@ class PageBase(object):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         """The correct answer to this page's interaction, formatted as HTML,
         or *None*.
+        """
+        return None
+
+    def normalized_answer(self, page_context, page_data, answer_data):
+        """An HTML-formatted answer to be used for summarization and
+        display in analytics.
         """
         return None
 

@@ -378,7 +378,7 @@ class FlowPageVisit(models.Model):
 
     # NULL means it's not an answer at all.
     #   (Should coincide with 'answer is None')
-    # True means it's a graded answer.
+    # True means it's a final, submitted answer fit for grading.
     # False means it's just a saved answer.
     is_submitted_answer = models.NullBooleanField()
 

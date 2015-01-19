@@ -25,23 +25,24 @@ THE SOFTWARE.
 """
 
 from course.page.base import (
-        PageBase, AnswerFeedback, PageContext, NoNormalizedAnswerAvailable,
+        PageBase, AnswerFeedback, PageContext,
         get_auto_feedback,
         markup_to_html)
 from course.page.static import Page
-from course.page.text import TextQuestion, HumanGradedTextQuestion
-from course.page.choice import ChoiceQuestion
+from course.page.text import (
+        TextQuestion, SurveyTextQuestion, HumanGradedTextQuestion)
+from course.page.choice import ChoiceQuestion, SurveyChoiceQuestion
 from course.page.code import (
         PythonCodeQuestion, PythonCodeQuestionWithHumanTextFeedback)
 from course.page.upload import FileUploadQuestion
 
 __all__ = (
         "PageBase", "AnswerFeedback", "PageContext",
-        "NoNormalizedAnswerAvailable", "get_auto_feedback",
+        "get_auto_feedback",
         "markup_to_html",
         "Page",
-        "TextQuestion", "HumanGradedTextQuestion",
-        "ChoiceQuestion",
+        "TextQuestion", "SurveyTextQuestion", "HumanGradedTextQuestion",
+        "ChoiceQuestion", "SurveyChoiceQuestion",
         "PythonCodeQuestion", "PythonCodeQuestionWithHumanTextFeedback",
         "FileUploadQuestion",
         )

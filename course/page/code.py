@@ -521,8 +521,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.",
-                    normalized_answer=None)
+                    feedback="No answer provided.")
 
         user_code = answer_data["answer"]
 
@@ -696,8 +695,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         return AnswerFeedback(
                 correctness=correctness,
                 feedback="\n".join(feedback_bits),
-                bulk_feedback="\n".join(bulk_feedback_bits),
-                normalized_answer="<pre>%s</pre>" % user_code)
+                bulk_feedback="\n".join(bulk_feedback_bits))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         result = ""
@@ -713,6 +711,15 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     % escape(self.page_desc.correct_code))
 
         return result
+
+    def normalized_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        normalized_answer = answer_data["answer"]
+
+        from django.utils.html import escape
+        return "<pre>%s</pre>" % escape(normalized_answer)
 
 # }}}
 

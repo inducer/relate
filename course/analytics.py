@@ -258,6 +258,8 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     for group_desc in flow_desc.groups:
         for page_desc in group_desc.pages:
             points = 0
+            graded_count = 0
+
             answer_count = 0
             total_count = 0
 
@@ -298,15 +300,18 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
                 answer_feedback = visit.get_most_recent_feedback()
 
+                if visit.answer is not None:
+                    answer_count += 1
+                total_count += 1
+
                 if (answer_feedback is not None
                         and answer_feedback.correctness is not None):
                     if visit.answer is None:
                         assert answer_feedback.correctness == 0
                     else:
-                        answer_count += 1
                         points += answer_feedback.correctness
 
-                    total_count += 1
+                    graded_count += 1
 
             if not answer_expected:
                 continue
@@ -316,9 +321,9 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                         group_id=group_desc.id,
                         page_id=page_desc.id,
                         title=title,
-                        average_correctness=safe_div(points, total_count),
+                        average_correctness=safe_div(points, graded_count),
                         average_emptiness=safe_div(
-                            total_count - answer_count, total_count),
+                            graded_count - answer_count, graded_count),
                         answer_count=answer_count,
                         total_count=total_count,
                         url=reverse(
@@ -436,6 +441,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
     title = None
     body = None
     total_count = 0
+    graded_count = 0
 
     for visit in visits:
         page = page_cache.get_page(group_id, page_id, pctx.course_commit_sha)
@@ -449,16 +455,22 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
 
         title = page.title(grading_page_context, visit.page_data.data)
         body = page.body(grading_page_context, visit.page_data.data)
+        normalized_answer = page.normalized_answer(
+                grading_page_context, visit.page_data.data, visit.answer)
 
         answer_feedback = visit.get_most_recent_feedback()
 
         if answer_feedback is not None:
-            key = (answer_feedback.normalized_answer,
-                    answer_feedback.correctness)
+            key = (normalized_answer, answer_feedback.correctness)
+            normalized_answer_and_correctness_to_count[key] = \
+                    normalized_answer_and_correctness_to_count.get(key, 0) + 1
+            graded_count += 1
+        else:
+            key = (normalized_answer, None)
             normalized_answer_and_correctness_to_count[key] = \
                     normalized_answer_and_correctness_to_count.get(key, 0) + 1
 
-            total_count += 1
+        total_count += 1
 
     answer_stats = []
     for (normalized_answer, correctness), count in \
