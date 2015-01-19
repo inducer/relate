@@ -115,7 +115,7 @@ def view_markup_sandbox(pctx):
 
     def make_form(data=None):
         help_text = ("Enter <a href=\"http://documen.tician.de/"
-                "relate/content.html#courseflow-markup\">"
+                "relate/content.html#relate-markup\">"
                 "RELATE markup</a>.")
         return SandboxForm(
                 None, "markdown", vim_mode,

@@ -546,7 +546,7 @@ class HumanTextFeedbackForm(StyledForm):
                 required=False,
                 help_text=mark_safe("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
-                    "relate/content.html#courseflow-markup'>"
+                    "relate/content.html#relate-markup'>"
                     "RELATE-flavored Markdown</a>"))
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
