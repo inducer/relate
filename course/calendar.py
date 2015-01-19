@@ -208,24 +208,27 @@ def renumber_events(pctx):
     if request.method == "POST":
         form = RenumberEventsForm(request.POST, request.FILES)
         if form.is_valid():
-            labels = list(Event.objects
+            events = list(Event.objects
                     .filter(course=pctx.course, kind=form.cleaned_data["kind"])
                     .order_by('time'))
 
-            if labels:
+            if events:
                 queryset = (Event.objects
                     .filter(course=pctx.course, kind=form.cleaned_data["kind"]))
 
                 queryset.delete()
 
                 ordinal = form.cleaned_data["starting_ordinal"]
-                for label in labels:
-                    new_label = Event()
-                    new_label.course = pctx.course
-                    new_label.kind = form.cleaned_data["kind"]
-                    new_label.ordinal = ordinal
-                    new_label.time = label.time
-                    new_label.save()
+                for event in events:
+                    new_event = Event()
+                    new_event.course = pctx.course
+                    new_event.kind = form.cleaned_data["kind"]
+                    new_event.ordinal = ordinal
+                    new_event.time = event.time
+                    new_event.end_time = event.end_time
+                    new_event.all_day = event.all_day
+                    new_event.shown_in_calendar = event.shown_in_calendar
+                    new_event.save()
 
                     ordinal += 1
 
