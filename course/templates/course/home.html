@@ -12,7 +12,7 @@
   {% if courses_and_descs_and_invalid_flags %}
     <div class="row">
       {% for course, desc, invalid in courses_and_descs_and_invalid_flags %}
-        <div class="col-lg-4">
+        <div class="col-md-4">
           <h3>{{desc.number}} {{desc.run}}</h3>
           <p>{{desc.name}}</p>
           {% if invalid %}
