@@ -58,10 +58,15 @@ TEMPLATE = Template(r"""
 
 
 def convert_page_inner(page):
-    if page.type in ["TextQuestion", "FileUploadQuestion"]:
+    if page.type in ["TextQuestion"]:
         prompt = pypandoc.convert(
             page.prompt, 'latex',
             format='markdown') + "\n\\vspace*{2cm}"
+        return (prompt)
+    elif page.type in ["PythonCodeQuestion", "FileUploadQuestion"]:
+        prompt = pypandoc.convert(
+            page.prompt, 'latex',
+            format='markdown') + "\n\\vspace*{5cm}"
         return (prompt)
     elif page.type == "ChoiceQuestion":
         prompt = pypandoc.convert(
@@ -128,6 +133,11 @@ def convert_page(page, wrap_in_problem_env):
         return result
 
 
+JINJA_YAML_RE = re.compile(
+    r"^\[JINJA\]\s*$(.*?)^\[\/JINJA\]\s*$",
+    re.MULTILINE | re.DOTALL)
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -145,6 +155,8 @@ def main():
     else:
         with open(args.input, "r") as inf:
             data = inf.read()
+
+    data, _ = JINJA_YAML_RE.subn("\n", data)
 
     data = dict_to_struct(load(data))
 
