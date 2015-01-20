@@ -919,6 +919,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     permissions = fpctx.page.get_modified_permissions_for_page(
             access_rule.permissions)
 
+    if access_rule.message:
+        messages.add_message(request, messages.INFO, access_rule.message)
+
     page_context = fpctx.page_context
     page_data = fpctx.page_data
     answer_data = None
