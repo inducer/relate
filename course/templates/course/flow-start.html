@@ -95,6 +95,7 @@
         a new one.
         </p>
 
+        <ul>
         Check the following:
         {% if not user.is_authenticated %}
         <li>
@@ -118,6 +119,7 @@
         <a href="{% url "course.views.home" %}">home page</a> and contact your course
         staff.
         </li>
+        </ul>
       </div>
     {% endif %}
   </form>
