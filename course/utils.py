@@ -86,12 +86,12 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
 def _eval_generic_conditions(rule, course, role, now_datetime):
     if hasattr(rule, "if_before"):
         ds = parse_date_spec(course, rule.if_before)
-        if now_datetime > ds:
+        if not (now_datetime <= ds):
             return False
 
     if hasattr(rule, "if_after"):
         ds = parse_date_spec(course, rule.if_after)
-        if ds < now_datetime:
+        if not (now_datetime >= ds):
             return False
 
     if hasattr(rule, "if_has_role"):
