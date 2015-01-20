@@ -801,7 +801,9 @@ def get_and_check_flow_session(pctx, flow_session_id):
             participation_role.instructor,
             participation_role.teaching_assistant]:
         pass
-    elif pctx.role == participation_role.student:
+    elif pctx.role in [
+            participation_role.student,
+            participation_role.unenrolled]:
         if pctx.participation != flow_session.participation:
             raise PermissionDenied("may not view other people's sessions")
     else:
