@@ -90,32 +90,34 @@
     {% if may_start or past_sessions_and_properties %}
     {% else %}
       <div class="alert alert-info">
-      You do not have any existing sessions and are not allowed to start
-      a new one.
+        <p>
+        You do not have any existing sessions and are not allowed to start
+        a new one.
+        </p>
 
-      Check the following:
-      {% if not user.is_authenticated %}
-      <li>
-      <a href="{% url student_sign_in_view %}">Sign in</a>.
+        Check the following:
+        {% if not user.is_authenticated %}
+        <li>
+        <a href="{% url student_sign_in_view %}">Sign in</a>.
 
-        You're not currently signed in. Access to the resource is restricted,
-        and since the site has no way of knowing who you are, it may have denied
-        you accesss.
-        Once you're signed in, navigate back to your course from the
-        <a href="{% url "course.views.home" %}">home page</a> and retry your last
-        action.
-      </li>
-      {% endif %}
-      <li>
-      Complete your enrollment in your course. If you're not enrolled, a large
-      "Enroll now" button will show up at the top of your course page. Click that,
-      follow the indicated steps, and then retry your last action.
-      </li>
-      <li>
-      If none of the above steps help, please navigate back to your course from the
-      <a href="{% url "course.views.home" %}">home page</a> and contact your course
-      staff.
-      </li>
+          You're not currently signed in. Access to the resource is restricted,
+          and since the site has no way of knowing who you are, it may have denied
+          you accesss.
+          Once you're signed in, navigate back to your course from the
+          <a href="{% url "course.views.home" %}">home page</a> and retry your last
+          action.
+        </li>
+        {% endif %}
+        <li>
+        Complete your enrollment in your course. If you're not enrolled, a large
+        "Enroll now" button will show up at the top of your course page. Click that,
+        follow the indicated steps, and then retry your last action.
+        </li>
+        <li>
+        If none of the above steps help, please navigate back to your course from the
+        <a href="{% url "course.views.home" %}">home page</a> and contact your course
+        staff.
+        </li>
       </div>
     {% endif %}
   </form>
