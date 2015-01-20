@@ -163,7 +163,9 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
                     rule, "may_list_existing_sessions", True),
                 )
 
-    return None
+    return FlowSessionStartRule(
+            may_list_existing_sessions=False,
+            may_start_new_session=False)
 
 
 def get_session_access_rule(session, role, flow_desc, now_datetime):
