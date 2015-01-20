@@ -35,8 +35,7 @@
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Teaching tools<b class="caret"></b></a>
     <ul class="dropdown-menu">
-      <li role="presentation" class="dropdown-header">Analytics</li>
-      <li><a href="{% url "course.analytics.flow_list" course.identifier %}">Overview</a></li>
+      <li><a href="{% url "course.analytics.flow_list" course.identifier %}">Analytics Overview</a></li>
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">Grades</li>
@@ -59,6 +58,10 @@
       <li role="presentation" class="dropdown-header">Content creation</li>
       <li><a href="{% url "course.sandbox.view_page_sandbox" course.identifier %}">Page sandbox</a></li>
       <li><a href="{% url "course.sandbox.view_markup_sandbox" course.identifier %}">Markup sandbox</a></li>
+
+      <li role="presentation" class="divider"></li>
+      <li><a href="{% url "course.views.test_flow" course.identifier %}">Test flow</a></li>
+
     </ul>
   </li>
   {% endif %}

@@ -238,6 +238,11 @@ urlpatterns = patterns('',
 
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/test-flow"
+        "/$",
+        "course.views.test_flow",),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/instant-flow"
         "/$",
         "course.views.manage_instant_flow_requests",),

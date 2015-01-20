@@ -307,6 +307,52 @@ def manage_instant_flow_requests(pctx):
 # }}}
 
 
+# {{{ test flow
+
+class FlowTestForm(StyledForm):
+    def __init__(self, flow_ids, *args, **kwargs):
+        super(FlowTestForm, self).__init__(*args, **kwargs)
+
+        self.fields["flow_id"] = forms.ChoiceField(
+                choices=[(fid, fid) for fid in flow_ids],
+                required=True)
+
+        self.helper.add_input(
+                Submit("test", mark_safe("Go &raquo;"), css_class="col-lg-offset-2"))
+
+
+@course_view
+def test_flow(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to test flows")
+
+    from course.content import list_flow_ids
+    flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
+
+    request = pctx.request
+    if request.method == "POST":
+        form = FlowTestForm(flow_ids, request.POST, request.FILES)
+        if "test" not in request.POST:
+            raise SuspiciousOperation("invalid operation")
+
+        if form.is_valid():
+            return redirect("course.flow.start_flow",
+                    pctx.course.identifier,
+                    form.cleaned_data["flow_id"])
+
+    else:
+        form = FlowTestForm(flow_ids)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": "Test Flow",
+    })
+
+# }}}
+
+
 # {{{ flow access exceptions
 
 class ParticipationChoiceField(forms.ModelChoiceField):
