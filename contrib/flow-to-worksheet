@@ -58,12 +58,22 @@ TEMPLATE = Template(r"""
 
 
 def convert_page_inner(page):
-    if page.type in ["TextQuestion"]:
+    if page.type == "TextQuestion":
         prompt = pypandoc.convert(
             page.prompt, 'latex',
             format='markdown') + "\n\\vspace*{2cm}"
         return (prompt)
-    elif page.type in ["PythonCodeQuestion", "FileUploadQuestion"]:
+    elif page.type == "PythonCodeQuestion":
+        prompt = pypandoc.convert(
+            page.prompt, 'latex',
+            format='markdown')
+
+        if hasattr(page, "initial_code"):
+            prompt += r"\begin{verbatim}%s\end{verbatim}" % page.initial_code
+
+        prompt += "\n\\vspace*{5cm}"
+        return (prompt)
+    elif page.type == "FileUploadQuestion":
         prompt = pypandoc.convert(
             page.prompt, 'latex',
             format='markdown') + "\n\\vspace*{5cm}"
