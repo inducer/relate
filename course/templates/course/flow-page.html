@@ -32,8 +32,7 @@
             href="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
             role="button">Next &raquo;</a>
         {% else %}
-          <a class="btn btn-default relate-nav-button disabled"
-            href="#" role="button">Next &raquo;</a>
+          <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session &raquo; </button>
         {% endif %}
       </div>
       <div style="float:right">
