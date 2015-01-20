@@ -515,7 +515,8 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     # Need to save grade record even if no grade is available yet, because
     # a grade record may *already* be saved, and that one might be mistaken
     # for the current one.
-    if (is_graded_flow
+    if (grading_rule.grade_identifier
+            and is_graded_flow
             and flow_session.participation is not None):
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
