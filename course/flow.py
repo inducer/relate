@@ -316,7 +316,11 @@ def gather_grade_info(fctx, flow_session, answer_visits):
         assert i == page_data.ordinal
 
         if answer_visits[i] is None:
-            assert not page.expects_answer()
+            # This is true in principle, but early code to deal with survey questions
+            # didn't generate synthetic answer visits for survey questions, so this
+            # can't actually be enforced.
+
+            # assert not page.expects_answer()
             continue
 
         if not page.is_answer_gradable():
@@ -378,8 +382,6 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
 
             if not page.expects_answer():
                 continue
-            if not page.is_answer_gradable():
-                continue
 
             # Create a synthetic visit to attach a grade
             answer_visit = FlowPageVisit()
@@ -391,6 +393,9 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
             answer_visit.save()
 
             answer_visits[i] = answer_visit
+
+            if not page.is_answer_gradable():
+                continue
 
         if (answer_visit is not None
                 and (not answer_visit.grades.count() or force_regrade)):
