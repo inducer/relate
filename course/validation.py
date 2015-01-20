@@ -187,28 +187,49 @@ def validate_chunk_rule(ctx, location, chunk_rule):
                 ("weight", int),
                 ],
             allowed_attrs=[
+                ("if_after", datespec_types),
+                ("if_before", datespec_types),
+                ("if_has_role", list),
+
                 ("start", datespec_types),
                 ("end", datespec_types),
-                ("role", str),
                 ("roles", list),
+
                 ("shown", bool),
             ])
 
+    if hasattr(chunk_rule, "if_after"):
+        ctx.encounter_datespec(location, chunk_rule.if_after)
+
+    if hasattr(chunk_rule, "if_before"):
+        ctx.encounter_datespec(location, chunk_rule.if_before)
+
+    if hasattr(chunk_rule, "if_has_role"):
+        for role in chunk_rule.if_has_role:
+            validate_role(location, role)
+
+    # {{{ deprecated
+
     if hasattr(chunk_rule, "start"):
+        ctx.add_warning(location, "Uses deprecated 'start' attribute--"
+                "use 'if_before' instead")
+
         ctx.encounter_datespec(location, chunk_rule.start)
 
     if hasattr(chunk_rule, "end"):
+        ctx.add_warning(location, "Uses deprecated 'end' attribute--"
+                "use 'if_after' instead")
+
         ctx.encounter_datespec(location, chunk_rule.end)
 
-    if hasattr(chunk_rule, "role"):
-        ctx.add_warning(location, "Uses deprecated 'role' attribute--"
-                "use 'roles' instead")
-
-        validate_role(location, chunk_rule.role)
-
     if hasattr(chunk_rule, "roles"):
+        ctx.add_warning(location, "Uses deprecated 'roles' attribute--"
+                "use 'if_has_role' instead")
+
         for role in chunk_rule.roles:
             validate_role(location, role)
+
+    # }}}
 
 
 def validate_chunk(ctx, location, chunk):

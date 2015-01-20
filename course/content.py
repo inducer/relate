@@ -571,9 +571,21 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
 
 def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
     for rule in chunk.rules:
-        if hasattr(rule, "role"):
-            if role != rule.role:
+        if hasattr(rule, "if_has_role"):
+            if role not in rule.if_has_role:
                 continue
+
+        if hasattr(rule, "if_after"):
+            start_date = parse_date_spec(course, rule.if_after)
+            if now_datetime < start_date:
+                continue
+
+        if hasattr(rule, "if_before"):
+            end_date = parse_date_spec(course, rule.if_before)
+            if end_date < now_datetime:
+                continue
+
+        # {{{ deprecated
 
         if hasattr(rule, "roles"):
             if role not in rule.roles:
@@ -583,10 +595,13 @@ def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
             start_date = parse_date_spec(course, rule.start)
             if now_datetime < start_date:
                 continue
+
         if hasattr(rule, "end"):
             end_date = parse_date_spec(course, rule.end)
             if end_date < now_datetime:
                 continue
+
+        # }}}
 
         shown = True
         if hasattr(rule, "shown"):
