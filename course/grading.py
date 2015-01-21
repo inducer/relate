@@ -213,7 +213,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     max_points = None
     points_awarded = None
-    if fpctx.page.expects_answer():
+    if (fpctx.page.expects_answer()
+            and fpctx.page.is_answer_gradable()):
         max_points = fpctx.page.max_points(fpctx.page_data)
         if feedback is not None and feedback.correctness is not None:
             points_awarded = max_points * feedback.correctness
