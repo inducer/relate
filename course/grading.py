@@ -131,6 +131,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     # {{{ grading form
 
     if (fpctx.page.expects_answer()
+            and fpctx.page.is_answer_gradable()
             and fpctx.prev_answer_visit is not None
             and not flow_session.in_progress):
         request = pctx.request
