@@ -325,6 +325,13 @@ def validate_flow_group(ctx, location, grp):
             allowed_attrs=[]
             )
 
+    for i, page_desc in enumerate(grp.pages):
+        validate_flow_page(
+                ctx,
+                "%s, page %d ('%s')"
+                % (location, i+1, getattr(page_desc, "id", None)),
+                page_desc)
+
     # {{{ check page id uniqueness
 
     page_ids = set()
@@ -337,13 +344,6 @@ def validate_flow_group(ctx, location, grp):
         page_ids.add(page_desc.id)
 
     # }}}
-
-    for i, page_desc in enumerate(grp.pages):
-        validate_flow_page(
-                ctx,
-                "%s, page %d ('%s')"
-                % (location, i+1, getattr(page_desc, "id", None)),
-                page_desc)
 
     validate_identifier(location, grp.id)
 
