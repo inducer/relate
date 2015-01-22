@@ -300,6 +300,12 @@ class LinkFixerTreeprocessor(Treeprocessor):
             if new_src is not None:
                 changed_attrs["src"] = new_src
 
+        elif tag_name == "object" and "data" in attrs:
+            new_data = self.process_url(attrs["data"])
+
+            if new_data is not None:
+                changed_attrs["data"] = new_data
+
         return changed_attrs
 
     def process_etree_element(self, element):
