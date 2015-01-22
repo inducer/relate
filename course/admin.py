@@ -37,12 +37,17 @@ from course.enrollment import (approve_enrollment, deny_enrollment)
 from course.constants import participation_role
 
 
+admin_roles = [
+    participation_role.instructor,
+    participation_role.teaching_assistant]
+
+
 def _filter_courses_for_user(queryset, user):
     if user.is_superuser:
         return queryset
     return queryset.filter(
             participations__user=user,
-            participations__role=participation_role.instructor)
+            participations__role__in=admin_roles)
 
 
 def _filter_course_linked_obj_for_user(queryset, user):
@@ -50,16 +55,15 @@ def _filter_course_linked_obj_for_user(queryset, user):
         return queryset
     return queryset.filter(
             course__participations__user=user,
-            course__participations__role=participation_role.instructor)
+            course__participations__role__in=admin_roles)
 
 
 def _filter_participation_linked_obj_for_user(queryset, user):
     if user.is_superuser:
         return queryset
-    irole = participation_role.instructor
     return queryset.filter(
         participation__course__participations__user=user,
-        participation__course__participations__role=irole)
+        participation__course__participations__role__in=admin_roles)
 
 
 # {{{ user status
@@ -477,7 +481,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(
             flow_session__course__participations__user=request.user,
-            flow_session__course__participations__role=participation_role.instructor)
+            flow_session__course__participations__role__in=admin_roles)
 
     # }}}
 
