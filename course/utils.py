@@ -192,6 +192,10 @@ def get_session_access_rule(session, role, flow_desc, now_datetime):
             if session.in_progress != rule.if_in_progress:
                 continue
 
+        if hasattr(rule, "if_expiration_mode"):
+            if session.if_expiration_mode != rule.if_expiration_mode:
+                continue
+
         permissions = set(rule.permissions)
 
         # Remove 'modify' permission from not-in-progress sessions

@@ -404,6 +404,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 ("if_has_tag", str),
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),
+                ("if_expiration_mode", str),
                 ("message", datespec_types),
                 ]
             )
@@ -425,6 +426,14 @@ def validate_session_access_rule(ctx, location, arule, tags):
             raise ValidationError(
                     "%s: invalid tag '%s'"
                     % (location, arule.if_has_tag))
+
+    if hasattr(arule, "if_expiration_mode"):
+        from course.constants import FLOW_SESSION_EXPIRATION_MODE_CHOICES
+        if arule.if_expiration_mode not in dict(
+                FLOW_SESSION_EXPIRATION_MODE_CHOICES):
+            raise ValidationError(
+                    "%s: invalid expiration mode '%s'"
+                    % (location, arule.if_expiration_mode))
 
     for j, perm in enumerate(arule.permissions):
         validate_flow_permission(
