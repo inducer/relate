@@ -1059,7 +1059,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     or (flow_permission.change_answer in permissions))
 
                 # can happen if no answer was ever saved
-                and flow_session.in_progress)
+                and flow_session.in_progress
+
+                and (flow_permission.modify in permissions))
 
         if fpctx.page.expects_answer():
             if fpctx.prev_answer_visit is not None:
