@@ -48,6 +48,44 @@ from relate.utils import StyledForm, StyledModelForm
 
 # {{{ impersonation
 
+def may_impersonate(user):
+    return user.is_staff
+
+
+def whom_may_impersonate(impersonator):
+    my_privileged_participations = Participation.objects.filter(
+            user=impersonator,
+            status=participation_status.active,
+            role__in=(
+                participation_role.instructor,
+                participation_role.teaching_assistant))
+
+    result = None
+
+    for part in my_privileged_participations:
+        if part.role == participation_role.instructor:
+            impersonable_roles = (
+                participation_role.teaching_assistant,
+                participation_role.student)
+        elif part.role == participation_role.teaching_assistant:
+            impersonable_roles = (
+                participation_role.student,)
+        else:
+            assert False
+
+        impersonable_users = User.objects.filter(
+                participation__course=part.course,
+                participation__status=participation_status.active,
+                participation__role__in=impersonable_roles)
+
+        if result is None:
+            result = impersonable_users
+        else:
+            result = result | impersonable_users
+
+    return result
+
+
 class ImpersonateMiddleware(object):
     def process_request(self, request):
         if request.user.is_staff and 'impersonate_id' in request.session:
@@ -56,14 +94,10 @@ class ImpersonateMiddleware(object):
             request.relate_impersonate_original_user = request.user
             if imp_id is not None:
                 try:
-                    request.user = User.objects.get(id=imp_id)
+                    request.user = whom_may_impersonate(request.user).get(id=imp_id)
                 except Exception as e:
                     messages.add_message(request, messages.ERROR,
                             "Error while impersonating: %s." % e)
-
-
-def may_impersonate(user):
-    return user.is_staff
 
 
 class UserChoiceField(forms.ModelChoiceField):
@@ -72,15 +106,14 @@ class UserChoiceField(forms.ModelChoiceField):
 
 
 class ImpersonateForm(StyledForm):
-    user = UserChoiceField(
-            queryset=(User.objects
-                .filter(user_status__status=user_status.active)
-                .order_by("last_name")),
-            required=True,
-            help_text="Select user to impersonate.")
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, impersonator, *args, **kwargs):
         super(ImpersonateForm, self).__init__(*args, **kwargs)
+
+        self.fields["user"] = UserChoiceField(
+                queryset=(whom_may_impersonate(impersonator)
+                    .order_by("last_name")),
+                required=True,
+                help_text="Select user to impersonate.")
 
         self.helper.add_input(Submit("submit", "Impersonate",
             css_class="col-lg-offset-2"))
@@ -88,8 +121,13 @@ class ImpersonateForm(StyledForm):
 
 @user_passes_test(may_impersonate)
 def impersonate(request):
+    if hasattr(request, "relate_impersonate_original_user"):
+        messages.add_message(request, messages.ERROR,
+                "Already impersonating someone.")
+        return redirect("course.auth.stop_impersonating")
+
     if request.method == 'POST':
-        form = ImpersonateForm(request.POST)
+        form = ImpersonateForm(request.user, request.POST)
         if form.is_valid():
             user = form.cleaned_data["user"]
 
@@ -100,7 +138,7 @@ def impersonate(request):
             # Because we'll likely no longer have access to this page.
             return redirect("course.views.home")
     else:
-        form = ImpersonateForm()
+        form = ImpersonateForm(request.user)
 
     return render(request, "generic-form.html", {
         "form_description": "Impersonate user",
