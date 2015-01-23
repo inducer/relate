@@ -200,8 +200,6 @@ class Participation(models.Model):
     enroll_time = models.DateTimeField(default=now)
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES)
-    temporary_role = models.CharField(max_length=50,
-            choices=PARTICIPATION_ROLE_CHOICES, null=True, blank=True)
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES)
 

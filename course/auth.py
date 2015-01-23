@@ -411,10 +411,7 @@ def get_role_and_participation(request, course):
     if participation.status != participation_status.active:
         return participation_role.unenrolled, participation
     else:
-        if participation.temporary_role:
-            return participation.temporary_role, participation
-        else:
-            return participation.role, participation
+        return participation.role, participation
 
 
 # vim: foldmethod=marker
