@@ -127,7 +127,7 @@ def enroll(request, course_identifier):
         send_mail("[%s] New enrollment request" % course_identifier,
                 message,
                 settings.ROBOT_EMAIL_FROM,
-                recipient_list=[course.email])
+                recipient_list=[course.notify_email])
 
         messages.add_message(request, messages.INFO,
                 "Enrollment request sent. You will receive notifcation "
@@ -172,9 +172,9 @@ def decide_enrollment(approved, modeladmin, request, queryset):
         from django.core.mail import EmailMessage
         msg = EmailMessage("[%s] Your enrollment request" % course.identifier,
                 message,
-                course.email,
+                course.from_email,
                 [participation.user.email])
-        msg.cc = [course.email]
+        msg.bcc = [course.notify_email]
         msg.send()
 
         count += 1

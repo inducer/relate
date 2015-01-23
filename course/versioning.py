@@ -115,7 +115,9 @@ class CourseCreationForm(StyledModelForm):
             "events_file",
             "enrollment_approval_required",
             "enrollment_required_email_suffix",
-            "email")
+            "from_email",
+            "notify_email",
+            )
 
     def __init__(self, *args, **kwargs):
         super(CourseCreationForm, self).__init__(*args, **kwargs)

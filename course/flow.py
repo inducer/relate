@@ -916,7 +916,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 % pctx.course.identifier,
                 message,
                 settings.ROBOT_EMAIL_FROM,
-                recipient_list=[pctx.course.email])
+                recipient_list=[pctx.course.notify_email])
 
         return redirect("course.flow.start_flow",
                 pctx.course.identifier,

@@ -604,7 +604,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     % page_context.course.identifier,
                     message,
                     settings.ROBOT_EMAIL_FROM,
-                    recipient_list=[page_context.course.email])
+                    recipient_list=[page_context.course.notify_email])
 
         # }}}
 

@@ -121,10 +121,13 @@ class Course(models.Model):
             help_text="Enrollee's email addresses must end in the "
             "specified suffix, such as '@illinois.edu'.")
 
-    email = models.EmailField(
+    from_email = models.EmailField(
             help_text="This email address will be used in the 'From' line "
-            "of automated emails sent by RELATE. It will also receive "
-            "notifications about required approvals.")
+            "of automated emails sent by RELATE.")
+
+    notify_email = models.EmailField(
+            help_text="This email address will receive "
+            "notifications about the course.")
 
     # {{{ XMPP
 
@@ -246,7 +249,7 @@ class InstantFlowRequest(models.Model):
     cancelled = models.BooleanField(default=False)
 
 
-# {{{ flow session tracking
+# {{{ flow session
 
 class FlowSession(models.Model):
     # This looks like it's redundant with 'participation', below--but it's not.
@@ -327,6 +330,10 @@ class FlowSession(models.Model):
 
         return None
 
+# }}}
+
+
+# {{{ flow page data
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data")
@@ -355,6 +362,10 @@ class FlowPageData(models.Model):
     def next_ordinal(self):
         return self.ordinal + 1
 
+# }}}
+
+
+# {{{ flow page visit
 
 class FlowPageVisit(models.Model):
     # This is redundant (because the FlowSession is available through
