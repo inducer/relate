@@ -193,7 +193,7 @@ def get_session_access_rule(session, role, flow_desc, now_datetime):
                 continue
 
         if hasattr(rule, "if_expiration_mode"):
-            if session.if_expiration_mode != rule.if_expiration_mode:
+            if session.expiration_mode != rule.if_expiration_mode:
                 continue
 
         permissions = set(rule.permissions)
