@@ -129,8 +129,8 @@ class CourseAdminForm(forms.ModelForm):
 
 
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("identifier", "hidden", "valid")
-    list_filter = ("hidden", "valid",)
+    list_display = ("identifier", "hidden", "valid", "listed")
+    list_filter = ("hidden", "valid", "listed")
 
     form = CourseAdminForm
 
