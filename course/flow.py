@@ -704,7 +704,7 @@ def start_flow(pctx, flow_identifier):
             pctx.role, flow_identifier, fctx.flow_desc, now_datetime)
 
     if request.method == "POST":
-        from course.content import set_up_flow_session_page_data
+        from course.content import adjust_flow_session_page_data
 
         if "start" in request.POST:
 
@@ -740,10 +740,9 @@ def start_flow(pctx, flow_identifier):
                                     grading_rule, "grade_aggregation_strategy"),
                                 ))
 
-            page_count = set_up_flow_session_page_data(fctx.repo, session,
+            # will implicitly modify and save the session if there are changes
+            adjust_flow_session_page_data(fctx.repo, session,
                     pctx.course.identifier, fctx.flow_desc, pctx.course_commit_sha)
-            session.page_count = page_count
-            session.save()
 
             return redirect("course.flow.view_flow_page",
                     pctx.course.identifier, session.id, 0)

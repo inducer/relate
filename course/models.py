@@ -340,7 +340,7 @@ class FlowSession(models.Model):
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data")
-    ordinal = models.IntegerField()
+    ordinal = models.IntegerField(null=True, blank=True)
 
     group_id = models.CharField(max_length=200)
     page_id = models.CharField(max_length=200)
@@ -348,7 +348,6 @@ class FlowPageData(models.Model):
     data = JSONField(null=True, blank=True)
 
     class Meta:
-        unique_together = (("flow_session", "ordinal"),)
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):

@@ -32,6 +32,7 @@ import six
 
 from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
+from django.db import transaction
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -725,33 +726,53 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
     return class_(None, location, page_desc)
 
 
-def set_up_flow_session_page_data(repo, flow_session,
+@transaction.atomic
+def adjust_flow_session_page_data(repo, flow_session,
         course_identifier, flow_desc, commit_sha):
     from course.models import FlowPageData
+
+    id_to_existing_page = {
+            (data.group_id, data.page_id): data
+            for data in FlowPageData.objects.filter(flow_session=flow_session)
+            }
 
     data = None
 
     ordinal = 0
     for grp in flow_desc.groups:
         for page_desc in grp.pages:
-            data = FlowPageData()
-            data.flow_session = flow_session
-            data.ordinal = ordinal
-            data.is_last = False
-            data.group_id = grp.id
-            data.page_id = page_desc.id
+            key = (grp.id, page_desc.id)
 
-            page = instantiate_flow_page(
-                    "course '%s', flow '%s', page '%s/%s'"
-                    % (course_identifier, flow_session.flow_id,
-                        grp.id, page_desc.id),
-                    repo, page_desc, commit_sha)
-            data.data = page.make_page_data()
-            data.save()
+            if key in id_to_existing_page:
+                data = id_to_existing_page.pop(key)
+                if data.ordinal != ordinal:
+                    data.ordinal = ordinal
+                    data.save()
+            else:
+                data = FlowPageData()
+                data.flow_session = flow_session
+                data.ordinal = ordinal
+                data.group_id = grp.id
+                data.page_id = page_desc.id
+
+                page = instantiate_flow_page(
+                        "course '%s', flow '%s', page '%s/%s'"
+                        % (course_identifier, flow_session.flow_id,
+                            grp.id, page_desc.id),
+                        repo, page_desc, commit_sha)
+                data.data = page.make_page_data()
+                data.save()
 
             ordinal += 1
 
-    return ordinal
+    for data in id_to_existing_page.values():
+        if data.ordinal is not None:
+            data.ordinal = None
+            data.save()
+
+    if flow_session.page_count != ordinal:
+        flow_session.page_count = ordinal
+        flow_session.save()
 
 
 def get_course_commit_sha(course, participation):
