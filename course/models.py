@@ -91,7 +91,7 @@ class Course(models.Model):
             default=True,
             help_text="Is the course only accessible to course staff?")
     listed = models.BooleanField(
-            default=False,
+            default=True,
             help_text="Should the course be listed on the main page?")
     valid = models.BooleanField(
             default=True,
