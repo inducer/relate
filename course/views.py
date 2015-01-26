@@ -63,7 +63,7 @@ from course.utils import course_view, render_course_page
 
 def home(request):
     courses_and_descs_and_invalid_flags = []
-    for course in Course.objects.all():
+    for course in Course.objects.filter(listed=True):
         repo = get_course_repo(course)
         desc = get_course_desc(repo, course, course.active_git_commit_sha.encode())
 

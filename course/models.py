@@ -89,7 +89,10 @@ class Course(models.Model):
 
     hidden = models.BooleanField(
             default=True,
-            help_text="Is the course only visible to course staff?")
+            help_text="Is the course only accessible to course staff?")
+    listed = models.BooleanField(
+            default=False,
+            help_text="Should the course be listed on the main page?")
     valid = models.BooleanField(
             default=True,
             help_text="Whether the course content has passed validation.")
