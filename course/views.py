@@ -452,7 +452,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     sessions = (FlowSession.objects
             .filter(
-                participation=pctx.participation,
+                participation=participation,
                 flow_id=flow_id)
            .order_by("start_time"))
 
@@ -503,7 +503,11 @@ class ExceptionStage3Form(StyledForm):
                 required=False,
                 help_text="The due date shown to the student. Also, the "
                 "time after which "
-                "any session under these rules is subject to expiration.")
+                "any session under these rules is subject to expiration.",
+                initial=None)
+        self.fields["due_same_as_access_expiration"] = forms.BooleanField(
+                required=False, help_text="If True, the 'Due' field will be "
+                "disregarded.", initial=True)
 
         self.fields["credit_percent"] = forms.IntegerField(required=False)
 
@@ -514,6 +518,13 @@ class ExceptionStage3Form(StyledForm):
                 Submit(
                     "save", "Save",
                     css_class="col-lg-offset-2"))
+
+    def clean(self):
+        if (self.cleaned_data["access_expires"] is None
+                and self.cleaned_data["due_same_as_access_expiration"]):
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Must specify access expiration if 'due same "
+                    "as access expiration' is set.")
 
 
 @course_view
@@ -566,6 +577,10 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 rule={"permissions": permissions})
             fre_access.save()
 
+            due = form.cleaned_data["due"]
+            if form.cleaned_data["due_same_as_access_expiration"]:
+                due = form.cleaned_data["access_expires"]
+
             fre_grading = FlowRuleException(
                 flow_id=flow_id,
                 participation=participation,
@@ -574,13 +589,13 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 kind=flow_rule_kind.grading,
                 rule={
                     "credit_percent": form.cleaned_data["credit_percent"],
-                    "due": form.cleaned_data["due"],
+                    "due": due,
                     "description": "Exception",
                     })
             fre_grading.save()
 
             messages.add_message(pctx.request, messages.SUCCESS,
-                    "Exception granted.")
+                    "Exception granted to '%s' for '%s'." % (participation, flow_id))
             return redirect(
                     "course.views.grant_exception",
                     pctx.course.identifier)
