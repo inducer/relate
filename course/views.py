@@ -492,29 +492,32 @@ class ExceptionStage3Form(StyledForm):
             "do not expire and remain valid indefinitely, unless overridden by "
             "another exception.")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, default_data, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
 
         for key, name in FLOW_PERMISSION_CHOICES:
-            self.fields[key] = forms.BooleanField(label=name, required=False)
+            self.fields[key] = forms.BooleanField(label=name, required=False,
+                    initial=default_data.get(key) or False)
 
         self.fields["due"] = forms.DateTimeField(
                 widget=DateTimePicker(
-                    options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False,
-                        "showClear": True}),
+                    options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
                 required=False,
                 help_text="The due date shown to the student. Also, the "
                 "time after which "
                 "any session under these rules is subject to expiration.",
-                initial=None)
+                initial=default_data.get("due"))
         self.fields["due_same_as_access_expiration"] = forms.BooleanField(
                 required=False, help_text="If True, the 'Due' field will be "
-                "disregarded.", initial=True)
+                "disregarded.",
+                initial=default_data.get("due_same_as_access_expiration") or False)
 
-        self.fields["credit_percent"] = forms.IntegerField(required=False)
+        self.fields["credit_percent"] = forms.IntegerField(required=False,
+                initial=default_data.get("credit_percent"))
 
         self.fields["comment"] = forms.CharField(
-                widget=forms.Textarea, required=True)
+                widget=forms.Textarea, required=True,
+                initial=default_data.get("comment"))
 
         self.helper.add_input(
                 Submit(
@@ -559,7 +562,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
     request = pctx.request
     if request.method == "POST":
-        form = ExceptionStage3Form(request.POST)
+        form = ExceptionStage3Form({}, request.POST)
 
         from course.constants import flow_rule_kind
 
@@ -583,6 +586,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             if form.cleaned_data["due_same_as_access_expiration"]:
                 due = form.cleaned_data["access_expires"]
 
+            from relate.utils import as_local_time
             fre_grading = FlowRuleException(
                 flow_id=flow_id,
                 participation=participation,
@@ -591,7 +595,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 kind=flow_rule_kind.grading,
                 rule={
                     "credit_percent": form.cleaned_data["credit_percent"],
-                    "due": due,
+                    "due": as_local_time(due).replace(tzinfo=None),
                     "description": "Exception",
                     })
             fre_grading.save()
@@ -605,7 +609,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     else:
         data = {
                 "credit_percent": grading_rule.credit_percent,
-                "due_same_as_access_expiration": True,
+                #"due_same_as_access_expiration": True,
+                "due": grading_rule.due,
                 }
         for perm in access_rule.permissions:
             data[perm] = True
