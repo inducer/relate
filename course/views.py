@@ -432,8 +432,8 @@ class ExceptionStage2Form(StyledForm):
                 choices=(
                     (session.id, strify_session_for_exception(session))
                     for session in sessions),
-                help_text="Select the session on which the exception "
-                "should be based.")
+                help_text="The rules that currently apply to selected session "
+                "will provide the default values for the rules on the next page.")
 
         self.helper.add_input(
                 Submit(
@@ -481,7 +481,15 @@ class ExceptionStage3Form(StyledForm):
     access_expires = forms.DateTimeField(
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
-            required=False)
+            required=False,
+            help_text="At the specified time, the special access granted below "
+            "will expire "
+            "and revert to being the same as for the rest of the class. "
+            "This field may "
+            "be empty, in which case this access does not expire. Note also that "
+            "the grading-related entries (such as 'due date' and 'credit percent') "
+            "do not expire and remain valid indefinitely, unless overridden by "
+            "another exception.")
 
     def __init__(self, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
@@ -492,7 +500,10 @@ class ExceptionStage3Form(StyledForm):
         self.fields["due"] = forms.DateTimeField(
                 widget=DateTimePicker(
                     options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
-                required=False)
+                required=False,
+                help_text="The due date shown to the student. Also, the "
+                "time after which "
+                "any session under these rules is subject to expiration.")
 
         self.fields["credit_percent"] = forms.IntegerField(required=False)
 
