@@ -603,7 +603,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     else:
         data = {
                 "credit_percent": grading_rule.credit_percent,
-                "due": grading_rule.due,
+                "due_same_as_access_expiration": True,
                 }
         for perm in access_rule.permissions:
             data[perm] = True
