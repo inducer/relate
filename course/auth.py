@@ -256,14 +256,13 @@ def sign_in_by_email(request):
                 user.set_unusable_password()
                 user.save()
 
-                ustatus = UserStatus()
-                ustatus.user = user
-                ustatus.status = user_status.unconfirmed
-                ustatus.sign_in_key = make_sign_in_key(user)
-                ustatus.save()
-            else:
-                ustatus = user.user_status
-                ustatus.user = user
+            ustatus, ustatus_created = UserStatus.objects.get_or_create(
+                    user=user,
+                    defaults=dict(
+                        status=user_status.unconfirmed,
+                        sign_in_key=make_sign_in_key(user)))
+
+            if not created:
                 ustatus.sign_in_key = make_sign_in_key(user)
                 ustatus.save()
 
