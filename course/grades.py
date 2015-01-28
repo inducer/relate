@@ -358,6 +358,7 @@ def expire_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
             .filter(
                 course=course,
                 flow_id=flow_id,
+                participation__isnull=False,
                 access_rules_tag=rule_tag,
                 in_progress=True,
                 ))
@@ -380,6 +381,7 @@ def finish_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
             .filter(
                 course=course,
                 flow_id=flow_id,
+                participation__isnull=False,
                 access_rules_tag=rule_tag,
                 in_progress=True,
                 ))
@@ -401,6 +403,7 @@ def regrade_ended_sessions(repo, course, flow_id, rule_tag):
             .filter(
                 course=course,
                 flow_id=flow_id,
+                participation__isnull=False,
                 access_rules_tag=rule_tag,
                 in_progress=False,
                 ))
@@ -421,6 +424,7 @@ def recalculate_ended_sessions(repo, course, flow_id, rule_tag):
             .filter(
                 course=course,
                 flow_id=flow_id,
+                participation__isnull=False,
                 access_rules_tag=rule_tag,
                 in_progress=False,
                 ))
