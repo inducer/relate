@@ -624,11 +624,15 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             if form.cleaned_data["due_same_as_access_expiration"]:
                 due = form.cleaned_data["access_expires"]
 
+            descr = "Granted excecption"
+            if form.cleaned_data["credit_percent"] is not None:
+                descr += " (%.1f%% credit)" % form.cleaned_data["credit_percent"]
+
             from relate.utils import as_local_time
             new_grading_rule = {
                 "credit_percent": form.cleaned_data["credit_percent"],
                 "due": as_local_time(due),
-                "description": "Exception",
+                "description": descr,
                 }
 
             if (form.cleaned_data["restrict_to_same_tag"]
