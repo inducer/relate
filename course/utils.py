@@ -244,7 +244,8 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
                 continue
 
         due = parse_date_spec(session.course, getattr(rule, "due", None))
-        assert due.tzinfo is not None
+        if due is not None:
+            assert due.tzinfo is not None
 
         return FlowSessionGradingRule(
                 grade_identifier=getattr(rule, "grade_identifier", None),
