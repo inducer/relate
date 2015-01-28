@@ -359,7 +359,8 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 ("if_before", datespec_types),
                 ("if_has_role", list),
                 ("if_has_fewer_sessions_than", int),
-                ("tag_session", str),
+                ("if_has_fewer_tagged_sessions_than", int),
+                ("tag_session", (str, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
                 ]
@@ -385,7 +386,7 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 "attribute 'may_list_existing_sessions' is not present")
 
     if hasattr(nrule, "tag_session"):
-        if nrule.tag_session not in tags:
+        if not (nrule.tag_session is None or nrule.tag_session in tags):
             raise ValidationError(
                     "%s: invalid tag '%s'"
                     % (location, nrule.tag_session))
@@ -401,7 +402,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
                 ("if_has_role", list),
-                ("if_has_tag", str),
+                ("if_has_tag", (str, type(None))),
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),
                 ("if_expiration_mode", str),
@@ -422,7 +423,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                     "%s, role %d" % (location, j+1),
                     role)
     if hasattr(arule, "if_has_tag"):
-        if arule.if_has_tag not in tags:
+        if not (arule.if_has_tag is None or arule.if_has_tag in tags):
             raise ValidationError(
                     "%s: invalid tag '%s'"
                     % (location, arule.if_has_tag))
@@ -454,7 +455,7 @@ def validate_session_grading_rule(ctx, location, grule, tags):
                 ],
             allowed_attrs=[
                 ("if_has_role", list),
-                ("if_has_tag", str),
+                ("if_has_tag", (str, type(None))),
                 ("if_completed_before", datespec_types),
 
                 ("credit_percent", (int, float)),
@@ -478,7 +479,7 @@ def validate_session_grading_rule(ctx, location, grule, tags):
         has_conditionals = True
 
     if hasattr(grule, "if_has_tag"):
-        if grule.if_has_tag not in tags:
+        if not (grule.if_has_tag is None or grule.if_has_tag in tags):
             raise ValidationError(
                     "%s: invalid tag '%s'"
                     % (location, grule.if_has_tag))

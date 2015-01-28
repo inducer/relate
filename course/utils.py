@@ -155,6 +155,16 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
             if session_count >= rule.if_has_fewer_sessions_than:
                 continue
 
+        if not for_rollover and hasattr(rule, "if_has_fewer_tagged_sessions_than"):
+            tagged_session_count = FlowSession.objects.filter(
+                    participation=participation,
+                    course=course,
+                    access_rules_tag__isnull=False,
+                    flow_id=flow_id).count()
+
+            if tagged_session_count >= rule.if_has_fewer_tagged_sessions_than:
+                continue
+
         return FlowSessionStartRule(
                 tag_session=getattr(rule, "tag_session", None),
                 may_start_new_session=getattr(
