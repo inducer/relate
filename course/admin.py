@@ -503,6 +503,14 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
     get_participant.short_description = "Participant"
     get_participant.admin_order_field = "participation__user"
 
+    search_fields = (
+            "flow_id",
+            "participation__user__username",
+            "participation__user__first_name",
+            "participation__user__last_name",
+            "comment",
+            )
+
     list_display = (
             "get_participant",
             "get_course",
