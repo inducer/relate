@@ -218,6 +218,9 @@ def request_python_run(run_req, run_timeout, image=None):
 
             json_run_req = json.dumps(run_req).encode("utf-8")
 
+            from time import time
+            start_time = time()
+
             debug_print("BEFPOST")
             connection.request('POST', '/run-python', json_run_req, headers)
             debug_print("AFTPOST")
@@ -226,7 +229,16 @@ def request_python_run(run_req, run_timeout, image=None):
             debug_print("GETR")
             response_data = http_response.read().decode("utf-8")
             debug_print("READR")
-            return json.loads(response_data)
+
+            end_time = time()
+
+            result = json.loads(response_data)
+
+            result["feedback"] = (result.get("feedback", [])
+                    + ["Execution time: %.1f s -- Time limit: %.1f s"
+                        % (end_time - start_time, run_timeout)])
+
+            return result
 
         except socket.timeout:
             return {"result": "timeout"}
