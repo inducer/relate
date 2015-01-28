@@ -506,7 +506,11 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
         return None
 
     if isinstance(datespec, datetime.datetime):
-        return datespec
+        if datespec.tzinfo is None:
+            from relate.utils import localize_datetime
+            return localize_datetime(datespec)
+        else:
+            return datespec
     if isinstance(datespec, datetime.date):
         return datetime.datetime(datespec)
 

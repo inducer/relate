@@ -243,11 +243,14 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
             if not session.in_progress and session.completion_time > ds:
                 continue
 
+        due = parse_date_spec(session.course, getattr(rule, "due", None))
+        assert due.tzinfo is not None
+
         return FlowSessionGradingRule(
                 grade_identifier=getattr(rule, "grade_identifier", None),
                 grade_aggregation_strategy=getattr(
                     rule, "grade_aggregation_strategy", None),
-                due=parse_date_spec(session.course, getattr(rule, "due", None)),
+                due=due,
                 description=getattr(rule, "description", None),
                 credit_percent=getattr(rule, "credit_percent", 100))
 
