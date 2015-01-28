@@ -492,8 +492,14 @@ class ExceptionStage3Form(StyledForm):
             "do not expire and remain valid indefinitely, unless overridden by "
             "another exception.")
 
-    def __init__(self, default_data, *args, **kwargs):
+    def __init__(self, default_data, base_session_tag, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
+
+        self.fields["restrict_to_same_tag"] = forms.BooleanField(
+                label="Exception only applies to sessions with tag '%s'"
+                % base_session_tag,
+                required=False,
+                initial=default_data.get("restrict_to_same_tag", True))
 
         for key, name in FLOW_PERMISSION_CHOICES:
             self.fields[key] = forms.BooleanField(label=name, required=False,
@@ -562,7 +568,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
     request = pctx.request
     if request.method == "POST":
-        form = ExceptionStage3Form({}, request.POST)
+        form = ExceptionStage3Form({}, session.access_rules_tag, request.POST)
 
         from course.constants import flow_rule_kind
 
@@ -572,6 +578,34 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     for key, _ in FLOW_PERMISSION_CHOICES
                     if form.cleaned_data[key]]
 
+            from course.validation import (
+                    validate_session_access_rule,
+                    validate_session_grading_rule,
+                    ValidationContext)
+            from relate.utils import dict_to_struct
+            vctx = ValidationContext(
+                    repo=pctx.repo,
+                    commit_sha=pctx.course_commit_sha)
+
+            from course.content import get_flow_desc
+            flow_desc = get_flow_desc(pctx.repo,
+                    pctx.course,
+                    flow_id, pctx.course_commit_sha)
+            tags = None
+            if hasattr(flow_desc, "rules"):
+                tags = getattr(flow_desc.rules, "tags", None)
+
+            # {{{ put together access rule
+
+            new_access_rule = {"permissions": permissions}
+
+            if (form.cleaned_data["restrict_to_same_tag"]
+                    and session.access_rules_tag is not None):
+                new_access_rule["if_has_tag"] = session.access_rules_tag
+
+            validate_session_access_rule(vctx, "newly created exception",
+                    dict_to_struct(new_access_rule), tags)
+
             fre_access = FlowRuleException(
                 flow_id=flow_id,
                 participation=participation,
@@ -579,26 +613,48 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 creator=pctx.request.user,
                 comment=form.cleaned_data["comment"],
                 kind=flow_rule_kind.access,
-                rule={"permissions": permissions})
+                rule=new_access_rule)
             fre_access.save()
+
+            # }}}
+
+            # {{{ put together grading rule
 
             due = form.cleaned_data["due"]
             if form.cleaned_data["due_same_as_access_expiration"]:
                 due = form.cleaned_data["access_expires"]
 
             from relate.utils import as_local_time
+            new_grading_rule = {
+                "credit_percent": form.cleaned_data["credit_percent"],
+                "due": as_local_time(due),
+                "description": "Exception",
+                }
+
+            if (form.cleaned_data["restrict_to_same_tag"]
+                    and session.access_rules_tag is not None):
+                new_grading_rule["if_has_tag"] = session.access_rules_tag
+
+            if hasattr(grading_rule, "grade_identifier"):
+                new_grading_rule["grade_identifier"] = \
+                        grading_rule.grade_identifier
+            if hasattr(grading_rule, "grade_aggregation_strategy"):
+                new_grading_rule["grade_aggregation_strategy"] = \
+                        grading_rule.grade_aggregation_strategy
+
+            validate_session_grading_rule(vctx, "newly created exception",
+                    dict_to_struct(new_grading_rule), tags)
+
             fre_grading = FlowRuleException(
                 flow_id=flow_id,
                 participation=participation,
                 creator=pctx.request.user,
                 comment=form.cleaned_data["comment"],
                 kind=flow_rule_kind.grading,
-                rule={
-                    "credit_percent": form.cleaned_data["credit_percent"],
-                    "due": as_local_time(due).replace(tzinfo=None),
-                    "description": "Exception",
-                    })
+                rule=new_grading_rule)
             fre_grading.save()
+
+            # }}}
 
             messages.add_message(pctx.request, messages.SUCCESS,
                     "Exception granted to '%s' for '%s'." % (participation, flow_id))
@@ -608,6 +664,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
     else:
         data = {
+                "restrict_to_same_tag": session.access_rules_tag is not None,
                 "credit_percent": grading_rule.credit_percent,
                 #"due_same_as_access_expiration": True,
                 "due": grading_rule.due,
@@ -615,7 +672,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
         for perm in access_rule.permissions:
             data[perm] = True
 
-        form = ExceptionStage3Form(data)
+        form = ExceptionStage3Form(data, session.access_rules_tag)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,

@@ -360,7 +360,7 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 ("if_has_role", list),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
-                ("tag_session", (str, type(None))),
+                ("tag_session", (str, unicode, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
                 ]
@@ -402,7 +402,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
                 ("if_has_role", list),
-                ("if_has_tag", (str, type(None))),
+                ("if_has_tag", (str, unicode, type(None))),
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),
                 ("if_expiration_mode", str),
@@ -455,7 +455,7 @@ def validate_session_grading_rule(ctx, location, grule, tags):
                 ],
             allowed_attrs=[
                 ("if_has_role", list),
-                ("if_has_tag", (str, type(None))),
+                ("if_has_tag", (str, unicode, type(None))),
                 ("if_completed_before", datespec_types),
 
                 ("credit_percent", (int, float)),
