@@ -401,7 +401,10 @@ def get_role_and_participation(request, course):
         return participation_role.unenrolled, None
 
     participations = list(Participation.objects.filter(
-            user=user, course=course))
+            user=user,
+            course=course,
+            status=participation_status.active
+            ))
 
     # The uniqueness constraint should have ensured that.
     assert len(participations) <= 1
