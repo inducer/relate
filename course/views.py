@@ -631,7 +631,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             from relate.utils import as_local_time
             new_grading_rule = {
                 "credit_percent": form.cleaned_data["credit_percent"],
-                "due": as_local_time(due),
+                "due": as_local_time(due).replace(tzinfo=None),
                 "description": descr,
                 }
 
