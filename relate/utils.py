@@ -59,11 +59,19 @@ def settings_context_processor(request):
 
 
 def as_local_time(datetime):
-    """Takes an offset-naive datetime and applies the server timezone."""
+    """Takes an timezone-aware datetime and applies the server timezone."""
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
     return datetime.astimezone(tz)
+
+
+def localize_datetime(datetime):
+    """Takes an timezone-naive datetime and applies the server timezone."""
+    from django.conf import settings
+    from pytz import timezone
+    tz = timezone(settings.TIME_ZONE)
+    return tz.localize(datetime)
 
 
 def local_now():
