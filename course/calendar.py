@@ -45,8 +45,10 @@ from course.models import (participation_role, Event)
 @login_required
 @course_view
 def check_events(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("only instructors and TAs may do that")
 
     invalid_datespecs = {}
 
@@ -131,8 +133,10 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
 @login_required
 @course_view
 def create_recurring_events(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("only instructors and TAs may do that")
 
     request = pctx.request
 
@@ -200,8 +204,10 @@ class RenumberEventsForm(StyledForm):
 @login_required
 @course_view
 def renumber_events(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("only instructors and TAs may do that")
 
     request = pctx.request
 
