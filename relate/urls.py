@@ -196,10 +196,6 @@ urlpatterns = patterns('',
         "course.versioning.set_up_new_course"),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
-        "/fetch/$",
-        "course.versioning.fetch_course_updates",),
-    url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/update/$",
         "course.versioning.update_course",),
 
