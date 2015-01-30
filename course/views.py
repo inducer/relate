@@ -424,9 +424,29 @@ def strify_session_for_exception(session):
     return result
 
 
-class ExceptionStage2Form(StyledForm):
+class CreateSessionForm(StyledForm):
     def __init__(self, session_tag_choices, default_tag, create_session_is_override,
-            sessions, *args, **kwargs):
+            *args, **kwargs):
+        super(CreateSessionForm, self).__init__(*args, **kwargs)
+
+        self.fields["access_rules_tag_for_new_session"] = forms.ChoiceField(
+                choices=session_tag_choices,
+                initial=default_tag,
+                help_text="If you click 'Create session', this tag will be "
+                "applied to the new session.")
+
+        if create_session_is_override:
+            self.helper.add_input(
+                    Submit("create_session", "Create session (override rules)",
+                        css_class="btn-danger col-lg-offset-2"))
+        else:
+            self.helper.add_input(
+                    Submit("create_session", "Create session",
+                        css_class="col-lg-offset-2"))
+
+
+class ExceptionStage2Form(StyledForm):
+    def __init__(self, sessions, *args, **kwargs):
         super(ExceptionStage2Form, self).__init__(*args, **kwargs)
 
         self.fields["session"] = forms.ChoiceField(
@@ -436,22 +456,8 @@ class ExceptionStage2Form(StyledForm):
                 help_text="The rules that currently apply to selected session "
                 "will provide the default values for the rules on the next page.")
 
-        self.fields["access_rules_tag_for_new_session"] = forms.ChoiceField(
-                choices=session_tag_choices,
-                initial=default_tag,
-                help_text="If you click 'Create session', this tag will be "
-                "applied to the new session.")
-
         self.helper.add_input(Submit("next", mark_safe("Next &raquo;"),
                     css_class="col-lg-offset-2"))
-
-        if create_session_is_override:
-            self.helper.add_input(
-                    Submit("create_session", "Create session (override rules)",
-                        css_class="btn-warning"))
-        else:
-            self.helper.add_input(
-                    Submit("create_session", "Create session"))
 
 
 @course_view
@@ -511,22 +517,25 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                     flow_id=flow_id)
                .order_by("start_time"))
 
-    form = None
+    exception_form = None
     request = pctx.request
     if request.method == "POST":
-        form = ExceptionStage2Form(
+        exception_form = ExceptionStage2Form(find_sessions(), request.POST)
+        create_session_form = CreateSessionForm(
                 session_tag_choices, default_tag, create_session_is_override,
-                find_sessions(), request.POST)
+                request.POST)
 
         if "create_session" in request.POST or "next" in request.POST:
             pass
         else:
             raise SuspiciousOperation("invalid command")
 
-        if form.is_valid() and "create_session" in request.POST:
+        if create_session_form.is_valid() and "create_session" in request.POST:
             from course.flow import start_flow
 
-            access_rules_tag = form.cleaned_data["access_rules_tag_for_new_session"]
+            access_rules_tag = (
+                    create_session_form.cleaned_data[
+                        "access_rules_tag_for_new_session"])
             if access_rules_tag == NONE_SESSION_TAG:
                 access_rules_tag = None
 
@@ -535,22 +544,24 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                     access_rules_tag=access_rules_tag,
                     now_datetime=now_datetime)
 
-            form = None
+            exception_form = None
 
-        elif form.is_valid() and "next" in request.POST:
+        elif exception_form.is_valid() and "next" in request.POST:
             return redirect(
                     "course.views.grant_exception_stage_3",
                     pctx.course.identifier,
                     participation.id,
                     flow_id,
-                    form.cleaned_data["session"])
+                    exception_form.cleaned_data["session"])
+    else:
+        create_session_form = CreateSessionForm(
+                session_tag_choices, default_tag, create_session_is_override)
 
-    if form is None:
-        form = ExceptionStage2Form(session_tag_choices, default_tag,
-                create_session_is_override, find_sessions())
+    if exception_form is None:
+        exception_form = ExceptionStage2Form(find_sessions())
 
     return render_course_page(pctx, "course/generic-course-form.html", {
-        "form": form,
+        "forms": [exception_form, create_session_form],
         "form_text": form_text,
         "form_description": "Grant Exception",
     })
