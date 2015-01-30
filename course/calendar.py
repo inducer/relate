@@ -75,7 +75,7 @@ class RecurringEventForm(StyledForm):
             help_text="Should be lower_case_with_underscores, no spaces allowed.")
     time = forms.DateTimeField(
             widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}))
+                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}))
     duration_in_minutes = forms.FloatField(required=False)
     interval = forms.ChoiceField(required=True,
             choices=(

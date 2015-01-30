@@ -32,7 +32,7 @@ dulwich
 paramiko
 
 # A date picker widget
-django-bootstrap3-datetimepicker
+git+https://github.com/inducer/django-bootstrap3-datetimepicker.git
 
 # For in-class instant messaging
 sleekxmpp

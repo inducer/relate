@@ -161,7 +161,7 @@ def get_media(request, course_identifier, commit_sha, media_path):
 class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
             widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}))
+                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}))
 
     def __init__(self, *args, **kwargs):
         super(FakeTimeForm, self).__init__(*args, **kwargs)
@@ -480,7 +480,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 class ExceptionStage3Form(StyledForm):
     access_expires = forms.DateTimeField(
             widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False,
+                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
             required=False,
             help_text="At the specified time, the special access granted below "
@@ -507,7 +507,7 @@ class ExceptionStage3Form(StyledForm):
 
         self.fields["due"] = forms.DateTimeField(
                 widget=DateTimePicker(
-                    options={"format": "YYYY-MM-DD HH:mm", "pickSeconds": False}),
+                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False,
                 help_text="The due date shown to the student. Also, the "
                 "time after which "
