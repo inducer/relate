@@ -215,6 +215,8 @@ class ParticipationAdmin(admin.ModelAdmin):
             "enroll_time")
     list_filter = ("course", "role", "status")
 
+    raw_id_fields = ("user",)
+
     search_fields = (
             "course__identifier",
             "user__username",
