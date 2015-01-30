@@ -515,7 +515,8 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     request = pctx.request
     if request.method == "POST":
         form = ExceptionStage2Form(
-                session_tag_choices, default_tag, find_sessions(), request.POST)
+                session_tag_choices, default_tag, create_session_is_override,
+                find_sessions(), request.POST)
 
         if "create_session" in request.POST or "next" in request.POST:
             pass
@@ -535,6 +536,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                     now_datetime=now_datetime)
 
             form = None
+
         elif form.is_valid() and "next" in request.POST:
             return redirect(
                     "course.views.grant_exception_stage_3",
@@ -709,6 +711,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             new_grading_rule = {
                 "credit_percent": form.cleaned_data["credit_percent"],
                 "due": as_local_time(due).replace(tzinfo=None),
+                "if_completed_before": as_local_time(due).replace(tzinfo=None),
                 "description": descr,
                 }
 
