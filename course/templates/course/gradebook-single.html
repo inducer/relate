@@ -29,7 +29,7 @@
     {% endif %}
     {% if opportunity.flow_id %}
     <tr>
-      <td>Flow</td><td><tt><a href="{% url "course.flow.start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+      <td>Flow</td><td><tt><a href="{% url "course.flow.view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
     </tr>
     {% endif %}
   </table>

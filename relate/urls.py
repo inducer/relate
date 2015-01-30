@@ -209,7 +209,7 @@ urlpatterns = patterns('',
          "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
          "/start"
          "/$",
-         "course.flow.start_flow",),
+         "course.flow.view_start_flow",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow-session"

@@ -338,7 +338,7 @@ def test_flow(pctx):
             raise SuspiciousOperation("invalid operation")
 
         if form.is_valid():
-            return redirect("course.flow.start_flow",
+            return redirect("course.flow.view_start_flow",
                     pctx.course.identifier,
                     form.cleaned_data["flow_id"])
 
@@ -425,7 +425,7 @@ def strify_session_for_exception(session):
 
 
 class ExceptionStage2Form(StyledForm):
-    def __init__(self, sessions, *args, **kwargs):
+    def __init__(self, session_tag_choices, sessions, *args, **kwargs):
         super(ExceptionStage2Form, self).__init__(*args, **kwargs)
 
         self.fields["session"] = forms.ChoiceField(
@@ -435,10 +435,16 @@ class ExceptionStage2Form(StyledForm):
                 help_text="The rules that currently apply to selected session "
                 "will provide the default values for the rules on the next page.")
 
+        self.fields["access_rules_tag_for_new_session"] = forms.ChoiceField(
+                choices=session_tag_choices,
+                help_text="If you click 'Create session', this tag will be "
+                "applied to the new session.")
+
         self.helper.add_input(
                 Submit(
-                    "next", mark_safe("Next &raquo;"),
+                    "create_session", mark_safe("Create session"),
                     css_class="col-lg-offset-2"))
+        self.helper.add_input(Submit("next", mark_safe("Next &raquo;")))
 
 
 @course_view
@@ -448,19 +454,63 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
             participation_role.teaching_assistant]:
         raise PermissionDenied("must be instructor or TA to grant exceptions")
 
+    # {{{ get flow data
+
     participation = get_object_or_404(Participation, id=participation_id)
 
-    sessions = (FlowSession.objects
-            .filter(
-                participation=participation,
-                flow_id=flow_id)
-           .order_by("start_time"))
+    from course.content import get_flow_desc
+    try:
+        flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
+                pctx.course_commit_sha)
+    except ObjectDoesNotExist:
+        raise http.Http404()
 
+    now_datetime = get_now_or_fake_time(pctx.request)
+
+    if hasattr(flow_desc, "rules"):
+        access_rules_tags = getattr(flow_desc.rules, "tags", [])
+    else:
+        access_rules_tags = []
+
+    NONE_SESSION_TAG = "<<<NONE>>>"
+    session_tag_choices = [
+            (tag, tag)
+            for tag in access_rules_tags] + [(NONE_SESSION_TAG, "(None)")]
+
+    # }}}
+
+    def find_sessions():
+        return (FlowSession.objects
+                .filter(
+                    participation=participation,
+                    flow_id=flow_id)
+               .order_by("start_time"))
+
+    form = None
     request = pctx.request
     if request.method == "POST":
-        form = ExceptionStage2Form(sessions, request.POST)
+        form = ExceptionStage2Form(
+                session_tag_choices, find_sessions(), request.POST)
 
-        if form.is_valid():
+        if "create_session" in request.POST or "next" in request.POST:
+            pass
+        else:
+            raise SuspiciousOperation("invalid command")
+
+        if form.is_valid() and "create_session" in request.POST:
+            from course.flow import start_flow
+
+            access_rules_tag = form.cleaned_data["access_rules_tag_for_new_session"]
+            if access_rules_tag == NONE_SESSION_TAG:
+                access_rules_tag = None
+
+            start_flow(pctx.repo, pctx.course, participation, flow_id,
+                    flow_desc=flow_desc,
+                    access_rules_tag=access_rules_tag,
+                    now_datetime=now_datetime)
+
+            form = None
+        elif form.is_valid() and "next" in request.POST:
             return redirect(
                     "course.views.grant_exception_stage_3",
                     pctx.course.identifier,
@@ -468,11 +518,13 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                     flow_id,
                     form.cleaned_data["session"])
 
-    else:
-        form = ExceptionStage2Form(sessions)
+    if form is None:
+        form = ExceptionStage2Form(session_tag_choices, find_sessions())
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
+        "form_text": "<div class='well'>Granting exception to '%s' for '%s'.</div>"
+        % (participation, flow_id),
         "form_description": "Grant Exception",
     })
 

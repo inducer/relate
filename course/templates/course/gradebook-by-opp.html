@@ -27,7 +27,7 @@
     <tr>
       <td>Flow</td>
       <td>
-        <tt><a href="{% url "course.flow.start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
+        <tt><a href="{% url "course.flow.view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
         &middot;
         <a href="{% url "course.grading.show_grading_statistics" course.identifier opportunity.flow_id %}">Grading statistics</a>
       </td>

@@ -35,7 +35,7 @@
         </td>
         <td class="datacol">
           {% if opp.flow_id %}
-            <a href="{% url "course.flow.start_flow" course.identifier opp.flow_id %}">{{ opp.flow_id }}</a>
+            <a href="{% url "course.flow.view_start_flow" course.identifier opp.flow_id %}">{{ opp.flow_id }}</a>
           {% endif %}
         </td>
         <td class="datacol">{{ opp.aggregation_strategy }}</td>

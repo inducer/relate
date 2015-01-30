@@ -266,7 +266,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_url(self, url):
         if url.startswith("flow:"):
             flow_id = url[5:]
-            return self.reverse_func("course.flow.start_flow",
+            return self.reverse_func("course.flow.view_start_flow",
                         args=(self.get_course_identifier(), flow_id))
 
         elif url.startswith("media:"):

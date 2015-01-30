@@ -127,14 +127,14 @@
         There is an interactive activity going on right now.
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
-            href="{% url "course.flow.start_flow" course.identifier req.flow_id %}"
+            href="{% url "course.flow.view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>Go to activity &raquo;</b></a>
         {% endfor %}
       {% else %}
         There are some interactive activities going on right now.
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
-            href="{% url "course.flow.start_flow" course.identifier req.flow_id %}"
+            href="{% url "course.flow.view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>Go to activity {{ i }} &raquo;</b></a>
         {% endfor %}
       {% endif %}

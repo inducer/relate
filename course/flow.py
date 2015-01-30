@@ -144,6 +144,52 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 # }}}
 
 
+# {{{ start flow
+
+def start_flow(repo, course, participation, flow_id, flow_desc,
+        access_rules_tag, now_datetime):
+    from course.content import get_course_commit_sha
+    course_commit_sha = get_course_commit_sha(course, participation)
+
+    session = FlowSession(
+        course=course,
+        participation=participation,
+        active_git_commit_sha=course_commit_sha.decode(),
+        flow_id=flow_id,
+        in_progress=True,
+        expiration_mode=flow_session_expriration_mode.end,
+        access_rules_tag=access_rules_tag)
+
+    session.save()
+
+    # Create flow grading opportunity. This makes the flow
+    # show up in the grade book.
+
+    from course.utils import get_flow_rules
+    from course.models import get_flow_grading_opportunity
+    for grading_rule in get_flow_rules(
+            flow_desc, flow_rule_kind.grading, participation,
+            flow_id, now_datetime, consider_exceptions=False):
+        identifier = getattr(grading_rule, "grade_identifier", None)
+        if identifier is not None:
+            get_flow_grading_opportunity(
+                    course, flow_id, flow_desc,
+                    FlowSessionGradingRule(
+                        grade_identifier=identifier,
+                        grade_aggregation_strategy=getattr(
+                            grading_rule, "grade_aggregation_strategy"),
+                        ))
+
+    # will implicitly modify and save the session if there are changes
+    from course.content import adjust_flow_session_page_data
+    adjust_flow_session_page_data(repo, session,
+            course.identifier, flow_desc, course_commit_sha)
+
+    return session
+
+# }}}
+
+
 # {{{ finish flow
 
 def get_flow_session_graded_answers_qset(flow_session):
@@ -693,7 +739,7 @@ def recalculate_session_grade(repo, course, session):
 
 @transaction.atomic
 @course_view
-def start_flow(pctx, flow_identifier):
+def view_start_flow(pctx, flow_identifier):
     request = pctx.request
 
     now_datetime = get_now_or_fake_time(request)
@@ -704,45 +750,16 @@ def start_flow(pctx, flow_identifier):
             pctx.role, flow_identifier, fctx.flow_desc, now_datetime)
 
     if request.method == "POST":
-        from course.content import adjust_flow_session_page_data
-
         if "start" in request.POST:
 
             if not session_start_rule.may_start_new_session:
                 raise PermissionDenied("new session not allowed")
 
-            session = FlowSession(
-                course=fctx.course,
-                participation=pctx.participation,
-                active_git_commit_sha=pctx.course_commit_sha.decode(),
-                flow_id=flow_identifier,
-                in_progress=True,
-                expiration_mode=flow_session_expriration_mode.end,
-                access_rules_tag=session_start_rule.tag_session)
-
-            session.save()
-
-            # Create flow grading opportunity. This makes the flow
-            # show up in the grade book.
-
-            from course.utils import get_flow_rules
-            from course.models import get_flow_grading_opportunity
-            for grading_rule in get_flow_rules(
-                    fctx.flow_desc, flow_rule_kind.grading, pctx.participation,
-                    flow_identifier, now_datetime, consider_exceptions=False):
-                identifier = getattr(grading_rule, "grade_identifier", None)
-                if identifier is not None:
-                    get_flow_grading_opportunity(
-                            pctx.course, flow_identifier, fctx.flow_desc,
-                            FlowSessionGradingRule(
-                                grade_identifier=identifier,
-                                grade_aggregation_strategy=getattr(
-                                    grading_rule, "grade_aggregation_strategy"),
-                                ))
-
-            # will implicitly modify and save the session if there are changes
-            adjust_flow_session_page_data(fctx.repo, session,
-                    pctx.course.identifier, fctx.flow_desc, pctx.course_commit_sha)
+            session = start_flow(
+                    pctx.repo, pctx.course, pctx.participation,
+                    flow_identifier, fctx.flow_desc,
+                    access_rules_tag=session_start_rule.tag_session,
+                    now_datetime=now_datetime)
 
             return redirect("course.flow.view_flow_page",
                     pctx.course.identifier, session.id, 0)
@@ -888,7 +905,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 "No in-progress session record found for this flow. "
                 "Redirected to flow start page.")
 
-        return redirect("course.flow.start_flow",
+        return redirect("course.flow.view_start_flow",
                 pctx.course.identifier,
                 flow_identifier)
 
@@ -917,7 +934,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 settings.ROBOT_EMAIL_FROM,
                 recipient_list=[pctx.course.notify_email])
 
-        return redirect("course.flow.start_flow",
+        return redirect("course.flow.view_start_flow",
                 pctx.course.identifier,
                 flow_identifier)
 
