@@ -425,7 +425,8 @@ def strify_session_for_exception(session):
 
 
 class ExceptionStage2Form(StyledForm):
-    def __init__(self, session_tag_choices, sessions, *args, **kwargs):
+    def __init__(self, session_tag_choices, default_tag, create_session_is_override,
+            sessions, *args, **kwargs):
         super(ExceptionStage2Form, self).__init__(*args, **kwargs)
 
         self.fields["session"] = forms.ChoiceField(
@@ -437,14 +438,20 @@ class ExceptionStage2Form(StyledForm):
 
         self.fields["access_rules_tag_for_new_session"] = forms.ChoiceField(
                 choices=session_tag_choices,
+                initial=default_tag,
                 help_text="If you click 'Create session', this tag will be "
                 "applied to the new session.")
 
-        self.helper.add_input(
-                Submit(
-                    "create_session", mark_safe("Create session"),
+        self.helper.add_input(Submit("next", mark_safe("Next &raquo;"),
                     css_class="col-lg-offset-2"))
-        self.helper.add_input(Submit("next", mark_safe("Next &raquo;")))
+
+        if create_session_is_override:
+            self.helper.add_input(
+                    Submit("create_session", "Create session (override rules)",
+                        css_class="btn-warning"))
+        else:
+            self.helper.add_input(
+                    Submit("create_session", "Create session"))
 
 
 @course_view
@@ -457,6 +464,9 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     # {{{ get flow data
 
     participation = get_object_or_404(Participation, id=participation_id)
+
+    form_text = ("<div class='well'>Granting exception to '%s' for '%s'.</div>"
+        % (participation, flow_id))
 
     from course.content import get_flow_desc
     try:
@@ -477,6 +487,21 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
             (tag, tag)
             for tag in access_rules_tags] + [(NONE_SESSION_TAG, "(None)")]
 
+    from course.utils import get_session_start_rule
+    session_start_rule = get_session_start_rule(pctx.course, participation,
+            participation.role, flow_id, flow_desc, now_datetime)
+
+    create_session_is_override = False
+    if not session_start_rule.may_start_new_session:
+        create_session_is_override = True
+        form_text += ("<div class='alert alert-info'>%s</div>"
+            % "Creating a new session is (technically) not allowed by course "
+                "rules. Clicking 'Create Session' anyway will override this rule.")
+
+    default_tag = session_start_rule.tag_session
+    if default_tag is None:
+        default_tag = NONE_SESSION_TAG
+
     # }}}
 
     def find_sessions():
@@ -490,7 +515,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     request = pctx.request
     if request.method == "POST":
         form = ExceptionStage2Form(
-                session_tag_choices, find_sessions(), request.POST)
+                session_tag_choices, default_tag, find_sessions(), request.POST)
 
         if "create_session" in request.POST or "next" in request.POST:
             pass
@@ -519,12 +544,12 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                     form.cleaned_data["session"])
 
     if form is None:
-        form = ExceptionStage2Form(session_tag_choices, find_sessions())
+        form = ExceptionStage2Form(session_tag_choices, default_tag,
+                create_session_is_override, find_sessions())
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_text": "<div class='well'>Granting exception to '%s' for '%s'.</div>"
-        % (participation, flow_id),
+        "form_text": form_text,
         "form_description": "Grant Exception",
     })
 
