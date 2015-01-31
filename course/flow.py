@@ -237,7 +237,9 @@ def assemble_answer_visits(flow_session):
 
 def count_answered_gradable(fctx, flow_session, answer_visits):
     all_page_data = (FlowPageData.objects
-            .filter(flow_session=flow_session)
+            .filter(
+                flow_session=flow_session,
+                ordinal__isnull=False)
             .order_by("ordinal"))
 
     answered_count = 0
@@ -344,7 +346,9 @@ def gather_grade_info(fctx, flow_session, answer_visits):
     """
 
     all_page_data = (FlowPageData.objects
-            .filter(flow_session=flow_session)
+            .filter(
+                flow_session=flow_session,
+                ordinal__isnull=False)
             .order_by("ordinal"))
 
     points = 0
