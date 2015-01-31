@@ -238,7 +238,7 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
 
         if hasattr(rule, "if_completed_before"):
             ds = parse_date_spec(session.course, rule.if_completed_before)
-            if now_datetime > ds:
+            if session.in_progress and now_datetime > ds:
                 continue
             if not session.in_progress and session.completion_time > ds:
                 continue
