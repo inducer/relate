@@ -37,8 +37,7 @@ from course.models import (
         FlowSession, FlowPageVisitGrade,
         get_flow_grading_opportunity,
         get_feedback_for_grade,
-        FlowPageBulkFeedback,
-        delete_other_bulk_feedback)
+        update_bulk_feedback)
 from course.constants import participation_role
 from course.utils import (
         course_view, render_course_page,
@@ -171,13 +170,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
                 most_recent_grade.save()
 
-                delete_other_bulk_feedback(fpctx.prev_answer_visit.page_data)
-                if bulk_feedback_json is not None:
-                    FlowPageBulkFeedback(
-                            page_data=fpctx.prev_answer_visit.page_data,
-                            grade=most_recent_grade,
-                            bulk_feedback=bulk_feedback_json
-                            ).save()
+                update_bulk_feedback(
+                        fpctx.prev_answer_visit.page_data,
+                        most_recent_grade,
+                        bulk_feedback_json)
 
                 grading_rule = get_session_grading_rule(
                         flow_session, flow_session.participation.role,

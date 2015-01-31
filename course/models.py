@@ -492,8 +492,12 @@ class FlowPageBulkFeedback(models.Model):
     bulk_feedback = JSONField(null=True, blank=True)
 
 
-def delete_other_bulk_feedback(page_data):
-    FlowPageBulkFeedback.objects.filter(page_data=page_data).delete()
+def update_bulk_feedback(page_data, grade, bulk_feedback_json):
+    FlowPageBulkFeedback.objects.update_or_create(
+            page_data=page_data,
+            defaults=dict(
+                grade=grade,
+                bulk_feedback=bulk_feedback_json))
 
 
 def get_feedback_for_grade(grade):

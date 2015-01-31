@@ -48,10 +48,8 @@ from course.constants import (
 from course.models import (
         FlowSession, FlowPageData, FlowPageVisit,
         FlowPageVisitGrade,
-        FlowPageBulkFeedback,
-        delete_other_bulk_feedback,
         get_feedback_for_grade,
-        GradeChange)
+        GradeChange, update_bulk_feedback)
 
 from course.utils import (
         FlowContext, FlowPageContext,
@@ -133,13 +131,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 
     grade.save()
 
-    delete_other_bulk_feedback(page_data)
-    if bulk_feedback_json is not None:
-        FlowPageBulkFeedback(
-                page_data=page_data,
-                grade=grade,
-                bulk_feedback=bulk_feedback_json
-                ).save()
+    update_bulk_feedback(page_data, grade, bulk_feedback_json)
 
 # }}}
 
@@ -1021,13 +1013,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
                         grade.save()
 
-                        delete_other_bulk_feedback(page_data)
-                        if bulk_feedback_json is not None:
-                            FlowPageBulkFeedback(
-                                    page_data=page_data,
-                                    grade=grade,
-                                    bulk_feedback=bulk_feedback_json
-                                    ).save()
+                        update_bulk_feedback(page_data, grade, bulk_feedback_json)
 
                         del grade
                 else:
