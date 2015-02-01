@@ -31,6 +31,7 @@ import django.forms as forms
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
+from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import \
@@ -64,7 +65,7 @@ def whom_may_impersonate(impersonator):
                 participation_role.instructor,
                 participation_role.teaching_assistant))
 
-    result = None
+    q_object = None
 
     for part in my_privileged_participations:
         if part.role == participation_role.instructor:
@@ -77,17 +78,17 @@ def whom_may_impersonate(impersonator):
         else:
             assert False
 
-        impersonable_users = User.objects.filter(
+        part_q_object = Q(
                 participation__course=part.course,
                 participation__status=participation_status.active,
                 participation__role__in=impersonable_roles)
 
-        if result is None:
-            result = impersonable_users
+        if q_object is None:
+            q_object = part_q_object
         else:
-            result = result | impersonable_users
+            q_object = q_object | part_q_object
 
-    return result
+    return set(User.objects.filter(q_object).order_by("last_name"))
 
 
 class ImpersonateMiddleware(object):
@@ -97,25 +98,25 @@ class ImpersonateMiddleware(object):
 
             request.relate_impersonate_original_user = request.user
             if imp_id is not None:
-                try:
-                    request.user = whom_may_impersonate(request.user).get(id=imp_id)
-                except Exception as e:
+                impersonees = whom_may_impersonate(request.user)
+                if any(u.id == imp_id for u in impersonees):
+                    request.user = User.objects.get(id=imp_id)
+                else:
                     messages.add_message(request, messages.ERROR,
-                            "Error while impersonating: %s." % e)
-
-
-class UserChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return "%s - %s, %s" % (obj.email, obj.last_name, obj.first_name)
+                            "Error while impersonating.")
 
 
 class ImpersonateForm(StyledForm):
     def __init__(self, impersonator, *args, **kwargs):
         super(ImpersonateForm, self).__init__(*args, **kwargs)
 
-        self.fields["user"] = UserChoiceField(
-                queryset=(whom_may_impersonate(impersonator)
-                    .order_by("last_name")),
+        impersonees = whom_may_impersonate(impersonator)
+
+        self.fields["user"] = forms.ChoiceField(
+                choices=[
+                    (u.id, "%s - %s, %s" % (u.email, u.last_name, u.first_name))
+                    for u in impersonees
+                    ],
                 required=True,
                 help_text="Select user to impersonate.")
 
@@ -133,7 +134,7 @@ def impersonate(request):
     if request.method == 'POST':
         form = ImpersonateForm(request.user, request.POST)
         if form.is_valid():
-            user = form.cleaned_data["user"]
+            user = User.objects.get(id=form.cleaned_data["user"])
 
             messages.add_message(request, messages.INFO,
                     "Now impersonating '%s'." % user.username)
