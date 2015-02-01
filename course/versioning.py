@@ -236,13 +236,13 @@ def is_parent_commit(repo, potential_parent, child, max_history_check_size=None)
 
 
 def run_course_update_command(request, pctx, command, new_sha):
+    repo = pctx.repo
+
     if command.startswith("fetch_"):
         command = command[6:]
 
         if not pctx.course.git_source:
             raise RuntimeError("no git source URL specified")
-
-        repo = pctx.repo
 
         client, remote_path = \
             get_dulwich_client_and_remote_path_from_course(pctx.course)
