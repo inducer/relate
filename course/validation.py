@@ -212,13 +212,13 @@ def validate_chunk_rule(ctx, location, chunk_rule):
 
     if hasattr(chunk_rule, "start"):
         ctx.add_warning(location, "Uses deprecated 'start' attribute--"
-                "use 'if_before' instead")
+                "use 'if_after' instead")
 
         ctx.encounter_datespec(location, chunk_rule.start)
 
     if hasattr(chunk_rule, "end"):
         ctx.add_warning(location, "Uses deprecated 'end' attribute--"
-                "use 'if_after' instead")
+                "use 'if_before' instead")
 
         ctx.encounter_datespec(location, chunk_rule.end)
 
