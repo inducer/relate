@@ -60,6 +60,11 @@ def enroll(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
 
+    if not course.accepts_enrollment:
+        messages.add_message(request, messages.ERROR,
+                "Course is not accepting enrollments.")
+        return redirect("course.views.course_page", course_identifier)
+
     if role != participation_role.unenrolled:
         messages.add_message(request, messages.ERROR,
                 "Already enrolled. Cannot re-renroll.")

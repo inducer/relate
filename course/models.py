@@ -93,6 +93,8 @@ class Course(models.Model):
     listed = models.BooleanField(
             default=True,
             help_text="Should the course be listed on the main page?")
+    accepts_enrollment = models.BooleanField(
+            default=True)
     valid = models.BooleanField(
             default=True,
             help_text="Whether the course content has passed validation.")

@@ -108,7 +108,8 @@ class CourseCreationForm(StyledModelForm):
     class Meta:
         model = Course
         fields = (
-            "identifier", "hidden",
+            "identifier", "hidden", "listed",
+            "accepts_enrollment",
             "git_source", "ssh_private_key",
             "course_file",
             "events_file",
