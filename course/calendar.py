@@ -288,7 +288,7 @@ def view_calendar(pctx):
             .filter(
                 course=pctx.course,
                 shown_in_calendar=True)
-            .order_by("time")):
+            .order_by("-time")):
         kind_desc = event_kinds_desc.get(event.kind)
 
         human_title = unicode(event)
