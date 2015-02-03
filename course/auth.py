@@ -115,7 +115,8 @@ class ImpersonateForm(StyledForm):
         self.fields["user"] = forms.ChoiceField(
                 choices=[
                     (u.id, "%s - %s, %s" % (u.email, u.last_name, u.first_name))
-                    for u in impersonees
+                    for u in sorted(impersonees,
+                        key=lambda user: user.last_name.lower())
                     ],
                 required=True,
                 help_text="Select user to impersonate.")
