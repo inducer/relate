@@ -49,7 +49,9 @@ The following page types are predefined:
 
 * :class:`Page` -- a page of static text
 * :class:`TextQuestion` -- a page allowing a textual answer
+* :class:`SurveyTextQuestion` -- a page allowing an ungraded textual answer
 * :class:`ChoiceQuestion` -- a multiple-choice question
+* :class:`SurveyChoiceQuestion` -- a page allowing an ungraded multiple-choice answer
 * :class:`PythonCodeQuestion` -- an autograded code question
 * :class:`PythonCodeQuestionWithHumanTextFeedback`
   -- a code question with automatic *and* human grading

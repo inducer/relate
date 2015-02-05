@@ -565,6 +565,50 @@ class TextQuestionBase(PageBaseWithTitle):
 
 
 class SurveyTextQuestion(TextQuestionBase):
+    """
+    A page asking for a textual answer, without any notion of 'correctness'
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``TextQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: widget
+
+        |text-widget-page-attr|
+
+    .. attribute:: answer_comment
+
+        A comment that is shown in the same situations a 'correct answer' would
+        be.
+    """
+
+    def allowed_attrs(self):
+        return super(SurveyTextQuestion, self).allowed_attrs() + (
+                ("answer_comment", "markup"),
+                )
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        if hasattr(self.page_desc, "answer_comment"):
+            return markup_to_html(page_context, self.page_desc.answer_comment)
+        else:
+            return None
+
     def expects_answer(self):
         return True
 

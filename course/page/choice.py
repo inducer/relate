@@ -276,6 +276,17 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
                 ("choices", list),
                 )
 
+    def allowed_attrs(self):
+        return super(SurveyChoiceQuestion, self).allowed_attrs() + (
+                ("answer_comment", "markup"),
+                )
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        if hasattr(self.page_desc, "answer_comment"):
+            return markup_to_html(page_context, self.page_desc.answer_comment)
+        else:
+            return None
+
     def markup_body_for_title(self):
         return self.page_desc.prompt
 
