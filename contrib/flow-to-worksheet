@@ -5,7 +5,7 @@ from __future__ import print_function
 import sys
 import pypandoc
 import re
-from mako.template import Template
+from jinja2 import Template
 
 
 class Struct(object):
@@ -27,10 +27,10 @@ def dict_to_struct(data):
 
 
 QUESTIONS_ONLY_TEMPLATE = Template(r"""
-% for i, q in enumerate(questions):
-    ${q}
-% endfor
-""", strict_undefined=True)
+{% for q in questions %}
+    {{ q }}
+{% endfor %}
+""")
 
 
 TEMPLATE = Template(r"""
@@ -50,23 +50,29 @@ TEMPLATE = Template(r"""
 \akteachheader{Numerical Methods (CS 357)}%
 {Worksheet}
 
-% for i, q in enumerate(questions):
-    ${q}
-% endfor
+{% for q in questions %}
+    {{ q }}
+{% endfor %}
 \end{document}
-""", strict_undefined=True)
+""")
+
+
+INCLUDE_GRAPHICS_RE = re.compile(r"\\includegraphics\{media:(.*)\}")
+
+
+def convert_markup(s):
+    result = pypandoc.convert(s, 'latex', format='markdown')
+    result, _ = INCLUDE_GRAPHICS_RE.subn(
+            r"\includegraphics[height=4cm]{media/\1}", result)
+    return result
 
 
 def convert_page_inner(page):
-    if page.type == "TextQuestion":
-        prompt = pypandoc.convert(
-            page.prompt, 'latex',
-            format='markdown') + "\n\\vspace*{2cm}"
+    if page.type in ["TextQuestion", "SurveyTextQuestion"]:
+        prompt = convert_markup(page.prompt) + "\n\\vspace*{2cm}"
         return (prompt)
     elif page.type == "PythonCodeQuestion":
-        prompt = pypandoc.convert(
-            page.prompt, 'latex',
-            format='markdown')
+        prompt = convert_markup(page.prompt)
 
         if hasattr(page, "initial_code"):
             prompt += r"\begin{verbatim}%s\end{verbatim}" % page.initial_code
@@ -74,21 +80,15 @@ def convert_page_inner(page):
         prompt += "\n\\vspace*{5cm}"
         return (prompt)
     elif page.type == "FileUploadQuestion":
-        prompt = pypandoc.convert(
-            page.prompt, 'latex',
-            format='markdown') + "\n\\vspace*{5cm}"
+        prompt = convert_markup(page.prompt) + "\n\\vspace*{5cm}"
         return (prompt)
-    elif page.type == "ChoiceQuestion":
-        prompt = pypandoc.convert(
-            page.prompt, 'latex',
-            format='markdown')
+    elif page.type in ["ChoiceQuestion", "SurveyChoiceQuestion"]:
+        prompt = convert_markup(page.prompt)
 
         choices = [
             "\item "
             +
-            pypandoc.convert(
-                ch.replace("~CORRECT~", r"\correct "), 'latex',
-                format='markdown')
+            convert_markup(ch.replace("~CORRECT~", r"\correct "))
             for ch in page.choices
             if ch is not None]
 
