@@ -724,4 +724,15 @@ class PageBaseWithCorrectAnswer(PageBase):
 
 # }}}
 
+
+def get_editor_interaction_mode(page_context):
+    if (page_context.flow_session is not None
+            and page_context.flow_session.participation is not None):
+        from course.models import get_user_status
+        ustatus = get_user_status(page_context.flow_session.participation.user)
+        return ustatus.editor_mode
+    else:
+        return "default"
+
+
 # vim: foldmethod=marker

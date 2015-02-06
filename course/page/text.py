@@ -31,19 +31,12 @@ import django.forms as forms
 from relate.utils import StyledForm, Struct
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
-        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer)
+        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer,
+
+        get_editor_interaction_mode)
 
 import re
 import sys
-
-
-def _get_editor_interaction_mode(page_context):
-    if page_context.flow_session.participation is not None:
-        from course.models import get_user_status
-        ustatus = get_user_status(page_context.flow_session.participation.user)
-        return ustatus.editor_mode
-    else:
-        return "default"
 
 
 class TextAnswerForm(StyledForm):
@@ -507,14 +500,14 @@ class TextQuestionBase(PageBaseWithTitle):
             answer = {"answer": answer_data["answer"]}
             form = TextAnswerForm(
                     read_only,
-                    _get_editor_interaction_mode(page_context),
+                    get_editor_interaction_mode(page_context),
                     [], answer,
                     widget_type=getattr(self.page_desc, "widget", None))
         else:
             answer = None
             form = TextAnswerForm(
                     read_only,
-                    _get_editor_interaction_mode(page_context),
+                    get_editor_interaction_mode(page_context),
                     [],
                     widget_type=getattr(self.page_desc, "widget", None))
 
@@ -524,7 +517,7 @@ class TextQuestionBase(PageBaseWithTitle):
         read_only = False
         return TextAnswerForm(
                 read_only,
-                _get_editor_interaction_mode(page_context),
+                get_editor_interaction_mode(page_context),
                 [], post_data, files_data,
                 widget_type=getattr(self.page_desc, "widget", None))
 
@@ -675,13 +668,13 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
             answer = {"answer": answer_data["answer"]}
             form = TextAnswerForm(
                     read_only,
-                    _get_editor_interaction_mode(page_context),
+                    get_editor_interaction_mode(page_context),
                     self.matchers, answer)
         else:
             answer = None
             form = TextAnswerForm(
                     read_only,
-                    _get_editor_interaction_mode(page_context),
+                    get_editor_interaction_mode(page_context),
                     self.matchers)
 
         return form
@@ -690,7 +683,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
         read_only = False
         return TextAnswerForm(
                 read_only,
-                _get_editor_interaction_mode(page_context),
+                get_editor_interaction_mode(page_context),
                 self.matchers, post_data, files_data)
 
     def grade(self, page_context, page_data, answer_data, grade_data):

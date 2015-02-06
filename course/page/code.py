@@ -34,8 +34,9 @@ from relate.utils import StyledForm
 from course.page.base import (
         PageBaseWithTitle, markup_to_html, PageBaseWithValue,
         PageBaseWithHumanTextFeedback,
-        AnswerFeedback, get_auto_feedback)
+        AnswerFeedback, get_auto_feedback,
 
+        get_editor_interaction_mode)
 
 # {{{ python code question
 
@@ -440,15 +441,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "test_code": getattr(self.page_desc, "test_code", ""),
                     })
 
-    @staticmethod
-    def _get_editor_interaction_mode(page_context):
-        if page_context.flow_session.participation is not None:
-            from course.models import get_user_status
-            ustatus = get_user_status(page_context.flow_session.participation.user)
-            return ustatus.editor_mode
-        else:
-            return "default"
-
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
 
@@ -456,14 +448,14 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             answer = {"answer": answer_data["answer"]}
             form = PythonCodeForm(
                     answer_is_final,
-                    self._get_editor_interaction_mode(page_context),
+                    get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     answer)
         else:
             answer = None
             form = PythonCodeForm(
                     answer_is_final,
-                    self._get_editor_interaction_mode(page_context),
+                    get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     )
 
@@ -472,7 +464,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     def post_form(self, page_context, page_data, post_data, files_data):
         return PythonCodeForm(
                 False,
-                self._get_editor_interaction_mode(page_context),
+                get_editor_interaction_mode(page_context),
                 self._initial_code(),
                 post_data, files_data)
 
