@@ -385,8 +385,7 @@ def user_profile(request):
     else:
         form = UserProfileForm(instance=request.user)
 
-    return render(request, "generic-form.html", {
-        "form_description": "User Profile",
+    return render(request, "user-profile-form.html", {
         "form": form,
         })
 

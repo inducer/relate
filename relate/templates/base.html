@@ -91,9 +91,6 @@
                   </p>
                 </li>
               {% endif %}
-              <li>
-                <a href="{% url "django.contrib.auth.views.logout" %}">Sign out</a>
-              </li>
             {% else %}
               {# Error pages don't seem to run template context processors, so #}
               {# this variable might not be available... #}
