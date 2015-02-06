@@ -718,13 +718,22 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             if form.cleaned_data["credit_percent"] is not None:
                 descr += " (%.1f%% credit)" % form.cleaned_data["credit_percent"]
 
-            from relate.utils import as_local_time
+            due_local_naive = due
+            if due_local_naive is not None:
+                from relate.utils import as_local_time
+                due_local_naive = as_local_time(due_local_naive).replace(tzinfo=None)
+
             new_grading_rule = {
-                "credit_percent": form.cleaned_data["credit_percent"],
-                "due": as_local_time(due).replace(tzinfo=None),
-                "if_completed_before": as_local_time(due).replace(tzinfo=None),
                 "description": descr,
                 }
+
+            if due_local_naive is not None:
+                new_grading_rule["due"] = due_local_naive
+                new_grading_rule["if_completed_before"] = due_local_naive
+
+            if form.cleaned_data["credit_percent"] is not None:
+                new_grading_rule["credit_percent"] = \
+                        form.cleaned_data["credit_percent"]
 
             if (form.cleaned_data["restrict_to_same_tag"]
                     and session.access_rules_tag is not None):
@@ -734,6 +743,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     and grading_rule.grade_identifier is not None):
                 new_grading_rule["grade_identifier"] = \
                         grading_rule.grade_identifier
+            else:
+                new_grading_rule["grade_identifier"] = None
+
             if (hasattr(grading_rule, "grade_aggregation_strategy")
                     and grading_rule.grade_aggregation_strategy is not None):
                 new_grading_rule["grade_aggregation_strategy"] = \
