@@ -249,7 +249,7 @@ class Participation(models.Model):
     preview_git_commit_sha = models.CharField(max_length=200, null=True,
             blank=True)
 
-    tags = models.ManyToManyField(ParticipationTag)
+    tags = models.ManyToManyField(ParticipationTag, blank=True)
 
     def __unicode__(self):
         return "%s in %s as %s" % (
@@ -258,12 +258,6 @@ class Participation(models.Model):
     class Meta:
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
-
-    def clean(self):
-        for tag in self.tags.all():
-            if tag.course.pk != self.course.pk:
-                raise ValidationError(
-                    {"tags": "Tags must belong to same course as participation."})
 
 
 class ParticipationPreapproval(models.Model):
@@ -281,7 +275,6 @@ class ParticipationPreapproval(models.Model):
     class Meta:
         unique_together = (("course", "email"),)
         ordering = ("course", "email")
-
 
 # }}}
 

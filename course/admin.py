@@ -218,7 +218,21 @@ admin.site.register(ParticipationTag, ParticipationTagAdmin)
 
 # {{{ participations
 
+class ParticipationFrom(forms.ModelForm):
+    class Meta:
+        model = Participation
+
+    def clean(self):
+        for tag in self.cleaned_data.get("tags", []):
+            if tag.course != self.cleaned_data.get("course"):
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    {"tags": "Tags must belong to same course as participation."})
+
+
 class ParticipationAdmin(admin.ModelAdmin):
+    form = ParticipationFrom
+
     def get_user_first_name(self, obj):
         return obj.user.first_name
 
