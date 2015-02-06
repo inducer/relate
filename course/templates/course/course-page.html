@@ -36,7 +36,7 @@
     </div>
   {% else %}
 
-    {% if course.accepts_enrollment and role == participation_role.unenrolled %}
+    {% if show_enroll_button %}
       <div class="well">
         <form method="POST" action="{% url "course.enrollment.enroll" course.identifier %}">
           {% csrf_token %}
@@ -46,6 +46,7 @@
         </form>
       </div>
     {% endif %}
+
   {% endif %}
 
   {% for chunk in chunks %}

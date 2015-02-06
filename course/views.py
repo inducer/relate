@@ -119,8 +119,23 @@ def course_page(pctx):
             pctx.course, pctx.repo, pctx.course_commit_sha, pctx.course_desc,
             pctx.role, get_now_or_fake_time(pctx.request))
 
+    show_enroll_button = (
+            pctx.course.accepts_enrollment
+            and pctx.role == participation_role.unenrolled)
+
+    if Participation.objects.filter(
+            user=pctx.request.user,
+            course=pctx.course,
+            status=participation_status.requested).count():
+        show_enroll_button = False
+
+        messages.add_message(pctx.request, messages.INFO,
+                "Your enrollment request is pending. You will be "
+                "notified once it has been acted upon.")
+
     return render_course_page(pctx, "course/course-page.html", {
         "chunks": chunks,
+        "show_enroll_button": show_enroll_button,
         })
 
 # }}}
