@@ -26,6 +26,7 @@ from django.contrib import admin
 from course.models import (
         UserStatus,
         Course, Event,
+        ParticipationTag,
         Participation, ParticipationPreapproval,
         InstantFlowRequest,
         FlowSession, FlowPageData,
@@ -190,7 +191,32 @@ admin.site.register(Event, EventAdmin)
 # }}}
 
 
-# {{{ participation
+# {{{ participation tags
+
+class ParticipationTagAdmin(admin.ModelAdmin):
+    list_filter = ("course",)
+
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(ParticipationTagAdmin, self).get_queryset(request)
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(ParticipationTagAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
+
+    # }}}
+
+admin.site.register(ParticipationTag, ParticipationTagAdmin)
+
+# }}}
+
+
+# {{{ participations
 
 class ParticipationAdmin(admin.ModelAdmin):
     def get_user_first_name(self, obj):
@@ -212,10 +238,12 @@ class ParticipationAdmin(admin.ModelAdmin):
             "course",
             "role",
             "status",
-            "enroll_time")
-    list_filter = ("course", "role", "status")
+            )
+    list_filter = ("course", "role", "status", "tags")
 
     raw_id_fields = ("user",)
+
+    filter_horizontal = ("tags",)
 
     search_fields = (
             "course__identifier",
@@ -236,6 +264,9 @@ class ParticipationAdmin(admin.ModelAdmin):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
+        if db_field.name == "tags":
+            kwargs["queryset"] = _filter_course_linked_obj_for_user(
+                    ParticipationTag.objects, request.user)
         return super(ParticipationAdmin, self).formfield_for_foreignkey(
                 db_field, request, **kwargs)
 

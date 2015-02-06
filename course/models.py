@@ -210,6 +210,28 @@ class Event(models.Model):
 
 # {{{ participation
 
+class ParticipationTag(models.Model):
+    course = models.ForeignKey(Course)
+
+    name = models.CharField(max_length=100, unique=True,
+            help_text="Format is lower-case-with-hyphens. "
+            "Do not use spaces.")
+
+    def clean(self):
+        import re
+        NAME_VALID_RE = re.compile(r"^\w+$")
+
+        if NAME_VALID_RE.match(self.name) is None:
+            raise ValidationError({"name": "Name contains invalid characters."})
+
+    def __unicode__(self):
+        return "%s (%s)" % (self.name, self.course)
+
+    class Meta:
+        unique_together = (("course", "name"),)
+        ordering = ("course", "name")
+
+
 class Participation(models.Model):
     user = models.ForeignKey(User)
     course = models.ForeignKey(Course, related_name="participations")
@@ -227,6 +249,8 @@ class Participation(models.Model):
     preview_git_commit_sha = models.CharField(max_length=200, null=True,
             blank=True)
 
+    tags = models.ManyToManyField(ParticipationTag)
+
     def __unicode__(self):
         return "%s in %s as %s" % (
                 self.user, self.course, self.role)
@@ -234,6 +258,12 @@ class Participation(models.Model):
     class Meta:
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
+
+    def clean(self):
+        for tag in self.tags.all():
+            if tag.course.pk != self.course.pk:
+                raise ValidationError(
+                    {"tags": "Tags must belong to same course as participation."})
 
 
 class ParticipationPreapproval(models.Model):
@@ -251,6 +281,7 @@ class ParticipationPreapproval(models.Model):
     class Meta:
         unique_together = (("course", "email"),)
         ordering = ("course", "email")
+
 
 # }}}
 
