@@ -5,7 +5,10 @@
 {% block content %}
   <h1>User Profile</h1>
   <div class="well">
-    {% crispy form %}
+    {% crispy user_form %}
+  </div>
+  <div class="well">
+    {% crispy user_status_form %}
   </div>
   <div class="well">
     <a href="{% url "django.contrib.auth.views.logout" %}" class="btn btn-default col-lg-offset-2">Sign out</a>

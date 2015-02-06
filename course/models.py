@@ -68,6 +68,15 @@ class UserStatus(models.Model):
             null=True, unique=True, db_index=True, blank=True)
     key_time = models.DateTimeField(default=now)
 
+    editor_mode = models.CharField(max_length=20,
+            choices=(
+                ("default", "Default"),
+                ("sublime", "Sublime text"),
+                ("emacs", "Emacs"),
+                ("vim", "Vim"),
+                ),
+            default="default")
+
     class Meta:
         verbose_name_plural = "user statuses"
         ordering = ("key_time",)

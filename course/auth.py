@@ -343,7 +343,8 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
                 "Successfully signed in. "
                 "Please complete your registration information below.")
 
-        return redirect("course.auth.user_profile")
+        return redirect(
+               reverse("course.auth.user_profile")+"?first_login=1")
     else:
         messages.add_message(request, messages.INFO,
                 "Successfully signed in.")
@@ -356,16 +357,29 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 # {{{ user profile
 
-class UserProfileForm(StyledModelForm):
+class UserForm(StyledModelForm):
     class Meta:
         model = User
         fields = ("first_name", "last_name")
 
     def __init__(self, *args, **kwargs):
-        super(UserProfileForm, self).__init__(*args, **kwargs)
+        super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Update",
+                Submit("submit_user", "Update",
+                    css_class="col-lg-offset-2"))
+
+
+class UserStatusForm(StyledModelForm):
+    class Meta:
+        model = UserStatus
+        fields = ("editor_mode",)
+
+    def __init__(self, *args, **kwargs):
+        super(UserStatusForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit_user_status", "Update",
                     css_class="col-lg-offset-2"))
 
 
@@ -373,20 +387,40 @@ def user_profile(request):
     if not request.user.is_authenticated():
         raise PermissionDenied()
 
-    if request.method == "POST":
-        form = UserProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-            messages.add_message(request, messages.INFO,
-                    "Profile data saved.")
-            return redirect("course.views.home")
+    from course.models import get_user_status
+    ustatus = get_user_status(request.user)
 
-    # if a GET (or any other method) we'll create a blank form
-    else:
-        form = UserProfileForm(instance=request.user)
+    user_form = None
+    user_status_form = None
+
+    if request.method == "POST":
+        if "submit_user" in request.POST:
+            user_form = UserForm(request.POST, instance=request.user)
+            if user_form.is_valid():
+                user_form.save()
+                messages.add_message(request, messages.INFO,
+                        "Profile data saved.")
+                if request.GET.get("first_login"):
+                    return redirect("course.views.home")
+
+        if "submit_user_status" in request.POST:
+            user_status_form = UserStatusForm(
+                    request.POST, instance=ustatus)
+            if user_status_form.is_valid():
+                user_status_form.save()
+                messages.add_message(request, messages.INFO,
+                        "Profile data saved.")
+                if request.GET.get("first_login"):
+                    return redirect("course.views.home")
+
+    if user_form is None:
+        user_form = UserForm(instance=request.user)
+    if user_status_form is None:
+        user_status_form = UserStatusForm(instance=ustatus)
 
     return render(request, "user-profile-form.html", {
-        "form": form,
+        "user_form": user_form,
+        "user_status_form": user_status_form,
         })
 
 # }}}

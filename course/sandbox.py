@@ -33,70 +33,29 @@ from crispy_forms.layout import Submit
 from course.utils import course_view, render_course_page
 
 
-CF_SANDBOX_VIM_MODE = "CF_SANDBOX_VIM_MODE"
-
-
 # {{{ sandbox form
 
 class SandboxForm(forms.Form):
     def __init__(self, initial_text,
-            editor_mode, vim_mode, help_text, *args, **kwargs):
+            language_mode, interaction_mode, help_text, *args, **kwargs):
         super(SandboxForm, self).__init__(*args, **kwargs)
 
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self.helper.form_class = "form-horizontal"
 
-        from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+        from course.utils import get_codemirror_widget
+        cm_widget, cm_help_text = get_codemirror_widget(
+                language_mode=language_mode,
+                interaction_mode=interaction_mode)
 
         self.fields["content"] = forms.CharField(
                 required=False,
                 initial=initial_text,
-                widget=CodeMirrorTextarea(
-                    mode=editor_mode,
-                    theme="default",
-                    addon_css=(
-                        "dialog/dialog",
-                        "display/fullscreen",
-                        ),
-                    addon_js=(
-                        "search/searchcursor",
-                        "dialog/dialog",
-                        "search/search",
-                        "edit/matchbrackets",
-                        "display/fullscreen",
-                        "selection/active-line",
-                        "edit/trailingspace",
-                        ),
-                    config={
-                        "fixedGutter": True,
-                        "autofocus": True,
-                        "matchBrackets": True,
-                        "styleActiveLine": True,
-                        "showTrailingSpace": True,
-                        "indentUnit": 2,
-                        "vimMode": vim_mode,
-                        "extraKeys": CodeMirrorJavascript("""
-                            {
-                              "Tab": function(cm)
-                              {
-                                var spaces = \
-                                    Array(cm.getOption("indentUnit") + 1).join(" ");
-                                cm.replaceSelection(spaces);
-                              },
-                              "F9": function(cm) {
-                                  cm.setOption("fullScreen",
-                                    !cm.getOption("fullScreen"));
-                              }
-                            }
-                        """)
-                    }),
+                widget=cm_widget,
                 help_text=mark_safe(
                     help_text + " Press Alt/Cmd+(Shift+)P to preview. "
-                    "Press F9 to toggle full screen mode."))
-
-        self.fields["vim_mode"] = forms.BooleanField(
-                required=False, initial=vim_mode)
+                    + cm_help_text))
 
         self.helper.add_input(
                 Submit(
@@ -113,24 +72,22 @@ def view_markup_sandbox(pctx):
     request = pctx.request
     preview_text = ""
 
+    from course.models import get_user_status
+    ustatus = get_user_status(request.user)
+
     def make_form(data=None):
         help_text = ("Enter <a href=\"http://documen.tician.de/"
                 "relate/content.html#relate-markup\">"
                 "RELATE markup</a>.")
         return SandboxForm(
-                None, "markdown", vim_mode,
+                None, "markdown", ustatus.editor_mode,
                 help_text,
                 data)
-
-    vim_mode = pctx.request.session.get(CF_SANDBOX_VIM_MODE, False)
 
     if request.method == "POST":
         form = make_form(request.POST)
 
         if form.is_valid():
-            pctx.request.session[CF_SANDBOX_VIM_MODE] = \
-                    vim_mode = form.cleaned_data["vim_mode"]
-
             from course.content import markup_to_html
             try:
                 preview_text = markup_to_html(
@@ -174,21 +131,19 @@ def view_page_sandbox(pctx):
 
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
+    from course.models import get_user_status
+    ustatus = get_user_status(request.user)
+
     def make_form(data=None):
         return SandboxForm(
-                page_source, "yaml", vim_mode,
+                page_source, "yaml", ustatus.editor_mode,
                 "Enter YAML markup for a flow page.",
                 data)
-
-    vim_mode = pctx.request.session.get(CF_SANDBOX_VIM_MODE, False)
 
     if is_preview_post:
         edit_form = make_form(pctx.request.POST)
 
         if edit_form.is_valid():
-            pctx.request.session[CF_SANDBOX_VIM_MODE] = \
-                    vim_mode = edit_form.cleaned_data["vim_mode"]
-
             try:
                 new_page_source = edit_form.cleaned_data["content"]
                 page_desc = dict_to_struct(yaml.load(new_page_source))

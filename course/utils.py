@@ -463,4 +463,84 @@ class PageInstanceCache(object):
 
 # }}}
 
+
+def get_codemirror_widget(language_mode, interaction_mode,
+        config=None, addon_css=(), addon_js=(),
+        read_only=False):
+    theme = "default"
+    if read_only:
+        theme += " relate-readonly"
+
+    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+
+    from django.core.urlresolvers import reverse
+    help_text = ("Press F9 to toggle full-screen mode. "
+            + "Set editor mode in <a href='%s'>user profile</a>."
+            % reverse("course.auth.user_profile"))
+
+    actual_addon_css = (
+        "dialog/dialog",
+        "display/fullscreen",
+        ) + addon_css
+    actual_addon_js = (
+        "search/searchcursor",
+        "dialog/dialog",
+        "search/search",
+        "edit/matchbrackets",
+        "display/fullscreen",
+        "selection/active-line",
+        "edit/trailingspace",
+        ) + addon_js
+
+    if language_mode == "python":
+        indent_unit = 4
+    else:
+        indent_unit = 2
+
+    actual_config = {
+            "fixedGutter": True,
+            "autofocus": True,
+            "matchBrackets": True,
+            "styleActiveLine": True,
+            "showTrailingSpace": True,
+            "indentUnit": indent_unit,
+            "readOnly": read_only,
+            "extraKeys": CodeMirrorJavascript("""
+                {
+                  "Ctrl-/": "toggleComment",
+                  "Tab": function(cm)
+                  {
+                    var spaces = \
+                        Array(cm.getOption("indentUnit") + 1).join(" ");
+                    cm.replaceSelection(spaces);
+                  },
+                  "F9": function(cm) {
+                      cm.setOption("fullScreen",
+                        !cm.getOption("fullScreen"));
+                  }
+                }
+            """)
+            }
+
+    if interaction_mode == "vim":
+        actual_config["vimMode"] = True
+        actual_addon_js += ('../keymap/vim',)
+    elif interaction_mode == "emacs":
+        actual_config["keyMap"] = "emacs"
+        actual_addon_js += ('../keymap/emacs',)
+    elif interaction_mode == "sublime":
+        actual_config["keyMap"] = "sublime"
+        actual_addon_js += ('../keymap/sublime',)
+    # every other interaction mode goes to default
+
+    if config is not None:
+        actual_config.update(config)
+
+    return CodeMirrorTextarea(
+                    mode=language_mode,
+                    theme=theme,
+                    addon_css=actual_addon_css,
+                    addon_js=actual_addon_js,
+                    config=actual_config), help_text
+
 # vim: foldmethod=marker

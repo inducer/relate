@@ -37,9 +37,19 @@ import re
 import sys
 
 
+def _get_editor_interaction_mode(page_context):
+    if page_context.flow_session.participation is not None:
+        from course.models import get_user_status
+        ustatus = get_user_status(page_context.flow_session.participation.user)
+        return ustatus.editor_mode
+    else:
+        return "default"
+
+
 class TextAnswerForm(StyledForm):
     @staticmethod
-    def get_text_widget(widget_type, read_only=False, check_only=False):
+    def get_text_widget(widget_type, read_only=False, check_only=False,
+            interaction_mode=None):
         """Returns None if no widget found."""
 
         if widget_type in [None, "text_input"]:
@@ -50,7 +60,7 @@ class TextAnswerForm(StyledForm):
             widget.attrs["autofocus"] = None
             if read_only:
                 widget.attrs["readonly"] = None
-            return widget
+            return widget, None
 
         elif widget_type == "textarea":
             if check_only:
@@ -60,69 +70,35 @@ class TextAnswerForm(StyledForm):
             # widget.attrs["autofocus"] = None
             if read_only:
                 widget.attrs["readonly"] = None
-            return widget
+            return widget, None
 
         elif widget_type in ["editor:markdown", "editor:yaml"]:
             if check_only:
                 return True
 
-            editor_mode = widget_type[widget_type.find(":")+1:]
+            from course.utils import get_codemirror_widget
+            cm_widget, cm_help_text = get_codemirror_widget(
+                    language_mode=widget_type[widget_type.find(":")+1:],
+                    interaction_mode=interaction_mode,
+                    read_only=read_only)
 
-            theme = "default"
-            if read_only:
-                theme += " relate-readonly"
-
-            from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
-            return CodeMirrorTextarea(
-                    mode=editor_mode,
-                    theme=theme,
-                    addon_css=(
-                        "dialog/dialog",
-                        "display/fullscreen",
-                        ),
-                    addon_js=(
-                        "search/searchcursor",
-                        "dialog/dialog",
-                        "search/search",
-                        "edit/matchbrackets",
-                        "display/fullscreen",
-                        "selection/active-line",
-                        ),
-                    config={
-                        "fixedGutter": True,
-                        # "autofocus": True,
-                        "matchBrackets": True,
-                        "styleActiveLine": True,
-                        "indentUnit": 2,
-                        "readOnly": read_only,
-                        "extraKeys": CodeMirrorJavascript("""
-                            {
-                              "Tab": function(cm)
-                              {
-                                var spaces = \
-                                    Array(cm.getOption("indentUnit") + 1).join(" ");
-                                cm.replaceSelection(spaces);
-                              },
-                              "F9": function(cm) {
-                                  cm.setOption("fullScreen",
-                                    !cm.getOption("fullScreen"));
-                              },
-                            }
-                        """)
-                    })
+            return cm_widget, cm_help_text
 
         else:
-            return None
+            return None, None
 
-    def __init__(self, read_only, validators, *args, **kwargs):
+    def __init__(self, read_only, interaction_mode, validators, *args, **kwargs):
         widget_type = kwargs.pop("widget_type", "text_input")
 
         super(TextAnswerForm, self).__init__(*args, **kwargs)
-
+        widget, help_text = self.get_text_widget(
+                    widget_type, read_only,
+                    interaction_mode=interaction_mode)
         self.validators = validators
         self.fields["answer"] = forms.CharField(
                 required=True,
-                widget=self.get_text_widget(widget_type, read_only))
+                widget=widget,
+                help_text=help_text)
 
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()
@@ -529,19 +505,28 @@ class TextQuestionBase(PageBaseWithTitle):
 
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
-            form = TextAnswerForm(read_only, [], answer,
+            form = TextAnswerForm(
+                    read_only,
+                    _get_editor_interaction_mode(page_context),
+                    [], answer,
                     widget_type=getattr(self.page_desc, "widget", None))
         else:
             answer = None
-            form = TextAnswerForm(read_only, [],
+            form = TextAnswerForm(
+                    read_only,
+                    _get_editor_interaction_mode(page_context),
+                    [],
                     widget_type=getattr(self.page_desc, "widget", None))
 
         return form
 
     def post_form(self, page_context, page_data, post_data, files_data):
         read_only = False
-        return TextAnswerForm(read_only, [], post_data, files_data,
-            widget_type=getattr(self.page_desc, "widget", None))
+        return TextAnswerForm(
+                read_only,
+                _get_editor_interaction_mode(page_context),
+                [], post_data, files_data,
+                widget_type=getattr(self.page_desc, "widget", None))
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data["answer"].strip()}
@@ -688,16 +673,25 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
-            form = TextAnswerForm(read_only, self.matchers, answer)
+            form = TextAnswerForm(
+                    read_only,
+                    _get_editor_interaction_mode(page_context),
+                    self.matchers, answer)
         else:
             answer = None
-            form = TextAnswerForm(read_only, self.matchers)
+            form = TextAnswerForm(
+                    read_only,
+                    _get_editor_interaction_mode(page_context),
+                    self.matchers)
 
         return form
 
     def post_form(self, page_context, page_data, post_data, files_data):
         read_only = False
-        return TextAnswerForm(read_only, self.matchers, post_data, files_data)
+        return TextAnswerForm(
+                read_only,
+                _get_editor_interaction_mode(page_context),
+                self.matchers, post_data, files_data)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:

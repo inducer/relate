@@ -40,58 +40,19 @@ from course.page.base import (
 # {{{ python code question
 
 class PythonCodeForm(StyledForm):
-    def __init__(self, read_only, initial_code, *args, **kwargs):
+    def __init__(self, read_only, interaction_mode, initial_code, *args, **kwargs):
         super(PythonCodeForm, self).__init__(*args, **kwargs)
 
-        from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
-
-        theme = "default"
-        if read_only:
-            theme += " relate-readonly"
+        from course.utils import get_codemirror_widget
+        cm_widget, cm_help_text = get_codemirror_widget(
+                language_mode="python",
+                interaction_mode=interaction_mode,
+                read_only=read_only)
 
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
-            help_text="Hit F9 to toggle full screen mode.",
-            widget=CodeMirrorTextarea(
-                mode="python",
-                theme=theme,
-                addon_css=(
-                    "dialog/dialog",
-                    "display/fullscreen",
-                    ),
-                addon_js=(
-                    "search/searchcursor",
-                    "dialog/dialog",
-                    "search/search",
-                    "edit/matchbrackets",
-                    "comment/comment",
-                    "display/fullscreen",
-                    "selection/active-line",
-                    ),
-                config={
-                    "fixedGutter": True,
-                    "indentUnit": 4,
-                    "matchBrackets": True,
-                    "styleActiveLine": True,
-                    "readOnly": read_only,
-                    # "autofocus": not read_only,
-                    "extraKeys": CodeMirrorJavascript("""
-                        {
-                          "Ctrl-/": "toggleComment",
-                          "Tab": function(cm)
-                          {
-                            var spaces = \
-                                    Array(cm.getOption("indentUnit") + 1).join(" ");
-                            cm.replaceSelection(spaces);
-                          },
-                          "F9": function(cm) {
-                              cm.setOption("fullScreen",
-                                !cm.getOption("fullScreen"));
-                          }
-                        }
-                    """)
-                    }),
-                )
+            help_text=cm_help_text,
+            widget=cm_widget)
 
     def clean(self):
         # FIXME Should try compilation
@@ -479,18 +440,30 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "test_code": getattr(self.page_desc, "test_code", ""),
                     })
 
+    @staticmethod
+    def _get_editor_interaction_mode(page_context):
+        if page_context.flow_session.participation is not None:
+            from course.models import get_user_status
+            ustatus = get_user_status(page_context.flow_session.participation.user)
+            return ustatus.editor_mode
+        else:
+            return "default"
+
     def make_form(self, page_context, page_data,
             answer_data, answer_is_final):
+
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
             form = PythonCodeForm(
                     answer_is_final,
+                    self._get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     answer)
         else:
             answer = None
             form = PythonCodeForm(
                     answer_is_final,
+                    self._get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     )
 
@@ -499,6 +472,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     def post_form(self, page_context, page_data, post_data, files_data):
         return PythonCodeForm(
                 False,
+                self._get_editor_interaction_mode(page_context),
                 self._initial_code(),
                 post_data, files_data)
 
