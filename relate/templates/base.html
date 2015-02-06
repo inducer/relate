@@ -109,31 +109,7 @@
 
     {% block root_container %}
     <div class="container">
-
-      {% for message in messages %}
-        <div class="alert
-          {% if message.tags == "error" %}
-            alert-danger
-          {% else %}
-            alert-{{ message.tags }}
-          {% endif %}
-          ">
-          {{ message|safe }}
-        </div>
-      {% endfor %}
-
-      {% if fake_time %}
-        <div class="alert alert-info">
-          You are currently seeing a preview of what the site
-          would look like at {{ fake_time }}.
-        </div>
-      {% endif %}
-
-      {% block nav_recommendations %}
-      {% endblock %}
-
-      {% block version_advice %}
-      {% endblock %}
+      {% include "base-page-top.html" %}
 
       {% block content %}
       {% endblock %}

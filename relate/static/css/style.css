@@ -139,7 +139,29 @@ div.progress:hover  span.stats-percentage{
   right: 0;
   width: 50%;
   bottom: 0;
-  overflow-y: scroll;
+  overflow-y: auto;
+  padding-left:50px;
+  padding-right:50px;
+}
+
+.grading-page-student-work {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 50%;
+  bottom: 0;
+  padding-left:50px;
+  padding-right:50px;
+  overflow-y: auto;
+}
+
+.grading-page-grade-entry {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 50%;
+  bottom: 0;
+  overflow-y: auto;
   padding-left:50px;
   padding-right:50px;
 }
