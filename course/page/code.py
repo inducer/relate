@@ -715,7 +715,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if hasattr(self.page_desc, "correct_code_explanation"):
             result += markup_to_html(
                     page_context,
-                    self.page_desc.correct_code_explanation),
+                    self.page_desc.correct_code_explanation)
 
         if hasattr(self.page_desc, "correct_code"):
             result += (
