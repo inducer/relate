@@ -499,7 +499,7 @@ def get_codemirror_widget(language_mode, interaction_mode,
 
     actual_config = {
             "fixedGutter": True,
-            "autofocus": True,
+            #"autofocus": True,
             "matchBrackets": True,
             "styleActiveLine": True,
             "showTrailingSpace": True,
