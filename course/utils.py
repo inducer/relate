@@ -117,7 +117,8 @@ def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
                     active=True,
                     kind=kind,
                     flow_id=flow_id)
-                .order_by("-creation_time")):
+                # rules created first will get inserted first, and show up last
+                .order_by("creation_time")):
 
             if exc.expiration is not None and now_datetime > exc.expiration:
                 continue
