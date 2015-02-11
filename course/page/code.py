@@ -38,6 +38,7 @@ from course.page.base import (
 
         get_editor_interaction_mode)
 
+
 # {{{ python code question
 
 class PythonCodeForm(StyledForm):
@@ -218,30 +219,34 @@ def request_python_run(run_req, run_timeout, image=None):
                 pass
 
 
+def is_nuisance_failure(result):
+    if result["result"] != "uncaught_error":
+        return False
+
+    if ("traceback" in result
+            and "BadStatusLine" in result["traceback"]):
+
+        # Occasionally, we fail to send a POST to the container, even after
+        # the inital ping GET succeeded, for (for now) mysterious reasons.
+        # Just try again.
+
+        return True
+
+    if ("traceback" in result
+            and "bind: address already in use" in result["traceback"]):
+
+        # https://github.com/docker/docker/issues/8714
+
+        return True
+
+    return False
+
+
 def request_python_run_with_retries(run_req, run_timeout, image=None, retry_count=3):
     while True:
         result = request_python_run(run_req, run_timeout, image=image)
 
-        if result["result"] != "uncaught_error":
-            return result
-
-        if ("traceback" in result
-                and "BadStatusLine" in result["traceback"]
-                and retry_count):
-
-            # Occasionally, we fail to send a POST to the container, even after
-            # the inital ping GET succeeded, for (for now) mysterious reasons.
-            # Just try again.
-
-            retry_count -= 1
-            continue
-
-        if ("traceback" in result
-                and "bind: address already in use" in result["traceback"]
-                and retry_count):
-
-            # https://github.com/docker/docker/issues/8714
-
+        if retry_count and is_nuisance_failure(result):
             retry_count -= 1
             continue
 
@@ -576,13 +581,14 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "error_message": error_msg,
                 })
 
-            from django.core.mail import send_mail
-            from django.conf import settings
-            send_mail("[%s] code question execution failed"
-                    % page_context.course.identifier,
-                    message,
-                    settings.ROBOT_EMAIL_FROM,
-                    recipient_list=[page_context.course.notify_email])
+            if not is_nuisance_failure(response_dict):
+                from django.core.mail import send_mail
+                from django.conf import settings
+                send_mail("[%s] code question execution failed"
+                        % page_context.course.identifier,
+                        message,
+                        settings.ROBOT_EMAIL_FROM,
+                        recipient_list=[page_context.course.notify_email])
 
         # }}}
 
