@@ -88,7 +88,7 @@ def convert_page_inner(page):
         choices = [
             "\item "
             +
-            convert_markup(ch.replace("~CORRECT~", r"\correct "))
+            convert_markup(str(ch).replace("~CORRECT~", r"\correct "))
             for ch in page.choices
             if ch is not None]
 

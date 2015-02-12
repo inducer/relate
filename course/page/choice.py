@@ -181,7 +181,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     def unpermuted_correct_indices(self):
         result = []
         for i, choice_text in enumerate(self.page_desc.choices):
-            if choice_text.startswith(self.CORRECT_TAG):
+            if str(choice_text).startswith(self.CORRECT_TAG):
                 result.append(i)
 
         return result
