@@ -69,7 +69,7 @@
                   </a>
                 {% endif %}
 
-                {% if not flow_session_properties.in_progress %}
+                {% if not flow_session.in_progress %}
                   <a href="{% url "course.flow.finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
                     Results
                   </a>
