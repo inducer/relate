@@ -34,8 +34,6 @@ from course.page.base import (
 from course.content import remove_prefix
 from course.validation import validate_markup, ValidationError
 
-import six
-
 
 class ChoiceAnswerForm(StyledForm):
     def __init__(self, field, *args, **kwargs):
@@ -89,6 +87,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     @classmethod
     def process_choice_string(cls, page_context, s):
+        if not isinstance(s, str):
+            s = str(s)
         s = remove_prefix(cls.CORRECT_TAG, s)
         s = markup_to_html(page_context, s)
         # allow HTML in option
@@ -101,8 +101,10 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         correct_choice_count = 0
         for choice_idx, choice in enumerate(page_desc.choices):
-            if not isinstance(choice, six.string_types):
-                raise ValidationError("%s, choice %d: not a string"
+            try:
+                choice = str(choice)
+            except:
+                raise ValidationError("%s, choice %d: unable to convert to string"
                         % (location, choice_idx+1))
 
             if choice.startswith(self.CORRECT_TAG):
@@ -253,6 +255,8 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
 
     @classmethod
     def process_choice_string(cls, page_context, s):
+        if not isinstance(s, str):
+            s = str(s)
         s = markup_to_html(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
@@ -263,8 +267,10 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
         super(SurveyChoiceQuestion, self).__init__(vctx, location, page_desc)
 
         for choice_idx, choice in enumerate(page_desc.choices):
-            if not isinstance(choice, six.string_types):
-                raise ValidationError("%s, choice %d: not a string"
+            try:
+                choice = str(choice)
+            except:
+                raise ValidationError("%s, choice %d: unable to convert to string"
                         % (location, choice_idx+1))
 
             if vctx is not None:
