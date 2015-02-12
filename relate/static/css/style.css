@@ -132,6 +132,8 @@ div.progress:hover  span.stats-percentage{
   width: 50%;
   padding-left:50px;
   padding-right:50px;
+  bottom: 0;
+  overflow-y: auto;
 }
 .sandbox-page-preview {
   position: absolute;
@@ -169,7 +171,7 @@ div.progress:hover  span.stats-percentage{
 /* {{{ codemirror */
 
 .sandbox-page-editor .CodeMirror {
-  height:800px;
+  height:500px;
 }
 
 .cm-trailingspace {
