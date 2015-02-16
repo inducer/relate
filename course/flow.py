@@ -219,7 +219,8 @@ def assemble_answer_visits(flow_session):
             .order_by("visit_time"))
 
     for page_visit in answer_page_visits:
-        answer_visits[page_visit.page_data.ordinal] = page_visit
+        if page_visit.page_data.ordinal is not None:
+            answer_visits[page_visit.page_data.ordinal] = page_visit
 
         if not flow_session.in_progress:
             assert page_visit.is_submitted_answer is True

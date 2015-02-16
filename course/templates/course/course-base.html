@@ -27,6 +27,7 @@
       {% endif %}
       <li><a href="{% url "course.grades.view_participant_grades" course.identifier %}">View grades</a></li>
       <li><a href="{% url "course.calendar.view_calendar" course.identifier %}">View calendar</a></li>
+      <li><a href="{% url "course.views.course_page" course.identifier %}">Back to course page</a></li>
     </ul>
   </li>
   {% endif %}
