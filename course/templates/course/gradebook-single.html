@@ -235,6 +235,10 @@
                       Recalculate grade
                     </button>
                   {% endif %}
+                  <a href="{% url "course.views.grant_exception_stage_3" course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
+                    class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
+                    Grant exception
+                  </a>
                 </td>
               {% endif %}
             </tr>
@@ -244,6 +248,14 @@
     </form>
   {% endif %}
 
+  {% if show_privileged_info %}
+    <div class="well">
+      <a href="{% url "course.views.grant_exception_stage_2" course.identifier grade_participation.id opportunity.flow_id %}"
+        class="btn btn-primary btn-default">
+        Grant exception
+      </a>
+    </div>
+  {% endif %}
   {# }}} #}
 
 {% endblock %}
