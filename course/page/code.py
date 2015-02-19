@@ -768,6 +768,9 @@ class PythonCodeQuestionWithHumanTextFeedback(
         code_feedback = PythonCodeQuestion.grade(self, page_context,
                 page_data, answer_data, grade_data)
 
+        human_points = self.page_desc.human_feedback_value
+        code_points = self.page_desc.value - human_points
+
         correctness = None
         percentage = None
         if (code_feedback is not None
@@ -775,8 +778,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and grade_data is not None
                 and grade_data["grade_percent"] is not None):
             correctness = (
-                    code_feedback.correctness
-                    * (self.page_desc.value - self.page_desc.human_feedback_value)
+                    code_feedback.correctness * code_points
 
                     + grade_data["grade_percent"] / 100
                     * self.page_desc.human_feedback_value
@@ -791,12 +793,21 @@ class PythonCodeQuestionWithHumanTextFeedback(
         human_feedback_percentage = None
         human_feedback_text = None
 
+        human_feedback_points = None
         if grade_data is not None:
             if grade_data["feedback_text"] is not None:
                 human_feedback_text = markup_to_html(
                         page_context, grade_data["feedback_text"])
 
             human_feedback_percentage = grade_data["grade_percent"]
+            if human_feedback_percentage is not None:
+                human_feedback_points = (human_feedback_percentage/100.
+                        * human_points)
+
+        code_feedback_points = None
+        if (code_feedback is not None
+                and code_feedback.correctness is not None):
+            code_feedback_points = code_feedback.correctness*code_points
 
         from django.template.loader import render_to_string
         feedback = render_to_string(
@@ -804,8 +815,11 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 {
                     "percentage": percentage,
                     "code_feedback": code_feedback,
+                    "code_feedback_points": code_feedback_points,
+                    "code_points": code_points,
                     "human_feedback_text": human_feedback_text,
-                    "human_feedback_percentage": human_feedback_percentage,
+                    "human_feedback_points": human_feedback_points,
+                    "human_points": human_points,
                     })
 
         return AnswerFeedback(
