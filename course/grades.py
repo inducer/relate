@@ -655,6 +655,7 @@ def average_grade(opportunity):
     for gchange in grade_changes:
         if last_participation != gchange.participation:
             finalize()
+            last_participation = gchange.participation
 
         my_grade_changes.append(gchange)
 
