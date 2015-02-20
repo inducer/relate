@@ -626,6 +626,46 @@ def view_grades_by_opportunity(pctx, opp_id):
 
 # {{{ view single grade
 
+def average_grade(opportunity):
+    grade_changes = (GradeChange.objects
+            .filter(opportunity=opportunity)
+            .order_by(
+                "participation__id",
+                "grade_time")
+            .select_related("participation")
+            .select_related("opportunity"))
+
+    grades = []
+    my_grade_changes = []
+
+    def finalize():
+        if not my_grade_changes:
+            return
+
+        state_machine = GradeStateMachine()
+        state_machine.consume(my_grade_changes)
+
+        percentage = state_machine.percentage()
+        if percentage is not None:
+            grades.append(percentage)
+
+        del my_grade_changes[:]
+
+    last_participation = None
+    for gchange in grade_changes:
+        if last_participation != gchange.participation:
+            finalize()
+
+        my_grade_changes.append(gchange)
+
+    finalize()
+
+    if grades:
+        return sum(grades)/len(grades), len(grades)
+    else:
+        return None, 0
+
+
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
     from course.views import get_now_or_fake_time
@@ -775,8 +815,12 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     else:
         flow_sessions_and_session_properties = None
 
+    avg_grade_percentage, avg_grade_population = average_grade(opportunity)
+
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
+        "avg_grade_percentage": avg_grade_percentage,
+        "avg_grade_population": avg_grade_population,
         "grade_participation": participation,
         "grade_state_change_types": grade_state_change_types,
         "grade_changes": grade_changes,

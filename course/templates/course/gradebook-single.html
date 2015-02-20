@@ -32,6 +32,17 @@
       <td>Flow</td><td><tt><a href="{% url "course.flow.view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
     </tr>
     {% endif %}
+    <tr>
+      <td>Average grade</td>
+      <td>
+        {% if avg_grade_percentage != None %}
+          {{ avg_grade_percentage|floatformat }}%
+          (out of {{ avg_grade_population }} grades)
+        {% else %}
+          <i>(no data)</i>
+        {% endif %}
+      </td>
+    </tr>
   </table>
 
   {# {{{ grade history #}
