@@ -265,6 +265,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
 
             visits = (FlowPageVisit.objects
                     .filter(
+                        flow_session__course=pctx.course,
                         flow_session__flow_id=flow_identifier,
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
@@ -421,6 +422,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
 
     visits = (FlowPageVisit.objects
             .filter(
+                flow_session__course=pctx.course,
                 flow_session__flow_id=flow_identifier,
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
