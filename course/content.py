@@ -32,7 +32,6 @@ import six
 
 from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
-from django.db import transaction
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -730,15 +729,14 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
     return class_(None, location, page_desc)
 
 
-@transaction.atomic
-def adjust_flow_session_page_data(repo, flow_session,
+def _adjust_flow_session_page_data_inner(repo, flow_session,
         course_identifier, flow_desc, commit_sha):
     from course.models import FlowPageData
 
-    id_to_existing_page = {
-            (data.group_id, data.page_id): data
+    id_to_existing_page = dict(
+            ((data.group_id, data.page_id), data)
             for data in FlowPageData.objects.filter(flow_session=flow_session)
-            }
+            )
 
     data = None
 
@@ -777,6 +775,14 @@ def adjust_flow_session_page_data(repo, flow_session,
     if flow_session.page_count != ordinal:
         flow_session.page_count = ordinal
         flow_session.save()
+
+
+def adjust_flow_session_page_data(repo, flow_session,
+        course_identifier, flow_desc, commit_sha):
+    from django.db import transaction
+    with transaction.atomic():
+        return _adjust_flow_session_page_data_inner(
+                repo, flow_session, course_identifier, flow_desc, commit_sha)
 
 
 def get_course_commit_sha(course, participation):

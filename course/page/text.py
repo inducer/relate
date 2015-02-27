@@ -286,6 +286,12 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
 
         try:
             self.pattern_sym = parse_sympy(pattern)
+        except ImportError:
+            tp, e, _ = sys.exc_info()
+            vctx.add_warning(location, "%s: unable to check "
+                    "symbolic expression (%s: %s)"
+                    % (location, tp.__name__, str(e)))
+
         except:
             tp, e, _ = sys.exc_info()
             raise ValidationError("%s: %s: %s"

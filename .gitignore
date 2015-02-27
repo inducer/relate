@@ -11,3 +11,5 @@ components
 
 *.egg-info
 build
+
+*.pyz
