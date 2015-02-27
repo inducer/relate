@@ -5,13 +5,22 @@
 {% block content %}
   <h1>Sign in</h1>
 
-  <div class="alert alert-warning">
-    If you have a not been assigned a password, you should use the
-    <a href="{% url student_sign_in_view %}">standard sign-in process</a>.
-  </div>
+  {% if "user_pw" not in student_sign_in_view %}
+    <div class="alert alert-warning">
+      If you have a not been assigned a password, you should use the
+      <a href="{% url student_sign_in_view %}">standard sign-in process</a>.
+    </div>
+  {% else %}
+    <div class="alert alert-warning">
+      If you do not have an account,
+      <a href="{% url "course.auth.sign_up" %}">sign up</a>.
+      If you do not remember your password,
+      <a href="{% url "course.auth.reset_password" %}">reset your password</a>.
+    </div>
+  {% endif %}
 
   <div class="well">
-    <form method="post" action="{% url "course.auth.sign_in" %}" class="form-horizontal">
+    <form method="post" class="form-horizontal">
       {% crispy form %}
       <input type="hidden" name="next" value="{{ next }}" />
     </form>

@@ -30,7 +30,15 @@ from django.conf import settings
 
 urlpatterns = patterns('',
     url(r"^login/$",
-        "course.auth.sign_in"),
+        "course.auth.sign_in_by_user_pw"),
+    url(r"^login/sign-up/$",
+        "course.auth.sign_up"),
+    url(r"^login/reset-password/$",
+        "course.auth.reset_password"),
+    url(r"^login/reset-password/stage-2"
+        "/(?P<user_id>[0-9]+)"
+        "/(?P<sign_in_key>[a-zA-Z0-9]+)",
+        "course.auth.reset_password_stage2"),
     url(r"^login/by-email/$",
         "course.auth.sign_in_by_email"),
     url(r"^login/token"

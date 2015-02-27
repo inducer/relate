@@ -28,7 +28,8 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 import django.forms as forms
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
+        ObjectDoesNotExist)
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.db.models import Q
@@ -193,6 +194,55 @@ def impersonation_context_processor(request):
 # }}}
 
 
+def make_sign_in_key(user):
+    # Try to ensure these hashes aren't guessable.
+    import random
+    import hashlib
+    from time import time
+    m = hashlib.sha1()
+    m.update(user.email)
+    m.update(hex(random.getrandbits(128)))
+    m.update(str(time()))
+    return m.hexdigest()
+
+
+def check_sign_in_key(user_id, token):
+    user = User.objects.get(id=user_id)
+    ustatuses = UserStatus.objects.filter(
+            user=user, sign_in_key=token)
+
+    assert ustatuses.count() <= 1
+    if ustatuses.count() == 0:
+        return False
+
+    return True
+
+
+class TokenBackend(object):
+    def authenticate(self, user_id=None, token=None):
+        user = User.objects.get(id=user_id)
+        ustatuses = UserStatus.objects.filter(
+                user=user, sign_in_key=token)
+
+        assert ustatuses.count() <= 1
+        if ustatuses.count() == 0:
+            return None
+
+        (ustatus,) = ustatuses
+
+        ustatus.status = user_status.active
+        ustatus.sign_in_key = None
+        ustatus.save()
+
+        return ustatus.user
+
+    def get_user(self, user_id):
+        try:
+            return User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return None
+
+
 # {{{ conventional login
 
 class LoginForm(AuthenticationFormBase):
@@ -208,10 +258,221 @@ class LoginForm(AuthenticationFormBase):
         super(LoginForm, self).__init__(*args, **kwargs)
 
 
-def sign_in(request):
+def sign_in_by_user_pw(request):
     from django.contrib.auth.views import login
     return login(request, template_name="course/login.html",
             authentication_form=LoginForm)
+
+
+class SignUpForm(StyledModelForm):
+    username = forms.CharField(required=True, max_length=30)
+
+    class Meta:
+        model = User
+        fields = ("email",)
+
+    def __init__(self, *args, **kwargs):
+        super(SignUpForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", "Send email",
+                    css_class="col-lg-offset-2"))
+
+
+def sign_up(request):
+    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_user_pw":
+        raise SuspiciousOperation("password-based sign-in is not being used")
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            from django.contrib.auth.models import User
+
+            if User.objects.filter(
+                    username=form.cleaned_data["username"]).count():
+                messages.add_message(request, messages.ERROR,
+                        "That user name is already taken.")
+
+            elif User.objects.filter(
+                    email__iexact=form.cleaned_data["email"]).count():
+                messages.add_message(request, messages.ERROR,
+                        "That email address is already in use. "
+                        "Would you like to "
+                        "<a href='%s'>reset your password</a> instead?"
+                        % reverse(
+                            "course.auth.reset_password")),
+            else:
+                email = form.cleaned_data["email"]
+                user = User(
+                        email=email,
+                        username=form.cleaned_data["username"])
+
+                user.set_unusable_password()
+                user.save()
+
+                ustatus = UserStatus(
+                        user=user,
+                        status=user_status.unconfirmed,
+                        sign_in_key=make_sign_in_key(user))
+
+                ustatus.save()
+
+                from django.template.loader import render_to_string
+                message = render_to_string("course/sign-in-email.txt", {
+                    "user": user,
+                    "sign_in_uri": request.build_absolute_uri(
+                        reverse(
+                            "course.auth.reset_password_stage2",
+                            args=(user.id, ustatus.sign_in_key,))
+                        + "?to_profile=1"),
+                    "home_uri": request.build_absolute_uri(
+                        reverse("course.views.home"))
+                    })
+
+                from django.core.mail import send_mail
+                send_mail("[RELATE] Verify your email", message,
+                        settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+                messages.add_message(request, messages.INFO,
+                        "Email sent. Please check your email and click the link.")
+
+                return redirect("course.views.home")
+
+    else:
+        form = SignUpForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Sign up",
+        "form": form
+        })
+
+
+class ResetPasswordForm(StyledForm):
+    email = forms.EmailField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        super(ResetPasswordForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", "Send email", css_class="col-lg-offset-2"))
+
+
+def reset_password(request):
+    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_user_pw":
+        raise SuspiciousOperation("password-based sign-in is not being used")
+
+    if request.method == 'POST':
+        form = ResetPasswordForm(request.POST)
+        if form.is_valid():
+            from django.contrib.auth.models import User
+
+            email = form.cleaned_data["email"]
+            try:
+                user = User.objects.get(email__iexact=email)
+            except ObjectDoesNotExist:
+                user = None
+
+            if user is None:
+                messages.add_message(request, messages.ERROR,
+                        "Email address is not known.")
+
+            from course.models import get_user_status
+            ustatus = get_user_status(user)
+            ustatus.sign_in_key = make_sign_in_key(user)
+            ustatus.save()
+
+            from django.template.loader import render_to_string
+            message = render_to_string("course/sign-in-email.txt", {
+                "user": user,
+                "sign_in_uri": request.build_absolute_uri(
+                    reverse(
+                        "course.auth.reset_password_stage2",
+                        args=(user.id, ustatus.sign_in_key,))),
+                "home_uri": request.build_absolute_uri(reverse("course.views.home"))
+                })
+            from django.core.mail import send_mail
+            send_mail("[RELATE] Password reset", message,
+                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+            messages.add_message(request, messages.INFO,
+                    "Email sent. Please check your email and click the link.")
+
+            return redirect("course.views.home")
+    else:
+        form = ResetPasswordForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Reset Password",
+        "form": form
+        })
+
+
+class ResetPasswordStage2Form(StyledForm):
+    password = forms.CharField(widget=forms.PasswordInput())
+    password_repeat = forms.CharField(widget=forms.PasswordInput())
+
+    def __init__(self, *args, **kwargs):
+        super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit_user", "Update",
+                    css_class="col-lg-offset-2"))
+
+    def clean(self):
+        cleaned_data = super(ResetPasswordStage2Form, self).clean()
+        password = cleaned_data.get("password")
+        password_repeat = cleaned_data.get("password_repeat")
+        if password and password != password_repeat:
+            self.add_error("password_repeat", "Passwords do not match")
+
+
+def reset_password_stage2(request, user_id, sign_in_key):
+    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_user_pw":
+        raise SuspiciousOperation("email-based sign-in is not being used")
+
+    if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
+        messages.add_message(request, messages.ERROR,
+                "Invalid sign-in token. Perhaps you've used an old token email?")
+        raise PermissionDenied("invalid sign-in token")
+
+    if request.method == 'POST':
+        form = ResetPasswordStage2Form(request.POST)
+        if form.is_valid():
+            from django.contrib.auth import authenticate, login
+            user = authenticate(user_id=int(user_id), token=sign_in_key)
+            if user is None:
+                raise PermissionDenied("invalid sign-in token")
+
+            if not user.is_active:
+                messages.add_message(request, messages.ERROR,
+                        "Account disabled.")
+                raise PermissionDenied("invalid sign-in token")
+
+            user.set_password(form.cleaned_data["password"])
+            user.save()
+
+            login(request, user)
+
+            if (not (user.first_name and user.last_name)
+                    or "to_profile" in request.GET):
+                messages.add_message(request, messages.INFO,
+                        "Successfully signed in. "
+                        "Please complete your registration information below.")
+
+                return redirect(
+                       reverse("course.auth.user_profile")+"?first_login=1")
+            else:
+                messages.add_message(request, messages.INFO,
+                        "Successfully signed in.")
+
+                return redirect("course.views.home")
+    else:
+        form = ResetPasswordStage2Form()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Reset Password",
+        "form": form
+        })
 
 # }}}
 
@@ -227,18 +488,6 @@ class SignInByEmailForm(StyledForm):
         self.helper.add_input(
                 Submit("submit", "Send sign-in email",
                     css_class="col-lg-offset-2"))
-
-
-def make_sign_in_key(user):
-    # Try to ensure these hashes aren't guessable.
-    import random
-    import hashlib
-    from time import time
-    m = hashlib.sha1()
-    m.update(user.email)
-    m.update(hex(random.getrandbits(128)))
-    m.update(str(time()))
-    return m.hexdigest()
 
 
 def sign_in_by_email(request):
@@ -295,31 +544,6 @@ def sign_in_by_email(request):
         })
 
 
-class TokenBackend(object):
-    def authenticate(self, user_id=None, token=None):
-        user = User.objects.get(id=user_id)
-        ustatuses = UserStatus.objects.filter(
-                user=user, sign_in_key=token)
-
-        assert ustatuses.count() <= 1
-        if ustatuses.count() == 0:
-            return None
-
-        (ustatus,) = ustatuses
-
-        ustatus.status = user_status.active
-        ustatus.sign_in_key = None
-        ustatus.save()
-
-        return ustatus.user
-
-    def get_user(self, user_id):
-        try:
-            return User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return None
-
-
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
     if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
         raise SuspiciousOperation("email-based sign-in is not being used")
@@ -350,7 +574,6 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
                 "Successfully signed in.")
 
         return redirect("course.views.home")
-
 
 # }}}
 
@@ -398,6 +621,7 @@ def user_profile(request):
             user_form = UserForm(request.POST, instance=request.user)
             if user_form.is_valid():
                 user_form.save()
+
                 messages.add_message(request, messages.INFO,
                         "Profile data saved.")
                 if request.GET.get("first_login"):
