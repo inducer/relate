@@ -259,7 +259,7 @@
     </form>
   {% endif %}
 
-  {% if show_privileged_info %}
+  {% if show_privileged_info and opportunity.flow_id %}
     <div class="well">
       <a href="{% url "course.views.grant_exception_stage_2" course.identifier grade_participation.id opportunity.flow_id %}"
         class="btn btn-primary btn-default">
