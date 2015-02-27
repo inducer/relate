@@ -36,6 +36,7 @@ from django.db import transaction
 from django.utils.timezone import now
 from django import http
 
+from django.core.urlresolvers import reverse
 from relate.utils import StyledForm
 from crispy_forms.layout import Submit
 
@@ -848,7 +849,10 @@ class ImportGradesForm(StyledForm):
         self.fields["grading_opportunity"] = forms.ModelChoiceField(
             queryset=(GradingOpportunity.objects
                 .filter(course=course)
-                .order_by("identifier")))
+                .order_by("identifier")),
+            help_text="Click to <a href='%s' target='_blank'>create</a> "
+            "a new grading opportunity. Reload this form when done."
+            % reverse("admin:course_gradingopportunity_add"))
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",
