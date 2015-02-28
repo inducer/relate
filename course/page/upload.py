@@ -103,6 +103,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         that the question will accept.
         Only ``application/pdf`` is allowed for the moment.
 
+        The value ``"application/octet-stream"`` will allow any file at all
+        to be uploaded.
+
     .. attribute:: maximum_megabytes
 
         Required.
@@ -130,6 +133,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
     ALLOWED_MIME_TYPES = [
             "application/pdf",
+            "application/octet-stream",
             ]
 
     def __init__(self, vctx, location, page_desc):
