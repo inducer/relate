@@ -43,7 +43,7 @@ TEMPLATE = Template(r"""
 \usepackage{titlesec}
 \titleformat{\section}
   {\normalfont\sffamily\large\bfseries}
-  {Problem \thesection. }{0em}{}
+  {Part \thesection. }{0em}{}
 
 \begin{document}
 
@@ -68,7 +68,9 @@ def convert_markup(s):
 
 
 def convert_page_inner(page):
-    if page.type in ["TextQuestion", "SurveyTextQuestion"]:
+    if page.type == "Page":
+        return convert_markup(page.content)
+    elif page.type in ["TextQuestion", "SurveyTextQuestion"]:
         prompt = convert_markup(page.prompt) + "\n\\vspace*{2cm}"
         return (prompt)
     elif page.type == "PythonCodeQuestion":
