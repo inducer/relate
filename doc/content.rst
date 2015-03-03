@@ -267,6 +267,7 @@ The content of this file allows the following fields:
 
         A list of :ref:`course-chunks`.
 
+.. comment:
     .. attribute:: grade_summary_code
 
         Python code to categorize grades and compute summary grades.
@@ -305,6 +306,78 @@ Course Page Chunks
 ^^^^^^^^^^^^^^^^^^
 
 .. _events:
+
+A 'chunk' of the course page is a piece of :ref:`markup` that can shown,
+hidden, and ordered based on a few conditions.
+
+Here's an example::
+
+    chunks:
+
+      - title: "Welcome to the course"
+        id: welcome
+        rules:
+          - if_before: end_week 3
+            weight: 100
+
+          - weight: 0
+
+        content: |
+
+          # Welcome to the course!
+
+          Please take our introductory [quiz](flow:quiz-intro).
+
+.. class:: CourseChunk
+
+    .. attribute:: title
+
+        A plain text description of the chunk to be used in a table of
+        contents
+
+    .. attribute:: id
+
+        An identifer used as page anchors and for tracking. Not
+        user-visible otherwise.
+
+    .. attribute:: rules
+
+        A list of :class:`CoursePageChunkRules` that will be tried in
+        order. The first rule whose conditions match determines whether
+        the chunk will be shown and how where on the page it will be.
+
+    .. attribute:: content
+
+        The content of the chunk in :ref:`markup`.
+
+
+.. class:: CoursePageChunkRules
+
+    .. attribute:: weight
+
+        (required) An integer indicating how far up the page the block
+        will be shown. Blocks with identical weight retain the order
+        in which they are given in the course information file.
+
+    .. attribute:: if_after
+
+        A :ref:`datespec <datespec>` that determines a date/time after which this rule
+        applies.
+
+    .. attribute:: if_before
+
+        A :ref:`datespec <datespec>` that determines a date/time before which this rule
+        applies.
+
+    .. attribute:: if_has_role
+
+        A list of a subset of ``[unenrolled, ta, student, instructor]``.
+
+    .. attribute:: shown
+
+        A boolean (``true`` or ``false``) indicating whether the chunk
+        should be shown.
+
 
 Calendar and Events
 -------------------
