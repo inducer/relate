@@ -69,10 +69,8 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Content<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
-      {% if role == pr.instructor %}
-        <li><a href="{% url "course.versioning.update_course" course.identifier %}">Update course</a></li>
-        <li role="presentation" class="divider"></li>
-      {% endif %}
+      <li><a href="{% url "course.versioning.update_course" course.identifier %}">Update course</a></li>
+      <li role="presentation" class="divider"></li>
 
       <li role="presentation" class="dropdown-header">Content creation</li>
       <li><a href="{% url "course.sandbox.view_page_sandbox" course.identifier %}">Page sandbox</a></li>
