@@ -173,6 +173,29 @@ FLOW_RULE_KIND_CHOICES = (
 
 
 class grade_aggregation_strategy:
+    """A strategy for aggregating multiple grades into one.
+
+    .. attribute:: max_grade
+
+        Use the maximum of the achieved grades for each attempt.
+
+    .. attribute:: avg_grade
+
+        Use the average of the achieved grades for each attempt.
+
+    .. attribute:: min_grade
+
+        Use the minimum of the achieved grades for each attempt.
+
+    .. attribute:: use_earliest
+
+        Use the first of the achieved grades for each attempt.
+
+    .. attribute:: use_latest
+
+        Use the last of the achieved grades for each attempt.
+    """
+
     max_grade = "max_grade"
     avg_grade = "avg_grade"
     min_grade = "min_grade"

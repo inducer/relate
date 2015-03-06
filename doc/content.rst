@@ -36,7 +36,9 @@ Most of the files in the :ref:`git-repo` defining course content are written in
 what XML is: The conceptual idea is a little like XML, but YAML is much easier
 to read and write by humans than XML.
 
-Here's an example::
+Here's an example:
+
+.. code-block:: yaml
 
     title: "Homework 3"
     description: |
@@ -46,28 +48,43 @@ Here's an example::
         Welcome to our third homework set, where you will learn about principal component analysis,
         applications of linear least squares, and more.
 
-    access_rules:
-     - id: main
-       start: lecture 12
-       end: hw_due 3
-       allowed_session_count: 1
-       sticky: True
-       permissions: [view, start_credit, view_past, see_correctness, change_answer, set_roll_over_expiration_mode]
+    rules:
+      start:
+        -
+          if_before: end_week 1
+          if_has_role: [student, ta, instructor]
+          if_has_fewer_sessions_than: 2
+          may_start_new_session: True
+          may_list_existing_sessions: True
 
-     - id: grace
-       start: hw_due 3
-       end: hw_due 3 + 1 week
-       allowed_session_count: 1
-       credit_percent: 50
-       sticky: True
-       permissions: [view, start_credit, view_past, see_correctness, change_answer]
+        -
+          may_start_new_session: False
+          may_list_existing_sessions: True
 
-     - id: review
-       start: hw_due 3 + 1 week
-       permissions: [view, view_past, see_correctness, see_answer]
+      access:
+         -
+           if_before: end_week 2
+           permissions: [view, modify, see_correctness]
+           message: "Welcome! This message is brought to you by the access rules."
 
-     - id: fallback
-       permissions: []
+         -
+           permissions: [view, modify, see_correctness, see_answer]
+
+      grading:
+        -
+          if_completed_before: end_week 1
+          grade_identifier: la_quiz
+          grade_aggregation_strategy: max_grade
+          credit_percent: 100
+
+        -
+          if_completed_before: end_week 2
+          grade_identifier: la_quiz
+          grade_aggregation_strategy: max_grade
+          credit_percent: 50
+
+        -
+          grade_identifier: null
 
      ...
 
@@ -116,16 +133,19 @@ in the root directory of the RELATE distribution.
 .. _markup:
 
 RELATE markup
------------------
+-------------
 
-All bulk text in RELATE is written in `Markdown
-<http://daringfireball.net/projects/markdown/>`_, with a few extensions. The
-linked page provides a (mostly) complete definition of the language.  A
-10-minute `tutorial <http://markdowntutorial.com/>`_ is available to provide a
-quick, approachable overview of Markdown.
+All bulk text in RELATE is written in Markdown, with a few extensions.
+Here are a few resources on Markdown:
+
+*   `The basics <https://help.github.com/articles/markdown-basics/>`_ as
+    described by Github.com
+*   `A 10-minute tutorial <http://markdowntutorial.com/>`_
+*   `John Gruber's original definition <http://daringfireball.net/projects/markdown/>`_
+*   `Markdown extensions used by RELATE <https://pythonhosted.org/Markdown/extensions/extra.html>`_
 
 To allow easy experimentation with markup, RELATE has a "markup sandbox" in
-the "Teaching tools" menu where the rendered form of any RELATE markup can
+the "Content" menu where the rendered form of any RELATE markup can
 be previewed.
 
 In addition to standard Markdown, the following extensions are
@@ -252,7 +272,7 @@ The Course Information File
 ---------------------------
 
 The highest-level information about a course is contained in a :ref:`YAML
-file <yaml-files>`_ that is typically named :file:`course.yml`. Other
+file <yaml-files>` that is typically named :file:`course.yml`. Other
 names may be specified, enabling multiple courses to be run from the same
 repository.
 
@@ -310,7 +330,9 @@ Course Page Chunks
 A 'chunk' of the course page is a piece of :ref:`markup` that can shown,
 hidden, and ordered based on a few conditions.
 
-Here's an example::
+Here's an example:
+
+.. code-block:: yaml
 
     chunks:
 
@@ -452,8 +474,9 @@ The Calendear Information File: :file:`events.yml`
 
 The calendar information file, by default named :file:`events.yml`,
 augments the calendar data in the database with descriptions and
-other meta-information. It has the following format::
+other meta-information. It has the following format:
 
+.. code-block:: yaml
     event_kinds:
         lecture:
             title: Lecture {nr}
