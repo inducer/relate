@@ -381,9 +381,6 @@ a finished session.
 Per-page permissions
 ^^^^^^^^^^^^^^^^^^^^
 
-Versioning
-----------
-
 .. _flow-life-cycle:
 
 Life cycle
