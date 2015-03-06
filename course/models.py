@@ -35,7 +35,7 @@ from course.constants import (  # noqa
         participation_role, PARTICIPATION_ROLE_CHOICES,
         participation_status, PARTICIPATION_STATUS_CHOICES,
         flow_permission, FLOW_PERMISSION_CHOICES,
-        flow_session_expriration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+        flow_session_expiration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
         flow_rule_kind, FLOW_RULE_KIND_CHOICES,
@@ -306,7 +306,7 @@ class FlowSession(models.Model):
     access_rules_tag = models.CharField(max_length=200, null=True,
             blank=True)
     expiration_mode = models.CharField(max_length=20, null=True,
-            default=flow_session_expriration_mode.end,
+            default=flow_session_expiration_mode.end,
             choices=FLOW_SESSION_EXPIRATION_MODE_CHOICES)
 
     # Non-normal: These fields can be recomputed, albeit at great expense.

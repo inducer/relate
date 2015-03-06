@@ -41,7 +41,7 @@ from crispy_forms.layout import Submit
 from course.constants import (
         flow_permission,
         participation_role,
-        flow_session_expriration_mode,
+        flow_session_expiration_mode,
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         is_expiration_mode_allowed,
         flow_rule_kind)
@@ -149,7 +149,7 @@ def start_flow(repo, course, participation, flow_id, flow_desc,
         active_git_commit_sha=course_commit_sha.decode(),
         flow_id=flow_id,
         in_progress=True,
-        expiration_mode=flow_session_expriration_mode.end,
+        expiration_mode=flow_session_expiration_mode.end,
         access_rules_tag=access_rules_tag)
 
     session.save()
@@ -495,7 +495,7 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
             and now_datetime < grading_rule.due):
         return False
 
-    if flow_session.expiration_mode == flow_session_expriration_mode.roll_over:
+    if flow_session.expiration_mode == flow_session_expiration_mode.roll_over:
         session_start_rule = get_session_start_rule(flow_session.course,
                 flow_session.participation, flow_session.participation.role,
                 flow_session.flow_id, fctx.flow_desc, now_datetime,
@@ -514,12 +514,12 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
 
         if not is_expiration_mode_allowed(
                 flow_session.expiration_mode, access_rule.permissions):
-            flow_session.expiration_mode = flow_session_expriration_mode.end
+            flow_session.expiration_mode = flow_session_expiration_mode.end
         flow_session.save()
 
         return True
 
-    elif flow_session.expiration_mode == flow_session_expriration_mode.end:
+    elif flow_session.expiration_mode == flow_session_expiration_mode.end:
         return finish_flow_session(fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
     else:

@@ -74,7 +74,21 @@ PARTICIPATION_STATUS_CHOICES = (
         )
 
 
-class flow_session_expriration_mode:
+class flow_session_expiration_mode:
+    """
+    .. attribute:: end
+
+        End the session upon expiration. Participants may always choose this mode.
+
+    .. attribute:: roll_over
+
+        Upon expiration, reprocess the session start rules and
+        treat the session as if it was started the moment of expiration.
+        This may be used to 'roll over' into another set of grading rules,
+        say ones assigning less credit for homework turned in late.
+
+        Allowed by :attr:`flow_permission.set_roll_over_expiration_mode`.
+    """
     # always allowed
     end = "end"
 
@@ -82,18 +96,18 @@ class flow_session_expriration_mode:
     roll_over = "roll_over"
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
-        (flow_session_expriration_mode.end, "End session and grade"),
-        (flow_session_expriration_mode.roll_over,
+        (flow_session_expiration_mode.end, "End session and grade"),
+        (flow_session_expiration_mode.roll_over,
             "Keep session and apply new rules"),
         )
 
 
 def is_expiration_mode_allowed(expmode, permissions):
-    if expmode == flow_session_expriration_mode.roll_over:
+    if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
                 in permissions):
             return True
-    elif expmode == flow_session_expriration_mode.end:
+    elif expmode == flow_session_expiration_mode.end:
         return True
     else:
         raise ValueError("unknown expiration mode")
