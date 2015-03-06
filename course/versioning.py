@@ -236,7 +236,7 @@ def is_parent_commit(repo, potential_parent, child, max_history_check_size=None)
     return False
 
 
-def run_course_update_command(request, pctx, command, new_sha):
+def run_course_update_command(request, pctx, command, new_sha, may_update):
     repo = pctx.repo
 
     if command.startswith("fetch_"):
@@ -301,7 +301,7 @@ def run_course_update_command(request, pctx, command, new_sha):
         pctx.participation.preview_git_commit_sha = new_sha
         pctx.participation.save()
 
-    elif command == "update":
+    elif command == "update" and may_update:
         pctx.course.active_git_commit_sha = new_sha
         pctx.course.valid = True
         pctx.course.save()
@@ -324,30 +324,38 @@ def run_course_update_command(request, pctx, command, new_sha):
 class GitUpdateForm(StyledForm):
     new_sha = forms.CharField(required=True)
 
-    def __init__(self, previewing, *args, **kwargs):
+    def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
-        self.helper.add_input(
-                Submit("fetch_update", "Fetch and update",
-                    css_class="col-lg-offset-2"))
-        self.helper.add_input(
-                Submit("update", "Update"))
+        first_button = [True]
+
+        def add_button(desc, label):
+            if first_button[0]:
+                self.helper.add_input(
+                        Submit(desc, label, css_class="col-lg-offset-2"))
+                first_button[0] = False
+            else:
+                self.helper.add_input(Submit(desc, label))
+
+        if may_update:
+            add_button("fetch_update", "Fetch and update")
+            add_button("update", "Update")
 
         if previewing:
-            self.helper.add_input(
-                    Submit("end_preview", "End preview"))
+            add_button("end_preview", "End preview")
         else:
-            self.helper.add_input(
-                    Submit("fetch_preview", "Fetch and preview"))
-            self.helper.add_input(
-                    Submit("preview", "Preview"))
+            add_button("fetch_preview", "Fetch and preview")
+            add_button("preview", "Preview")
 
 
 @login_required
 @course_view
 def update_course(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("must be instructor to update course")
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant
+            ]:
+        raise PermissionDenied("must be instructor or TA to update course")
 
     course = pctx.course
     request = pctx.request
@@ -357,9 +365,11 @@ def update_course(pctx):
     previewing = bool(participation is not None
             and participation.preview_git_commit_sha)
 
+    may_update = pctx.role == participation_role.instructor
+
     response_form = None
     if request.method == "POST":
-        form = GitUpdateForm(previewing, request.POST, request.FILES)
+        form = GitUpdateForm(may_update, previewing, request.POST, request.FILES)
         commands = ["fetch_update", "update", "fetch_preview",
                 "preview", "end_preview"]
 
@@ -376,7 +386,8 @@ def update_course(pctx):
             new_sha = form.cleaned_data["new_sha"].encode()
 
             try:
-                run_course_update_command(request, pctx, command, new_sha)
+                run_course_update_command(request, pctx, command, new_sha,
+                        may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
                         "Error: %s %s" % (type(e).__name__, str(e)))
@@ -385,7 +396,7 @@ def update_course(pctx):
         previewing = bool(participation is not None
                 and participation.preview_git_commit_sha)
 
-        form = GitUpdateForm(previewing,
+        form = GitUpdateForm(may_update, previewing,
                 {"new_sha": repo.head()})
 
     text_lines = [
