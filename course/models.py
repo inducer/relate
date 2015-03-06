@@ -386,7 +386,7 @@ class FlowPageData(models.Model):
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
-        return "Data for page '%s/%s' (%d) in %s" % (
+        return "Data for page '%s/%s' (ordinal %s) in %s" % (
                 self.group_id,
                 self.page_id,
                 self.ordinal,
