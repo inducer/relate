@@ -166,6 +166,11 @@ class EventAdmin(admin.ModelAdmin):
 
     date_hierarchy = "time"
 
+    search_fields = (
+            "course__identifier",
+            "kind",
+            )
+
     def __unicode__(self):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
 
