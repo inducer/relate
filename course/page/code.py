@@ -259,6 +259,20 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     All user code as well as all code specified as part of the problem
     is in Python 3.
 
+    If you are not including the
+    :attr:`course.constants.flow_permissions.change_answer`
+    permission for your entire flow, you likely want to
+    include this snippet in your question definition:
+
+    .. code-block:: yaml
+
+        access_rules:
+            add_permissions:
+                - change_answer
+
+    This will allow participants multiple attempts at getting
+    the right answer.
+
     .. attribute:: id
 
         |id-page-attr|
@@ -716,6 +730,20 @@ class PythonCodeQuestionWithHumanTextFeedback(
     A question allowing an answer consisting of Python code.
     This page type allows both automatic grading and grading
     by a human grader.
+
+    If you are not including the
+    :attr:`course.constants.flow_permissions.change_answer`
+    permission for your entire flow, you likely want to
+    include this snippet in your question definition:
+
+    .. code-block:: yaml
+
+        access_rules:
+            add_permissions:
+                - change_answer
+
+    This will allow participants multiple attempts at getting
+    the right answer.
 
     The allowed attributes are the same as those of
     :class:`PythonCodeQuestion`, with the following additional,

@@ -1,8 +1,12 @@
 Welcome to RELATE's documentation!
 ======================================
 
-    *"I just want to ask my students some quiz questions online. How hard could it
-    possibly be?"*
++-------------------------------------+-------------------------------------+
+| .. image:: images/screenshot.png    | .. image:: images/screenshot-2.png  |
++-------------------------------------+-------------------------------------+
+
+Features
+--------
 
 RELATE is a web-based courseware package.  It is set apart by the following
 features:
@@ -38,17 +42,23 @@ features:
   easy-to-use support for integrating HTML5 video into course content
   without the need for third-party content hosting.
 
-More information around the web:
-
-* `Documentation <http://documen.tician.de/relate>`_
-* `Source code <https://github.com/inducer/relate>`_
-
 RELATE is a based on the popular `Django <https://docs.djangoproject.com/>`_
 web framework for Python.  It lets students participate in online activities,
 each of which is (generically) called a "flow", which allows a sequence of
 pages, each of which can be both static or interactive content, for exapmle a
 video, a quiz question, a page of text, or, within the confines of HTML,
 something completely different.
+
+Links
+-----
+
+More information around the web:
+
+* `Documentation <http://documen.tician.de/relate>`_
+* `Source code <https://github.com/inducer/relate>`_
+
+Table of Contents
+-----------------
 
 .. toctree::
     :maxdepth: 2

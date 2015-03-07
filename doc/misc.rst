@@ -69,7 +69,7 @@ Tips
 User-visible Changes
 ====================
 
-Version 2014.1
+Version 2015.1
 --------------
 
 First public release.
@@ -79,7 +79,7 @@ License
 
 RELATE is licensed to you under the MIT/X Consortium license:
 
-Copyright (c) 2014 Andreas Klöckner and Contributors.
+Copyright (c) 2014-15 Andreas Klöckner and Contributors.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation

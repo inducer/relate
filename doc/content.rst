@@ -404,26 +404,19 @@ Here's an example:
 Calendar and Events
 -------------------
 
-To allow course content to be reused easily from year to year, RELATE can
-assign symbolic names to particular dates in your course. For example, instead
-of writing ``2014-10-13``, you could write ``lecture 13`` or ``hw_due 5``.
+The word *event* in relate is a point in time that has a symbolic name.
+Events are created and updated from the 'Content' menu.
 
-To achieve this, each course in RELATE can store a list of events in its
-database. This data serves two purposes:
+Events serve two purposes:
 
-* It provides data for the course calendar, available from the "Student" menu.
+* Their symbolic names can be used wherever a date and time would be
+  required otherwise.  For example, instead of writing ``2014-10-13
+  10:30:00``, you could write ``lecture 13``. This allows course content to
+  be written in a way that is reusable--only the mapping from (e.g.)
+  ``lecture 13`` to the real date needs to be provided--the course material
+  istelf can remain unchanged.
 
-* It maps symbolic event names to concrete points in time, where each such
-  event name consists of a symbolic name (alphanumeric+underscores) plus an
-  optional number. For example, in ``lecture 13``, ``lecture`` is the symbolic
-  name, and ``13`` is the ordinal.
-
-Since this data may vary from one run of the course to the next, it is stored
-along with other by-run-varying data such as grades data and not in the
-:ref:`git-repo`.) A user interface to create and manipulate events is provided
-in the "Instructor" menu. The same menu also contains a menu item to audit
-the course content for references to symbolic event names that are not
-defined.
+* They are (optionally) shown in the class calendar.
 
 For example, to create contiguously numbered ``lecture`` events for a
 lecture occuring on a Tuesday/Thursday schedule, perform the following
@@ -444,7 +437,7 @@ sequence of steps:
 .. _datespec:
 
 Specifying dates in RELATE
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In various places around its :ref:`YAML documents <yaml-files>`, RELATE
 allows dates to be specified. The following formats are supported:
@@ -477,6 +470,7 @@ augments the calendar data in the database with descriptions and
 other meta-information. It has the following format:
 
 .. code-block:: yaml
+
     event_kinds:
         lecture:
             title: Lecture {nr}
@@ -497,10 +491,14 @@ other meta-information. It has the following format:
                 * Python intro
 
 The first section, ``event_kinds``, provides color and titling information that
-applies to all events sharing a symbolic name. The second, `events`, can be used
-to provide a more verbose description for each event that appears below the main
-calendar. Titles and colors can also be overriden for each event specifically.
+applies to all events sharing a symbolic name. The string ``{nr}`` is automatically replaced
+by the 'ordinal' of each event.
 
-All attributes in each section are optional.
+The secondsection, ``events``, can be used to provide a more verbose
+description for each event that appears below the main calendar. Titles and
+colors can also be overriden for each event specifically.
+
+All attributes in each section (as well as the entire calendar information
+file) are optional.
 
 .. # vim: textwidth=75

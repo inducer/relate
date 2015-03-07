@@ -14,9 +14,12 @@ example:
         # RELATE Test Quiz
 
     rules:
+      # (Things behind '#' hash marks are comments and are not siginficant.)
+      # Allow students to start two attempts at the quiz before the deadline.
+      # After that, only allow access to previously started quizzes.
       start:
         -
-          if_before: end_week 1
+          if_before: 2015-03-06 23:59:00
           if_has_role: [student, ta, instructor]
           if_has_fewer_sessions_than: 2
           may_start_new_session: True
@@ -26,22 +29,23 @@ example:
           may_start_new_session: False
           may_list_existing_sessions: True
 
+      # Allow students to submit quiz answers before the deadline.
+      # After the deadline, the quiz becomes read-only. (The 'modify'
+      # permission goes away.)
       access:
          -
-           if_before: end_week 2
+           if_before: 2015-03-06 23:59:00
            permissions: [view, modify, see_correctness]
 
          -
-           permissions: [view, modify, see_correctness, see_answer]
+           permissions: [view, see_correctness, see_answer]
 
+      # Record grades under the machine-readable name 'test_quiz'.
+      # If there is more than one grade, use the maximum.
       grading:
         -
-          if_completed_before: end_week 1
-          grade_identifier: la_quiz
+          grade_identifier: test_quiz
           grade_aggregation_strategy: max_grade
-
-        -
-          grade_identifier: null
 
     groups:
      - id: intro
