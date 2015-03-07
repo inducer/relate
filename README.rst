@@ -3,9 +3,9 @@ RELATE
 
 Relate is an Environment for Learning And TEaching
 
-+---------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
-| .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/image/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/image/screenshot-2.png |
-+---------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
+| .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot-2.png |
++----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
 
 RELATE is a web-based courseware package.  It is set apart by the following
 features:
