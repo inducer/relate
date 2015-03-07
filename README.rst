@@ -41,6 +41,9 @@ features:
   easy-to-use support for integrating HTML5 video into course content
   without the need for third-party content hosting.
 
+Links
+-----
+
 More information around the web:
 
 * `Documentation <http://documen.tician.de/relate>`_
