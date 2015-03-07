@@ -14,7 +14,7 @@ example:
         # RELATE Test Quiz
 
     rules:
-      # (Things behind '#' hash marks are comments and are not siginficant.)
+      # (Things behind '#' hash marks are comments.)
       # Allow students to start two attempts at the quiz before the deadline.
       # After that, only allow access to previously started quizzes.
       start:
@@ -66,11 +66,11 @@ example:
 
                 # Colors
 
-                What's your favorite color?
+                What color is the sun?
 
             choices:
 
-              - Orange
+              - Blue
               - Green
               - ~CORRECT~ Yellow
 

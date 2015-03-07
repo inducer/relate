@@ -260,7 +260,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     is in Python 3.
 
     If you are not including the
-    :attr:`course.constants.flow_permissions.change_answer`
+    :attr:`course.constants.flow_permission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 
@@ -732,7 +732,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
     by a human grader.
 
     If you are not including the
-    :attr:`course.constants.flow_permissions.change_answer`
+    :attr:`course.constants.flow_permission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 
