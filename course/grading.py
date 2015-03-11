@@ -76,6 +76,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             .filter(
                 course=pctx.course,
                 flow_id=flow_session.flow_id,
+                participation__isnull=False,
                 in_progress=flow_session.in_progress)
             .order_by(
                 "participation__user__last_name",
