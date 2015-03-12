@@ -51,12 +51,12 @@ EMAIL_HOST_PASSWORD = ''
 EMAIL_PORT = 25
 EMAIL_USE_TLS = False
 
-ROBOT_EMAIL_FROM = "Andreas Kloeckner <inform@tiker.net>"
+ROBOT_EMAIL_FROM = "Example Admin <admin@example.com>"
 
 SERVER_EMAIL = ROBOT_EMAIL_FROM
 
 ADMINS = (
-  ("Andreas Kloeckner", "andreask@illinois.edu"),
+  ("Example Admin", "admin@example.com"),
   )
 
 TIME_ZONE = "America/Chicago"
