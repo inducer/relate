@@ -226,6 +226,7 @@ admin.site.register(ParticipationTag, ParticipationTagAdmin)
 class ParticipationFrom(forms.ModelForm):
     class Meta:
         model = Participation
+        exclude = ()
 
     def clean(self):
         for tag in self.cleaned_data.get("tags", []):
