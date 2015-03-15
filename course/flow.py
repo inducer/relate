@@ -786,7 +786,11 @@ def view_start_flow(pctx, flow_identifier):
 
                 session_properties = SessionProperties(
                         may_view=flow_permission.view in access_rule.permissions,
-                        may_modify=flow_permission.modify in access_rule.permissions,
+                        may_modify=(
+                            flow_permission.submit_answer in access_rule.permissions
+                            or
+                            flow_permission.end_flow in access_rule.permissions,
+                            ),
                         due=grading_rule.due,
                         grade_description=grading_rule.description)
                 past_sessions_and_properties.append((session, session_properties))
@@ -956,16 +960,22 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             return redirect("course.flow.finish_flow_session_view",
                     pctx.course.identifier, flow_session_id)
         else:
-            # reject answer update if modify permission not present
-            if flow_permission.modify not in permissions:
-                raise PermissionDenied("not permitted to modify flow")
+            submission_allowed = True
+
+            # reject answer update if permission not present
+            if flow_permission.submit_answer not in permissions:
+                messages.add_message(request, messages.ERROR,
+                        "Answer submission not allowed.")
+                submission_allowed = False
 
             # reject if previous answer was final
             if (fpctx.prev_answer_visit is not None
                     and fpctx.prev_answer_visit.is_submitted_answer
                     and flow_permission.change_answer
                         not in permissions):
-                raise PermissionDenied("already have final answer")
+                messages.add_message(request, messages.ERROR,
+                        "Already have final answer.")
+                submission_allowed = False
 
             form = fpctx.page.post_form(
                     fpctx.page_context, fpctx.page_data.data,
@@ -973,7 +983,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
             pressed_button = get_pressed_button(form)
 
-            if form.is_valid():
+            if submission_allowed and form.is_valid():
                 # {{{ form validated, process answer
 
                 messages.add_message(request, messages.INFO,
@@ -1068,7 +1078,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 # can happen if no answer was ever saved
                 and flow_session.in_progress
 
-                and (flow_permission.modify in permissions))
+                and (flow_permission.submit_answer in permissions))
 
         if fpctx.page.expects_answer():
             if fpctx.prev_answer_visit is not None:
@@ -1275,9 +1285,8 @@ def finish_flow_session_view(pctx, flow_session_id):
         if not flow_session.in_progress:
             raise PermissionDenied("Can't end a session that's already ended")
 
-        # reject answer update if modify permission not present
-        if flow_permission.modify not in access_rule.permissions:
-            raise PermissionDenied("not permitted to modify flow")
+        if flow_permission.end_flow not in access_rule.permissions:
+            raise PermissionDenied("not permitted to end flow")
 
         grading_rule = get_session_grading_rule(
                 flow_session, pctx.role, fctx.flow_desc, now_datetime)
@@ -1298,8 +1307,10 @@ def finish_flow_session_view(pctx, flow_session_id):
                     flow_session=flow_session,
                     completion_text=completion_text)
 
-    if not is_graded_flow:
-        # Not serious--no questions in flow.
+    if (not is_graded_flow
+            or
+            flow_permission.end_flow not in access_rule.permissions):
+        # No ability to end--just show completion page.
 
         return render_finish_response(
                 "course/flow-completion.html",

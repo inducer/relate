@@ -118,10 +118,8 @@ def is_expiration_mode_allowed(expmode, permissions):
 class flow_permission:
     """
     .. attribute:: view
-    .. attribute:: modify
-
-        Grants permission to submit answers and end the flow.
-
+    .. attribute:: submit_answer
+    .. attribute:: end_flow
     .. attribute:: change_answer
 
         Grants permission to change an already-graded answer,
@@ -142,7 +140,8 @@ class flow_permission:
 
     """
     view = "view"
-    modify = "modify"
+    end_flow = "end_flow"
+    submit_answer = "submit_answer"
     change_answer = "change_answer"
     see_correctness = "see_correctness"
     see_answer = "see_answer"
@@ -150,7 +149,8 @@ class flow_permission:
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view, "View the flow"),
-        (flow_permission.modify, "Submit answers"),
+        (flow_permission.submit_answer, "Submit answers"),
+        (flow_permission.end_flow, "End flow"),
         (flow_permission.change_answer, "Change already-graded answer"),
         (flow_permission.see_correctness, "See whether an answer is correct"),
         (flow_permission.see_answer, "See the correct answer"),

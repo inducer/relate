@@ -209,9 +209,21 @@ def get_session_access_rule(session, role, flow_desc, now_datetime):
 
         permissions = set(rule.permissions)
 
+        if "modify" in permissions:
+            permissions.remove("modify")
+            permissions.update([
+                flow_permission.submit_answer,
+                flow_permission.end_flow,
+                ])
+
         # Remove 'modify' permission from not-in-progress sessions
-        if not session.in_progress and flow_permission.modify in permissions:
-            permissions.remove(flow_permission.modify)
+        if not session.in_progress:
+            for perm in [
+                    flow_permission.submit_answer,
+                    flow_permission.end_flow,
+                    ]:
+                if perm in permissions:
+                    permissions.remove(perm)
 
         return FlowSessionAccessRule(
                 permissions=frozenset(permissions),
