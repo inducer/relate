@@ -570,7 +570,7 @@ def validate_flow_permission(ctx, location, permission):
     from course.constants import FLOW_PERMISSION_CHOICES
     if permission == "modify":
         ctx.add_warning(location, "Uses deprecated 'modify' permission--"
-                "replace by 'submit_answer' and 'end_flow'")
+                "replace by 'submit_answer' and 'end_session'")
         return
 
     if permission not in dict(FLOW_PERMISSION_CHOICES):

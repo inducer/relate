@@ -789,7 +789,7 @@ def view_start_flow(pctx, flow_id):
                         may_modify=(
                             flow_permission.submit_answer in access_rule.permissions
                             or
-                            flow_permission.end_flow in access_rule.permissions,
+                            flow_permission.end_session in access_rule.permissions,
                             ),
                         due=grading_rule.due,
                         grade_description=grading_rule.description)
@@ -1285,8 +1285,8 @@ def finish_flow_session_view(pctx, flow_session_id):
         if not flow_session.in_progress:
             raise PermissionDenied("Can't end a session that's already ended")
 
-        if flow_permission.end_flow not in access_rule.permissions:
-            raise PermissionDenied("not permitted to end flow")
+        if flow_permission.end_session not in access_rule.permissions:
+            raise PermissionDenied("not permitted to end session")
 
         grading_rule = get_session_grading_rule(
                 flow_session, pctx.role, fctx.flow_desc, now_datetime)
@@ -1309,7 +1309,7 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     if (not is_graded_flow
             or
-            flow_permission.end_flow not in access_rule.permissions):
+            flow_permission.end_session not in access_rule.permissions):
         # No ability to end--just show completion page.
 
         return render_finish_response(

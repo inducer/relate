@@ -306,7 +306,7 @@ Here's a commented example:
 
         A list of :class:`flow_permission`.
 
-        :attr:`flow_permission.submit_answer` and :attr:`flow_permission.end_flow`
+        :attr:`flow_permission.submit_answer` and :attr:`flow_permission.end_session`
         are automatically removed from a finished (i.e. not 'in-progress')
         session.
 
