@@ -235,3 +235,5 @@ GRADE_STATE_CHANGE_CHOICES = (
         (grade_state_change_types.do_over, 'Do-over'),
         (grade_state_change_types.exempt, 'Exempt'),
         )
+
+FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"

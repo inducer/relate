@@ -27,6 +27,7 @@ THE SOFTWARE.
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from django.conf import settings
+from course.constants import FLOW_ID_REGEX
 
 urlpatterns = patterns('',
     url(r"^login/$",
@@ -148,7 +149,7 @@ urlpatterns = patterns('',
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/grading/statistics"
-        "/(?P<flow_id>[-a-zA-Z0-9]+)"
+        "/" + FLOW_ID_REGEX +
         "/$",
         "course.grading.show_grading_statistics",),
     # }}}
@@ -214,7 +215,7 @@ urlpatterns = patterns('',
     url(r"^course"
          "/(?P<course_identifier>[-a-zA-Z0-9]+)"
          "/flow"
-         "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+         "/" + FLOW_ID_REGEX +
          "/start"
          "/$",
          "course.flow.view_start_flow",),
@@ -266,14 +267,14 @@ urlpatterns = patterns('',
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/grant-exception"
         "/(?P<participation_id>[0-9]+)"
-        "/(?P<flow_id>[-a-zA-Z0-9]+)"
+        "/" + FLOW_ID_REGEX +
         "/$",
         "course.views.grant_exception_stage_2",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/grant-exception"
         "/(?P<participation_id>[0-9]+)"
-        "/(?P<flow_id>[-a-zA-Z0-9]+)"
+        "/" + FLOW_ID_REGEX +
         "/(?P<session_id>[0-9]+)"
         "/$",
         "course.views.grant_exception_stage_3",),
@@ -290,13 +291,13 @@ urlpatterns = patterns('',
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow-analytics"
-        "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+        "/" + FLOW_ID_REGEX +
         "/$",
         "course.analytics.flow_analytics",),
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
         "/flow-analytics"
-        "/(?P<flow_identifier>[-_a-zA-Z0-9]+)"
+        "/" + FLOW_ID_REGEX +
         "/page"
         "/(?P<group_id>[-_a-zA-Z0-9]+)"
         "/(?P<page_id>[-_a-zA-Z0-9]+)"

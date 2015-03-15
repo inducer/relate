@@ -736,15 +736,15 @@ def recalculate_session_grade(repo, course, session):
 
 @transaction.atomic
 @course_view
-def view_start_flow(pctx, flow_identifier):
+def view_start_flow(pctx, flow_id):
     request = pctx.request
 
     now_datetime = get_now_or_fake_time(request)
-    fctx = FlowContext(pctx.repo, pctx.course, flow_identifier,
+    fctx = FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
 
     session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
-            pctx.role, flow_identifier, fctx.flow_desc, now_datetime)
+            pctx.role, flow_id, fctx.flow_desc, now_datetime)
 
     if request.method == "POST":
         if "start" in request.POST:
@@ -754,7 +754,7 @@ def view_start_flow(pctx, flow_identifier):
 
             session = start_flow(
                     pctx.repo, pctx.course, pctx.participation,
-                    flow_identifier, fctx.flow_desc,
+                    flow_id, fctx.flow_desc,
                     access_rules_tag=session_start_rule.tag_session,
                     now_datetime=now_datetime)
 
@@ -769,7 +769,7 @@ def view_start_flow(pctx, flow_identifier):
             past_sessions = (FlowSession.objects
                     .filter(
                         participation=pctx.participation,
-                        flow_id=fctx.flow_identifier,
+                        flow_id=fctx.flow_id,
                         participation__isnull=False)
                    .order_by("start_time"))
 
@@ -799,7 +799,7 @@ def view_start_flow(pctx, flow_identifier):
 
         return render_course_page(pctx, "course/flow-start.html", {
             "flow_desc": fctx.flow_desc,
-            "flow_identifier": flow_identifier,
+            "flow_identifier": flow_id,
 
             "now": now_datetime,
             "may_start": session_start_rule.may_start_new_session,
@@ -899,7 +899,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     flow_session_id = int(flow_session_id)
     flow_session = get_and_check_flow_session(
             pctx, flow_session_id)
-    flow_identifier = flow_session.flow_id
+    flow_id = flow_session.flow_id
 
     if flow_session is None:
         messages.add_message(request, messages.WARNING,
@@ -908,9 +908,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
         return redirect("course.flow.view_start_flow",
                 pctx.course.identifier,
-                flow_identifier)
+                flow_id)
 
-    fpctx = FlowPageContext(pctx.repo, pctx.course, flow_identifier, ordinal,
+    fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, ordinal,
             participation=pctx.participation,
             flow_session=flow_session)
 
@@ -937,7 +937,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
         return redirect("course.flow.view_start_flow",
                 pctx.course.identifier,
-                flow_identifier)
+                flow_id)
 
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fpctx.flow_desc, get_now_or_fake_time(request))
@@ -1155,7 +1155,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             expiration_mode_choices.append((key, descr))
 
     args = {
-        "flow_identifier": fpctx.flow_identifier,
+        "flow_identifier": fpctx.flow_id,
         "flow_desc": fpctx.flow_desc,
         "ordinal": fpctx.ordinal,
         "page_data": fpctx.page_data,
@@ -1244,9 +1244,9 @@ def finish_flow_session_view(pctx, flow_session_id):
     flow_session_id = int(flow_session_id)
     flow_session = get_and_check_flow_session(
             pctx, flow_session_id)
-    flow_identifier = flow_session.flow_id
+    flow_id = flow_session.flow_id
 
-    fctx = FlowContext(pctx.repo, pctx.course, flow_identifier,
+    fctx = FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation,
             flow_session=flow_session)
 
@@ -1269,7 +1269,7 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     def render_finish_response(template, **kwargs):
         render_args = {
-            "flow_identifier": fctx.flow_identifier,
+            "flow_identifier": fctx.flow_id,
             "flow_desc": fctx.flow_desc,
         }
 

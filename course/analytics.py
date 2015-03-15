@@ -208,10 +208,10 @@ def is_flow_multiple_submit(flow_desc):
 
 # {{{ flow analytics
 
-def make_grade_histogram(pctx, flow_identifier):
+def make_grade_histogram(pctx, flow_id):
     qset = FlowSession.objects.filter(
             course=pctx.course,
-            flow_id=flow_identifier)
+            flow_id=flow_id)
 
     hist = Histogram(
         num_min_value=0,
@@ -246,13 +246,13 @@ def safe_div(num, denom):
     return num/denom
 
 
-def make_page_answer_stats_list(pctx, flow_identifier):
-    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
+def make_page_answer_stats_list(pctx, flow_id):
+    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
 
     is_multiple_submit = is_flow_multiple_submit(flow_desc)
 
-    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
+    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
     page_info_list = []
     for group_desc in flow_desc.groups:
@@ -266,7 +266,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
             visits = (FlowPageVisit.objects
                     .filter(
                         flow_session__course=pctx.course,
-                        flow_session__flow_id=flow_identifier,
+                        flow_session__flow_id=flow_id,
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
                         is_submitted_answer=True,
@@ -331,7 +331,7 @@ def make_page_answer_stats_list(pctx, flow_identifier):
                             "course.analytics.page_analytics",
                             args=(
                                 pctx.course_identifier,
-                                flow_identifier,
+                                flow_id,
                                 group_desc.id,
                                 page_desc.id,
                                 ))))
@@ -339,10 +339,10 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     return page_info_list
 
 
-def make_time_histogram(pctx, flow_identifier):
+def make_time_histogram(pctx, flow_id):
     qset = FlowSession.objects.filter(
             course=pctx.course,
-            flow_id=flow_identifier)
+            flow_id=flow_id)
 
     hist = Histogram(
             num_log_bins=True,
@@ -358,14 +358,14 @@ def make_time_histogram(pctx, flow_identifier):
     return hist
 
 
-def count_participants(pctx, flow_identifier):
+def count_participants(pctx, flow_id):
     if not connection.features.can_distinct_on_fields:
         return None
 
     qset = (FlowSession.objects
             .filter(
                 course=pctx.course,
-                flow_id=flow_identifier)
+                flow_id=flow_id)
             .order_by("participation")
             .distinct("participation"))
     return qset.count()
@@ -373,7 +373,7 @@ def count_participants(pctx, flow_identifier):
 
 @login_required
 @course_view
-def flow_analytics(pctx, flow_identifier):
+def flow_analytics(pctx, flow_id):
     if pctx.role not in [
             participation_role.teaching_assistant,
             participation_role.instructor,
@@ -382,11 +382,11 @@ def flow_analytics(pctx, flow_identifier):
         raise PermissionDenied("must be at least TA to view analytics")
 
     return render_course_page(pctx, "course/analytics-flow.html", {
-        "flow_identifier": flow_identifier,
-        "grade_histogram": make_grade_histogram(pctx, flow_identifier),
-        "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_identifier),
-        "time_histogram": make_time_histogram(pctx, flow_identifier),
-        "participant_count": count_participants(pctx, flow_identifier),
+        "flow_identifier": flow_id,
+        "grade_histogram": make_grade_histogram(pctx, flow_id),
+        "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_id),
+        "time_histogram": make_time_histogram(pctx, flow_id),
+        "participant_count": count_participants(pctx, flow_id),
         })
 
 # }}}
@@ -405,7 +405,7 @@ class AnswerStats(object):
 
 @login_required
 @course_view
-def page_analytics(pctx, flow_identifier, group_id, page_id):
+def page_analytics(pctx, flow_id, group_id, page_id):
     if pctx.role not in [
             participation_role.teaching_assistant,
             participation_role.instructor,
@@ -413,17 +413,17 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
             ]:
         raise PermissionDenied("must be at least TA to view analytics")
 
-    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
+    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
 
     is_multiple_submit = is_flow_multiple_submit(flow_desc)
 
-    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
+    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
     visits = (FlowPageVisit.objects
             .filter(
                 flow_session__course=pctx.course,
-                flow_session__flow_id=flow_identifier,
+                flow_session__flow_id=flow_id,
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
                 is_submitted_answer=True,
@@ -490,7 +490,7 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
             reverse=True)
 
     return render_course_page(pctx, "course/analytics-page.html", {
-        "flow_identifier": flow_identifier,
+        "flow_identifier": flow_id,
         "group_id": group_id,
         "page_id": page_id,
         "title": title,

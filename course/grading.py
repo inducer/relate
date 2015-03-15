@@ -230,7 +230,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             pctx,
             "course/grade-flow-page.html",
             {
-                "flow_identifier": fpctx.flow_identifier,
+                "flow_identifier": fpctx.flow_id,
                 "flow_session": flow_session,
                 "flow_desc": fpctx.flow_desc,
                 "ordinal": fpctx.ordinal,

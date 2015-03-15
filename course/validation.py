@@ -711,6 +711,15 @@ def validate_course_content(repo, course_file, events_file,
             if not entry.path.endswith(".yml"):
                 continue
 
+            from course.constants import FLOW_ID_REGEX
+            flow_id = entry.path[:-4]
+            match = re.match("^"+FLOW_ID_REGEX+"$", flow_id)
+            if match is None:
+                raise ValidationError("%s: invalid flow name. "
+                        "Flow names may only contain (roman) "
+                        "letters, numbers, "
+                        "dashes and underscores." % entry.path)
+
             location = "flows/%s" % entry.path
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
