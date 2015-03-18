@@ -559,11 +559,13 @@ class HumanTextFeedbackForm(StyledForm):
                 required=False)
 
     def clean(self):
+        grade_percent = self.cleaned_data.get("grade_percent")
+        grade_points = self.cleaned_data.get("grade_points")
         if (self.point_value is not None
-                and self.cleaned_data["grade_percent"] is not None
-                and self.cleaned_data["grade_points"] is not None):
-            points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
-            direct_percent = self.cleaned_data["grade_percent"]
+                and grade_percent is not None
+                and grade_points is not None):
+            points_percent = 100*grade_points/self.point_value
+            direct_percent = grade_percent
 
             if abs(points_percent - direct_percent) > 0.1:
                 raise FormValidationError("Grade (percent) and Grade (points) "
