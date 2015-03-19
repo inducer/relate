@@ -201,6 +201,29 @@ class Feedback:
                 if not isinstance(entry, entry_type):
                     self.finish(0, "'%s[%d]' has the wrong type" % (name, i))
 
+    def check_scalar(self, name, ref, data, accuracy_critical=True,
+            rtol=1e-5, atol=1e-8):
+        import numpy as np
+
+        if not isinstance(data, (float, int, np.number)):
+            self.finish(0, "'%s' is not a number" % name)
+
+        good = False
+
+        if rtol is not None and abs(ref-data) < abs(data)*rtol:
+            good = True
+        if atol is not None and abs(ref-data) < atol:
+            good = True
+
+        if not good:
+            self.add_feedback("'%s' is inaccurate" % name)
+
+        if accuracy_critical and not good:
+            self.set_points(0)
+            raise GradingComplete()
+
+        return good
+
 
 def run_code(result, run_req):
     # {{{ compile code

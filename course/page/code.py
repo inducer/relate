@@ -393,6 +393,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
           feedback.check_list(name, ref, data, entry_type=None)
 
+          feedback.check_scalar(self, name, ref, data, accuracy_critical=True,
+              rtol=1e-5, atol=1e-8)
+
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
 
