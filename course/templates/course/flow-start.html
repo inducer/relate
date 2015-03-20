@@ -82,9 +82,74 @@
     {% endif %}
 
     {% if may_start %}
-      <button type="submit" name="start" class="btn btn-primary">
-        Start &raquo;
-      </button>
+      <div class="alert alert-info">
+        {% if new_session_grading_rule.grade_identifier %}
+          If you start a new session, the following rules will apply:
+          <ul>
+            {% if new_session_grading_rule.description %}
+              <li>Your session will be a '<b>{{ new_session_grading_rule.description }}</b>'.</li>
+            {% endif %}
+            {% if new_session_grading_rule.due %}
+              <li>Your session will be due on <b>{{ new_session_grading_rule.due }}</b>.</li>
+            {% endif %}
+            <li>You will receive <b>{{ new_session_grading_rule.credit_percent|floatformat }}% credit</b>
+              for your work.
+            {% if past_sessions_and_properties %}
+              <li>This is not your first session. If you start another one,
+                for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
+                among all your sessions.
+              </li>
+            {% endif%}
+          </ul>
+        {% else %}
+          If you start a new session, no permanent grade will be recorded for it.
+          {% if new_session_grading_rule.description %}
+            Your session will be a '<b>{{ new_session_grading_rule.description }}</b>'.
+          {% endif %}
+        {% endif %}
+      </div>
+
+      {# {{{ start button #}
+
+      {% if start_may_decrease_grade %}
+        <a id="pre-start-button" class="btn btn-primary">
+          Start &raquo;
+        </a>
+        <button id="start-button" type="submit" name="start" class="btn btn-danger"
+          style="display:none"
+          data-content="I understand that starting a new session could lower my overall grade."
+          data-container="body"
+          data-placement="right"
+          >
+            I am sure &raquo;
+        </button>
+
+        <script type="text/javascript">
+          $("#pre-start-button").on('click',
+              function()
+              {
+                $("#pre-start-button").fadeOut("normal",
+                    function()
+                    {
+                        $("#start-button").fadeIn("normal",
+                            function()
+                            {
+                                $("#start-button").popover("show");
+                            }
+                        );
+                    }
+                    );
+              });
+        </script>
+
+      {% else %}
+        <button type="submit" name="start" class="btn btn-primary">
+          Start &raquo;
+        </button>
+      {% endif %}
+
+      {# }}} #}
+
     {% endif %}
 
     {% if may_start or past_sessions_and_properties %}

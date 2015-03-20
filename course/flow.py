@@ -44,7 +44,10 @@ from course.constants import (
         flow_session_expiration_mode,
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         is_expiration_mode_allowed,
-        flow_rule_kind)
+        flow_rule_kind,
+        grade_aggregation_strategy,
+        GRADE_AGGREGATION_STRATEGY_CHOICES
+        )
 from course.models import (
         FlowSession, FlowPageData, FlowPageVisit,
         FlowPageVisitGrade,
@@ -789,7 +792,7 @@ def view_start_flow(pctx, flow_id):
                         may_modify=(
                             flow_permission.submit_answer in access_rule.permissions
                             or
-                            flow_permission.end_session in access_rule.permissions,
+                            flow_permission.end_session in access_rule.permissions
                             ),
                         due=grading_rule.due,
                         grade_description=grading_rule.description)
@@ -797,12 +800,37 @@ def view_start_flow(pctx, flow_id):
         else:
             past_sessions_and_properties = []
 
+        may_start = session_start_rule.may_start_new_session
+        potential_session = FlowSession(
+            course=pctx.course,
+            participation=pctx.participation,
+            flow_id=flow_id,
+            in_progress=True,
+            expiration_mode=flow_session_expiration_mode.end,
+            access_rules_tag=session_start_rule.tag_session)
+
+        new_session_grading_rule = get_session_grading_rule(
+                potential_session, pctx.role, fctx.flow_desc, now_datetime)
+
+        start_may_decrease_grade = (
+                bool(past_sessions_and_properties)
+                and
+                new_session_grading_rule.grade_aggregation_strategy not in
+                [   None,
+                    grade_aggregation_strategy.max_grade,
+                    grade_aggregation_strategy.use_earliest])
+
         return render_course_page(pctx, "course/flow-start.html", {
             "flow_desc": fctx.flow_desc,
             "flow_identifier": flow_id,
 
             "now": now_datetime,
-            "may_start": session_start_rule.may_start_new_session,
+            "may_start": may_start,
+            "new_session_grading_rule": new_session_grading_rule,
+            "grade_aggregation_strategy_descr": (
+                dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
+                    new_session_grading_rule.grade_aggregation_strategy)),
+            "start_may_decrease_grade": start_may_decrease_grade,
 
             "past_sessions_and_properties": past_sessions_and_properties,
             },

@@ -783,8 +783,6 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     state_machine = GradeStateMachine()
     state_machine.consume(grade_changes, set_is_superseded=True)
 
-    flow_grade_aggregation_strategy_text = None
-
     if opportunity.flow_id:
         flow_sessions = list(FlowSession.objects
                 .filter(
@@ -833,8 +831,6 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             participation_role.instructor,
             participation_role.teaching_assistant
             ],
-
-        "flow_grade_aggregation_strategy": flow_grade_aggregation_strategy_text,
         })
 
 # }}}
