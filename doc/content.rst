@@ -227,7 +227,7 @@ The following snippet shows an interactive video viewer::
     <video id="myvideo" class="video-js vjs-default-skin"
        controls preload="auto" width="800" height="600"
        poster="/video/cs357-f14/encoded/myvideo.jpeg"
-       data-setup='{"example_option":true}'>
+       data-setup='{"playbackRates": [1, 1.3, 1.6, 2, 4]}'>
       <source src="/video/cs357-f14/encoded/myvideo.webm" type='video/webm' />
       <source src="/video/cs357-f14/encoded/myvideo.mp4" type='video/mp4' />
       <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
