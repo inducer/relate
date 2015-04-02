@@ -949,10 +949,10 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
 
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
-            flow_id=flow_id,
+            identifier=grading_rule.grade_identifier,
             defaults=dict(
                 name="Flow: %s" % flow_desc.title,
-                identifier=grading_rule.grade_identifier,
+                flow_id=flow_id,
                 aggregation_strategy=grading_rule.grade_aggregation_strategy,
                 ))
 
