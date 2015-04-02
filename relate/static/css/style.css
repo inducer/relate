@@ -196,7 +196,7 @@ div.progress:hover  span.stats-percentage{
 }
 
 table.gradebook-by-opportunity ul {
-  padding-bottom: 0px;
+  margin-bottom: 0px;
 }
 
 /* vim: set foldmethod=marker: */
