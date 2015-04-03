@@ -123,7 +123,7 @@ def view_page_sandbox(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied("must be instructor or TA to access sandbox")
 
     from relate.utils import dict_to_struct
     import yaml
