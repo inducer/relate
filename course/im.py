@@ -159,7 +159,7 @@ def send_instant_message(pctx):
         messages.add_message(request, messages.ERROR,
                 "Instant messaging is not enabled for this course.")
 
-        return redirect("course.views.course_page", pctx.course_identifier)
+        return redirect("relate-course_page", pctx.course_identifier)
 
     xmpp = get_xmpp_connection(pctx.course)
     if xmpp.is_recipient_online():

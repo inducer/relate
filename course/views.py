@@ -353,7 +353,7 @@ def test_flow(pctx):
             raise SuspiciousOperation("invalid operation")
 
         if form.is_valid():
-            return redirect("course.flow.view_start_flow",
+            return redirect("relate-view_start_flow",
                     pctx.course.identifier,
                     form.cleaned_data["flow_id"])
 
@@ -414,7 +414,7 @@ def grant_exception(pctx):
         form = ExceptionStage1Form(pctx.course, flow_ids, request.POST)
 
         if form.is_valid():
-            return redirect("course.views.grant_exception_stage_2",
+            return redirect("relate-grant_exception_stage_2",
                     pctx.course.identifier,
                     form.cleaned_data["participation"].id,
                     form.cleaned_data["flow_id"])
@@ -563,7 +563,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
         elif exception_form.is_valid() and "next" in request.POST:
             return redirect(
-                    "course.views.grant_exception_stage_3",
+                    "relate-grant_exception_stage_3",
                     pctx.course.identifier,
                     participation.id,
                     flow_id,
@@ -783,7 +783,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             messages.add_message(pctx.request, messages.SUCCESS,
                     "Exception granted to '%s' for '%s'." % (participation, flow_id))
             return redirect(
-                    "course.views.grant_exception",
+                    "relate-grant_exception",
                     pctx.course.identifier)
 
     else:

@@ -29,7 +29,7 @@
     {% endif %}
     {% if opportunity.flow_id %}
     <tr>
-      <td>Flow</td><td><tt><a href="{% url "course.flow.view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+      <td>Flow</td><td><tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
     </tr>
     {% endif %}
     <tr>
@@ -203,7 +203,7 @@
                       <tr>
                         <td>{{ visit.page_data.ordinal }}</td>
                         <td>
-                          <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
+                          <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
                         </td>
                         {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
                           <td>{{ visit.get_most_recent_grade.percentage }}%</td>
@@ -246,7 +246,7 @@
                       Recalculate grade
                     </button>
                   {% endif %}
-                  <a href="{% url "course.views.grant_exception_stage_3" course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
+                  <a href="{% url "relate-grant_exception_stage_3" course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                     class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
                     Grant exception
                   </a>
@@ -261,7 +261,7 @@
 
   {% if show_privileged_info and opportunity.flow_id %}
     <div class="well">
-      <a href="{% url "course.views.grant_exception_stage_2" course.identifier grade_participation.id opportunity.flow_id %}"
+      <a href="{% url "relate-grant_exception_stage_2" course.identifier grade_participation.id opportunity.flow_id %}"
         class="btn btn-primary btn-default">
         Grant exception
       </a>

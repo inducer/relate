@@ -183,7 +183,7 @@ def set_up_new_course(request):
                                 "in the course content and create them. "
                                 + '<a href="%s" class="btn btn-primary">'
                                 'Check &raquo;</a>'
-                                % reverse("course.calendar.check_events",
+                                % reverse("relate-check_events",
                                     args=(new_course.identifier,)))
                 except:
                     # Don't coalesce this handler with the one below. We only want
@@ -201,7 +201,7 @@ def set_up_new_course(request):
                             type(e).__name__, str(e)))
             else:
                 return redirect(
-                        "course.views.course_page",
+                        "relate-course_page",
                         new_course.identifier)
 
     else:
@@ -314,7 +314,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                 + '<p><a href="%s" class="btn btn-primary" '
                 'style="margin-top:8px">'
                 'Check &raquo;</a></p>'
-                % reverse("course.calendar.check_events",
+                % reverse("relate-check_events",
                     args=(pctx.course.identifier,)))
 
     else:

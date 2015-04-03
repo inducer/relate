@@ -10,7 +10,7 @@
 
 {% block content %}
   <form
-    action="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
+    action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
     class="navigation-form"
     method="POST">
 
@@ -20,7 +20,7 @@
       <div class="flow-nav">
         {% if page_data.ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
-            href="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
+            href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
             role="button">&laquo; Previous</a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
@@ -29,7 +29,7 @@
         {% endif %}
         {% if page_data.next_ordinal < flow_session.page_count %}
           <a class="btn btn-default relate-nav-button"
-            href="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
+            href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
             role="button">Next &raquo;</a>
         {% else %}
           <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session &raquo; </button>
@@ -62,7 +62,7 @@
           {% if page_nr == page_data.ordinal %}
             <span class="relate-flow-page-number relate-current btn btn-default btn-xs disabled">{{ shown_page_nr }}</span>
           {% else %}
-            <a href="{% url "course.flow.view_flow_page" course.identifier flow_session.id page_nr %}">
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_nr %}">
             <span class="relate-flow-page-number btn btn-default btn-xs
               {% if page_nr < page_data.ordinal %}
                 relate-prior
@@ -210,7 +210,7 @@
         .show();
 
       var jqxhr = $.ajax(
-          "{% url "course.flow.update_expiration_mode" course.identifier flow_session.id %}",
+          "{% url "relate-update_expiration_mode" course.identifier flow_session.id %}",
           {
             type: "POST",
             data: {

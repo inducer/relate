@@ -63,12 +63,12 @@ def enroll(request, course_identifier):
     if not course.accepts_enrollment:
         messages.add_message(request, messages.ERROR,
                 "Course is not accepting enrollments.")
-        return redirect("course.views.course_page", course_identifier)
+        return redirect("relate-course_page", course_identifier)
 
     if role != participation_role.unenrolled:
         messages.add_message(request, messages.ERROR,
                 "Already enrolled. Cannot re-renroll.")
-        return redirect("course.views.course_page", course_identifier)
+        return redirect("relate-course_page", course_identifier)
 
     user = request.user
     ustatus = get_user_status(user)
@@ -77,7 +77,7 @@ def enroll(request, course_identifier):
         messages.add_message(request, messages.ERROR,
                 "Your email address is not yet confirmed. "
                 "Confirm your email to continue.")
-        return redirect("course.views.course_page", course_identifier)
+        return redirect("relate-course_page", course_identifier)
 
     if (course.enrollment_required_email_suffix
             and not user.email.endswith(course.enrollment_required_email_suffix)):
@@ -85,7 +85,7 @@ def enroll(request, course_identifier):
         messages.add_message(request, messages.ERROR,
                 "Enrollment not allowed. Please use your '%s' email to "
                 "enroll." % course.enrollment_required_email_suffix)
-        return redirect("course.views.course_page", course_identifier)
+        return redirect("relate-course_page", course_identifier)
 
     def enroll(status, role):
         participations = Participation.objects.filter(course=course, user=user)
@@ -143,7 +143,7 @@ def enroll(request, course_identifier):
         messages.add_message(request, messages.SUCCESS,
                 "Successfully enrolled.")
 
-    return redirect("course.views.course_page", course_identifier)
+    return redirect("relate-course_page", course_identifier)
 
 # }}}
 
@@ -170,7 +170,7 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             "approved": approved,
             "course": course,
             "course_uri": request.build_absolute_uri(
-                    reverse("course.views.course_page",
+                    reverse("relate-course_page",
                         args=(course.identifier,)))
             })
 
@@ -264,7 +264,7 @@ def create_preapprovals(pctx):
             messages.add_message(request, messages.INFO,
                     "%d preapprovals created, %d already existed."
                     % (created_count, exist_count))
-            return redirect("course.views.home")
+            return redirect("relate-home")
 
     else:
         form = BulkPreapprovalsForm()

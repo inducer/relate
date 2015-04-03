@@ -38,9 +38,9 @@
     <tr>
       <td>Flow</td>
       <td>
-        <tt><a href="{% url "course.flow.view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
+        <tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
         &middot;
-        <a href="{% url "course.grading.show_grading_statistics" course.identifier opportunity.flow_id %}">Grading statistics</a>
+        <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">Grading statistics</a>
       </td>
     </tr>
     <tr>
@@ -64,7 +64,7 @@
     <tbody>
       {% for participation, grade_info in grade_table %}
       <tr>
-        <td class="datacol"><a href="{% url "course.grades.view_single_grade" course.identifier participation.id opportunity.id %}">{{ participation.user.username }}</a></td>
+        <td class="datacol"><a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}">{{ participation.user.username }}</a></td>
         <td class="datacol">
           {{ participation.user.last_name }},
           {{ participation.user.first_name }}
@@ -77,7 +77,7 @@
             data-order="{{ grade_info.grade_state_machine.percentage }}"
           {% endif %}
           >
-          <a href="{% url "course.grades.view_single_grade" course.identifier participation.id opportunity.id %}"
+          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
             >{{ grade_info.grade_state_machine.stringify_state }}</a>
         </td>
           <td class="datacol" data-order="{{ grade_info.flow_sessions|length }}">

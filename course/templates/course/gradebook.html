@@ -23,13 +23,13 @@
       <th class="headcol"></th>
       <th class="datacol">Name</th>
       {% for opp in grading_opportunities %}
-      <th class="datacol"><a href="{% url "course.grades.view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</th>
+      <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</th>
       {% endfor %}
     </thead>
     <tbody>
       {% for participation, grades in grade_table %}
       <tr>
-        <td class="headcol"><a href="{% url "course.grades.view_participant_grades" course.identifier participation.id %}">{{ participation.user.username }}</a></td>
+        <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}">{{ participation.user.username }}</a></td>
         <td class="datacol">
           {{ participation.user.last_name }},
           {{ participation.user.first_name }}
@@ -39,7 +39,7 @@
         </td>
         {% for grade_info in grades %}
           <td class="datacol">
-            <a href="{% url "course.grades.view_single_grade" course.identifier participation.id grade_info.opportunity.id %}"
+            <a href="{% url "relate-view_single_grade" course.identifier participation.id grade_info.opportunity.id %}"
               >{{ grade_info.grade_state_machine.stringify_state }}</a>
           </td>
         {% endfor %}

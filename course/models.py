@@ -169,7 +169,7 @@ class Course(models.Model):
         return self.identifier
 
     def get_absolute_url(self):
-        return reverse("course.views.course_page", args=(self.identifier,))
+        return reverse("relate-course_page", args=(self.identifier,))
 
 # }}}
 

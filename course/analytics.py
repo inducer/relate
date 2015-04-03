@@ -328,7 +328,7 @@ def make_page_answer_stats_list(pctx, flow_id):
                         answer_count=answer_count,
                         total_count=total_count,
                         url=reverse(
-                            "course.analytics.page_analytics",
+                            "relate-page_analytics",
                             args=(
                                 pctx.course_identifier,
                                 flow_id,

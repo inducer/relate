@@ -265,19 +265,19 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_url(self, url):
         if url.startswith("flow:"):
             flow_id = url[5:]
-            return self.reverse_func("course.flow.view_start_flow",
+            return self.reverse_func("relate-view_start_flow",
                         args=(self.get_course_identifier(), flow_id))
 
         elif url.startswith("media:"):
             media_path = url[6:]
-            return self.reverse_func("course.views.get_media",
+            return self.reverse_func("relate-get_media",
                         args=(
                             self.get_course_identifier(),
                             self.commit_sha,
                             media_path))
 
         elif url.strip() == "calendar:":
-            return self.reverse_func("course.calendar.view_calendar",
+            return self.reverse_func("relate-view_calendar",
                         args=(self.get_course_identifier(),))
 
         return None

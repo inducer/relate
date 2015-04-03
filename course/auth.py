@@ -131,7 +131,7 @@ def impersonate(request):
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 "Already impersonating someone.")
-        return redirect("course.auth.stop_impersonating")
+        return redirect("relate-stop_impersonating")
 
     if request.method == 'POST':
         form = ImpersonateForm(request.user, request.POST)
@@ -143,7 +143,7 @@ def impersonate(request):
             request.session['impersonate_id'] = user.id
 
             # Because we'll likely no longer have access to this page.
-            return redirect("course.views.home")
+            return redirect("relate-home")
     else:
         form = ImpersonateForm(request.user)
 
@@ -165,7 +165,7 @@ def stop_impersonating(request):
     if not hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 "Not currently impersonating anyone.")
-        return redirect("course.views.home")
+        return redirect("relate-home")
 
     if request.method == 'POST':
         form = StopImpersonatingForm(request.POST)
@@ -175,7 +175,7 @@ def stop_impersonating(request):
             del request.session['impersonate_id']
 
             # Because otherwise the header will show stale data.
-            return redirect("course.views.home")
+            return redirect("relate-home")
     else:
         form = StopImpersonatingForm()
 
@@ -280,7 +280,7 @@ class SignUpForm(StyledModelForm):
 
 
 def sign_up(request):
-    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_user_pw":
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
         raise SuspiciousOperation("password-based sign-in is not being used")
 
     if request.method == 'POST':
@@ -300,7 +300,7 @@ def sign_up(request):
                         "Would you like to "
                         "<a href='%s'>reset your password</a> instead?"
                         % reverse(
-                            "course.auth.reset_password")),
+                            "relate-reset_password")),
             else:
                 email = form.cleaned_data["email"]
                 user = User(
@@ -322,11 +322,11 @@ def sign_up(request):
                     "user": user,
                     "sign_in_uri": request.build_absolute_uri(
                         reverse(
-                            "course.auth.reset_password_stage2",
+                            "relate-reset_password_stage2",
                             args=(user.id, ustatus.sign_in_key,))
                         + "?to_profile=1"),
                     "home_uri": request.build_absolute_uri(
-                        reverse("course.views.home"))
+                        reverse("relate-home"))
                     })
 
                 from django.core.mail import send_mail
@@ -336,7 +336,7 @@ def sign_up(request):
                 messages.add_message(request, messages.INFO,
                         "Email sent. Please check your email and click the link.")
 
-                return redirect("course.views.home")
+                return redirect("relate-home")
 
     else:
         form = SignUpForm()
@@ -358,7 +358,7 @@ class ResetPasswordForm(StyledForm):
 
 
 def reset_password(request):
-    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_user_pw":
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
         raise SuspiciousOperation("password-based sign-in is not being used")
 
     if request.method == 'POST':
@@ -386,9 +386,9 @@ def reset_password(request):
                 "user": user,
                 "sign_in_uri": request.build_absolute_uri(
                     reverse(
-                        "course.auth.reset_password_stage2",
+                        "relate-reset_password_stage2",
                         args=(user.id, ustatus.sign_in_key,))),
-                "home_uri": request.build_absolute_uri(reverse("course.views.home"))
+                "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
             send_mail("[RELATE] Password reset", message,
@@ -397,7 +397,7 @@ def reset_password(request):
             messages.add_message(request, messages.INFO,
                     "Email sent. Please check your email and click the link.")
 
-            return redirect("course.views.home")
+            return redirect("relate-home")
     else:
         form = ResetPasswordForm()
 
@@ -427,7 +427,7 @@ class ResetPasswordStage2Form(StyledForm):
 
 
 def reset_password_stage2(request, user_id, sign_in_key):
-    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_user_pw":
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
         raise SuspiciousOperation("email-based sign-in is not being used")
 
     if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
@@ -460,12 +460,12 @@ def reset_password_stage2(request, user_id, sign_in_key):
                         "Please complete your registration information below.")
 
                 return redirect(
-                       reverse("course.auth.user_profile")+"?first_login=1")
+                       reverse("relate-user_profile")+"?first_login=1")
             else:
                 messages.add_message(request, messages.INFO,
                         "Successfully signed in.")
 
-                return redirect("course.views.home")
+                return redirect("relate-home")
     else:
         form = ResetPasswordStage2Form()
 
@@ -491,7 +491,7 @@ class SignInByEmailForm(StyledForm):
 
 
 def sign_in_by_email(request):
-    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
         raise SuspiciousOperation("email-based sign-in is not being used")
 
     if request.method == 'POST':
@@ -523,9 +523,9 @@ def sign_in_by_email(request):
                 "user": user,
                 "sign_in_uri": request.build_absolute_uri(
                     reverse(
-                        "course.auth.sign_in_stage2_with_token",
+                        "relate-sign_in_stage2_with_token",
                         args=(user.id, ustatus.sign_in_key,))),
-                "home_uri": request.build_absolute_uri(reverse("course.views.home"))
+                "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
             send_mail("Your RELATE sign-in link", message,
@@ -534,7 +534,7 @@ def sign_in_by_email(request):
             messages.add_message(request, messages.INFO,
                     "Email sent. Please check your email and click the link.")
 
-            return redirect("course.views.home")
+            return redirect("relate-home")
     else:
         form = SignInByEmailForm()
 
@@ -545,7 +545,7 @@ def sign_in_by_email(request):
 
 
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
-    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
         raise SuspiciousOperation("email-based sign-in is not being used")
 
     from django.contrib.auth import authenticate, login
@@ -568,12 +568,12 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
                 "Please complete your registration information below.")
 
         return redirect(
-               reverse("course.auth.user_profile")+"?first_login=1")
+               reverse("relate-user_profile")+"?first_login=1")
     else:
         messages.add_message(request, messages.INFO,
                 "Successfully signed in.")
 
-        return redirect("course.views.home")
+        return redirect("relate-home")
 
 # }}}
 
@@ -625,7 +625,7 @@ def user_profile(request):
                 messages.add_message(request, messages.INFO,
                         "Profile data saved.")
                 if request.GET.get("first_login"):
-                    return redirect("course.views.home")
+                    return redirect("relate-home")
 
         if "submit_user_status" in request.POST:
             user_status_form = UserStatusForm(
@@ -635,7 +635,7 @@ def user_profile(request):
                 messages.add_message(request, messages.INFO,
                         "Profile data saved.")
                 if request.GET.get("first_login"):
-                    return redirect("course.views.home")
+                    return redirect("relate-home")
 
     if user_form is None:
         user_form = UserForm(instance=request.user)

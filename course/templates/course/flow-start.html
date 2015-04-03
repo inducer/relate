@@ -60,7 +60,7 @@
               </td>
               <td>
                 {% if session_properties.may_view %}
-                  <a href="{% url "course.flow.view_flow_page" course.identifier flow_session.id 0 %}" class="btn btn-primary btn-xs">
+                  <a href="{% url "relate-view_flow_page" course.identifier flow_session.id 0 %}" class="btn btn-primary btn-xs">
                     {% if session_properties.may_modify %}
                       Resume &raquo;
                     {% else %}
@@ -70,7 +70,7 @@
                 {% endif %}
 
                 {% if not flow_session.in_progress %}
-                  <a href="{% url "course.flow.finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
+                  <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
                     Results
                   </a>
                 {% endif %}
@@ -170,7 +170,7 @@
           and since the site has no way of knowing who you are, it may have denied
           you accesss.
           Once you're signed in, navigate back to your course from the
-          <a href="{% url "course.views.home" %}">home page</a> and retry your last
+          <a href="{% url "relate-home" %}">home page</a> and retry your last
           action.
         </li>
         {% endif %}
@@ -181,7 +181,7 @@
         </li>
         <li>
         If none of the above steps help, please navigate back to your course from the
-        <a href="{% url "course.views.home" %}">home page</a> and contact your course
+        <a href="{% url "relate-home" %}">home page</a> and contact your course
         staff.
         </li>
         </ul>

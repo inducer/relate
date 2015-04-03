@@ -55,7 +55,7 @@
         <tr>
           <td>Flow session</td>
           <td>
-            <tt><a href="{% url "course.grades.view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
+            <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
             for
             {{ flow_session.participation.user.last_name }}, {{ flow_session.participation.user.first_name }}
             ({{ flow_session.participation.user.username }})
@@ -64,13 +64,13 @@
         <tr>
           <td>
             {% if prev_flow_session_id != None %}
-              <a href="{% url "course.grading.grade_flow_page" course.identifier prev_flow_session_id page_data.ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.ordinal %}"
                  accesskey="p" class="btn btn-default btn-xs" title="Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
             {% else %}
               <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-left"></i></a>
             {% endif %}
             {% if next_flow_session_id %}
-              <a href="{% url "course.grading.grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}"
                  accesskey="n" class="btn btn-default btn-xs" title="Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
             {% else %}
               <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>
@@ -87,13 +87,13 @@
         <tr>
           <td>
             {% if page_data.ordinal > 0 %}
-              <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
                   class="btn btn-default btn-xs"><i class="fa fa-chevron-left"></i></a>
             {% else %}
               <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-left"></i></a>
             {% endif %}
             {% if page_data.next_ordinal < flow_session.page_count %}
-              <a href="{% url "course.grading.grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
                   class="btn btn-default btn-xs"><i class="fa fa-chevron-right"></i></a>
             {% else %}
               <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>

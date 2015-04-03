@@ -70,11 +70,11 @@
                 <li role="presentation" class="divider"></li>
                 <li role="presentation" class="dropdown-header">Test/Troubleshoot</li>
                 {% if currently_impersonating %}
-                  <li><a href="{% url "course.auth.stop_impersonating" %}">Stop impersonating</a></li>
+                  <li><a href="{% url "relate-stop_impersonating" %}">Stop impersonating</a></li>
                 {% else %}
-                  <li><a href="{% url "course.auth.impersonate" %}">Impersonate user</a></li>
+                  <li><a href="{% url "relate-impersonate" %}">Impersonate user</a></li>
                 {% endif %}
-                <li><a href="{% url "course.views.set_fake_time" %}">Set fake time</a></li>
+                <li><a href="{% url "relate-set_fake_time" %}">Set fake time</a></li>
               </ul>
             </li>
             {% endif %}
@@ -82,7 +82,7 @@
           <ul class="nav navbar-nav navbar-right">
             {% if user.is_authenticated %}
               <li>
-                <a href="{% url "course.auth.user_profile" %}">Signed in as {{user.username}}</a>
+                <a href="{% url "relate-user_profile" %}">Signed in as {{user.username}}</a>
               </li>
               {% if currently_impersonating %}
                 <li>

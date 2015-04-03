@@ -30,12 +30,12 @@
       {% for opp in grading_opps %}
       <tr>
         <td class="datacol" data-order="{{ opp.identifier }}">
-          <a href="{% url "course.grades.view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
+          <a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
           <span style="font-size:x-small">(<tt>{{ opp.identifier }}</tt>)</span>
         </td>
         <td class="datacol">
           {% if opp.flow_id %}
-            <a href="{% url "course.flow.view_start_flow" course.identifier opp.flow_id %}">{{ opp.flow_id }}</a>
+            <a href="{% url "relate-view_start_flow" course.identifier opp.flow_id %}">{{ opp.flow_id }}</a>
           {% endif %}
         </td>
         <td class="datacol">{{ opp.aggregation_strategy }}</td>

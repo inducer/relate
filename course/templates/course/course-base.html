@@ -11,7 +11,7 @@
   {{ course_desc.number}}
   {{ course_desc.run}}
 {% endblock %}
-{% block brand_link %}{% url "course.views.course_page" course.identifier %}{% endblock %}
+{% block brand_link %}{% url "relate-course_page" course.identifier %}{% endblock %}
 
 {% block navbar %}
   {% with participation_role as pr %}
@@ -23,11 +23,11 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Student<b class="caret"></b></a>
     <ul class="dropdown-menu">
       {% if course.course_xmpp_id %}
-      <li><a href="{% url "course.im.send_instant_message" course.identifier %}">Send instant message</a></li>
+      <li><a href="{% url "relate-send_instant_message" course.identifier %}">Send instant message</a></li>
       {% endif %}
-      <li><a href="{% url "course.grades.view_participant_grades" course.identifier %}">View grades</a></li>
-      <li><a href="{% url "course.calendar.view_calendar" course.identifier %}">View calendar</a></li>
-      <li><a href="{% url "course.views.course_page" course.identifier %}">Back to course page</a></li>
+      <li><a href="{% url "relate-view_participant_grades" course.identifier %}">View grades</a></li>
+      <li><a href="{% url "relate-view_calendar" course.identifier %}">View calendar</a></li>
+      <li><a href="{% url "relate-course_page" course.identifier %}">Back to course page</a></li>
     </ul>
   </li>
   {% endif %}
@@ -36,25 +36,25 @@
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Grading<b class="caret"></b></a>
     <ul class="dropdown-menu">
-      <li><a href="{% url "course.analytics.flow_list" course.identifier %}">Analytics Overview</a></li>
+      <li><a href="{% url "relate-flow_list" course.identifier %}">Analytics Overview</a></li>
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">Grades</li>
-        <li><a href="{% url "course.grades.view_participant_list" course.identifier %}">List of Participants</a></li>
-        <li><a href="{% url "course.grades.view_grading_opportunity_list" course.identifier %}">List of Grading Opportunities</a></li>
-        <li><a href="{% url "course.grades.view_gradebook" course.identifier %}">Grade book</a></li>
-        <li><a href="{% url "course.grades.export_gradebook_csv" course.identifier %}">Grade book (CSV export)</a></li>
+        <li><a href="{% url "relate-view_participant_list" course.identifier %}">List of Participants</a></li>
+        <li><a href="{% url "relate-view_grading_opportunity_list" course.identifier %}">List of Grading Opportunities</a></li>
+        <li><a href="{% url "relate-view_gradebook" course.identifier %}">Grade book</a></li>
+        <li><a href="{% url "relate-export_gradebook_csv" course.identifier %}">Grade book (CSV export)</a></li>
       {% endif %}
       {% if role == pr.instructor %}
-        <li><a href="{% url "course.grades.import_grades" course.identifier %}">Import Grades</a></li>
+        <li><a href="{% url "relate-import_grades" course.identifier %}">Import Grades</a></li>
       {% endif %}
-      <li><a href="{% url "course.flow.regrade_not_for_credit_flows_view" course.identifier %}">Regrade not-for-credit flow</a></li>
+      <li><a href="{% url "relate-regrade_not_for_credit_flows_view" course.identifier %}">Regrade not-for-credit flow</a></li>
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">Exceptions</li>
-        <li><a href="{% url "course.views.grant_exception" course.identifier %}">Grant exception</a></li>
+        <li><a href="{% url "relate-grant_exception" course.identifier %}">Grant exception</a></li>
         {% if user.is_staff %}
         <li><a href="{% url "admin:course_flowruleexception_changelist" %}" target="_blank">Show exceptions</a></li>
         {% endif %}
@@ -69,24 +69,24 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Content<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
-      <li><a href="{% url "course.versioning.update_course" course.identifier %}">Update course</a></li>
+      <li><a href="{% url "relate-update_course" course.identifier %}">Update course</a></li>
       <li role="presentation" class="divider"></li>
 
       <li role="presentation" class="dropdown-header">Content creation</li>
-      <li><a href="{% url "course.sandbox.view_page_sandbox" course.identifier %}">Page sandbox</a></li>
-      <li><a href="{% url "course.sandbox.view_markup_sandbox" course.identifier %}">Markup sandbox</a></li>
+      <li><a href="{% url "relate-view_page_sandbox" course.identifier %}">Page sandbox</a></li>
+      <li><a href="{% url "relate-view_markup_sandbox" course.identifier %}">Markup sandbox</a></li>
 
       <li role="presentation" class="divider"></li>
-      <li><a href="{% url "course.views.test_flow" course.identifier %}">Test flow</a></li>
+      <li><a href="{% url "relate-test_flow" course.identifier %}">Test flow</a></li>
 
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">Calendar</li>
       {% if user.is_staff %}
         <li><a href="{% url "admin:course_event_changelist" %}" target="_blank">Edit events</a></li>
       {% endif %}
-      <li><a href="{% url "course.calendar.check_events" course.identifier %}">Check events</a></li>
-      <li><a href="{% url "course.calendar.create_recurring_events" course.identifier %}">Create recurring events</a></li>
-      <li><a href="{% url "course.calendar.renumber_events" course.identifier %}">Renumber events</a></li>
+      <li><a href="{% url "relate-check_events" course.identifier %}">Check events</a></li>
+      <li><a href="{% url "relate-create_recurring_events" course.identifier %}">Create recurring events</a></li>
+      <li><a href="{% url "relate-renumber_events" course.identifier %}">Renumber events</a></li>
 
     </ul>
   </li>
@@ -97,11 +97,11 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Instructor<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li role="presentation" class="dropdown-header">Participation</li>
-      <li><a href="{% url "course.enrollment.create_preapprovals" course.identifier %}">Preapprove enrollments</a></li>
+      <li><a href="{% url "relate-create_preapprovals" course.identifier %}">Preapprove enrollments</a></li>
 
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">Instant flow requests</li>
-      <li><a href="{% url "course.views.manage_instant_flow_requests" course.identifier %}">Manage instant flow requests</a></li>
+      <li><a href="{% url "relate-manage_instant_flow_requests" course.identifier %}">Manage instant flow requests</a></li>
     </ul>
   </li>
   {% endif %}
@@ -113,7 +113,7 @@
     <div class="alert alert-info">
       You are currently seeing a preview of revision
       '{{participation.preview_git_commit_sha}}'.
-      <a class="btn btn-sm btn-primary" href="{% url "course.versioning.update_course" course.identifier %}"
+      <a class="btn btn-sm btn-primary" href="{% url "relate-update_course" course.identifier %}"
         role="button">View revisions</a>
     </div>
   {% endif %}
@@ -126,14 +126,14 @@
         There is an interactive activity going on right now.
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
-            href="{% url "course.flow.view_start_flow" course.identifier req.flow_id %}"
+            href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>Go to activity &raquo;</b></a>
         {% endfor %}
       {% else %}
         There are some interactive activities going on right now.
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
-            href="{% url "course.flow.view_start_flow" course.identifier req.flow_id %}"
+            href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>Go to activity {{ i }} &raquo;</b></a>
         {% endfor %}
       {% endif %}

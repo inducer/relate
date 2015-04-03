@@ -51,7 +51,7 @@
       <tr>
         <td data-order="{{ grade_info.opportunity.identifier }}">{{ grade_info.opportunity.name }}</td>
         <td data-order="{{ gsm.stringify_percentage }}">
-          <a href="{% url "course.grades.view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
+          <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
             >{{ gsm.stringify_state }}</a>
         </td>
         <td

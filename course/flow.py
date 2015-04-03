@@ -761,7 +761,7 @@ def view_start_flow(pctx, flow_id):
                     access_rules_tag=session_start_rule.tag_session,
                     now_datetime=now_datetime)
 
-            return redirect("course.flow.view_flow_page",
+            return redirect("relate-view_flow_page",
                     pctx.course.identifier, session.id, 0)
 
         else:
@@ -934,7 +934,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 "No in-progress session record found for this flow. "
                 "Redirected to flow start page.")
 
-        return redirect("course.flow.view_start_flow",
+        return redirect("relate-view_start_flow",
                 pctx.course.identifier,
                 flow_id)
 
@@ -963,7 +963,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 settings.ROBOT_EMAIL_FROM,
                 recipient_list=[pctx.course.notify_email])
 
-        return redirect("course.flow.view_start_flow",
+        return redirect("relate-view_start_flow",
                 pctx.course.identifier,
                 flow_id)
 
@@ -985,7 +985,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     if request.method == "POST":
         if "finish" in request.POST:
-            return redirect("course.flow.finish_flow_session_view",
+            return redirect("relate-finish_flow_session_view",
                     pctx.course.identifier, flow_session_id)
         else:
             submission_allowed = True
@@ -1060,13 +1060,13 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
                 if (pressed_button == "save_and_next"
                         and not will_receive_feedback(permissions)):
-                    return redirect("course.flow.view_flow_page",
+                    return redirect("relate-view_flow_page",
                             pctx.course.identifier,
                             flow_session_id,
                             fpctx.ordinal + 1)
                 elif (pressed_button == "save_and_finish"
                         and not will_receive_feedback(permissions)):
-                    return redirect("course.flow.finish_flow_session_view",
+                    return redirect("relate-finish_flow_session_view",
                             pctx.course.identifier, flow_session_id)
                 else:
                     form = fpctx.page.make_form(
