@@ -27,11 +27,13 @@ THE SOFTWARE.
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.contrib import messages  # noqa
+from django.core.exceptions import PermissionDenied
 
 from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
 
+from course.constants import participation_role
 
 # {{{ sandbox form
 
@@ -118,6 +120,11 @@ def view_markup_sandbox(pctx):
 
 @course_view
 def view_page_sandbox(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
     from relate.utils import dict_to_struct
     import yaml
 
