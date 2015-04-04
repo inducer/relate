@@ -182,38 +182,11 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 
     repo = get_course_repo(course)
 
-    from os.path import dirname, basename, join
-
-    attributes_path = join(dirname(path), ".attributes.yml")
-
-    from course.content import (
-            get_raw_yaml_from_repo,
-            get_repo_blob_data_cached)
-
-    # {{{ check access permissions
-
-    try:
-        attributes = get_raw_yaml_from_repo(
-                repo, attributes_path, commit_sha.encode())
-    except ObjectDoesNotExist:
-        raise http.Http404()
-
-    path_basename = basename(path)
-    public_patterns = attributes.get("public", [])
-
-    accessible = False
-
-    from fnmatch import fnmatch
-    if isinstance(public_patterns, list):
-        for pattern in attributes.get("public", []):
-            if isinstance(pattern, (str, unicode)):
-                if fnmatch(path_basename, pattern):
-                    accessible = True
-
-    # }}}
-
-    if not accessible:
+    from course.content import is_repo_file_public
+    if not is_repo_file_public(repo, commit_sha, path):
         raise PermissionDenied()
+
+    from course.content import get_repo_blob_data_cached
 
     try:
         data = get_repo_blob_data_cached(

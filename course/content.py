@@ -188,6 +188,31 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
 
     return result
 
+
+def is_repo_file_public(repo, commit_sha, path):
+    from os.path import dirname, basename, join
+    attributes_path = join(dirname(path), ".attributes.yml")
+
+    from course.content import get_raw_yaml_from_repo
+    try:
+        attributes = get_raw_yaml_from_repo(
+                repo, attributes_path, commit_sha.encode())
+    except ObjectDoesNotExist:
+        # no attributes file: not public
+        return False
+
+    path_basename = basename(path)
+    public_patterns = attributes.get("public", [])
+
+    from fnmatch import fnmatch
+    if isinstance(public_patterns, list):
+        for pattern in attributes.get("public", []):
+            if isinstance(pattern, (str, unicode)):
+                if fnmatch(path_basename, pattern):
+                    return True
+
+    return False
+
 # }}}
 
 
