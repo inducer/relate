@@ -35,6 +35,7 @@ from course.utils import course_view, render_course_page
 
 from course.constants import participation_role
 
+
 # {{{ sandbox form
 
 class SandboxForm(forms.Form):
