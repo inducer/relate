@@ -93,7 +93,7 @@ BOWER_INSTALLED_APPS = (
     "jqueryui",
     "datatables",
     "datatables-fixedcolumns",
-    "jstree-bootstrap-theme",
+    "jstree",
     )
 
 CODEMIRROR_PATH = "codemirror"
