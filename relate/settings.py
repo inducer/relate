@@ -84,12 +84,12 @@ STATICFILES_FINDERS = STATICFILES_FINDERS + (
     )
 
 BOWER_INSTALLED_APPS = (
-    "bootstrap#3.2.0",
+    "bootstrap#3.3.4",
     "fontawesome",
     "videojs",
     "MathJax",
-    "codemirror",
-    "fullcalendar",
+    "codemirror#5.1.0",
+    "fullcalendar#2.3.1",
     "jqueryui",
     "datatables",
     "datatables-fixedcolumns",
