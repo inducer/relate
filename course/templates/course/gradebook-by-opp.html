@@ -75,6 +75,8 @@
         <td class="datacol"
           {% if grade_info.grade_state_machine.percentage != None %}
             data-order="{{ grade_info.grade_state_machine.percentage }}"
+          {% else %}
+            data-order="-1"
           {% endif %}
           >
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
