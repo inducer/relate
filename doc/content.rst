@@ -175,6 +175,28 @@ a RELATE site:
 
       ![A bouncing ball](media:images/bouncing-ball.gif)
 
+  This implies that the entire ``media/`` subdirectory of the git
+  repository is unconditionally accessible from anywhere in the world, by
+  anyone. Sensitive files should not be stored there.
+
+* The URL schema ``repo:some/file/name.png``
+  will be resolved to the file `some/file/name.png` in the
+  course's :ref:`git-repo`.
+
+  In Markdown, this might look like this::
+
+      ![A bouncing ball](repo:images/bouncing-ball.gif)
+
+  Compared to ``media:`` above, any file in the repository
+  can be accessed this way. To avoid exposing sensitive files,
+  a special file :file:`.attributes.yml` must be present
+  in the same directory as the file which allows public access
+  to the file. This file should be valid YAML and look like this::
+
+      public:
+        - "*.png"
+        - "*.jpeg"
+
 * The URL schema ``calendar:`` links to the course calendar page.
 
 LaTeX-based mathematics

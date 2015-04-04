@@ -219,6 +219,13 @@ urlpatterns = [
         course.views.get_media,
         name="relate-get_media"),
 
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/repo-file/(?P<commit_sha>[a-f0-9]+)"
+        "/(?P<path>.*)$",
+        course.views.get_repo_file,
+        name="relate-get_repo_file"),
+
     # }}}
 
     # {{{ calendar

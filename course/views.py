@@ -168,6 +168,64 @@ def get_media(request, course_identifier, commit_sha, media_path):
 
     return http.HttpResponse(data, content_type=content_type)
 
+
+def repo_file_etag_func(request, course_identifier, commit_sha, path):
+    return ":".join([course_identifier, commit_sha, path])
+
+
+@cache_control(max_age=3600*24*31)  # cache for a month
+@http_dec.condition(etag_func=repo_file_etag_func)
+def get_repo_file(request, course_identifier, commit_sha, path):
+    course = get_object_or_404(Course, identifier=course_identifier)
+
+    role, participation = get_role_and_participation(request, course)
+
+    repo = get_course_repo(course)
+
+    from os.path import dirname, basename, join
+
+    attributes_path = join(dirname(path), ".attributes.yml")
+
+    from course.content import (
+            get_raw_yaml_from_repo,
+            get_repo_blob_data_cached)
+
+    # {{{ check access permissions
+
+    try:
+        attributes = get_raw_yaml_from_repo(
+                repo, attributes_path, commit_sha.encode())
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    path_basename = basename(path)
+    public_patterns = attributes.get("public", [])
+
+    accessible = False
+
+    from fnmatch import fnmatch
+    if isinstance(public_patterns, list):
+        for pattern in attributes.get("public", []):
+            if isinstance(pattern, (str, unicode)):
+                if fnmatch(path_basename, pattern):
+                    accessible = True
+
+    # }}}
+
+    if not accessible:
+        raise PermissionDenied()
+
+    try:
+        data = get_repo_blob_data_cached(
+                repo, path, commit_sha.encode())
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    from mimetypes import guess_type
+    content_type = guess_type(path)
+
+    return http.HttpResponse(data, content_type=content_type)
+
 # }}}
 
 
