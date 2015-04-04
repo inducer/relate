@@ -64,13 +64,14 @@ AUTHENTICATION_BACKENDS = (
     )
 
 
-TEMPLATE_CONTEXT_PROCESSORS = (
-        TEMPLATE_CONTEXT_PROCESSORS
-        + (
+RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "relate.utils.settings_context_processor",
             "course.auth.impersonation_context_processor",
             "course.views.fake_time_context_processor",
             )
+TEMPLATE_CONTEXT_PROCESSORS = (
+        TEMPLATE_CONTEXT_PROCESSORS
+        + RELATE_EXTRA_CONTEXT_PROCESSORS
         )
 
 
@@ -150,3 +151,24 @@ SESSION_COOKIE_AGE = 12096000  # 20 weeks
 for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "APP_DIRS": True,
+        "DIRS": (
+            join(BASE_DIR, "relate", "templates"),
+            ),
+        "OPTIONS": {
+            "context_processors": (
+                "django.contrib.auth.context_processors.auth",
+                "django.template.context_processors.debug",
+                "django.template.context_processors.i18n",
+                "django.template.context_processors.media",
+                "django.template.context_processors.static",
+                "django.template.context_processors.tz",
+                "django.contrib.messages.context_processors.messages",
+                ) + RELATE_EXTRA_CONTEXT_PROCESSORS,
+            }
+    },
+]
