@@ -82,8 +82,8 @@
     {% endif %}
 
     {% if may_start %}
-      <div class="alert alert-info">
-        {% if new_session_grading_rule.grade_identifier %}
+      {% if new_session_grading_rule.grade_identifier %}
+        <div class="alert alert-info">
           If you start a new session, the following rules will apply:
           <ul>
             {% if new_session_grading_rule.description %}
@@ -101,8 +101,8 @@
               </li>
             {% endif%}
           </ul>
-        {% endif %}
-      </div>
+        </div>
+      {% endif %}
 
       {# {{{ start button #}
 
