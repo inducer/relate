@@ -507,14 +507,14 @@ class TextQuestionBase(PageBaseWithTitle):
             form = TextAnswerForm(
                     read_only,
                     get_editor_interaction_mode(page_context),
-                    [], answer,
+                    self.get_validators(), answer,
                     widget_type=getattr(self.page_desc, "widget", None))
         else:
             answer = None
             form = TextAnswerForm(
                     read_only,
                     get_editor_interaction_mode(page_context),
-                    [],
+                    self.get_validators(),
                     widget_type=getattr(self.page_desc, "widget", None))
 
         return form
@@ -524,7 +524,7 @@ class TextQuestionBase(PageBaseWithTitle):
         return TextAnswerForm(
                 read_only,
                 get_editor_interaction_mode(page_context),
-                [], post_data, files_data,
+                self.get_validators(), post_data, files_data,
                 widget_type=getattr(self.page_desc, "widget", None))
 
     def answer_data(self, page_context, page_data, form, files_data):
@@ -663,34 +663,8 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                 ("answers", list),
                 )
 
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        read_only = answer_is_final
-
-        # matchers implement the validator interface, which makes
-        # passing matchers as validators possible.
-
-        if answer_data is not None:
-            answer = {"answer": answer_data["answer"]}
-            form = TextAnswerForm(
-                    read_only,
-                    get_editor_interaction_mode(page_context),
-                    self.matchers, answer)
-        else:
-            answer = None
-            form = TextAnswerForm(
-                    read_only,
-                    get_editor_interaction_mode(page_context),
-                    self.matchers)
-
-        return form
-
-    def post_form(self, page_context, page_data, post_data, files_data):
-        read_only = False
-        return TextAnswerForm(
-                read_only,
-                get_editor_interaction_mode(page_context),
-                self.matchers, post_data, files_data)
+    def get_validators(self):
+        return self.matchers
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
@@ -785,7 +759,8 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
                     vctx,
                     "%s, validator %d" % (location, i+1),
                     answer)
-                for i, answer in enumerate(page_desc.validators)]
+                for i, answer in enumerate(
+                    getattr(page_desc, "validators", []))]
 
     def allowed_attrs(self):
         return super(HumanGradedTextQuestion, self).allowed_attrs() + (
@@ -794,6 +769,9 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.max_points(page_data)
+
+    def get_validators(self):
+        return self.validators
 
 # }}}
 
