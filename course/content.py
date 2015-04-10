@@ -632,7 +632,8 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
             raise InvalidDatespec(datespec)
 
 
-def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
+def compute_chunk_weight_and_shown(course, chunk, role, now_datetime,
+        remote_address):
     for rule in chunk.rules:
         if hasattr(rule, "if_has_role"):
             if role not in rule.if_has_role:
@@ -646,6 +647,11 @@ def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
         if hasattr(rule, "if_before"):
             end_date = parse_date_spec(course, rule.if_before)
             if end_date < now_datetime:
+                continue
+
+        if hasattr(rule, "if_in_facility"):
+            from course.utils import is_address_in_facility
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
                 continue
 
         # {{{ deprecated
@@ -680,11 +686,12 @@ def get_course_desc(repo, course, commit_sha):
 
 
 def get_processed_course_chunks(course, repo, commit_sha,
-        course_desc, role, now_datetime):
+        course_desc, role, now_datetime, remote_address):
     for chunk in course_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
-                        course, chunk, role, now_datetime)
+                        course, chunk, role, now_datetime,
+                        remote_address)
         chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight, reverse=True)

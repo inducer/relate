@@ -56,3 +56,6 @@ pygments
 
 # For grade export
 unicodecsv
+
+# To support network matching for facility recognition
+ipaddr

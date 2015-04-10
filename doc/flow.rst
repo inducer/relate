@@ -229,6 +229,13 @@ Here's a commented example:
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
 
+    .. attribute:: if_in_facility
+
+        (Optional) Name of a facility known to the RELATE web page. This rule allows
+        (for example) restricting flow starting based on whether a user is physically
+        located in a computer-based testing center (which RELATE can
+        recognize based on IP ranges).
+
     .. attribute:: if_has_fewer_sessions_than
 
         (Optional) An integer. The rule applies if the participant has fewer than this
@@ -279,6 +286,13 @@ Here's a commented example:
     .. attribute:: if_has_role
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
+
+    .. attribute:: if_in_facility
+
+        (Optional) Name of a facility known to the RELATE web page. This rule allows
+        (for example) restricting flow access based on whether a user is physically
+        located in a computer-based testing center (which RELATE can
+        recognize based on IP ranges).
 
     .. attribute:: if_has_tag
 

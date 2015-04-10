@@ -417,6 +417,13 @@ Here's an example:
 
         A list of a subset of ``[unenrolled, ta, student, instructor]``.
 
+    .. attribute:: if_in_facility
+
+        Name of a facility known to the RELATE web page. This rule allows
+        (for example) showing chunks based on whether a user is physically
+        located in a computer-based testing center (which RELATE can
+        recognize based on IP ranges).
+
     .. attribute:: shown
 
         A boolean (``true`` or ``false``) indicating whether the chunk

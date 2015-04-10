@@ -130,7 +130,7 @@ def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
 
 
 def get_session_start_rule(course, participation, role, flow_id, flow_desc,
-        now_datetime, for_rollover=False):
+        now_datetime, remote_address=None, for_rollover=False):
     """Return a :class:`FlowSessionStartRule` if a new session is
     permitted or *None* if no new session is allowed.
     """
@@ -146,6 +146,10 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
     for rule in rules:
         if not _eval_generic_conditions(rule, course, role, now_datetime):
             continue
+
+        if not for_rollover and hasattr(rule, "if_in_facility"):
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
+                continue
 
         if not for_rollover and hasattr(rule, "if_has_fewer_sessions_than"):
             session_count = FlowSession.objects.filter(
@@ -179,7 +183,8 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
             may_start_new_session=False)
 
 
-def get_session_access_rule(session, role, flow_desc, now_datetime):
+def get_session_access_rule(session, role, flow_desc, now_datetime,
+        remote_address=None):
     """Return a :class:`ExistingFlowSessionRule`` to describe
     how a flow may be accessed.
     """
@@ -195,6 +200,10 @@ def get_session_access_rule(session, role, flow_desc, now_datetime):
         if not _eval_generic_conditions(rule, session.course, role, now_datetime):
             continue
 
+        if hasattr(rule, "if_in_facility"):
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
+                continue
+
         if hasattr(rule, "if_has_tag"):
             if session.access_rules_tag != rule.if_has_tag:
                 continue
@@ -205,6 +214,10 @@ def get_session_access_rule(session, role, flow_desc, now_datetime):
 
         if hasattr(rule, "if_expiration_mode"):
             if session.expiration_mode != rule.if_expiration_mode:
+                continue
+
+        if hasattr(rule, "if_in_facility"):
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
                 continue
 
         permissions = set(rule.permissions)
@@ -294,6 +307,14 @@ class CoursePageContext(object):
         self.repo = get_course_repo(self.course)
         self.course_desc = get_course_desc(self.repo, self.course,
                 self.course_commit_sha)
+
+    @property
+    def remote_address(self):
+        import ipaddr
+        try:
+            return ipaddr.IPAddress(self.request.META['REMOTE_ADDR'])
+        except:
+            return None
 
 
 class FlowContext(object):
@@ -477,6 +498,8 @@ class PageInstanceCache(object):
 # }}}
 
 
+# {{{ codemirror config
+
 def get_codemirror_widget(language_mode, interaction_mode,
         config=None, addon_css=(), addon_js=(),
         read_only=False):
@@ -555,5 +578,30 @@ def get_codemirror_widget(language_mode, interaction_mode,
                     addon_css=actual_addon_css,
                     addon_js=actual_addon_js,
                     config=actual_config), help_text
+
+# }}}
+
+
+# {{{ facility checking
+
+def is_address_in_facility(remote_address, facility_id):
+    if remote_address is None:
+        return False
+
+    from course.models import FacilityIPRange
+    try:
+        ip_ranges = (FacilityIPRange.objects
+                .filter(facility__identifier=facility_id))
+    except ObjectDoesNotExist:
+        return False
+
+    import ipaddr
+    for ir in ip_ranges:
+        if remote_address in ipaddr.IPNetwork(ir.ip_range):
+            return True
+
+    return False
+
+# }}}
 
 # vim: foldmethod=marker

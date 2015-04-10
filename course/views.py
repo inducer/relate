@@ -117,7 +117,8 @@ def course_page(pctx):
     from course.content import get_processed_course_chunks
     chunks = get_processed_course_chunks(
             pctx.course, pctx.repo, pctx.course_commit_sha, pctx.course_desc,
-            pctx.role, get_now_or_fake_time(pctx.request))
+            pctx.role, get_now_or_fake_time(pctx.request),
+            remote_address=pctx.remote_address)
 
     show_enroll_button = (
             pctx.course.accepts_enrollment

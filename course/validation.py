@@ -189,6 +189,7 @@ def validate_chunk_rule(ctx, location, chunk_rule):
             allowed_attrs=[
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
+                ("if_in_facility", str),
                 ("if_has_role", list),
 
                 ("start", datespec_types),
@@ -358,6 +359,7 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
                 ("if_has_role", list),
+                ("if_in_facility", str),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
                 ("tag_session", (str, unicode, type(None))),
@@ -402,6 +404,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
                 ("if_has_role", list),
+                ("if_in_facility", str),
                 ("if_has_tag", (str, unicode, type(None))),
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),

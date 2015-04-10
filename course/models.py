@@ -46,6 +46,47 @@ from jsonfield import JSONField
 from yamlfield.fields import YAMLField
 
 
+# {{{ facility
+
+class Facility(models.Model):
+    """Data about a facility from where content may be accessed."""
+
+    identifier = models.CharField(max_length=50, unique=True,
+            help_text="Format is lower-case-with-hyphens. "
+            "Do not use spaces.")
+    description = models.CharField(max_length=100)
+
+    class Meta:
+        verbose_name_plural = "facilities"
+
+    def __unicode__(self):
+        return self.identifier
+
+
+class FacilityIPRange(models.Model):
+    """Network data about a facility from where content may be accessed."""
+
+    facility = models.ForeignKey(Facility, related_name="ip_ranges")
+
+    ip_range = models.CharField(
+            max_length=200,
+            verbose_name="IP Range")
+
+    description = models.CharField(max_length=100,)
+
+    class Meta:
+        verbose_name = "Facility IP Range"
+
+    def clean(self):
+        import ipaddr
+        try:
+            ipaddr.IPNetwork(self.ip_range)
+        except Exception as e:
+            raise ValidationError({"ip_range": str(e)})
+
+# }}}
+
+
 # {{{ user status
 
 def get_user_status(user):

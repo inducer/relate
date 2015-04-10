@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 from django.contrib import admin
 from course.models import (
+        Facility, FacilityIPRange,
         UserStatus,
         Course, Event,
         ParticipationTag,
@@ -37,6 +38,8 @@ from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
 from course.constants import participation_role
 
+
+# {{{ permission helpers
 
 admin_roles = [
     participation_role.instructor,
@@ -65,6 +68,30 @@ def _filter_participation_linked_obj_for_user(queryset, user):
     return queryset.filter(
         participation__course__participations__user=user,
         participation__course__participations__role__in=admin_roles)
+
+# }}}
+
+
+# {{{ facility
+
+class FacilityIPRangeInline(admin.TabularInline):
+    model = FacilityIPRange
+    extra = 2
+
+
+class FacilityAdmin(admin.ModelAdmin):
+    inlines = (FacilityIPRangeInline,)
+
+    list_display = (
+            "identifier",
+            "description",
+            )
+
+    search_fields = list_display
+
+admin.site.register(Facility, FacilityAdmin)
+
+# }}}
 
 
 # {{{ user status
@@ -114,6 +141,8 @@ admin.site.register(UserStatus, UserStatusAdmin)
 # }}}
 
 
+# {{{ course
+
 class UnsafePasswordInput(forms.TextInput):
     # This sends passwords back to the user--not ideal, but OK for the XMPP
     # password.
@@ -150,6 +179,8 @@ class CourseAdmin(admin.ModelAdmin):
     # }}}
 
 admin.site.register(Course, CourseAdmin)
+
+# }}}
 
 
 # {{{ events
