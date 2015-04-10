@@ -548,6 +548,8 @@ class TextQuestionBase(PageBaseWithTitle):
 # }}}
 
 
+# {{{ survey text question
+
 class SurveyTextQuestion(TextQuestionBase):
     """
     A page asking for a textual answer, without any notion of 'correctness'
@@ -582,6 +584,9 @@ class SurveyTextQuestion(TextQuestionBase):
         be.
     """
 
+    def get_validators(self):
+        return []
+
     def allowed_attrs(self):
         return super(SurveyTextQuestion, self).allowed_attrs() + (
                 ("answer_comment", "markup"),
@@ -599,8 +604,10 @@ class SurveyTextQuestion(TextQuestionBase):
     def is_answer_gradable(self):
         return False
 
+# }}}
 
-# {{{
+
+# {{{ text question
 
 class TextQuestion(TextQuestionBase, PageBaseWithValue):
     """
