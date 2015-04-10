@@ -43,6 +43,7 @@ class participation_role:
     instructor = "instructor"
     teaching_assistant = "ta"
     student = "student"
+    auditor = "auditor"
 
     # can see analytics
     observer = "observer"
@@ -55,6 +56,7 @@ PARTICIPATION_ROLE_CHOICES = (
         (participation_role.teaching_assistant, "Teaching Assistant"),
         (participation_role.student, "Student"),
         (participation_role.observer, "Observer"),
+        (participation_role.auditor, "Auditor"),
         # unenrolled is only used internally
         )
 

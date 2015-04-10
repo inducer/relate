@@ -72,10 +72,14 @@ def whom_may_impersonate(impersonator):
         if part.role == participation_role.instructor:
             impersonable_roles = (
                 participation_role.teaching_assistant,
+                participation_role.observer,
+                participation_role.auditor,
                 participation_role.student)
         elif part.role == participation_role.teaching_assistant:
             impersonable_roles = (
-                participation_role.student,)
+                participation_role.student,
+                participation_role.auditor,
+                )
         else:
             assert False
 

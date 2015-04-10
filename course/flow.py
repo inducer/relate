@@ -816,7 +816,8 @@ def view_start_flow(pctx, flow_id):
                 bool(past_sessions_and_properties)
                 and
                 new_session_grading_rule.grade_aggregation_strategy not in
-                [   None,
+                [
+                    None,
                     grade_aggregation_strategy.max_grade,
                     grade_aggregation_strategy.use_earliest])
 
@@ -853,6 +854,8 @@ def get_and_check_flow_session(pctx, flow_session_id):
         pass
     elif pctx.role in [
             participation_role.student,
+            participation_role.observer,
+            participation_role.auditor,
             participation_role.unenrolled]:
         if pctx.participation != flow_session.participation:
             raise PermissionDenied("may not view other people's sessions")

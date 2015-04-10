@@ -238,7 +238,11 @@ class Participation(models.Model):
 
     enroll_time = models.DateTimeField(default=now)
     role = models.CharField(max_length=50,
-            choices=PARTICIPATION_ROLE_CHOICES)
+            choices=PARTICIPATION_ROLE_CHOICES,
+            help_text="Instructors may update course content. "
+            "Teaching assistants may access and change grade data. "
+            "Observers may access analytics. "
+            "Each role includes privileges from subsequent roles.")
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES)
 
