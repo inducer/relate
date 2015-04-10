@@ -417,6 +417,21 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
         from django.core.urlresolvers import reverse
         reverse_func = reverse
 
+    try:
+        import django.core.cache as cache
+    except ImproperlyConfigured:
+        cache_key = None
+    else:
+        import hashlib
+        cache_key = ("markup:%s:%s"
+                % (str(commit_sha),
+                    hashlib.md5(text.encode("utf-8")).hexdigest()))
+
+        def_cache = cache.caches["default"]
+        result = def_cache.get(cache_key)
+        if result is not None:
+            return result
+
     if text.lstrip().startswith(JINJA_PREFIX):
         text = remove_prefix(JINJA_PREFIX, text.lstrip())
 
@@ -432,7 +447,7 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
 
     from course.mdx_mathjax import MathJaxExtension
     import markdown
-    return markdown.markdown(text,
+    result = markdown.markdown(text,
         extensions=[
             LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
             MathJaxExtension(),
@@ -440,6 +455,11 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             "markdown.extensions.codehilite",
             ],
         output_format="html5")
+
+    if cache_key is not None:
+        def_cache.add(cache_key, result, None)
+
+    return result
 
 # }}}
 
