@@ -340,6 +340,10 @@ class FlowContext(object):
             raise http.Http404()
 
 
+class PageOrdinalOutOfRange(http.Http404):
+    pass
+
+
 class FlowPageContext(FlowContext):
     """This object acts as a container for all the information that a flow page
     may need to render itself or respond to a POST.
@@ -356,6 +360,9 @@ class FlowPageContext(FlowContext):
         from course.content import adjust_flow_session_page_data
         adjust_flow_session_page_data(repo, flow_session,
                 course.identifier, self.flow_desc, self.course_commit_sha)
+
+        if ordinal >= flow_session.page_count:
+            raise PageOrdinalOutOfRange()
 
         from course.models import FlowPageData
         page_data = self.page_data = get_object_or_404(

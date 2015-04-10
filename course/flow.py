@@ -55,7 +55,7 @@ from course.models import (
         GradeChange, update_bulk_feedback)
 
 from course.utils import (
-        FlowContext, FlowPageContext,
+        FlowContext, FlowPageContext, PageOrdinalOutOfRange,
         instantiate_flow_page_with_ctx,
         course_view, render_course_page,
         get_session_start_rule,
@@ -929,6 +929,8 @@ def create_flow_page_visit(request, flow_session, page_data):
 def view_flow_page(pctx, flow_session_id, ordinal):
     request = pctx.request
 
+    ordinal = int(ordinal)
+
     flow_session_id = int(flow_session_id)
     flow_session = get_and_check_flow_session(
             pctx, flow_session_id)
@@ -943,34 +945,15 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 pctx.course.identifier,
                 flow_id)
 
-    fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, ordinal,
-            participation=pctx.participation,
-            flow_session=flow_session)
-
-    if fpctx.page_desc is None:
-        messages.add_message(request, messages.ERROR,
-                "Your session does not match the course content and needs "
-                "to be reset. Course staff have been notified about this issue. "
-                "Please get in touch with them to get help.")
-
-        from django.template.loader import render_to_string
-        message = render_to_string("course/session-mismatch.txt", {
-            "page_data": fpctx.page_data,
-            "course": pctx.course,
-            "user": pctx.request.user,
-            })
-
-        from django.core.mail import send_mail
-        from django.conf import settings
-        send_mail("[%s] session mismatch with course content"
-                % pctx.course.identifier,
-                message,
-                settings.ROBOT_EMAIL_FROM,
-                recipient_list=[pctx.course.notify_email])
-
-        return redirect("relate-view_start_flow",
+    try:
+        fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, ordinal,
+                participation=pctx.participation,
+                flow_session=flow_session)
+    except PageOrdinalOutOfRange:
+        return redirect("relate-view_flow_page",
                 pctx.course.identifier,
-                flow_id)
+                flow_session.id,
+                flow_session.page_count-1)
 
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fpctx.flow_desc, get_now_or_fake_time(request),
