@@ -361,10 +361,20 @@ class PageBase(object):
     def form_to_html(self, request, page_context, form, answer_data):
         """Returns an HTML rendering of *form*."""
 
-        from crispy_forms.utils import render_crispy_form
-        from django.template import RequestContext
-        context = RequestContext(request, {})
-        return render_crispy_form(form, context=context)
+        from django.template import loader, RequestContext
+        from django import VERSION as django_version
+
+        if django_version >= (1, 9):
+            return loader.render_to_string(
+                    "course/crispy-form.html",
+                    context={"form": form},
+                    request=request)
+        else:
+            context = RequestContext(request)
+            context.update({"form": form})
+            return loader.render_to_string(
+                    "course/crispy-form.html",
+                    context_instance=context)
 
     # }}}
 
