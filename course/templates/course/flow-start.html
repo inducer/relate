@@ -151,10 +151,12 @@
     {% else %}
       <div class="alert alert-info">
         <p>
+        <i class="fa fa-exclamation-triangle"></i>
         You do not have any existing sessions and are not allowed to start
         a new one.
         </p>
 
+        <p>
         Check the following:
         <ul>
         {% if not user.is_authenticated %}
@@ -170,6 +172,9 @@
         </li>
         {% endif %}
         <li>
+          Has the deadline for this assignment passed?
+        </li>
+        <li>
         Complete your enrollment in your course. If you're not enrolled, a large
         "Enroll now" button will show up at the top of your course page. Click that,
         follow the indicated steps, and then retry your last action.
@@ -181,6 +186,7 @@
         </li>
         </ul>
       </div>
+      </p>
     {% endif %}
   </form>
 
