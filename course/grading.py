@@ -51,6 +51,8 @@ from course.views import get_now_or_fake_time
 @course_view
 @transaction.atomic
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
+    page_ordinal = int(page_ordinal)
+
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
