@@ -323,7 +323,10 @@ def validate_flow_group(ctx, location, grp):
                 ("id", str),
                 ("pages", list),
                 ],
-            allowed_attrs=[]
+            allowed_attrs=[
+                ("shuffle", bool),
+                ("max_page_count", int),
+                ]
             )
 
     for i, page_desc in enumerate(grp.pages):
@@ -332,6 +335,13 @@ def validate_flow_group(ctx, location, grp):
                 "%s, page %d ('%s')"
                 % (location, i+1, getattr(page_desc, "id", None)),
                 page_desc)
+
+    if len(grp.pages) == 0:
+        raise ValidationError("%s, group '%s': group is empty" % (location, grp.id))
+
+    if hasattr(grp, "max_page_count") and grp.max_page_count <= 0:
+        raise ValidationError("%s, group '%s': max_page_count is not positive"
+                % (location, grp.id))
 
     # {{{ check page id uniqueness
 

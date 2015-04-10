@@ -383,6 +383,52 @@ Here's a commented example:
 
 .. autoclass:: grade_aggregation_strategy
 
+.. _flow-groups:
+
+Page groups
+-----------
+
+Each flow consists of a number of page groups, each of which is made up of
+individual :ref:`flow-page`.
+
+The purpose of page groups is to allow shuffling and random selection of
+some subset of pages. For example, this functionality would allow you to
+have a flow consisting of:
+
+* a fixed introduction page (that is always at the beginning)
+
+* a group of exam questions randomly selected from a bigger pool
+
+* a fixed final page (that may ask the student to, say, affirm academic
+  honesty)
+
+Each of these would be a separate 'group'.
+
+Each group allows the following attributes:
+
+
+.. class:: FlowGroup
+
+    .. attribute:: id
+
+        (Required) A symbolic name for the page group.
+
+    .. attribute:: pages
+
+        (Required) A list of :ref:`flow-page`
+
+    .. attribute:: shuffle
+
+        (Optional) A boolean (True/False) indicating whether the order
+        of pages should be as in the list :attr:`FlowGroup.pages` or
+        determined by random shuffling
+
+    .. attribute:: max_page_count
+
+        (Optional) An integer limiting the page count of this group
+        to a certain value. Allows selection of a random subset by combining
+        with :attr:`FlowGroup.shuffle`.
+
 .. _flow-permissions:
 
 Permissions

@@ -793,47 +793,124 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
         course_identifier, flow_desc, commit_sha):
     from course.models import FlowPageData
 
-    id_to_existing_page = dict(
-            ((data.group_id, data.page_id), data)
-            for data in FlowPageData.objects.filter(flow_session=flow_session)
-            )
-
-    data = None
-
-    ordinal = 0
+    ordinal = [0]
     for grp in flow_desc.groups:
-        for page_desc in grp.pages:
-            key = (grp.id, page_desc.id)
+        shuffle = getattr(grp, "shuffle", False)
+        max_page_count = getattr(grp, "max_page_count", None)
 
-            if key in id_to_existing_page:
-                data = id_to_existing_page.pop(key)
-                if data.ordinal != ordinal:
-                    data.ordinal = ordinal
-                    data.save()
-            else:
-                data = FlowPageData()
-                data.flow_session = flow_session
-                data.ordinal = ordinal
-                data.group_id = grp.id
-                data.page_id = page_desc.id
+        available_page_ids = [page_desc.id for page_desc in grp.pages]
 
-                page = instantiate_flow_page(
-                        "course '%s', flow '%s', page '%s/%s'"
-                        % (course_identifier, flow_session.flow_id,
-                            grp.id, page_desc.id),
-                        repo, page_desc, commit_sha)
-                data.data = page.make_page_data()
-                data.save()
+        if max_page_count is None:
+            max_page_count = len(available_page_ids)
 
-            ordinal += 1
+        group_pages = []
 
-    for data in id_to_existing_page.values():
-        if data.ordinal is not None:
-            data.ordinal = None
-            data.save()
+        # {{{ helper functions
 
-    if flow_session.page_count != ordinal:
-        flow_session.page_count = ordinal
+        def find_page_desc(page_id):
+            new_page_desc = None
+
+            for page_desc in grp.pages:
+                if page_desc.id == page_id:
+                    new_page_desc = page_desc
+                    break
+
+            assert new_page_desc is not None
+
+            return new_page_desc
+
+        def create_fpd(new_page_desc):
+            page = instantiate_flow_page(
+                    "course '%s', flow '%s', page '%s/%s'"
+                    % (course_identifier, flow_session.flow_id,
+                        grp.id, page_desc.id),
+                    repo, page_desc, commit_sha)
+
+            return FlowPageData(
+                    flow_session=flow_session,
+                    group_id=grp.id,
+                    page_id=page_desc.id,
+                    ordinal=None,
+                    data=page.make_page_data())
+
+        def add_page(fpd):
+            if fpd.ordinal != ordinal[0]:
+                fpd.ordinal = ordinal[0]
+                fpd.save()
+
+            ordinal[0] += 1
+            available_page_ids.remove(fpd.page_id)
+            group_pages.append(fpd)
+
+        def remove_page(fpd):
+            if fpd.ordinal is not None:
+                fpd.ordinal = None
+                fpd.save()
+
+        # }}}
+
+        if shuffle:
+            # maintain order of existing pages as much as possible
+            for fpd in (FlowPageData.objects
+                    .filter(
+                        flow_session=flow_session,
+                        group_id=grp.id,
+                        ordinal__isnull=False)
+                    .order_by("ordinal")):
+
+                if (fpd.page_id in available_page_ids
+                        and len(group_pages) < max_page_count):
+                    add_page(fpd)
+                else:
+                    remove_page(fpd)
+
+            assert len(group_pages) <= max_page_count
+
+            from random import choice
+
+            # then add randomly chosen new pages
+            while len(group_pages) < max_page_count and available_page_ids:
+                new_page_id = choice(available_page_ids)
+
+                new_page_fpds = (FlowPageData.objects
+                        .filter(
+                            flow_session=flow_session,
+                            group_id=grp.id,
+                            page_id=new_page_id))
+
+                if new_page_fpds.count():
+                    # We already have FlowPageData for this page, revive it
+                    new_page_fpd, = new_page_fpds
+                else:
+                    # Make a new FlowPageData instance
+                    new_page_fpd = create_fpd(find_page_desc(new_page_id))
+
+                add_page(new_page_fpd)
+
+        else:
+            # reorder pages to order in flow
+            id_to_fpd = dict(
+                    ((fpd.group_id, fpd.page_id), fpd)
+                    for fpd in FlowPageData.objects.filter(
+                        flow_session=flow_session,
+                        group_id=grp.id))
+
+            for page_desc in grp.pages:
+                key = (grp.id, page_desc.id)
+
+                if key in id_to_fpd:
+                    fpd = id_to_fpd.pop(key)
+                else:
+                    fpd = create_fpd(page_desc)
+
+                if len(group_pages) < max_page_count:
+                    add_page(fpd)
+
+            for fpd in id_to_fpd.values():
+                remove_page(fpd)
+
+    if flow_session.page_count != ordinal[0]:
+        flow_session.page_count = ordinal[0]
         flow_session.save()
 
 
