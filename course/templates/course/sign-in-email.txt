@@ -1,3 +1,5 @@
+{% load i18n %}
+
 {% if user.first_name %}Dear {{user.first_name}},
 {% else %}Dear {{user.email}},
 {% endif %}

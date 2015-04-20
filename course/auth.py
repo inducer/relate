@@ -152,7 +152,7 @@ def impersonate(request):
         form = ImpersonateForm(request.user)
 
     return render(request, "generic-form.html", {
-        "form_description": "Impersonate user",
+        "form_description": _("Impersonate user"),
         "form": form
         })
 

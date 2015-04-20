@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% load crispy_forms_tags %}
 
@@ -7,7 +8,8 @@
   <pre>{{ log }}</pre>
   {% if was_successful %}
     <div class="alert alert-success">
-      {{ status|safe }}
+      {{{% load i18n %} status|safe }}
+        
     </div>
   {% else %}
     <div class="alert alert-danger">
