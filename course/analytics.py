@@ -52,7 +52,7 @@ def flow_list(pctx):
             participation_role.instructor,
             participation_role.observer,
             ]:
-        raise PermissionDenied("must be at least TA to view analytics")
+        raise PermissionDenied(_("must be at least TA to view analytics"))
 
     cursor = connection.cursor()
 
@@ -379,7 +379,7 @@ def flow_analytics(pctx, flow_id):
             participation_role.instructor,
             participation_role.observer,
             ]:
-        raise PermissionDenied("must be at least TA to view analytics")
+        raise PermissionDenied(_("must be at least TA to view analytics"))
 
     return render_course_page(pctx, "course/analytics-flow.html", {
         "flow_identifier": flow_id,
@@ -411,7 +411,7 @@ def page_analytics(pctx, flow_id, group_id, page_id):
             participation_role.instructor,
             participation_role.observer,
             ]:
-        raise PermissionDenied("must be at least TA to view analytics")
+        raise PermissionDenied(_("must be at least TA to view analytics"))
 
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)

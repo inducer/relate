@@ -132,7 +132,7 @@ def get_xmpp_connection(course):
         if xmpp.connect():
             xmpp.process()
         else:
-            raise RuntimeError("unable to connect")
+            raise RuntimeError(_("unable to connect"))
 
         _xmpp_connections[course.pk] = xmpp
 
@@ -150,14 +150,14 @@ def send_instant_message(pctx):
             participation_role.student,
             participation_role.teaching_assistant,
             participation_role.instructor]:
-        raise PermissionDenied("only enrolled folks may do that")
+        raise PermissionDenied(_("only enrolled folks may do that"))
 
     request = pctx.request
     course = pctx.course
 
     if not course.course_xmpp_id:
         messages.add_message(request, messages.ERROR,
-                "Instant messaging is not enabled for this course.")
+                _("Instant messaging is not enabled for this course."))
 
         return redirect("relate-course_page", pctx.course_identifier)
 
@@ -178,10 +178,10 @@ def send_instant_message(pctx):
 
             try:
                 if not course.recipient_xmpp_id:
-                    raise RuntimeError("no recipient XMPP ID")
+                    raise RuntimeError(_("no recipient XMPP ID"))
 
                 if not course.course_xmpp_password:
-                    raise RuntimeError("no XMPP password")
+                    raise RuntimeError(_("no XMPP password"))
 
                 xmpp.send_message(
                         mto=course.recipient_xmpp_id,
@@ -193,10 +193,10 @@ def send_instant_message(pctx):
                 print_exc()
 
                 messages.add_message(request, messages.ERROR,
-                        "An error occurred while sending the message. Sorry.")
+                        _("An error occurred while sending the message. Sorry."))
             else:
                 messages.add_message(request, messages.SUCCESS,
-                        "Message sent.")
+                        _("Message sent."))
                 form = InstantMessageForm()
 
     else:

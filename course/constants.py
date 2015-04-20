@@ -99,9 +99,9 @@ class flow_session_expiration_mode:
     roll_over = "roll_over"
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
-        (flow_session_expiration_mode.end, "End session and grade"),
+        (flow_session_expiration_mode.end, _("End session and grade")),
         (flow_session_expiration_mode.roll_over,
-            "Keep session and apply new rules"),
+            _("Keep session and apply new rules")),
         )
 
 
@@ -113,7 +113,7 @@ def is_expiration_mode_allowed(expmode, permissions):
     elif expmode == flow_session_expiration_mode.end:
         return True
     else:
-        raise ValueError("unknown expiration mode")
+        raise ValueError(_("unknown expiration mode"))
 
     return False
 
@@ -151,14 +151,14 @@ class flow_permission:
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
 
 FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view, "View the flow"),
-        (flow_permission.submit_answer, "Submit answers"),
-        (flow_permission.end_session, "End session"),
-        (flow_permission.change_answer, "Change already-graded answer"),
-        (flow_permission.see_correctness, "See whether an answer is correct"),
-        (flow_permission.see_answer, "See the correct answer"),
+        (flow_permission.view, _("View the flow")),
+        (flow_permission.submit_answer, _("Submit answers")),
+        (flow_permission.end_session, _("End session")),
+        (flow_permission.change_answer, _("Change already-graded answer")),
+        (flow_permission.see_correctness, _("See whether an answer is correct")),
+        (flow_permission.see_answer, _("See the correct answer")),
         (flow_permission.set_roll_over_expiration_mode,
-            "Set the session to 'roll over' expiration mode"),
+            _("Set the session to 'roll over' expiration mode")),
         )
 
 
@@ -169,9 +169,9 @@ class flow_rule_kind:
 
 
 FLOW_RULE_KIND_CHOICES = (
-        (flow_rule_kind.start, "Session Start"),
-        (flow_rule_kind.access, "Session Access"),
-        (flow_rule_kind.grading, "Grading"),
+        (flow_rule_kind.start, _("Session Start")),
+        (flow_rule_kind.access, _("Session Access")),
+        (flow_rule_kind.grading, _("Grading")),
         )
 
 
@@ -208,12 +208,12 @@ class grade_aggregation_strategy:
 
 
 GRADE_AGGREGATION_STRATEGY_CHOICES = (
-        (grade_aggregation_strategy.max_grade, "Use the max grade"),
-        (grade_aggregation_strategy.avg_grade, "Use the avg grade"),
-        (grade_aggregation_strategy.min_grade, "Use the min grade"),
+        (grade_aggregation_strategy.max_grade, _("Use the max grade")),
+        (grade_aggregation_strategy.avg_grade, _("Use the avg grade")),
+        (grade_aggregation_strategy.min_grade, _("Use the min grade")),
 
-        (grade_aggregation_strategy.use_earliest, "Use the earliest grade"),
-        (grade_aggregation_strategy.use_latest, "Use the latest grade"),
+        (grade_aggregation_strategy.use_earliest, _("Use the earliest grade")),
+        (grade_aggregation_strategy.use_latest, _("Use the latest grade")),
         )
 
 

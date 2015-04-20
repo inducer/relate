@@ -264,7 +264,7 @@ class ParticipationFrom(forms.ModelForm):
             if tag.course != self.cleaned_data.get("course"):
                 from django.core.exceptions import ValidationError
                 raise ValidationError(
-                    {"tags": "Tags must belong to same course as participation."})
+                    {"tags": _("Tags must belong to same course as participation.")})
 
 
 class ParticipationAdmin(admin.ModelAdmin):

@@ -107,10 +107,10 @@ def check_course_state(course, role):
     if course.hidden:
         if role not in [participation_role.teaching_assistant,
                 participation_role.instructor]:
-            raise PermissionDenied("only course staff have access")
+            raise PermissionDenied(_("only course staff have access"))
     elif not course.valid:
         if role != participation_role.instructor:
-            raise PermissionDenied("only the instructor has access")
+            raise PermissionDenied(_("only the instructor has access"))
 
 
 @course_view
@@ -245,7 +245,7 @@ def get_now_or_fake_time(request):
 
 def set_fake_time(request):
     if not request.user.is_staff:
-        raise PermissionDenied("only staff may set fake time")
+        raise PermissionDenied(_("only staff may set fake time"))
 
     if request.method == "POST":
         form = FakeTimeForm(request.POST, request.FILES)
@@ -374,7 +374,7 @@ def test_flow(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to test flows")
+        raise PermissionDenied(_("must be instructor or TA to test flows"))
 
     from course.content import list_flow_ids
     flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
@@ -421,7 +421,7 @@ class ExceptionStage1Form(StyledForm):
                         )
                     .order_by("user__last_name")),
                 required=True,
-                help_text="Select participant for whom exception is to be granted.")
+                help_text=_("Select participant for whom exception is to be granted."))
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True)
@@ -437,7 +437,7 @@ def grant_exception(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to grant exceptions")
+        raise PermissionDenied(_("must be instructor or TA to grant exceptions"))
 
     from course.content import list_flow_ids
     flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
@@ -485,11 +485,11 @@ class CreateSessionForm(StyledForm):
 
         if create_session_is_override:
             self.helper.add_input(
-                    Submit("create_session", "Create session (override rules)",
+                    Submit("create_session", _("Create session (override rules)"),
                         css_class="btn-danger col-lg-offset-2"))
         else:
             self.helper.add_input(
-                    Submit("create_session", "Create session",
+                    Submit("create_session", _("Create session"),
                         css_class="col-lg-offset-2"))
 
 
@@ -799,7 +799,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 new_grading_rule["grade_aggregation_strategy"] = \
                         grading_rule.grade_aggregation_strategy
 
-            validate_session_grading_rule(vctx, "newly created exception",
+            validate_session_grading_rule(vctx, _("newly created exception"),
                     dict_to_struct(new_grading_rule), tags)
 
             fre_grading = FlowRuleException(

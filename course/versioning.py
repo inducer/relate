@@ -124,14 +124,14 @@ class CourseCreationForm(StyledModelForm):
         super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Validate and create",
+                Submit("submit", _("Validate and create"),
                     css_class="col-lg-offset-2"))
 
 
 @login_required
 def set_up_new_course(request):
     if not request.user.is_staff:
-        raise PermissionDenied("only staff may create courses")
+        raise PermissionDenied(_("only staff may create courses"))
 
     if request.method == "POST":
         form = CourseCreationForm(request.POST)
@@ -356,7 +356,7 @@ def update_course(pctx):
             participation_role.instructor,
             participation_role.teaching_assistant
             ]:
-        raise PermissionDenied("must be instructor or TA to update course")
+        raise PermissionDenied(_("must be instructor or TA to update course"))
 
     course = pctx.course
     request = pctx.request
@@ -423,7 +423,7 @@ def update_course(pctx):
             "<p>%s</p>" % line
             for line in text_lines
             ),
-        "form_description": "Update Course Revision",
+        "form_description": _("Update Course Revision"),
     })
 
 # }}}

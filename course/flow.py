@@ -70,7 +70,7 @@ from course.views import get_now_or_fake_time
 def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
         grade_data=None, graded_at_git_commit_sha=None):
     if not visit.is_submitted_answer:
-        raise RuntimeError("cannot grade ungraded answer")
+        raise RuntimeError(_("cannot grade ungraded answer"))
 
     flow_session = visit.flow_session
     course = flow_session.course
@@ -890,19 +890,19 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
                         accesskey="g", css_class="relate-save-button"))
         else:
             form.helper.add_input(
-                    Submit("submit", "Submit final answer",
+                    Submit("submit", _("Submit final answer"),
                         css_class="relate-save-button"))
     else:
         # Only offer 'save and move on' if student will receive no feedback
         if fpctx.page_data.ordinal + 1 < flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next",
-                        mark_safe("Save answer and move on &raquo;"),
+                        mark_safe(_("Save answer and move on &raquo;")),
                         css_class="relate-save-button"))
         else:
             form.helper.add_input(
                     Submit("save_and_finish",
-                        mark_safe("Save answer and finish &raquo;"),
+                        mark_safe(_("Save answer and finish &raquo;")),
                         css_class="relate-save-button"))
 
     return form
@@ -982,7 +982,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             # reject answer update if permission not present
             if flow_permission.submit_answer not in permissions:
                 messages.add_message(request, messages.ERROR,
-                        "Answer submission not allowed.")
+                        _("Answer submission not allowed."))
                 submission_allowed = False
 
             # reject if previous answer was final
@@ -991,7 +991,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     and flow_permission.change_answer
                         not in permissions):
                 messages.add_message(request, messages.ERROR,
-                        "Already have final answer.")
+                        _("Already have final answer."))
                 submission_allowed = False
 
             form = fpctx.page.post_form(
@@ -1004,7 +1004,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 # {{{ form validated, process answer
 
                 messages.add_message(request, messages.INFO,
-                        "Answer saved.")
+                        _("Answer saved."))
 
                 page_visit = FlowPageVisit()
                 page_visit.flow_session = flow_session
@@ -1375,9 +1375,9 @@ class RegradeFlowForm(StyledForm):
                 "under this access rules tag.")
         self.fields["regraded_session_in_progress"] = forms.ChoiceField(
                 choices=(
-                    ("any", "Regrade in-progress and not-in-progress sessions"),
-                    ("yes", "Regrade in-progress sessions only"),
-                    ("no", "Regrade not-in-progress sessions only"),
+                    ("any", _("Regrade in-progress and not-in-progress sessions")),
+                    ("yes", _("Regrade in-progress sessions only")),
+                    ("no", _("Regrade not-in-progress sessions only")),
                     ))
 
         self.helper.add_input(

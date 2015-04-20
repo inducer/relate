@@ -54,7 +54,7 @@ from course.models import (
 @course_view
 def view_participant_grades(pctx, participation_id=None):
     if pctx.participation is None:
-        raise PermissionDenied("must be enrolled to view grades")
+        raise PermissionDenied(_("must be enrolled to view grades"))
 
     if participation_id is not None:
         grade_participation = Participation.objects.get(id=int(participation_id))
@@ -67,7 +67,7 @@ def view_participant_grades(pctx, participation_id=None):
         is_student_viewing = False
     elif pctx.role == participation_role.student:
         if grade_participation != pctx.participation:
-            raise PermissionDenied("may not view other people's grades")
+            raise PermissionDenied(_("may not view other people's grades"))
 
         is_student_viewing = True
     else:
@@ -145,7 +145,7 @@ def view_participant_list(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     participations = list(Participation.objects
             .filter(
@@ -168,7 +168,7 @@ def view_grading_opportunity_list(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     grading_opps = list((GradingOpportunity.objects
             .filter(
@@ -265,7 +265,7 @@ def view_gradebook(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
@@ -287,7 +287,7 @@ def export_gradebook_csv(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to export grades")
+        raise PermissionDenied(_("must be instructor or TA to export grades"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
@@ -346,11 +346,11 @@ class ModifySessionsForm(StyledForm):
                 Submit("expire", "Expire sessions",
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("end", "End sessions and grade"))
+                Submit("end", _("End sessions and grade")))
         self.helper.add_input(
-                Submit("regrade", "Regrade ended sessions"))
+                Submit("regrade", _("Regrade ended sessions")))
         self.helper.add_input(
-                Submit("recalculate", "Recalculate grades of ended sessions"))
+                Submit("recalculate", _("Recalculate grades of ended sessions")))
 
 
 @transaction.atomic
@@ -459,12 +459,12 @@ def view_grades_by_opportunity(pctx, opp_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opp_id))
 
     if pctx.course != opportunity.course:
-        raise SuspiciousOperation("opportunity from wrong course")
+        raise SuspiciousOperation(_("opportunity from wrong course"))
 
     # {{{ batch sessions form
 
@@ -678,7 +678,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             id=int(participation_id))
 
     if participation.course != pctx.course:
-        raise SuspiciousOperation("participation does not match course")
+        raise SuspiciousOperation(_("participation does not match course"))
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
@@ -687,17 +687,17 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             participation_role.teaching_assistant]:
         if not opportunity.shown_in_grade_book:
             messages.add_message(pctx.request, messages.INFO,
-                    "This grade is not shown in the grade book.")
+                    _("This grade is not shown in the grade book."))
         if not opportunity.shown_in_student_grade_book:
             messages.add_message(pctx.request, messages.INFO,
-                    "This grade is not shown in the student grade book.")
+                    _("This grade is not shown in the student grade book."))
 
     elif pctx.role == participation_role.student:
         if participation != pctx.participation:
-            raise PermissionDenied("may not view other people's grades")
+            raise PermissionDenied(_("may not view other people's grades"))
         if not (opportunity.shown_in_grade_book
                 and opportunity.shown_in_student_grade_book):
-            raise PermissionDenied("grade has not been released")
+            raise PermissionDenied(_("grade has not been released"))
     else:
         raise PermissionDenied()
 
@@ -717,7 +717,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     break
 
             if not action_match:
-                raise SuspiciousOperation("unknown action")
+                raise SuspiciousOperation(_("unknown action"))
 
             session = FlowSession.objects.get(id=int(action_match.group(2)))
             op = action_match.group(1)
@@ -734,31 +734,31 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     expire_flow_session_standalone(
                             pctx.repo, pctx.course, session, now_datetime)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session expired.")
+                            _("Session expired."))
 
                 elif op == "end":
                     finish_flow_session_standalone(
                             pctx.repo, pctx.course, session,
                             now_datetime=now_datetime)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session ended.")
+                            _("Session ended."))
 
                 elif op == "reopen":
                     reopen_session(session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session reopened.")
+                            _("Session reopened."))
 
                 elif op == "regrade":
                     regrade_session(
                             pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session regraded.")
+                            _("Session regraded."))
 
                 elif op == "recalculate":
                     recalculate_session_grade(
                             pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session grade recalculated.")
+                            _("Session grade recalculated."))
 
                 else:
                     raise SuspiciousOperation("invalid session operation")

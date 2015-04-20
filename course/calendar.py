@@ -48,7 +48,7 @@ def check_events(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("only instructors and TAs may do that")
+        raise PermissionDenied(_("only instructors and TAs may do that"))
 
     invalid_datespecs = {}
 
@@ -72,7 +72,7 @@ def check_events(pctx):
 
 class RecurringEventForm(StyledForm):
     kind = forms.CharField(required=True,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.")
+            help_text=_("Should be lower_case_with_underscores, no spaces allowed."))
     time = forms.DateTimeField(
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}))
@@ -136,7 +136,7 @@ def create_recurring_events(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("only instructors and TAs may do that")
+        raise PermissionDenied(_("only instructors and TAs may do that"))
 
     request = pctx.request
 
@@ -184,13 +184,13 @@ def create_recurring_events(pctx):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Create recurring events",
+        "form_description": _("Create recurring events"),
     })
 
 
 class RenumberEventsForm(StyledForm):
     kind = forms.CharField(required=True,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.")
+            help_text=_("Should be lower_case_with_underscores, no spaces allowed."))
     starting_ordinal = forms.IntegerField(required=True, initial=1)
 
     def __init__(self, *args, **kwargs):
@@ -239,17 +239,17 @@ def renumber_events(pctx):
                     ordinal += 1
 
                 messages.add_message(request, messages.SUCCESS,
-                        "Events renumbered.")
+                        _("Events renumbered."))
             else:
                 messages.add_message(request, messages.ERROR,
-                        "No events found.")
+                        _("No events found."))
 
     else:
         form = RenumberEventsForm()
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Renumber events",
+        "form_description": _("Renumber events"),
     })
 
 # }}}

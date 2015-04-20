@@ -70,14 +70,14 @@ def markup_to_html(page_context, text):
 
 def get_auto_feedback(correctness):
     if correctness == 0:
-        return "Your answer is not correct."
+        return _("Your answer is not correct.")
     elif correctness == 1:
-        return "Your answer is correct."
+        return _("Your answer is correct.")
     elif correctness > 0.5:
         return "Your answer is mostly correct. (%.1f %%)" \
                 % (100*correctness)
     elif correctness is None:
-        return "(No information on correctness of answer.)"
+        return _("(No information on correctness of answer.)")
     else:
         return "Your answer is somewhat correct. (%.1f %%)" \
                 % (100*correctness)
@@ -107,7 +107,7 @@ class AnswerFeedback(object):
         if correctness is not None:
             # allow for extra credit
             if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
-                raise ValueError("Invalid correctness value")
+                raise ValueError(_("Invalid correctness value"))
 
         if feedback is None:
             feedback = get_auto_feedback(correctness)
@@ -530,12 +530,11 @@ class HumanTextFeedbackForm(StyledForm):
 
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
-                help_text="Whether the grade and feedback below are to be shown "
-                "to student")
+                help_text=_("Whether the grade and feedback below are to be shown to student"))
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
                 max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
-                help_text="Grade assigned, in percent",
+                help_text=_("Grade assigned, in percent"),
                 required=False,
 
                 # avoid unfortunate scroll wheel accidents reported by graders
@@ -566,7 +565,7 @@ class HumanTextFeedbackForm(StyledForm):
                 "with a generic message containing the feedback text")
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
-                help_text="Internal notes, not shown to student",
+                help_text=_("Internal notes, not shown to student"),
                 required=False)
 
     def clean(self):
@@ -711,7 +710,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
             if grade_data["feedback_text"]:
                 feedback_text += (
-                        "<p>The following feedback was provided:<p>"
+                        _("<p>The following feedback was provided:<p>")
                         + markup_to_html(page_context, grade_data["feedback_text"]))
 
             return AnswerFeedback(

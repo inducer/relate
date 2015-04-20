@@ -1,0 +1,546 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-04-20 19:08+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: .\course\admin.py:267
+msgid "Tags must belong to same course as participation."
+msgstr ""
+
+#: .\course\analytics.py:55 .\course\analytics.py:382
+#: .\course\analytics.py:414
+msgid "must be at least TA to view analytics"
+msgstr ""
+
+#: .\course\auth.py:111
+msgid "Error while impersonating."
+msgstr ""
+
+#: .\course\auth.py:127
+msgid "Select user to impersonate."
+msgstr ""
+
+#: .\course\auth.py:129
+msgid "Impersonate"
+msgstr ""
+
+#: .\course\auth.py:137
+msgid "Already impersonating someone."
+msgstr ""
+
+#: .\course\auth.py:165
+msgid "Stop impersonating"
+msgstr ""
+
+#: .\course\auth.py:171
+msgid "Not currently impersonating anyone."
+msgstr ""
+
+#: .\course\auth.py:178
+msgid "No longer impersonating anyone."
+msgstr ""
+
+#: .\course\auth.py:187
+msgid "Stop impersonating user"
+msgstr ""
+
+#: .\course\auth.py:288 .\course\auth.py:366
+msgid "password-based sign-in is not being used"
+msgstr ""
+
+#: .\course\auth.py:298
+msgid "That user name is already taken."
+msgstr ""
+
+#: .\course\auth.py:337
+msgid "[RELATE] Verify your email"
+msgstr ""
+
+#: .\course\auth.py:341 .\course\auth.py:402 .\course\auth.py:539
+msgid "Email sent. Please check your email and click the link."
+msgstr ""
+
+#: .\course\auth.py:381
+msgid "Email address is not known."
+msgstr ""
+
+#: .\course\auth.py:430
+msgid "Passwords do not match"
+msgstr ""
+
+#: .\course\auth.py:435 .\course\auth.py:499 .\course\auth.py:553
+msgid "email-based sign-in is not being used"
+msgstr ""
+
+#: .\course\auth.py:439 .\course\auth.py:559
+msgid "Invalid sign-in token. Perhaps you've used an old token email?"
+msgstr ""
+
+#: .\course\auth.py:440 .\course\auth.py:448 .\course\auth.py:560
+#: .\course\auth.py:565
+msgid "invalid sign-in token"
+msgstr ""
+
+#: .\course\auth.py:452 .\course\auth.py:564
+msgid "Account disabled."
+msgstr ""
+
+#: .\course\auth.py:470 .\course\auth.py:578
+msgid "Successfully signed in."
+msgstr ""
+
+#: .\course\auth.py:477
+msgid "Reset Password"
+msgstr ""
+
+#: .\course\auth.py:493
+msgid "Send sign-in email"
+msgstr ""
+
+#: .\course\auth.py:535
+msgid "Your RELATE sign-in link"
+msgstr ""
+
+#: .\course\auth.py:609
+msgid "Update"
+msgstr ""
+
+#: .\course\auth.py:630 .\course\auth.py:640
+msgid "Profile data saved."
+msgstr ""
+
+#: .\course\calendar.py:51 .\course\calendar.py:139
+msgid "only instructors and TAs may do that"
+msgstr ""
+
+#: .\course\calendar.py:75 .\course\calendar.py:193 .\course\models.py:228
+msgid "Should be lower_case_with_underscores, no spaces allowed."
+msgstr ""
+
+#: .\course\calendar.py:187
+msgid "Create recurring events"
+msgstr ""
+
+#: .\course\calendar.py:242
+msgid "Events renumbered."
+msgstr ""
+
+#: .\course\calendar.py:245
+msgid "No events found."
+msgstr ""
+
+#: .\course\calendar.py:252
+msgid "Renumber events"
+msgstr ""
+
+#: .\course\constants.py:102
+msgid "End session and grade"
+msgstr ""
+
+#: .\course\constants.py:104
+msgid "Keep session and apply new rules"
+msgstr ""
+
+#: .\course\constants.py:116
+msgid "unknown expiration mode"
+msgstr ""
+
+#: .\course\constants.py:154
+msgid "View the flow"
+msgstr ""
+
+#: .\course\constants.py:155
+msgid "Submit answers"
+msgstr ""
+
+#: .\course\constants.py:156
+msgid "End session"
+msgstr ""
+
+#: .\course\constants.py:157
+msgid "Change already-graded answer"
+msgstr ""
+
+#: .\course\constants.py:158
+msgid "See whether an answer is correct"
+msgstr ""
+
+#: .\course\constants.py:159
+msgid "See the correct answer"
+msgstr ""
+
+#: .\course\constants.py:161
+msgid "Set the session to 'roll over' expiration mode"
+msgstr ""
+
+#: .\course\constants.py:172
+msgid "Session Start"
+msgstr ""
+
+#: .\course\constants.py:173
+msgid "Session Access"
+msgstr ""
+
+#: .\course\constants.py:174
+msgid "Grading"
+msgstr ""
+
+#: .\course\constants.py:211
+msgid "Use the max grade"
+msgstr ""
+
+#: .\course\constants.py:212
+msgid "Use the avg grade"
+msgstr ""
+
+#: .\course\constants.py:213
+msgid "Use the min grade"
+msgstr ""
+
+#: .\course\constants.py:215
+msgid "Use the earliest grade"
+msgstr ""
+
+#: .\course\constants.py:216
+msgid "Use the latest grade"
+msgstr ""
+
+#: .\course\enrollment.py:65
+msgid "Course is not accepting enrollments."
+msgstr ""
+
+#: .\course\enrollment.py:70
+msgid "Already enrolled. Cannot re-renroll."
+msgstr ""
+
+#: .\course\enrollment.py:194
+msgid "Approve enrollment"
+msgstr ""
+
+#: .\course\enrollment.py:200
+msgid "Deny enrollment"
+msgstr ""
+
+#: .\course\enrollment.py:212
+msgid "Enter fully qualified email addresses, one per line."
+msgstr ""
+
+#: .\course\enrollment.py:218
+msgid "Preapprove"
+msgstr ""
+
+#: .\course\enrollment.py:227
+msgid "only instructors may do that"
+msgstr ""
+
+#: .\course\enrollment.py:274
+msgid "Create Participation Preapprovals"
+msgstr ""
+
+#: .\course\flow.py:73
+msgid "cannot grade ungraded answer"
+msgstr ""
+
+#: .\course\flow.py:893
+msgid "Submit final answer"
+msgstr ""
+
+#: .\course\flow.py:900
+msgid "Save answer and move on &raquo;"
+msgstr ""
+
+#: .\course\flow.py:905
+msgid "Save answer and finish &raquo;"
+msgstr ""
+
+#: .\course\flow.py:941
+msgid "No in-progress session record found for this flow. "
+msgstr ""
+
+#: .\course\flow.py:942
+msgid "Redirected to flow start page."
+msgstr ""
+
+#: .\course\flow.py:985
+msgid "Answer submission not allowed."
+msgstr ""
+
+#: .\course\flow.py:994
+msgid "Already have final answer."
+msgstr ""
+
+#: .\course\flow.py:1007
+msgid "Answer saved."
+msgstr ""
+
+#: .\course\flow.py:1378
+msgid "Regrade in-progress and not-in-progress sessions"
+msgstr ""
+
+#: .\course\flow.py:1379
+msgid "Regrade in-progress sessions only"
+msgstr ""
+
+#: .\course\flow.py:1380
+msgid "Regrade not-in-progress sessions only"
+msgstr ""
+
+#: .\course\grades.py:57
+msgid "must be enrolled to view grades"
+msgstr ""
+
+#: .\course\grades.py:70 .\course\grades.py:697
+msgid "may not view other people's grades"
+msgstr ""
+
+#: .\course\grades.py:148 .\course\grades.py:171 .\course\grades.py:268
+#: .\course\grades.py:462 .\course\grading.py:59
+msgid "must be instructor or TA to view grades"
+msgstr ""
+
+#: .\course\grades.py:290
+msgid "must be instructor or TA to export grades"
+msgstr ""
+
+#: .\course\grades.py:349
+msgid "End sessions and grade"
+msgstr ""
+
+#: .\course\grades.py:351
+msgid "Regrade ended sessions"
+msgstr ""
+
+#: .\course\grades.py:353
+msgid "Recalculate grades of ended sessions"
+msgstr ""
+
+#: .\course\grades.py:467
+msgid "opportunity from wrong course"
+msgstr ""
+
+#: .\course\grades.py:681
+msgid "participation does not match course"
+msgstr ""
+
+#: .\course\grades.py:690
+msgid "This grade is not shown in the grade book."
+msgstr ""
+
+#: .\course\grades.py:693
+msgid "This grade is not shown in the student grade book."
+msgstr ""
+
+#: .\course\grades.py:700
+msgid "grade has not been released"
+msgstr ""
+
+#: .\course\grades.py:720
+msgid "unknown action"
+msgstr ""
+
+#: .\course\grades.py:737
+msgid "Session expired."
+msgstr ""
+
+#: .\course\grades.py:744
+msgid "Session ended."
+msgstr ""
+
+#: .\course\grades.py:749
+msgid "Session reopened."
+msgstr ""
+
+#: .\course\grades.py:755
+msgid "Session regraded."
+msgstr ""
+
+#: .\course\grades.py:761
+msgid "Session grade recalculated."
+msgstr ""
+
+#: .\course\grading.py:64
+msgid "Flow session not part of specified course"
+msgstr ""
+
+#: .\course\grading.py:66
+msgid "Cannot grade anonymous session"
+msgstr ""
+
+#: .\course\grading.py:269
+msgid "must be instructor or TA to view grading stats"
+msgstr ""
+
+#: .\course\im.py:135
+msgid "unable to connect"
+msgstr ""
+
+#: .\course\im.py:153
+msgid "only enrolled folks may do that"
+msgstr ""
+
+#: .\course\im.py:160
+msgid "Instant messaging is not enabled for this course."
+msgstr ""
+
+#: .\course\im.py:181
+msgid "no recipient XMPP ID"
+msgstr ""
+
+#: .\course\im.py:184
+msgid "no XMPP password"
+msgstr ""
+
+#: .\course\im.py:196
+msgid "An error occurred while sending the message. Sorry."
+msgstr ""
+
+#: .\course\im.py:199
+msgid "Message sent."
+msgstr ""
+
+#: .\course\models.py:485
+msgid " (with answer)"
+msgstr ""
+
+#: .\course\page\base.py:73
+msgid "Your answer is not correct."
+msgstr ""
+
+#: .\course\page\base.py:75
+msgid "Your answer is correct."
+msgstr ""
+
+#: .\course\page\base.py:80
+msgid "(No information on correctness of answer.)"
+msgstr ""
+
+#: .\course\page\base.py:110
+msgid "Invalid correctness value"
+msgstr ""
+
+#: .\course\page\base.py:533
+msgid "Whether the grade and feedback below are to be shown to student"
+msgstr ""
+
+#: .\course\page\base.py:537
+msgid "Grade assigned, in percent"
+msgstr ""
+
+#: .\course\page\base.py:568
+msgid "Internal notes, not shown to student"
+msgstr ""
+
+#: .\course\page\base.py:713
+msgid "<p>The following feedback was provided:<p>"
+msgstr ""
+
+#: .\course\page\upload.py:57
+#, python-format
+msgid "Please keep file size under %s. "
+msgstr ""
+
+#: .\course\page\upload.py:58
+#, python-format
+msgid "Current filesize is %s."
+msgstr ""
+
+#: .\course\page\upload.py:64
+msgid "Uploaded file is not a PDF."
+msgstr ""
+
+#: .\course\page\upload.py:149
+msgid "upload question does not have "
+msgstr ""
+
+#: .\course\page\upload.py:150
+msgid "assigned point value"
+msgstr ""
+
+#: .\course\sandbox.py:61
+msgid " Press Alt/Cmd+(Shift+)P to preview. "
+msgstr ""
+
+#: .\course\sandbox.py:66
+msgid "Preview"
+msgstr ""
+
+#: .\course\sandbox.py:105
+msgid "Markup failed to render: "
+msgstr ""
+
+#: .\course\sandbox.py:128
+msgid "must be instructor or TA to access sandbox"
+msgstr ""
+
+#: .\course\sandbox.py:149
+msgid "Enter YAML markup for a flow page."
+msgstr ""
+
+#: .\course\sandbox.py:172
+msgid "Page failed to load/validate: "
+msgstr ""
+
+#: .\course\versioning.py:127
+msgid "Validate and create"
+msgstr ""
+
+#: .\course\versioning.py:134
+msgid "only staff may create courses"
+msgstr ""
+
+#: .\course\versioning.py:359
+msgid "must be instructor or TA to update course"
+msgstr ""
+
+#: .\course\versioning.py:426
+msgid "Update Course Revision"
+msgstr ""
+
+#: .\course\views.py:110
+msgid "only course staff have access"
+msgstr ""
+
+#: .\course\views.py:113
+msgid "only the instructor has access"
+msgstr ""
+
+#: .\course\views.py:248
+msgid "only staff may set fake time"
+msgstr ""
+
+#: .\course\views.py:377
+msgid "must be instructor or TA to test flows"
+msgstr ""
+
+#: .\course\views.py:424
+msgid "Select participant for whom exception is to be granted."
+msgstr ""
+
+#: .\course\views.py:440
+msgid "must be instructor or TA to grant exceptions"
+msgstr ""
+
+#: .\course\views.py:488
+msgid "Create session (override rules)"
+msgstr ""
+
+#: .\course\views.py:492
+msgid "Create session"
+msgstr ""
+
+#: .\course\views.py:802
+msgid "newly created exception"
+msgstr ""

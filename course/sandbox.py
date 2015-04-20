@@ -58,12 +58,12 @@ class SandboxForm(forms.Form):
                 initial=initial_text,
                 widget=cm_widget,
                 help_text=mark_safe(
-                    help_text + " Press Alt/Cmd+(Shift+)P to preview. "
+                    help_text + _(" Press Alt/Cmd+(Shift+)P to preview. ")
                     + cm_help_text))
 
         self.helper.add_input(
                 Submit(
-                    "preview", "Preview",
+                    "preview", _("Preview"),
                     accesskey="p"))
 
 # }}}
@@ -125,7 +125,7 @@ def view_page_sandbox(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to access sandbox")
+        raise PermissionDenied(_("must be instructor or TA to access sandbox"))
 
     from relate.utils import dict_to_struct
     import yaml
@@ -146,7 +146,7 @@ def view_page_sandbox(pctx):
     def make_form(data=None):
         return SandboxForm(
                 page_source, "yaml", ustatus.editor_mode,
-                "Enter YAML markup for a flow page.",
+                _("Enter YAML markup for a flow page."),
                 data)
 
     if is_preview_post:

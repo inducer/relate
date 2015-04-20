@@ -62,12 +62,12 @@ def enroll(request, course_identifier):
 
     if not course.accepts_enrollment:
         messages.add_message(request, messages.ERROR,
-                "Course is not accepting enrollments.")
+                _("Course is not accepting enrollments."))
         return redirect("relate-course_page", course_identifier)
 
     if role != participation_role.unenrolled:
         messages.add_message(request, messages.ERROR,
-                "Already enrolled. Cannot re-renroll.")
+                _("Already enrolled. Cannot re-renroll."))
         return redirect("relate-course_page", course_identifier)
 
     user = request.user
@@ -191,13 +191,13 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 def approve_enrollment(modeladmin, request, queryset):
     decide_enrollment(True, modeladmin, request, queryset)
 
-approve_enrollment.short_description = "Approve enrollment"
+approve_enrollment.short_description = _("Approve enrollment")
 
 
 def deny_enrollment(modeladmin, request, queryset):
     decide_enrollment(False, modeladmin, request, queryset)
 
-deny_enrollment.short_description = "Deny enrollment"
+deny_enrollment.short_description = _("Deny enrollment")
 
 # }}}
 
@@ -209,13 +209,13 @@ class BulkPreapprovalsForm(StyledForm):
             choices=PARTICIPATION_ROLE_CHOICES,
             initial=participation_role.student)
     emails = forms.CharField(required=True, widget=forms.Textarea,
-            help_text="Enter fully qualified email addresses, one per line.")
+            help_text=_("Enter fully qualified email addresses, one per line."))
 
     def __init__(self, *args, **kwargs):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Preapprove",
+                Submit("submit", _("Preapprove"),
                     css_class="col-lg-offset-2"))
 
 
@@ -224,7 +224,7 @@ class BulkPreapprovalsForm(StyledForm):
 @course_view
 def create_preapprovals(pctx):
     if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
+        raise PermissionDenied(_("only instructors may do that"))
 
     request = pctx.request
 
@@ -271,7 +271,7 @@ def create_preapprovals(pctx):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Create Participation Preapprovals",
+        "form_description": _("Create Participation Preapprovals"),
     })
 
 # }}}

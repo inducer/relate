@@ -54,14 +54,14 @@ class FileUploadForm(StyledForm):
 
         if uploaded_file._size > self.max_file_size:
             raise forms.ValidationError(
-                    "Please keep file size under %s. "
-                    "Current filesize is %s."
+                    _("Please keep file size under %s. ")
+                    _("Current filesize is %s.")
                     % (filesizeformat(self.max_file_size),
                         filesizeformat(uploaded_file._size)))
 
         if self.mime_types is not None and self.mime_types == ["application/pdf"]:
             if uploaded_file.read()[:4] != "%PDF":
-                raise forms.ValidationError("Uploaded file is not a PDF.")
+                raise forms.ValidationError(_("Uploaded file is not a PDF."))
 
         return uploaded_file
 
@@ -146,8 +146,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                         set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))))
 
         if not hasattr(page_desc, "value"):
-            vctx.add_warning(location, "upload question does not have "
-                    "assigned point value")
+            vctx.add_warning(location, _("upload question does not have ")
+                    _("assigned point value"))
 
     def required_attrs(self):
         return super(FileUploadQuestion, self).required_attrs() + (

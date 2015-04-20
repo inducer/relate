@@ -53,8 +53,8 @@ class Facility(models.Model):
     """Data about a facility from where content may be accessed."""
 
     identifier = models.CharField(max_length=50, unique=True,
-            help_text="Format is lower-case-with-hyphens. "
-            "Do not use spaces.")
+            help_text= "Format is lower-case-with-hyphens. " 
+                                  "Do not use spaces.")
     description = models.CharField(max_length=100)
 
     class Meta:
@@ -225,7 +225,7 @@ class Event(models.Model):
 
     course = models.ForeignKey(Course)
     kind = models.CharField(max_length=50,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.")
+            help_text=_("Should be lower_case_with_underscores, no spaces allowed."))
     ordinal = models.IntegerField(blank=True, null=True)
 
     time = models.DateTimeField()
@@ -482,7 +482,7 @@ class FlowPageVisit(models.Model):
                 self.visit_time)
 
         if self.answer is not None:
-            result += " (with answer)"
+            result += _(" (with answer)")
 
         return result
 
