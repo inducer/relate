@@ -29,6 +29,7 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.utils.translation import ugettext as _
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,

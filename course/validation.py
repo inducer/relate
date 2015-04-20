@@ -31,6 +31,7 @@ import sys
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
+from django.utils.translation import ugettext as _
 
 from course.content import get_repo_blob
 from relate.utils import Struct

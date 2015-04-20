@@ -34,6 +34,7 @@ import django.views.decorators.http as http_dec
 from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
+from django.utils.translation import ugettext as _
 
 from django.views.decorators.cache import cache_control
 

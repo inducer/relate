@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 from django.conf import settings
+from django.utils.translation import ugettext as _
 
 import re
 import datetime

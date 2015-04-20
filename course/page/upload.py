@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 
 import django.forms as forms
+from django.utils.translation import ugettext as _
 
 from course.page.base import (
         PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,

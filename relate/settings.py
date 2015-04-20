@@ -55,6 +55,7 @@ MIDDLEWARE_CLASSES = (
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "course.auth.ImpersonateMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
 )
 
 
