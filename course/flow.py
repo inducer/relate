@@ -778,7 +778,7 @@ def view_start_flow(pctx, flow_id):
                    .order_by("start_time"))
 
             from collections import namedtuple
-            SessionProperties = namedtuple("SessionProperties",
+            SessionProperties = namedtuple("SessionProperties",  # noqa
                     ["may_view", "may_modify", "due", "grade_description"])
 
             past_sessions_and_properties = []

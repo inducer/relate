@@ -29,7 +29,7 @@ THE SOFTWARE.
 MAX_EXTRA_CREDIT_FACTOR = 10
 
 
-class user_status:
+class user_status:  # noqa
     unconfirmed = "unconfirmed"
     active = "active"
 
@@ -39,7 +39,7 @@ USER_STATUS_CHOICES = (
         )
 
 
-class participation_role:
+class participation_role:  # noqa
     instructor = "instructor"
     teaching_assistant = "ta"
     student = "student"
@@ -61,7 +61,7 @@ PARTICIPATION_ROLE_CHOICES = (
         )
 
 
-class participation_status:
+class participation_status:  # noqa
     requested = "requested"
     active = "active"
     dropped = "dropped"
@@ -76,7 +76,7 @@ PARTICIPATION_STATUS_CHOICES = (
         )
 
 
-class flow_session_expiration_mode:
+class flow_session_expiration_mode:  # noqa
     """
     .. attribute:: end
 
@@ -117,7 +117,7 @@ def is_expiration_mode_allowed(expmode, permissions):
     return False
 
 
-class flow_permission:
+class flow_permission:  # noqa
     """
     .. attribute:: view
     .. attribute:: submit_answer
@@ -161,7 +161,7 @@ FLOW_PERMISSION_CHOICES = (
         )
 
 
-class flow_rule_kind:
+class flow_rule_kind:  # noqa
     start = "start"
     access = "access"
     grading = "grading"
@@ -174,7 +174,7 @@ FLOW_RULE_KIND_CHOICES = (
         )
 
 
-class grade_aggregation_strategy:
+class grade_aggregation_strategy:  # noqa
     """A strategy for aggregating multiple grades into one.
 
     .. attribute:: max_grade
@@ -216,7 +216,7 @@ GRADE_AGGREGATION_STRATEGY_CHOICES = (
         )
 
 
-class grade_state_change_types:
+class grade_state_change_types:  # noqa
     grading_started = "grading_started"
     graded = "graded"
     retrieved = "retrieved"
