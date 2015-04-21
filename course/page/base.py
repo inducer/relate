@@ -666,7 +666,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
             from django.core.mail import send_mail
             from django.conf import settings
-            send_mail("[%s:%s] New notification"
+            send_mail("[%(identifier)s:%(flowid)s] New notification"
                     % (page_context.course.identifier,
                         page_context.flow_session.flow_id),
                     message,

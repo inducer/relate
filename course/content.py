@@ -716,7 +716,7 @@ def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):
                 if page.id == page_id:
                     return page
 
-    raise ObjectDoesNotExist("page '%s/%s' in flow '%s'"
+    raise ObjectDoesNotExist(_("page '%(groupid)s/%(pageid)s' in flow '%(flowid)s'")
             % (group_id, page_id, flow_id))
 
 

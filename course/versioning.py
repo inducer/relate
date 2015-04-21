@@ -198,7 +198,7 @@ def set_up_new_course(request):
                 print_exc()
 
                 messages.add_message(request, messages.ERROR,
-                        _("Course creation failed: %s: %s") % (
+                        _("Course creation failed: %(name)s: %(e)s") % (
                             type(e).__name__, str(e)))
             else:
                 return redirect(
@@ -290,7 +290,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                     _("Course content validated OK, with warnings:"
                     "<ul>%s</ul>")
                     % ("".join(
-                        "<li><i>%s</i>: %s</li>" % (w.location, w.text)
+                        "<li><i>%(location)s</i>: %(warningtext)s</li>" % (w.location, w.text)
                         for w in warnings)))
 
     # }}}
@@ -391,7 +391,7 @@ def update_course(pctx):
                         may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %s %s") % (type(e).__name__, str(e)))
+                        _("Error: %(name)s %(e)s") % (type(e).__name__, str(e)))
 
     if response_form is None:
         previewing = bool(participation is not None
@@ -401,16 +401,16 @@ def update_course(pctx):
                 {"new_sha": repo.head()})
 
     text_lines = [
-            _("<b>Current git HEAD:</b> %s (%s)") % (
+            _("<b>Current git HEAD:</b> %(commit)s (%(message)s)") % (
                 repo.head(),
                 repo[repo.head()].message.strip()),
-            _("<b>Public active git SHA:</b> %s (%s)") % (
+            _("<b>Public active git SHA:</b> %(commit)s (%(message)s)") % (
                 course.active_git_commit_sha,
                 repo[course.active_git_commit_sha.encode()].message.strip()),
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
-            _("<b>Current preview git SHA:</b> %s (%s)") % (
+            _("<b>Current preview git SHA:</b> %(commit)s (%(message)s)") % (
                 participation.preview_git_commit_sha,
                 repo[participation.preview_git_commit_sha.encode()].message.strip(),
             ))

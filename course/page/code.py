@@ -687,7 +687,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             for nr, mime_type, b64data in response.figures:
                 fig_lines.extend([
-                        "<dt>Figure %d<dt>" % nr,
+                        _("<dt>Figure %d<dt>") % nr,
                         '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
                         % (nr, mime_type, b64data)])
 

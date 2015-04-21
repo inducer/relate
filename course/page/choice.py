@@ -105,7 +105,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
             try:
                 choice = str(choice)
             except:
-                raise ValidationError(_("%s, choice %d: unable to convert to string")
+                raise ValidationError(_("%(location)s, choice %(id)d: unable to convert to string")
                         % (location, choice_idx+1))
 
             if choice.startswith(self.CORRECT_TAG):
@@ -116,8 +116,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                         remove_prefix(self.CORRECT_TAG, choice))
 
         if correct_choice_count < 1:
-            raise ValidationError(_("%s: one or more correct answer(s) "
-                    "expected, %d found") % (location, correct_choice_count))
+            raise ValidationError(_("%(location)s: one or more correct answer(s) "
+                    "expected, %(correct)d found") % (location, correct_choice_count))
 
     def required_attrs(self):
         return super(ChoiceQuestion, self).required_attrs() + (

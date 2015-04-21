@@ -300,7 +300,7 @@ class Participation(models.Model):
 
     def __unicode__(self):
         # somebody in some course as role
-        return _("%s in %s as %s") % (
+        return _("%(user)s in %(course)s as %(role)s") % (
                 self.user, self.course, self.role)
 
     class Meta:
@@ -319,7 +319,7 @@ class ParticipationPreapproval(models.Model):
 
     def __unicode__(self):
         # someboy in some course
-        return _("%s in %s") % (self.email, self.course)
+        return "%s in %s" % (self.email, self.course)
 
     class Meta:
         unique_together = (("course", "email"),)
@@ -374,11 +374,11 @@ class FlowSession(models.Model):
 
     def __unicode__(self):
         if self.participation is None:
-            return _("anonymous session %d on '%s'") % (
+            return _("anonymous session %(sessionid)d on '%(flowid)s'") % (
                     self.id,
                     self.flow_id)
         else:
-            return _("%s's session %d on '%s'") % (
+            return _("%(user)s's session %(sessionid)d on '%(flowid)s'") % (
                     self.participation.user,
                     self.id,
                     self.flow_id)
@@ -435,7 +435,7 @@ class FlowPageData(models.Model):
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
-        return _("Data for page '%s/%s' (ordinal %s) in %s") % (
+        return _("Data for page '%(groupid)s/%(pageid)s' (ordinal %(ordinal)s) in %(flowssession)s") % (
                 self.group_id,
                 self.page_id,
                 self.ordinal,
@@ -478,7 +478,7 @@ class FlowPageVisit(models.Model):
     is_submitted_answer = models.NullBooleanField()
 
     def __unicode__(self):
-        result = _("'%s/%s' in '%s' on %s") % (
+        result = _("'%(groupid)s/%(pageid)s' in '%(session)s' on %(time)s") % (
                 self.page_data.group_id,
                 self.page_data.page_id,
                 self.flow_session,
@@ -563,7 +563,7 @@ class FlowPageVisitGrade(models.Model):
         ordering = ("visit", "grade_time")
 
     def __unicode__(self):
-        return _("grade of %s: %s") % (
+        return _("grade of %(visit)s: %(percentage)s") % (
                 self.visit, self.percentage())
 
 
@@ -653,7 +653,7 @@ class FlowAccessException(models.Model):
     comment = models.TextField(blank=True, null=True)
 
     def __unicode__(self):
-        return _("Access exception for '%s' to '%s' in '%s'") % (
+        return _("Access exception for '%(user)s' to '%(flowid)s' in '%(course)s'") % (
                 self.participation.user, self.flow_id,
                 self.participation.course)
 
@@ -691,7 +691,7 @@ class FlowRuleException(models.Model):
     active = models.BooleanField(default=True)
 
     def __unicode__(self):
-        return _("%s exception for '%s' to '%s' in '%s'") % (
+        return _("%(kind)s exception for '%(user)s' to '%(flowid)s' in '%(course)s'") % (
                 self.kind,
                 self.participation.user, self.flow_id,
                 self.participation.course)
@@ -774,7 +774,7 @@ class GradingOpportunity(models.Model):
         unique_together = (("course", "identifier"),)
 
     def __unicode__(self):
-        return _("%s (%s) in %s") % (self.name, self.identifier, self.course)
+        return _("%(name)s (%(identifier)s) in %(course)s") % (self.name, self.identifier, self.course)
 
 
 class GradeChange(models.Model):
@@ -815,7 +815,7 @@ class GradeChange(models.Model):
         ordering = ("opportunity", "participation", "grade_time")
 
     def __unicode__(self):
-        return _("%s %s on %s") % (self.participation, self.state,
+        return _("%(participation)s %(state)s on %(opportunityname)s") % (self.participation, self.state,
                 self.opportunity.name)
 
     def clean(self):

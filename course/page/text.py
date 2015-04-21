@@ -144,7 +144,7 @@ class RELATEPageValidator(object):
             import sys
             tp, e, _ = sys.exc_info()
 
-            raise forms.ValidationError("%s: %s"
+            raise forms.ValidationError("%(name)s: %(e)s"
                     % (tp.__name__, str(e)))
 
 
@@ -158,7 +158,7 @@ def get_validator_class(location, validator_type):
         if validator_class.type == validator_type:
             return validator_class
 
-    raise ValidationError(_("%s: unknown validator type '%s'")
+    raise ValidationError(_("%(location)s: unknown validator type '%(type)s'")
             % (location, validator_type))
 
 
@@ -243,7 +243,7 @@ class RegexMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
 
-            raise ValidationError(_("%s: regex '%s' did not compile: %s: %s")
+            raise ValidationError(_("%(location)s: regex '%(patter)s' did not compile: %(name)s: %(e)s")
                     % (location, pattern, tp.__name__, str(e)))
 
     def grade(self, s):
@@ -288,13 +288,13 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             self.pattern_sym = parse_sympy(pattern)
         except ImportError:
             tp, e, _ = sys.exc_info()
-            vctx.add_warning(location, _("%s: unable to check "
-                    "symbolic expression (%s: %s)")
+            vctx.add_warning(location, _("%(location)s: unable to check "
+                    "symbolic expression (%(name)s: %(e)s)")
                     % (location, tp.__name__, str(e)))
 
         except:
             tp, e, _ = sys.exc_info()
-            raise ValidationError("%s: %s: %s"
+            raise ValidationError("%(location)s: %(name)s: %(e)s"
                     % (location, tp.__name__, str(e)))
 
     def validate(self, s):
@@ -302,7 +302,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             parse_sympy(s)
         except:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%s: %s"
+            raise forms.ValidationError("%(name)s: %(e)s"
                     % (tp.__name__, str(e)))
 
     def grade(self, s):
@@ -350,7 +350,7 @@ class FloatMatcher(TextAnswerMatcher):
             float(s)
         except:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%s: %s"
+            raise forms.ValidationError("%(name)s: %(e)s"
                     % (tp.__name__, str(e)))
 
     def grade(self, s):
@@ -391,12 +391,12 @@ def get_matcher_class(location, matcher_type, pattern_type):
         if matcher_class.type == matcher_type:
 
             if matcher_class.pattern_type != pattern_type:
-                raise ValidationError(_("%s: %s only accepts '%s' patterns")
+                raise ValidationError(_("%(location)s: %(matcherclassname)s only accepts '%(matchertype)s' patterns")
                         % (location, matcher_class.__name__, pattern_type))
 
             return matcher_class
 
-    raise ValidationError(_("%s: unknown match type '%s'")
+    raise ValidationError(_("%(location)s: unknown match type '%(matchertype)s'")
             % (location, matcher_type))
 
 
@@ -479,7 +479,7 @@ class TextQuestionBase(PageBaseWithTitle):
                 check_only=True)
 
         if widget is None:
-            raise ValidationError(_("%s: unrecognized widget type '%s'")
+            raise ValidationError(_("%(location)s: unrecognized widget type '%(type)s'")
                     % (location, getattr(page_desc, "widget")))
 
     def required_attrs(self):
@@ -656,7 +656,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
         self.matchers = [
                 parse_matcher(
                     vctx,
-                    _("%s, answer %d") % (location, i+1),
+                    "%s, answer %d" % (location, i+1),
                     answer)
                 for i, answer in enumerate(page_desc.answers)]
 
@@ -764,7 +764,7 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
         self.validators = [
                 parse_validator(
                     vctx,
-                    _("%s, validator %d") % (location, i+1),
+                    "%s, validator %d" % (location, i+1),
                     answer)
                 for i, answer in enumerate(
                     getattr(page_desc, "validators", []))]

@@ -519,7 +519,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     participation = get_object_or_404(Participation, id=participation_id)
 
-    form_text = (_("<div class='well'>Granting exception to '%s' for '%s'.</div>")
+    form_text = (_("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
         % (participation, flow_id))
 
     from course.content import get_flow_desc
@@ -764,7 +764,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             descr = _("Granted excecption")
             if form.cleaned_data["credit_percent"] is not None:
-                descr += _(" (%.1f%% credit)") % form.cleaned_data["credit_percent"]
+                descr += " (%.1f%% credit)" % form.cleaned_data["credit_percent"]
 
             due_local_naive = due
             if due_local_naive is not None:
@@ -814,7 +814,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             # }}}
 
             messages.add_message(pctx.request, messages.SUCCESS,
-                    _("Exception granted to '%s' for '%s'.") % (participation, flow_id))
+                    _("Exception granted to '%(participation)s' for '%(flow_id)s'.") % (participation, flow_id))
             return redirect(
                     "relate-grant_exception",
                     pctx.course.identifier)
@@ -834,7 +834,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": _("Grant Exception"),
-        "form_text": _("<div class='well'>Granting exception to '%s' for '%s'.</div>")
+        "form_text": _("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
         % (participation, flow_id),
     })
 

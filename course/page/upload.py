@@ -54,8 +54,8 @@ class FileUploadForm(StyledForm):
 
         if uploaded_file._size > self.max_file_size:
             raise forms.ValidationError(
-                    _("Please keep file size under %s. "
-                    "Current filesize is %s.")
+                    _("Please keep file size under %(allowsize)s. "
+                    "Current filesize is %(uploadedsize)s.")
                     % (filesizeformat(self.max_file_size),
                         filesizeformat(uploaded_file._size)))
 
@@ -141,7 +141,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
-            raise ValidationError(_("%s: unrecognized mime types '%s'")
+            raise ValidationError(_("%(location)s: unrecognized mime types '%(presenttype)s'")
                     % (location, ", ".join(
                         set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))))
 

@@ -453,7 +453,7 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
 def finish_flow_session(fctx, flow_session, grading_rule,
         force_regrade=False, now_datetime=None):
     if not flow_session.in_progress:
-        raise RuntimeError("Can't end a session that's already ended")
+        raise RuntimeError(_("Can't end a session that's already ended"))
 
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
@@ -487,9 +487,9 @@ def finish_flow_session(fctx, flow_session, grading_rule,
 def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         past_due_only=False):
     if not flow_session.in_progress:
-        raise RuntimeError("Can't expire a session that's not in progress")
+        raise RuntimeError(_("Can't expire a session that's not in progress"))
     if flow_session.participation is None:
-        raise RuntimeError("Can't expire an anonymous flow session")
+        raise RuntimeError(_("Can't expire an anonymous flow session"))
 
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
@@ -526,7 +526,7 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         return finish_flow_session(fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
     else:
-        raise ValueError("invalid expiration mode '%s' on flow session ID %d"
+        raise ValueError(_("invalid expiration mode '%(mode)s' on flow session ID %(sessionid)d")
                 % (flow_session.expiration_mode, flow_session.id))
 
 
@@ -553,7 +553,7 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     if (points is not None
             and grading_rule.credit_percent is not None
             and grading_rule.credit_percent != 100):
-        comment = "Counted at %.1f%% of %.1f points" % (
+        comment = _("Counted at %(percent).1f%% of %(point).1f points") % (
                 grading_rule.credit_percent, points)
         points = points * grading_rule.credit_percent / 100
 
@@ -617,9 +617,9 @@ def grade_flow_session(fctx, flow_session, grading_rule,
 
 def reopen_session(session, force=False, suppress_log=False):
     if session.in_progress:
-        raise RuntimeError("Can't reopen a session that's already in progress")
+        raise RuntimeError(_("Can't reopen a session that's already in progress"))
     if session.participation is None:
-        raise RuntimeError("Can't reopen anonymous sessions")
+        raise RuntimeError(_("Can't reopen anonymous sessions"))
 
     if not force:
         other_in_progress_sessions = (FlowSession.objects
@@ -631,7 +631,7 @@ def reopen_session(session, force=False, suppress_log=False):
                 .exclude(id=session.id))
 
         if other_in_progress_sessions.count():
-            raise RuntimeError("Can't open multiple sessions at once")
+            raise RuntimeError(_("Can't open multiple sessions at once"))
 
     session.in_progress = True
     session.points = None
@@ -639,7 +639,7 @@ def reopen_session(session, force=False, suppress_log=False):
 
     if not suppress_log:
         session.append_comment(
-                "Session reopened at %s, previous completion time was '%s'."
+                _("Session reopened at %(new)s, previous completion time was '%(complete)s'.")
                 % (local_now(), as_local_time(session.completion_time)))
 
     session.completion_time = None
@@ -704,7 +704,7 @@ def regrade_session(repo, course, session):
     else:
         prev_completion_time = session.completion_time
 
-        session.append_comment("Session regraded at %s." % local_now())
+        session.append_comment(_("Session regraded at %s.") % local_now())
         session.save()
 
         reopen_session(session, force=True, suppress_log=True)
@@ -720,11 +720,11 @@ def recalculate_session_grade(repo, course, session):
     """
 
     if session.in_progress:
-        raise RuntimeError("cannot recalculate grade on in-progress session")
+        raise RuntimeError(_("cannot recalculate grade on in-progress session"))
 
     prev_completion_time = session.completion_time
 
-    session.append_comment("Session grade recomputed at %s." % local_now())
+    session.append_comment(_("Session grade recomputed at %s.") % local_now())
     session.save()
 
     reopen_session(session, force=True, suppress_log=True)
@@ -754,7 +754,7 @@ def view_start_flow(pctx, flow_id):
         if "start" in request.POST:
 
             if not session_start_rule.may_start_new_session:
-                raise PermissionDenied("new session not allowed")
+                raise PermissionDenied(_("new session not allowed"))
 
             session = start_flow(
                     pctx.repo, pctx.course, pctx.participation,
@@ -766,7 +766,7 @@ def view_start_flow(pctx, flow_id):
                     pctx.course.identifier, session.id, 0)
 
         else:
-            raise SuspiciousOperation("unrecognized POST action")
+            raise SuspiciousOperation(_("unrecognized POST action"))
 
     else:
         if session_start_rule.may_list_existing_sessions:
@@ -860,7 +860,7 @@ def get_and_check_flow_session(pctx, flow_session_id):
             participation_role.auditor,
             participation_role.unenrolled]:
         if pctx.participation != flow_session.participation:
-            raise PermissionDenied("may not view other people's sessions")
+            raise PermissionDenied(_("may not view other people's sessions"))
     else:
         raise PermissionDenied()
 
@@ -879,14 +879,14 @@ def will_receive_feedback(permissions):
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
     from crispy_forms.layout import Submit
     form.helper.add_input(
-            Submit("save", "Save answer",
+            Submit("save", _("Save answer"),
                 css_class="col-lg-offset-2 relate-save-button"))
 
     if will_receive_feedback(permissions):
         if flow_permission.change_answer in permissions:
             form.helper.add_input(
                     Submit(
-                        "submit", "Submit answer for grading",
+                        "submit", _("Submit answer for grading"),
                         accesskey="g", css_class="relate-save-button"))
         else:
             form.helper.add_input(
@@ -914,7 +914,7 @@ def get_pressed_button(form):
         if button in form.data:
             return button
 
-    raise SuspiciousOperation("could not find which button was pressed")
+    raise SuspiciousOperation(_("could not find which button was pressed"))
 
 
 def create_flow_page_visit(request, flow_session, page_data):
@@ -938,8 +938,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     if flow_session is None:
         messages.add_message(request, messages.WARNING,
-                "No in-progress session record found for this flow. "
-                "Redirected to flow start page.")
+                _("No in-progress session record found for this flow. "
+                "Redirected to flow start page."))
 
         return redirect("relate-view_start_flow",
                 pctx.course.identifier,
@@ -970,7 +970,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     grade_data = None
 
     if flow_permission.view not in permissions:
-        raise PermissionDenied("not allowed to view flow")
+        raise PermissionDenied(_("not allowed to view flow"))
 
     if request.method == "POST":
         if "finish" in request.POST:
@@ -1216,19 +1216,19 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 @course_view
 def update_expiration_mode(pctx, flow_session_id):
     if pctx.request.method != "POST":
-        raise SuspiciousOperation("only POST allowed")
+        raise SuspiciousOperation(_("only POST allowed"))
 
     flow_session = get_object_or_404(FlowSession, id=flow_session_id)
 
     if flow_session.participation != pctx.participation:
-        raise PermissionDenied("may only change your own flow sessions")
+        raise PermissionDenied(_("may only change your own flow sessions"))
     if not flow_session.in_progress:
-        raise PermissionDenied("may only change in-progress flow sessions")
+        raise PermissionDenied(_("may only change in-progress flow sessions"))
 
     expmode = pctx.request.POST.get("expiration_mode")
     if not any(expmode == em_key
             for em_key, _ in FLOW_SESSION_EXPIRATION_MODE_CHOICES):
-        raise SuspiciousOperation("invalid expiration mode")
+        raise SuspiciousOperation(_("invalid expiration mode"))
 
     fctx = FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
             participation=pctx.participation,
@@ -1299,13 +1299,13 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     if request.method == "POST":
         if "submit" not in request.POST:
-            raise SuspiciousOperation("odd POST parameters")
+            raise SuspiciousOperation(_("odd POST parameters"))
 
         if not flow_session.in_progress:
-            raise PermissionDenied("Can't end a session that's already ended")
+            raise PermissionDenied(_("Can't end a session that's already ended"))
 
         if flow_permission.end_session not in access_rule.permissions:
-            raise PermissionDenied("not permitted to end session")
+            raise PermissionDenied(_("not permitted to end session"))
 
         grading_rule = get_session_grading_rule(
                 flow_session, pctx.role, fctx.flow_desc, now_datetime)
@@ -1371,8 +1371,8 @@ class RegradeFlowForm(StyledForm):
                 required=True)
         self.fields["access_rules_tag"] = forms.CharField(
                 required=False,
-                help_text="If non-empty, limit the regrading to sessions started "
-                "under this access rules tag.")
+                help_text=_("If non-empty, limit the regrading to sessions started "
+                "under this access rules tag."))
         self.fields["regraded_session_in_progress"] = forms.ChoiceField(
                 choices=(
                     ("any", _("Regrade in-progress and not-in-progress sessions")),
@@ -1429,7 +1429,7 @@ def regrade_not_for_credit_flows_view(pctx):
             count = _regrade_sessions(pctx.repo, pctx.course, sessions)
 
             messages.add_message(request, messages.SUCCESS,
-                    "%d sessions regraded." % count)
+                    _("%d sessions regraded.") % count)
     else:
         form = RegradeFlowForm(flow_ids)
 
