@@ -56,8 +56,8 @@ def flow_list(pctx):
 
     cursor = connection.cursor()
 
-    cursor.execute(_("select distinct flow_id from course_flowsession "
-            "where course_id=%s order by flow_id"),
+    cursor.execute("select distinct flow_id from course_flowsession "
+            "where course_id=%s order by flow_id",
             [pctx.course.id])
     flow_ids = [row[0] for row in cursor.fetchall()]
 

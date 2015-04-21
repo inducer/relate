@@ -34,7 +34,7 @@ import django.views.decorators.http as http_dec
 from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from django.views.decorators.cache import cache_control
 
@@ -132,8 +132,8 @@ def course_page(pctx):
         show_enroll_button = False
 
         messages.add_message(pctx.request, messages.INFO,
-                "Your enrollment request is pending. You will be "
-                "notified once it has been acted upon.")
+                _("Your enrollment request is pending. You will be "
+                "notified once it has been acted upon."))
 
     return render_course_page(pctx, "course/course-page.html", {
         "chunks": chunks,
@@ -215,9 +215,9 @@ class FakeTimeForm(StyledForm):
         super(FakeTimeForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("set", "Set", css_class="col-lg-offset-2"))
+                Submit("set", _("Set"), css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("unset", "Unset"))
+                Submit("unset", _("Unset")))
 
 
 def get_fake_time(request):
@@ -269,7 +269,7 @@ def set_fake_time(request):
 
     return render(request, "generic-form.html", {
         "form": form,
-        "form_description": "Set fake time",
+        "form_description": _("Set fake time"),
     })
 
 
@@ -296,13 +296,13 @@ class InstantFlowRequestForm(StyledForm):
         self.helper.add_input(
                 Submit("add", "Add", css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("cancel", "Cancel all"))
+                Submit("cancel", _("Cancel all")))
 
 
 @course_view
 def manage_instant_flow_requests(pctx):
     if pctx.role != participation_role.instructor:
-        raise PermissionDenied("must be instructor to manage instant flow requests")
+        raise PermissionDenied(_("must be instructor to manage instant flow requests"))
 
     from course.content import list_flow_ids
     flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
@@ -315,7 +315,7 @@ def manage_instant_flow_requests(pctx):
         elif "cancel" in request.POST:
             op = "cancel"
         else:
-            raise SuspiciousOperation("invalid operation")
+            raise SuspiciousOperation(_("invalid operation"))
 
         now_datetime = get_now_or_fake_time(pctx.request)
 
@@ -342,14 +342,14 @@ def manage_instant_flow_requests(pctx):
                         .order_by("start_time")
                         .update(cancelled=True))
             else:
-                raise SuspiciousOperation("invalid operation")
+                raise SuspiciousOperation(_("invalid operation"))
 
     else:
         form = InstantFlowRequestForm(flow_ids)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Manage Instant Flow Requests",
+        "form_description": _("Manage Instant Flow Requests"),
     })
 
 # }}}
@@ -366,7 +366,7 @@ class FlowTestForm(StyledForm):
                 required=True)
 
         self.helper.add_input(
-                Submit("test", mark_safe("Go &raquo;"), css_class="col-lg-offset-2"))
+                Submit("test", mark_safe(_("Go &raquo;")), css_class="col-lg-offset-2"))
 
 
 @course_view
@@ -383,7 +383,7 @@ def test_flow(pctx):
     if request.method == "POST":
         form = FlowTestForm(flow_ids, request.POST, request.FILES)
         if "test" not in request.POST:
-            raise SuspiciousOperation("invalid operation")
+            raise SuspiciousOperation(_("invalid operation"))
 
         if form.is_valid():
             return redirect("relate-view_start_flow",
@@ -395,7 +395,7 @@ def test_flow(pctx):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Test Flow",
+        "form_description": _("Test Flow"),
     })
 
 # }}}
@@ -428,7 +428,7 @@ class ExceptionStage1Form(StyledForm):
 
         self.helper.add_input(
                 Submit(
-                    "next", mark_safe("Next &raquo;"),
+                    "next", mark_safe(_("Next &raquo;")),
                     css_class="col-lg-offset-2"))
 
 
@@ -457,7 +457,7 @@ def grant_exception(pctx):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Grant Exception",
+        "form_description": _("Grant Exception"),
     })
 
 
@@ -480,8 +480,8 @@ class CreateSessionForm(StyledForm):
         self.fields["access_rules_tag_for_new_session"] = forms.ChoiceField(
                 choices=session_tag_choices,
                 initial=default_tag,
-                help_text="If you click 'Create session', this tag will be "
-                "applied to the new session.")
+                help_text=_("If you click 'Create session', this tag will be "
+                "applied to the new session."))
 
         if create_session_is_override:
             self.helper.add_input(
@@ -501,10 +501,10 @@ class ExceptionStage2Form(StyledForm):
                 choices=(
                     (session.id, strify_session_for_exception(session))
                     for session in sessions),
-                help_text="The rules that currently apply to selected session "
-                "will provide the default values for the rules on the next page.")
+                help_text=_("The rules that currently apply to selected session "
+                "will provide the default values for the rules on the next page."))
 
-        self.helper.add_input(Submit("next", mark_safe("Next &raquo;"),
+        self.helper.add_input(Submit("next", mark_safe(_("Next &raquo;")),
                     css_class="col-lg-offset-2"))
 
 
@@ -513,13 +513,13 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to grant exceptions")
+        raise PermissionDenied(_("must be instructor or TA to grant exceptions"))
 
     # {{{ get flow data
 
     participation = get_object_or_404(Participation, id=participation_id)
 
-    form_text = ("<div class='well'>Granting exception to '%s' for '%s'.</div>"
+    form_text = (_("<div class='well'>Granting exception to '%s' for '%s'.</div>")
         % (participation, flow_id))
 
     from course.content import get_flow_desc
@@ -536,10 +536,10 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     else:
         access_rules_tags = []
 
-    NONE_SESSION_TAG = "<<<NONE>>>"
+    NONE_SESSION_TAG = _("<<<NONE>>>")
     session_tag_choices = [
             (tag, tag)
-            for tag in access_rules_tags] + [(NONE_SESSION_TAG, "(None)")]
+            for tag in access_rules_tags] + [(NONE_SESSION_TAG, _("(None)"))]
 
     from course.utils import get_session_start_rule
     session_start_rule = get_session_start_rule(pctx.course, participation,
@@ -548,9 +548,9 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += ("<div class='alert alert-info'>%s</div>"
-            % "Creating a new session is (technically) not allowed by course "
-                "rules. Clicking 'Create Session' anyway will override this rule.")
+        form_text += (_("<div class='alert alert-info'>%s</div>")
+            % _("Creating a new session is (technically) not allowed by course "
+                "rules. Clicking 'Create Session' anyway will override this rule."))
 
     default_tag = session_start_rule.tag_session
     if default_tag is None:
@@ -576,7 +576,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
         if "create_session" in request.POST or "next" in request.POST:
             pass
         else:
-            raise SuspiciousOperation("invalid command")
+            raise SuspiciousOperation(_("invalid command"))
 
         if create_session_form.is_valid() and "create_session" in request.POST:
             from course.flow import start_flow
@@ -611,7 +611,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "forms": [exception_form, create_session_form],
         "form_text": form_text,
-        "form_description": "Grant Exception",
+        "form_description": _("Grant Exception"),
     })
 
 
@@ -621,20 +621,20 @@ class ExceptionStage3Form(StyledForm):
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
             required=False,
-            help_text="At the specified time, the special access granted below "
+            help_text=_("At the specified time, the special access granted below "
             "will expire "
             "and revert to being the same as for the rest of the class. "
             "This field may "
             "be empty, in which case this access does not expire. Note also that "
             "the grading-related entries (such as 'due date' and 'credit percent') "
             "do not expire and remain valid indefinitely, unless overridden by "
-            "another exception.")
+            "another exception."))
 
     def __init__(self, default_data, base_session_tag, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
 
         self.fields["restrict_to_same_tag"] = forms.BooleanField(
-                label="Exception only applies to sessions with tag '%s'"
+                label=_("Exception only applies to sessions with tag '%s'")
                 % base_session_tag,
                 required=False,
                 initial=default_data.get("restrict_to_same_tag", True))
@@ -647,13 +647,13 @@ class ExceptionStage3Form(StyledForm):
                 widget=DateTimePicker(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False,
-                help_text="The due date shown to the student. Also, the "
+                help_text=_("The due date shown to the student. Also, the "
                 "time after which "
-                "any session under these rules is subject to expiration.",
+                "any session under these rules is subject to expiration."),
                 initial=default_data.get("due"))
         self.fields["due_same_as_access_expiration"] = forms.BooleanField(
-                required=False, help_text="If True, the 'Due' field will be "
-                "disregarded.",
+                required=False, help_text=_("If True, the 'Due' field will be "
+                "disregarded."),
                 initial=default_data.get("due_same_as_access_expiration") or False)
 
         self.fields["credit_percent"] = forms.IntegerField(required=False,
@@ -665,15 +665,15 @@ class ExceptionStage3Form(StyledForm):
 
         self.helper.add_input(
                 Submit(
-                    "save", "Save",
+                    "save", _("Save"),
                     css_class="col-lg-offset-2"))
 
     def clean(self):
         if (self.cleaned_data["access_expires"] is None
                 and self.cleaned_data["due_same_as_access_expiration"]):
             from django.core.exceptions import ValidationError
-            raise ValidationError("Must specify access expiration if 'due same "
-                    "as access expiration' is set.")
+            raise ValidationError(_("Must specify access expiration if 'due same "
+                    "as access expiration' is set."))
 
 
 @course_view
@@ -682,7 +682,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to grant exceptions")
+        raise PermissionDenied(_("must be instructor or TA to grant exceptions"))
 
     participation = get_object_or_404(Participation, id=participation_id)
 
@@ -741,7 +741,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     and session.access_rules_tag is not None):
                 new_access_rule["if_has_tag"] = session.access_rules_tag
 
-            validate_session_access_rule(vctx, "newly created exception",
+            validate_session_access_rule(vctx, _("newly created exception"),
                     dict_to_struct(new_access_rule), tags)
 
             fre_access = FlowRuleException(
@@ -762,9 +762,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             if form.cleaned_data["due_same_as_access_expiration"]:
                 due = form.cleaned_data["access_expires"]
 
-            descr = "Granted excecption"
+            descr = _("Granted excecption")
             if form.cleaned_data["credit_percent"] is not None:
-                descr += " (%.1f%% credit)" % form.cleaned_data["credit_percent"]
+                descr += _(" (%.1f%% credit)") % form.cleaned_data["credit_percent"]
 
             due_local_naive = due
             if due_local_naive is not None:
@@ -814,7 +814,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             # }}}
 
             messages.add_message(pctx.request, messages.SUCCESS,
-                    "Exception granted to '%s' for '%s'." % (participation, flow_id))
+                    _("Exception granted to '%s' for '%s'.") % (participation, flow_id))
             return redirect(
                     "relate-grant_exception",
                     pctx.course.identifier)
@@ -833,8 +833,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Grant Exception",
-        "form_text": "<div class='well'>Granting exception to '%s' for '%s'.</div>"
+        "form_description": _("Grant Exception"),
+        "form_text": _("<div class='well'>Granting exception to '%s' for '%s'.</div>")
         % (participation, flow_id),
     })
 

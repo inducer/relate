@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import (  # noqa
         redirect, get_object_or_404)
 from django.contrib import messages  # noqa
