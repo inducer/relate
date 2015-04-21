@@ -482,8 +482,8 @@ class PageBaseWithTitle(PageBase):
                 md_body = self.markup_body_for_title()
             except NotImplementedError:
                 from warnings import warn
-                warn("PageBaseWithTitle subclass '%s' does not implement "
-                        "markdown_body_for_title()"
+                warn(_("PageBaseWithTitle subclass '%s' does not implement "
+                        "markdown_body_for_title()")
                         % type(self).__name__)
             else:
                 title = extract_title_from_markup(md_body)
