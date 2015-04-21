@@ -50,11 +50,11 @@
       {# {{{ header table #}
       <table class="table table-condensed">
         <thead>
-          <th>Property</th><th>Value</th>
+          <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
         </thead>
         <tbody>
         <tr>
-          <td>Flow session</td>
+          <td>{% trans "Flow session" %}</td>
           <td>
             <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
             for
@@ -107,7 +107,7 @@
         </tr>
         {% if max_points != None %}
         <tr>
-          <td>Points awarded</td>
+          <td>{% trans "Points awarded" %}</td>
           <td>
             {% if points_awarded != None %}
               {{ points_awarded|floatformat:1 }}
@@ -121,7 +121,7 @@
         {% endif %}
         {% if most_recent_grade != None %}
         <tr>
-          <td>Graded</td>
+          <td>{% trans "Graded" %}</td>
           <td>
             {% if most_recent_grade.grader == None %}
               (autograded)

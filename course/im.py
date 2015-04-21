@@ -163,9 +163,9 @@ def send_instant_message(pctx):
 
     xmpp = get_xmpp_connection(pctx.course)
     if xmpp.is_recipient_online():
-        form_text = "Recipient is <span class=\"label label-success\">Online</span>."
+        form_text = _("Recipient is <span class=\"label label-success\">Online</span>.")
     else:
-        form_text = "Recipient is <span class=\"label label-danger\">Offline</span>."
+        form_text = _("Recipient is <span class=\"label label-danger\">Offline</span>.")
     form_text = "<div class=\"well\">%s</div>" % form_text
 
     if request.method == "POST":
@@ -205,7 +205,7 @@ def send_instant_message(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text": form_text,
-        "form_description": "Send instant message",
+        "form_description": _("Send instant message"),
     })
 
 # }}}

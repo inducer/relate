@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-  <h1>Grading Statistics: <tt>{{flow_id}}</tt></h1>
+  <h1>{% trans "Grading Statistics: " %}<tt>{{flow_id}}</tt></h1>
 
   <table class="table table-striped">
     <tr>
@@ -20,7 +20,7 @@
         {% endif %}
       </th>
       {% endfor %}
-      <th>Total</th>
+      <th>{% trans "Total" %}</th>
     </tr>
     {% for page, row, page_count in pages_stats_counts %}
       <tr>
@@ -32,7 +32,7 @@
       </tr>
     {% endfor %}
     <tr>
-      <th>Total</th>
+      <th>{% trans "Total" %}</th>
       {% for count in grader_counts %}
         <td><b>{{ count }}</b></td>
       {% endfor %}

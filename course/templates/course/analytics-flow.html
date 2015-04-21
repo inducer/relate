@@ -8,7 +8,7 @@
 {% block content %}
   <h1>Analytics: <tt>{{ flow_identifier}}</tt></h1>
 
-  <h2>Grade Distribution</h2>
+  <h2>{% trans "Grade Distribution" %}</h2>
 
   <p>
     {{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }}
@@ -19,7 +19,7 @@
 
   {{ grade_histogram.html|safe }}
 
-  <h2>Page-by-Page Statistics</h2>
+  <h2>{% trans "Page-by-Page Statistics" %}</h2>
 
   <div class="page-by-page-analytics">
   {% for astats in page_answer_stats_list %}
@@ -54,7 +54,7 @@
   {% endfor %}
   <div>
 
-  <h2>Time Distribution</h2>
+  <h2>{% trans "Time Distribution" %}</h2>
 
   {{ time_histogram.html|safe }}
 {% endblock %}

@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block content %}
-  <h1>404 Not Found</h1>
+  <h1>{% trans "404 Not Found" %}</h1>
 
   <p>
   Request URL: <tt>{{request_path}}</tt>
@@ -16,7 +16,7 @@
 
   <p>
   In the meantime, you may navigate back to  the
-  <a href="{% url "relate-home" %}">home page</a>.
+  <a href="{% url "relate-home" %}">{% trans "home page" %}</a>.
   </p>
 
   <p>

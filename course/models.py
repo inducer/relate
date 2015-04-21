@@ -29,7 +29,7 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
@@ -53,12 +53,13 @@ class Facility(models.Model):
     """Data about a facility from where content may be accessed."""
 
     identifier = models.CharField(max_length=50, unique=True,
-            help_text= "Format is lower-case-with-hyphens. " 
-                                  "Do not use spaces.")
+            help_text= _("Format is lower-case-with-hyphens. " 
+                                  "Do not use spaces."))
     description = models.CharField(max_length=100)
 
     class Meta:
-        verbose_name_plural = "facilities"
+        #plural form of facility
+        verbose_name_plural = _("facilities")
 
     def __unicode__(self):
         return self.identifier
@@ -71,12 +72,12 @@ class FacilityIPRange(models.Model):
 
     ip_range = models.CharField(
             max_length=200,
-            verbose_name="IP Range")
+            verbose_name=_("IP Range"))
 
     description = models.CharField(max_length=100,)
 
     class Meta:
-        verbose_name = "Facility IP Range"
+        verbose_name = _("Facility IP Range")
 
     def clean(self):
         import ipaddr
@@ -112,7 +113,7 @@ class UserStatus(models.Model):
 
     editor_mode = models.CharField(max_length=20,
             choices=(
-                ("default", "Default"),
+                ("default", _("Default")),
                 ("sublime", "Sublime text"),
                 ("emacs", "Emacs"),
                 ("vim", "Vim"),
@@ -120,11 +121,11 @@ class UserStatus(models.Model):
             default="default")
 
     class Meta:
-        verbose_name_plural = "user statuses"
+        verbose_name_plural = _("user statuses")
         ordering = ("key_time",)
 
     def __unicode__(self):
-        return "User status for %s" % self.user
+        return _("User status for %s") % self.user
 
 # }}}
 
@@ -133,71 +134,71 @@ class UserStatus(models.Model):
 
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
-            help_text="A course identifier. Alphanumeric with dashes, "
+            help_text=_("A course identifier. Alphanumeric with dashes, "
             "no spaces. This is visible in URLs and determines the location "
-            "on your file system where the course's git repository lives.",
+            "on your file system where the course's git repository lives."),
             db_index=True)
 
     hidden = models.BooleanField(
             default=True,
-            help_text="Is the course only accessible to course staff?")
+            help_text=_("Is the course only accessible to course staff?"))
     listed = models.BooleanField(
             default=True,
-            help_text="Should the course be listed on the main page?")
+            help_text=_("Should the course be listed on the main page?"))
     accepts_enrollment = models.BooleanField(
             default=True)
     valid = models.BooleanField(
             default=True,
-            help_text="Whether the course content has passed validation.")
+            help_text=_("Whether the course content has passed validation."))
 
     git_source = models.CharField(max_length=200, blank=True,
-            help_text="A Git URL from which to pull course updates. "
+            help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
             "<tt>git://github.com/inducer/relate-sample</tt> "
-            "to get some sample content.")
+            "to get some sample content."))
     ssh_private_key = models.TextField(blank=True,
-            help_text="An SSH private key to use for Git authentication. "
-            "Not needed for the sample URL above.")
+            help_text=_("An SSH private key to use for Git authentication. "
+            "Not needed for the sample URL above."))
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
-            help_text="Name of a YAML file in the git repository that contains "
-            "the root course descriptor.")
+            help_text=_("Name of a YAML file in the git repository that contains "
+            "the root course descriptor."))
     events_file = models.CharField(max_length=200,
             default="events.yml",
-            help_text="Name of a YAML file in the git repository that contains "
-            "calendar information.")
+            help_text=_("Name of a YAML file in the git repository that contains "
+            "calendar information."))
 
     enrollment_approval_required = models.BooleanField(
             default=False,
-            help_text="If set, each enrolling student must be "
-            "individually approved.")
+            help_text=_("If set, each enrolling student must be "
+            "individually approved."))
     enrollment_required_email_suffix = models.CharField(
             max_length=200, blank=True, null=True,
-            help_text="Enrollee's email addresses must end in the "
-            "specified suffix, such as '@illinois.edu'.")
+            help_text=_("Enrollee's email addresses must end in the "
+            "specified suffix, such as '@illinois.edu'."))
 
     from_email = models.EmailField(
-            help_text="This email address will be used in the 'From' line "
-            "of automated emails sent by RELATE.")
+            help_text=_("This email address will be used in the 'From' line "
+            "of automated emails sent by RELATE."))
 
     notify_email = models.EmailField(
-            help_text="This email address will receive "
-            "notifications about the course.")
+            help_text=_("This email address will receive "
+            "notifications about the course."))
 
     # {{{ XMPP
 
     course_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
-            help_text="(Required only if the instant message feature is desired.) "
+            help_text=_("(Required only if the instant message feature is desired.) "
             "The Jabber/XMPP ID (JID) the course will use to sign in to an "
-            "XMPP server.")
+            "XMPP server."))
     course_xmpp_password = models.CharField(max_length=200, blank=True, null=True,
-            help_text="(Required only if the instant message feature is desired.) "
-            "The password to go with the JID above.")
+            help_text=_("(Required only if the instant message feature is desired.) "
+            "The password to go with the JID above."))
 
     recipient_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
-            help_text="(Required only if the instant message feature is desired.) "
-            "The JID to which instant messages will be sent.")
+            help_text=_("(Required only if the instant message feature is desired.) "
+            "The JID to which instant messages will be sent."))
 
     # }}}
 
@@ -232,8 +233,8 @@ class Event(models.Model):
     end_time = models.DateTimeField(null=True, blank=True)
 
     all_day = models.BooleanField(default=False,
-            help_text="Only affects the rendering in the class calendar, "
-            "in that a start time is not shown")
+            help_text=_("Only affects the rendering in the class calendar, "
+            "in that a start time is not shown"))
 
     shown_in_calendar = models.BooleanField(default=True)
 
@@ -256,15 +257,15 @@ class ParticipationTag(models.Model):
     course = models.ForeignKey(Course)
 
     name = models.CharField(max_length=100, unique=True,
-            help_text="Format is lower-case-with-hyphens. "
-            "Do not use spaces.")
+            help_text=_("Format is lower-case-with-hyphens. "
+            "Do not use spaces."))
 
     def clean(self):
         import re
         NAME_VALID_RE = re.compile(r"^\w+$")
 
         if NAME_VALID_RE.match(self.name) is None:
-            raise ValidationError({"name": "Name contains invalid characters."})
+            raise ValidationError({"name": _("Name contains invalid characters.")})
 
     def __unicode__(self):
         return "%s (%s)" % (self.name, self.course)
@@ -281,10 +282,10 @@ class Participation(models.Model):
     enroll_time = models.DateTimeField(default=now)
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
-            help_text="Instructors may update course content. "
+            help_text=_("Instructors may update course content. "
             "Teaching assistants may access and change grade data. "
             "Observers may access analytics. "
-            "Each role includes privileges from subsequent roles.")
+            "Each role includes privileges from subsequent roles."))
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES)
 
@@ -298,7 +299,8 @@ class Participation(models.Model):
     tags = models.ManyToManyField(ParticipationTag, blank=True)
 
     def __unicode__(self):
-        return "%s in %s as %s" % (
+        # somebody in some course as role
+        return _("%s in %s as %s") % (
                 self.user, self.course, self.role)
 
     class Meta:
@@ -316,7 +318,8 @@ class ParticipationPreapproval(models.Model):
     creation_time = models.DateTimeField(default=now, db_index=True)
 
     def __unicode__(self):
-        return "%s in %s" % (self.email, self.course)
+        # someboy in some course
+        return _("%s in %s") % (self.email, self.course)
 
     class Meta:
         unique_together = (("course", "email"),)
@@ -371,11 +374,11 @@ class FlowSession(models.Model):
 
     def __unicode__(self):
         if self.participation is None:
-            return "anonymous session %d on '%s'" % (
+            return _("anonymous session %d on '%s'") % (
                     self.id,
                     self.flow_id)
         else:
-            return "%s's session %d on '%s'" % (
+            return _("%s's session %d on '%s'") % (
                     self.participation.user,
                     self.id,
                     self.flow_id)
@@ -432,7 +435,7 @@ class FlowPageData(models.Model):
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
-        return "Data for page '%s/%s' (ordinal %s) in %s" % (
+        return _("Data for page '%s/%s' (ordinal %s) in %s") % (
                 self.group_id,
                 self.page_id,
                 self.ordinal,
@@ -475,7 +478,7 @@ class FlowPageVisit(models.Model):
     is_submitted_answer = models.NullBooleanField()
 
     def __unicode__(self):
-        result = "'%s/%s' in '%s' on %s" % (
+        result = _("'%s/%s' in '%s' on %s") % (
                 self.page_data.group_id,
                 self.page_data.page_id,
                 self.flow_session,
@@ -528,11 +531,11 @@ class FlowPageVisitGrade(models.Model):
     # for code questions, for example) to recompute.
 
     max_points = models.FloatField(null=True, blank=True,
-            help_text="Point value of this question when receiving "
-            "full credit.")
+            help_text=_("Point value of this question when receiving "
+            "full credit."))
     correctness = models.FloatField(null=True, blank=True,
-            help_text="Real number between zero and one (inclusively) "
-            "indicating the degree of correctness of the answer.")
+            help_text=_("Real number between zero and one (inclusively) "
+            "indicating the degree of correctness of the answer."))
 
     # This JSON object has fields corresponding to
     # :class:`course.page.AnswerFeedback`, except for
@@ -560,7 +563,7 @@ class FlowPageVisitGrade(models.Model):
         ordering = ("visit", "grade_time")
 
     def __unicode__(self):
-        return "grade of %s: %s" % (
+        return _("grade of %s: %s") % (
                 self.visit, self.percentage())
 
 
@@ -632,10 +635,10 @@ class FlowAccessException(models.Model):
     expiration = models.DateTimeField(blank=True, null=True)
 
     stipulations = JSONField(blank=True, null=True,
-            help_text="A dictionary of the same things that can be added "
+            help_text=_("A dictionary of the same things that can be added "
             "to a flow access rule, such as allowed_session_count or "
             "credit_percent. If not specified here, values will default "
-            "to the stipulations in the course content.",
+            "to the stipulations in the course content."),
             validators=[validate_stipulations])
 
     creator = models.ForeignKey(User, null=True)
@@ -643,14 +646,14 @@ class FlowAccessException(models.Model):
 
     is_sticky = models.BooleanField(
             default=False,
-            help_text="Check if a flow started under this "
+            help_text=_("Check if a flow started under this "
             "exception rule set should stay "
-            "under this rule set until it is expired.")
+            "under this rule set until it is expired."))
 
     comment = models.TextField(blank=True, null=True)
 
     def __unicode__(self):
-        return "Access exception for '%s' to '%s' in '%s'" % (
+        return _("Access exception for '%s' to '%s' in '%s'") % (
                 self.participation.user, self.flow_id,
                 self.participation.course)
 
@@ -664,7 +667,7 @@ class FlowAccessExceptionEntry(models.Model):
             choices=FLOW_PERMISSION_CHOICES)
 
     class Meta:
-        verbose_name_plural = "flow access exception entries"
+        verbose_name_plural = _("flow access exception entries")
 
     def __unicode__(self):
         return self.permission
@@ -688,7 +691,7 @@ class FlowRuleException(models.Model):
     active = models.BooleanField(default=True)
 
     def __unicode__(self):
-        return "%s exception for '%s' to '%s' in '%s'" % (
+        return _("%s exception for '%s' to '%s' in '%s'") % (
                 self.kind,
                 self.participation.user, self.flow_id,
                 self.participation.course)
@@ -696,7 +699,7 @@ class FlowRuleException(models.Model):
     def clean(self):
         if (self.kind == flow_rule_kind.grading
                 and self.expiration is not None):
-            raise ValidationError("grading rules may not expire")
+            raise ValidationError(_("grading rules may not expire"))
 
         from course.validation import (
                 ValidationError as ContentValidationError,
@@ -734,10 +737,10 @@ class FlowRuleException(models.Model):
             elif self.kind == flow_rule_kind.grading:
                 validate_session_grading_rule(ctx, unicode(self), rule, tags)
             else:
-                raise ValidationError("invalid rule kind: "+self.kind)
+                raise ValidationError(_("invalid rule kind: ")+self.kind)
 
         except ContentValidationError as e:
-            raise ValidationError("invalid existing_session_rules: "+str(e))
+            raise ValidationError(_("invalid existing_session_rules: ")+str(e))
 
 # }}}
 
@@ -748,13 +751,13 @@ class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course)
 
     identifier = models.CharField(max_length=200, blank=False, null=False,
-            help_text="A symbolic name for this grade. "
-            "lower_case_with_underscores, no spaces.")
+            help_text=_("A symbolic name for this grade. "
+            "lower_case_with_underscores, no spaces."))
     name = models.CharField(max_length=200, blank=False, null=False,
-            help_text="A human-readable identifier for the grade.")
+            help_text=_("A human-readable identifier for the grade."))
     flow_id = models.CharField(max_length=200, blank=True, null=True,
-            help_text="Flow identifier that this grading opportunity "
-            "is linked to, if any")
+            help_text=_("Flow identifier that this grading opportunity "
+            "is linked to, if any"))
 
     aggregation_strategy = models.CharField(max_length=20,
             choices=GRADE_AGGREGATION_STRATEGY_CHOICES)
@@ -771,7 +774,7 @@ class GradingOpportunity(models.Model):
         unique_together = (("course", "identifier"),)
 
     def __unicode__(self):
-        return "%s (%s) in %s" % (self.name, self.identifier, self.course)
+        return _("%s (%s) in %s") % (self.name, self.identifier, self.course)
 
 
 class GradeChange(models.Model):
@@ -790,9 +793,9 @@ class GradeChange(models.Model):
             choices=GRADE_STATE_CHANGE_CHOICES)
 
     attempt_id = models.CharField(max_length=50, null=True, blank=True,
-            help_text="Grade changes are grouped by their 'attempt ID' "
+            help_text=_("Grade changes are grouped by their 'attempt ID' "
             "where later grades with the same attempt ID supersede earlier "
-            "ones.")
+            "ones."))
 
     points = models.DecimalField(max_digits=10, decimal_places=2,
             blank=True, null=True)
@@ -812,13 +815,13 @@ class GradeChange(models.Model):
         ordering = ("opportunity", "participation", "grade_time")
 
     def __unicode__(self):
-        return "%s %s on %s" % (self.participation, self.state,
+        return _("%s %s on %s") % (self.participation, self.state,
                 self.opportunity.name)
 
     def clean(self):
         if self.opportunity.course != self.participation.course:
-            raise ValidationError("Participation and opportunity must live "
-                    "in the same course")
+            raise ValidationError(_("Participation and opportunity must live "
+                    "in the same course"))
 
     def percentage(self):
         if self.max_points is not None and self.points is not None:
@@ -864,11 +867,11 @@ class GradeStateMachine(object):
 
         if gchange.state == grade_state_change_types.graded:
             if self.state == grade_state_change_types.unavailable:
-                raise ValueError("cannot accept grade once opportunity has been "
-                        "marked 'unavailable'")
+                raise ValueError(_("cannot accept grade once opportunity has been "
+                        "marked 'unavailable'"))
             if self.state == grade_state_change_types.exempt:
-                raise ValueError("cannot accept grade once opportunity has been "
-                        "marked 'exempt'")
+                raise ValueError(_("cannot accept grade once opportunity has been "
+                        "marked 'exempt'"))
 
             #if self.due_time is not None and gchange.grade_time > self.due_time:
                 #raise ValueError("cannot accept grade after due date")
@@ -909,7 +912,7 @@ class GradeStateMachine(object):
                 ]:
             pass
         else:
-            raise RuntimeError("invalid grade change state '%s'" % gchange.state)
+            raise RuntimeError(_("invalid grade change state '%s'") % gchange.state)
 
     def consume(self, iterable, set_is_superseded=False):
         for gchange in iterable:
@@ -945,13 +948,13 @@ class GradeStateMachine(object):
         elif strategy == grade_aggregation_strategy.use_latest:
             return self.valid_percentages[-1]
         else:
-            raise ValueError("invalid grade aggregation strategy '%s'" % strategy)
+            raise ValueError(_("invalid grade aggregation strategy '%s'") % strategy)
 
     def stringify_state(self):
         if self.state is None:
             return u"- ∅ -"
         elif self.state == grade_state_change_types.exempt:
-            return "(exempt)"
+            return "_((exempt))"
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
                 result = "%.1f%%" % self.percentage()
@@ -961,7 +964,7 @@ class GradeStateMachine(object):
             else:
                 return u"- ∅ -"
         else:
-            return "(other state)"
+            return "_((other state))"
 
     def stringify_machine_readable_state(self):
         if self.state is None:

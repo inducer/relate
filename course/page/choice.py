@@ -105,7 +105,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
             try:
                 choice = str(choice)
             except:
-                raise ValidationError("%s, choice %d: unable to convert to string"
+                raise ValidationError(_("%s, choice %d: unable to convert to string")
                         % (location, choice_idx+1))
 
             if choice.startswith(self.CORRECT_TAG):
@@ -116,8 +116,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                         remove_prefix(self.CORRECT_TAG, choice))
 
         if correct_choice_count < 1:
-            raise ValidationError("%s: one or more correct answer(s) "
-                    "expected, %d found" % (location, correct_choice_count))
+            raise ValidationError(_("%s: one or more correct answer(s) "
+                    "expected, %d found") % (location, correct_choice_count))
 
     def required_attrs(self):
         return super(ChoiceQuestion, self).required_attrs() + (
@@ -190,7 +190,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.")
+                    feedback=_("No answer provided."))
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]

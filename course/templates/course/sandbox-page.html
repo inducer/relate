@@ -23,7 +23,7 @@
         Please make sure to retain a copy.
       </div>
 
-      <h1>Page Sandbox</h1>
+      <h1>{% trans "Page Sandbox" %}</h1>
 
       {% if page_errors %}
         <div class="alert alert-danger">
@@ -69,7 +69,7 @@
           </div>
         {% endif %}
       {% else %}
-        <span class="text-muted" style="margin-top:30px">(Page preview appears here)</span>
+        <span class="text-muted" style="margin-top:30px">{% trans "(Page preview appears here)" %}</span>
       {% endif %}
     </div>
   </div>

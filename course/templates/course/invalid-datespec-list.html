@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block content %}
-  <h1>Event validity check</h1>
+  <h1>{% trans "Event validity check" %}</h1>
 
   {% if invalid_datespecs %}
     The following events were found in course content that are not present
@@ -19,7 +19,7 @@
     </ul>
     <div class="alert alert-warning">
       <p>
-      <b>Unrecognized events were found.</b>
+      <b>{% trans "Unrecognized events were found." %}</b>
       </p>
 
       <p>

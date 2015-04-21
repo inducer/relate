@@ -54,8 +54,8 @@ class FileUploadForm(StyledForm):
 
         if uploaded_file._size > self.max_file_size:
             raise forms.ValidationError(
-                    _("Please keep file size under %s. ")
-                    _("Current filesize is %s.")
+                    _("Please keep file size under %s. "
+                    "Current filesize is %s.")
                     % (filesizeformat(self.max_file_size),
                         filesizeformat(uploaded_file._size)))
 
@@ -141,13 +141,13 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
-            raise ValidationError("%s: unrecognized mime types '%s'"
+            raise ValidationError(_("%s: unrecognized mime types '%s'")
                     % (location, ", ".join(
                         set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))))
 
         if not hasattr(page_desc, "value"):
-            vctx.add_warning(location, _("upload question does not have ")
-                    _("assigned point value"))
+            vctx.add_warning(location, _("upload question does not have "
+                    "assigned point value"))
 
     def required_attrs(self):
         return super(FileUploadQuestion, self).required_attrs() + (

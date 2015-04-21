@@ -3,10 +3,10 @@
 
 {% block content %}
   <div class="jumbotron">
-    <h1>Welcome to RELATE</h1>
-    <p>RELATE is an Environment for Learning And TEaching</p>
+    <h1>{% trans "Welcome to RELATE" %}</h1>
+    <p>{% trans "RELATE is an Environment for Learning And TEaching" %}</p>
     <p>
-    <a class="btn btn-lg btn-primary" href="https://github.com/inducer/relate" role="button">Learn more &raquo;</a>
+    <a class="btn btn-lg btn-primary" href="https://github.com/inducer/relate" role="button">{% trans "Learn more" %} &raquo;</a>
     </p>
   </div>
 
@@ -17,10 +17,10 @@
           <h3>{{desc.number}} {{desc.run}}</h3>
           <p>{{desc.name}}</p>
           {% if invalid %}
-            <div class="alert alert-warning">The course content has not yet been validated.</div>
-            <p><a class="btn btn-default" href="{% url 'course.versioning.fetch_course_updates' course.identifier %}" role="button">Update &raquo;</a></p>
+            <div class="alert alert-warning">{% trans "The course content has not yet been validated." %}</div>
+            <p><a class="btn btn-default" href="{% url 'course.versioning.fetch_course_updates' course.identifier %}" role="button">{% trans "Update" %} &raquo;</a></p>
           {% else %}
-            <p><a class="btn btn-default" href="{% url 'course.views.course_page' course.identifier %}" role="button">View &raquo;</a></p>
+            <p><a class="btn btn-default" href="{% url 'course.views.course_page' course.identifier %}" role="button">{% trans "View" %} &raquo;</a></p>
           {% endif %}
         </div>
       {% endfor %}
@@ -28,11 +28,11 @@
   {% else %}
     There are no courses hosted on this RELATE site.
     {% if not user.is_authenticated %}
-      <a href="{% url "relate-sign_in_by_user_pw" %}">Sign in</a> to get started.
+      <a href="{% url "relate-sign_in_by_user_pw" %}">{% trans "Sign in" %}</a> to get started.
     {% endif %}
   {% endif %}
   {% if user.is_staff %}
     <hr>
-    <a class="btn btn-primary" href="{% url 'course.versioning.set_up_new_course' %}"" role="button">Set up new course &raquo;</a></p>
+    <a class="btn btn-primary" href="{% url 'course.versioning.set_up_new_course' %}"" role="button">{% trans "Set up new course" %} &raquo;</a></p>
   {% endif %}
 {% endblock %}

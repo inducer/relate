@@ -22,22 +22,22 @@
         {% if page_data.ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-            role="button">&laquo; Previous</a>
+            role="button">{% trans "&laquo; Previous" %}</a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
             href="#"
-            role="button">&laquo; Previous</a>
+            role="button">{% trans "&laquo; Previous" %}</a>
         {% endif %}
         {% if page_data.next_ordinal < flow_session.page_count %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-            role="button">Next &raquo;</a>
+            role="button">{% trans "Next" %} &raquo;</a>
         {% else %}
-          <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session &raquo; </button>
+          <button type="submit" name="finish" class="btn btn-default relate-nav-button">{% trans "End session" %} &raquo; </button>
         {% endif %}
       </div>
       <div style="float:right">
-        <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session</button>
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button">{% trans "End session" %}</button>
       </div>
       {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
         <div class="flow-session-expiration-panel">

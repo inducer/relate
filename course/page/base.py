@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 import django.forms as forms
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 import re
 
@@ -74,12 +74,12 @@ def get_auto_feedback(correctness):
     elif correctness == 1:
         return _("Your answer is correct.")
     elif correctness > 0.5:
-        return "Your answer is mostly correct. (%.1f %%)" \
+        return _("Your answer is mostly correct. (%.1f %%)") \
                 % (100*correctness)
     elif correctness is None:
         return _("(No information on correctness of answer.)")
     else:
-        return "Your answer is somewhat correct. (%.1f %%)" \
+        return _("Your answer is somewhat correct. (%.1f %%)") \
                 % (100*correctness)
 
 
@@ -490,7 +490,7 @@ class PageBaseWithTitle(PageBase):
 
         if title is None:
             raise ValidationError(
-                    "%s: no title found in body or title attribute"
+                    _("%s: no title found in body or title attribute")
                     % (location))
 
         self._title = title
@@ -544,8 +544,8 @@ class HumanTextFeedbackForm(StyledForm):
             self.fields["grade_points"] = forms.FloatField(
                     min_value=0,
                     max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
-                    help_text="Grade assigned, as points out of %.1f. "
-                    "Fill out either this or 'grade percent'." % point_value,
+                    help_text=_("Grade assigned, as points out of %.1f. "
+                    "Fill out either this or 'grade percent'.") % point_value,
                     required=False,
 
                     # avoid unfortunate scroll wheel accidents reported by graders
@@ -554,15 +554,15 @@ class HumanTextFeedbackForm(StyledForm):
         self.fields["feedback_text"] = forms.CharField(
                 widget=forms.Textarea(),
                 required=False,
-                help_text=mark_safe("Feedback to be shown to student, using "
+                help_text=mark_safe(_("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
-                    "RELATE-flavored Markdown</a>"))
+                    "RELATE-flavored Markdown</a>")))
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
-                help_text="Checking this box and submitting the form "
+                help_text=_("Checking this box and submitting the form "
                 "will notify the participant "
-                "with a generic message containing the feedback text")
+                "with a generic message containing the feedback text"))
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
                 help_text=_("Internal notes, not shown to student"),
@@ -578,8 +578,8 @@ class HumanTextFeedbackForm(StyledForm):
             direct_percent = grade_percent
 
             if abs(points_percent - direct_percent) > 0.1:
-                raise FormValidationError("Grade (percent) and Grade (points) "
-                        "disagree")
+                raise FormValidationError(_("Grade (percent) and Grade (points) "
+                        "disagree"))
 
         super(StyledForm, self).clean()
 
@@ -592,8 +592,8 @@ class HumanTextFeedbackForm(StyledForm):
             direct_percent = self.cleaned_data["grade_percent"]
 
             if abs(points_percent - direct_percent) > 0.1:
-                raise RuntimeError("Grade (percent) and Grade (points) "
-                        "disagree")
+                raise RuntimeError(_("Grade (percent) and Grade (points) "
+                        "disagree"))
 
             return max(points_percent, direct_percent)
         elif self.cleaned_data["grade_percent"] is not None:
@@ -696,7 +696,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.")
+                    feedback=_("No answer provided."))
 
         if grade_data is None:
             return None

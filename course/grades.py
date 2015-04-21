@@ -339,11 +339,11 @@ class ModifySessionsForm(StyledForm):
         self.fields["past_due_only"] = forms.BooleanField(
                 required=False,
                 initial=True,
-                help_text="Only act on in-progress sessions that are past "
-                "their access rule's due date (applies to 'expire' and 'end')")
+                help_text=_("Only act on in-progress sessions that are past "
+                "their access rule's due date (applies to 'expire' and 'end')"))
 
         self.helper.add_input(
-                Submit("expire", "Expire sessions",
+                Submit("expire", _("Expire sessions"),
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
                 Submit("end", _("End sessions and grade")))
@@ -490,7 +490,7 @@ def view_grades_by_opportunity(pctx, opp_id):
             elif "recalculate" in request.POST:
                 op = "recalculate"
             else:
-                raise SuspiciousOperation("invalid operation")
+                raise SuspiciousOperation(_("invalid operation"))
 
             if batch_session_ops_form.is_valid():
                 rule_tag = batch_session_ops_form.cleaned_data["rule_tag"]
@@ -506,7 +506,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 past_due_only=past_due_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "%d session(s) expired." % count)
+                                _("%d session(s) expired.") % count)
 
                     elif op == "end":
                         count = finish_in_progress_sessions(
@@ -515,7 +515,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 past_due_only=past_due_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "%d session(s) ended." % count)
+                                _("%d session(s) ended.") % count)
 
                     elif op == "regrade":
                         count = regrade_ended_sessions(
@@ -523,7 +523,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "%d session(s) regraded." % count)
+                                _("%d session(s) regraded.") % count)
 
                     elif op == "recalculate":
                         count = recalculate_ended_sessions(
@@ -531,13 +531,13 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "Grade recalculated for %d session(s)." % count)
+                                _("Grade recalculated for %d session(s).") % count)
 
                     else:
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
-                            "Error: %s %s" % (type(e).__name__, str(e)))
+                            _("Error: %s %s") % (type(e).__name__, str(e)))
                     raise
 
         else:
@@ -761,11 +761,11 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                             _("Session grade recalculated."))
 
                 else:
-                    raise SuspiciousOperation("invalid session operation")
+                    raise SuspiciousOperation(_("invalid session operation"))
 
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        "Error: %s %s" % (type(e).__name__, str(e)))
+                        _("Error: %s %s") % (type(e).__name__, str(e)))
     else:
         allow_session_actions = False
 
@@ -847,8 +847,8 @@ class ImportGradesForm(StyledForm):
             queryset=(GradingOpportunity.objects
                 .filter(course=course)
                 .order_by("identifier")),
-            help_text="Click to <a href='%s' target='_blank'>create</a> "
-            "a new grading opportunity. Reload this form when done."
+            help_text=_("Click to <a href='%s' target='_blank'>create</a> "
+            "a new grading opportunity. Reload this form when done.")
             % reverse("admin:course_gradingopportunity_add"))
 
         self.fields["attempt_id"] = forms.CharField(
@@ -858,28 +858,28 @@ class ImportGradesForm(StyledForm):
 
         self.fields["format"] = forms.ChoiceField(
                 choices=(
-                    ("csvhead", "CSV with Header"),
+                    ("csvhead", _("CSV with Header")),
                     ("csv", "CSV"),
                     ))
 
         self.fields["id_column"] = forms.IntegerField(
-                help_text="1-based column index for the Email or NetID "
-                "used to locate student record",
+                help_text=_("1-based column index for the Email or NetID "
+                "used to locate student record"),
                 min_value=1)
         self.fields["points_column"] = forms.IntegerField(
-                help_text="1-based column index for the (numerical) grade",
+                help_text=_("1-based column index for the (numerical) grade"),
                 min_value=1)
         self.fields["feedback_column"] = forms.IntegerField(
-                help_text="1-based column index for further (textual) feedback",
+                help_text=_("1-based column index for further (textual) feedback"),
                 min_value=1, required=False)
         self.fields["max_points"] = forms.DecimalField(
             initial=100)
 
         self.helper.add_input(
-                Submit("preview", "Preview",
+                Submit("preview", _("Preview"),
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("import", "Import"))
+                Submit("import", _("Import")))
 
 
 class ParticipantNotFound(ValueError):
@@ -913,10 +913,10 @@ def find_participant_from_id(course, id_str):
 
     if not surviving_matches:
         raise ParticipantNotFound(
-                "no participant found for '%s'" % id_str)
+                _("no participant found for '%s'") % id_str)
     if len(surviving_matches) > 1:
         raise ParticipantNotFound(
-                "more than one participant found for '%s'" % id_str)
+                _("more than one participant found for '%s'") % id_str)
 
     return surviving_matches[0]
 
@@ -996,7 +996,7 @@ def csv_to_grade_changes(
                     updated.append("comment")
 
                 if updated:
-                    log_lines.append("%s: %s updated" % (
+                    log_lines.append(_("%s: %s updated") % (
                         gchange.participation,
                         ", ".join(updated)))
 
@@ -1045,11 +1045,11 @@ def import_grades(pctx):
                         has_header=form.cleaned_data["format"] == "csvhead")
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        "Error: %s %s" % (type(e).__name__, str(e)))
+                        _("Error: %s %s") % (type(e).__name__, str(e)))
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
-                            "%d grades found, %d unchanged."
+                            _("%d grades found, %d unchanged.")
                             % (total_count, total_count - len(grade_changes)))
 
                 from django.template.loader import render_to_string
@@ -1062,7 +1062,7 @@ def import_grades(pctx):
                                 "log_lines": log_lines,
                                 })
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "%d grades imported." % len(grade_changes))
+                            _("%d grades imported.") % len(grade_changes))
                 else:
                     form_text = render_to_string(
                             "course/grade-import-preview.html", {
@@ -1075,7 +1075,7 @@ def import_grades(pctx):
         form = ImportGradesForm(pctx.course)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
-        "form_description": "Import Grade Data",
+        "form_description": _("Import Grade Data"),
         "form": form,
         "form_text": form_text,
         })

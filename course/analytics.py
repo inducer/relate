@@ -56,8 +56,8 @@ def flow_list(pctx):
 
     cursor = connection.cursor()
 
-    cursor.execute("select distinct flow_id from course_flowsession "
-            "where course_id=%s order by flow_id",
+    cursor.execute(_("select distinct flow_id from course_flowsession "
+            "where course_id=%s order by flow_id"),
             [pctx.course.id])
     flow_ids = [row[0] for row in cursor.fetchall()]
 
@@ -97,14 +97,14 @@ class Histogram(object):
             self.string_weights[value] = \
                     self.string_weights.get(value, 0) + weight
         elif value is None:
-            self.add_data_point("(None)", weight)
+            self.add_data_point(_("(None)"), weight)
         else:
             if (self.num_max_value is not None
                     and value > self.num_max_value):
-                self.add_data_point("(value greater than max)", weight)
+                self.add_data_point(_("(value greater than max)"), weight)
             elif (self.num_min_value is not None
                     and value < self.num_min_value):
-                self.add_data_point("(value smaller than min)", weight)
+                self.add_data_point(_("(value smaller than min)"), weight)
             else:
                 self.num_values.append((value, weight))
 
@@ -147,7 +147,7 @@ class Histogram(object):
 
         temp_string_weights = self.string_weights.copy()
 
-        oob = "<out of bounds>"
+        oob = _("<out of bounds>")
 
         from bisect import bisect
         for value, weight in self.num_values:
@@ -218,7 +218,7 @@ def make_grade_histogram(pctx, flow_id):
         num_max_value=100)
     for session in qset:
         if session.in_progress:
-            hist.add_data_point("<in progress>")
+            hist.add_data_point(_("<in progress>"))
         else:
             hist.add_data_point(session.points_percentage())
 
@@ -349,7 +349,7 @@ def make_time_histogram(pctx, flow_id):
             num_bin_title_formatter=lambda minutes: "$>$ %.1f min" % minutes)
     for session in qset:
         if session.in_progress:
-            hist.add_data_point("<in progress>")
+            hist.add_data_point(_("<in progress>"))
         else:
             delta = session.completion_time - session.start_time
             minutes = delta.total_seconds() / 60

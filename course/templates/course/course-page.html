@@ -3,7 +3,7 @@
 
 {% block page_navbar %}
   <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Jump to<b class="caret"></b></a>
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Jump to" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
     {% for chunk in course_desc.chunks %}
       <li><a href="#{{chunk.id}}">{{chunk.title}}</a></li>
@@ -17,7 +17,7 @@
     <div class="alert alert-info">
       This course is only visible to course staff at the moment.
       <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
-        role="button" target="_blank">Change &raquo;</a>
+        role="button" target="_blank">{% trans "Change" %} &raquo;</a>
     </div>
   {% endif %}
   {% if not course.valid %}
@@ -25,7 +25,7 @@
       There may be a problem with the validity of course data, which may lead
       to students encountering unexpected errors.
       <a class="btn btn-primary" href="{% url "relate-update_course" course.identifier %}"
-        role="button">Update &raquo;</a>
+        role="button">{% trans "Update" %} &raquo;</a>
     </div>
   {% endif %}
 
@@ -33,7 +33,7 @@
     <div class="well">
       You're not currently signed in.
       <a class="btn btn-primary" href="{% url student_sign_in_view %}"
-        role="button">Sign in &raquo;</a>
+        role="button">{% trans "Sign in" %} &raquo;</a>
     </div>
   {% else %}
 
@@ -42,7 +42,7 @@
         <form method="POST" action="{% url "relate-enroll" course.identifier %}">
           {% csrf_token %}
           <button type="submit" name="enroll" class="btn btn-primary">
-            Enroll &raquo;
+            {% trans "Enroll" %} &raquo;
           </button>
         </form>
       </div>

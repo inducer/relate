@@ -18,21 +18,21 @@
 
 {% block content %}
   {% if grade_participation.pk == participation.pk %}
-    <h1>My Grades</h1>
+    <h1>{% trans "My Grades" %}</h1>
   {% else %}
-    <h1>Grades</h1>
+    <h1>{% trans "Grades" %}</h1>
 
     <table class="table table-condensed">
       <thead>
-        <th>Property</th><th>Value</th>
+        <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
       </thead>
       <tbody>
       <tr>
-        <td>Username</td>
+        <td>{% trans "Username" %}</td>
         <td>{{ grade_participation.user.username }}</td>
       </tr>
       <tr>
-        <td>Name</td>
+        <td>{% trans "Name" %}</td>
         <td>
           {{ grade_participation.user.last_name }}, {{ grade_participation.user.first_name }}
         </td>
@@ -42,9 +42,9 @@
 
   <table class="gradebook-single">
     <thead>
-      <th>Name</th>
-      <th>Grade</th>
-      <th>Date</th>
+      <th>{% trans "Name" %}</th>
+      <th>{% trans "Grade" %}</th>
+      <th>{% trans "Date" %}</th>
     </thead>
     <tbody>
       {% for grade_info in grade_table %}

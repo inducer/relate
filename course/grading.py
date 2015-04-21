@@ -196,7 +196,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         from crispy_forms.layout import Submit
         grading_form.helper.add_input(
                 Submit(
-                    "submit", "Submit",
+                    "submit", _("Submit"),
                     accesskey="s",
                     css_class="col-lg-offset-2 relate-grading-save-button"))
 

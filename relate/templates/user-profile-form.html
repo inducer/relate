@@ -4,7 +4,7 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <h1>User Profile</h1>
+  <h1>{% trans "User Profile" %}</h1>
   <div class="well">
     {% crispy user_form %}
   </div>
@@ -12,6 +12,6 @@
     {% crispy user_status_form %}
   </div>
   <div class="well">
-    <a href="{% url "relate-logout" %}" class="btn btn-default col-lg-offset-2">Sign out</a>
+    <a href="{% url "relate-logout" %}" class="btn btn-default col-lg-offset-2">{% trans "Sign out" %}</a>
   </div>
 {% endblock %}

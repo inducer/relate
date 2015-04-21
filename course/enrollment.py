@@ -55,7 +55,7 @@ from relate.utils import StyledForm
 @transaction.atomic
 def enroll(request, course_identifier):
     if request.method != "POST":
-        raise SuspiciousOperation("can only enroll using POST request")
+        raise SuspiciousOperation(_("can only enroll using POST request"))
 
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
@@ -75,16 +75,16 @@ def enroll(request, course_identifier):
     if (course.enrollment_required_email_suffix
             and ustatus.status != user_status.active):
         messages.add_message(request, messages.ERROR,
-                "Your email address is not yet confirmed. "
-                "Confirm your email to continue.")
+                _("Your email address is not yet confirmed. "
+                "Confirm your email to continue."))
         return redirect("relate-course_page", course_identifier)
 
     if (course.enrollment_required_email_suffix
             and not user.email.endswith(course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
-                "Enrollment not allowed. Please use your '%s' email to "
-                "enroll." % course.enrollment_required_email_suffix)
+                _("Enrollment not allowed. Please use your '%s' email to "
+                "enroll.") % course.enrollment_required_email_suffix)
         return redirect("relate-course_page", course_identifier)
 
     def enroll(status, role):
@@ -129,19 +129,19 @@ def enroll(request, course_identifier):
                     reverse("admin:course_participation_changelist"))
             })
         from django.core.mail import send_mail
-        send_mail("[%s] New enrollment request" % course_identifier,
+        send_mail(_("[%s] New enrollment request") % course_identifier,
                 message,
                 settings.ROBOT_EMAIL_FROM,
                 recipient_list=[course.notify_email])
 
         messages.add_message(request, messages.INFO,
-                "Enrollment request sent. You will receive notifcation "
-                "by email once your request has been acted upon.")
+                _("Enrollment request sent. You will receive notifcation "
+                "by email once your request has been acted upon."))
     else:
         enroll(participation_status.active, role)
 
         messages.add_message(request, messages.SUCCESS,
-                "Successfully enrolled.")
+                _("Successfully enrolled."))
 
     return redirect("relate-course_page", course_identifier)
 
@@ -175,7 +175,7 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             })
 
         from django.core.mail import EmailMessage
-        msg = EmailMessage("[%s] Your enrollment request" % course.identifier,
+        msg = EmailMessage(_("[%s] Your enrollment request") % course.identifier,
                 message,
                 course.from_email,
                 [participation.user.email])
@@ -185,7 +185,7 @@ def decide_enrollment(approved, modeladmin, request, queryset):
         count += 1
 
     messages.add_message(request, messages.INFO,
-            "%d requests processed." % count)
+            _("%d requests processed.") % count)
 
 
 def approve_enrollment(modeladmin, request, queryset):
@@ -262,7 +262,7 @@ def create_preapprovals(pctx):
                 created_count += 1
 
             messages.add_message(request, messages.INFO,
-                    "%d preapprovals created, %d already existed."
+                    _("%d preapprovals created, %d already existed.")
                     % (created_count, exist_count))
             return redirect("relate-home")
 

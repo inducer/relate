@@ -23,29 +23,29 @@
 
   <table class="table table-condensed">
     <thead>
-      <th>Property</th><th>Value</th>
+      <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
     </thead>
     <tbody>
     <tr>
-      <td>Identifier</td><td><tt>{{ opportunity.identifier }}</tt></td>
+      <td>{% trans "Identifier" %}</td><td><tt>{{ opportunity.identifier }}</tt></td>
     </tr>
     <tr>
-      <td>Due</td><td><tt>{{ opportunity.due_time }}</tt></td>
+      <td>{% trans "Due" %}</td><td><tt>{{ opportunity.due_time }}</tt></td>
     </tr>
     <tr>
-      <td>Aggregation strategy</td><td><tt>{{ opportunity.aggregation_strategy }}</tt></td>
+      <td>{% trans "Aggregation strategy" %}</td><td><tt>{{ opportunity.aggregation_strategy }}</tt></td>
     </tr>
     {% if opportunity.flow_id %}
     <tr>
-      <td>Flow</td>
+      <td>{% trans "Flow" %}</td>
       <td>
         <tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
         &middot;
-        <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">Grading statistics</a>
+        <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">{% trans "Grading statistics" %}</a>
       </td>
     </tr>
     <tr>
-      <td>Counts</td>
+      <td>{% trans "Counts" %}</td>
       <td>
         {{ total_sessions }} total sessions
         ({{ finished_sessions }} finished)
@@ -57,10 +57,10 @@
 
   <table class="gradebook-by-opportunity">
     <thead>
-      <th class="datacol">User ID</th>
-      <th class="datacol">Name</th>
-      <th class="datacol">Overall grade</th>
-      <th class="datacol">Sessions</th>
+      <th class="datacol">{% trans "User ID" %}</th>
+      <th class="datacol">{% trans "Name" %}</th>
+      <th class="datacol">{% trans "Overall grade" %}</th>
+      <th class="datacol">{% trans "Sessions" %}</th>
     </thead>
     <tbody>
       {% for participation, grade_info in grade_table %}
@@ -119,7 +119,7 @@
 
   {% if batch_session_ops_form %}
     <div class="well" style="margin-top: 20px">
-      <h3 class="start-well-title">Batch sessions operations</h3>
+      <h3 class="start-well-title">{% trans "Batch sessions operations" %}</h3>
       {% crispy batch_session_ops_form %}
     </div>
   {% endif %}

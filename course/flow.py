@@ -1399,7 +1399,7 @@ def _regrade_sessions(repo, course, sessions):
 @course_view
 def regrade_not_for_credit_flows_view(pctx):
     if pctx.role != participation_role.instructor:
-        raise PermissionDenied("must be instructor to regrade flows")
+        raise PermissionDenied(_("must be instructor to regrade flows"))
 
     from course.content import list_flow_ids
     flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
@@ -1436,11 +1436,11 @@ def regrade_not_for_credit_flows_view(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text":
-        "<p>This regrading process is only intended for flows "
+        _("<p>This regrading process is only intended for flows "
         "that do not show up in the grade book."
         "If you would like to regrade for-credit flows, "
-        "use the corresponding functionality in the grade book.</p>",
-        "form_description": "Regrade not-for-credit Flow Sessions",
+        "use the corresponding functionality in the grade book.</p>"),
+        "form_description": _("Regrade not-for-credit Flow Sessions"),
     })
 
 

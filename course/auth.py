@@ -23,7 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -143,7 +143,7 @@ def impersonate(request):
             user = User.objects.get(id=form.cleaned_data["user"])
 
             messages.add_message(request, messages.INFO,
-                    "Now impersonating '%s'." % user.username)
+                    _("Now impersonating '%s'.") % user.username)
             request.session['impersonate_id'] = user.id
 
             # Because we'll likely no longer have access to this page.
@@ -300,9 +300,9 @@ def sign_up(request):
             elif User.objects.filter(
                     email__iexact=form.cleaned_data["email"]).count():
                 messages.add_message(request, messages.ERROR,
-                        "That email address is already in use. "
+                        _("That email address is already in use. "
                         "Would you like to "
-                        "<a href='%s'>reset your password</a> instead?"
+                        "<a href='%s'>reset your password</a> instead?")
                         % reverse(
                             "relate-reset_password")),
             else:
@@ -346,7 +346,7 @@ def sign_up(request):
         form = SignUpForm()
 
     return render(request, "generic-form.html", {
-        "form_description": "Sign up",
+        "form_description": _("Sign up"),
         "form": form
         })
 
@@ -395,7 +395,7 @@ def reset_password(request):
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
-            send_mail("[RELATE] Password reset", message,
+            send_mail(_("[RELATE] Password reset"), message,
                     settings.ROBOT_EMAIL_FROM, recipient_list=[email])
 
             messages.add_message(request, messages.INFO,
@@ -406,7 +406,7 @@ def reset_password(request):
         form = ResetPasswordForm()
 
     return render(request, "generic-form.html", {
-        "form_description": "Reset Password",
+        "form_description": _("Reset Password"),
         "form": form
         })
 
@@ -419,7 +419,7 @@ class ResetPasswordStage2Form(StyledForm):
         super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user", "Update",
+                Submit("submit_user", _("Update"),
                     css_class="col-lg-offset-2"))
 
     def clean(self):
@@ -450,7 +450,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
             if not user.is_active:
                 messages.add_message(request, messages.ERROR,
                         _("Account disabled."))
-                raise PermissionDenied("invalid sign-in token")
+                raise PermissionDenied(_("invalid sign-in token"))
 
             user.set_password(form.cleaned_data["password"])
             user.save()
@@ -460,8 +460,8 @@ def reset_password_stage2(request, user_id, sign_in_key):
             if (not (user.first_name and user.last_name)
                     or "to_profile" in request.GET):
                 messages.add_message(request, messages.INFO,
-                        "Successfully signed in. "
-                        "Please complete your registration information below.")
+                        _("Successfully signed in. "
+                        "Please complete your registration information below."))
 
                 return redirect(
                        reverse("relate-user_profile")+"?first_login=1")
@@ -568,8 +568,8 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
     if not (user.first_name and user.last_name):
         messages.add_message(request, messages.INFO,
-                "Successfully signed in. "
-                "Please complete your registration information below.")
+                _("Successfully signed in. "
+                "Please complete your registration information below."))
 
         return redirect(
                reverse("relate-user_profile")+"?first_login=1")

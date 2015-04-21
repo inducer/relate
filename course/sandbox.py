@@ -29,6 +29,7 @@ from django.utils.safestring import mark_safe
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext
 
 from crispy_forms.layout import Submit
 
@@ -58,7 +59,7 @@ class SandboxForm(forms.Form):
                 initial=initial_text,
                 widget=cm_widget,
                 help_text=mark_safe(
-                    help_text + _(" Press Alt/Cmd+(Shift+)P to preview. ")
+                    help_text + ugettext(" Press Alt/Cmd+(Shift+)P to preview. ")
                     + cm_help_text))
 
         self.helper.add_input(
@@ -80,9 +81,9 @@ def view_markup_sandbox(pctx):
     ustatus = get_user_status(request.user)
 
     def make_form(data=None):
-        help_text = ("Enter <a href=\"http://documen.tician.de/"
+        help_text = (_("Enter <a href=\"http://documen.tician.de/"
                 "relate/content.html#relate-markup\">"
-                "RELATE markup</a>.")
+                "RELATE markup</a>."))
         return SandboxForm(
                 None, "markdown", ustatus.editor_mode,
                 help_text,
@@ -102,8 +103,8 @@ def view_markup_sandbox(pctx):
                 tp, e, _ = sys.exc_info()
 
                 messages.add_message(pctx.request, messages.ERROR,
-                        "Markup failed to render: "
-                        "%s: %s" % (tp.__name__, e))
+                        _("Markup failed to render: "
+                        "%s: %s") % (tp.__name__, e))
 
         form = make_form(request.POST)
 
@@ -146,7 +147,7 @@ def view_page_sandbox(pctx):
     def make_form(data=None):
         return SandboxForm(
                 page_source, "yaml", ustatus.editor_mode,
-                _("Enter YAML markup for a flow page."),
+                ugettext("Enter YAML markup for a flow page."),
                 data)
 
     if is_preview_post:
@@ -169,8 +170,8 @@ def view_page_sandbox(pctx):
                 tp, e, _ = sys.exc_info()
 
                 page_errors = (
-                        "Page failed to load/validate: "
-                        "%s: %s" % (tp.__name__, e))
+                        _("Page failed to load/validate: "
+                        "%s: %s") % (tp.__name__, e))
 
             else:
                 # Yay, it did validate.

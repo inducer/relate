@@ -10,37 +10,37 @@
 
   <table class="table table-condensed">
     <thead>
-      <th>Property</th><th>Value</th>
+      <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
     </thead>
     <tbody>
     <tr>
-      <td>Participant</td>
+      <td>{% trans "Participant" %}</td>
       <td>
         {{ grade_participation.user.last_name }}, {{ grade_participation.user.first_name }}
         ({{ grade_participation.user.username }})
       </td>
     </tr>
     <tr>
-      <td>Identifier</td><td><tt>{{ opportunity.identifier }}</tt></td>
+      <td>{% trans "Identifier" %}</td><td><tt>{{ opportunity.identifier }}</tt></td>
     </tr>
     {% if opportunity.due_time != None %}
       <tr>
-        <td>Due</td><td><tt>{{ opportunity.due_time }}</tt></td>
+        <td>{% trans "Due" %}</td><td><tt>{{ opportunity.due_time }}</tt></td>
       </tr>
     {% endif %}
     {% if opportunity.flow_id %}
     <tr>
-      <td>Flow</td><td><tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+      <td>{% trans "Flow" %}</td><td><tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
     </tr>
     {% endif %}
     <tr>
-      <td>Average grade</td>
+      <td>{% trans "Average grade" %}</td>
       <td>
         {% if avg_grade_percentage != None %}
           {{ avg_grade_percentage|floatformat }}%
           (out of {{ avg_grade_population }} grades)
         {% else %}
-          <i>(no data)</i>
+          <i>{% trans "(no data)" %}</i>
         {% endif %}
       </td>
     </tr>
@@ -48,16 +48,16 @@
 
   {# {{{ grade history #}
 
-  <h2>Grade history</h2>
+  <h2>{% trans "Grade history" %}</h2>
   {% if not grade_changes%}
     (no grade data available)
   {% else %}
     <table class="table table-condensed table-striped">
       <thead>
-        <th>Date</th>
-        <th>What</th>
-        <th>Grade</th>
-        <th>Further Information</th>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "What" %}</th>
+        <th>{% trans "Grade" %}</th>
+        <th>{% trans "Further Information" %}</th>
       </thead>
       <tbody>
         {% for gchange in grade_changes %}
@@ -91,7 +91,7 @@
         </tr>
         {% endfor %}
         <tr>
-          <td><b>Overall grade</b></td>
+          <td><b>{% trans "Overall grade" %}</b></td>
           <td></td>
           <td>
             <b>{{ state_machine.stringify_state }}</b>
@@ -109,22 +109,22 @@
   {# {{{ flow-related #}
 
   {% if flow_sessions_and_session_properties %}
-    <h2>Flow sessions</h2>
+    <h2>{% trans "Flow sessions" %}</h2>
 
     <form method="POST">
       {% csrf_token %}
       <table class="table table-condensed table-striped">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>State</th>
-            <th>Due</th>
-            <th>Result</th>
+            <th>{% trans "ID" %}</th>
+            <th>{% trans "State" %}</th>
+            <th>{% trans "Due" %}</th>
+            <th>{% trans "Result" %}</th>
             {% if show_privileged_info %}
-              <th>Pages</th>
+              <th>{% trans "Pages" %}</th>
             {% endif %}
             {% if allow_session_actions %}
-              <th>Actions</th>
+              <th>{% trans "Actions" %}</th>
             {% endif %}
           </tr>
         </thead>
@@ -137,25 +137,25 @@
                 <hr>
                 {% if flow_session.access_rules_tag %}
                   <p>
-                    <b>Grading rules:</b>
+                    <b>{% trans "Grading rules:" %}</b>
                     {% if session_properties.grade_description %}
                       {{ session_properties.grade_description }}
                     {% endif %}
                   </p>
                 {% endif %}
                 <p>
-                  <b>Expiration mode:</b>
+                  <b>{% trans "Expiration mode:" %}</b>
                   <tt>{{ flow_session.expiration_mode  }}</tt>
                 </p>
                 <p>
-                  <b>Started:</b> {{ flow_session.start_time }}
+                  <b>{% trans "Started:" %}</b> {{ flow_session.start_time }}
                 </p>
                 {% if not flow_session.in_progress %}
                   <p>
-                    <b>Completed:</b> {{ flow_session.completion_time }}
+                    <b>{% trans "Completed:" %}</b> {{ flow_session.completion_time }}
                   </p>
                   <p>
-                    <b>Last activity:</b> {{ flow_session.last_activity }}
+                    <b>{% trans "Last activity:" %}</b> {{ flow_session.last_activity }}
                   </p>
                 {% endif %}
               </td>
@@ -183,7 +183,7 @@
                 {% endif %}
                 {% if show_privileged_info and flow_session.result_comment %}
                   <p>
-                  <b> Notes:</b>
+                  <b>{% trans " Notes:" %}</b>
                   {{ flow_session.result_comment|linebreaks }}
                   </p>
                 {% endif %}
@@ -194,10 +194,10 @@
                   <table class="table table-striped table-condensed">
                     <tr>
                       <th></th>
-                      <th>Page ID</th>
-                      <th>Percent</th>
-                      <th>Points</th>
-                      <th>Grader</th>
+                      <th>{% trans "Page ID" %}</th>
+                      <th>{% trans "Percent" %}</th>
+                      <th>{% trans "Points" %}</th>
+                      <th>{% trans "Grader" %}</th>
                     </tr>
                   {% for visit in flow_session.answer_visits %}
                     {% if visit %}
@@ -211,7 +211,7 @@
                           <td>{{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }}</td>
                           <td>{{ visit.get_most_recent_grade.grader.username }} </td>
                         {% else %}
-                          <td>(no grade)</td>
+                          <td>{% trans "(no grade)" %}</td>
                           <td></td>
                           <td></td>
                         {% endif %}

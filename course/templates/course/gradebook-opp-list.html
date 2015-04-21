@@ -16,15 +16,15 @@
 {% endblock %}
 
 {% block content %}
-  <h1>List of Grading Opportunities</h1>
+  <h1>{% trans "List of Grading Opportunities" %}</h1>
 
   <table class="gradebook-opportunities">
     <thead>
-      <th class="datacol">Name</th>
-      <th class="datacol">Flow ID</th>
-      <th class="datacol">Aggregation Strategy</th>
-      <th class="datacol">Due Time</th>
-      <th class="datacol">Shown to students</th>
+      <th class="datacol">{% trans "Name" %}</th>
+      <th class="datacol">{% trans "Flow ID" %}</th>
+      <th class="datacol">{% trans "Aggregation Strategy" %}</th>
+      <th class="datacol">{% trans "Due Time" %}</th>
+      <th class="datacol">{% trans "Shown to students" %}</th>
     </thead>
     <tbody>
       {% for opp in grading_opps %}

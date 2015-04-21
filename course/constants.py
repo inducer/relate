@@ -229,14 +229,14 @@ class grade_state_change_types:
 
 
 GRADE_STATE_CHANGE_CHOICES = (
-        (grade_state_change_types.grading_started, 'Grading started'),
-        (grade_state_change_types.graded, 'Graded'),
-        (grade_state_change_types.retrieved, 'Retrieved'),
-        (grade_state_change_types.unavailable, 'Unavailable'),
-        (grade_state_change_types.extension, 'Extension'),
-        (grade_state_change_types.report_sent, 'Report sent'),
-        (grade_state_change_types.do_over, 'Do-over'),
-        (grade_state_change_types.exempt, 'Exempt'),
+        (grade_state_change_types.grading_started, _('Grading started')),
+        (grade_state_change_types.graded, _('Graded')),
+        (grade_state_change_types.retrieved, _('Retrieved')),
+        (grade_state_change_types.unavailable, _('Unavailable')),
+        (grade_state_change_types.extension, _('Extension')),
+        (grade_state_change_types.report_sent, _('Report sent')),
+        (grade_state_change_types.do_over, _('Do-over')),
+        (grade_state_change_types.exempt, _('Exempt')),
         )
 
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"

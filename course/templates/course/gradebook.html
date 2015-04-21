@@ -17,12 +17,12 @@
 {% endblock %}
 
 {% block content %}
-  <h1>Grade book</h1>
+  <h1>{% trans "Grade book" %}</h1>
 
   <table class="gradebook">
     <thead>
       <th class="headcol"></th>
-      <th class="datacol">Name</th>
+      <th class="datacol">{% trans "Name" %}</th>
       {% for opp in grading_opportunities %}
       <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</th>
       {% endfor %}

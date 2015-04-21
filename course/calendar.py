@@ -88,7 +88,7 @@ class RecurringEventForm(StyledForm):
         super(RecurringEventForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Create", css_class="col-lg-offset-2"))
+                Submit("submit", _("Create"), css_class="col-lg-offset-2"))
 
 
 class EventAlreadyExists(Exception):
@@ -115,7 +115,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         try:
             evt.save()
         except IntegrityError:
-            raise EventAlreadyExists("'%s %d' already exists" % (kind, ordinal))
+            raise EventAlreadyExists(_("'%s %d' already exists") % (kind, ordinal))
 
         if interval == "weekly":
             date = time.date()
@@ -125,7 +125,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
                         time.hour, time.minute, time.second))
             del date
         else:
-            raise ValueError("unknown interval: %s" % interval)
+            raise ValueError(_("unknown interval: %s") % interval)
 
         ordinal += 1
 
@@ -164,7 +164,7 @@ def create_recurring_events(pctx):
                 except EventAlreadyExists as e:
                     if starting_ordinal_specified:
                         messages.add_message(request, messages.ERROR,
-                                "%s: %s. No events created." % (
+                                _("%s: %s. No events created.") % (
                                     type(e).__name__, str(e)))
                     else:
                         starting_ordinal += 10
@@ -172,11 +172,11 @@ def create_recurring_events(pctx):
 
                 except Exception as e:
                     messages.add_message(request, messages.ERROR,
-                            "%s: %s. No events created." % (
+                            _("%s: %s. No events created.") % (
                                 type(e).__name__, str(e)))
                 else:
                     messages.add_message(request, messages.SUCCESS,
-                            "Events created.")
+                            _("Events created."))
 
                 break
     else:
@@ -197,7 +197,7 @@ class RenumberEventsForm(StyledForm):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Renumber", css_class="col-lg-offset-2"))
+                Submit("submit", _("Renumber"), css_class="col-lg-offset-2"))
 
 
 @transaction.atomic
@@ -207,7 +207,7 @@ def renumber_events(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("only instructors and TAs may do that")
+        raise PermissionDenied(_("only instructors and TAs may do that"))
 
     request = pctx.request
 
