@@ -134,7 +134,7 @@ class RELATEPageValidator(object):
                     repo=None,
                     commit_sha=None)
 
-            validate_flow_page(vctx, _("submitted page"), page_desc)
+            validate_flow_page(vctx, "submitted page", page_desc)
 
             if page_desc.type != self.validator_desc.page_type:
                 raise ValidationError(_("page must be of type '%s'")
@@ -145,7 +145,7 @@ class RELATEPageValidator(object):
             tp, e, _ = sys.exc_info()
 
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % (tp.__name__, str(e)))
+                    % {'err_type':tp.__name__, 'err_str':str(e)})
 
 
 TEXT_ANSWER_VALIDATOR_CLASSES = [
@@ -159,7 +159,7 @@ def get_validator_class(location, validator_type):
             return validator_class
 
     raise ValidationError(_("%(location)s: unknown validator type '%(type)s'")
-            % (location, validator_type))
+            % {'location':location, 'type':validator_type})
 
 
 def parse_validator(vctx, location, validator_desc):
@@ -243,8 +243,8 @@ class RegexMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
 
-            raise ValidationError(_("%(location)s: regex '%(patter)s' did not compile: %(err_type)s: %(err_str)s")
-                    % (location, pattern, tp.__name__, str(e)))
+            raise ValidationError(_("%(location)s: regex '%(pattern)s' did not compile: %(err_type)s: %(err_str)s")
+                    % {'location':location, 'pattern':pattern, 'err_type':tp.__name__, 'err_str':str(e)})
 
     def grade(self, s):
         match = self.pattern.match(s)
@@ -290,12 +290,12 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             tp, e, _ = sys.exc_info()
             vctx.add_warning(location, _("%(location)s: unable to check "
                     "symbolic expression (%(err_type)s: %(err_str)s)")
-                    % (location, tp.__name__, str(e)))
+                    % {'location':location, 'err_type':tp.__name__, 'err_str':str(e)})
 
         except:
             tp, e, _ = sys.exc_info()
             raise ValidationError("%(location)s: %(err_type)s: %(err_str)s"
-                    % (location, tp.__name__, str(e)))
+                    % {'location':location, 'err_type':tp.__name__, 'err_str':str(e)})
 
     def validate(self, s):
         try:
@@ -303,7 +303,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % (tp.__name__, str(e)))
+                    % {'err_type':tp.__name__, 'err_str':str(e)})
 
     def grade(self, s):
         from sympy import simplify
@@ -351,7 +351,7 @@ class FloatMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % (tp.__name__, str(e)))
+                    % {'err_type':tp.__name__, 'err_str':str(e)})
 
     def grade(self, s):
         answer_float = float(s)
@@ -392,12 +392,12 @@ def get_matcher_class(location, matcher_type, pattern_type):
 
             if matcher_class.pattern_type != pattern_type:
                 raise ValidationError(_("%(location)s: %(matcherclassname)s only accepts '%(matchertype)s' patterns")
-                        % (location, matcher_class.__name__, pattern_type))
+                        % {'location':location, 'matcherclassname':matcher_class.__name__, 'matchertype':pattern_type})
 
             return matcher_class
 
     raise ValidationError(_("%(location)s: unknown match type '%(matchertype)s'")
-            % (location, matcher_type))
+            % {'location':location, 'matchertype':matcher_type})
 
 
 def parse_matcher_string(vctx, location, matcher_desc):
@@ -480,7 +480,7 @@ class TextQuestionBase(PageBaseWithTitle):
 
         if widget is None:
             raise ValidationError(_("%(location)s: unrecognized widget type '%(type)s'")
-                    % (location, getattr(page_desc, "widget")))
+                    % {'location':location, 'type':getattr(page_desc, "widget")})
 
     def required_attrs(self):
         return super(TextQuestionBase, self).required_attrs() + (

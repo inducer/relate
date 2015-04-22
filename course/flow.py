@@ -526,8 +526,8 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         return finish_flow_session(fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
     else:
-        raise ValueError(_("invalid expiration mode '%(mode)s' on flow session ID %(sessionid)d")
-                % (flow_session.expiration_mode, flow_session.id))
+        raise ValueError(_("invalid expiration mode '%(mode)s' on flow session ID %(session_id)d")
+                % {'mode':flow_session.expiration_mode, 'session_id':flow_session.id})
 
 
 def grade_flow_session(fctx, flow_session, grading_rule,
@@ -554,8 +554,8 @@ def grade_flow_session(fctx, flow_session, grading_rule,
             and grading_rule.credit_percent is not None
             and grading_rule.credit_percent != 100):
         # grade flow: calculating grade.
-        comment = _("Counted at %(percent).1f%% of %(point).1f points") % (
-                grading_rule.credit_percent, points)
+        comment = _("Counted at %(percent).1f%% of %(point).1f points") % {
+                'percent':grading_rule.credit_percent, 'point':points}
         points = points * grading_rule.credit_percent / 100
 
     flow_session.points = points
@@ -641,7 +641,7 @@ def reopen_session(session, force=False, suppress_log=False):
     if not suppress_log:
         session.append_comment(
                 _("Session reopened at %(now)s, previous completion time was '%(complete_time)s'.")
-                % (local_now(), as_local_time(session.completion_time)))
+                % {'now':local_now(), 'complete_time':as_local_time(session.completion_time)})
 
     session.completion_time = None
     session.save()
@@ -705,7 +705,7 @@ def regrade_session(repo, course, session):
     else:
         prev_completion_time = session.completion_time
 
-        session.append_comment(_("Session regraded at %s.") % local_now())
+        session.append_comment(_("Session regraded at %(time)s.") % {'time':local_now()})
         session.save()
 
         reopen_session(session, force=True, suppress_log=True)
@@ -725,7 +725,7 @@ def recalculate_session_grade(repo, course, session):
 
     prev_completion_time = session.completion_time
 
-    session.append_comment(_("Session grade recomputed at %s.") % local_now())
+    session.append_comment(_("Session grade recomputed at %(time)s.") % {'time':local_now()})
     session.save()
 
     reopen_session(session, force=True, suppress_log=True)

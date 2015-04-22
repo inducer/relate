@@ -198,8 +198,8 @@ def set_up_new_course(request):
                 print_exc()
 
                 messages.add_message(request, messages.ERROR,
-                        _("Course creation failed: %(err_type)s: %(err_str)s") % (
-                            type(e).__name__, str(e)))
+                        _("Course creation failed: %(err_type)s: %(err_str)s") % {
+                            'err_type':type(e).__name__, 'err_str':str(e)})
             else:
                 return redirect(
                         "relate-course_page",
@@ -290,7 +290,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                     _("Course content validated OK, with warnings:"
                     "<ul>%s</ul>")
                     % ("".join(
-                        "<li><i>%(location)s</i>: %(warningtext)s</li>" % (w.location, w.text)
+                        "<li><i>%(location)s</i>: %(warningtext)s</li>" % {'location':w.location, 'warningtext':w.text}
                         for w in warnings)))
 
     # }}}
@@ -391,7 +391,7 @@ def update_course(pctx):
                         may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
+                        _("Error: %(err_type)s %(err_str)s") % {'err_type':type(e).__name__, 'err_str':str(e)})
 
     if response_form is None:
         previewing = bool(participation is not None
@@ -401,19 +401,19 @@ def update_course(pctx):
                 {"new_sha": repo.head()})
 
     text_lines = [
-            _("<b>Current git HEAD:</b> %(commit)s (%(message)s)") % (
-                repo.head(),
-                repo[repo.head()].message.strip()),
-            _("<b>Public active git SHA:</b> %(commit)s (%(message)s)") % (
-                course.active_git_commit_sha,
-                repo[course.active_git_commit_sha.encode()].message.strip()),
+            _("<b>Current git HEAD:</b> %(commit)s (%(message)s)") % {
+                'commit': repo.head(),
+                'message': repo[repo.head()].message.strip()},
+            _("<b>Public active git SHA:</b> %(commit)s (%(message)s)") % {
+                'commit': course.active_git_commit_sha,
+                'message': repo[course.active_git_commit_sha.encode()].message.strip()},
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
-            _("<b>Current preview git SHA:</b> %(commit)s (%(message)s)") % (
-                participation.preview_git_commit_sha,
-                repo[participation.preview_git_commit_sha.encode()].message.strip(),
-            ))
+            _("<b>Current preview git SHA:</b> %(commit)s (%(message)s)") % {
+                'commit': participation.preview_git_commit_sha,
+                'message': repo[participation.preview_git_commit_sha.encode()].message.strip(),
+            })
     else:
         text_lines.append(_("<b>Current preview git SHA:</b> None"))
 

@@ -716,8 +716,8 @@ def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):
                 if page.id == page_id:
                     return page
 
-    raise ObjectDoesNotExist(_("page '%(groupid)s/%(pageid)s' in flow '%(flowid)s'")
-            % (group_id, page_id, flow_id))
+    raise ObjectDoesNotExist(_("page '%(group_id)s/%(page_id)s' in flow '%(flow_id)s'")
+            % {'group_id':group_id, 'page_id':page_id, 'flow_id':flow_id})
 
 
 class ClassNotFoundError(RuntimeError):

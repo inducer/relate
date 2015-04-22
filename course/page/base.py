@@ -666,9 +666,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
             from django.core.mail import send_mail
             from django.conf import settings
-            send_mail("[%(identifier)s:%(flowid)s] New notification"
-                    % (page_context.course.identifier,
-                        page_context.flow_session.flow_id),
+            send_mail("[%(identifier)s:%(flow_id)s] New notification"
+                    % {'identifier':page_context.course.identifier,
+                        'flow_id':page_context.flow_session.flow_id},
                     message,
                     settings.ROBOT_EMAIL_FROM,
                     recipient_list=[

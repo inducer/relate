@@ -537,7 +537,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
-                            _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
+                            _("Error: %(err_type)s %(err_str)s") % {'err_type':type(e).__name__, 'err_str':str(e)})
                     raise
 
         else:
@@ -765,7 +765,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
+                        _("Error: %(err_type)s %(err_str)s") % {'err_type':type(e).__name__, 'err_str':str(e)})
     else:
         allow_session_actions = False
 
@@ -996,9 +996,9 @@ def csv_to_grade_changes(
                     updated.append("comment")
 
                 if updated:
-                    log_lines.append(_("%(participation)s: %(updated)s updated") % (
-                        gchange.participation,
-                        ", ".join(updated)))
+                    log_lines.append(_("%(participation)s: %(updated)s updated") % {
+                        'participation':gchange.participation,
+                        'updated':", ".join(updated)})
 
                     result.append(gchange)
             else:
@@ -1045,12 +1045,12 @@ def import_grades(pctx):
                         has_header=form.cleaned_data["format"] == "csvhead")
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
+                        _("Error: %(err_type)s %(err_str)s") % {'err_type':type(e).__name__, 'err_str':str(e)})
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
                             _("%(total)d grades found, %(unchaged)d unchanged.")
-                            % (total_count, total_count - len(grade_changes)))
+                            % {'total':total_count, 'unchaged':total_count - len(grade_changes)})
 
                 from django.template.loader import render_to_string
 

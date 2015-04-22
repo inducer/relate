@@ -54,10 +54,10 @@ class FileUploadForm(StyledForm):
 
         if uploaded_file._size > self.max_file_size:
             raise forms.ValidationError(
-                    _("Please keep file size under %(allowsize)s. "
+                    _("Please keep file size under %(allowedsize)s. "
                     "Current filesize is %(uploadedsize)s.")
-                    % (filesizeformat(self.max_file_size),
-                        filesizeformat(uploaded_file._size)))
+                    % {'allowedsize':filesizeformat(self.max_file_size),
+                        'uploadedsize':filesizeformat(uploaded_file._size)})
 
         if self.mime_types is not None and self.mime_types == ["application/pdf"]:
             if uploaded_file.read()[:4] != "%PDF":
@@ -142,8 +142,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
             raise ValidationError(_("%(location)s: unrecognized mime types '%(presenttype)s'")
-                    % (location, ", ".join(
-                        set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))))
+                    % {'location':location, 'presenttype':", ".join(
+                        set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))})
 
         if not hasattr(page_desc, "value"):
             vctx.add_warning(location, _("upload question does not have "

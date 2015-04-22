@@ -520,7 +520,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     participation = get_object_or_404(Participation, id=participation_id)
 
     form_text = (_("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
-        % (participation, flow_id))
+        % {'participation':participation, 'flow_id':flow_id})
 
     from course.content import get_flow_desc
     try:
@@ -814,7 +814,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             # }}}
 
             messages.add_message(pctx.request, messages.SUCCESS,
-                    _("Exception granted to '%(participation)s' for '%(flow_id)s'.") % (participation, flow_id))
+                    _("Exception granted to '%(participation)s' for '%(flow_id)s'.") % {'participation':participation, 'flow_id':flow_id})
             return redirect(
                     "relate-grant_exception",
                     pctx.course.identifier)
@@ -835,7 +835,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
         "form": form,
         "form_description": _("Grant Exception"),
         "form_text": _("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
-        % (participation, flow_id),
+        % {'participation':participation, 'flow_id':flow_id},
     })
 
 # }}}
