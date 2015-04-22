@@ -510,7 +510,7 @@ def validate_session_grading_rule(ctx, location, grule, tags):
                     _("%(location)s: grading rule that have a grade identifier (%(type)s: %(identifier)s) "
                     "must have a grade_aggregation_strategy")
                     % {'location':location,
-                        'type':type(grule.grade_identifier), 'identifier':'grule.grade_identifier})
+                        'type':type(grule.grade_identifier), 'identifier':grule.grade_identifier})
         from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
         if grule.grade_aggregation_strategy not in \
                 dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
