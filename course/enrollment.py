@@ -262,7 +262,7 @@ def create_preapprovals(pctx):
                 created_count += 1
 
             messages.add_message(request, messages.INFO,
-                    _("%(created)d preapprovals created, %(exist)d already existed.")
+                    _("%(n_created)d preapprovals created, %(n_exist)d already existed.")
                     % (created_count, exist_count))
             return redirect("relate-home")
 

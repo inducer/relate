@@ -198,7 +198,7 @@ def set_up_new_course(request):
                 print_exc()
 
                 messages.add_message(request, messages.ERROR,
-                        _("Course creation failed: %(name)s: %(e)s") % (
+                        _("Course creation failed: %(err_type)s: %(err_str)s") % (
                             type(e).__name__, str(e)))
             else:
                 return redirect(
@@ -391,7 +391,7 @@ def update_course(pctx):
                         may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(name)s %(e)s") % (type(e).__name__, str(e)))
+                        _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
 
     if response_form is None:
         previewing = bool(participation is not None

@@ -553,6 +553,7 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     if (points is not None
             and grading_rule.credit_percent is not None
             and grading_rule.credit_percent != 100):
+        # grade flow: calculating grade.
         comment = _("Counted at %(percent).1f%% of %(point).1f points") % (
                 grading_rule.credit_percent, points)
         points = points * grading_rule.credit_percent / 100
@@ -639,7 +640,7 @@ def reopen_session(session, force=False, suppress_log=False):
 
     if not suppress_log:
         session.append_comment(
-                _("Session reopened at %(new)s, previous completion time was '%(complete)s'.")
+                _("Session reopened at %(now)s, previous completion time was '%(complete_time)s'.")
                 % (local_now(), as_local_time(session.completion_time)))
 
     session.completion_time = None

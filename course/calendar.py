@@ -115,7 +115,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         try:
             evt.save()
         except IntegrityError:
-            raise EventAlreadyExists(_("'%(kind)s %(ordinal)d' already exists") % (kind, ordinal))
+            raise EventAlreadyExists(_("'%(event_kind)s %(event_ordinal)d' already exists") % (kind, ordinal))
 
         if interval == "weekly":
             date = time.date()
@@ -164,7 +164,7 @@ def create_recurring_events(pctx):
                 except EventAlreadyExists as e:
                     if starting_ordinal_specified:
                         messages.add_message(request, messages.ERROR,
-                                _("%(name)s: %(e)s. No events created.") % (
+                                _("%(err_type)s: %(err_str)s. No events created.") % (
                                     type(e).__name__, str(e)))
                     else:
                         starting_ordinal += 10
@@ -172,7 +172,7 @@ def create_recurring_events(pctx):
 
                 except Exception as e:
                     messages.add_message(request, messages.ERROR,
-                            _("%(name)s: %(e)s. No events created.") % (
+                            _("%(err_type)s: %(err_str)s. No events created.") % (
                                 type(e).__name__, str(e)))
                 else:
                     messages.add_message(request, messages.SUCCESS,

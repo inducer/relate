@@ -537,7 +537,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
-                            _("Error: %(name)s %(e)s") % (type(e).__name__, str(e)))
+                            _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
                     raise
 
         else:
@@ -765,7 +765,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(name)s %(e)s") % (type(e).__name__, str(e)))
+                        _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
     else:
         allow_session_actions = False
 
@@ -1045,7 +1045,7 @@ def import_grades(pctx):
                         has_header=form.cleaned_data["format"] == "csvhead")
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(name)s %(e)s") % (type(e).__name__, str(e)))
+                        _("Error: %(err_type)s %(err_str)s") % (type(e).__name__, str(e)))
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,

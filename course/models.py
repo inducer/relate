@@ -52,6 +52,7 @@ from yamlfield.fields import YAMLField
 class Facility(models.Model):
     """Data about a facility from where content may be accessed."""
 
+    # for identifier in  Facility class
     identifier = models.CharField(max_length=50, unique=True,
             help_text= _("Format is lower-case-with-hyphens. " 
                                   "Do not use spaces."))
@@ -125,7 +126,7 @@ class UserStatus(models.Model):
         ordering = ("key_time",)
 
     def __unicode__(self):
-        return _("User status for %s") % self.user
+        return _("User status for %(user)s") % self.user
 
 # }}}
 
@@ -225,13 +226,15 @@ class Event(models.Model):
     """
 
     course = models.ForeignKey(Course)
+    # format of event kind in Event model
     kind = models.CharField(max_length=50,
             help_text=_("Should be lower_case_with_underscores, no spaces allowed."))
     ordinal = models.IntegerField(blank=True, null=True)
 
     time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
-
+    
+    # for all_day setting in event in Event model
     all_day = models.BooleanField(default=False,
             help_text=_("Only affects the rendering in the class calendar, "
             "in that a start time is not shown"))
@@ -255,7 +258,8 @@ class Event(models.Model):
 
 class ParticipationTag(models.Model):
     course = models.ForeignKey(Course)
-
+    
+    # name format in ParticipationTag class
     name = models.CharField(max_length=100, unique=True,
             help_text=_("Format is lower-case-with-hyphens. "
             "Do not use spaces."))
@@ -265,6 +269,7 @@ class ParticipationTag(models.Model):
         NAME_VALID_RE = re.compile(r"^\w+$")
 
         if NAME_VALID_RE.match(self.name) is None:
+            # name refers to ParticipationTag
             raise ValidationError({"name": _("Name contains invalid characters.")})
 
     def __unicode__(self):
@@ -299,7 +304,7 @@ class Participation(models.Model):
     tags = models.ManyToManyField(ParticipationTag, blank=True)
 
     def __unicode__(self):
-        # somebody in some course as role
+        # In admin: some user in some course as role
         return _("%(user)s in %(course)s as %(role)s") % (
                 self.user, self.course, self.role)
 
@@ -435,6 +440,7 @@ class FlowPageData(models.Model):
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
+        # flow page data
         return _("Data for page '%(groupid)s/%(pageid)s' (ordinal %(ordinal)s) in %(flowssession)s") % (
                 self.group_id,
                 self.page_id,
@@ -478,6 +484,7 @@ class FlowPageVisit(models.Model):
     is_submitted_answer = models.NullBooleanField()
 
     def __unicode__(self):
+        # flow page visit
         result = _("'%(groupid)s/%(pageid)s' in '%(session)s' on %(time)s") % (
                 self.page_data.group_id,
                 self.page_data.page_id,
@@ -485,6 +492,7 @@ class FlowPageVisit(models.Model):
                 self.visit_time)
 
         if self.answer is not None:
+            # flow page visit: if the answer is provided by user then append the string.
             result += _(" (with answer)")
 
         return result
@@ -531,9 +539,11 @@ class FlowPageVisitGrade(models.Model):
     # for code questions, for example) to recompute.
 
     max_points = models.FloatField(null=True, blank=True,
+            # max point in grade
             help_text=_("Point value of this question when receiving "
             "full credit."))
     correctness = models.FloatField(null=True, blank=True,
+            # correctness in grade
             help_text=_("Real number between zero and one (inclusively) "
             "indicating the degree of correctness of the answer."))
 
@@ -563,6 +573,7 @@ class FlowPageVisitGrade(models.Model):
         ordering = ("visit", "grade_time")
 
     def __unicode__(self):
+        # information on FlowPageVisitGrade class
         return _("grade of %(visit)s: %(percentage)s") % (
                 self.visit, self.percentage())
 
@@ -609,20 +620,20 @@ def validate_stipulations(stip):
         return
 
     if not isinstance(stip, dict):
-        raise ValidationError("stipulations must be a dictionary")
+        raise ValidationError(_("stipulations must be a dictionary"))
     allowed_keys = set(["credit_percent", "allowed_session_count"])
     if not set(stip.keys()) <= allowed_keys:
-        raise ValidationError("unrecognized keys in stipulations: %s"
+        raise ValidationError(_("unrecognized keys in stipulations: %s")
                 % ", ".join(set(stip.keys()) - allowed_keys))
 
     if "credit_percent" in stip and not isinstance(
             stip["credit_percent"], (int, float)):
-        raise ValidationError("credit_percent must be a float")
+        raise ValidationError(_("credit_percent must be a float"))
     if ("allowed_session_count" in stip
             and (
                 not isinstance(stip["allowed_session_count"], int)
                 or stip["allowed_session_count"] < 0)):
-        raise ValidationError("allowed_session_count must be a non-negative integer")
+        raise ValidationError(_("allowed_session_count must be a non-negative integer"))
 
 
 # {{{ deprecated exception stuff
@@ -635,6 +646,7 @@ class FlowAccessException(models.Model):
     expiration = models.DateTimeField(blank=True, null=True)
 
     stipulations = JSONField(blank=True, null=True,
+            # help text for stipulations in FlowAccessException (deprecated) 
             help_text=_("A dictionary of the same things that can be added "
             "to a flow access rule, such as allowed_session_count or "
             "credit_percent. If not specified here, values will default "
@@ -653,6 +665,7 @@ class FlowAccessException(models.Model):
     comment = models.TextField(blank=True, null=True)
 
     def __unicode__(self):
+        # flow access exception in admin
         return _("Access exception for '%(user)s' to '%(flowid)s' in '%(course)s'") % (
                 self.participation.user, self.flow_id,
                 self.participation.course)
@@ -667,6 +680,7 @@ class FlowAccessExceptionEntry(models.Model):
             choices=FLOW_PERMISSION_CHOICES)
 
     class Meta:
+        # FlowAccessExceptionEntry (deprecated)
         verbose_name_plural = _("flow access exception entries")
 
     def __unicode__(self):
@@ -691,6 +705,7 @@ class FlowRuleException(models.Model):
     active = models.BooleanField(default=True)
 
     def __unicode__(self):
+        # For FlowRuleException
         return _("%(kind)s exception for '%(user)s' to '%(flowid)s' in '%(course)s'") % (
                 self.kind,
                 self.participation.user, self.flow_id,
@@ -737,9 +752,11 @@ class FlowRuleException(models.Model):
             elif self.kind == flow_rule_kind.grading:
                 validate_session_grading_rule(ctx, unicode(self), rule, tags)
             else:
+                # the rule refers to FlowRuleException rule
                 raise ValidationError(_("invalid rule kind: ")+self.kind)
 
         except ContentValidationError as e:
+            # the rule refers to FlowRuleException rule
             raise ValidationError(_("invalid existing_session_rules: ")+str(e))
 
 # }}}
@@ -751,9 +768,11 @@ class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course)
 
     identifier = models.CharField(max_length=200, blank=False, null=False,
+            # identifier for GradingOpportunity
             help_text=_("A symbolic name for this grade. "
             "lower_case_with_underscores, no spaces."))
     name = models.CharField(max_length=200, blank=False, null=False,
+            # name for GradingOpportunity
             help_text=_("A human-readable identifier for the grade."))
     flow_id = models.CharField(max_length=200, blank=True, null=True,
             help_text=_("Flow identifier that this grading opportunity "
@@ -774,7 +793,8 @@ class GradingOpportunity(models.Model):
         unique_together = (("course", "identifier"),)
 
     def __unicode__(self):
-        return _("%(name)s (%(identifier)s) in %(course)s") % (self.name, self.identifier, self.course)
+        # For GradingOpportunity
+        return _("%(opportunit_name)s (%(identifier)s) in %(course)s") % (self.name, self.identifier, self.course)
 
 
 class GradeChange(models.Model):
@@ -793,6 +813,7 @@ class GradeChange(models.Model):
             choices=GRADE_STATE_CHANGE_CHOICES)
 
     attempt_id = models.CharField(max_length=50, null=True, blank=True,
+            # attempt_id in GradeChange
             help_text=_("Grade changes are grouped by their 'attempt ID' "
             "where later grades with the same attempt ID supersede earlier "
             "ones."))
@@ -815,6 +836,7 @@ class GradeChange(models.Model):
         ordering = ("opportunity", "participation", "grade_time")
 
     def __unicode__(self):
+        # information for GradeChange
         return _("%(participation)s %(state)s on %(opportunityname)s") % (self.participation, self.state,
                 self.opportunity.name)
 

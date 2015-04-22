@@ -175,7 +175,7 @@ def validate_markup(ctx, location, markup_str):
 
         tp, e, _ = sys.exc_info()
 
-        raise ValidationError("%(location)s: %(name)s: %(e)s" % (
+        raise ValidationError("%(location)s: %(err_type)s: %(err_str)s" % (
             location, tp.__name__, str(e)))
 
 
@@ -311,7 +311,7 @@ def validate_flow_page(ctx, location, page_desc):
 
         from traceback import format_exc
         raise ValidationError(
-                _("%(location)s: could not instantiate flow page: %(name)s: %(e)s<br><pre>%s</pre>")
+                _("%(location)s: could not instantiate flow page: %(err_type)s: %(err_str)s<br><pre>%s</pre>")
                 % (location, tp.__name__, str(e), format_exc()))
 
 
@@ -689,7 +689,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
 
         tp, e, _ = sys.exc_info()
 
-        raise ValidationError(_("%(fullname)s: %(name)s: %(e)s") % (
+        raise ValidationError(_("%(fullname)s: %(err_type)s: %(err_str)s") % (
             full_name, tp.__name__, unicode(e)))
 
 

@@ -144,7 +144,7 @@ class RELATEPageValidator(object):
             import sys
             tp, e, _ = sys.exc_info()
 
-            raise forms.ValidationError("%(name)s: %(e)s"
+            raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % (tp.__name__, str(e)))
 
 
@@ -243,7 +243,7 @@ class RegexMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
 
-            raise ValidationError(_("%(location)s: regex '%(patter)s' did not compile: %(name)s: %(e)s")
+            raise ValidationError(_("%(location)s: regex '%(patter)s' did not compile: %(err_type)s: %(err_str)s")
                     % (location, pattern, tp.__name__, str(e)))
 
     def grade(self, s):
@@ -289,12 +289,12 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         except ImportError:
             tp, e, _ = sys.exc_info()
             vctx.add_warning(location, _("%(location)s: unable to check "
-                    "symbolic expression (%(name)s: %(e)s)")
+                    "symbolic expression (%(err_type)s: %(err_str)s)")
                     % (location, tp.__name__, str(e)))
 
         except:
             tp, e, _ = sys.exc_info()
-            raise ValidationError("%(location)s: %(name)s: %(e)s"
+            raise ValidationError("%(location)s: %(err_type)s: %(err_str)s"
                     % (location, tp.__name__, str(e)))
 
     def validate(self, s):
@@ -302,7 +302,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             parse_sympy(s)
         except:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%(name)s: %(e)s"
+            raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % (tp.__name__, str(e)))
 
     def grade(self, s):
@@ -350,7 +350,7 @@ class FloatMatcher(TextAnswerMatcher):
             float(s)
         except:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%(name)s: %(e)s"
+            raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % (tp.__name__, str(e)))
 
     def grade(self, s):
