@@ -294,7 +294,7 @@ class InstantFlowRequestForm(StyledForm):
                 required=True, initial=20)
 
         self.helper.add_input(
-                Submit("add", "Add", css_class="col-lg-offset-2"))
+                Submit("add", _("Add"), css_class="col-lg-offset-2"))
         self.helper.add_input(
                 Submit("cancel", _("Cancel all")))
 

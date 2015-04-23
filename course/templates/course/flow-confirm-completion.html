@@ -1,31 +1,31 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %}
+{% block title %} {% blocktrans %} 
   {{flow_desc.title}} - RELATE
-{% endblock %}
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
-  <h1>End Session '{{flow_desc.title}}'?</h1>
+  <h1> {% blocktrans %} End Session '{{flow_desc.title}}'? {% endblocktrans %} </h1>
 
   {% if unanswered_count %}
     <div class="alert alert-warning">
-      You have left questions unanswered.
+      {% blocktrans %}You have left questions unanswered. {% endblocktrans %}
     </div>
   {% endif %}
 
   {% if total_count %}
-    <p>
+    <p> 
     There were {{total_count}} questions.
     {% if answered_count == total_count %}
-      You have provided an answer for all of them.
+      {% blocktrans %}  You have provided an answer for all of them.{% endblocktrans %}
     {% else %}
-      You have answered {{answered_count}} and left {{unanswered_count}} unanswered.
+      {% blocktrans %} You have answered {{answered_count}} and left {{unanswered_count}} unanswered.{% endblocktrans %}
     {% endif %}
-    </p>
+     {% endblocktrans %} </p>
   {% endif %}
 
-  If you choose to end your session, the following things will happen:
+  {% blocktrans %} If you choose to end your session, the following things will happen:{% endblocktrans %}
   <ul>
     <li>{% trans "You will be prevented from making further changes to your answers." %}</li>
     <li>{% trans "All your currently saved answers, if not graded already, will be graded." %}</li>

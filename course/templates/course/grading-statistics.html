@@ -1,9 +1,9 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %}
-  Grading Statistics: {{ flow_id }} - Courseflow
-{% endblock %}
+{% block title %} {% blocktrans %} 
+  Grading Statistics: {{ flow_id }} - RELATE
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
   <h1>{% trans "Grading Statistics: " %}<tt>{{flow_id}}</tt></h1>
@@ -16,7 +16,7 @@
         {% if grader != None %}
           {{ grader.get_full_name }}
         {% else %}
-          (autograded)
+          {% trans "(autograded)" %}
         {% endif %}
       </th>
       {% endfor %}

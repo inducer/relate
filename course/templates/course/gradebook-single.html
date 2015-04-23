@@ -1,12 +1,12 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %}
-  Grade book: {{ opportunity.name }} - Courseflow
-{% endblock %}
+{% block title %} {% blocktrans %} 
+  Grade book: {{ opportunity.name }} - RELATE
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
-  <h1>Understand a grade: {{ opportunity.name }} </h1>
+  <h1> {% blocktrans %} Understand a grade: {{ opportunity.name }}  {% endblocktrans %} </h1>
 
   <table class="table table-condensed">
     <thead>
@@ -50,7 +50,7 @@
 
   <h2>{% trans "Grade history" %}</h2>
   {% if not grade_changes%}
-    (no grade data available)
+    {% blocktrans %} (no grade data available){% endblocktrans %}
   {% else %}
     <table class="table table-condensed table-striped">
       <thead>
@@ -72,10 +72,10 @@
             {% if gchange.is_superseded %}<s>{% endif %}
             {% if gchange.points != None %}
               {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
-              points
+              {% trans "points" %}
               ({{ gchange.percentage|floatformat:1 }}%)
             {% else %}
-              (no grade)
+              {% trans "(no grade)" %}
             {% endif %}
             {% if gchange.is_superseded %}</s>{% endif %}
           </td>
@@ -85,7 +85,7 @@
             {% endif %}
 
             {% if gchange.flow_session != None %}
-            (from flow session {{ gchange.flow_session.id }})
+           {% blocktrans %} (from flow session {{ gchange.flow_session.id }}) {% endblocktrans %}
             {% endif %}
           </td>
         </tr>
@@ -97,7 +97,7 @@
             <b>{{ state_machine.stringify_state }}</b>
           </td>
           <td>
-            (Aggregation strategy: {{ opportunity.aggregation_strategy }})
+            {% blocktrans %}(Aggregation strategy: {{ opportunity.aggregation_strategy }}){% endblocktrans %} 
           </td>
         </tr>
       </tbody>
@@ -175,11 +175,11 @@
 
                     (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
                   {% else %}
-                    (grade not available)
+                    {% trans "(grade not available)" %}
                     ({{ flow_session.max_points|floatformat:1 }} points achievable)
                   {% endif %}
                 {% else %}
-                  (none)
+                  {% trans "(none)" %}
                 {% endif %}
                 {% if show_privileged_info and flow_session.result_comment %}
                   <p>
@@ -226,30 +226,30 @@
                 <td>
                   <button type="submit" name="regrade_{{flow_session.id}}"
                     class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                    Regrade
+                    {% trans "Regrade" %}
                   </button>
                   {% if flow_session.in_progress %}
                     <button type="submit" name="expire_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      Expire
+                      {% trans "Expire" %}
                     </button>
                     <button type="submit" name="end_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      End and grade
+                      {% trans "End and grade" %}
                     </button>
                   {% else %}
                     <button type="submit" name="reopen_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      Reopen
+                      {% trans "Reopen" %}
                     </button>
                     <button type="submit" name="recalculate_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      Recalculate grade
+                      {% trans "Recalculate grade" %}
                     </button>
                   {% endif %}
                   <a href="{% url "relate-grant_exception_stage_3" course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                     class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                    Grant exception
+                    {% trans "Grant exception" %}
                   </a>
                 </td>
               {% endif %}
@@ -264,7 +264,7 @@
     <div class="well">
       <a href="{% url "relate-grant_exception_stage_2" course.identifier grade_participation.id opportunity.flow_id %}"
         class="btn btn-primary btn-default">
-        Grant exception
+          {% trans "Grant exception" %}
       </a>
     </div>
   {% endif %}

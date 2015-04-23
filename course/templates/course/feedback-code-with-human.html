@@ -3,7 +3,7 @@
   <div class="panel panel-default">
     <div class="panel-heading">{% trans "Overall grade" %}</div>
     <div class="panel-body">
-      <p><b>The overall grade is {{ percentage|floatformat }}%.</b></p>
+      <p><b> {% blocktrans %} The overall grade is {{ percentage|floatformat }}%. {% endblocktrans %} </b></p>
     </div>
   </div>
 {% endif %}
@@ -12,8 +12,8 @@
     <div class="panel-heading">{% trans "Autograder feedback" %}</div>
     <div class="panel-body">
       {% if code_feedback.percentage != None %}
-        <p><b>The autograder assigned
-          {{ code_feedback_points|floatformat }}/{{ code_points|floatformat }} points.</b>
+        <p><b> {% blocktrans %} The autograder assigned
+          {{ code_feedback_points|floatformat }}/{{ code_points|floatformat }} points. {% endblocktrans %} </b>
         </p>
       {% endif %}
       {{ code_feedback.feedback|safe }}
@@ -26,7 +26,7 @@
     <div class="panel-heading">{% trans "Human feedback" %}</div>
     <div class="panel-body">
     {% if human_feedback_points != None %}
-      <p><b>The human grader assigned {{ human_feedback_points|floatformat }}/{{ human_points|floatformat }} points.</b></p>
+      <p><b> {% blocktrans %} The human grader assigned {{ human_feedback_points|floatformat }}/{{ human_points|floatformat }} points. {% endblocktrans %} </b></p>
     {% endif %}
     {% if human_feedback_text != None %}
       {{ human_feedback_text|safe }}

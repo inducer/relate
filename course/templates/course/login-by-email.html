@@ -8,16 +8,16 @@
 
   <div class="alert alert-warning">
     <ul>
-      <li>
-        Please use the <em>official</em> email address associated with the
+      <li> {% trans  
+        "Please use the <em>official</em> email address associated with the
         university or school at which this course is taking place. Some courses
         may require a certain email domain (such as "@illinois.edu") for
-        enrollment.
-      </li>
-      <li>
-        If you have a user name and a password, you should use the
-        <a href="{% url "relate-sign_in_by_user_pw" %}">{% trans "password-based sign-in process" %}</a>.
-      </li>
+        enrollment."
+        %} </li>
+      <li> {% trans
+        "If you have a user name and a password, you should use the
+        <a href="{% url "relate-sign_in_by_user_pw" %}"> password-based sign-in process </a>."
+        %} </li>
     </ul>
   </div>
 

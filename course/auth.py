@@ -593,13 +593,13 @@ class UserForm(StyledModelForm):
         super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user", "Update",
+                Submit("submit_user", _("Update"),
                     css_class="col-lg-offset-2"))
 
 
 class UserStatusForm(StyledModelForm):
     class Meta:
-        model = UserStatus
+        model = UserStatus        
         fields = ("editor_mode",)
 
     def __init__(self, *args, **kwargs):

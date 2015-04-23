@@ -1,9 +1,9 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %}
+{% block title %} {% blocktrans %} 
   {{flow_desc.title}} - RELATE
-{% endblock %}
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
   {% if flow_desc.description %}
@@ -39,7 +39,7 @@
                 {% if session_properties.grade_description %}
                   {{ session_properties.grade_description }}
                 {% else %}
-                  (no description)
+                  {% trans "(no description)" %}
                 {% endif %}
               </td>
               <td>
@@ -49,13 +49,13 @@
               </td>
               <td>
                 {% if flow_session.points_percentage %}
-                  <b>{{ flow_session.points|floatformat }}</b>
+                  {% blocktrans %} <b>{{ flow_session.points|floatformat }}</b>
                   out of
                   {{ flow_session.max_points|floatformat }}
 
-                  (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                  (<b>{{ flow_session.points_percentage|floatformat }}%</b>){% endblocktrans %}
                 {% else %}
-                  (none)
+                  {% trans "(none)" %}
                 {% endif %}
 
               </td>
@@ -72,7 +72,7 @@
 
                 {% if not flow_session.in_progress %}
                   <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
-                    Results
+                      {% trans "Results" %}
                   </a>
                 {% endif %}
               </td>
@@ -88,18 +88,18 @@
           If you start a new session, the following rules will apply:
           <ul>
             {% if new_session_grading_rule.description %}
-              <li>Your session will be a '<b>{{ new_session_grading_rule.description }}</b>'.</li>
+              <li> {% blocktrans %} Your session will be a '<b>{{ new_session_grading_rule.description }}</b>'. {% endblocktrans %} </li>
             {% endif %}
             {% if new_session_grading_rule.due %}
-              <li>Your session will be due on <b>{{ new_session_grading_rule.due }}</b>.</li>
+              <li> {% blocktrans %} Your session will be due on <b>{{ new_session_grading_rule.due }}</b>. {% endblocktrans %} </li>
             {% endif %}
-            <li>You will receive <b>{{ new_session_grading_rule.credit_percent|floatformat }}% credit</b>
-              for your work.
+            <li> {% blocktrans %} You will receive <b>{{ new_session_grading_rule.credit_percent|floatformat }}% credit</b>
+                for your work. {% endblocktrans %} </li>
             {% if past_sessions_and_properties %}
-              <li>This is not your first session. If you start another one,
+              <li> {% blocktrans %} This is not your first session. If you start another one,
                 for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
                 among all your sessions.
-              </li>
+               {% endblocktrans %} </li>
             {% endif%}
           </ul>
         </div>
@@ -151,40 +151,40 @@
     {% if may_start or past_sessions_and_properties %}
     {% else %}
       <div class="alert alert-info">
-        <p>
+        <p> 
         <i class="fa fa-exclamation-triangle"></i>
-        You do not have any existing sessions and are not allowed to start
-        a new one.
-        </p>
+        {% trans "You do not have any existing sessions and are not allowed to start
+        a new one." %}
+          </p>
 
         <p>
-        Check the following:
+            {% trans "Check the following:" %}
         <ul>
         {% if not user.is_authenticated %}
-        <li>
+        <li> 
         <a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>.
-
+        {% trans " 
           You're not currently signed in. Access to the resource is restricted,
           and since the site has no way of knowing who you are, it may have denied
           you accesss.
           Once you're signed in, navigate back to your course from the
-          <a href="{% url "relate-home" %}">{% trans "home page" %}</a> and retry your last
-          action.
-        </li>
+          <a href="{% url "relate-home" %}"> home page </a> and retry your last
+          action."
+          %} </li>
         {% endif %}
-        <li>
+        <li> {% blocktrans %} 
           Has the deadline for this assignment passed?
-        </li>
-        <li>
+         {% endblocktrans %} </li>
+        <li> {% blocktrans %} 
         Complete your enrollment in your course. If you're not enrolled, a large
         "Enroll now" button will show up at the top of your course page. Click that,
         follow the indicated steps, and then retry your last action.
-        </li>
-        <li>
+         {% endblocktrans %} </li>
+        <li> {% trans " 
         If none of the above steps help, please navigate back to your course from the
-        <a href="{% url "relate-home" %}">{% trans "home page" %}</a> and contact your course
+        <a href="{% url "relate-home" %}"> home page </a> and contact your course
         staff.
-        </li>
+         " %} </li>
         </ul>
       </div>
       </p>

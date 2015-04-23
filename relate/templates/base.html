@@ -84,9 +84,9 @@
           </ul>
           <ul class="nav navbar-nav navbar-right">
             {% if user.is_authenticated %}
-              <li>
-                <a href="{% url "relate-user_profile" %}">Signed in as {{user.username}}</a>
-              </li>
+              <li> 
+                <a href="{% url "relate-user_profile" %}">{% trans "Signed in as" %} {{user.username}} </a>
+                </li>
               {% if currently_impersonating %}
                 <li>
                   <p class="navbar-text">

@@ -35,8 +35,8 @@ class user_status:
     active = "active"
 
 USER_STATUS_CHOICES = (
-        (user_status.unconfirmed, "Unconfirmed"),
-        (user_status.active, "Active"),
+        (user_status.unconfirmed, _("Unconfirmed")),
+        (user_status.active, _("Active")),
         )
 
 
@@ -53,11 +53,11 @@ class participation_role:
 
 
 PARTICIPATION_ROLE_CHOICES = (
-        (participation_role.instructor, "Instructor"),
-        (participation_role.teaching_assistant, "Teaching Assistant"),
-        (participation_role.student, "Student"),
-        (participation_role.observer, "Observer"),
-        (participation_role.auditor, "Auditor"),
+        (participation_role.instructor, _("Instructor")),
+        (participation_role.teaching_assistant, _("Teaching Assistant")),
+        (participation_role.student, _("Student")),
+        (participation_role.observer, _("Observer")),
+        (participation_role.auditor, _("Auditor")),
         # unenrolled is only used internally
         )
 
@@ -70,10 +70,10 @@ class participation_status:
 
 
 PARTICIPATION_STATUS_CHOICES = (
-        (participation_status.requested, "Requested"),
-        (participation_status.active, "Active"),
-        (participation_status.dropped, "Dropped"),
-        (participation_status.denied, "Denied"),
+        (participation_status.requested, _("Requested")),
+        (participation_status.active, _("Active")),
+        (participation_status.dropped, _("Dropped")),
+        (participation_status.denied, _("Denied")),
         )
 
 

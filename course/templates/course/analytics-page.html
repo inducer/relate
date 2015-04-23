@@ -1,12 +1,12 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %}
+{% block title %} {% blocktrans %} 
   Analytics - RELATE
-{% endblock %}
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
-  <h1>Analytics: <tt>{{ flow_identifier}} - {{ group_id }}/{{ page_id }}</tt></h1>
+  <h1> {% blocktrans %} Analytics: <tt>{{ flow_identifier}} - {{ group_id }}/{{ page_id }}</tt> {% endblocktrans %} </h1>
 
   <div class="well">
     {{ body|safe }}

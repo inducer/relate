@@ -15,15 +15,15 @@
 {% block content %}
   {% if course.hidden %}
     <div class="alert alert-info">
-      This course is only visible to course staff at the moment.
+      {% blocktrans %}This course is only visible to course staff at the moment.{% endblocktrans %}
       <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
         role="button" target="_blank">{% trans "Change" %} &raquo;</a>
     </div>
   {% endif %}
   {% if not course.valid %}
     <div class="alert alert-warning">
-      There may be a problem with the validity of course data, which may lead
-      to students encountering unexpected errors.
+      {% blocktrans %}There may be a problem with the validity of course data, which may lead
+      to students encountering unexpected errors.{% endblocktrans %}
       <a class="btn btn-primary" href="{% url "relate-update_course" course.identifier %}"
         role="button">{% trans "Update" %} &raquo;</a>
     </div>
@@ -31,7 +31,7 @@
 
   {% if not user.is_authenticated %}
     <div class="well">
-      You're not currently signed in.
+      {% blocktrans %}You're not currently signed in.{% endblocktrans %}
       <a class="btn btn-primary" href="{% url student_sign_in_view %}"
         role="button">{% trans "Sign in" %} &raquo;</a>
     </div>

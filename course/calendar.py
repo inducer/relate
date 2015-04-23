@@ -79,7 +79,7 @@ class RecurringEventForm(StyledForm):
     duration_in_minutes = forms.FloatField(required=False)
     interval = forms.ChoiceField(required=True,
             choices=(
-                ("weekly", "Weekly"),
+                ("weekly", _("Weekly")),
                 ))
     starting_ordinal = forms.IntegerField(required=False)
     count = forms.IntegerField(required=True)

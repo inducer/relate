@@ -1,4 +1,5 @@
-Dear {{ participation.user.first_name }},
+{% load i18n %}
+{% blocktrans %} Dear {{ participation.user.first_name }},
 
 You have a new notification regarding your work on the problem
 with title
@@ -13,3 +14,4 @@ full text of the feedback follows.
 -------------------------------------------------------------------
 
 - RELATE staff
+{% endblocktrans %}

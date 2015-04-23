@@ -1,4 +1,5 @@
-Hi there,
+{% load i18n %}
+{% blocktrans %} Hi there,
 
 Bad news! A code question with ID '{{ page_id }}' in '{{ course.identifier }}'
 has just failed while a user was trying to get his or her code graded.
@@ -7,5 +8,5 @@ Details of the problem are below:
 {{ error_message|safe }}
 
 - RELATE
-
+{% endblocktrans %}
 

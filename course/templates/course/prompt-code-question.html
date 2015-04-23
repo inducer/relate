@@ -6,20 +6,24 @@
     <div class="panel-heading">
       <h4 class="panel-title">
       <a data-toggle="collapse" href="#grading-code">
-        Grading code
+        {% trans "Grading code" %}
         <span style="font-size:x-small">{% trans "(click to view)" %}</span>
       </a>
       </h4>
     </div>
     <div id="grading-code" class="panel-collapse collapse">
      <div class="panel-body">
-      {% if show_setup_code and setup_code %}
+       {% if show_setup_code and setup_code %}
+         {% blocktrans %}
         Set-up:
          <pre>{{ setup_code }}</pre>
+         {% endblocktrans %}
       {% endif %}
       {% if show_test_code and test_code %}
+         {% blocktrans %}
         Grading
          <pre>{{ test_code }}</pre>
+         {% endblocktrans %}
       {% endif %}
      </div>
     </div>
@@ -31,7 +35,7 @@
     <div class="panel-heading">
       <h4 class="panel-title">
       <a data-toggle="collapse" href="#starter-code">
-        Starter code
+        {% trans "Starter code" %}
         <span style="font-size:x-small">{% trans "(click to view)" %}</span>
       </a>
       </h4>

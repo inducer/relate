@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}
+{% block title %}  
   {{ course_desc.number}}:
   {{ course_desc.name}}
+{% blocktrans %}
   -
   RELATE
-{% endblock %}
+ {% endblocktrans %} {% endblock %}
 
 {% block brand %}
   {{ course_desc.number}}
@@ -112,7 +113,7 @@
 {% block version_advice %}
   {% if participation.preview_git_commit_sha %}
     <div class="alert alert-info">
-      You are currently seeing a preview of revision
+        {% trans "You are currently seeing a preview of revision" %}
       '{{participation.preview_git_commit_sha}}'.
       <a class="btn btn-sm btn-primary" href="{% url "relate-update_course" course.identifier %}"
         role="button">{% trans "View revisions" %}</a>
@@ -124,14 +125,14 @@
   {% if instant_flow_requests %}
     <div class="alert alert-info">
       {% if num_instant_flow_requests == 1 %}
-        There is an interactive activity going on right now.
+        {% blocktrans %}There is an interactive activity going on right now.{% endblocktrans %}
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>{% trans "Go to activity" %} &raquo;</b></a>
         {% endfor %}
       {% else %}
-        There are some interactive activities going on right now.
+        {% blocktrans %}There are some interactive activities going on right now.{% endblocktrans %}
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"

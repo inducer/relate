@@ -59,6 +59,7 @@ class Facility(models.Model):
     description = models.CharField(max_length=100)
 
     class Meta:
+        verbose_name = _("facility")
         # Translators: plural form of facility
         verbose_name_plural = _("facilities")
 
@@ -122,6 +123,7 @@ class UserStatus(models.Model):
             default="default")
 
     class Meta:
+        verbose_name = _("user status")
         verbose_name_plural = _("user statuses")
         ordering = ("key_time",)
 
@@ -147,7 +149,7 @@ class Course(models.Model):
             default=True,
             help_text=_("Should the course be listed on the main page?"))
     accepts_enrollment = models.BooleanField(
-            default=True)
+            default=True, verbose_name=_('accepts enrollment'))
     valid = models.BooleanField(
             default=True,
             help_text=_("Whether the course content has passed validation."))
@@ -173,7 +175,8 @@ class Course(models.Model):
     enrollment_approval_required = models.BooleanField(
             default=False,
             help_text=_("If set, each enrolling student must be "
-            "individually approved."))
+                        "individually approved."),
+            verbose_name=_('enrollment approval required'))
     enrollment_required_email_suffix = models.CharField(
             max_length=200, blank=True, null=True,
             help_text=_("Enrollee's email addresses must end in the "
@@ -209,6 +212,10 @@ class Course(models.Model):
     participants = models.ManyToManyField(User,
             through='Participation')
 
+    class Meta:
+        verbose_name = _("Course")
+        verbose_name_plural = _("Courses")    
+
     def __unicode__(self):
         return self.identifier
 
@@ -242,6 +249,8 @@ class Event(models.Model):
     shown_in_calendar = models.BooleanField(default=True)
 
     class Meta:
+        verbose_name = _("Event")
+        verbose_name_plural = _("Events")                
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
 
@@ -276,6 +285,8 @@ class ParticipationTag(models.Model):
         return "%s (%s)" % (self.name, self.course)
 
     class Meta:
+        verbose_name = _("Participation tag")
+        verbose_name_plural = _("Participation tags")        
         unique_together = (("course", "name"),)
         ordering = ("course", "name")
 
@@ -309,6 +320,8 @@ class Participation(models.Model):
                 'user':self.user, 'course':self.course, 'role':self.role}
 
     class Meta:
+        verbose_name = _("Participation")
+        verbose_name_plural = _("Participations")        
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
 
@@ -327,6 +340,8 @@ class ParticipationPreapproval(models.Model):
         return "%s in %s" % (self.email, self.course)
 
     class Meta:
+        verbose_name = _("Participation preapproval")
+        verbose_name_plural = _("Participation preapprovals")             
         unique_together = (("course", "email"),)
         ordering = ("course", "email")
 
@@ -339,7 +354,10 @@ class InstantFlowRequest(models.Model):
     start_time = models.DateTimeField(default=now)
     end_time = models.DateTimeField()
     cancelled = models.BooleanField(default=False)
-
+    
+    class Meta:
+        verbose_name = _("Instant flow request")
+        verbose_name_plural = _("Instant flow requests") 
 
 # {{{ flow session
 
@@ -375,6 +393,8 @@ class FlowSession(models.Model):
     result_comment = models.TextField(blank=True, null=True)
 
     class Meta:
+        verbose_name = _("Flow session")
+        verbose_name_plural = _("Flow sessions")           
         ordering = ("course", "-start_time")
 
     def __unicode__(self):
@@ -437,7 +457,8 @@ class FlowPageData(models.Model):
     data = JSONField(null=True, blank=True)
 
     class Meta:
-        verbose_name_plural = "flow page data"
+        verbose_name = _("flow page data")
+        verbose_name_plural = _("flow page data")
 
     def __unicode__(self):
         # flow page data
@@ -498,6 +519,8 @@ class FlowPageVisit(models.Model):
         return result
 
     class Meta:
+        verbose_name = _("flow page visit")
+        verbose_name_plural = _("flow page visits")        
         # These must be distinguishable, to figure out what came later.
         unique_together = (("page_data", "visit_time"),)
 
@@ -567,6 +590,8 @@ class FlowPageVisitGrade(models.Model):
             return None
 
     class Meta:
+        verbose_name = _("flow page visit grade")
+        verbose_name_plural = _("flow page visit grades")   
         # These must be distinguishable, to figure out what came later.
         unique_together = (("visit", "grade_time"),)
 
@@ -759,6 +784,10 @@ class FlowRuleException(models.Model):
             # the rule refers to FlowRuleException rule
             raise ValidationError(_("invalid existing_session_rules: ")+str(e))
 
+    class Meta:
+        verbose_name = _("flow rule exception")
+        verbose_name_plural = _("flow rule exceptions")               
+
 # }}}
 
 
@@ -788,7 +817,8 @@ class GradingOpportunity(models.Model):
     shown_in_student_grade_book = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name_plural = "grading opportunities"
+        verbose_name = _("grading opportunity")
+        verbose_name_plural = _("grading opportunities")
         ordering = ("course", "due_time", "identifier")
         unique_together = (("course", "identifier"),)
 
@@ -834,6 +864,8 @@ class GradeChange(models.Model):
             related_name="grade_changes")
 
     class Meta:
+        verbose_name = _("grade change")
+        verbose_name_plural = _("grade changes") 
         ordering = ("opportunity", "participation", "grade_time")
 
     def __unicode__(self):
@@ -1043,6 +1075,8 @@ class InstantMessage(models.Model):
     time = models.DateTimeField(default=now)
 
     class Meta:
+        verbose_name = _("instant message")
+        verbose_name_plural = _("instant messages") 
         ordering = ("participation__course", "time")
 
     def __unicode__(self):

@@ -518,8 +518,8 @@ def get_codemirror_widget(language_mode, interaction_mode,
     from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
     from django.core.urlresolvers import reverse
-    help_text = (_("Press F9 to toggle full-screen mode. "
-            + "Set editor mode in <a href='%s'>user profile</a>.")
+    help_text = (_("Press F9 to toggle full-screen mode. ")
+            + _("Set editor mode in <a href='%s'>user profile</a>.")
             % reverse("relate-user_profile"))
 
     actual_addon_css = (

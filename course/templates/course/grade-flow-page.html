@@ -3,9 +3,9 @@
 
 {% load crispy_forms_tags %}
 
-{% block title %}
+{% block title %} {% blocktrans %} 
    {{ page_data.group_id }}/{{ page_data.page_id }} - {{ flow_identifier}} - Grading - RELATE
-{% endblock %}
+ {% endblocktrans %} {% endblock %}
 
 {% block root_container %}
   <div class="grading-page-student-work">
@@ -43,7 +43,7 @@
   </div>
   <div class="grading-page-grade-entry">
     <div class="row">
-      <h1>Grading: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt></h1>
+      <h1> {% blocktrans %} Grading: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> {% endblocktrans %} </h1>
 
       {% include "base-page-top.html" %}
 
@@ -57,7 +57,7 @@
           <td>{% trans "Flow session" %}</td>
           <td>
             <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
-            for
+              {% trans "for" %}
             {{ flow_session.participation.user.last_name }}, {{ flow_session.participation.user.first_name }}
             ({{ flow_session.participation.user.username }})
           </td>
@@ -76,12 +76,12 @@
             {% else %}
               <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>
             {% endif %}
-            Session
+              {% trans "Session" %}
           </td>
           <td>
             ID: {{ flow_session.id }}
             &middot;{% include "course/flow-session-state.html" %}
-            &middot; Start: {{ flow_session.start_time }}
+            &middot; {% trans "Start:"%} {{ flow_session.start_time }}
 
           </td>
         </tr>
@@ -99,7 +99,7 @@
             {% else %}
               <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>
             {% endif %}
-            Page number
+            {% trans "Page number" %}
           </td>
           <td>
             {{ ordinal }}
@@ -112,10 +112,10 @@
             {% if points_awarded != None %}
               {{ points_awarded|floatformat:1 }}
             {% else %}
-              (unknown)
+              {% trans "(unknown)" %}
             {% endif %}
             /
-            {{ max_points|floatformat:1 }} point{{ max_points|pluralize }}
+            {{ max_points|floatformat:1 }} {% trans "point" %}{{ max_points|pluralize }}
           </td>
         </tr>
         {% endif %}
@@ -124,11 +124,11 @@
           <td>{% trans "Graded" %}</td>
           <td>
             {% if most_recent_grade.grader == None %}
-              (autograded)
+              {% trans "(autograded)" %}
             {% else %}
-              by {{ most_recent_grade.grader.get_full_name }}
+              {% blocktrans %} by {{ most_recent_grade.grader.get_full_name }} {% endblocktrans %}
             {% endif %}
-            at {{ most_recent_grade.grade_time }}
+            {% blocktrans %} at {{ most_recent_grade.grade_time }} {% endblocktrans %}
           </td>
         </tr>
         {% endif %}

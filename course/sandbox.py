@@ -81,7 +81,7 @@ def view_markup_sandbox(pctx):
     ustatus = get_user_status(request.user)
 
     def make_form(data=None):
-        help_text = (_("Enter <a href=\"http://documen.tician.de/"
+        help_text = (ugettext("Enter <a href=\"http://documen.tician.de/"
                 "relate/content.html#relate-markup\">"
                 "RELATE markup</a>."))
         return SandboxForm(
@@ -103,7 +103,7 @@ def view_markup_sandbox(pctx):
                 tp, e, _ = sys.exc_info()
 
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Markup failed to render: "
+                        ugettext("Markup failed to render: "
                         "%(err_type)s: %(err_str)s") % {'err_type':tp.__name__, 'err_str':e})
 
         form = make_form(request.POST)

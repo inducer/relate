@@ -4,20 +4,20 @@
 {% block content %}
   <h1>{% trans "500 Server Error" %}</h1>
 
-  <p>
+  <p> {% blocktrans %} 
   Oops. That shouldn't have happened. Technical details of the error have been recorded.
   Please get in touch with your course staff to let them know what you were doing
   when the error occurred. Also mention the current time when sending your report.
-  </p>
+   {% endblocktrans %} </p>
 
   {% if maintenance_mode %}
-  <p>
-  In the meantime, you may navigate back to  the
-  <a href="{% url "relate-home" %}">{% trans "home page" %}</a>.
-  </p>
+  <p> {% trans 
+  "In the meantime, you may navigate back to  the
+  <a href="{% url "relate-home" %}">home page</a>."
+   %} </p>
   {% endif %}
 
-  <p>
+  <p> {% blocktrans %} 
   Sorry, and thanks for your patience!
-  </p>
+   {% endblocktrans %} </p>
 {% endblock %}

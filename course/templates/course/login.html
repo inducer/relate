@@ -8,15 +8,15 @@
 
   {% if "user_pw" not in student_sign_in_view %}
     <div class="alert alert-warning">
-      If you have a not been assigned a password, you should use the
-      <a href="{% url student_sign_in_view %}">{% trans "standard sign-in process" %}</a>.
+     {% trans "If you have a not been assigned a password, you should use the
+      <a href="{% url student_sign_in_view %}"> standard sign-in process </a>." %}
     </div>
   {% else %}
     <div class="alert alert-warning">
-      If you do not have an account,
-      <a href="{% url "relate-sign_up" %}">{% trans "sign up" %}</a>.
-      If you do not remember your password,
-      <a href="{% url "relate-reset_password" %}">{% trans "reset your password" %}</a>.
+     {% trans "If you do not have an account,
+      <a href="{% url "relate-sign_up" %}"> sign up </a>.{% endblocktrans" %}
+     {% trans "If you do not remember your password,
+      <a href="{% url "relate-reset_password" %}"> reset your password </a>.{% endblocktrans" %}
     </div>
   {% endif %}
 

@@ -4,11 +4,11 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-<h2>{{ process_description }}</h2>
+<h2> {% blocktrans %} {{ process_description }} {% endblocktrans %} </h2>
   <pre>{{ log }}</pre>
   {% if was_successful %}
     <div class="alert alert-success">
-      {{{% load i18n %} status|safe }}
+      {{ status|safe }}
         
     </div>
   {% else %}

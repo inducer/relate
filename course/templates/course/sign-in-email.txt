@@ -1,8 +1,9 @@
 {% load i18n %}
-
-{% if user.first_name %}Dear {{user.first_name}},
-{% else %}Dear {{user.email}},
+{% if user.first_name %}{% trans "Dear" %} {{user.first_name}},
+{% elif user.email %}{% trans "Dear" %} {{user.email}},
+{% else %}{% trans "Dear" %} {{user.username}},
 {% endif %}
+{% blocktrans %} 
 Welcome to RELATE! Please click this link to sign in:
 
 {{ sign_in_uri }}
@@ -15,3 +16,4 @@ address into the RELATE web site at
 If this was not you, it is safe to disregard this email.
 
 - RELATE staff
+{% endblocktrans %}

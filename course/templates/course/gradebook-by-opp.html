@@ -4,9 +4,9 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %}
-  Grade book: {{ opportunity.name }} - Courseflow
-{% endblock %}
+{% block title %} {% blocktrans %} 
+  Grade book: {{ opportunity.name }} - RELATE
+ {% endblocktrans %} {% endblock %}
 
 {% block header_extra %}
     {# the min.js version contains all dependencies #}
@@ -19,7 +19,7 @@
 
 
 {% block content %}
-  <h1>Grade book: {{ opportunity.name }} </h1>
+  <h1> {% blocktrans %} Grade book: {{ opportunity.name }}  {% endblocktrans %} </h1>
 
   <table class="table table-condensed">
     <thead>
@@ -47,8 +47,8 @@
     <tr>
       <td>{% trans "Counts" %}</td>
       <td>
-        {{ total_sessions }} total sessions
-        ({{ finished_sessions }} finished)
+        {% blocktrans %} {{ total_sessions }} total sessions
+        ({{ finished_sessions }} finished) {% endblocktrans %}
       </td>
     </tr>
     {% endif %}
@@ -97,7 +97,7 @@
                   {% endif %}
                   {% if flow_session.points != None %}
                     {{ flow_session.points|floatformat:1 }}/{{ flow_session.max_points|floatformat:1 }}
-                    points
+                    {% trans "points" %}
                   {% endif %}
                 </li>
               {% endfor %}

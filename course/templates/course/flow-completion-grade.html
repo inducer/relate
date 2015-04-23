@@ -1,30 +1,30 @@
 {% extends "course/course-base.html" %}
 
-{% block title %}
+{% block title %} {% blocktrans %} 
   {{flow_desc.title}} - RELATE
-{% endblock %}
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
 
   {% if grade_info.total_count %}
-  <h1>Results: {{flow_desc.title}}</h1>
+  <h1> {% blocktrans %} Results: {{flow_desc.title}} {% endblocktrans %} </h1>
   <div class="well flow-well">
-    <p>
-    You have
+    <p> 
+    {% trans "You have" %}
     {% if grade_info.max_points != grade_info.max_reachable_points %}
-      <b>(so far)</b>
+      <b>{% trans "(so far)" %}</b>
     {% endif %}
-    achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
+    {% trans "achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
     {{ grade_info.max_points|floatformat }}
-    points.
+    points." %}
     {% if grade_info.max_points != grade_info.max_reachable_points %}
-      (Some questions are not graded yet, so your grade will likely
-      change.)
+      {% trans "(Some questions are not graded yet, so your grade will likely
+      change.)" %}
     {% else %}
-      (That's <b>{{ grade_info.points_percent|floatformat }}%</b>.)
+      {% trans "(That's <b>{{ grade_info.points_percent|floatformat }}%</b>.)" %}
     {% endif %}
 
-    </p>
+     {% endblocktrans %} </p>
 
     <div class="progress">
       <div class="progress-bar progress-bar-success"
@@ -35,15 +35,15 @@
         style="width: {{ grade_info.unreachable_points_percent|floatformat:8 }}%"></div>
     </div>
 
-    <p>
+    <p> {% blocktrans %} 
     You have answered {{ grade_info.fully_correct_count }} questions
     correctly, {{ grade_info.partially_correct_count }} questions
     partially correctly, and {{ grade_info.incorrect_count }} questions
-    incorrectly.
+    incorrectly.{% endblocktrans %}
     {% if grade_info.unknown_count %}
-    The grade for {{ grade_info.unknown_count }} questions is not yet known.
+    {% blocktrans %} The grade for {{ grade_info.unknown_count }} questions is not yet known.{% endblocktrans %}
     {% endif %}
-    </p>
+      </p>
 
     <div class="progress">
       <div class="progress-bar progress-bar-success"

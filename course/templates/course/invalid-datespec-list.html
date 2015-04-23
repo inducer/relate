@@ -5,8 +5,8 @@
   <h1>{% trans "Event validity check" %}</h1>
 
   {% if invalid_datespecs %}
-    The following events were found in course content that are not present
-    in the database:
+    {% trans "The following events were found in course content that are not present
+    in the database:" %}
     <ul>
       {% for datespec, locations in invalid_datespecs %}
         <li><tt>{{ datespec }}</tt>:
@@ -15,6 +15,7 @@
             <li> {{ location }} </li>
             {% endfor %}
           </ul>
+        </li>
       {% endfor %}
     </ul>
     <div class="alert alert-warning">
@@ -22,14 +23,14 @@
       <b>{% trans "Unrecognized events were found." %}</b>
       </p>
 
-      <p>
+      <p> {% blocktrans %} 
       Check the "Calendar" functions in the instructor menu to add the
       missing labels.
-      </p>
+       {% endblocktrans %} </p>
     </div>
   {% else %}
     <div class="alert alert-success">
-      No unrecognized events were found.
+      {% trans "No unrecognized events were found." %}
     </div>
   {% endif %}
 {% endblock %}

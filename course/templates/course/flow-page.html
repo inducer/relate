@@ -4,10 +4,10 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %}
+{% block title %} {% blocktrans %} 
   [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
   {{title}} - {{ flow_desc.title}} - RELATE
-{% endblock %}
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
   <form

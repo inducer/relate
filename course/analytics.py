@@ -147,7 +147,7 @@ class Histogram(object):
 
         temp_string_weights = self.string_weights.copy()
 
-        oob = _("<out of bounds>")
+        oob = "<out of bounds>"
 
         from bisect import bisect
         for value, weight in self.num_values:

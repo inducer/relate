@@ -1,19 +1,19 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %}
-  Analytics - RELATE
-{% endblock %}
+{% block title %} {% blocktrans %} 
+    Analytics - RELATE
+ {% endblocktrans %} {% endblock %}
 
 {% block content %}
-  <h1>Analytics: <tt>{{ flow_identifier}}</tt></h1>
+  <h1> {% blocktrans %} Analytics: <tt>{{ flow_identifier}}</tt> {% endblocktrans %} </h1>
 
   <h2>{% trans "Grade Distribution" %}</h2>
 
-  <p>
+  <p> 
     {{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }}
     {% if participant_count != None %}
-      (from {{ participant_count }} distinct participants)
+      {% blocktrans %}(from {{ participant_count }} distinct participants){% endblocktrans %}
     {% endif %}
   </p>
 
@@ -30,8 +30,8 @@
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
       {{ astats.title }}
-      ({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
-      {{ astats.total_count }} response{{ astats.total_count|pluralize }} total)
+      {% blocktrans %}({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
+      {{ astats.total_count }} response{{ astats.total_count|pluralize }} total){% endblocktrans %}
 
       <div class="progress">
         <div class="progress-bar progress-bar-success" role="progressbar"
