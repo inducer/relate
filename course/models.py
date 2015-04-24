@@ -140,14 +140,17 @@ class Course(models.Model):
             help_text=_("A course identifier. Alphanumeric with dashes, "
             "no spaces. This is visible in URLs and determines the location "
             "on your file system where the course's git repository lives."),
+            verbose_name=_('Course ID'),
             db_index=True)
 
     hidden = models.BooleanField(
             default=True,
-            help_text=_("Is the course only accessible to course staff?"))
+            help_text=_("Is the course only accessible to course staff?"),
+            verbose_name=_('hidden to student'))
     listed = models.BooleanField(
             default=True,
-            help_text=_("Should the course be listed on the main page?"))
+            help_text=_("Should the course be listed on the main page?"),
+            verbose_name=_('listed in main page'))
     accepts_enrollment = models.BooleanField(
             default=True, verbose_name=_('accepts enrollment'))
     valid = models.BooleanField(
@@ -158,19 +161,23 @@ class Course(models.Model):
             help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
             "<tt>git://github.com/inducer/relate-sample</tt> "
-            "to get some sample content."))
+            "to get some sample content."),
+            verbose_name=_('git source'))
     ssh_private_key = models.TextField(blank=True,
             help_text=_("An SSH private key to use for Git authentication. "
-            "Not needed for the sample URL above."))
+            "Not needed for the sample URL above."),
+            verbose_name=_('SSH private key'))
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
             help_text=_("Name of a YAML file in the git repository that contains "
-            "the root course descriptor."))
+            "the root course descriptor."),
+            verbose_name=_('course file'))
     events_file = models.CharField(max_length=200,
             default="events.yml",
             help_text=_("Name of a YAML file in the git repository that contains "
-            "calendar information."))
+            "calendar information."),
+            verbose_name=_('events file'))
 
     enrollment_approval_required = models.BooleanField(
             default=False,
@@ -180,15 +187,18 @@ class Course(models.Model):
     enrollment_required_email_suffix = models.CharField(
             max_length=200, blank=True, null=True,
             help_text=_("Enrollee's email addresses must end in the "
-            "specified suffix, such as '@illinois.edu'."))
+            "specified suffix, such as '@illinois.edu'."),
+            verbose_name=_('enrollment required email suffix'))
 
     from_email = models.EmailField(
             help_text=_("This email address will be used in the 'From' line "
-            "of automated emails sent by RELATE."))
+            "of automated emails sent by RELATE."),
+            verbose_name=_('from email'))
 
     notify_email = models.EmailField(
             help_text=_("This email address will receive "
-            "notifications about the course."))
+            "notifications about the course."),
+            verbose_name=_('notify email'))
 
     # {{{ XMPP
 

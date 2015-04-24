@@ -35,6 +35,7 @@ from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext
 
 from django.views.decorators.cache import cache_control
 
@@ -209,7 +210,8 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
             widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}))
+                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+            label=_('Time'))
 
     def __init__(self, *args, **kwargs):
         super(FakeTimeForm, self).__init__(*args, **kwargs)
@@ -833,8 +835,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": _("Grant Exception"),
-        "form_text": _("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
+        "form_description": ugettext("Grant Exception"),
+        "form_text": ugettext("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
         % {'participation':participation, 'flow_id':flow_id},
     })
 

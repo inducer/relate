@@ -182,8 +182,8 @@ def set_up_new_course(request):
                                 _("Course content validated, creation succeeded. "
                                 "You may want to view the events used "
                                 "in the course content and create them. ")
-                                + '<a href="%s" class="btn btn-primary">'
-                                + _('Check') + '&raquo;</a>'
+                                + _('<a href="%s" class="btn btn-primary">'
+                                'Check &raquo;</a>')
                                 % reverse("relate-check_events",
                                     args=(new_course.identifier,)))
                 except:
@@ -312,9 +312,9 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                 "You may want to view the events used "
                 "in the course content and check that they "
                 "are recognized. ")
-                + '<p><a href="%s" class="btn btn-primary" '
+                + _('<p><a href="%s" class="btn btn-primary" '
                 'style="margin-top:8px">'
-                + _('Check') + '&raquo;</a></p>'
+                'Check &raquo;</a></p>')
                 % reverse("relate-check_events",
                     args=(pctx.course.identifier,)))
 

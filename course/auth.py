@@ -124,7 +124,9 @@ class ImpersonateForm(StyledForm):
                         key=lambda user: user.last_name.lower())
                     ],
                 required=True,
-                help_text=_(_("Select user to impersonate.")))
+                help_text=_(_("Select user to impersonate.")),
+                verbose_name=_('user')
+        )
 
         self.helper.add_input(Submit("submit", _("Impersonate"),
             css_class="col-lg-offset-2"))
