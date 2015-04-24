@@ -374,7 +374,7 @@ class LinkFixerExtension(Extension):
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
 
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md, md_globals):  # noqa
         md.treeprocessors["relate_link_fixer"] = \
                 LinkFixerTreeprocessor(md, self.course, self.commit_sha,
                         reverse_func=self.reverse_func)
