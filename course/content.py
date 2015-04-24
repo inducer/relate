@@ -823,13 +823,13 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
             page = instantiate_flow_page(
                     "course '%s', flow '%s', page '%s/%s'"
                     % (course_identifier, flow_session.flow_id,
-                        grp.id, page_desc.id),
-                    repo, page_desc, commit_sha)
+                        grp.id, new_page_desc.id),
+                    repo, new_page_desc, commit_sha)
 
             return FlowPageData(
                     flow_session=flow_session,
                     group_id=grp.id,
-                    page_id=page_desc.id,
+                    page_id=new_page_desc.id,
                     ordinal=None,
                     data=page.make_page_data())
 
@@ -881,9 +881,13 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
                 if new_page_fpds.count():
                     # We already have FlowPageData for this page, revive it
                     new_page_fpd, = new_page_fpds
+                    assert new_page_fpd.id == new_page_id
                 else:
                     # Make a new FlowPageData instance
-                    new_page_fpd = create_fpd(find_page_desc(new_page_id))
+                    page_desc = find_page_desc(new_page_id)
+                    assert page_desc.id == new_page_id
+                    new_page_fpd = create_fpd(page_desc)
+                    assert new_page_fpd.page_id == new_page_id
 
                 add_page(new_page_fpd)
 
