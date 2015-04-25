@@ -1,8 +1,10 @@
 {% extends "course/course-base.html" %}
 
+{% load i18n %}
+
 {% load static %}
 
-{% block title %} {% blocktrans %} 
+{% block title %} {% blocktrans trimmed %} 
   List of Grading Opportunities - RELATE
  {% endblocktrans %} {% endblock %}
 

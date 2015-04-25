@@ -23,7 +23,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
+from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -32,6 +33,8 @@ from django.core.exceptions import (
         ObjectDoesNotExist)
 from django.db import transaction
 from django.utils.safestring import mark_safe
+mark_safe_lazy = lazy(mark_safe, six.text_type)
+
 from django import forms
 from django import http
 
@@ -898,12 +901,12 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
         if fpctx.page_data.ordinal + 1 < flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next",
-                        mark_safe(_("Save answer and move on &raquo;")),
+                        mark_safe_lazy(_("Save answer and move on &raquo;")),
                         css_class="relate-save-button"))
         else:
             form.helper.add_input(
                     Submit("save_and_finish",
-                        mark_safe(_("Save answer and finish &raquo;")),
+                        mark_safe_lazy(_("Save answer and finish &raquo;")),
                         css_class="relate-save-button"))
 
     return form

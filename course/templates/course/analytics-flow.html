@@ -1,7 +1,7 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans %} 
+{% block title %} {% blocktrans trimmed %} 
     Analytics - RELATE
  {% endblocktrans %} {% endblock %}
 
@@ -30,7 +30,7 @@
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
       {{ astats.title }}
-      {% blocktrans %}({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
+      {% blocktrans trimmed %}({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
       {{ astats.total_count }} response{{ astats.total_count|pluralize }} total){% endblocktrans %}
 
       <div class="progress">

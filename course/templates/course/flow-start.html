@@ -1,7 +1,11 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans %} 
+{% url student_sign_in_view as student_sign_in_view %}
+{% url "relate-home" as relate_home %}
+
+
+{% block title %} {% blocktrans trimmed %} 
   {{flow_desc.title}} - RELATE
  {% endblocktrans %} {% endblock %}
 
@@ -49,7 +53,7 @@
               </td>
               <td>
                 {% if flow_session.points_percentage %}
-                  {% blocktrans %} <b>{{ flow_session.points|floatformat }}</b>
+                  {% blocktrans trimmed %} <b>{{ flow_session.points|floatformat }}</b>
                   out of
                   {{ flow_session.max_points|floatformat }}
 
@@ -85,7 +89,7 @@
     {% if may_start %}
       {% if new_session_grading_rule.grade_identifier %}
         <div class="alert alert-info">
-          If you start a new session, the following rules will apply:
+            {% trans "If you start a new session, the following rules will apply:" %}
           <ul>
             {% if new_session_grading_rule.description %}
               <li> {% blocktrans %} Your session will be a '<b>{{ new_session_grading_rule.description }}</b>'. {% endblocktrans %} </li>
@@ -93,10 +97,10 @@
             {% if new_session_grading_rule.due %}
               <li> {% blocktrans %} Your session will be due on <b>{{ new_session_grading_rule.due }}</b>. {% endblocktrans %} </li>
             {% endif %}
-            <li> {% blocktrans %} You will receive <b>{{ new_session_grading_rule.credit_percent|floatformat }}% credit</b>
+            <li> {% blocktrans trimmed %} You will receive <b>{{ new_session_grading_rule.credit_percent|floatformat }}% credit</b>
                 for your work. {% endblocktrans %} </li>
             {% if past_sessions_and_properties %}
-              <li> {% blocktrans %} This is not your first session. If you start another one,
+              <li> {% blocktrans trimmed %} This is not your first session. If you start another one,
                 for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
                 among all your sessions.
                {% endblocktrans %} </li>
@@ -162,7 +166,7 @@
         <ul>
         {% if not user.is_authenticated %}
         <li> 
-        <a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>.
+        <a href="{{ student_sign_in_view }}">{% trans "Sign in" %}</a>.
         {% trans " 
           You're not currently signed in. Access to the resource is restricted,
           and since the site has no way of knowing who you are, it may have denied
@@ -172,10 +176,10 @@
           action."
           %} </li>
         {% endif %}
-        <li> {% blocktrans %} 
+        <li> {% blocktrans trimmed %} 
           Has the deadline for this assignment passed?
          {% endblocktrans %} </li>
-        <li> {% blocktrans %} 
+        <li> {% blocktrans trimmed %} 
         Complete your enrollment in your course. If you're not enrolled, a large
         "Enroll now" button will show up at the top of your course page. Click that,
         follow the indicated steps, and then retry your last action.

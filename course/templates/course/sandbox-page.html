@@ -10,7 +10,7 @@
   {% else %}
     {% blocktrans %}Page Sandbox{% endblocktrans %}
   {% endif %}
-    {% blocktrans %}
+    {% blocktrans trimmed %}
         -
         RELATE
     {% endblocktrans %} 
@@ -21,8 +21,8 @@
     <div class="row">
       <div class="alert alert-warning" style="float:right" id="save-warning">
         <i class="fa fa-warning"></i>
-       {% trans " What you type into this page is not saved once you navigate away.
-        Please make sure to retain a copy." %}
+       {% blocktrans  trimmed %}  What you type into this page is not saved once you navigate away.
+        Please make sure to retain a copy.{% endblocktrans %}
       </div>
 
       <h1>{% trans "Page Sandbox" %}</h1>

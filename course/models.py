@@ -120,7 +120,8 @@ class UserStatus(models.Model):
                 ("emacs", "Emacs"),
                 ("vim", "Vim"),
                 ),
-            default="default")
+            default="default",
+            verbose_name=_("editor mode"))
 
     class Meta:
         verbose_name = _("user status")

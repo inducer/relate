@@ -1,7 +1,7 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans %} 
+{% block title %} {% blocktrans trimmed %} 
   {{flow_desc.title}} - RELATE
  {% endblocktrans %} {% endblock %}
 
@@ -16,13 +16,13 @@
 
   {% if total_count %}
     <p> 
-    There were {{total_count}} questions.
+    {% blocktrans %} There were {{total_count}} questions. {% endblocktrans %}
     {% if answered_count == total_count %}
       {% blocktrans %}  You have provided an answer for all of them.{% endblocktrans %}
     {% else %}
       {% blocktrans %} You have answered {{answered_count}} and left {{unanswered_count}} unanswered.{% endblocktrans %}
     {% endif %}
-     {% endblocktrans %} </p>
+    </p>
   {% endif %}
 
   {% blocktrans %} If you choose to end your session, the following things will happen:{% endblocktrans %}

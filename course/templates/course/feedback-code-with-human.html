@@ -12,7 +12,7 @@
     <div class="panel-heading">{% trans "Autograder feedback" %}</div>
     <div class="panel-body">
       {% if code_feedback.percentage != None %}
-        <p><b> {% blocktrans %} The autograder assigned
+        <p><b> {% blocktrans trimmed %} The autograder assigned
           {{ code_feedback_points|floatformat }}/{{ code_points|floatformat }} points. {% endblocktrans %} </b>
         </p>
       {% endif %}

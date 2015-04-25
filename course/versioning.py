@@ -32,6 +32,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext
 
 from django.db import transaction
 
@@ -423,7 +424,7 @@ def update_course(pctx):
             "<p>%s</p>" % line
             for line in text_lines
             ),
-        "form_description": _("Update Course Revision"),
+        "form_description": ugettext("Update Course Revision"),
     })
 
 # }}}

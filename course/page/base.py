@@ -25,7 +25,6 @@ THE SOFTWARE.
 """
 
 import django.forms as forms
-from django.utils.translation import ugettext_lazy as _
 
 import re
 
@@ -34,7 +33,10 @@ from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from relate.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
+from django.utils.functional import lazy
+from django.utils.translation import ugettext_lazy as _
 
+mark_safe_lazy = lazy(mark_safe, six.text_type)
 
 class PageContext(object):
     """
@@ -554,7 +556,7 @@ class HumanTextFeedbackForm(StyledForm):
         self.fields["feedback_text"] = forms.CharField(
                 widget=forms.Textarea(),
                 required=False,
-                help_text=mark_safe(_("Feedback to be shown to student, using "
+                help_text=mark_safe_lazy(_("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
                     "RELATE-flavored Markdown</a>")))

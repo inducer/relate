@@ -28,8 +28,11 @@ import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
-from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext
+from django.utils.translation import ugettext_lazy as _
+#from django.utils.functional import lazy
+
+#mark_safe_lazy = lazy(mark_safe, six.text_type)
 
 from crispy_forms.layout import Submit
 

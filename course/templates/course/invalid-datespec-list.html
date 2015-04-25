@@ -5,8 +5,10 @@
   <h1>{% trans "Event validity check" %}</h1>
 
   {% if invalid_datespecs %}
-    {% trans "The following events were found in course content that are not present
-    in the database:" %}
+    {% blocktrans trimmed %}
+    The following events were found in course content that are not present
+    in the database:
+    {% endblocktrans %} 
     <ul>
       {% for datespec, locations in invalid_datespecs %}
         <li><tt>{{ datespec }}</tt>:
@@ -23,7 +25,7 @@
       <b>{% trans "Unrecognized events were found." %}</b>
       </p>
 
-      <p> {% blocktrans %} 
+      <p> {% blocktrans trimmed %} 
       Check the "Calendar" functions in the instructor menu to add the
       missing labels.
        {% endblocktrans %} </p>

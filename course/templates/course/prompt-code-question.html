@@ -14,13 +14,13 @@
     <div id="grading-code" class="panel-collapse collapse">
      <div class="panel-body">
        {% if show_setup_code and setup_code %}
-         {% blocktrans %}
+         {% blocktrans trimmed %}
         Set-up:
          <pre>{{ setup_code }}</pre>
          {% endblocktrans %}
       {% endif %}
       {% if show_test_code and test_code %}
-         {% blocktrans %}
+         {% blocktrans  trimmed %}
         Grading
          <pre>{{ test_code }}</pre>
          {% endblocktrans %}

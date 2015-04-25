@@ -36,6 +36,9 @@ from django.utils.safestring import mark_safe
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
+from django.utils.functional import lazy
+
+mark_safe_lazy = lazy(mark_safe, six.text_type)
 
 from django.views.decorators.cache import cache_control
 
@@ -293,7 +296,7 @@ class InstantFlowRequestForm(StyledForm):
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True)
         self.fields["duration_in_minutes"] = forms.IntegerField(
-                required=True, initial=20)
+                required=True, initial=20, label=_("Duration in minutes"))
 
         self.helper.add_input(
                 Submit("add", _("Add"), css_class="col-lg-offset-2"))
@@ -368,7 +371,7 @@ class FlowTestForm(StyledForm):
                 required=True)
 
         self.helper.add_input(
-                Submit("test", mark_safe(_("Go &raquo;")), css_class="col-lg-offset-2"))
+                Submit("test", mark_safe_lazy(_("Go &raquo;")), css_class="col-lg-offset-2"))
 
 
 @course_view
@@ -430,7 +433,7 @@ class ExceptionStage1Form(StyledForm):
 
         self.helper.add_input(
                 Submit(
-                    "next", mark_safe(_("Next &raquo;")),
+                    "next", mark_safe_lazy(_("Next &raquo;")),
                     css_class="col-lg-offset-2"))
 
 
@@ -506,7 +509,7 @@ class ExceptionStage2Form(StyledForm):
                 help_text=_("The rules that currently apply to selected session "
                 "will provide the default values for the rules on the next page."))
 
-        self.helper.add_input(Submit("next", mark_safe(_("Next &raquo;")),
+        self.helper.add_input(Submit("next", mark_safe_lazy(_("Next &raquo;")),
                     css_class="col-lg-offset-2"))
 
 
@@ -550,7 +553,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += (_("<div class='alert alert-info'>%s</div>")
+        form_text += ("<div class='alert alert-info'>%s</div>"
             % _("Creating a new session is (technically) not allowed by course "
                 "rules. Clicking 'Create Session' anyway will override this rule."))
 
