@@ -90,7 +90,7 @@ BOWER_INSTALLED_APPS = (
     "fontawesome",
     "videojs",
     "MathJax",
-    "codemirror#5.1.0",
+    "codemirror#5.2.0",
     "fullcalendar#2.3.1",
     "jqueryui",
     "datatables",

@@ -390,12 +390,15 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
           feedback.check_numpy_array_features(name, ref, data)
 
           feedback.check_numpy_array_allclose(name, ref, data,
-              accuracy_critical=True, rtol=1e-5, atol=1e-8)
+              accuracy_critical=True, rtol=1e-5, atol=1e-8,
+              report_success=True)
+          # returns True if accurate
 
           feedback.check_list(name, ref, data, entry_type=None)
 
           feedback.check_scalar(self, name, ref, data, accuracy_critical=True,
-              rtol=1e-5, atol=1e-8)
+              rtol=1e-5, atol=1e-8, report_success=True)
+          # returns True if accurate
 
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
