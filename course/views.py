@@ -34,6 +34,7 @@ import django.views.decorators.http as http_dec
 from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
+from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
 from django.utils.functional import lazy

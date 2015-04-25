@@ -32,6 +32,7 @@ from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from relate.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
+from django.utils import six
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import ugettext_lazy as _
