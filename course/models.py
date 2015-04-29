@@ -260,9 +260,9 @@ class ParticipationTag(models.Model):
 
     def clean(self):
         import re
-        NAME_VALID_RE = re.compile(r"^\w+$")
+        name_valid_re = re.compile(r"^\w+$")
 
-        if NAME_VALID_RE.match(self.name) is None:
+        if name_valid_re.match(self.name) is None:
             raise ValidationError({"name": "Name contains invalid characters."})
 
     def __unicode__(self):
