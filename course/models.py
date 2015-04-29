@@ -789,6 +789,7 @@ class GradeChange(models.Model):
             choices=GRADE_STATE_CHANGE_CHOICES)
 
     attempt_id = models.CharField(max_length=50, null=True, blank=True,
+            default="main",
             help_text="Grade changes are grouped by their 'attempt ID' "
             "where later grades with the same attempt ID supersede earlier "
             "ones.")
