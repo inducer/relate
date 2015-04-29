@@ -102,10 +102,10 @@ def _eval_generic_conditions(rule, course, role, now_datetime):
 
 
 def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
-        consider_exceptions=True):
+        consider_exceptions=True, default_rules_desc=[]):
     if (not hasattr(flow_desc, "rules")
             or not hasattr(flow_desc.rules, kind)):
-        rules = []
+        rules = default_rules_desc[:]
     else:
         rules = getattr(flow_desc.rules, kind)[:]
 
@@ -135,13 +135,13 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
     permitted or *None* if no new session is allowed.
     """
 
+    from relate.utils import dict_to_struct
     rules = get_flow_rules(flow_desc, flow_rule_kind.start,
-            participation, flow_id, now_datetime)
-
-    if not rules:
-        return FlowSessionStartRule(
-                may_list_existing_sessions=False,
-                may_start_new_session=True)
+            participation, flow_id, now_datetime,
+            default_rules_desc=[
+                dict_to_struct(dict(
+                    may_start_new_session=True,
+                    may_list_existing_sessions=False))])
 
     for rule in rules:
         if not _eval_generic_conditions(rule, course, role, now_datetime):
@@ -189,12 +189,13 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
     how a flow may be accessed.
     """
 
+    from relate.utils import dict_to_struct
     rules = get_flow_rules(flow_desc, flow_rule_kind.access,
-            session.participation, session.flow_id, now_datetime)
-
-    if not rules:
-        return FlowSessionAccessRule(
-                permissions=set([flow_permission.view]))
+            session.participation, session.flow_id, now_datetime,
+            default_rules_desc=[
+                dict_to_struct(dict(
+                    permissions=[flow_permission.view],
+                    ))])
 
     for rule in rules:
         if not _eval_generic_conditions(rule, session.course, role, now_datetime):
@@ -247,11 +248,13 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
 
 
 def get_session_grading_rule(session, role, flow_desc, now_datetime):
+    from relate.utils import dict_to_struct
     rules = get_flow_rules(flow_desc, flow_rule_kind.grading,
-            session.participation, session.flow_id, now_datetime)
-
-    if not rules:
-        return FlowSessionGradingRule()
+            session.participation, session.flow_id, now_datetime,
+            default_rules_desc=[
+                dict_to_struct(dict(
+                    grade_identifier=None,
+                    ))])
 
     for rule in rules:
         if hasattr(rule, "if_has_role"):
