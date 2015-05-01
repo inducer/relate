@@ -246,7 +246,7 @@ def safe_div(num, denom):
     return num/denom
 
 
-def make_page_answer_stats_list(pctx, flow_id):
+def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
 
@@ -273,9 +273,14 @@ def make_page_answer_stats_list(pctx, flow_id):
                         ))
 
             if is_multiple_submit and connection.features.can_distinct_on_fields:
-                visits = (visits
-                        .distinct("page_data")
-                        .order_by("page_data", "-visit_time"))
+                if not restrict_to_first_attempt:
+                    visits = (visits
+                            .distinct("page_data")
+                            .order_by("page_data", "-visit_time"))
+                else:
+                    visits = (visits
+                            .distinct("flow_session__participation")
+                            .order_by("flow_session__participation", "-visit_time"))
 
             visits = (visits
                     .select_related("flow_session")
@@ -381,12 +386,17 @@ def flow_analytics(pctx, flow_id):
             ]:
         raise PermissionDenied("must be at least TA to view analytics")
 
+    restrict_to_first_attempt = int(
+            bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
+
     return render_course_page(pctx, "course/analytics-flow.html", {
         "flow_identifier": flow_id,
         "grade_histogram": make_grade_histogram(pctx, flow_id),
-        "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_id),
+        "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_id,
+            restrict_to_first_attempt),
         "time_histogram": make_time_histogram(pctx, flow_id),
         "participant_count": count_participants(pctx, flow_id),
+        "restrict_to_first_attempt": restrict_to_first_attempt,
         })
 
 # }}}
@@ -416,6 +426,9 @@ def page_analytics(pctx, flow_id, group_id, page_id):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
 
+    restrict_to_first_attempt = int(
+            bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
+
     is_multiple_submit = is_flow_multiple_submit(flow_desc)
 
     page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
@@ -430,9 +443,14 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                 ))
 
     if is_multiple_submit and connection.features.can_distinct_on_fields:
-        visits = (visits
-                .distinct("page_data", "visit_time")
-                .order_by("page_data", "-visit_time"))
+        if restrict_to_first_attempt:
+            visits = (visits
+                    .distinct("page_data", "visit_time")
+                    .order_by("page_data", "-visit_time"))
+        else:
+            visits = (visits
+                    .distinct("flow_session__participation", "visit_time")
+                    .order_by("flow_session__participation", "-visit_time"))
 
     visits = (visits
             .select_related("flow_session")
@@ -496,6 +514,7 @@ def page_analytics(pctx, flow_id, group_id, page_id):
         "title": title,
         "body": body,
         "answer_stats_list": answer_stats,
+        "restrict_to_first_attempt": restrict_to_first_attempt,
         })
 
 # }}}
