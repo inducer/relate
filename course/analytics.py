@@ -272,15 +272,16 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
                         is_submitted_answer=True,
                         ))
 
-            if is_multiple_submit and connection.features.can_distinct_on_fields:
-                if not restrict_to_first_attempt:
+            if connection.features.can_distinct_on_fields:
+                if restrict_to_first_attempt:
                     visits = (visits
-                            .distinct("page_data")
-                            .order_by("page_data", "-visit_time"))
-                else:
+                            .distinct("flow_session__participation__id")
+                            .order_by("flow_session__participation__id",
+                                "visit_time"))
+                elif is_multiple_submit:
                     visits = (visits
-                            .distinct("flow_session__participation")
-                            .order_by("flow_session__participation", "-visit_time"))
+                            .distinct("page_data__id")
+                            .order_by("page_data__id", "-visit_time"))
 
             visits = (visits
                     .select_related("flow_session")
@@ -371,8 +372,8 @@ def count_participants(pctx, flow_id):
             .filter(
                 course=pctx.course,
                 flow_id=flow_id)
-            .order_by("participation")
-            .distinct("participation"))
+            .order_by("participation__id")
+            .distinct("participation__id"))
     return qset.count()
 
 
@@ -442,15 +443,15 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                 is_submitted_answer=True,
                 ))
 
-    if is_multiple_submit and connection.features.can_distinct_on_fields:
+    if connection.features.can_distinct_on_fields:
         if restrict_to_first_attempt:
             visits = (visits
-                    .distinct("page_data", "visit_time")
-                    .order_by("page_data", "-visit_time"))
-        else:
+                    .distinct("flow_session__participation__id")
+                    .order_by("flow_session__participation__id", "visit_time"))
+        elif is_multiple_submit:
             visits = (visits
-                    .distinct("flow_session__participation", "visit_time")
-                    .order_by("flow_session__participation", "-visit_time"))
+                    .distinct("page_data__id")
+                    .order_by("page_data__id", "-visit_time"))
 
     visits = (visits
             .select_related("flow_session")
