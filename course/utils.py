@@ -223,12 +223,20 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
 
         permissions = set(rule.permissions)
 
+        # {{{ deal with deprecated permissions
+
         if "modify" in permissions:
             permissions.remove("modify")
             permissions.update([
                 flow_permission.submit_answer,
                 flow_permission.end_session,
                 ])
+
+        if "see_answer" in permissions:
+            permissions.remove("see_answer")
+            permissions.add(flow_permission.see_answer_after_submission)
+
+        # }}}
 
         # Remove 'modify' permission from not-in-progress sessions
         if not session.in_progress:
