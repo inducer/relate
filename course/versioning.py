@@ -53,19 +53,19 @@ class PyGit2RemoteWithSSHKey(pygit2.Remote):
         self.fetched_tips = {}
 
 
-CF_REMOTE_NAME = "courseflow-fetch"
+RELATE_REMOTE_NAME = "relate-fetch"
 
 
 def mop_up_remote(repo):
     for r in repo.remotes:
-        if r.name == CF_REMOTE_NAME:
-            r.delete()
+        if r.name == RELATE_REMOTE_NAME:
+            repo.remotes.delete(RELATE_REMOTE_NAME)
 
 
 def get_git_remote_from_course(repo, course):
     mop_up_remote(repo)
     remote = repo.create_remote(
-            CF_REMOTE_NAME,
+            RELATE_REMOTE_NAME,
             course.git_source)
 
     try:
