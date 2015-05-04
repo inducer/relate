@@ -42,8 +42,6 @@ from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
 
 from relate.utils import dict_to_struct
 
-import threading
-
 from yaml import load as load_yaml
 
 
@@ -54,28 +52,9 @@ def get_course_repo_path(course):
     return join(settings.GIT_ROOT, course.identifier)
 
 
-# All this because dulwich is stateful and not reentrant.
-_THREAD_LOCAL_STORAGE = threading.local()
-
-
-def get_course_repos_dict():
-    try:
-        return _THREAD_LOCAL_STORAGE.COURSE_REPOS
-    except AttributeError:
-        _THREAD_LOCAL_STORAGE.COURSE_REPOS = {}
-        return _THREAD_LOCAL_STORAGE.COURSE_REPOS
-
-
 def get_course_repo(course):
-    try:
-        return get_course_repos_dict()[course.pk]
-    except KeyError:
-        from dulwich.repo import Repo
-        repo = Repo(get_course_repo_path(course))
-
-        get_course_repos_dict()[course.pk] = repo
-
-        return repo
+    from dulwich.repo import Repo
+    return Repo(get_course_repo_path(course))
 
 
 def get_repo_blob(repo, full_name, commit_sha):
