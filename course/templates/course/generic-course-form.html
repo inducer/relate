@@ -7,8 +7,19 @@
     <h1>{{ form_description }}</h1>
   {% endif %}
   {{ form_text|safe }}
-  <div class="well">
-    {% crispy form %}
-  </div>
+
+  {% if form %}
+    <div class="well">
+      {% crispy form %}
+    </div>
+  {% endif %}
+
+  {% if forms %}
+    {% for sub_form in forms %}
+      <div class="well">
+        {% crispy sub_form %}
+      </div>
+    {% endfor %}
+  {% endif %}
 {% endblock %}
 

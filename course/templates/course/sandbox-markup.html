@@ -1,0 +1,23 @@
+{% extends "course/course-base.html" %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+
+{%block header_extra %}
+  <script src="{% static "codemirror/keymap/vim.js" %}"></script>
+{% endblock %}
+
+{% block content %}
+  <h1>Markup Sandbox</h1>
+  {% if preview_text %}
+  <div class="well">
+    <div style="max-height:700px; overflow-y:scroll">
+      {{ preview_text|safe }}
+    </div>
+  </div>
+  {% endif %}
+  <div class="well">
+    {% crispy form %}
+  </div>
+{% endblock %}
+

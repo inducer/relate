@@ -1,7 +1,18 @@
 {% extends "course/course-base.html" %}
 
+{% load static %}
+
 {% block title %}
   My Grades - Courseflow
+{% endblock %}
+
+{% block header_extra %}
+    {# the min.js version contains all dependencies #}
+    <script src="{% static "datatables/media/js/jquery.dataTables.min.js" %}"></script>
+    <link href="{% static "datatables/media/css/jquery.dataTables.min.css" %}" rel="stylesheet">
+
+    <script src="{% static "datatables-fixedcolumns/js/dataTables.fixedColumns.js" %}"></script>
+    <link href="{% static "datatables-fixedcolumns/css/dataTables.fixedColumns.css" %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -28,7 +39,7 @@
     </table>
   {% endif %}
 
-  <table class="table table-condensed table-striped">
+  <table class="gradebook-single">
     <thead>
       <th>Name</th>
       <th>Grade</th>
@@ -36,19 +47,35 @@
     </thead>
     <tbody>
       {% for grade_info in grade_table %}
+      {% with grade_info.grade_state_machine as gsm %}
       <tr>
-        <td>{{ grade_info.opportunity.name }}</td>
-        <td>
-          <a href="{% url "course.grades.view_single_grade" course.identifier participation.id grade_info.opportunity.id %}"
-            >{{ grade_info.grade_state_machine.stringify_state }}</a>
+        <td data-order="{{ grade_info.opportunity.identifier }}">{{ grade_info.opportunity.name }}</td>
+        <td data-order="{{ gsm.stringify_percentage }}">
+          <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
+            >{{ gsm.stringify_state }}</a>
         </td>
-        <td>
+        <td
+         {% if  gsm.last_graded_time %}
+             data-order="{{ gsm.last_graded_time.isoformat }}"
+          {% else %}
+             data-order=""
+          {% endif %}
+          >
           {{ grade_info.grade_state_machine.last_graded_time }}</a>
         </td>
       </tr>
+      {% endwith %}
       {% endfor %}
     </tbody>
   </table>
+
+  <script type="text/javascript">
+    var tbl = $("table.gradebook-single").dataTable({
+        "scrollCollapse": true,
+        "paging": false,
+    } );
+  </script>
+
 {% endblock %}
 
 

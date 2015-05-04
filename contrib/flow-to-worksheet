@@ -1,0 +1,200 @@
+#! /usr/bin/env python
+
+from __future__ import print_function
+
+import sys
+import pypandoc
+import re
+from jinja2 import Template
+
+
+class Struct(object):
+    def __init__(self, entries):
+        for name, val in entries.iteritems():
+            self.__dict__[name] = dict_to_struct(val)
+
+    def __repr__(self):
+        return repr(self.__dict__)
+
+
+def dict_to_struct(data):
+    if isinstance(data, list):
+        return [dict_to_struct(d) for d in data]
+    elif isinstance(data, dict):
+        return Struct(data)
+    else:
+        return data
+
+
+QUESTIONS_ONLY_TEMPLATE = Template(r"""
+{% for q in questions %}
+    {{ q }}
+{% endfor %}
+""")
+
+
+TEMPLATE = Template(r"""
+\documentclass[11pt]{article}
+
+\usepackage{akteach}
+\usepackage{examtron}
+\pagestyle{empty}
+
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\sffamily\large\bfseries}
+  {Part \thesection. }{0em}{}
+
+\begin{document}
+
+\akteachheader{Numerical Methods (CS 357)}%
+{Worksheet}
+
+{% for q in questions %}
+    {{ q }}
+{% endfor %}
+\end{document}
+""")
+
+
+INCLUDE_GRAPHICS_RE = re.compile(r"\\includegraphics\{media:(.*)\}")
+
+
+def convert_markup(s):
+    result = pypandoc.convert(s, 'latex', format='markdown')
+    result, _ = INCLUDE_GRAPHICS_RE.subn(
+            r"\includegraphics[height=4cm]{media/\1}", result)
+    return result
+
+
+def convert_page_inner(page):
+    if page.type == "Page":
+        return convert_markup(page.content)
+    elif page.type in ["TextQuestion", "SurveyTextQuestion"]:
+        prompt = convert_markup(page.prompt) + "\n\\vspace*{2cm}"
+        return (prompt)
+    elif page.type == "PythonCodeQuestion":
+        prompt = convert_markup(page.prompt)
+
+        if hasattr(page, "initial_code"):
+            prompt += r"\begin{verbatim}%s\end{verbatim}" % page.initial_code
+
+        prompt += "\n\\vspace*{5cm}"
+        return (prompt)
+    elif page.type == "FileUploadQuestion":
+        prompt = convert_markup(page.prompt) + "\n\\vspace*{5cm}"
+        return (prompt)
+    elif page.type in ["ChoiceQuestion", "SurveyChoiceQuestion"]:
+        prompt = convert_markup(page.prompt)
+
+        choices = [
+            "\item "
+            +
+            convert_markup(str(ch).replace("~CORRECT~", r"\correct "))
+            for ch in page.choices
+            if ch is not None]
+
+        return (
+            "{}\n"
+            r"\begin{{examtronchoices}}"
+            "\n"
+            "{}\n"
+            r"\end{{examtronchoices}}"
+            "\n"
+            .format(
+                prompt,
+                "\n".join(choices))
+            )
+    else:
+        print("*** WARNING: Unknown page type '%s'" % page.type,
+                file=sys.stderr)
+
+
+TITLE_RE = re.compile(ur"^\#\s*(\w.*)", re.UNICODE)
+
+
+def extract_title_from_markup(markup_text):
+    lines = markup_text.split("\n")
+
+    for l in lines[:5]:
+        match = TITLE_RE.match(l)
+        if match is not None:
+            return match.group(1)
+
+    return None
+
+
+def convert_page(page, wrap_in_problem_env):
+    title = getattr(page, "title", None)
+    if hasattr(page, "prompt") and title is None:
+        title = extract_title_from_markup(page.prompt)
+
+    if title is None:
+        title = ""
+
+    result = convert_page_inner(page)
+
+    if wrap_in_problem_env:
+        return (
+            "\\begin{{examtronproblem}}{{{title}}}\n"
+            "{body}\n"
+            "\\end{{examtronproblem}}\n".format(
+                title=title,
+                body=result))
+    else:
+        return result
+
+
+JINJA_YAML_RE = re.compile(
+    r"^\[JINJA\]\s*$(.*?)^\[\/JINJA\]\s*$",
+    re.MULTILINE | re.DOTALL)
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-1", "--one", action="store_true")
+    parser.add_argument("-q", "--questions-only", action="store_true")
+    parser.add_argument("-p", "--examtron-problem", action="store_true")
+    parser.add_argument("input", default="-", nargs="?")
+    parser.add_argument("output", default="-", nargs="?")
+
+    args = parser.parse_args()
+
+    from yaml import load
+    if args.input == "-":
+        data = sys.stdin.read()
+    else:
+        with open(args.input, "r") as inf:
+            data = inf.read()
+
+    data, _ = JINJA_YAML_RE.subn("\n", data)
+
+    data = dict_to_struct(load(data))
+
+    questions = []
+
+    if not args.one:
+        flow_desc = data
+        for grp in flow_desc.groups:
+            for page in grp.pages:
+                print(page.id)
+                converted = convert_page(page, args.examtron_problem)
+                questions.append(converted)
+        template = TEMPLATE
+        if args.questions_only:
+            template = QUESTIONS_ONLY_TEMPLATE
+
+        data = template.render(questions=questions)
+    else:
+        data = convert_page(data, args.examtron_problem)
+
+    if args.output == "-":
+        sys.stdout.write(data)
+    else:
+        with open(args.output, "w") as outf:
+            outf.write(data)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,30 +1,36 @@
-- model docs
+- Narrow form rendering
 
-- Fix docker reliability
+- MOSS submission
+
+- Custom matcher classes
+
+- Enter single grades
 
 Ideas
 =====
 
-- ending on new version, resume, ...
+- Fix race condition in attempt_count checking
 
-- Make admin site multi-course capable
-  https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.has_add_permission
-  https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.get_queryset
+- Make system to link to flow-internal pages
 
-- Manual grade entry
+- Note about alternate left/right submission on page sandbox
+
+- Exceptions specific to one session
+
+- Page URL endpoints (see page-url-endpoints branch)
+
+- 'Save and next' for grading
+
+- Fixed grading panel?
+
+- Change "end session" link for sessions that don't actually end.
+
+- Manual grade entry/override
 
 - Flow results analytics
   --> time taken per question
 
 - record end flow with a null page visit
-
-- web hooks for auto-fetch and auto-preview
-
-- flow overview
-
-- Flow group ordering, max page count, question/page tags
-
-- Custom matcher classes
 
 - Name X out of Y question
 - Multi text question
@@ -47,3 +53,5 @@ Rejected ideas
 - question bank
   -> localize an elaborate question and all its 'stuff' (JS, media)
   -> use a media search path
+- web hooks for auto-fetch and auto-preview
+- question/page tags

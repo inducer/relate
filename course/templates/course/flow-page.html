@@ -1,13 +1,83 @@
 {% extends "course/course-base.html" %}
 
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}
   [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
-  {{title}} - {{ flow_desc.title}} - CourseFlow
+  {{title}} - {{ flow_desc.title}} - RELATE
 {% endblock %}
 
 {% block content %}
+  <form
+    action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
+    class="navigation-form"
+    method="POST">
+
+    {% csrf_token %}
+
+    <div class="well flow-well">
+      <div class="flow-nav">
+        {% if page_data.ordinal > 0 %}
+          <a class="btn btn-default relate-nav-button"
+            href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
+            role="button">&laquo; Previous</a>
+        {% else %}
+          <a class="btn btn-default relate-nav-button disabled"
+            href="#"
+            role="button">&laquo; Previous</a>
+        {% endif %}
+        {% if page_data.next_ordinal < flow_session.page_count %}
+          <a class="btn btn-default relate-nav-button"
+            href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
+            role="button">Next &raquo;</a>
+        {% else %}
+          <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session &raquo; </button>
+        {% endif %}
+      </div>
+      <div style="float:right">
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session</button>
+      </div>
+      {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
+        <div class="flow-session-expiration-panel">
+          <span id="expiration_mode_change_progress">
+          </span>
+          <label for="id_expiration_mode">
+            At deadline:
+          </label>
+          <select class="select form-control" id="id_expiration_mode"
+              name="expiration_mode">
+            {% for key, val in expiration_mode_choices %}
+              <option value="{{ key }}"
+                  {% if key == expiration_mode %}
+                    selected
+                  {% endif %}
+              >{{ val }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      <div class="relate-flow-page-index">
+        {% for page_nr, shown_page_nr in page_numbers %}
+          {% if page_nr == page_data.ordinal %}
+            <span class="relate-flow-page-number relate-current btn btn-default btn-xs disabled">{{ shown_page_nr }}</span>
+          {% else %}
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_nr %}">
+            <span class="relate-flow-page-number btn btn-default btn-xs
+              {% if page_nr < page_data.ordinal %}
+                relate-prior
+              {% else %}
+                relate-subsequent
+              {% endif %}
+              ">{{ shown_page_nr }}
+            </span></a>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div style="clear:both; height:0px"></div>
+    </div>
+  </form>
+
   {% if max_points %}
     <div style="float:right" class="well">
       {{ max_points }} point{{ max_points|pluralize }}
@@ -39,7 +109,10 @@
       {% endif %}
       ">
         <p>{{ feedback.feedback|safe }}</p>
-      {% if show_answer and feedback.correctness < 1 and correct_answer %}
+        {% if feedback.bulk_feedback %}
+          <p>{{ feedback.bulk_feedback|safe }}</p>
+        {% endif %}
+      {% if show_answer and correct_answer %}
         <p>{{ correct_answer|safe }}</p>
       {% endif %}
     </div>
@@ -49,39 +122,6 @@
       <p>{{ correct_answer|safe }}</p>
     </div>
   {% endif %}
-
-  <form
-    action="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.ordinal %}"
-    class="navigation-form"
-    method="POST">
-
-    {% csrf_token %}
-
-    <div class="well flow-well">
-      {% if page_data.ordinal > 0 %}
-        <a class="btn btn-default cf-nav-button"
-          href="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.previous_ordinal %}"
-          role="button">&laquo; Previous</a>
-      {% endif %}
-      {% if page_data.next_ordinal < flow_session.page_count %}
-        <a class="btn btn-default cf-nav-button"
-          href="{% url "course.flow.view_flow_page" course.identifier flow_identifier page_data.next_ordinal %}"
-          role="button">Next &raquo;</a>
-      {% endif %}
-      <div style="float:right">
-        <button type="submit" name="finish" class="btn btn-default cf-nav-button">End session</button>
-      </div>
-      <div class="progress flow-progress">
-        <div class="progress-bar progress-bar-success" role="progressbar"
-          aria-valuenow="{{ page_data.next_ordinal }}"
-          aria-valuemin="0" aria-valuemax="{{ flow_session.page_count }}"
-          style="width:{{ percentage }}%">
-          {{ page_data.next_ordinal }} / {{ flow_session.page_count }}
-        </div>
-      </div>
-      <div style="clear:both; height:0px"></div>
-    </div>
-  </form>
 
   {# {{{ change listening, navigation confirmation #}
 
@@ -133,10 +173,90 @@
         input_changed = false;
       }
 
-      $(".cf-save-button").on("click", before_save);
+      $(".relate-save-button").on("click", before_save);
     }
 
-    activate_change_listening();
+    $(document).ready(activate_change_listening);
+  </script>
+
+  {# }}} #}
+
+  {# {{{ expiration mode handling #}
+
+  <script type="text/javascript">
+
+    // using jQuery
+    function get_cookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function expiration_mode_changed()
+    {
+      $("#expiration_mode_change_progress")
+        .html(
+          '<img src="{% static "images/busy.gif" %}" alt="Busy indicator">')
+        .show();
+
+      var jqxhr = $.ajax(
+          "{% url "relate-update_expiration_mode" course.identifier flow_session.id %}",
+          {
+            type: "POST",
+            data: {
+              expiration_mode: $("#id_expiration_mode").val()
+            },
+            beforeSend: function(xhr, settings) {
+              var csrftoken = get_cookie('csrftoken');
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+          })
+        .done(function() {
+          $("#expiration_mode_change_progress")
+            .html('Saved.');
+          window.setTimeout(
+              function() { $("#expiration_mode_change_progress").fadeOut() },
+              3000);
+        })
+        .fail(function() {
+          $("#expiration_mode_change_progress")
+            .html('Error--not saved.');
+          window.setTimeout(
+              function() { $("#expiration_mode_change_progress").fadeOut() },
+              3000);
+        });
+    }
+
+    $("#id_expiration_mode").on("change", expiration_mode_changed);
+  </script>
+
+  {# }}} #}
+
+  {# {{{ codemirror resizing #}
+
+  <script type="text/javascript">
+    $("div.CodeMirror")
+    .resizable({
+          resize: function (event, ui)
+          {
+            $("div.CodeMirror").each(
+              function ()
+              {
+                var cm = this.CodeMirror;
+                cm.refresh();
+              });
+          }
+      });
   </script>
 
   {# }}} #}

@@ -1,13 +1,54 @@
 {% load crispy_forms_tags %}
 
 {% if data_url %}
-  <object data="{{ data_url }}" type="{{ mime_type }}" width="100%" height="800px" align="middle">
-    <p>(Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline.)</p>
-  </object>
-  <hr>
-  <div class="col-lg-offset-2" style="margin-bottom:2ex">
-    <a href="{{ data_url }}">Review uploaded file</a>
+  <div id="file_upload_viewer_div">
   </div>
+  <div class="col-lg-offset-2" style="margin-bottom:2ex">
+    <a href="{{ data_url }}" id="file_upload_donwload_link">Review uploaded file</a>
+    &middot;
+    <a href="javascript:file_upload_embed_viewer()">Embed viewer</a>
+  </div>
+
+  <script type="text/javascript">
+    function file_upload_embed_viewer()
+    {
+      var data_url = $("#file_upload_donwload_link").attr("href");
+
+      $("#file_upload_viewer_div").html(
+        "<object data='" + data_url + "' type='{{ mime_type }}' width='100%' height='800px' align='middle'>"
+        + '<p>(Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline.)</p>'
+        + '</object><hr>');
+    }
+
+    function file_upload_data_url_to_object_url() {
+      // https://code.google.com/p/chromium/issues/detail?id=69227#37
+      var is_webkit = /WebKit/.test(navigator.userAgent);
+
+      if (is_webkit)
+      {
+        var data_url = $("#file_upload_donwload_link").attr("href");
+
+        //take apart data URL
+        var parts = data_url.match(/data:([^;]*)(;base64)?,([0-9A-Za-z+/]+)/);
+
+        //assume base64 encoding
+        var binStr = atob(parts[3]);
+
+        //convert to binary in ArrayBuffer
+        var buf = new ArrayBuffer(binStr.length);
+        var view = new Uint8Array(buf);
+        for(var i = 0; i < view.length; i++)
+            view[i] = binStr.charCodeAt(i);
+
+        var blob = new Blob([view], {'type': parts[1]});
+        var obj_url = webkitURL.createObjectURL(blob)
+
+        $("#file_upload_donwload_link").attr("href", obj_url);
+      }
+    }
+
+    file_upload_data_url_to_object_url()
+  </script>
 {% endif %}
 
 {% crispy form %}

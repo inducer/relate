@@ -1,0 +1,20 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('course', '0051_add_participation_tags'),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name='participation',
+            name='tags',
+            field=models.ManyToManyField(to='course.ParticipationTag', blank=True),
+            preserve_default=True,
+        ),
+    ]

@@ -1,0 +1,46 @@
+{% extends "course/course-base.html" %}
+
+{% block title %}
+  Grading Statistics: {{ flow_id }} - Courseflow
+{% endblock %}
+
+{% block content %}
+  <h1>Grading Statistics: <tt>{{flow_id}}</tt></h1>
+
+  <table class="table table-striped">
+    <tr>
+      <th></th>
+      {% for grader in graders %}
+      <th>
+        {% if grader != None %}
+          {{ grader.get_full_name }}
+        {% else %}
+          (autograded)
+        {% endif %}
+      </th>
+      {% endfor %}
+      <th>Total</th>
+    </tr>
+    {% for page, row, page_count in pages_stats_counts %}
+      <tr>
+        <th><tt>{{ page.0 }}: {{ page.1 }}</tt></th>
+        {% for count in row %}
+          <td>{{ count }}</td>
+        {% endfor %}
+        <td><b>{{ page_count }}</b></td>
+      </tr>
+    {% endfor %}
+    <tr>
+      <th>Total</th>
+      {% for count in grader_counts %}
+        <td><b>{{ count }}</b></td>
+      {% endfor %}
+      <td></td>
+    </tr>
+  </table>
+
+
+
+
+
+{% endblock %}

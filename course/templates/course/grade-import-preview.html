@@ -1,21 +1,32 @@
-<div class="well">
-<h2 class="start-well-title">Preview</h2>
-<table class="table">
-  <thead>
-    <tr>
-      <th>User</th>
-      <th>Grade</th>
-      <th>Feedback</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for gchange in grade_changes %}
-      <tr>
-        <td>{{ gchange.participation.user }}</td>
-        <td>{{ gchange.points }}</td>
-        <td>{{ gchange.comment }}</td>
-      </tr>
+{% if log_lines %}
+  <div class="alert alert-warning">
+    <ul>
+    {% for line in log_lines %}
+    <li>{{ line }}</li>
     {% endfor %}
-  </tbody>
-</table>
-</div>
+    </ul>
+  </div>
+{% endif %}
+{% if show_grade_changes %}
+  <div class="well">
+  <h2 class="start-well-title">Preview</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Grade</th>
+        <th>Feedback</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for gchange in grade_changes %}
+        <tr>
+          <td>{{ gchange.participation.user }}</td>
+          <td>{{ gchange.points }}</td>
+          <td>{{ gchange.comment }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endif %}

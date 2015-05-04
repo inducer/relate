@@ -25,7 +25,11 @@ THE SOFTWARE.
 """
 
 
-class user_status:
+# Allow 10x extra credit at the very most.
+MAX_EXTRA_CREDIT_FACTOR = 10
+
+
+class user_status:  # noqa
     unconfirmed = "unconfirmed"
     active = "active"
 
@@ -35,10 +39,11 @@ USER_STATUS_CHOICES = (
         )
 
 
-class participation_role:
+class participation_role:  # noqa
     instructor = "instructor"
     teaching_assistant = "ta"
     student = "student"
+    auditor = "auditor"
 
     # can see analytics
     observer = "observer"
@@ -51,11 +56,12 @@ PARTICIPATION_ROLE_CHOICES = (
         (participation_role.teaching_assistant, "Teaching Assistant"),
         (participation_role.student, "Student"),
         (participation_role.observer, "Observer"),
+        (participation_role.auditor, "Auditor"),
         # unenrolled is only used internally
         )
 
 
-class participation_status:
+class participation_status:  # noqa
     requested = "requested"
     active = "active"
     dropped = "dropped"
@@ -70,32 +76,128 @@ PARTICIPATION_STATUS_CHOICES = (
         )
 
 
-class flow_permission:
-    view = "view"
-    view_past = "view_past"
-    start_credit = "start_credit"
-    start_no_credit = "start_no_credit"
+class flow_session_expiration_mode:  # noqa
+    """
+    .. attribute:: end
 
-    change_answer = "change_answer"
-    see_correctness = "see_correctness"
-    see_correctness_after_completion = "see_correctness_after_completion"
-    see_answer = "see_answer"
+        End the session upon expiration. Participants may always choose this mode.
 
-FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view, "View the flow"),
-        (flow_permission.view_past, "Review past attempts"),
-        (flow_permission.start_credit, "Start a for-credit session"),
-        (flow_permission.start_no_credit, "Start a not-for-credit session"),
+    .. attribute:: roll_over
 
-        (flow_permission.change_answer, "Change already-graded answer"),
-        (flow_permission.see_correctness, "See whether an answer is correct"),
-        (flow_permission.see_correctness_after_completion,
-            "See whether an answer is correct after completing the flow"),
-        (flow_permission.see_answer, "See the correct answer"),
+        Upon expiration, reprocess the session start rules and
+        treat the session as if it was started the moment of expiration.
+        This may be used to 'roll over' into another set of grading rules,
+        say ones assigning less credit for homework turned in late.
+
+        Allowed by :attr:`flow_permission.set_roll_over_expiration_mode`.
+    """
+    # always allowed
+    end = "end"
+
+    # allowed by special permission below
+    roll_over = "roll_over"
+
+FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
+        (flow_session_expiration_mode.end, "End session and grade"),
+        (flow_session_expiration_mode.roll_over,
+            "Keep session and apply new rules"),
         )
 
 
-class grade_aggregation_strategy:
+def is_expiration_mode_allowed(expmode, permissions):
+    if expmode == flow_session_expiration_mode.roll_over:
+        if (flow_permission.set_roll_over_expiration_mode
+                in permissions):
+            return True
+    elif expmode == flow_session_expiration_mode.end:
+        return True
+    else:
+        raise ValueError("unknown expiration mode")
+
+    return False
+
+
+class flow_permission:  # noqa
+    """
+    .. attribute:: view
+    .. attribute:: submit_answer
+    .. attribute:: end_session
+    .. attribute:: change_answer
+
+        Grants permission to change an already-graded answer,
+        which may then be graded again. Useful for
+        :class:`course.page.PythonCodeQuestion` to allow
+        iterative debugging.
+
+    .. attribute:: see_correctness
+
+    .. attribute:: see_answer
+    .. attribute:: set_roll_over_expiration_mode
+
+        Grants permission to let a student choose to let a flow
+        "expire" into the then-current set of access rules
+        instead of into being submitted for grading.
+
+        See :ref:`flow-life-cycle`.
+
+    """
+    view = "view"
+    end_session = "end_session"
+    submit_answer = "submit_answer"
+    change_answer = "change_answer"
+    see_correctness = "see_correctness"
+    see_answer = "see_answer"
+    set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
+
+FLOW_PERMISSION_CHOICES = (
+        (flow_permission.view, "View the flow"),
+        (flow_permission.submit_answer, "Submit answers"),
+        (flow_permission.end_session, "End session"),
+        (flow_permission.change_answer, "Change already-graded answer"),
+        (flow_permission.see_correctness, "See whether an answer is correct"),
+        (flow_permission.see_answer, "See the correct answer"),
+        (flow_permission.set_roll_over_expiration_mode,
+            "Set the session to 'roll over' expiration mode"),
+        )
+
+
+class flow_rule_kind:  # noqa
+    start = "start"
+    access = "access"
+    grading = "grading"
+
+
+FLOW_RULE_KIND_CHOICES = (
+        (flow_rule_kind.start, "Session Start"),
+        (flow_rule_kind.access, "Session Access"),
+        (flow_rule_kind.grading, "Grading"),
+        )
+
+
+class grade_aggregation_strategy:  # noqa
+    """A strategy for aggregating multiple grades into one.
+
+    .. attribute:: max_grade
+
+        Use the maximum of the achieved grades for each attempt.
+
+    .. attribute:: avg_grade
+
+        Use the average of the achieved grades for each attempt.
+
+    .. attribute:: min_grade
+
+        Use the minimum of the achieved grades for each attempt.
+
+    .. attribute:: use_earliest
+
+        Use the first of the achieved grades for each attempt.
+
+    .. attribute:: use_latest
+
+        Use the last of the achieved grades for each attempt.
+    """
+
     max_grade = "max_grade"
     avg_grade = "avg_grade"
     min_grade = "min_grade"
@@ -114,7 +216,7 @@ GRADE_AGGREGATION_STRATEGY_CHOICES = (
         )
 
 
-class grade_state_change_types:
+class grade_state_change_types:  # noqa
     grading_started = "grading_started"
     graded = "graded"
     retrieved = "retrieved"
@@ -135,3 +237,5 @@ GRADE_STATE_CHANGE_CHOICES = (
         (grade_state_change_types.do_over, 'Do-over'),
         (grade_state_change_types.exempt, 'Exempt'),
         )
+
+FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"

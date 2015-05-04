@@ -1,15 +1,15 @@
 {% if user.first_name %}Dear {{user.first_name}},
 {% else %}Dear {{user.email}},
 {% endif %}
-Welcome to CourseFlow! Please click this link to sign in:
+Welcome to RELATE! Please click this link to sign in:
 
 {{ sign_in_uri }}
 
 You have received this email because someone (maybe you) entered your email
-address into the CourseFlow web site at
+address into the RELATE web site at
 
 {{ home_uri }}
 
 If this was not you, it is safe to disregard this email.
 
-- CourseFlow staff
+- RELATE staff

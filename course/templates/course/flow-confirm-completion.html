@@ -1,7 +1,7 @@
 {% extends "course/course-base.html" %}
 
 {% block title %}
-  {{flow_desc.title}} - CourseFlow
+  {{flow_desc.title}} - RELATE
 {% endblock %}
 
 {% block content %}
@@ -36,7 +36,7 @@
       {% csrf_token %}
 
       <a class="btn btn-default"
-        href="{% url "course.flow.view_flow_page" course.identifier flow_identifier last_page_nr %}"
+        href="{% url "relate-view_flow_page" course.identifier flow_session.id last_page_nr %}"
         role="button">&laquo; Go back</a>
 
       <button type="submit" name="submit" class="btn btn-primary">Confirm: Submit answers and end session</button>

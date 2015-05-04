@@ -1,0 +1,202 @@
+.well .start-well-title {
+  margin-top:0;
+}
+
+table.past-flow-session-table th {
+  margin-right:1em;
+  border-bottom: 1px solid black;
+}
+
+table.past-flow-session-table td {
+  padding-right:1em;
+  padding-top:4px;
+}
+
+table.past-flow-session-table th {
+  padding-right:1em;
+  padding-top:4px;
+}
+
+table.past-flow-session-table {
+  margin-bottom: 2ex;
+}
+
+/* {{{ flow page */
+
+.flow-well {
+  margin-top: 2ex;
+}
+
+.flow-nav {
+  float:left;
+}
+
+.flow-session-expiration-panel {
+  float:right;
+  white-space: nowrap;
+  margin-right: 1em;
+}
+
+.flow-session-expiration-panel .form-control {
+  width: auto;
+  display: inline;
+}
+
+code {
+  /* Bootstrap: Hot pink for code? Really? */
+  color: #333;
+}
+
+.relate-flow-page-index {
+  margin-top: 6px;
+  padding-left: 20px;
+  float: left;
+}
+
+.relate-flow-page-number {
+  margin-right:3px;
+  min-width: 2em;
+  float: left;
+  text-align: center;
+}
+
+.relate-flow-page-number.relate-current {
+  background-color: #e8e8ff;
+}
+
+/* }}} */
+
+/* {{{ histograms */
+
+div.histogram > table {
+  border: 0px;
+}
+
+td.histogram-title {
+  vertical-align: top;
+  padding-right: 1em;
+}
+
+td.histogram-bar-cell {
+  min-width:500px;
+}
+
+td.histogram-bar-cell div.progress {
+  margin-bottom:5px;
+}
+
+.stats-percentage {
+  visibility:hidden;
+}
+div.progress:hover  span.stats-percentage{
+  visibility:visible;
+}
+
+/* }}} */
+
+/* {{{ calendar */
+
+.fc-other-month {
+  background: #eee;
+}
+
+.current-access-rule {
+  background: #dcdcdc;
+}
+
+.result-figure-list dd {
+  margin-top: 1ex;
+  margin-left: 3em;
+  margin-bottom: 1ex;
+}
+
+.calendar-descriptions dd {
+  margin-left: 3em;
+  margin-bottom: 1ex;
+}
+
+.relate-calendar-event:target .panel-heading {
+  background-color: #ddf;
+}
+
+.relate-calendar-event:target .panel-body {
+  background-color: #f8f8f8;
+}
+
+/* }}} */
+
+.sandbox-page-editor {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 50%;
+  padding-left:50px;
+  padding-right:50px;
+  bottom: 0;
+  overflow-y: auto;
+}
+.sandbox-page-preview {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 50%;
+  bottom: 0;
+  overflow-y: auto;
+  padding-left:50px;
+  padding-right:50px;
+}
+
+.grading-page-student-work {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 50%;
+  bottom: 0;
+  padding-left:50px;
+  padding-right:50px;
+  overflow-y: auto;
+}
+
+.grading-page-grade-entry {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 50%;
+  bottom: 0;
+  overflow-y: auto;
+  padding-left:50px;
+  padding-right:50px;
+}
+
+/* {{{ codemirror */
+
+.sandbox-page-editor .CodeMirror {
+  height:500px;
+}
+
+.cm-trailingspace {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==);
+  background-position: bottom left;
+  background-repeat: repeat-x;
+}
+.cm-tab {
+   background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAMCAYAAAAkuj5RAAAAAXNSR0IArs4c6QAAAGFJREFUSMft1LsRQFAQheHPowAKoACx3IgEKtaEHujDjORSgWTH/ZOdnZOcM/sgk/kFFWY0qV8foQwS4MKBCS3qR6ixBJvElOobYAtivseIE120FaowJPN75GMu8j/LfMwNjh4HUpwg4LUAAAAASUVORK5CYII=);
+   background-position: right;
+   background-repeat: no-repeat;
+}
+
+.CodeMirror.cm-s-relate-readonly {
+  background-color: #e8e8e8;
+}
+
+/* }}} */
+
+.relate-btn-xs-vert-spaced {
+  margin-bottom: 3px;
+}
+
+table.gradebook-by-opportunity ul {
+  margin-bottom: 0px;
+}
+
+/* vim: set foldmethod=marker: */

@@ -1,7 +1,7 @@
 {% extends "course/course-base.html" %}
 
 {% block title %}
-  {{flow_desc.title}} - CourseFlow
+  {{flow_desc.title}} - RELATE
 {% endblock %}
 
 {% block content %}
@@ -12,80 +12,181 @@
   <form method="POST">
     {% csrf_token %}
 
-    {% if rules or grade_aggregation_strategy %}
-      {% include "course/flow-rules.html" %}
+    {% if past_sessions_and_properties %}
+      <div class="well">
+        <h3 class="start-well-title">Past sessions</h3>
+
+        <table class="past-flow-session-table">
+          <tr>
+            <th>Start time</th>
+            <th>State</th>
+            <th>Grading rules</th>
+            <th>Due</th>
+            <th>Result</th>
+            <th>Actions</th>
+          </tr>
+          {% for flow_session, session_properties in past_sessions_and_properties %}
+            <tr>
+              <td>{{ flow_session.start_time }}</td>
+              <td>
+                {% include "course/flow-session-state.html" %}
+                {% if not flow_session.in_progress %}
+                  ({{ flow_session.completion_time }})
+                {% endif %}
+              </td>
+              <td>
+                {% if session_properties.grade_description %}
+                  {{ session_properties.grade_description }}
+                {% else %}
+                  (no description)
+                {% endif %}
+              </td>
+              <td>
+                {% if session_properties.due %}
+                  {{ session_properties.due }}
+                {% endif %}
+              </td>
+              <td>
+                {% if flow_session.points_percentage %}
+                  <b>{{ flow_session.points|floatformat }}</b>
+                  out of
+                  {{ flow_session.max_points|floatformat }}
+
+                  (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                {% else %}
+                  (none)
+                {% endif %}
+
+              </td>
+              <td>
+                {% if session_properties.may_view %}
+                  <a href="{% url "relate-view_flow_page" course.identifier flow_session.id 0 %}" class="btn btn-primary btn-xs">
+                    {% if session_properties.may_modify %}
+                      Resume &raquo;
+                    {% else %}
+                      Review &raquo;
+                    {% endif %}
+                  </a>
+                {% endif %}
+
+                {% if not flow_session.in_progress %}
+                  <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
+                    Results
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      </div>
     {% endif %}
 
-    {% if may_start_credit or may_start_no_credit or past_sessions %}
-      <div class="well">
-        {% if past_sessions %}
-          <h3 class="start-well-title">Past sessions</h3>
-
-          <table class="past-flow-session-table">
-            <tr>
-              <th>Start time</th>
-              <th>State</th>
-              <th>Rules</th>
-              <th>Result</th>
-              <th>Actions</th>
-            </tr>
-            {% for flow_session in past_sessions %}
-              <tr>
-                <td>{{ flow_session.start_time }}</td>
-                <td>
-                  {% include "course/flow-session-state.html" %}
-                  {% if not flow_session.in_progress %}
-                    ({{ flow_session.completion_time }})
-                  {% endif %}
-                </td>
-                <td>
-                  {% if flow_session.access_rules_id %}
-                    <tt>{{ flow_session.access_rules_id  }}</tt>
-                  {% else %}
-                    (None)
-                  {% endif %}
-                </td>
-                <td>
-                  {% if flow_session.points_percentage %}
-                    <b>{{ flow_session.points|floatformat }}</b>
-                    out of
-                    {{ flow_session.max_points|floatformat }}
-
-                    (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
-                  {% else %}
-                    (none)
-                  {% endif %}
-
-                </td>
-                <td>
-                  {% if flow_session.in_progress %}
-                    <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                      Resume &raquo;
-                    </button>
-                  {% elif may_review %}
-                    <button type="submit" name="resume_{{flow_session.id}}" class="btn btn-primary btn-xs">
-                      Review &raquo;
-                    </button>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </table>
-        {% endif %}
-
-        {% if may_start_no_credit %}
-          <button type="submit" name="start_no_credit" class="btn btn-primary">
-            {% if may_start_credit %}
-              Start without credit &raquo;
-            {% else %}
-              Start &raquo;
+    {% if may_start %}
+      {% if new_session_grading_rule.grade_identifier %}
+        <div class="alert alert-info">
+          If you start a new session, the following rules will apply:
+          <ul>
+            {% if new_session_grading_rule.description %}
+              <li>Your session will be a '<b>{{ new_session_grading_rule.description }}</b>'.</li>
             {% endif %}
-          </button>
+            {% if new_session_grading_rule.due %}
+              <li>Your session will be due on <b>{{ new_session_grading_rule.due }}</b>.</li>
+            {% endif %}
+            <li>You will receive <b>{{ new_session_grading_rule.credit_percent|floatformat }}% credit</b>
+              for your work.
+            {% if past_sessions_and_properties %}
+              <li>This is not your first session. If you start another one,
+                for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
+                among all your sessions.
+              </li>
+            {% endif%}
+          </ul>
+        </div>
+      {% endif %}
+
+      {# {{{ start button #}
+
+      {% if start_may_decrease_grade %}
+        <a id="pre-start-button" class="btn btn-primary">
+          Start &raquo;
+        </a>
+        <button id="start-button" type="submit" name="start" class="btn btn-danger"
+          style="display:none"
+          data-content="I understand that starting a new session could lower my overall grade."
+          data-container="body"
+          data-placement="right"
+          >
+            I am sure &raquo;
+        </button>
+
+        <script type="text/javascript">
+          $("#pre-start-button").on('click',
+              function()
+              {
+                $("#pre-start-button").fadeOut("normal",
+                    function()
+                    {
+                        $("#start-button").fadeIn("normal",
+                            function()
+                            {
+                                $("#start-button").popover("show");
+                            }
+                        );
+                    }
+                    );
+              });
+        </script>
+
+      {% else %}
+        <button type="submit" name="start" class="btn btn-primary">
+          Start &raquo;
+        </button>
+      {% endif %}
+
+      {# }}} #}
+
+    {% endif %}
+
+    {% if may_start or past_sessions_and_properties %}
+    {% else %}
+      <div class="alert alert-info">
+        <p>
+        <i class="fa fa-exclamation-triangle"></i>
+        You do not have any existing sessions and are not allowed to start
+        a new one.
+        </p>
+
+        <p>
+        Check the following:
+        <ul>
+        {% if not user.is_authenticated %}
+        <li>
+        <a href="{% url student_sign_in_view %}">Sign in</a>.
+
+          You're not currently signed in. Access to the resource is restricted,
+          and since the site has no way of knowing who you are, it may have denied
+          you accesss.
+          Once you're signed in, navigate back to your course from the
+          <a href="{% url "relate-home" %}">home page</a> and retry your last
+          action.
+        </li>
         {% endif %}
-        {% if may_start_credit %}
-          <button type="submit" name="start_credit" class="btn btn-primary">Start new for-credit attempt &raquo;</button>
-        {% endif %}
+        <li>
+          Has the deadline for this assignment passed?
+        </li>
+        <li>
+        Complete your enrollment in your course. If you're not enrolled, a large
+        "Enroll now" button will show up at the top of your course page. Click that,
+        follow the indicated steps, and then retry your last action.
+        </li>
+        <li>
+        If none of the above steps help, please navigate back to your course from the
+        <a href="{% url "relate-home" %}">home page</a> and contact your course
+        staff.
+        </li>
+        </ul>
       </div>
+      </p>
     {% endif %}
   </form>
 

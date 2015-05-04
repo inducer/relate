@@ -1,7 +1,7 @@
 {% extends "course/course-base.html" %}
 
 {% block title %}
-  Analytics - CourseFlow
+  Analytics - RELATE
 {% endblock %}
 
 {% block content %}
@@ -10,7 +10,7 @@
     <ul>
       {% for flow_id in flow_ids %}
       <li>
-      <a href="{% url "course.analytics.flow_analytics" course.identifier flow_id %}">
+      <a href="{% url "relate-flow_analytics" course.identifier flow_id %}">
         {{ flow_id }}
       </a>
       </li>

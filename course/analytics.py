@@ -39,7 +39,7 @@ from course.models import (
         participation_role,
         flow_permission)
 
-from course.content import (get_flow_desc, get_flow_commit_sha)
+from course.content import get_flow_desc
 
 
 # {{{ flow list
@@ -196,10 +196,10 @@ class Histogram(object):
 
 
 def is_flow_multiple_submit(flow_desc):
-    if not hasattr(flow_desc, "access_rules"):
+    if not hasattr(flow_desc, "rules"):
         return False
 
-    for rule in flow_desc.access_rules:
+    for rule in flow_desc.rules.access:
         if flow_permission.change_answer in rule.permissions:
             return True
 
@@ -208,21 +208,10 @@ def is_flow_multiple_submit(flow_desc):
 
 # {{{ flow analytics
 
-def can_be_multiple_submit(pctx, flow_desc):
-    if not hasattr(flow_desc, "access_rules"):
-        return False
-
-    for rule in flow_desc.access_rules:
-        if flow_permission.change_answer in rule.permissions:
-            return True
-
-    return False
-
-
-def make_grade_histogram(pctx, flow_identifier):
+def make_grade_histogram(pctx, flow_id):
     qset = FlowSession.objects.filter(
             course=pctx.course,
-            flow_id=flow_identifier)
+            flow_id=flow_id)
 
     hist = Histogram(
         num_min_value=0,
@@ -238,12 +227,16 @@ def make_grade_histogram(pctx, flow_identifier):
 
 class PageAnswerStats(object):
     def __init__(self, group_id, page_id, title, average_correctness,
-            answer_count, url=None):
+            average_emptiness, answer_count, total_count, url=None):
         self.group_id = group_id
         self.page_id = page_id
         self.title = title
-        self.average_correctness_percent = 100*average_correctness
+        self.average_correctness_percent = 99.99*average_correctness
+        self.average_emptiness_percent = 99.99*average_emptiness
+        self.average_wrongness_percent = 99.99*(
+                1-average_correctness-average_emptiness)
         self.answer_count = answer_count
+        self.total_count = total_count
         self.url = url
 
 
@@ -253,72 +246,98 @@ def safe_div(num, denom):
     return num/denom
 
 
-def make_page_answer_stats_list(pctx, flow_identifier):
-    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
+def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
+    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
 
     is_multiple_submit = is_flow_multiple_submit(flow_desc)
 
-    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
+    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
     page_info_list = []
     for group_desc in flow_desc.groups:
         for page_desc in group_desc.pages:
             points = 0
-            count = 0
+            graded_count = 0
+
+            answer_count = 0
+            total_count = 0
 
             visits = (FlowPageVisit.objects
                     .filter(
-                        flow_session__flow_id=flow_identifier,
+                        flow_session__course=pctx.course,
+                        flow_session__flow_id=flow_id,
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
-                        is_graded_answer=True,
+                        is_submitted_answer=True,
                         ))
 
-            if is_multiple_submit and connection.features.can_distinct_on_fields:
-                visits = (visits
-                        .distinct("page_data")
-                        .order_by("page_data", "-visit_time"))
+            if connection.features.can_distinct_on_fields:
+                if restrict_to_first_attempt:
+                    visits = (visits
+                            .distinct("flow_session__participation__id")
+                            .order_by("flow_session__participation__id",
+                                "visit_time"))
+                elif is_multiple_submit:
+                    visits = (visits
+                            .distinct("page_data__id")
+                            .order_by("page_data__id", "-visit_time"))
 
             visits = (visits
-                    .prefetch_related("flow_session")
-                    .prefetch_related("page_data"))
+                    .select_related("flow_session")
+                    .select_related("page_data"))
+
+            answer_expected = False
 
             title = None
             for visit in visits:
-                flow_commit_sha = get_flow_commit_sha(
-                        pctx.course, pctx.participation, flow_desc,
-                        visit.flow_session)
                 page = page_cache.get_page(group_desc.id, page_desc.id,
-                        flow_commit_sha)
+                        pctx.course_commit_sha)
+
+                answer_expected = answer_expected or page.expects_answer()
 
                 from course.page import PageContext
                 grading_page_context = PageContext(
                         course=pctx.course,
                         repo=pctx.repo,
-                        commit_sha=flow_commit_sha)
+                        commit_sha=pctx.course_commit_sha,
+                        flow_session=visit.flow_session)
 
                 title = page.title(grading_page_context, visit.page_data.data)
 
                 answer_feedback = visit.get_most_recent_feedback()
 
+                if visit.answer is not None:
+                    answer_count += 1
+                total_count += 1
+
                 if (answer_feedback is not None
                         and answer_feedback.correctness is not None):
-                    count += 1
-                    points += answer_feedback.correctness
+                    if visit.answer is None:
+                        assert answer_feedback.correctness == 0
+                    else:
+                        points += answer_feedback.correctness
+
+                    graded_count += 1
+
+            if not answer_expected:
+                continue
 
             page_info_list.append(
                     PageAnswerStats(
                         group_id=group_desc.id,
                         page_id=page_desc.id,
                         title=title,
-                        average_correctness=safe_div(points, count),
-                        answer_count=count,
+                        average_correctness=safe_div(points, graded_count),
+                        average_emptiness=safe_div(
+                            graded_count - answer_count, graded_count),
+                        answer_count=answer_count,
+                        total_count=total_count,
                         url=reverse(
-                            "course.analytics.page_analytics",
+                            "relate-page_analytics",
                             args=(
                                 pctx.course_identifier,
-                                flow_identifier,
+                                flow_id,
                                 group_desc.id,
                                 page_desc.id,
                                 ))))
@@ -326,10 +345,10 @@ def make_page_answer_stats_list(pctx, flow_identifier):
     return page_info_list
 
 
-def make_time_histogram(pctx, flow_identifier):
+def make_time_histogram(pctx, flow_id):
     qset = FlowSession.objects.filter(
             course=pctx.course,
-            flow_id=flow_identifier)
+            flow_id=flow_id)
 
     hist = Histogram(
             num_log_bins=True,
@@ -345,22 +364,22 @@ def make_time_histogram(pctx, flow_identifier):
     return hist
 
 
-def count_participants(pctx, flow_identifier):
+def count_participants(pctx, flow_id):
     if not connection.features.can_distinct_on_fields:
         return None
 
     qset = (FlowSession.objects
             .filter(
                 course=pctx.course,
-                flow_id=flow_identifier)
-            .order_by("participation")
-            .distinct("participation"))
+                flow_id=flow_id)
+            .order_by("participation__id")
+            .distinct("participation__id"))
     return qset.count()
 
 
 @login_required
 @course_view
-def flow_analytics(pctx, flow_identifier):
+def flow_analytics(pctx, flow_id):
     if pctx.role not in [
             participation_role.teaching_assistant,
             participation_role.instructor,
@@ -368,12 +387,17 @@ def flow_analytics(pctx, flow_identifier):
             ]:
         raise PermissionDenied("must be at least TA to view analytics")
 
+    restrict_to_first_attempt = int(
+            bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
+
     return render_course_page(pctx, "course/analytics-flow.html", {
-        "flow_identifier": flow_identifier,
-        "grade_histogram": make_grade_histogram(pctx, flow_identifier),
-        "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_identifier),
-        "time_histogram": make_time_histogram(pctx, flow_identifier),
-        "participant_count": count_participants(pctx, flow_identifier),
+        "flow_identifier": flow_id,
+        "grade_histogram": make_grade_histogram(pctx, flow_id),
+        "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_id,
+            restrict_to_first_attempt),
+        "time_histogram": make_time_histogram(pctx, flow_id),
+        "participant_count": count_participants(pctx, flow_id),
+        "restrict_to_first_attempt": restrict_to_first_attempt,
         })
 
 # }}}
@@ -392,7 +416,7 @@ class AnswerStats(object):
 
 @login_required
 @course_view
-def page_analytics(pctx, flow_identifier, group_id, page_id):
+def page_analytics(pctx, flow_id, group_id, page_id):
     if pctx.role not in [
             participation_role.teaching_assistant,
             participation_role.instructor,
@@ -400,60 +424,74 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
             ]:
         raise PermissionDenied("must be at least TA to view analytics")
 
-    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_identifier,
+    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
+
+    restrict_to_first_attempt = int(
+            bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
 
     is_multiple_submit = is_flow_multiple_submit(flow_desc)
 
-    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_identifier)
+    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
     visits = (FlowPageVisit.objects
             .filter(
-                flow_session__flow_id=flow_identifier,
+                flow_session__course=pctx.course,
+                flow_session__flow_id=flow_id,
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
-                is_graded_answer=True,
+                is_submitted_answer=True,
                 ))
 
-    if is_multiple_submit and connection.features.can_distinct_on_fields:
-        visits = (visits
-                .distinct("page_data", "visit_time")
-                .order_by("page_data", "-visit_time"))
+    if connection.features.can_distinct_on_fields:
+        if restrict_to_first_attempt:
+            visits = (visits
+                    .distinct("flow_session__participation__id")
+                    .order_by("flow_session__participation__id", "visit_time"))
+        elif is_multiple_submit:
+            visits = (visits
+                    .distinct("page_data__id")
+                    .order_by("page_data__id", "-visit_time"))
 
     visits = (visits
-            .prefetch_related("flow_session")
-            .prefetch_related("page_data"))
+            .select_related("flow_session")
+            .select_related("page_data"))
 
     normalized_answer_and_correctness_to_count = {}
 
     title = None
     body = None
     total_count = 0
+    graded_count = 0
 
     for visit in visits:
-        flow_commit_sha = get_flow_commit_sha(
-                pctx.course, pctx.participation, flow_desc,
-                visit.flow_session)
-        page = page_cache.get_page(group_id, page_id, flow_commit_sha)
+        page = page_cache.get_page(group_id, page_id, pctx.course_commit_sha)
 
         from course.page import PageContext
         grading_page_context = PageContext(
                 course=pctx.course,
                 repo=pctx.repo,
-                commit_sha=flow_commit_sha)
+                commit_sha=pctx.course_commit_sha,
+                flow_session=visit.flow_session)
 
         title = page.title(grading_page_context, visit.page_data.data)
         body = page.body(grading_page_context, visit.page_data.data)
+        normalized_answer = page.normalized_answer(
+                grading_page_context, visit.page_data.data, visit.answer)
 
         answer_feedback = visit.get_most_recent_feedback()
 
         if answer_feedback is not None:
-            key = (answer_feedback.normalized_answer,
-                    answer_feedback.correctness)
+            key = (normalized_answer, answer_feedback.correctness)
+            normalized_answer_and_correctness_to_count[key] = \
+                    normalized_answer_and_correctness_to_count.get(key, 0) + 1
+            graded_count += 1
+        else:
+            key = (normalized_answer, None)
             normalized_answer_and_correctness_to_count[key] = \
                     normalized_answer_and_correctness_to_count.get(key, 0) + 1
 
-            total_count += 1
+        total_count += 1
 
     answer_stats = []
     for (normalized_answer, correctness), count in \
@@ -471,12 +509,13 @@ def page_analytics(pctx, flow_identifier, group_id, page_id):
             reverse=True)
 
     return render_course_page(pctx, "course/analytics-page.html", {
-        "flow_identifier": flow_identifier,
+        "flow_identifier": flow_id,
         "group_id": group_id,
         "page_id": page_id,
         "title": title,
         "body": body,
         "answer_stats_list": answer_stats,
+        "restrict_to_first_attempt": restrict_to_first_attempt,
         })
 
 # }}}

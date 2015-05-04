@@ -29,13 +29,16 @@ import re
 from django.shortcuts import (  # noqa
         redirect, get_object_or_404)
 from django.contrib import messages  # noqa
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import (
+        PermissionDenied, SuspiciousOperation, ObjectDoesNotExist)
 from django.db import connection
 from django import forms
 from django.db import transaction
 from django.utils.timezone import now
+from django import http
 
-from courseflow.utils import StyledForm
+from django.core.urlresolvers import reverse
+from relate.utils import StyledForm
 from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
@@ -61,10 +64,12 @@ def view_participant_grades(pctx, participation_id=None):
     if pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        pass
+        is_student_viewing = False
     elif pctx.role == participation_role.student:
         if grade_participation != pctx.participation:
             raise PermissionDenied("may not view other people's grades")
+
+        is_student_viewing = True
     else:
         raise PermissionDenied()
 
@@ -86,14 +91,22 @@ def view_participant_grades(pctx, participation_id=None):
                 "participation__id",
                 "opportunity__identifier",
                 "grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("opportunity"))
 
     idx = 0
 
     grade_table = []
     for opp in grading_opps:
+        if is_student_viewing:
+            if not (opp.shown_in_grade_book
+                    and opp.shown_in_student_grade_book):
+                continue
+        else:
+            if not opp.shown_in_grade_book:
+                continue
+
         while (
                 idx < len(grade_changes)
                 and grade_changes[idx].opportunity.identifier < opp.identifier
@@ -125,6 +138,52 @@ def view_participant_grades(pctx, participation_id=None):
 # }}}
 
 
+# {{{ participant list
+
+@course_view
+def view_participant_list(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
+    participations = list(Participation.objects
+            .filter(
+                course=pctx.course,
+                status=participation_status.active)
+            .order_by("id")
+            .select_related("user"))
+
+    return render_course_page(pctx, "course/gradebook-participant-list.html", {
+        "participations": participations,
+        })
+
+# }}}
+
+
+# {{{ grading opportunity list
+
+@course_view
+def view_grading_opportunity_list(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
+    grading_opps = list((GradingOpportunity.objects
+            .filter(
+                course=pctx.course,
+                shown_in_grade_book=True,
+                )
+            .order_by("identifier")))
+
+    return render_course_page(pctx, "course/gradebook-opp-list.html", {
+        "grading_opps": grading_opps,
+        })
+
+# }}}
+
+
 # {{{ teacher grade book
 
 class GradeInfo:
@@ -133,40 +192,34 @@ class GradeInfo:
         self.grade_state_machine = grade_state_machine
 
 
-@course_view
-def view_gradebook(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
-
-    # NOTE: It's important that these three queries are sorted consistently,
+def get_grade_table(course):
+    # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
     grading_opps = list((GradingOpportunity.objects
             .filter(
-                course=pctx.course,
+                course=course,
                 shown_in_grade_book=True,
                 )
             .order_by("identifier")))
 
     participations = list(Participation.objects
             .filter(
-                course=pctx.course,
+                course=course,
                 status=participation_status.active)
             .order_by("id")
-            .prefetch_related("user"))
+            .select_related("user"))
 
     grade_changes = list(GradeChange.objects
             .filter(
-                opportunity__course=pctx.course,
+                opportunity__course=course,
                 opportunity__shown_in_grade_book=True)
             .order_by(
                 "participation__id",
                 "opportunity__identifier",
                 "grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("opportunity"))
 
     idx = 0
 
@@ -204,6 +257,18 @@ def view_gradebook(pctx):
 
         grade_table.append(grade_row)
 
+    return participations, grading_opps, grade_table
+
+
+@course_view
+def view_gradebook(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to view grades")
+
+    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+
     grade_table = sorted(zip(participations, grade_table),
             key=lambda (participation, grades):
                 (participation.user.last_name.lower(),
@@ -215,6 +280,42 @@ def view_gradebook(pctx):
         "participations": participations,
         "grade_state_change_types": grade_state_change_types,
         })
+
+
+@course_view
+def export_gradebook_csv(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied("must be instructor or TA to export grades")
+
+    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+
+    from six import BytesIO
+    csvfile = BytesIO()
+
+    import unicodecsv
+    fieldnames = ['user_name', 'last_name', 'first_name'] + [
+            gopp.identifier for gopp in grading_opps]
+
+    writer = unicodecsv.writer(csvfile, encoding="utf-8")
+    writer.writerow(fieldnames)
+
+    for participation, grades in zip(participations, grade_table):
+        writer.writerow([
+            participation.user.username,
+            participation.user.last_name,
+            participation.user.first_name,
+            ] + [grade_info.grade_state_machine.stringify_machine_readable_state()
+                for grade_info in grades])
+
+    response = http.HttpResponse(
+            csvfile.getvalue(),
+            content_type="text/plain; charset=utf-8")
+    response['Content-Disposition'] = (
+            'attachment; filename="grades-%s.csv"'
+            % pctx.course.identifier)
+    return response
 
 # }}}
 
@@ -228,28 +329,62 @@ class OpportunityGradeInfo(object):
 
 
 class ModifySessionsForm(StyledForm):
-    def __init__(self, rule_ids, *args, **kwargs):
+    def __init__(self, session_rule_tags, *args, **kwargs):
         super(ModifySessionsForm, self).__init__(*args, **kwargs)
 
-        self.fields["rule_id"] = forms.ChoiceField(
+        self.fields["rule_tag"] = forms.ChoiceField(
                 choices=tuple(
-                    (rule_id, str(rule_id))
-                    for rule_id in rule_ids))
+                    (rule_tag, str(rule_tag))
+                    for rule_tag in session_rule_tags))
+        self.fields["past_due_only"] = forms.BooleanField(
+                required=False,
+                initial=True,
+                help_text="Only act on in-progress sessions that are past "
+                "their access rule's due date (applies to 'expire' and 'end')")
 
         self.helper.add_input(
-                Submit("end", "End sessions and grade",
+                Submit("expire", "Expire sessions",
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
+                Submit("end", "End sessions and grade"))
+        self.helper.add_input(
                 Submit("regrade", "Regrade ended sessions"))
+        self.helper.add_input(
+                Submit("recalculate", "Recalculate grades of ended sessions"))
 
 
 @transaction.atomic
-def finish_in_progress_sessions(repo, course, flow_id, rule_id):
+def expire_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
+        past_due_only):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
                 flow_id=flow_id,
-                access_rules_id=rule_id,
+                participation__isnull=False,
+                access_rules_tag=rule_tag,
+                in_progress=True,
+                ))
+
+    count = 0
+
+    from course.flow import expire_flow_session_standalone
+    for session in sessions:
+        if expire_flow_session_standalone(repo, course, session, now_datetime,
+                past_due_only=past_due_only):
+            count += 1
+
+    return count
+
+
+@transaction.atomic
+def finish_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
+        past_due_only):
+    sessions = (FlowSession.objects
+            .filter(
+                course=course,
+                flow_id=flow_id,
+                participation__isnull=False,
+                access_rules_tag=rule_tag,
                 in_progress=True,
                 ))
 
@@ -257,19 +392,21 @@ def finish_in_progress_sessions(repo, course, flow_id, rule_id):
 
     from course.flow import finish_flow_session_standalone
     for session in sessions:
-        finish_flow_session_standalone(repo, course, session)
-        count += 1
+        if finish_flow_session_standalone(repo, course, session,
+                now_datetime=now_datetime, past_due_only=past_due_only):
+            count += 1
 
     return count
 
 
 @transaction.atomic
-def regrade_ended_sessions(repo, course, flow_id, rule_id):
+def regrade_ended_sessions(repo, course, flow_id, rule_tag):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
                 flow_id=flow_id,
-                access_rules_id=rule_id,
+                participation__isnull=False,
+                access_rules_tag=rule_tag,
                 in_progress=False,
                 ))
 
@@ -283,18 +420,42 @@ def regrade_ended_sessions(repo, course, flow_id, rule_id):
     return count
 
 
-RULE_ID_NONE_STRING = "<<<NONE>>>"
+@transaction.atomic
+def recalculate_ended_sessions(repo, course, flow_id, rule_tag):
+    sessions = (FlowSession.objects
+            .filter(
+                course=course,
+                flow_id=flow_id,
+                participation__isnull=False,
+                access_rules_tag=rule_tag,
+                in_progress=False,
+                ))
+
+    count = 0
+
+    from course.flow import recalculate_session_grade
+    for session in sessions:
+        recalculate_session_grade(repo, course, session)
+        count += 1
+
+    return count
 
 
-def mangle_rule_id(rule_id):
-    if rule_id is None:
-        return RULE_ID_NONE_STRING
+RULE_TAG_NONE_STRING = "<<<NONE>>>"
+
+
+def mangle_session_access_rule_tag(rule_tag):
+    if rule_tag is None:
+        return RULE_TAG_NONE_STRING
     else:
-        return rule_id
+        return rule_tag
 
 
 @course_view
 def view_grades_by_opportunity(pctx, opp_id):
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(pctx.request)
+
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
@@ -305,58 +466,86 @@ def view_grades_by_opportunity(pctx, opp_id):
     if pctx.course != opportunity.course:
         raise SuspiciousOperation("opportunity from wrong course")
 
-    # {{{ end sessions form
+    # {{{ batch sessions form
 
     batch_session_ops_form = None
     if pctx.role == participation_role.instructor and opportunity.flow_id:
         cursor = connection.cursor()
-        cursor.execute("select distinct access_rules_id from course_flowsession "
+        cursor.execute("select distinct access_rules_tag from course_flowsession "
                 "where course_id = %s and flow_id = %s "
-                "order by access_rules_id", (pctx.course.id, opportunity.flow_id))
-        rule_ids = [mangle_rule_id(row[0]) for row in cursor.fetchall()]
+                "order by access_rules_tag", (pctx.course.id, opportunity.flow_id))
+        session_rule_tags = [
+                mangle_session_access_rule_tag(row[0]) for row in cursor.fetchall()]
 
         request = pctx.request
         if request.method == "POST":
             batch_session_ops_form = ModifySessionsForm(
-                    rule_ids, request.POST, request.FILES)
-            if "end" in request.POST:
+                    session_rule_tags, request.POST, request.FILES)
+            if "expire" in request.POST:
+                op = "expire"
+            elif "end" in request.POST:
                 op = "end"
             elif "regrade" in request.POST:
                 op = "regrade"
+            elif "recalculate" in request.POST:
+                op = "recalculate"
             else:
                 raise SuspiciousOperation("invalid operation")
 
             if batch_session_ops_form.is_valid():
-                rule_id = batch_session_ops_form.cleaned_data["rule_id"]
-                if rule_id == RULE_ID_NONE_STRING:
-                    rule_id = None
+                rule_tag = batch_session_ops_form.cleaned_data["rule_tag"]
+                past_due_only = batch_session_ops_form.cleaned_data["past_due_only"]
+
+                if rule_tag == RULE_TAG_NONE_STRING:
+                    rule_tag = None
                 try:
-                    if op == "end":
+                    if op == "expire":
+                        count = expire_in_progress_sessions(
+                                pctx.repo, pctx.course, opportunity.flow_id,
+                                rule_tag, now_datetime,
+                                past_due_only=past_due_only)
+
+                        messages.add_message(pctx.request, messages.SUCCESS,
+                                "%d session(s) expired." % count)
+
+                    elif op == "end":
                         count = finish_in_progress_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id)
+                                rule_tag, now_datetime,
+                                past_due_only=past_due_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) ended." % count)
+
                     elif op == "regrade":
                         count = regrade_ended_sessions(
                                 pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_id)
+                                rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
                                 "%d session(s) regraded." % count)
+
+                    elif op == "recalculate":
+                        count = recalculate_ended_sessions(
+                                pctx.repo, pctx.course, opportunity.flow_id,
+                                rule_tag)
+
+                        messages.add_message(pctx.request, messages.SUCCESS,
+                                "Grade recalculated for %d session(s)." % count)
+
                     else:
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
                             "Error: %s %s" % (type(e).__name__, str(e)))
+                    raise
 
         else:
-            batch_session_ops_form = ModifySessionsForm(rule_ids)
+            batch_session_ops_form = ModifySessionsForm(session_rule_tags)
 
     # }}}
 
-    # NOTE: It's important that these three queries are sorted consistently,
+    # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
 
     participations = list(Participation.objects
@@ -364,18 +553,21 @@ def view_grades_by_opportunity(pctx, opp_id):
                 course=pctx.course,
                 status=participation_status.active)
             .order_by("id")
-            .prefetch_related("user"))
+            .select_related("user"))
 
     grade_changes = list(GradeChange.objects
             .filter(opportunity=opportunity)
             .order_by(
                 "participation__id",
                 "grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("opportunity"))
 
     idx = 0
+
+    finished_sessions = 0
+    total_sessions = 0
 
     grade_table = []
     for participation in participations:
@@ -401,6 +593,12 @@ def view_grades_by_opportunity(pctx, opp_id):
                         flow_id=opportunity.flow_id,
                         )
                     .order_by("start_time"))
+
+            for fsession in flow_sessions:
+                total_sessions += 1
+                if not fsession.in_progress:
+                    finished_sessions += 1
+
         else:
             flow_sessions = None
 
@@ -420,6 +618,9 @@ def view_grades_by_opportunity(pctx, opp_id):
         "grade_state_change_types": grade_state_change_types,
         "grade_table": grade_table,
         "batch_session_ops_form": batch_session_ops_form,
+
+        "total_sessions": total_sessions,
+        "finished_sessions": finished_sessions,
         })
 
 # }}}
@@ -427,25 +628,78 @@ def view_grades_by_opportunity(pctx, opp_id):
 
 # {{{ view single grade
 
+def average_grade(opportunity):
+    grade_changes = (GradeChange.objects
+            .filter(opportunity=opportunity)
+            .order_by(
+                "participation__id",
+                "grade_time")
+            .select_related("participation")
+            .select_related("opportunity"))
+
+    grades = []
+    my_grade_changes = []
+
+    def finalize():
+        if not my_grade_changes:
+            return
+
+        state_machine = GradeStateMachine()
+        state_machine.consume(my_grade_changes)
+
+        percentage = state_machine.percentage()
+        if percentage is not None:
+            grades.append(percentage)
+
+        del my_grade_changes[:]
+
+    last_participation = None
+    for gchange in grade_changes:
+        if last_participation != gchange.participation:
+            finalize()
+            last_participation = gchange.participation
+
+        my_grade_changes.append(gchange)
+
+    finalize()
+
+    if grades:
+        return sum(grades)/len(grades), len(grades)
+    else:
+        return None, 0
+
+
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(pctx.request)
+
     participation = get_object_or_404(Participation,
             id=int(participation_id))
 
     if participation.course != pctx.course:
         raise SuspiciousOperation("participation does not match course")
 
+    opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
+
     if pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        pass
+        if not opportunity.shown_in_grade_book:
+            messages.add_message(pctx.request, messages.INFO,
+                    "This grade is not shown in the grade book.")
+        if not opportunity.shown_in_student_grade_book:
+            messages.add_message(pctx.request, messages.INFO,
+                    "This grade is not shown in the student grade book.")
+
     elif pctx.role == participation_role.student:
         if participation != pctx.participation:
             raise PermissionDenied("may not view other people's grades")
+        if not (opportunity.shown_in_grade_book
+                and opportunity.shown_in_student_grade_book):
+            raise PermissionDenied("grade has not been released")
     else:
         raise PermissionDenied()
-
-    opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
     # {{{ modify sessions buttons
 
@@ -456,7 +710,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
         request = pctx.request
         if pctx.request.method == "POST":
-            action_re = re.compile("^(end|reopen|regrade)_([0-9]+)$")
+            action_re = re.compile("^([a-z]+)_([0-9]+)$")
             for key in request.POST.keys():
                 action_match = action_re.match(key)
                 if action_match:
@@ -471,14 +725,28 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             from course.flow import (
                     reopen_session,
                     regrade_session,
+                    recalculate_session_grade,
+                    expire_flow_session_standalone,
                     finish_flow_session_standalone)
 
             try:
-                if op == "end":
+                if op == "expire":
+                    expire_flow_session_standalone(
+                            pctx.repo, pctx.course, session, now_datetime)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session expired.")
+
+                elif op == "end":
                     finish_flow_session_standalone(
-                            pctx.repo, pctx.course, session)
+                            pctx.repo, pctx.course, session,
+                            now_datetime=now_datetime)
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session ended.")
+
+                elif op == "reopen":
+                    reopen_session(session)
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            "Session reopened.")
 
                 elif op == "regrade":
                     regrade_session(
@@ -486,10 +754,11 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session regraded.")
 
-                elif op == "reopen":
-                    reopen_session(session)
+                elif op == "recalculate":
+                    recalculate_session_grade(
+                            pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session reopened.")
+                            "Session grade recalculated.")
 
                 else:
                     raise SuspiciousOperation("invalid session operation")
@@ -507,15 +776,15 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                 opportunity=opportunity,
                 participation=participation)
             .order_by("grade_time")
-            .prefetch_related("participation")
-            .prefetch_related("participation__user")
-            .prefetch_related("creator")
-            .prefetch_related("opportunity"))
+            .select_related("participation")
+            .select_related("participation__user")
+            .select_related("creator")
+            .select_related("opportunity"))
 
     state_machine = GradeStateMachine()
     state_machine.consume(grade_changes, set_is_superseded=True)
 
-    if opportunity.flow_id is not None:
+    if opportunity.flow_id:
         flow_sessions = list(FlowSession.objects
                 .filter(
                     participation=participation,
@@ -523,47 +792,50 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     )
                 .order_by("start_time"))
 
-        # {{{ fish out grade rules
+        from collections import namedtuple
+        SessionProperties = namedtuple(  # noqa
+                "SessionProperties",
+                ["due", "grade_description"])
 
+        from course.utils import get_session_grading_rule
         from course.content import get_flow_desc
 
-        flow_desc = get_flow_desc(
-                pctx.repo, pctx.course, opportunity.flow_id,
-                pctx.course_commit_sha)
-        from course.utils import (
-                get_flow_access_rules,
-                get_relevant_rules)
-        all_flow_rules = get_flow_access_rules(pctx.course, pctx.participation,
-                opportunity.flow_id, flow_desc)
+        try:
+            flow_desc = get_flow_desc(pctx.repo, pctx.course,
+                    opportunity.flow_id, pctx.course_commit_sha)
+        except ObjectDoesNotExist:
+            flow_sessions_and_session_properties = None
+        else:
+            flow_sessions_and_session_properties = []
+            for session in flow_sessions:
+                grading_rule = get_session_grading_rule(
+                        session, pctx.role, flow_desc, now_datetime)
 
-        relevant_flow_rules = get_relevant_rules(
-                all_flow_rules, pctx.participation.role, now())
-
-        flow_grade_aggregation_strategy = getattr(
-                flow_desc, "grade_aggregation_strategy", None)
-
-        # }}}
+                session_properties = SessionProperties(
+                        due=grading_rule.due,
+                        grade_description=grading_rule.description)
+                flow_sessions_and_session_properties.append(
+                        (session, session_properties))
 
     else:
-        flow_sessions = None
-        relevant_flow_rules = None
-        flow_grade_aggregation_strategy = None
+        flow_sessions_and_session_properties = None
+
+    avg_grade_percentage, avg_grade_population = average_grade(opportunity)
 
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
+        "avg_grade_percentage": avg_grade_percentage,
+        "avg_grade_population": avg_grade_population,
         "grade_participation": participation,
         "grade_state_change_types": grade_state_change_types,
         "grade_changes": grade_changes,
         "state_machine": state_machine,
-        "flow_sessions": flow_sessions,
+        "flow_sessions_and_session_properties": flow_sessions_and_session_properties,
         "allow_session_actions": allow_session_actions,
-        "show_page_grades": pctx.role in [
+        "show_privileged_info": pctx.role in [
             participation_role.instructor,
             participation_role.teaching_assistant
             ],
-
-        "flow_rules": relevant_flow_rules,
-        "flow_grade_aggregation_strategy": flow_grade_aggregation_strategy,
         })
 
 # }}}
@@ -578,7 +850,10 @@ class ImportGradesForm(StyledForm):
         self.fields["grading_opportunity"] = forms.ModelChoiceField(
             queryset=(GradingOpportunity.objects
                 .filter(course=course)
-                .order_by("identifier")))
+                .order_by("identifier")),
+            help_text="Click to <a href='%s' target='_blank'>create</a> "
+            "a new grading opportunity. Reload this form when done."
+            % reverse("admin:course_gradingopportunity_add"))
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",
@@ -611,23 +886,27 @@ class ImportGradesForm(StyledForm):
                 Submit("import", "Import"))
 
 
+class ParticipantNotFound(ValueError):
+    pass
+
+
 def find_participant_from_id(course, id_str):
-    id_str = id_str.strip()
+    id_str = id_str.strip().lower()
 
     matches = (Participation.objects
             .filter(
                 course=course,
-                role=participation_role.student,
+                status=participation_status.active,
                 user__email__istartswith=id_str)
-            .prefetch_related("user"))
+            .select_related("user"))
 
     surviving_matches = []
     for match in matches:
-        if match.user.email == id_str:
+        if match.user.email.lower() == id_str:
             surviving_matches.append(match)
             continue
 
-        email = match.user.email
+        email = match.user.email.lower()
         at_index = email.index("@")
         assert at_index > 0
         uid = email[:at_index]
@@ -637,20 +916,37 @@ def find_participant_from_id(course, id_str):
             continue
 
     if not surviving_matches:
-        raise ValueError("no participant found for '%s'" % id_str)
+        raise ParticipantNotFound(
+                "no participant found for '%s'" % id_str)
     if len(surviving_matches) > 1:
-        raise ValueError("more than one participant found for '%s'" % id_str)
+        raise ParticipantNotFound(
+                "more than one participant found for '%s'" % id_str)
 
     return surviving_matches[0]
 
 
-def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
+def fix_decimal(s):
+    if "," in s and "." not in s:
+        comma_count = len([c for c in s if c == ","])
+        if comma_count == 1:
+            return s.replace(",", ".")
+        else:
+            return s
+
+    else:
+        return s
+
+
+def csv_to_grade_changes(
+        log_lines,
+        course, grading_opportunity, attempt_id, file_contents,
         id_column, points_column, feedback_column, max_points,
         creator, grade_time, has_header):
     result = []
 
     import csv
 
+    total_count = 0
     spamreader = csv.reader(file_contents)
     for row in spamreader:
         if has_header:
@@ -658,12 +954,24 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
             continue
 
         gchange = GradeChange()
-        result.append(gchange)
         gchange.opportunity = grading_opportunity
-        gchange.participation = find_participant_from_id(course, row[id_column-1])
+        try:
+            gchange.participation = find_participant_from_id(
+                    course, row[id_column-1])
+        except ParticipantNotFound as e:
+            log_lines.append(e)
+            continue
+
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = attempt_id
-        gchange.points = float(row[points_column-1])
+
+        points_str = row[points_column-1].strip()
+        # Moodle's "NULL" grades look like this.
+        if points_str in ["-", ""]:
+            gchange.points = None
+        else:
+            gchange.points = float(fix_decimal(points_str))
+
         gchange.max_points = max_points
         if feedback_column is not None:
             gchange.comment = row[feedback_column-1]
@@ -671,7 +979,41 @@ def csv_to_grade_changes(course, grading_opportunity, attempt_id, file_contents,
         gchange.creator = creator
         gchange.grade_time = grade_time
 
-    return result
+        last_grades = (GradeChange.objects
+                .filter(
+                    opportunity=grading_opportunity,
+                    participation=gchange.participation,
+                    attempt_id=gchange.attempt_id)
+                .order_by("-grade_time")[:1])
+
+        if last_grades.count():
+            last_grade, = last_grades
+
+            if last_grade.state == grade_state_change_types.graded:
+
+                updated = []
+                if last_grade.points != gchange.points:
+                    updated.append("points")
+                if last_grade.max_points != gchange.max_points:
+                    updated.append("max_points")
+                if last_grade.comment != gchange.comment:
+                    updated.append("comment")
+
+                if updated:
+                    log_lines.append("%s: %s updated" % (
+                        gchange.participation,
+                        ", ".join(updated)))
+
+                    result.append(gchange)
+            else:
+                result.append(gchange)
+
+        else:
+            result.append(gchange)
+
+        total_count += 1
+
+    return total_count, result
 
 
 @course_view
@@ -681,6 +1023,9 @@ def import_grades(pctx):
         raise PermissionDenied()
 
     form_text = ""
+
+    log_lines = []
+
     request = pctx.request
     if request.method == "POST":
         form = ImportGradesForm(
@@ -689,7 +1034,8 @@ def import_grades(pctx):
         is_import = "import" in request.POST
         if form.is_valid():
             try:
-                grade_changes = csv_to_grade_changes(
+                total_count, grade_changes = csv_to_grade_changes(
+                        log_lines=log_lines,
                         course=pctx.course,
                         grading_opportunity=form.cleaned_data["grading_opportunity"],
                         attempt_id=form.cleaned_data["attempt_id"],
@@ -705,15 +1051,28 @@ def import_grades(pctx):
                 messages.add_message(pctx.request, messages.ERROR,
                         "Error: %s %s" % (type(e).__name__, str(e)))
             else:
+                if total_count != len(grade_changes):
+                    messages.add_message(pctx.request, messages.INFO,
+                            "%d grades found, %d unchanged."
+                            % (total_count, total_count - len(grade_changes)))
+
+                from django.template.loader import render_to_string
+
                 if is_import:
                     GradeChange.objects.bulk_create(grade_changes)
+                    form_text = render_to_string(
+                            "course/grade-import-preview.html", {
+                                "show_grade_changes": False,
+                                "log_lines": log_lines,
+                                })
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "%d grades imported." % len(grade_changes))
                 else:
-                    from django.template.loader import render_to_string
                     form_text = render_to_string(
                             "course/grade-import-preview.html", {
+                                "show_grade_changes": True,
                                 "grade_changes": grade_changes,
+                                "log_lines": log_lines,
                                 })
 
     else:

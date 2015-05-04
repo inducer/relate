@@ -28,9 +28,10 @@ from django.conf import settings
 
 import re
 import datetime
+import six
 
 from django.utils.timezone import now
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -39,9 +40,9 @@ from HTMLParser import HTMLParser
 
 from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
 
-from courseflow.utils import dict_to_struct
+from relate.utils import dict_to_struct
 
-import threading
+from yaml import load as load_yaml
 
 
 # {{{ repo interaction
@@ -51,28 +52,9 @@ def get_course_repo_path(course):
     return join(settings.GIT_ROOT, course.identifier)
 
 
-# It's unclear that libgit2 is reentrant.
-_THREAD_LOCAL_STORAGE = threading.local()
-
-
-def get_course_repos_dict():
-    try:
-        return _THREAD_LOCAL_STORAGE.COURSE_REPOS
-    except AttributeError:
-        _THREAD_LOCAL_STORAGE.COURSE_REPOS = {}
-        return _THREAD_LOCAL_STORAGE.COURSE_REPOS
-
-
 def get_course_repo(course):
-    try:
-        return get_course_repos_dict()[course.pk]
-    except KeyError:
-        from pygit2 import Repository
-        repo = Repository(get_course_repo_path(course))
-
-        get_course_repos_dict()[course.pk] = repo
-
-        return repo
+    from pygit2 import Repository
+    return Repository(get_course_repo_path(course))
 
 
 def get_repo_blob(repo, full_name, commit_sha):
@@ -93,7 +75,11 @@ def get_repo_blob(repo, full_name, commit_sha):
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
     cache_key = "%%%1".join((repo.path, full_name, commit_sha))
 
-    import django.core.cache as cache
+    try:
+        import django.core.cache as cache
+    except ImproperlyConfigured:
+        return get_repo_blob(repo, full_name, commit_sha).data
+
     def_cache = cache.caches["default"]
     result = def_cache.get(cache_key)
     if result is not None:
@@ -105,8 +91,35 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     return result
 
 
-def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
-    cache_key = "%DICT%%2".join((repo.path, full_name, commit_sha))
+JINJA_YAML_RE = re.compile(
+    r"^\[JINJA\]\s*$(.*?)^\[\/JINJA\]\s*$",
+    re.MULTILINE | re.DOTALL)
+
+
+def expand_yaml_macros(repo, commit_sha, yaml_str):
+    if isinstance(yaml_str, six.binary_type):
+        yaml_str = yaml_str.decode("utf-8")
+
+    def compute_replacement(match):
+        jinja_src = match.group(1)
+
+        from jinja2 import Environment, StrictUndefined
+        env = Environment(
+                loader=GitTemplateLoader(repo, commit_sha),
+                undefined=StrictUndefined)
+        template = env.from_string(jinja_src)
+        return template.render()
+
+    result, _ = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
+    return result
+
+
+def get_raw_yaml_from_repo(repo, full_name, commit_sha):
+    """Return decoded YAML data structure from
+    the given file in *repo* at *commit_sha*.
+    """
+
+    cache_key = "%RAW%%2".join((repo.path, full_name, commit_sha))
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
@@ -114,8 +127,10 @@ def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
     if result is not None:
         return result
 
-    from yaml import load
-    result = load(get_repo_blob(repo, full_name, commit_sha).data)
+    result = load_yaml(
+            expand_yaml_macros(
+                repo, commit_sha,
+                get_repo_blob(repo, full_name, commit_sha).data))
 
     def_cache.add(cache_key, result, None)
 
@@ -123,6 +138,13 @@ def get_yaml_from_repo_as_dict(repo, full_name, commit_sha):
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
+    """Return decoded, struct-ified YAML data structure from
+    the given file in *repo* at *commit_sha*.
+
+    See :class:`relate.utils.Struct` for more on
+    struct-ification.
+    """
+
     if cached:
         cache_key = "%%%2".join((repo.path, full_name, commit_sha))
 
@@ -132,14 +154,41 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         if result is not None:
             return result
 
-    from yaml import load
     result = dict_to_struct(
-            load(get_repo_blob(repo, full_name, commit_sha).data))
+            load_yaml(
+                expand_yaml_macros(
+                    repo, commit_sha,
+                    get_repo_blob(repo, full_name, commit_sha).data)))
 
     if cached:
         def_cache.add(cache_key, result, None)
 
     return result
+
+
+def is_repo_file_public(repo, commit_sha, path):
+    from os.path import dirname, basename, join
+    attributes_path = join(dirname(path), ".attributes.yml")
+
+    from course.content import get_raw_yaml_from_repo
+    try:
+        attributes = get_raw_yaml_from_repo(
+                repo, attributes_path, commit_sha.encode())
+    except ObjectDoesNotExist:
+        # no attributes file: not public
+        return False
+
+    path_basename = basename(path)
+    public_patterns = attributes.get("public", [])
+
+    from fnmatch import fnmatch
+    if isinstance(public_patterns, list):
+        for pattern in attributes.get("public", []):
+            if isinstance(pattern, (str, unicode)):
+                if fnmatch(path_basename, pattern):
+                    return True
+
+    return False
 
 # }}}
 
@@ -218,19 +267,27 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_url(self, url):
         if url.startswith("flow:"):
             flow_id = url[5:]
-            return self.reverse_func("course.flow.start_flow",
+            return self.reverse_func("relate-view_start_flow",
                         args=(self.get_course_identifier(), flow_id))
 
         elif url.startswith("media:"):
             media_path = url[6:]
-            return self.reverse_func("course.views.get_media",
+            return self.reverse_func("relate-get_media",
                         args=(
                             self.get_course_identifier(),
                             self.commit_sha,
                             media_path))
 
+        elif url.startswith("repo:"):
+            path = url[5:]
+            return self.reverse_func("relate-get_repo_file",
+                        args=(
+                            self.get_course_identifier(),
+                            self.commit_sha,
+                            path))
+
         elif url.strip() == "calendar:":
-            return self.reverse_func("course.calendar.view_calendar",
+            return self.reverse_func("relate-view_calendar",
                         args=(self.get_course_identifier(),))
 
         return None
@@ -252,6 +309,12 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
             if new_src is not None:
                 changed_attrs["src"] = new_src
+
+        elif tag_name == "object" and "data" in attrs:
+            new_data = self.process_url(attrs["data"])
+
+            if new_data is not None:
+                changed_attrs["data"] = new_data
 
         return changed_attrs
 
@@ -288,8 +351,8 @@ class LinkFixerExtension(Extension):
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
 
-    def extendMarkdown(self, md, md_globals):
-        md.treeprocessors["courseflow_link_fixer"] = \
+    def extendMarkdown(self, md, md_globals):  # noqa
+        md.treeprocessors["relate_link_fixer"] = \
                 LinkFixerTreeprocessor(md, self.course, self.commit_sha,
                         reverse_func=self.reverse_func)
 
@@ -301,7 +364,7 @@ class GitTemplateLoader(BaseTemplateLoader):
 
     def get_source(self, environment, template):
         try:
-            data = get_repo_blob(self.repo, template, self.commit_sha).data
+            data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
         except ObjectDoesNotExist:
             raise TemplateNotFound(template)
 
@@ -325,29 +388,55 @@ def remove_prefix(prefix, s):
 JINJA_PREFIX = "[JINJA]"
 
 
-def markup_to_html(course, repo, commit_sha, text, reverse_func=None):
+def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
+        validate_only=False):
     if reverse_func is None:
         from django.core.urlresolvers import reverse
         reverse_func = reverse
 
+    try:
+        import django.core.cache as cache
+    except ImproperlyConfigured:
+        cache_key = None
+    else:
+        import hashlib
+        cache_key = ("markup:%s:%s"
+                % (str(commit_sha),
+                    hashlib.md5(text.encode("utf-8")).hexdigest()))
+
+        def_cache = cache.caches["default"]
+        result = def_cache.get(cache_key)
+        if result is not None:
+            return result
+
     if text.lstrip().startswith(JINJA_PREFIX):
         text = remove_prefix(JINJA_PREFIX, text.lstrip())
 
-        from jinja2 import Environment
-        env = Environment(loader=GitTemplateLoader(repo, commit_sha))
+        from jinja2 import Environment, StrictUndefined
+        env = Environment(
+                loader=GitTemplateLoader(repo, commit_sha),
+                undefined=StrictUndefined)
         template = env.from_string(text)
         text = template.render()
 
+    if validate_only:
+        return
+
     from course.mdx_mathjax import MathJaxExtension
     import markdown
-    return markdown.markdown(text,
+    result = markdown.markdown(text,
         extensions=[
             LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
             MathJaxExtension(),
-            "extra",
-            "codehilite",
+            "markdown.extensions.extra",
+            "markdown.extensions.codehilite",
             ],
         output_format="html5")
+
+    if cache_key is not None:
+        def_cache.add(cache_key, result, None)
+
+    return result
 
 # }}}
 
@@ -442,8 +531,15 @@ DATESPEC_POSTPROCESSORS = [
 
 
 def parse_date_spec(course, datespec, return_now_on_error=True):
+    if datespec is None:
+        return None
+
     if isinstance(datespec, datetime.datetime):
-        return datespec
+        if datespec.tzinfo is None:
+            from relate.utils import localize_datetime
+            return localize_datetime(datespec)
+        else:
+            return datespec
     if isinstance(datespec, datetime.date):
         return datetime.datetime(datespec)
 
@@ -513,11 +609,29 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
             raise InvalidDatespec(datespec)
 
 
-def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
+def compute_chunk_weight_and_shown(course, chunk, role, now_datetime,
+        remote_address):
     for rule in chunk.rules:
-        if hasattr(rule, "role"):
-            if role != rule.role:
+        if hasattr(rule, "if_has_role"):
+            if role not in rule.if_has_role:
                 continue
+
+        if hasattr(rule, "if_after"):
+            start_date = parse_date_spec(course, rule.if_after)
+            if now_datetime < start_date:
+                continue
+
+        if hasattr(rule, "if_before"):
+            end_date = parse_date_spec(course, rule.if_before)
+            if end_date < now_datetime:
+                continue
+
+        if hasattr(rule, "if_in_facility"):
+            from course.utils import is_address_in_facility
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
+                continue
+
+        # {{{ deprecated
 
         if hasattr(rule, "roles"):
             if role not in rule.roles:
@@ -527,10 +641,13 @@ def compute_chunk_weight_and_shown(course, chunk, role, now_datetime):
             start_date = parse_date_spec(course, rule.start)
             if now_datetime < start_date:
                 continue
+
         if hasattr(rule, "end"):
             end_date = parse_date_spec(course, rule.end)
             if end_date < now_datetime:
                 continue
+
+        # }}}
 
         shown = True
         if hasattr(rule, "shown"):
@@ -546,11 +663,12 @@ def get_course_desc(repo, course, commit_sha):
 
 
 def get_processed_course_chunks(course, repo, commit_sha,
-        course_desc, role, now_datetime):
+        course_desc, role, now_datetime, remote_address):
     for chunk in course_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
-                        course, chunk, role, now_datetime)
+                        course, chunk, role, now_datetime,
+                        remote_address)
         chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight, reverse=True)
@@ -648,33 +766,141 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
     return class_(None, location, page_desc)
 
 
-def set_up_flow_session_page_data(repo, flow_session,
+def _adjust_flow_session_page_data_inner(repo, flow_session,
         course_identifier, flow_desc, commit_sha):
     from course.models import FlowPageData
 
-    data = None
-
-    ordinal = 0
+    ordinal = [0]
     for grp in flow_desc.groups:
-        for page_desc in grp.pages:
-            data = FlowPageData()
-            data.flow_session = flow_session
-            data.ordinal = ordinal
-            data.is_last = False
-            data.group_id = grp.id
-            data.page_id = page_desc.id
+        shuffle = getattr(grp, "shuffle", False)
+        max_page_count = getattr(grp, "max_page_count", None)
 
+        available_page_ids = [page_desc.id for page_desc in grp.pages]
+
+        if max_page_count is None:
+            max_page_count = len(available_page_ids)
+
+        group_pages = []
+
+        # {{{ helper functions
+
+        def find_page_desc(page_id):
+            new_page_desc = None
+
+            for page_desc in grp.pages:
+                if page_desc.id == page_id:
+                    new_page_desc = page_desc
+                    break
+
+            assert new_page_desc is not None
+
+            return new_page_desc
+
+        def create_fpd(new_page_desc):
             page = instantiate_flow_page(
                     "course '%s', flow '%s', page '%s/%s'"
                     % (course_identifier, flow_session.flow_id,
-                        grp.id, page_desc.id),
-                    repo, page_desc, commit_sha)
-            data.data = page.make_page_data()
-            data.save()
+                        grp.id, new_page_desc.id),
+                    repo, new_page_desc, commit_sha)
 
-            ordinal += 1
+            return FlowPageData(
+                    flow_session=flow_session,
+                    group_id=grp.id,
+                    page_id=new_page_desc.id,
+                    ordinal=None,
+                    data=page.make_page_data())
 
-    return ordinal
+        def add_page(fpd):
+            if fpd.ordinal != ordinal[0]:
+                fpd.ordinal = ordinal[0]
+                fpd.save()
+
+            ordinal[0] += 1
+            available_page_ids.remove(fpd.page_id)
+            group_pages.append(fpd)
+
+        def remove_page(fpd):
+            if fpd.ordinal is not None:
+                fpd.ordinal = None
+                fpd.save()
+
+        # }}}
+
+        if shuffle:
+            # maintain order of existing pages as much as possible
+            for fpd in (FlowPageData.objects
+                    .filter(
+                        flow_session=flow_session,
+                        group_id=grp.id,
+                        ordinal__isnull=False)
+                    .order_by("ordinal")):
+
+                if (fpd.page_id in available_page_ids
+                        and len(group_pages) < max_page_count):
+                    add_page(fpd)
+                else:
+                    remove_page(fpd)
+
+            assert len(group_pages) <= max_page_count
+
+            from random import choice
+
+            # then add randomly chosen new pages
+            while len(group_pages) < max_page_count and available_page_ids:
+                new_page_id = choice(available_page_ids)
+
+                new_page_fpds = (FlowPageData.objects
+                        .filter(
+                            flow_session=flow_session,
+                            group_id=grp.id,
+                            page_id=new_page_id))
+
+                if new_page_fpds.count():
+                    # We already have FlowPageData for this page, revive it
+                    new_page_fpd, = new_page_fpds
+                    assert new_page_fpd.id == new_page_id
+                else:
+                    # Make a new FlowPageData instance
+                    page_desc = find_page_desc(new_page_id)
+                    assert page_desc.id == new_page_id
+                    new_page_fpd = create_fpd(page_desc)
+                    assert new_page_fpd.page_id == new_page_id
+
+                add_page(new_page_fpd)
+
+        else:
+            # reorder pages to order in flow
+            id_to_fpd = dict(
+                    ((fpd.group_id, fpd.page_id), fpd)
+                    for fpd in FlowPageData.objects.filter(
+                        flow_session=flow_session,
+                        group_id=grp.id))
+
+            for page_desc in grp.pages:
+                key = (grp.id, page_desc.id)
+
+                if key in id_to_fpd:
+                    fpd = id_to_fpd.pop(key)
+                else:
+                    fpd = create_fpd(page_desc)
+
+                if len(group_pages) < max_page_count:
+                    add_page(fpd)
+
+            for fpd in id_to_fpd.values():
+                remove_page(fpd)
+
+    if flow_session.page_count != ordinal[0]:
+        flow_session.page_count = ordinal[0]
+        flow_session.save()
+
+
+def adjust_flow_session_page_data(repo, flow_session,
+        course_identifier, flow_desc, commit_sha):
+    from django.db import transaction
+    with transaction.atomic():
+        return _adjust_flow_session_page_data_inner(
+                repo, flow_session, course_identifier, flow_desc, commit_sha)
 
 
 def get_course_commit_sha(course, participation):
@@ -686,12 +912,18 @@ def get_course_commit_sha(course, participation):
     return sha.encode()
 
 
-def get_flow_commit_sha(course, participation, flow_desc, flow_session):
-    if (not getattr(flow_desc, "sticky_versioning", True)
-            or flow_session is None):
-        return get_course_commit_sha(course, participation)
+def list_flow_ids(repo, commit_sha):
+    flow_ids = []
+    try:
+        flows_tree = get_repo_blob(repo, "flows", commit_sha)
+    except ObjectDoesNotExist:
+        # That's OK--no flows yet.
+        pass
     else:
-        return flow_session.active_git_commit_sha.encode()
+        for entry in flows_tree.items():
+            if entry.path.endswith(".yml"):
+                flow_ids.append(entry.path[:-4])
 
+    return sorted(flow_ids)
 
 # vim: foldmethod=marker

@@ -35,23 +35,37 @@ from course.views import (
 from course.content import (
         get_course_repo, get_course_desc, get_flow_desc,
         parse_date_spec, get_course_commit_sha)
+from course.constants import (
+        participation_role,
+        flow_permission, flow_rule_kind)
 from course.models import (
         Course,
-        FlowAccessException,
-        participation_role,
-        flow_permission,
-        InstantFlowRequest
-        )
+        FlowRuleException,
+        InstantFlowRequest,
+        FlowSession)
 
 
 # {{{ flow permissions
 
-class FlowAccessRule(object):
+class FlowSessionRuleBase(object):
     def __init__(self, **attrs):
-        for k, v in attrs.items():
-            if k == "permissions":
-                v = set(v)
-            setattr(self, k, v)
+        for name in self.__slots__:
+            setattr(self, name, attrs.get(name))
+
+
+class FlowSessionStartRule(FlowSessionRuleBase):
+    __slots__ = [
+            "tag_session",
+            "may_start_new_session",
+            "may_list_existing_sessions",
+            ]
+
+
+class FlowSessionAccessRule(FlowSessionRuleBase):
+    __slots__ = [
+            "permissions",
+            "message",
+            ]
 
     def human_readable_permissions(self):
         from course.models import FLOW_PERMISSION_CHOICES
@@ -59,163 +73,219 @@ class FlowAccessRule(object):
         return [permission_dict[p] for p in self.permissions]
 
 
-def get_flow_access_rules(course, participation, flow_id, flow_desc,
-        use_exceptions=True):
-    rules = []
-
-    attr_names = [
-            "id",
-            "roles",
-            "start",
-            "end",
-            "allowed_session_count",
+class FlowSessionGradingRule(FlowSessionRuleBase):
+    __slots__ = [
+            "grade_identifier",
+            "grade_aggregation_strategy",
+            "due",
+            "description",
             "credit_percent",
-            "permissions",
-            "is_exception",
             ]
 
-    # {{{ scan for exceptions in database
 
-    if use_exceptions:
+def _eval_generic_conditions(rule, course, role, now_datetime):
+    if hasattr(rule, "if_before"):
+        ds = parse_date_spec(course, rule.if_before)
+        if not (now_datetime <= ds):
+            return False
+
+    if hasattr(rule, "if_after"):
+        ds = parse_date_spec(course, rule.if_after)
+        if not (now_datetime >= ds):
+            return False
+
+    if hasattr(rule, "if_has_role"):
+        if role not in rule.if_has_role:
+            return False
+
+    return True
+
+
+def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
+        consider_exceptions=True, default_rules_desc=[]):
+    if (not hasattr(flow_desc, "rules")
+            or not hasattr(flow_desc.rules, kind)):
+        rules = default_rules_desc[:]
+    else:
+        rules = getattr(flow_desc.rules, kind)[:]
+
+    if consider_exceptions:
         for exc in (
-                FlowAccessException.objects
+                FlowRuleException.objects
                 .filter(
                     participation=participation,
+                    active=True,
+                    kind=kind,
                     flow_id=flow_id)
-                .order_by("expiration")):
+                # rules created first will get inserted first, and show up last
+                .order_by("creation_time")):
 
-            attrs = {
-                    "is_exception": True,
-                    "id": "exception",
-                    "permissions": [entry.permission for entry in exc.entries.all()],
-                    }
-            if exc.expiration is not None:
-                attrs["end"] = exc.expiration
+            if exc.expiration is not None and now_datetime > exc.expiration:
+                continue
 
-            if exc.stipulations is not None and isinstance(exc.stipulations, dict):
-                attrs.update(exc.stipulations)
-
-            rules.append(FlowAccessRule(**attrs))
-
-    # }}}
-
-    if not hasattr(flow_desc, "access_rules"):
-        rules.append(
-                FlowAccessRule(**{
-                    "permissions": [
-                        flow_permission.view,
-                        flow_permission.start_no_credit],
-                    "is_exception": False,
-                    }))
-
-    else:
-        for rule in flow_desc.access_rules:
-            attrs = dict(
-                    (attr_name, getattr(rule, attr_name))
-                    for attr_name in attr_names
-                    if hasattr(rule, attr_name))
-
-            if "start" in attrs:
-                attrs["start"] = parse_date_spec(course, attrs["start"])
-            if "end" in attrs:
-                attrs["end"] = parse_date_spec(course, attrs["end"])
-
-            rules.append(FlowAccessRule(**attrs))
-
-    # {{{ set unavailable attrs to None
-
-    def add_attrs_with_nones(rule):
-        for attr_name in attr_names:
-            if not hasattr(rule, attr_name):
-                setattr(rule, attr_name, None)
-
-    for rule in rules:
-        add_attrs_with_nones(rule, )
-
-    # }}}
+            from relate.utils import dict_to_struct
+            rules.insert(0, dict_to_struct(exc.rule))
 
     return rules
 
 
-def get_relevant_rules(rules, role, now_datetime):
-    relevant_rules = []
-    found_current = False
-    for rule in rules:
-        if rule.roles is not None:
-            if role not in rule.roles:
-                continue
+def get_session_start_rule(course, participation, role, flow_id, flow_desc,
+        now_datetime, remote_address=None, for_rollover=False):
+    """Return a :class:`FlowSessionStartRule` if a new session is
+    permitted or *None* if no new session is allowed.
+    """
 
-        rule.is_current = False
-        if not found_current:
-            if (
-                    (rule.start is None
-                        or now_datetime >= rule.start)
-                    and
-                    (rule.end is None
-                        or now_datetime <= rule.end)):
-                rule.is_current = True
-                found_current = True
-
-        relevant_rules.append(rule)
-
-        if (rule.start is None
-                and rule.end is None
-                and not rule.is_exception):
-            # Catch-all as far as this user is concerned.
-            break
-
-    return relevant_rules
-
-
-def get_current_flow_access_rule(course, participation, role, flow_id, flow_desc,
-        now_datetime, rule_id, use_exceptions=True):
-    rules = get_flow_access_rules(course, participation, flow_id, flow_desc,
-            use_exceptions=use_exceptions)
+    from relate.utils import dict_to_struct
+    rules = get_flow_rules(flow_desc, flow_rule_kind.start,
+            participation, flow_id, now_datetime,
+            default_rules_desc=[
+                dict_to_struct(dict(
+                    may_start_new_session=True,
+                    may_list_existing_sessions=False))])
 
     for rule in rules:
-        if rule.roles is not None:
-            if role not in rule.roles:
+        if not _eval_generic_conditions(rule, course, role, now_datetime):
+            continue
+
+        if not for_rollover and hasattr(rule, "if_in_facility"):
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
                 continue
 
-        if rule_id is not None:
-            if rule_id == rule.id:
-                # irrespective of date, tested below
-                return rule
+        if not for_rollover and hasattr(rule, "if_has_fewer_sessions_than"):
+            session_count = FlowSession.objects.filter(
+                    participation=participation,
+                    course=course,
+                    flow_id=flow_id).count()
 
-            if rule_id != rule.id:
+            if session_count >= rule.if_has_fewer_sessions_than:
                 continue
 
-        if rule.start is not None:
-            if now_datetime < rule.start:
+        if not for_rollover and hasattr(rule, "if_has_fewer_tagged_sessions_than"):
+            tagged_session_count = FlowSession.objects.filter(
+                    participation=participation,
+                    course=course,
+                    access_rules_tag__isnull=False,
+                    flow_id=flow_id).count()
+
+            if tagged_session_count >= rule.if_has_fewer_tagged_sessions_than:
                 continue
 
-        if rule.end is not None:
-            if rule.end < now_datetime:
+        return FlowSessionStartRule(
+                tag_session=getattr(rule, "tag_session", None),
+                may_start_new_session=getattr(
+                    rule, "may_start_new_session", True),
+                may_list_existing_sessions=getattr(
+                    rule, "may_list_existing_sessions", True),
+                )
+
+    return FlowSessionStartRule(
+            may_list_existing_sessions=False,
+            may_start_new_session=False)
+
+
+def get_session_access_rule(session, role, flow_desc, now_datetime,
+        remote_address=None):
+    """Return a :class:`ExistingFlowSessionRule`` to describe
+    how a flow may be accessed.
+    """
+
+    from relate.utils import dict_to_struct
+    rules = get_flow_rules(flow_desc, flow_rule_kind.access,
+            session.participation, session.flow_id, now_datetime,
+            default_rules_desc=[
+                dict_to_struct(dict(
+                    permissions=[flow_permission.view],
+                    ))])
+
+    for rule in rules:
+        if not _eval_generic_conditions(rule, session.course, role, now_datetime):
+            continue
+
+        if hasattr(rule, "if_in_facility"):
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
                 continue
 
-        return rule
+        if hasattr(rule, "if_has_tag"):
+            if session.access_rules_tag != rule.if_has_tag:
+                continue
 
-    if rule_id is not None:
-        raise ValueError("Flow access rules of flow '%s' did not resolve "
-                "to access answer for '%s', with specified rule id '%s'"
-                % (flow_id, participation, rule_id))
-    else:
-        raise ValueError("Flow access rules of flow '%s' did not resolve "
-                "to access answer for '%s'" % (flow_id, participation))
+        if hasattr(rule, "if_in_progress"):
+            if session.in_progress != rule.if_in_progress:
+                continue
+
+        if hasattr(rule, "if_expiration_mode"):
+            if session.expiration_mode != rule.if_expiration_mode:
+                continue
+
+        if hasattr(rule, "if_in_facility"):
+            if not is_address_in_facility(remote_address, rule.if_in_facility):
+                continue
+
+        permissions = set(rule.permissions)
+
+        if "modify" in permissions:
+            permissions.remove("modify")
+            permissions.update([
+                flow_permission.submit_answer,
+                flow_permission.end_session,
+                ])
+
+        # Remove 'modify' permission from not-in-progress sessions
+        if not session.in_progress:
+            for perm in [
+                    flow_permission.submit_answer,
+                    flow_permission.end_session,
+                    ]:
+                if perm in permissions:
+                    permissions.remove(perm)
+
+        return FlowSessionAccessRule(
+                permissions=frozenset(permissions),
+                message=getattr(rule, "message", None)
+                )
+
+    return FlowSessionAccessRule(permissions=frozenset())
 
 
-def instantiate_flow_page_with_ctx(fctx, page_data):
-    from course.content import get_flow_page_desc
-    page_desc = get_flow_page_desc(
-            fctx.flow_identifier, fctx.flow_desc,
-            page_data.group_id, page_data.page_id)
+def get_session_grading_rule(session, role, flow_desc, now_datetime):
+    from relate.utils import dict_to_struct
+    rules = get_flow_rules(flow_desc, flow_rule_kind.grading,
+            session.participation, session.flow_id, now_datetime,
+            default_rules_desc=[
+                dict_to_struct(dict(
+                    grade_identifier=None,
+                    ))])
 
-    from course.content import instantiate_flow_page
-    return instantiate_flow_page(
-            "course '%s', flow '%s', page '%s/%s'"
-            % (fctx.course.identifier, fctx.flow_identifier,
-                page_data.group_id, page_data.page_id),
-            fctx.repo, page_desc, fctx.flow_commit_sha)
+    for rule in rules:
+        if hasattr(rule, "if_has_role"):
+            if role not in rule.if_has_role:
+                continue
+
+        if hasattr(rule, "if_has_tag"):
+            if session.access_rules_tag != rule.if_has_tag:
+                continue
+
+        if hasattr(rule, "if_completed_before"):
+            ds = parse_date_spec(session.course, rule.if_completed_before)
+            if session.in_progress and now_datetime > ds:
+                continue
+            if not session.in_progress and session.completion_time > ds:
+                continue
+
+        due = parse_date_spec(session.course, getattr(rule, "due", None))
+        if due is not None:
+            assert due.tzinfo is not None
+
+        return FlowSessionGradingRule(
+                grade_identifier=getattr(rule, "grade_identifier", None),
+                grade_aggregation_strategy=getattr(
+                    rule, "grade_aggregation_strategy", None),
+                due=due,
+                description=getattr(rule, "description", None),
+                credit_percent=getattr(rule, "credit_percent", 100))
+
+    raise RuntimeError("grading rule determination was unable to find "
+            "a grading rule")
 
 # }}}
 
@@ -241,9 +311,17 @@ class CoursePageContext(object):
         self.course_desc = get_course_desc(self.repo, self.course,
                 self.course_commit_sha)
 
+    @property
+    def remote_address(self):
+        import ipaddr
+        try:
+            return ipaddr.IPAddress(self.request.META['REMOTE_ADDR'])
+        except:
+            return None
+
 
 class FlowContext(object):
-    def __init__(self, repo, course, flow_identifier,
+    def __init__(self, repo, course, flow_id,
             participation=None, flow_session=None):
         """*participation* and *flow_session* are not stored and only used
         to figure out versioning of the flow content.
@@ -251,60 +329,22 @@ class FlowContext(object):
 
         self.repo = repo
         self.course = course
-        self.flow_identifier = flow_identifier
+        self.flow_id = flow_id
 
-        from course.content import get_flow_commit_sha
         from django.core.exceptions import ObjectDoesNotExist
-
-        # Fetch 'current' version of the flow to compute permissions
-        # and versioning rules.
-        # Fall back to 'old' version if current git version does not
-        # contain this flow any more.
 
         self.course_commit_sha = get_course_commit_sha(
                 self.course, participation)
 
         try:
-            current_flow_desc_sha = self.course_commit_sha
-            self.current_flow_desc = get_flow_desc(self.repo, self.course,
-                    flow_identifier, current_flow_desc_sha)
-        except ObjectDoesNotExist:
-            if flow_session is None:
-                raise http.Http404()
-
-            current_flow_desc_sha = flow_session.active_git_commit_sha.encode()
-            self.current_flow_desc = get_flow_desc(self.repo, self.course,
-                    flow_identifier, current_flow_desc_sha)
-
-        self.flow_commit_sha = get_flow_commit_sha(
-                self.course, participation,
-                self.current_flow_desc, flow_session)
-
-        if self.flow_commit_sha == current_flow_desc_sha:
-            self.flow_desc = self.current_flow_desc
-        else:
             self.flow_desc = get_flow_desc(self.repo, self.course,
-                flow_identifier, self.flow_commit_sha)
+                    flow_id, self.course_commit_sha)
+        except ObjectDoesNotExist:
+            raise http.Http404()
 
-    def get_current_access_rule(self,
-            flow_session, role, participation, now_datetime):
-        # Each session sticks to 'its' assigned rules.
-        # If those are not known, use the ones that were relevant
-        # when the flow started.
-        #
-        # Note that this stickiness stops as soon as the flow is
-        # no longer in progress.
-        if flow_session is not None and flow_session.in_progress:
-            rule_id = flow_session.access_rules_id
-            now_datetime = flow_session.start_time
-        else:
-            rule_id = None
 
-        return get_current_flow_access_rule(
-                self.course, participation, role,
-                self.flow_identifier, self.current_flow_desc,
-                now_datetime=now_datetime,
-                rule_id=rule_id)
+class PageOrdinalOutOfRange(http.Http404):
+    pass
 
 
 class FlowPageContext(FlowContext):
@@ -315,10 +355,17 @@ class FlowPageContext(FlowContext):
     which is used for in the page API.
     """
 
-    def __init__(self, repo, course, flow_identifier, ordinal,
+    def __init__(self, repo, course, flow_id, ordinal,
              participation, flow_session):
-        FlowContext.__init__(self, repo, course, flow_identifier,
+        FlowContext.__init__(self, repo, course, flow_id,
                 participation, flow_session=flow_session)
+
+        from course.content import adjust_flow_session_page_data
+        adjust_flow_session_page_data(repo, flow_session,
+                course.identifier, self.flow_desc, self.course_commit_sha)
+
+        if ordinal >= flow_session.page_count:
+            raise PageOrdinalOutOfRange()
 
         from course.models import FlowPageData
         page_data = self.page_data = get_object_or_404(
@@ -339,25 +386,36 @@ class FlowPageContext(FlowContext):
             from course.page import PageContext
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
-                    commit_sha=self.flow_commit_sha)
+                    commit_sha=self.course_commit_sha,
+                    flow_session=flow_session)
 
-        # {{{ dig for previous answers
+        self._prev_answer_visit = False
 
-        from course.flow import get_flow_session_graded_answers_qset
-        previous_answer_visits = (
-                get_flow_session_graded_answers_qset(flow_session)
-                .filter(page_data=page_data)
-                .order_by("-visit_time"))
+    @property
+    def prev_answer_visit(self):
+        if self._prev_answer_visit is False:
+            from course.flow import get_prev_answer_visit
+            self._prev_answer_visit = get_prev_answer_visit(self.page_data)
 
-        self.prev_answer_visit = None
-        for prev_visit in previous_answer_visits[:1]:
-            self.prev_answer_visit = prev_visit
-
-        # }}}
+        return self._prev_answer_visit
 
     @property
     def ordinal(self):
         return self.page_data.ordinal
+
+
+def instantiate_flow_page_with_ctx(fctx, page_data):
+    from course.content import get_flow_page_desc
+    page_desc = get_flow_page_desc(
+            fctx.flow_id, fctx.flow_desc,
+            page_data.group_id, page_data.page_id)
+
+    from course.content import instantiate_flow_page
+    return instantiate_flow_page(
+            "course '%s', flow '%s', page '%s/%s'"
+            % (fctx.course.identifier, fctx.flow_id,
+                page_data.group_id, page_data.page_id),
+            fctx.repo, page_desc, fctx.course_commit_sha)
 
 # }}}
 
@@ -410,10 +468,10 @@ def render_course_page(pctx, template_name, args,
 class PageInstanceCache(object):
     """Caches instances of :class:`course.page.Page`."""
 
-    def __init__(self, repo, course, flow_identifier):
+    def __init__(self, repo, course, flow_id):
         self.repo = repo
         self.course = course
-        self.flow_identifier = flow_identifier
+        self.flow_id = flow_id
         self.flow_desc_cache = {}
         self.page_cache = {}
 
@@ -422,7 +480,7 @@ class PageInstanceCache(object):
             return self.flow_desc_cache[commit_sha]
         except KeyError:
             flow_desc = get_flow_desc(self.repo, self.course,
-                    self.flow_identifier, commit_sha)
+                    self.flow_id, commit_sha)
             self.flow_desc_cache[commit_sha] = flow_desc
             return flow_desc
 
@@ -434,18 +492,126 @@ class PageInstanceCache(object):
 
             from course.content import get_flow_page_desc, instantiate_flow_page
             page_desc = get_flow_page_desc(
-                    self.flow_identifier,
+                    self.flow_id,
                     self.get_flow_desc_from_cache(commit_sha),
                     group_id, page_id)
 
             page = instantiate_flow_page(
                     location="flow '%s', group, '%s', page '%s'"
-                    % (self.flow_identifier, group_id, page_id),
+                    % (self.flow_id, group_id, page_id),
                     repo=self.repo, page_desc=page_desc,
                     commit_sha=commit_sha)
 
             self.page_cache[key] = page
             return page
+
+# }}}
+
+
+# {{{ codemirror config
+
+def get_codemirror_widget(language_mode, interaction_mode,
+        config=None, addon_css=(), addon_js=(),
+        read_only=False):
+    theme = "default"
+    if read_only:
+        theme += " relate-readonly"
+
+    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+
+    from django.core.urlresolvers import reverse
+    help_text = ("Press F9 to toggle full-screen mode. "
+            + "Set editor mode in <a href='%s'>user profile</a>."
+            % reverse("relate-user_profile"))
+
+    actual_addon_css = (
+        "dialog/dialog",
+        "display/fullscreen",
+        ) + addon_css
+    actual_addon_js = (
+        "search/searchcursor",
+        "dialog/dialog",
+        "search/search",
+        "comment/comment",
+        "edit/matchbrackets",
+        "display/fullscreen",
+        "selection/active-line",
+        "edit/trailingspace",
+        ) + addon_js
+
+    if language_mode == "python":
+        indent_unit = 4
+    else:
+        indent_unit = 2
+
+    actual_config = {
+            "fixedGutter": True,
+            #"autofocus": True,
+            "matchBrackets": True,
+            "styleActiveLine": True,
+            "showTrailingSpace": True,
+            "indentUnit": indent_unit,
+            "readOnly": read_only,
+            "extraKeys": CodeMirrorJavascript("""
+                {
+                  "Ctrl-/": "toggleComment",
+                  "Tab": function(cm)
+                  {
+                    var spaces = \
+                        Array(cm.getOption("indentUnit") + 1).join(" ");
+                    cm.replaceSelection(spaces);
+                  },
+                  "F9": function(cm) {
+                      cm.setOption("fullScreen",
+                        !cm.getOption("fullScreen"));
+                  }
+                }
+            """)
+            }
+
+    if interaction_mode == "vim":
+        actual_config["vimMode"] = True
+        actual_addon_js += ('../keymap/vim',)
+    elif interaction_mode == "emacs":
+        actual_config["keyMap"] = "emacs"
+        actual_addon_js += ('../keymap/emacs',)
+    elif interaction_mode == "sublime":
+        actual_config["keyMap"] = "sublime"
+        actual_addon_js += ('../keymap/sublime',)
+    # every other interaction mode goes to default
+
+    if config is not None:
+        actual_config.update(config)
+
+    return CodeMirrorTextarea(
+                    mode=language_mode,
+                    theme=theme,
+                    addon_css=actual_addon_css,
+                    addon_js=actual_addon_js,
+                    config=actual_config), help_text
+
+# }}}
+
+
+# {{{ facility checking
+
+def is_address_in_facility(remote_address, facility_id):
+    if remote_address is None:
+        return False
+
+    from course.models import FacilityIPRange
+    try:
+        ip_ranges = (FacilityIPRange.objects
+                .filter(facility__identifier=facility_id))
+    except ObjectDoesNotExist:
+        return False
+
+    import ipaddr
+    for ir in ip_ranges:
+        if remote_address in ipaddr.IPNetwork(ir.ip_range):
+            return True
+
+    return False
 
 # }}}
 

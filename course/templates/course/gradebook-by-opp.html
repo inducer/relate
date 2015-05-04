@@ -1,10 +1,21 @@
 {% extends "course/course-base.html" %}
 
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}
   Grade book: {{ opportunity.name }} - Courseflow
 {% endblock %}
+
+{% block header_extra %}
+    {# the min.js version contains all dependencies #}
+    <script src="{% static "datatables/media/js/jquery.dataTables.min.js" %}"></script>
+    <link href="{% static "datatables/media/css/jquery.dataTables.min.css" %}" rel="stylesheet">
+
+    <script src="{% static "datatables-fixedcolumns/js/dataTables.fixedColumns.js" %}"></script>
+    <link href="{% static "datatables-fixedcolumns/css/dataTables.fixedColumns.css" %}" rel="stylesheet">
+{% endblock %}
+
 
 {% block content %}
   <h1>Grade book: {{ opportunity.name }} </h1>
@@ -25,34 +36,53 @@
     </tr>
     {% if opportunity.flow_id %}
     <tr>
-      <td>Flow</td><td><tt><a href="{% url "course.flow.start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+      <td>Flow</td>
+      <td>
+        <tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
+        &middot;
+        <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">Grading statistics</a>
+      </td>
+    </tr>
+    <tr>
+      <td>Counts</td>
+      <td>
+        {{ total_sessions }} total sessions
+        ({{ finished_sessions }} finished)
+      </td>
     </tr>
     {% endif %}
+
   </table>
 
-  <table class="table table-condensed table-striped">
+  <table class="gradebook-by-opportunity">
     <thead>
-      <th>User ID</th>
-      <th>Name</th>
-      <th>Overall grade</th>
-      <th>Sessions</th>
+      <th class="datacol">User ID</th>
+      <th class="datacol">Name</th>
+      <th class="datacol">Overall grade</th>
+      <th class="datacol">Sessions</th>
     </thead>
     <tbody>
       {% for participation, grade_info in grade_table %}
       <tr>
-        <td><a href="{% url "course.grades.view_participant_grades" course.identifier participation.id %}">{{ participation.user.username }}</a></td>
-        <td>
+        <td class="datacol"><a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}">{{ participation.user.username }}</a></td>
+        <td class="datacol">
           {{ participation.user.last_name }},
           {{ participation.user.first_name }}
           {% if participation.role != participation_role.student %}
             ({{ participation.role }})
           {% endif %}
         </td>
-        <td>
-          <a href="{% url "course.grades.view_single_grade" course.identifier participation.id opportunity.id %}"
+        <td class="datacol"
+          {% if grade_info.grade_state_machine.percentage != None %}
+            data-order="{{ grade_info.grade_state_machine.percentage }}"
+          {% else %}
+            data-order="-1"
+          {% endif %}
+          >
+          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
             >{{ grade_info.grade_state_machine.stringify_state }}</a>
         </td>
-        <td>
+          <td class="datacol" data-order="{{ grade_info.flow_sessions|length }}">
           {% if grade_info.flow_sessions %}
             <ul>
               {% for flow_session in grade_info.flow_sessions %}
@@ -61,7 +91,9 @@
                   {% if not flow_session.in_progress %}
                     ({{ flow_session.completion_time }})
                   {% endif %}
-                  (Rules: <tt>{{ flow_session.access_rules_id }}</tt>)
+                  {% if flow_session.access_rules_tag %}
+                    (Rules tag: <tt>{{ flow_session.access_rules_tag }}</tt>)
+                  {% endif %}
                   {% if flow_session.points != None %}
                     {{ flow_session.points|floatformat:1 }}/{{ flow_session.max_points|floatformat:1 }}
                     points
@@ -76,8 +108,16 @@
     </tbody>
   </table>
 
+  <script type="text/javascript">
+    var tbl = $("table.gradebook-by-opportunity").dataTable({
+        "scrollCollapse": true,
+        "paging": false,
+        "ordering": true,
+    } );
+  </script>
+
   {% if batch_session_ops_form %}
-    <div class="well">
+    <div class="well" style="margin-top: 20px">
       <h3 class="start-well-title">Batch sessions operations</h3>
       {% crispy batch_session_ops_form %}
     </div>

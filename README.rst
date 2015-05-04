@@ -1,112 +1,63 @@
-CourseFlow
-==========
+RELATE
+======
 
-*"I just want to ask my students some quiz questions online. How hard could it
-possibly be?"*
+Relate is an Environment for Learning And TEaching
 
-CourseFlow is a `Django <https://docs.djangoproject.com/>`_-based courseware
-package that lets students participate in online activities. Each such activity
-is called a "flow". It flows over a couple of pages, each of which can be, say,
-a video, a quiz question, a page of text, or, within the confines of HTML,
-something completely different.
++----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
+| .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot-2.png |
++----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
 
-CourseFlow is set apart by the following features:
+RELATE is a web-based courseware package.  It is set apart by the following
+features:
 
-* Emphasizes ease of authoring, using `YAML <https://en.wikipedia.org/wiki/YAML>`_,
-  `Markdown <https://en.wikipedia.org/wiki/Markdown>`_ and Python.
-  See `example content <https://github.com/inducer/courseflow-sample>`_.
+* Focus on easy content creation
+
+  * Simple, text-based format for reusable course content
+  * Based on standard `YAML <https://en.wikipedia.org/wiki/YAML>`_,
+    `Markdown <https://en.wikipedia.org/wiki/Markdown>`_
+  * Instructors can implement custom question/page types in Python.
+
+  See `example content <https://github.com/inducer/relate-sample>`_.
+
+* Flexible rules for participation, access, and grading
 * Versioning of content through deep integration with `git <https://git-scm.org>`_.
   Instructors can preview newly-authored content while students work with
-  prior versions, all from the same instance of CourseFlow.
+  prior versions, all from the same instance of RELATE.
+* Multiple courses can be hosted on the same installation
 * Code questions:
 
-  * Allow students to write Python code into a text box (with syntax highlighting)
+  * Allow students to write code into a text box (with syntax highlighting)
   * Sandboxed execution
   * Automatic grading
-  * Plotting through integration with `matplotlib <http://matplotlib.org>`_
+  * Plotting support
   * Optional second-stage grading by a human
 
-* Class calendar and grade book included.
-* Statistics of student answers.
-* Allows live quizzes in the classroom.
+* Class calendar and grade book functionality.
+* Statistics/analytics of student answers.
+* Facilitates live quizzes in the classroom.
 * In-class instant messaging via XMPP.
   Works well with `xmpp-popup <https://github.com/inducer/xmpp-popup>`_.
 * Built-in support for `VideoJS <http://www.videojs.com/>`_ offers
   easy-to-use support for integrating HTML5 video into course content
   without the need for third-party content hosting.
 
-`See it in action <https://courseflow.cs.illinois.edu/course/cs357-f14>`_
+Links
+-----
+
+More information around the web:
+
+* `Documentation <http://documen.tician.de/relate>`_
+* `Source code <https://github.com/inducer/relate>`_
 
 Installation
 ------------
 
-CourseFlow currently works with Python 2.7.
-
-Install `bower <http://bower.io/>`_ and its dependencies, as described on its
-web page.
-
-(Optional) Make a virtualenv to install to::
-
-    virtualenv --system-site-packages my-courseflow-env
-    source my-courseflow-env/bin/activate
-
-To install, clone the repository::
-
-    git clone git://github.com/inducer/courseflow
-
-Enter the courseflow directory::
-
-    cd courseflow
-
-Install the dependencies::
-
-    pip install -r requirements.txt
-
-You may need to install `libgit2
-<http://www.pygit2.org/install.html#quick-install>`_ for this to go through
-without errors.
-
-Copy (and, optionally, edit) the example configuration::
-
-    cp local_settings.py.example local_settings.py
-    vi local_settings.py
-
-Initialize the database::
-
-    python manage.py migrate
-    python manage.py createsuperuser --username=$(whoami)
-
-Retrieve static (JS/CSS) dependencies::
-
-    python manage.py bower install
-
-Run the server::
-
-    python manage.py runserver
-
-Open a browser to http://localhost:8000, sign in (your user name will be the
-same as your system user name, or whatever `whoami` returned above) and select
-"Set up new course".
-
-Additional setup steps for Docker
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-(TODO)
-
-Add to kernel command line, if needed::
-
-    [...] cgroup_enable=memory swapaccount=1
-
-Change docker config to disallow IP forwarding::
-
-    --ip-forward=false
-
-in :file:`/etc/default/docker.io`.
+See the `installation guide <http://documen.tician.de/relate/misc.html#installation>`_.
 
 License
 -------
 
-Copyright (C) 2014 Andreas Kloeckner
+Copyright (C) 2014-15 Andreas Kloeckner
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

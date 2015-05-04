@@ -29,13 +29,12 @@ from django.shortcuts import (  # noqa
 from django.contrib import messages
 import django.forms as forms
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.core.urlresolvers import reverse
-from django.utils.safestring import mark_safe
 
 from django.db import transaction
 
-from courseflow.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm
 from crispy_forms.layout import Submit
 
 from course.models import (
@@ -95,13 +94,16 @@ class CourseCreationForm(StyledModelForm):
     class Meta:
         model = Course
         fields = (
-            "identifier", "hidden",
+            "identifier", "hidden", "listed",
+            "accepts_enrollment",
             "git_source", "ssh_private_key",
             "course_file",
             "events_file",
             "enrollment_approval_required",
             "enrollment_required_email_suffix",
-            "email")
+            "from_email",
+            "notify_email",
+            )
 
     def __init__(self, *args, **kwargs):
         super(CourseCreationForm, self).__init__(*args, **kwargs)
@@ -167,13 +169,26 @@ def set_up_new_course(request):
                                 "in the course content and create them. "
                                 + '<a href="%s" class="btn btn-primary">'
                                 'Check &raquo;</a>'
-                                % reverse("course.calendar.check_events",
+                                % reverse("relate-check_events",
                                     args=(new_course.identifier,)))
                 except:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
+
+                    # Work around read-only files on Windows.
+                    # https://docs.python.org/3.5/library/shutil.html#rmtree-example
+
+                    import os
+                    import stat
                     import shutil
-                    shutil.rmtree(repo_path)
+
+                    def remove_readonly(func, path, _):
+                        "Clear the readonly bit and reattempt the removal"
+                        os.chmod(path, stat.S_IWRITE)
+                        func(path)
+
+                    shutil.rmtree(repo_path, onerror=remove_readonly)
+
                     raise
 
             except Exception as e:
@@ -185,7 +200,7 @@ def set_up_new_course(request):
                             type(e).__name__, str(e)))
             else:
                 return redirect(
-                        "course.views.course_page",
+                        "relate-course_page",
                         new_course.identifier)
 
     else:
@@ -199,14 +214,7 @@ def set_up_new_course(request):
 # }}}
 
 
-# {{{ fetch
-
-class GitFetchForm(StyledForm):
-    def __init__(self, *args, **kwargs):
-        super(GitFetchForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(Submit("fetch", "Fetch"))
-
+# {{{ update
 
 def is_parent_commit(repo, potential_parent, child):
     for commit in repo.walk(child.id):
@@ -216,109 +224,128 @@ def is_parent_commit(repo, potential_parent, child):
     return False
 
 
-def fetch_course_updates_inner(pctx):
-    import sys
+def run_course_update_command(request, pctx, command, new_sha, may_update):
+    repo = pctx.repo
 
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("must be instructor to fetch revisisons")
+    if command.startswith("fetch_"):
+        command = command[6:]
 
-    form = GitFetchForm(pctx.request.POST, pctx.request.FILES)
-    if pctx.request.method == "POST":
-        if form.is_valid():
-            was_successful = True
-            log_lines = []
-            try:
-                repo = pctx.repo
+        if not pctx.course.git_source:
+            raise RuntimeError("no git source URL specified")
 
-                if not pctx.course.git_source:
-                    raise RuntimeError("no git source URL specified")
+        remote, fetched_tips = get_git_remote_from_course(repo, pctx.course)
 
-                log_lines.append("Pre-fetch head is at '%s'" % repo.head.target)
+        remote.fetch()
+        (_, remote_head), = fetched_tips.values()
 
-                remote, fetched_tips = get_git_remote_from_course(repo, pctx.course)
+        if (repo[remote_head].id != repo[repo.head.target].id
+                and is_parent_commit(
+                    repo,
+                    repo[remote_head],
+                    repo[repo.head.target])):
+            raise RuntimeError("fetch would discard commits, refusing")
 
-                remote.fetch()
-                (_, remote_head), = fetched_tips.values()
+        repo.reset(remote_head, pygit2.GIT_RESET_SOFT)
+        new_sha = repo.head.target
 
-                if (repo[remote_head].id != repo[repo.head.target].id
-                        and is_parent_commit(
-                            repo,
-                            repo[remote_head],
-                            repo[repo.head.target])):
-                    raise RuntimeError("fetch would discard commits, refusing")
+        messages.add_message(request, messages.SUCCESS, "Fetch successful.")
 
-                repo.reset(remote_head, pygit2.GIT_RESET_SOFT)
+    if command == "end_preview":
+        messages.add_message(request, messages.INFO,
+                "Preview ended.")
+        pctx.participation.preview_git_commit_sha = None
+        pctx.participation.save()
 
-                log_lines.append("Post-fetch head is at '%s'" % repo.head.target)
+        return
 
-            except Exception:
-                was_successful = False
-                from traceback import format_exception
-                log = "\n".join(log_lines) + "".join(
-                        format_exception(*sys.exc_info()))
-            else:
-                log = "\n".join(log_lines)
+    # {{{ validate
 
-            return render_course_page(pctx, 'course/course-bulk-result.html', {
-                "process_description": "Fetch course updates via git",
-                "log": log,
-                "status": ((
-                        "Fetch successful. "
-                        '<a href="%s" class="btn btn-primary">Update &raquo;</a>'
-                        % reverse("course.versioning.update_course",
-                            args=(pctx.course.identifier,))
-                        )
-                        if was_successful
-                        else "Pull failed. See above for error."),
-                "was_successful": was_successful,
-                })
-        else:
-            form = GitFetchForm()
+    from course.validation import validate_course_content, ValidationError
+    try:
+        warnings = validate_course_content(
+                repo, pctx.course.course_file, pctx.course.events_file, new_sha)
+    except ValidationError as e:
+        messages.add_message(request, messages.ERROR,
+                "Course content did not validate successfully. (%s) "
+                "Update not applied." % str(e))
+        return
+
     else:
-        form = GitFetchForm()
+        if not warnings:
+            messages.add_message(request, messages.SUCCESS,
+                    "Course content validated successfully.")
+        else:
+            messages.add_message(request, messages.WARNING,
+                    "Course content validated OK, with warnings:"
+                    "<ul>%s</ul>"
+                    % ("".join(
+                        "<li><i>%s</i>: %s</li>" % (w.location, w.text)
+                        for w in warnings)))
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
-        "form": form,
-        "form_description": "Fetch New Course Revisions",
-    })
+    # }}}
 
+    if command == "preview":
+        messages.add_message(request, messages.INFO,
+                "Preview activated.")
 
-@login_required
-@course_view
-def fetch_course_updates(pctx):
-    return fetch_course_updates_inner(pctx)
+        pctx.participation.preview_git_commit_sha = new_sha
+        pctx.participation.save()
 
-# }}}
+    elif command == "update" and may_update:
+        pctx.course.active_git_commit_sha = new_sha
+        pctx.course.valid = True
+        pctx.course.save()
 
+        messages.add_message(request, messages.SUCCESS,
+                "Update applied. "
+                "You may want to view the events used "
+                "in the course content and check that they "
+                "are recognized. "
+                + '<p><a href="%s" class="btn btn-primary" '
+                'style="margin-top:8px">'
+                'Check &raquo;</a></p>'
+                % reverse("relate-check_events",
+                    args=(pctx.course.identifier,)))
 
-# {{{ update
+    else:
+        raise RuntimeError("invalid command")
+
 
 class GitUpdateForm(StyledForm):
     new_sha = forms.CharField(required=True)
 
-    def __init__(self, previewing, *args, **kwargs):
+    def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
-        if previewing:
-            self.helper.add_input(
-                    Submit("end_preview", "End preview",
-                        css_class="col-lg-offset-2"))
-        else:
-            self.helper.add_input(
-                    Submit("preview", "Validate and preview",
-                        css_class="col-lg-offset-2"))
+        first_button = [True]
 
-        self.helper.add_input(
-                Submit("update", "Validate and update"))
-        self.helper.add_input(
-                Submit("fetch", mark_safe("&laquo; Fetch again")))
+        def add_button(desc, label):
+            if first_button[0]:
+                self.helper.add_input(
+                        Submit(desc, label, css_class="col-lg-offset-2"))
+                first_button[0] = False
+            else:
+                self.helper.add_input(Submit(desc, label))
+
+        if may_update:
+            add_button("fetch_update", "Fetch and update")
+            add_button("update", "Update")
+
+        if previewing:
+            add_button("end_preview", "End preview")
+        else:
+            add_button("fetch_preview", "Fetch and preview")
+            add_button("preview", "Preview")
 
 
 @login_required
 @course_view
 def update_course(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied("must be instructor to update course")
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant
+            ]:
+        raise PermissionDenied("must be instructor or TA to update course")
 
     course = pctx.course
     request = pctx.request
@@ -328,90 +355,53 @@ def update_course(pctx):
     previewing = bool(participation is not None
             and participation.preview_git_commit_sha)
 
+    may_update = pctx.role == participation_role.instructor
+
     response_form = None
     if request.method == "POST":
-        form = GitUpdateForm(previewing, request.POST, request.FILES)
-        if "fetch" in form.data:
-            return fetch_course_updates_inner(pctx)
+        form = GitUpdateForm(may_update, previewing, request.POST, request.FILES)
+        commands = ["fetch_update", "update", "fetch_preview",
+                "preview", "end_preview"]
 
-        if "end_preview" in form.data:
-            messages.add_message(request, messages.INFO,
-                    "Preview ended.")
-            participation.preview_git_commit_sha = None
-            participation.save()
+        command = None
+        for cmd in commands:
+            if cmd in form.data:
+                command = cmd
+                break
 
-            previewing = False
+        if command is None:
+            raise SuspiciousOperation("invalid command")
 
-        elif form.is_valid():
-            new_sha = form.cleaned_data["new_sha"].encode("utf-8")
+        if form.is_valid():
+            new_sha = form.cleaned_data["new_sha"].encode()
 
-            from course.validation import validate_course_content, ValidationError
             try:
-                warnings = validate_course_content(
-                        repo, course.course_file, course.events_file, new_sha)
-            except ValidationError as e:
-                messages.add_message(request, messages.ERROR,
-                        "Course content did not validate successfully. (%s) "
-                        "Update not applied." % str(e))
-                validated = False
-            else:
-                if not warnings:
-                    messages.add_message(request, messages.SUCCESS,
-                            "Course content validated successfully.")
-                else:
-                    messages.add_message(request, messages.WARNING,
-                            "Course content validated OK, with warnings:"
-                            "<ul>%s</ul>"
-                            % ("".join(
-                                "<li><i>%s</i>: %s</li>" % (w.location, w.text)
-                                for w in warnings)))
-
-                validated = True
-
-            if validated and "update" in form.data:
-                messages.add_message(request, messages.INFO,
-                        "Update applied. "
-                        "You may want to view the events used "
-                        "in the course content and check that they "
-                        "are recognized. "
-                        + '<p><a href="%s" class="btn btn-primary" '
-                        'style="margin-top:8px">'
-                        'Check &raquo;</a></p>'
-                        % reverse("course.calendar.check_events",
-                            args=(course.identifier,)))
-
-                course.active_git_commit_sha = new_sha
-                course.valid = True
-                course.save()
-
-                response_form = form
-
-            elif validated and "preview" in form.data:
-                messages.add_message(request, messages.INFO,
-                        "Preview activated.")
-
-                participation.preview_git_commit_sha = new_sha
-                participation.save()
-
-                previewing = True
+                run_course_update_command(request, pctx, command, new_sha,
+                        may_update)
+            except Exception as e:
+                messages.add_message(pctx.request, messages.ERROR,
+                        "Error: %s %s" % (type(e).__name__, str(e)))
 
     if response_form is None:
-        form = GitUpdateForm(previewing,
-                {"new_sha": str(repo.head.target)})
+        previewing = bool(participation is not None
+                and participation.preview_git_commit_sha)
+
+        form = GitUpdateForm(may_update, previewing,
+                {"new_sha": repo.head.target})
 
     text_lines = [
             "<b>Current git HEAD:</b> %s (%s)" % (
-                str(repo.head.target),
-                repo[repo.head.target].message),
+                repo.head.target,
+                repo[repo.head.target].message.strip()),
             "<b>Public active git SHA:</b> %s (%s)" % (
                 course.active_git_commit_sha,
-                repo[course.active_git_commit_sha.encode()].message),
+                repo[course.active_git_commit_sha.encode()].message.strip()),
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
             "<b>Current preview git SHA:</b> %s (%s)" % (
                 participation.preview_git_commit_sha,
-                repo[participation.preview_git_commit_sha.encode()].message,
+                repo[participation.preview_git_commit_sha.encode()].message.strip(),
             ))
     else:
         text_lines.append("<b>Current preview git SHA:</b> None")

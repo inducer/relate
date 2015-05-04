@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build
+SPHINXBUILD   = python `which sphinx-build`
 PAPER         =
 BUILDDIR      = _build
 
@@ -85,17 +85,17 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/courseflow.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/relate.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/courseflow.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/relate.qhc"
 
 devhelp:
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/courseflow"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/courseflow"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/relate"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/relate"
 	@echo "# devhelp"
 
 epub:

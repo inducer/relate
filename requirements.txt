@@ -6,6 +6,7 @@ django-crispy-forms>=1.4.0
 # Page data, answer data, ... all represented in JSON. This makes that editable
 # in the Django admin.
 https://github.com/bradjasper/django-jsonfield/archive/postgresql.tar.gz
+django-yamlfield
 
 # For easy content formatting:
 markdown
@@ -29,7 +30,7 @@ pyyaml
 pygit2
 
 # A date picker widget
-django-bootstrap3-datetimepicker
+git+https://github.com/inducer/django-bootstrap3-datetimepicker.git
 
 # For in-class instant messaging
 sleekxmpp
@@ -50,3 +51,9 @@ docker-py
 # For code highlighting, required via the CodeHilite extension to
 # Python-Markdown
 pygments
+
+# For grade export
+unicodecsv
+
+# To support network matching for facility recognition
+ipaddr

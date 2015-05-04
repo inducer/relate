@@ -28,9 +28,11 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 import django.forms as forms
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
+        ObjectDoesNotExist)
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
+from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import \
@@ -43,37 +45,86 @@ from course.models import (
         Participation, participation_role, participation_status,
         )
 
-from courseflow.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm
 
 
 # {{{ impersonation
+
+def may_impersonate(user):
+    return user.is_staff
+
+
+def whom_may_impersonate(impersonator):
+    if impersonator.is_superuser:
+        return User.objects.filter(
+                participation__status=participation_status.active)
+
+    my_privileged_participations = Participation.objects.filter(
+            user=impersonator,
+            status=participation_status.active,
+            role__in=(
+                participation_role.instructor,
+                participation_role.teaching_assistant))
+
+    q_object = None
+
+    for part in my_privileged_participations:
+        if part.role == participation_role.instructor:
+            impersonable_roles = (
+                participation_role.teaching_assistant,
+                participation_role.observer,
+                participation_role.auditor,
+                participation_role.student)
+        elif part.role == participation_role.teaching_assistant:
+            impersonable_roles = (
+                participation_role.student,
+                participation_role.auditor,
+                )
+        else:
+            assert False
+
+        part_q_object = Q(
+                participation__course=part.course,
+                participation__status=participation_status.active,
+                participation__role__in=impersonable_roles)
+
+        if q_object is None:
+            q_object = part_q_object
+        else:
+            q_object = q_object | part_q_object
+
+    return set(User.objects.filter(q_object).order_by("last_name"))
+
 
 class ImpersonateMiddleware(object):
     def process_request(self, request):
         if request.user.is_staff and 'impersonate_id' in request.session:
             imp_id = request.session['impersonate_id']
 
-            request.courseflow_impersonate_original_user = request.user
+            request.relate_impersonate_original_user = request.user
             if imp_id is not None:
-                try:
+                impersonees = whom_may_impersonate(request.user)
+                if any(u.id == imp_id for u in impersonees):
                     request.user = User.objects.get(id=imp_id)
-                except Exception as e:
+                else:
                     messages.add_message(request, messages.ERROR,
-                            "Error while impersonating: %s." % e)
-
-
-def may_impersonate(user):
-    return user.is_staff
+                            "Error while impersonating.")
 
 
 class ImpersonateForm(StyledForm):
-    user = forms.ModelChoiceField(
-            queryset=User.objects.order_by("username"),
-            required=True,
-            help_text="Select user to impersonate.")
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, impersonator, *args, **kwargs):
         super(ImpersonateForm, self).__init__(*args, **kwargs)
+
+        impersonees = whom_may_impersonate(impersonator)
+
+        self.fields["user"] = forms.ChoiceField(
+                choices=[
+                    (u.id, "%s - %s, %s" % (u.email, u.last_name, u.first_name))
+                    for u in sorted(impersonees,
+                        key=lambda user: user.last_name.lower())
+                    ],
+                required=True,
+                help_text="Select user to impersonate.")
 
         self.helper.add_input(Submit("submit", "Impersonate",
             css_class="col-lg-offset-2"))
@@ -81,19 +132,24 @@ class ImpersonateForm(StyledForm):
 
 @user_passes_test(may_impersonate)
 def impersonate(request):
+    if hasattr(request, "relate_impersonate_original_user"):
+        messages.add_message(request, messages.ERROR,
+                "Already impersonating someone.")
+        return redirect("relate-stop_impersonating")
+
     if request.method == 'POST':
-        form = ImpersonateForm(request.POST)
+        form = ImpersonateForm(request.user, request.POST)
         if form.is_valid():
-            user = form.cleaned_data["user"]
+            user = User.objects.get(id=form.cleaned_data["user"])
 
             messages.add_message(request, messages.INFO,
                     "Now impersonating '%s'." % user.username)
             request.session['impersonate_id'] = user.id
 
             # Because we'll likely no longer have access to this page.
-            return redirect("course.views.home")
+            return redirect("relate-home")
     else:
-        form = ImpersonateForm()
+        form = ImpersonateForm(request.user)
 
     return render(request, "generic-form.html", {
         "form_description": "Impersonate user",
@@ -110,9 +166,10 @@ class StopImpersonatingForm(forms.Form):
 
 
 def stop_impersonating(request):
-    if not hasattr(request, "courseflow_impersonate_original_user"):
+    if not hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 "Not currently impersonating anyone.")
+        return redirect("relate-home")
 
     if request.method == 'POST':
         form = StopImpersonatingForm(request.POST)
@@ -122,7 +179,7 @@ def stop_impersonating(request):
             del request.session['impersonate_id']
 
             # Because otherwise the header will show stale data.
-            return redirect("course.views.home")
+            return redirect("relate-home")
     else:
         form = StopImpersonatingForm()
 
@@ -135,46 +192,10 @@ def stop_impersonating(request):
 def impersonation_context_processor(request):
     return {
             "currently_impersonating":
-            hasattr(request, "courseflow_impersonate_original_user"),
+            hasattr(request, "relate_impersonate_original_user"),
             }
 
 # }}}
-
-
-# {{{ conventional login
-
-class LoginForm(AuthenticationFormBase):
-    def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
-
-        self.helper.add_input(Submit("submit", "Sign in",
-            css_class="col-lg-offset-2"))
-
-        super(LoginForm, self).__init__(*args, **kwargs)
-
-
-def sign_in(request):
-    from django.contrib.auth.views import login
-    return login(request, template_name="course/login.html",
-            authentication_form=LoginForm)
-
-# }}}
-
-
-# {{{ email sign-in flow
-
-class SignInByEmailForm(StyledForm):
-    email = forms.EmailField(required=True)
-
-    def __init__(self, *args, **kwargs):
-        super(SignInByEmailForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(
-                Submit("submit", "Send sign-in email",
-                    css_class="col-lg-offset-2"))
 
 
 def make_sign_in_key(user):
@@ -189,68 +210,16 @@ def make_sign_in_key(user):
     return m.hexdigest()
 
 
-def sign_in_by_email(request):
-    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
-        raise SuspiciousOperation("email-based sign-in is not being used")
+def check_sign_in_key(user_id, token):
+    user = User.objects.get(id=user_id)
+    ustatuses = UserStatus.objects.filter(
+            user=user, sign_in_key=token)
 
-    if request.method == 'POST':
-        form = SignInByEmailForm(request.POST)
-        if form.is_valid():
-            from django.contrib.auth.models import User
+    assert ustatuses.count() <= 1
+    if ustatuses.count() == 0:
+        return False
 
-            email = form.cleaned_data["email"]
-            users = User.objects.filter(email__iexact=email)
-
-            if users.count() > 1:
-                messages.add_message(request, messages.ERROR,
-                        "More than one user with this email. "
-                        "Please contact site staff.")
-                raise PermissionDenied("duplicate email")
-
-            if users.count() == 0:
-                user = User()
-                user.username = email
-                user.email = email
-                user.set_unusable_password()
-                user.save()
-
-                ustatus = UserStatus()
-                ustatus.user = user
-                ustatus.status = user_status.unconfirmed
-                ustatus.sign_in_key = make_sign_in_key(user)
-                ustatus.save()
-
-            elif users.count() == 1:
-                user, = users
-                ustatus = user.user_status
-                ustatus.user = user
-                ustatus.sign_in_key = make_sign_in_key(user)
-                ustatus.save()
-
-            from django.template.loader import render_to_string
-            message = render_to_string("course/sign-in-email.txt", {
-                "user": user,
-                "sign_in_uri": request.build_absolute_uri(
-                    reverse(
-                        "course.auth.sign_in_stage2_with_token",
-                        args=(user.id, ustatus.sign_in_key,))),
-                "home_uri": request.build_absolute_uri(reverse("course.views.home"))
-                })
-            from django.core.mail import send_mail
-            send_mail("Your CourseFlow sign-in link", message,
-                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
-
-            messages.add_message(request, messages.INFO,
-                    "Email sent. Please check your email and click the link.")
-
-            return redirect("course.views.home")
-    else:
-        form = SignInByEmailForm()
-
-    return render(request, "course/login-by-email.html", {
-        "form_description": "",
-        "form": form
-        })
+    return True
 
 
 class TokenBackend(object):
@@ -278,8 +247,309 @@ class TokenBackend(object):
             return None
 
 
+# {{{ conventional login
+
+class LoginForm(AuthenticationFormBase):
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-8"
+
+        self.helper.add_input(Submit("submit", "Sign in",
+            css_class="col-lg-offset-2"))
+
+        super(LoginForm, self).__init__(*args, **kwargs)
+
+
+def sign_in_by_user_pw(request):
+    from django.contrib.auth.views import login
+    return login(request, template_name="course/login.html",
+            authentication_form=LoginForm)
+
+
+class SignUpForm(StyledModelForm):
+    username = forms.CharField(required=True, max_length=30)
+
+    class Meta:
+        model = User
+        fields = ("email",)
+
+    def __init__(self, *args, **kwargs):
+        super(SignUpForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", "Send email",
+                    css_class="col-lg-offset-2"))
+
+
+def sign_up(request):
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
+        raise SuspiciousOperation("password-based sign-in is not being used")
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            from django.contrib.auth.models import User
+
+            if User.objects.filter(
+                    username=form.cleaned_data["username"]).count():
+                messages.add_message(request, messages.ERROR,
+                        "That user name is already taken.")
+
+            elif User.objects.filter(
+                    email__iexact=form.cleaned_data["email"]).count():
+                messages.add_message(request, messages.ERROR,
+                        "That email address is already in use. "
+                        "Would you like to "
+                        "<a href='%s'>reset your password</a> instead?"
+                        % reverse(
+                            "relate-reset_password")),
+            else:
+                email = form.cleaned_data["email"]
+                user = User(
+                        email=email,
+                        username=form.cleaned_data["username"])
+
+                user.set_unusable_password()
+                user.save()
+
+                ustatus = UserStatus(
+                        user=user,
+                        status=user_status.unconfirmed,
+                        sign_in_key=make_sign_in_key(user))
+
+                ustatus.save()
+
+                from django.template.loader import render_to_string
+                message = render_to_string("course/sign-in-email.txt", {
+                    "user": user,
+                    "sign_in_uri": request.build_absolute_uri(
+                        reverse(
+                            "relate-reset_password_stage2",
+                            args=(user.id, ustatus.sign_in_key,))
+                        + "?to_profile=1"),
+                    "home_uri": request.build_absolute_uri(
+                        reverse("relate-home"))
+                    })
+
+                from django.core.mail import send_mail
+                send_mail("[RELATE] Verify your email", message,
+                        settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+                messages.add_message(request, messages.INFO,
+                        "Email sent. Please check your email and click the link.")
+
+                return redirect("relate-home")
+
+    else:
+        form = SignUpForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Sign up",
+        "form": form
+        })
+
+
+class ResetPasswordForm(StyledForm):
+    email = forms.EmailField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        super(ResetPasswordForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", "Send email", css_class="col-lg-offset-2"))
+
+
+def reset_password(request):
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
+        raise SuspiciousOperation("password-based sign-in is not being used")
+
+    if request.method == 'POST':
+        form = ResetPasswordForm(request.POST)
+        if form.is_valid():
+            from django.contrib.auth.models import User
+
+            email = form.cleaned_data["email"]
+            try:
+                user = User.objects.get(email__iexact=email)
+            except ObjectDoesNotExist:
+                user = None
+
+            if user is None:
+                messages.add_message(request, messages.ERROR,
+                        "Email address is not known.")
+
+            from course.models import get_user_status
+            ustatus = get_user_status(user)
+            ustatus.sign_in_key = make_sign_in_key(user)
+            ustatus.save()
+
+            from django.template.loader import render_to_string
+            message = render_to_string("course/sign-in-email.txt", {
+                "user": user,
+                "sign_in_uri": request.build_absolute_uri(
+                    reverse(
+                        "relate-reset_password_stage2",
+                        args=(user.id, ustatus.sign_in_key,))),
+                "home_uri": request.build_absolute_uri(reverse("relate-home"))
+                })
+            from django.core.mail import send_mail
+            send_mail("[RELATE] Password reset", message,
+                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+            messages.add_message(request, messages.INFO,
+                    "Email sent. Please check your email and click the link.")
+
+            return redirect("relate-home")
+    else:
+        form = ResetPasswordForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Reset Password",
+        "form": form
+        })
+
+
+class ResetPasswordStage2Form(StyledForm):
+    password = forms.CharField(widget=forms.PasswordInput())
+    password_repeat = forms.CharField(widget=forms.PasswordInput())
+
+    def __init__(self, *args, **kwargs):
+        super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit_user", "Update",
+                    css_class="col-lg-offset-2"))
+
+    def clean(self):
+        cleaned_data = super(ResetPasswordStage2Form, self).clean()
+        password = cleaned_data.get("password")
+        password_repeat = cleaned_data.get("password_repeat")
+        if password and password != password_repeat:
+            self.add_error("password_repeat", "Passwords do not match")
+
+
+def reset_password_stage2(request, user_id, sign_in_key):
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
+        raise SuspiciousOperation("email-based sign-in is not being used")
+
+    if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
+        messages.add_message(request, messages.ERROR,
+                "Invalid sign-in token. Perhaps you've used an old token email?")
+        raise PermissionDenied("invalid sign-in token")
+
+    if request.method == 'POST':
+        form = ResetPasswordStage2Form(request.POST)
+        if form.is_valid():
+            from django.contrib.auth import authenticate, login
+            user = authenticate(user_id=int(user_id), token=sign_in_key)
+            if user is None:
+                raise PermissionDenied("invalid sign-in token")
+
+            if not user.is_active:
+                messages.add_message(request, messages.ERROR,
+                        "Account disabled.")
+                raise PermissionDenied("invalid sign-in token")
+
+            user.set_password(form.cleaned_data["password"])
+            user.save()
+
+            login(request, user)
+
+            if (not (user.first_name and user.last_name)
+                    or "to_profile" in request.GET):
+                messages.add_message(request, messages.INFO,
+                        "Successfully signed in. "
+                        "Please complete your registration information below.")
+
+                return redirect(
+                       reverse("relate-user_profile")+"?first_login=1")
+            else:
+                messages.add_message(request, messages.INFO,
+                        "Successfully signed in.")
+
+                return redirect("relate-home")
+    else:
+        form = ResetPasswordStage2Form()
+
+    return render(request, "generic-form.html", {
+        "form_description": "Reset Password",
+        "form": form
+        })
+
+# }}}
+
+
+# {{{ email sign-in flow
+
+class SignInByEmailForm(StyledForm):
+    email = forms.EmailField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        super(SignInByEmailForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", "Send sign-in email",
+                    css_class="col-lg-offset-2"))
+
+
+def sign_in_by_email(request):
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
+        raise SuspiciousOperation("email-based sign-in is not being used")
+
+    if request.method == 'POST':
+        form = SignInByEmailForm(request.POST)
+        if form.is_valid():
+            from django.contrib.auth.models import User
+
+            email = form.cleaned_data["email"]
+            user, created = User.objects.get_or_create(
+                    email__iexact=email,
+                    defaults=dict(username=email, email=email))
+
+            if created:
+                user.set_unusable_password()
+                user.save()
+
+            ustatus, ustatus_created = UserStatus.objects.get_or_create(
+                    user=user,
+                    defaults=dict(
+                        status=user_status.unconfirmed,
+                        sign_in_key=make_sign_in_key(user)))
+
+            if not created:
+                ustatus.sign_in_key = make_sign_in_key(user)
+                ustatus.save()
+
+            from django.template.loader import render_to_string
+            message = render_to_string("course/sign-in-email.txt", {
+                "user": user,
+                "sign_in_uri": request.build_absolute_uri(
+                    reverse(
+                        "relate-sign_in_stage2_with_token",
+                        args=(user.id, ustatus.sign_in_key,))),
+                "home_uri": request.build_absolute_uri(reverse("relate-home"))
+                })
+            from django.core.mail import send_mail
+            send_mail("Your RELATE sign-in link", message,
+                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+
+            messages.add_message(request, messages.INFO,
+                    "Email sent. Please check your email and click the link.")
+
+            return redirect("relate-home")
+    else:
+        form = SignInByEmailForm()
+
+    return render(request, "course/login-by-email.html", {
+        "form_description": "",
+        "form": form
+        })
+
+
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
-    if settings.STUDENT_SIGN_IN_VIEW != "course.auth.sign_in_by_email":
+    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
         raise SuspiciousOperation("email-based sign-in is not being used")
 
     from django.contrib.auth import authenticate, login
@@ -301,47 +571,84 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
                 "Successfully signed in. "
                 "Please complete your registration information below.")
 
-        return redirect("course.auth.user_profile")
+        return redirect(
+               reverse("relate-user_profile")+"?first_login=1")
     else:
         messages.add_message(request, messages.INFO,
                 "Successfully signed in.")
 
-        return redirect("course.views.home")
-
+        return redirect("relate-home")
 
 # }}}
 
+
 # {{{ user profile
 
-class UserProfileForm(StyledModelForm):
+class UserForm(StyledModelForm):
     class Meta:
         model = User
         fields = ("first_name", "last_name")
 
     def __init__(self, *args, **kwargs):
-        super(UserProfileForm, self).__init__(*args, **kwargs)
+        super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Update",
+                Submit("submit_user", "Update",
+                    css_class="col-lg-offset-2"))
+
+
+class UserStatusForm(StyledModelForm):
+    class Meta:
+        model = UserStatus
+        fields = ("editor_mode",)
+
+    def __init__(self, *args, **kwargs):
+        super(UserStatusForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit_user_status", "Update",
                     css_class="col-lg-offset-2"))
 
 
 def user_profile(request):
+    if not request.user.is_authenticated():
+        raise PermissionDenied()
+
+    from course.models import get_user_status
+    ustatus = get_user_status(request.user)
+
+    user_form = None
+    user_status_form = None
+
     if request.method == "POST":
-        form = UserProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-            messages.add_message(request, messages.INFO,
-                    "Profile data saved.")
-            return redirect("course.views.home")
+        if "submit_user" in request.POST:
+            user_form = UserForm(request.POST, instance=request.user)
+            if user_form.is_valid():
+                user_form.save()
 
-    # if a GET (or any other method) we'll create a blank form
-    else:
-        form = UserProfileForm(instance=request.user)
+                messages.add_message(request, messages.INFO,
+                        "Profile data saved.")
+                if request.GET.get("first_login"):
+                    return redirect("relate-home")
 
-    return render(request, "generic-form.html", {
-        "form_description": "User Profile",
-        "form": form,
+        if "submit_user_status" in request.POST:
+            user_status_form = UserStatusForm(
+                    request.POST, instance=ustatus)
+            if user_status_form.is_valid():
+                user_status_form.save()
+                messages.add_message(request, messages.INFO,
+                        "Profile data saved.")
+                if request.GET.get("first_login"):
+                    return redirect("relate-home")
+
+    if user_form is None:
+        user_form = UserForm(instance=request.user)
+    if user_status_form is None:
+        user_status_form = UserStatusForm(instance=ustatus)
+
+    return render(request, "user-profile-form.html", {
+        "user_form": user_form,
+        "user_status_form": user_status_form,
         })
 
 # }}}
@@ -358,7 +665,10 @@ def get_role_and_participation(request, course):
         return participation_role.unenrolled, None
 
     participations = list(Participation.objects.filter(
-            user=user, course=course))
+            user=user,
+            course=course,
+            status=participation_status.active
+            ))
 
     # The uniqueness constraint should have ensured that.
     assert len(participations) <= 1
@@ -370,10 +680,7 @@ def get_role_and_participation(request, course):
     if participation.status != participation_status.active:
         return participation_role.unenrolled, participation
     else:
-        if participation.temporary_role:
-            return participation.temporary_role, participation
-        else:
-            return participation.role, participation
+        return participation.role, participation
 
 
 # vim: foldmethod=marker

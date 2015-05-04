@@ -4,7 +4,7 @@
 
 {% block title %}
   {{ course_desc.number}}
-  Calendar - CourseFlow
+  Calendar - RELATE
 {% endblock %}
 
 {%block header_extra %}
@@ -34,10 +34,12 @@
     });
   </script>
 
+  <b>Note:</b> Some calendar entries are clickable and link to entries
+  below.
+
   <div style="margin-top:3ex">
   {% for event_info in event_info_list %}
-    <a name="event-{{ event_info.id }}"></a>
-    <div class="panel panel-default">
+    <div id="event-{{ event_info.id }}" class="panel panel-default relate-calendar-event">
       <div class="panel-heading">
         <b>{{ event_info.human_title }}</b>
         ({{ event_info.start_time }}{% if event_info.end_time %} - {{ event_info.end_time }}{% endif %})

@@ -3,7 +3,7 @@
 SECRET_KEY = '<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>'
 
 ALLOWED_HOSTS = [
-        "courseflow.example.com",
+        "relate.example.com",
         ]
 
 # Uncomment this to use a real database. If left commented out, a local SQLite3
@@ -12,8 +12,8 @@ ALLOWED_HOSTS = [
 # DATABASES = {
 #     'default': {
 #         'ENGINE':'django.db.backends.postgresql_psycopg2',
-#         'NAME': 'courseflow',
-#         'USER': 'courseflow',
+#         'NAME': 'relate',
+#         'USER': 'relate',
 #         'PASSWORD': '<PASSWORD>',
 #         'HOST': '127.0.0.1',
 #         'PORT': '5432',
@@ -36,7 +36,7 @@ TEMPLATE_DEBUG = DEBUG
 # Your course git repositories will be stored under this directory.
 # Make sure it's writable by your web user.
 #
-# The default below makes them sit side-by-side with your courseflow checkout,
+# The default below makes them sit side-by-side with your relate checkout,
 # which makes sense for development, but you probably want to change this
 # in production.
 #
@@ -51,22 +51,23 @@ EMAIL_HOST_PASSWORD = ''
 EMAIL_PORT = 25
 EMAIL_USE_TLS = False
 
-ROBOT_EMAIL_FROM = "Andreas Kloeckner <inform@tiker.net>"
+ROBOT_EMAIL_FROM = "Example Admin <admin@example.com>"
 
 SERVER_EMAIL = ROBOT_EMAIL_FROM
 
 ADMINS = (
-  ("Andreas Kloeckner", "andreask@illinois.edu"),
+  ("Example Admin", "admin@example.com"),
   )
 
 TIME_ZONE = "America/Chicago"
 
 # Uncomment one of these to choose the default sign-in method for students
-STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_email"
-#STUDENT_SIGN_IN_VIEW = "course.auth.sign_in_by_sso"  # not yet implemented
+STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
+#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_user_pw"
+#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_sso"  # not yet implemented
 
 # A string containing the image ID of the docker image to be used to run
-# student code. Docker should download the image on first run.
-CF_DOCKER_CFRUNPY_IMAGE = "inducer/cfrunpy-i386"
+# student Python code. Docker should download the image on first run.
+RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 
-CF_MAINTENANCE_MODE = False
+RELATE_MAINTENANCE_MODE = False

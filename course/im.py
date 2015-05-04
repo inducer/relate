@@ -47,7 +47,7 @@ import threading
 # {{{ instant message
 
 class InstantMessageForm(forms.Form):
-    message = forms.CharField(required=True)
+    message = forms.CharField(required=True, max_length=200)
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
@@ -159,7 +159,7 @@ def send_instant_message(pctx):
         messages.add_message(request, messages.ERROR,
                 "Instant messaging is not enabled for this course.")
 
-        return redirect("course.views.course_page", pctx.course_identifier)
+        return redirect("relate-course_page", pctx.course_identifier)
 
     xmpp = get_xmpp_connection(pctx.course)
     if xmpp.is_recipient_online():

@@ -1,13 +1,27 @@
 {% extends "course/course-base.html" %}
 
 {% block title %}
-  Analytics - CourseFlow
+  Analytics - RELATE
 {% endblock %}
 
 {% block content %}
   <h1>Analytics: <tt>{{ flow_identifier}}</tt></h1>
 
   <h2>Grade Distribution</h2>
+
+  <p>
+    {% if restrict_to_first_attempt %}
+      Showing results for <i>only the first attempt</i> by each participant.
+      <a href="?restrict_to_first_attempt=0">
+        Show all attempts
+      </a>
+    {% else %}
+      Showing results for <i>all attempts</i> by each participant.
+      <a href="?restrict_to_first_attempt=1">
+        Show only the first attempt
+      </a>
+    {% endif %}
+  </p>
 
   <p>
     {{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }}
@@ -24,18 +38,30 @@
   {% for astats in page_answer_stats_list %}
     <div class="page-entry">
       {% if astats.url %}
-        <a href="{{ astats.url }}"><tt>{{ astats.group_id }}/{{ astats.page_id }}</tt></a>:
+      <a href="{{ astats.url }}?restrict_to_first_attempt={{restrict_to_first_attempt}}">
+        <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt></a>:
       {% else %}
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
       {{ astats.title }}
-      ({{ astats.answer_count }} response{{ astats.answer_count|pluralize }})
+      ({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
+      {{ astats.total_count }} response{{ astats.total_count|pluralize }} total)
 
       <div class="progress">
-        <div class="progress-bar progress-bar-info" role="progressbar"
-          aria-valuenow="{{ astats.average_correctness_percent }}" aria-valuemin="0" aria-valuemax="100"
-          style="width: {{ astats.average_correctness_percent|floatformat:1 }}%">
+        <div class="progress-bar progress-bar-success" role="progressbar"
+          aria-valuenow="{{ astats.average_correctness_percent |floatformat:1 }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ astats.average_correctness_percent|floatformat:9 }}%">
           <span class="stats-percentage">{{ astats.average_correctness_percent|floatformat:1 }}%</span>
+        </div>
+        <div class="progress-bar progress-bar-danger" role="progressbar"
+          aria-valuenow="{{ astats.average_wrongness_percent|floatformat:1  }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ astats.average_wrongness_percent|floatformat:9 }}%">
+          <span class="stats-percentage">{{ astats.average_wrongness_percent|floatformat:1 }}%</span>
+        </div>
+        <div class="progress-bar progress-bar-warning" role="progressbar"
+          aria-valuenow="{{ astats.average_emptiness_percent|floatformat:1  }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ astats.average_emptiness_percent|floatformat:9 }}%">
+          <span class="stats-percentage">{{ astats.average_emptiness_percent|floatformat:1 }}%</span>
         </div>
       </div>
     </div>

@@ -28,20 +28,63 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
-from django.core.exceptions import ValidationError
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
         participation_role, PARTICIPATION_ROLE_CHOICES,
         participation_status, PARTICIPATION_STATUS_CHOICES,
         flow_permission, FLOW_PERMISSION_CHOICES,
+        flow_session_expiration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
+        flow_rule_kind, FLOW_RULE_KIND_CHOICES,
         )
 
 
 from jsonfield import JSONField
+from yamlfield.fields import YAMLField
+
+
+# {{{ facility
+
+class Facility(models.Model):
+    """Data about a facility from where content may be accessed."""
+
+    identifier = models.CharField(max_length=50, unique=True,
+            help_text="Format is lower-case-with-hyphens. "
+            "Do not use spaces.")
+    description = models.CharField(max_length=100)
+
+    class Meta:
+        verbose_name_plural = "facilities"
+
+    def __unicode__(self):
+        return self.identifier
+
+
+class FacilityIPRange(models.Model):
+    """Network data about a facility from where content may be accessed."""
+
+    facility = models.ForeignKey(Facility, related_name="ip_ranges")
+
+    ip_range = models.CharField(
+            max_length=200,
+            verbose_name="IP Range")
+
+    description = models.CharField(max_length=100,)
+
+    class Meta:
+        verbose_name = "Facility IP Range"
+
+    def clean(self):
+        import ipaddr
+        try:
+            ipaddr.IPNetwork(self.ip_range)
+        except Exception as e:
+            raise ValidationError({"ip_range": str(e)})
+
+# }}}
 
 
 # {{{ user status
@@ -66,6 +109,15 @@ class UserStatus(models.Model):
             null=True, unique=True, db_index=True, blank=True)
     key_time = models.DateTimeField(default=now)
 
+    editor_mode = models.CharField(max_length=20,
+            choices=(
+                ("default", "Default"),
+                ("sublime", "Sublime text"),
+                ("emacs", "Emacs"),
+                ("vim", "Vim"),
+                ),
+            default="default")
+
     class Meta:
         verbose_name_plural = "user statuses"
         ordering = ("key_time",)
@@ -87,7 +139,12 @@ class Course(models.Model):
 
     hidden = models.BooleanField(
             default=True,
-            help_text="Is the course only visible to course staff?")
+            help_text="Is the course only accessible to course staff?")
+    listed = models.BooleanField(
+            default=True,
+            help_text="Should the course be listed on the main page?")
+    accepts_enrollment = models.BooleanField(
+            default=True)
     valid = models.BooleanField(
             default=True,
             help_text="Whether the course content has passed validation.")
@@ -95,10 +152,11 @@ class Course(models.Model):
     git_source = models.CharField(max_length=200, blank=True,
             help_text="A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
-            "<tt>git://github.com/inducer/courseflow-sample</tt> "
+            "<tt>git://github.com/inducer/relate-sample</tt> "
             "to get some sample content.")
     ssh_private_key = models.TextField(blank=True,
-            help_text="An SSH private key to use for Git authentication")
+            help_text="An SSH private key to use for Git authentication. "
+            "Not needed for the sample URL above.")
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
@@ -118,10 +176,13 @@ class Course(models.Model):
             help_text="Enrollee's email addresses must end in the "
             "specified suffix, such as '@illinois.edu'.")
 
-    email = models.EmailField(
+    from_email = models.EmailField(
             help_text="This email address will be used in the 'From' line "
-            "of automated emails sent by CourseFlow. It will also receive "
-            "notifications about required approvals.")
+            "of automated emails sent by RELATE.")
+
+    notify_email = models.EmailField(
+            help_text="This email address will receive "
+            "notifications about the course.")
 
     # {{{ XMPP
 
@@ -149,10 +210,12 @@ class Course(models.Model):
         return self.identifier
 
     def get_absolute_url(self):
-        return reverse("course.views.course_page", args=(self.identifier,))
+        return reverse("relate-course_page", args=(self.identifier,))
 
 # }}}
 
+
+# {{{ event
 
 class Event(models.Model):
     """An event is an identifier that can be used to specify dates in
@@ -171,6 +234,8 @@ class Event(models.Model):
             help_text="Only affects the rendering in the class calendar, "
             "in that a start time is not shown")
 
+    shown_in_calendar = models.BooleanField(default=True)
+
     class Meta:
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
@@ -181,18 +246,44 @@ class Event(models.Model):
         else:
             return self.kind
 
+# }}}
+
 
 # {{{ participation
 
+class ParticipationTag(models.Model):
+    course = models.ForeignKey(Course)
+
+    name = models.CharField(max_length=100, unique=True,
+            help_text="Format is lower-case-with-hyphens. "
+            "Do not use spaces.")
+
+    def clean(self):
+        import re
+        name_valid_re = re.compile(r"^\w+$")
+
+        if name_valid_re.match(self.name) is None:
+            raise ValidationError({"name": "Name contains invalid characters."})
+
+    def __unicode__(self):
+        return "%s (%s)" % (self.name, self.course)
+
+    class Meta:
+        unique_together = (("course", "name"),)
+        ordering = ("course", "name")
+
+
 class Participation(models.Model):
     user = models.ForeignKey(User)
-    course = models.ForeignKey(Course)
+    course = models.ForeignKey(Course, related_name="participations")
 
     enroll_time = models.DateTimeField(default=now)
     role = models.CharField(max_length=50,
-            choices=PARTICIPATION_ROLE_CHOICES)
-    temporary_role = models.CharField(max_length=50,
-            choices=PARTICIPATION_ROLE_CHOICES, null=True, blank=True)
+            choices=PARTICIPATION_ROLE_CHOICES,
+            help_text="Instructors may update course content. "
+            "Teaching assistants may access and change grade data. "
+            "Observers may access analytics. "
+            "Each role includes privileges from subsequent roles.")
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES)
 
@@ -202,6 +293,8 @@ class Participation(models.Model):
 
     preview_git_commit_sha = models.CharField(max_length=200, null=True,
             blank=True)
+
+    tags = models.ManyToManyField(ParticipationTag, blank=True)
 
     def __unicode__(self):
         return "%s in %s as %s" % (
@@ -239,7 +332,7 @@ class InstantFlowRequest(models.Model):
     cancelled = models.BooleanField(default=False)
 
 
-# {{{ flow session tracking
+# {{{ flow session
 
 class FlowSession(models.Model):
     # This looks like it's redundant with 'participation', below--but it's not.
@@ -255,8 +348,11 @@ class FlowSession(models.Model):
     page_count = models.IntegerField(null=True, blank=True)
 
     in_progress = models.BooleanField(default=None)
-    for_credit = models.BooleanField(default=None)
-    access_rules_id = models.CharField(max_length=200, null=True)
+    access_rules_tag = models.CharField(max_length=200, null=True,
+            blank=True)
+    expiration_mode = models.CharField(max_length=20, null=True,
+            default=flow_session_expiration_mode.end,
+            choices=FLOW_SESSION_EXPIRATION_MODE_CHOICES)
 
     # Non-normal: These fields can be recomputed, albeit at great expense.
     #
@@ -283,6 +379,15 @@ class FlowSession(models.Model):
                     self.id,
                     self.flow_id)
 
+    def append_comment(self, s):
+        if s is None:
+            return
+
+        if self.result_comment:
+            self.result_comment += "\n" + s
+        else:
+            self.result_comment = s
+
     def points_percentage(self):
         if self.points is None:
             return None
@@ -296,10 +401,26 @@ class FlowSession(models.Model):
         from course.flow import assemble_answer_visits
         return assemble_answer_visits(self)
 
+    def last_activity(self):
+        for visit in (FlowPageVisit.objects
+                .filter(
+                    flow_session=self,
+                    answer__isnull=False,
+                    is_synthetic=False)
+                .order_by("-visit_time")
+                [:1]):
+            return visit.visit_time
+
+        return None
+
+# }}}
+
+
+# {{{ flow page data
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data")
-    ordinal = models.IntegerField()
+    ordinal = models.IntegerField(null=True, blank=True)
 
     group_id = models.CharField(max_length=200)
     page_id = models.CharField(max_length=200)
@@ -307,11 +428,10 @@ class FlowPageData(models.Model):
     data = JSONField(null=True, blank=True)
 
     class Meta:
-        unique_together = (("flow_session", "ordinal"),)
         verbose_name_plural = "flow page data"
 
     def __unicode__(self):
-        return "Data for page '%s/%s' (%d) in %s" % (
+        return "Data for page '%s/%s' (ordinal %s) in %s" % (
                 self.group_id,
                 self.page_id,
                 self.ordinal,
@@ -324,6 +444,10 @@ class FlowPageData(models.Model):
     def next_ordinal(self):
         return self.ordinal + 1
 
+# }}}
+
+
+# {{{ flow page visit
 
 class FlowPageVisit(models.Model):
     # This is redundant (because the FlowSession is available through
@@ -338,7 +462,16 @@ class FlowPageVisit(models.Model):
     is_synthetic = models.BooleanField(default=False)
 
     answer = JSONField(null=True, blank=True)
-    is_graded_answer = models.NullBooleanField()
+
+    # is_submitted_answer may seem redundant with answers being
+    # non-NULL, but it isn't. This supports saved (but as
+    # yet ungraded) answers.
+
+    # NULL means it's not an answer at all.
+    #   (Should coincide with 'answer is None')
+    # True means it's a final, submitted answer fit for grading.
+    # False means it's just a saved answer.
+    is_submitted_answer = models.NullBooleanField()
 
     def __unicode__(self):
         result = "'%s/%s' in '%s' on %s" % (
@@ -347,8 +480,8 @@ class FlowPageVisit(models.Model):
                 self.flow_session,
                 self.visit_time)
 
-        if self.is_graded_answer:
-            result += " (graded)"
+        if self.answer is not None:
+            result += " (with answer)"
 
         return result
 
@@ -367,11 +500,10 @@ class FlowPageVisit(models.Model):
     def get_most_recent_feedback(self):
         grade = self.get_most_recent_grade()
 
-        from course.page import AnswerFeedback
-        if grade is not None:
-            return AnswerFeedback.from_json(grade.feedback)
-        else:
+        if grade is None:
             return None
+        else:
+            return get_feedback_for_grade(grade)
 
 # }}}
 
@@ -430,7 +562,38 @@ class FlowPageVisitGrade(models.Model):
         return "grade of %s: %s" % (
                 self.visit, self.percentage())
 
-# }}}
+
+class FlowPageBulkFeedback(models.Model):
+    # We're only storing one of these per page, because
+    # they're 'bulk' (i.e. big, like plots or program output)
+    page_data = models.OneToOneField(FlowPageData)
+    grade = models.ForeignKey(FlowPageVisitGrade)
+
+    bulk_feedback = JSONField(null=True, blank=True)
+
+
+def update_bulk_feedback(page_data, grade, bulk_feedback_json):
+    FlowPageBulkFeedback.objects.update_or_create(
+            page_data=page_data,
+            defaults=dict(
+                grade=grade,
+                bulk_feedback=bulk_feedback_json))
+
+
+def get_feedback_for_grade(grade):
+    try:
+        bulk_feedback_json = FlowPageBulkFeedback.objects.get(
+                page_data=grade.visit.page_data,
+                grade=grade).bulk_feedback
+    except ObjectDoesNotExist:
+        bulk_feedback_json = None
+
+    from course.page import AnswerFeedback
+    if grade is not None:
+        return AnswerFeedback.from_json(
+                grade.feedback, bulk_feedback_json)
+    else:
+        return None
 
 # }}}
 
@@ -458,33 +621,11 @@ def validate_stipulations(stip):
         raise ValidationError("allowed_session_count must be a non-negative integer")
 
 
-def _get_current_access_rule(participation, flow_id):
-    course = participation.course
-
-    from course.content import (
-            get_course_repo,
-            get_course_commit_sha,
-            get_flow_desc)
-
-    repo = get_course_repo(course)
-
-    course_commit_sha = get_course_commit_sha(course, participation)
-
-    try:
-        flow_desc = get_flow_desc(repo, course,
-                flow_id.encode(), course_commit_sha)
-    except ObjectDoesNotExist:
-        return None
-    else:
-        from course.utils import get_current_flow_access_rule
-        from django.utils.timezone import now
-
-        return get_current_flow_access_rule(course, participation,
-                participation.role, flow_id, flow_desc,
-                now(), rule_id=None, use_exceptions=False)
-
+# {{{ deprecated exception stuff
 
 class FlowAccessException(models.Model):
+    # deprecated
+
     participation = models.ForeignKey(Participation, db_index=True)
     flow_id = models.CharField(max_length=200, blank=False, null=False)
     expiration = models.DateTimeField(blank=True, null=True)
@@ -499,6 +640,12 @@ class FlowAccessException(models.Model):
     creator = models.ForeignKey(User, null=True)
     creation_time = models.DateTimeField(default=now, db_index=True)
 
+    is_sticky = models.BooleanField(
+            default=False,
+            help_text="Check if a flow started under this "
+            "exception rule set should stay "
+            "under this rule set until it is expired.")
+
     comment = models.TextField(blank=True, null=True)
 
     def __unicode__(self):
@@ -506,32 +653,10 @@ class FlowAccessException(models.Model):
                 self.participation.user, self.flow_id,
                 self.participation.course)
 
-    def save(self, *args, **kwargs):
-        if self.stipulations is None:
-            rule = _get_current_access_rule(self.participation, self.flow_id)
-
-            if rule is not None:
-                self.stipulations = {}
-                if rule.allowed_session_count is not None:
-                    self.stipulations["allowed_session_count"] = \
-                            rule.allowed_session_count
-                if rule.credit_percent is not None:
-                    self.stipulations["credit_percent"] = \
-                            rule.credit_percent
-
-        super(FlowAccessException, self).save(*args, **kwargs)
-
-        if not self.entries.count():
-            rule = _get_current_access_rule(self.participation, self.flow_id)
-            if rule is not None:
-                for perm in rule.permissions:
-                    faee = FlowAccessExceptionEntry()
-                    faee.exception = self
-                    faee.permission = perm
-                    faee.save()
-
 
 class FlowAccessExceptionEntry(models.Model):
+    # deprecated
+
     exception = models.ForeignKey(FlowAccessException,
             related_name="entries")
     permission = models.CharField(max_length=50,
@@ -542,6 +667,76 @@ class FlowAccessExceptionEntry(models.Model):
 
     def __unicode__(self):
         return self.permission
+
+# }}}
+
+
+class FlowRuleException(models.Model):
+    flow_id = models.CharField(max_length=200, blank=False, null=False)
+    participation = models.ForeignKey(Participation, db_index=True)
+    expiration = models.DateTimeField(blank=True, null=True)
+
+    creator = models.ForeignKey(User, null=True)
+    creation_time = models.DateTimeField(default=now, db_index=True)
+
+    comment = models.TextField(blank=True, null=True)
+
+    kind = models.CharField(max_length=50, blank=False, null=False,
+            choices=FLOW_RULE_KIND_CHOICES)
+    rule = YAMLField(blank=False, null=False)
+    active = models.BooleanField(default=True)
+
+    def __unicode__(self):
+        return "%s exception for '%s' to '%s' in '%s'" % (
+                self.kind,
+                self.participation.user, self.flow_id,
+                self.participation.course)
+
+    def clean(self):
+        if (self.kind == flow_rule_kind.grading
+                and self.expiration is not None):
+            raise ValidationError("grading rules may not expire")
+
+        from course.validation import (
+                ValidationError as ContentValidationError,
+                validate_session_start_rule,
+                validate_session_access_rule,
+                validate_session_grading_rule,
+                ValidationContext)
+        from course.content import (get_course_repo,
+                get_course_commit_sha,
+                get_flow_desc)
+
+        from relate.utils import dict_to_struct
+        rule = dict_to_struct(self.rule)
+
+        repo = get_course_repo(self.participation.course)
+        commit_sha = get_course_commit_sha(
+                self.participation.course, self.participation)
+        ctx = ValidationContext(
+                repo=repo,
+                commit_sha=commit_sha)
+
+        flow_desc = get_flow_desc(repo,
+                self.participation.course,
+                self.flow_id, commit_sha)
+
+        tags = None
+        if hasattr(flow_desc, "rules"):
+            tags = getattr(flow_desc.rules, "tags", None)
+
+        try:
+            if self.kind == flow_rule_kind.start:
+                validate_session_start_rule(ctx, unicode(self), rule, tags)
+            elif self.kind == flow_rule_kind.access:
+                validate_session_access_rule(ctx, unicode(self), rule, tags)
+            elif self.kind == flow_rule_kind.grading:
+                validate_session_grading_rule(ctx, unicode(self), rule, tags)
+            else:
+                raise ValidationError("invalid rule kind: "+self.kind)
+
+        except ContentValidationError as e:
+            raise ValidationError("invalid existing_session_rules: "+str(e))
 
 # }}}
 
@@ -567,6 +762,7 @@ class GradingOpportunity(models.Model):
     creation_time = models.DateTimeField(default=now)
 
     shown_in_grade_book = models.BooleanField(default=True)
+    shown_in_student_grade_book = models.BooleanField(default=True)
 
     class Meta:
         verbose_name_plural = "grading opportunities"
@@ -593,6 +789,7 @@ class GradeChange(models.Model):
             choices=GRADE_STATE_CHANGE_CHOICES)
 
     attempt_id = models.CharField(max_length=50, null=True, blank=True,
+            default="main",
             help_text="Grade changes are grouped by their 'attempt ID' "
             "where later grades with the same attempt ID supersede earlier "
             "ones.")
@@ -673,8 +870,8 @@ class GradeStateMachine(object):
                 raise ValueError("cannot accept grade once opportunity has been "
                         "marked 'exempt'")
 
-            if self.due_time is not None and gchange.grade_time > self.due_time:
-                raise ValueError("cannot accept grade after due date")
+            #if self.due_time is not None and gchange.grade_time > self.due_time:
+                #raise ValueError("cannot accept grade after due date")
 
             self.state = gchange.state
             if gchange.attempt_id is not None:
@@ -766,29 +963,46 @@ class GradeStateMachine(object):
         else:
             return "(other state)"
 
+    def stringify_machine_readable_state(self):
+        if self.state is None:
+            return u"NONE"
+        elif self.state == grade_state_change_types.exempt:
+            return "EXEMPT"
+        elif self.state == grade_state_change_types.graded:
+            if self.valid_percentages:
+                return "%.3f" % self.percentage()
+            else:
+                return u"NONE"
+        else:
+            return u"OTHER_STATE"
+
+    def stringify_percentage(self):
+        if self.state == grade_state_change_types.graded:
+            if self.valid_percentages:
+                return "%.1f" % self.percentage()
+            else:
+                return u""
+        else:
+            return ""
 # }}}
 
 
 # {{{ flow <-> grading integration
 
-def get_flow_grading_opportunity(course, flow_id, flow_desc):
-    gopps = (GradingOpportunity.objects
-            .filter(course=course)
-            .filter(flow_id=flow_id))
+def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
+    from course.utils import FlowSessionGradingRule
+    assert isinstance(grading_rule, FlowSessionGradingRule)
 
-    if gopps.count() == 0:
-        gopp = GradingOpportunity()
-        gopp.course = course
-        gopp.identifier = "flow_"+flow_id.replace("-", "_")
-        gopp.name = "Flow: %s" % flow_desc.title
-        gopp.aggregation_strategy = flow_desc.grade_aggregation_strategy
-        gopp.flow_id = flow_id
-        gopp.save()
+    gopp, created = GradingOpportunity.objects.get_or_create(
+            course=course,
+            identifier=grading_rule.grade_identifier,
+            defaults=dict(
+                name="Flow: %s" % flow_desc.title,
+                flow_id=flow_id,
+                aggregation_strategy=grading_rule.grade_aggregation_strategy,
+                ))
 
-        return gopp
-    else:
-        gopp, = gopps
-        return gopp
+    return gopp
 
 # }}}
 

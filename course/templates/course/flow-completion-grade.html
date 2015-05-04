@@ -1,7 +1,7 @@
 {% extends "course/course-base.html" %}
 
 {% block title %}
-  {{flow_desc.title}} - CourseFlow
+  {{flow_desc.title}} - RELATE
 {% endblock %}
 
 {% block content %}
@@ -10,11 +10,15 @@
   <h1>Results: {{flow_desc.title}}</h1>
   <div class="well flow-well">
     <p>
-    You have achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
+    You have
+    {% if grade_info.max_points != grade_info.max_reachable_points %}
+      <b>(so far)</b>
+    {% endif %}
+    achieved <b>{{ grade_info.provisional_points|floatformat }}</b> out of
     {{ grade_info.max_points|floatformat }}
     points.
     {% if grade_info.max_points != grade_info.max_reachable_points %}
-      (Note that some questions aren't graded yet, so you grade will likely
+      (Some questions are not graded yet, so your grade will likely
       change.)
     {% else %}
       (That's <b>{{ grade_info.points_percent|floatformat }}%</b>.)
@@ -58,11 +62,8 @@
 
   <div class="well flow-well">
     <a class="btn btn-default"
-      href="{% url "course.flow.start_flow" course.identifier flow_identifier %}"
-      role="button">&laquo; Start over / Review</a>
-    <a class="btn btn-default"
-      href="{% url "course.views.course_page" course.identifier %}"
-      role="button">To course page &raquo;</a>
+      href="{% url "relate-view_start_flow" course.identifier flow_identifier %}"
+      role="button">&laquo; Back to start page</a>
   </div>
 
 {% endblock %}

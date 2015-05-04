@@ -23,7 +23,7 @@
     <div class="alert alert-warning">
       There may be a problem with the validity of course data, which may lead
       to students encountering unexpected errors.
-      <a class="btn btn-primary" href="{% url "course.versioning.update_course" course.identifier %}"
+      <a class="btn btn-primary" href="{% url "relate-update_course" course.identifier %}"
         role="button">Update &raquo;</a>
     </div>
   {% endif %}
@@ -36,9 +36,9 @@
     </div>
   {% else %}
 
-    {% if role == participation_role.unenrolled %}
+    {% if show_enroll_button %}
       <div class="well">
-        <form method="POST" action="{% url "course.enrollment.enroll" course.identifier %}">
+        <form method="POST" action="{% url "relate-enroll" course.identifier %}">
           {% csrf_token %}
           <button type="submit" name="enroll" class="btn btn-primary">
             Enroll &raquo;
@@ -46,10 +46,11 @@
         </form>
       </div>
     {% endif %}
+
   {% endif %}
 
   {% for chunk in chunks %}
-  <a name="{{chunk.id}}"></a>
+  <a id="{{chunk.id}}"></a>
     {{chunk.html_content|safe}}
   {% endfor %}
 {% endblock %}
