@@ -72,7 +72,7 @@ time, RELATE may eventually encounter this `issue in dulwich
 RELATE uses to access git repositories. If it does, it will fail with
 ``IOError: [Errno 24] Too many open files``.
 
-To prevent this from happening, it is advisable to occasionally run `git repack -a -d`
+To prevent this from happening, it is advisable to occasionally run ``git repack -a -d``
 on RELATE's git repositories. This may be accomplished by creating a
 `Cron <https://en.wikipedia.org/wiki/Cron>`_ job running
 a customized version of
