@@ -62,6 +62,23 @@ Change docker config to disallow IP forwarding::
 
 in :file:`/etc/default/docker.io`.
 
+Long-term maintenance
+---------------------
+
+As course content gets updated repeatedly, more and more little files get
+created in the directories containing the course directories. Given enough
+time, RELATE may eventually encounter this `issue in dulwich
+<https://github.com/jelmer/dulwich/issues/281>`_, the software component that
+RELATE uses to access git repositories. If it does, it will fail with
+``IOError: [Errno 24] Too many open files``.
+
+To prevent this from happening, it is advisable to occasionally run `git repack -a -d`
+on RELATE's git repositories. This may be accomplished by creating a
+`Cron <https://en.wikipedia.org/wiki/Cron>`_ job running
+a customized version of
+`this script <https://github.com/inducer/relate/blob/master/repack-repositories.sh>`_.
+This is needed about once every few hundred course update cycles, so relatively
+infrequently.
 
 Tips
 ====
