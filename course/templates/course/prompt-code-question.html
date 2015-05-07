@@ -6,6 +6,7 @@
     <div class="panel-heading">
       <h4 class="panel-title">
       <a data-toggle="collapse" href="#grading-code">
+        {# Translators: Grading code is the python code to determing the grades for code questions. #}
         {% trans "Grading code" %}
         <span style="font-size:x-small">{% trans "(click to view)" %}</span>
       </a>
@@ -14,16 +15,13 @@
     <div id="grading-code" class="panel-collapse collapse">
      <div class="panel-body">
        {% if show_setup_code and setup_code %}
-         {% blocktrans trimmed %}
-        Set-up:
+         {# Translators: "set-up" stands for set-up code for code question #}
+         {% trans "Set-up:" %}
          <pre>{{ setup_code }}</pre>
-         {% endblocktrans %}
       {% endif %}
       {% if show_test_code and test_code %}
-         {% blocktrans  trimmed %}
-        Grading
+         {% trans "Grading" %}
          <pre>{{ test_code }}</pre>
-         {% endblocktrans %}
       {% endif %}
      </div>
     </div>
@@ -35,6 +33,7 @@
     <div class="panel-heading">
       <h4 class="panel-title">
       <a data-toggle="collapse" href="#starter-code">
+        {# Translators: starter code for code question #}
         {% trans "Starter code" %}
         <span style="font-size:x-small">{% trans "(click to view)" %}</span>
       </a>

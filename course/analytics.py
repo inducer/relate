@@ -52,6 +52,7 @@ def flow_list(pctx):
             participation_role.instructor,
             participation_role.observer,
             ]:
+        # Translators: "TA" is short for Teaching Assistant.
         raise PermissionDenied(_("must be at least TA to view analytics"))
 
     cursor = connection.cursor()
@@ -346,7 +347,8 @@ def make_time_histogram(pctx, flow_id):
 
     hist = Histogram(
             num_log_bins=True,
-            num_bin_title_formatter=lambda minutes: "$>$ %.1f min" % minutes)
+            # Translators: "min" stands for abbreviation of time unit "minute"
+            num_bin_title_formatter=lambda minutes: _("$>$ %.1f min") % minutes)
     for session in qset:
         if session.in_progress:
             hist.add_data_point(_("<in progress>"))
@@ -380,6 +382,8 @@ def flow_analytics(pctx, flow_id):
             participation_role.observer,
             ]:
         raise PermissionDenied(_("must be at least TA to view analytics"))
+        
+    print count_participants(pctx, flow_id)
 
     return render_course_page(pctx, "course/analytics-flow.html", {
         "flow_identifier": flow_id,

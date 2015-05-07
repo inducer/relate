@@ -1,9 +1,9 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans trimmed %} 
-    Analytics - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+    {% trans "Analytics" %} - {% trans "RELATE" %}
+ {% endblock %}
 
 {% block content %}
   <h1> {% blocktrans %} Analytics: <tt>{{ flow_identifier}}</tt> {% endblocktrans %} </h1>
@@ -11,9 +11,17 @@
   <h2>{% trans "Grade Distribution" %}</h2>
 
   <p> 
-    {{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }}
+    {% blocktrans trimmed with weight=grade_histogram.total_weight count counter=grade_histogram.total_weight %}
+      {{ weight }} grade
+    {% plural %}
+      {{ weight }} grades
+    {% endblocktrans %}
     {% if participant_count != None %}
-      {% blocktrans %}(from {{ participant_count }} distinct participants){% endblocktrans %}
+      {% blocktrans trimmed with participant_count=participant_count count counter=participant_count %}
+        (from {{ participant_count }} distinct participant)
+      {% plural %}
+        (from {{ participant_count }} distinct participants)
+      {% endblocktrans %}
     {% endif %}
   </p>
 
@@ -30,8 +38,16 @@
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
       {{ astats.title }}
-      {% blocktrans trimmed %}({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
-      {{ astats.total_count }} response{{ astats.total_count|pluralize }} total){% endblocktrans %}
+        {% blocktrans trimmed with answer_count=astats.answer_count count counter=astats.answer_count %}
+            ({{ answer_count }} non-empty response,
+        {% plural %}
+            ({{ answer_count }} non-empty responses,
+        {% endblocktrans %}
+        {% blocktrans trimmed with total_count=astats.total_count count counter=astats.total_count %}
+            {{ total_count }} response total)
+        {% plural %}
+            {{ total_count }} responses total)
+        {% endblocktrans %}
 
       <div class="progress">
         <div class="progress-bar progress-bar-success" role="progressbar"

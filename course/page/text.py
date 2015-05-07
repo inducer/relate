@@ -24,7 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
+from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext
 from course.validation import validate_struct, ValidationError
 import django.forms as forms
 
@@ -91,7 +92,8 @@ class TextAnswerForm(StyledForm):
         self.fields["answer"] = forms.CharField(
                 required=True,
                 widget=widget,
-                help_text=help_text)
+                help_text=help_text,
+                label=_("Answer"))
 
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()
@@ -391,6 +393,7 @@ def get_matcher_class(location, matcher_type, pattern_type):
         if matcher_class.type == matcher_type:
 
             if matcher_class.pattern_type != pattern_type:
+                # Translators: a "matcher" is used to determine if the answer to text question (blank filling question) is correct
                 raise ValidationError(_("%(location)s: %(matcherclassname)s only accepts '%(matchertype)s' patterns")
                         % {'location':location, 'matcherclassname':matcher_class.__name__, 'matchertype':pattern_type})
 
@@ -676,7 +679,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=_("No answer provided."))
+                    feedback=ugettext("No answer provided."))
 
         answer = answer_data["answer"]
 

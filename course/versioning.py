@@ -32,7 +32,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext
+from django.utils.translation import ugettext, pgettext, string_concat
 
 from django.db import transaction
 
@@ -183,15 +183,21 @@ def set_up_new_course(request):
                                 _("Course content validated, creation succeeded. "
                                 "You may want to view the events used "
                                 "in the course content and create them. ")
-                                + _('<a href="%s" class="btn btn-primary">'
-                                'Check &raquo;</a>')
+                                + string_concat('<a href="%s" class="btn btn-primary">',
+                                pgettext("view/create events","Check"), " &raquo;</a>")
                                 % reverse("relate-check_events",
                                     args=(new_course.identifier,)))
                 except:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
+                    import os
+                    import stat
                     import shutil
-                    shutil.rmtree(repo_path)
+                    def remove_readonly(func, path, excinfo):
+                        os.chmod(path, stat.S_IWRITE)
+                        func(path)
+                    
+                    shutil.rmtree(repo_path, onerror=remove_readonly)
                     raise
 
             except Exception as e:
@@ -288,7 +294,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                     _("Course content validated successfully."))
         else:
             messages.add_message(request, messages.WARNING,
-                    _("Course content validated OK, with warnings:"
+                    string_concat(_("Course content validated OK, with warnings:"),
                     "<ul>%s</ul>")
                     % ("".join(
                         "<li><i>%(location)s</i>: %(warningtext)s</li>" % {'location':w.location, 'warningtext':w.text}
@@ -313,9 +319,9 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                 "You may want to view the events used "
                 "in the course content and check that they "
                 "are recognized. ")
-                + _('<p><a href="%s" class="btn btn-primary" '
-                'style="margin-top:8px">'
-                'Check &raquo;</a></p>')
+                + string_concat('<p><a href="%s" class="btn btn-primary" '
+                'style="margin-top:8px">', 
+                pgettext("view/create events","Check"), " &raquo;</a></p>")
                 % reverse("relate-check_events",
                     args=(pctx.course.identifier,)))
 
@@ -402,21 +408,21 @@ def update_course(pctx):
                 {"new_sha": repo.head()})
 
     text_lines = [
-            _("<b>Current git HEAD:</b> %(commit)s (%(message)s)") % {
+            string_concat("<b>", _("Current git HEAD"), ":</b> %(commit)s (%(message)s)") % {
                 'commit': repo.head(),
                 'message': repo[repo.head()].message.strip()},
-            _("<b>Public active git SHA:</b> %(commit)s (%(message)s)") % {
+            string_concat("<b>", _("Public active git SHA"), ":</b> %(commit)s (%(message)s)") % {
                 'commit': course.active_git_commit_sha,
                 'message': repo[course.active_git_commit_sha.encode()].message.strip()},
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
-            _("<b>Current preview git SHA:</b> %(commit)s (%(message)s)") % {
+            string_concat("<b>", _("Current preview git SHA"), ":</b> %(commit)s (%(message)s)") % {
                 'commit': participation.preview_git_commit_sha,
                 'message': repo[participation.preview_git_commit_sha.encode()].message.strip(),
             })
     else:
-        text_lines.append(_("<b>Current preview git SHA:</b> None"))
+        text_lines.append(string_concat("<b>", _("Current preview git SHA"), ":</b> ", _("None")))
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,

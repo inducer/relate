@@ -3,10 +3,12 @@
 
 {% load static %}
 
-{% block title %} {% blocktrans trimmed %} 
-  {{ course_desc.number}}
-  Calendar - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %} 
+    {% blocktrans trimmed with course_desc_number=course_desc.number %} 
+        {{ course_desc_number}} Calendar
+    {% endblocktrans %} 
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {%block header_extra %}
 
@@ -14,11 +16,15 @@
   <script src='{% static "moment/moment.js" %}'></script>
   <script src='{% static "fullcalendar/dist/fullcalendar.js" %}'></script>
   {% get_current_language as LANGUAGE_CODE %}
-  <script src='/static/fullcalendar/dist/lang/{{ LANGUAGE_CODE }}.js'></script>
+  <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE }}.js'></script>
 {% endblock %}
 
 {% block content %}
-  <h1> {% blocktrans %} {{ course_desc.number}} Calendar {% endblocktrans %} </h1>
+  <h1> 
+      {% blocktrans trimmed with course_desc_number=course_desc.number %}
+        {{ course_desc_number}} Calendar 
+      {% endblocktrans %} 
+  </h1>
 
   <div id="coursecal" style="margin-top:3em"></div>
 

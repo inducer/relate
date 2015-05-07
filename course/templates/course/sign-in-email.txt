@@ -1,19 +1,34 @@
 {% load i18n %}
-{% if user.first_name %}{% trans "Dear" %} {{user.first_name}},
-{% elif user.email %}{% trans "Dear" %} {{user.email}},
-{% else %}{% trans "Dear" %} {{user.username}},
-{% endif %}
-{% blocktrans %} 
-Welcome to RELATE! Please click this link to sign in:
+{% if user.first_name %}
+    {# Translators: if a user have a non-empty first_name, then use %(first_name) #} 
+    {% blocktrans trimmed with first_name=user.first_name last_name=user.last_name %}
+        Dear {{first_name}}
+    {% endblocktrans %}
+{% elif user.email %}
+    {# Translators: if a user have an empty first_name, then use his/her email #}
+    {% blocktrans trimmed with email=user.email %}
+        Dear {{email}}
+    {% endblocktrans %}    
+{% else %}
+    {# Translators: if a user do not use first_name and email, then use his/her username #}
+    {% blocktrans trimmed with username=user.username %}
+        Dear {{username}}
+    {% endblocktrans %}    
+{% endif %},
+{% trans "RELATE" as RELATE %}
+{% blocktrans with sign_in_uri=sign_in_uri home_uri=home_uri %} 
+Welcome to {{ RELATE }}! Please click this link to sign in:
 
 {{ sign_in_uri }}
 
 You have received this email because someone (maybe you) entered your email
-address into the RELATE web site at
+address into the {{ RELATE }} web site at
 
 {{ home_uri }}
 
 If this was not you, it is safe to disregard this email.
 
-- RELATE staff
 {% endblocktrans %}
+
+{% blocktrans %} - {{ RELATE }} staff {% endblocktrans %}
+

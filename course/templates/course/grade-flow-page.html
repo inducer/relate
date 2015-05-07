@@ -3,9 +3,11 @@
 
 {% load crispy_forms_tags %}
 
-{% block title %} {% blocktrans trimmed %} 
-   {{ page_data.group_id }}/{{ page_data.page_id }} - {{ flow_identifier}} - Grading - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+        {{ page_data.group_id }}/{{ page_data.page_id }} - {{ flow_identifier}} 
+    - {% trans "Grading" %}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block root_container %}
   <div class="grading-page-student-work">
@@ -43,7 +45,7 @@
   </div>
   <div class="grading-page-grade-entry">
     <div class="row">
-      <h1> {% blocktrans %} Grading: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> {% endblocktrans %} </h1>
+      <h1> {% trans "Grading" %}: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> </h1>
 
       {% include "base-page-top.html" %}
 
@@ -57,9 +59,10 @@
           <td>{% trans "Flow session" %}</td>
           <td>
             <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
-              {% trans "for" %}
-            {{ flow_session.participation.user.last_name }}, {{ flow_session.participation.user.first_name }}
-            ({{ flow_session.participation.user.username }})
+            {# Translators: the grade information "for" a participant with fullname + (username) #}
+            {% blocktrans trimmed with last_name=flow_session.participation.user.last_name first_name=flow_session.participation.user.first_name username=flow_session.participation.user.username %}
+                for {{ last_name }}, {{ first_name }} ({{ username }})
+            {% endblocktrans %}
           </td>
         </tr>
         <tr>
@@ -115,7 +118,13 @@
               {% trans "(unknown)" %}
             {% endif %}
             /
-            {{ max_points|floatformat:1 }} {% trans "point" %}{{ max_points|pluralize }}
+            {{ max_points|floatformat:1 }} 
+            {# Translators: the unit name in grading #}
+            {% blocktrans trimmed count counter=max_points %}
+              point
+            {% plural %}
+              points
+            {% endblocktrans %}  
           </td>
         </tr>
         {% endif %}
@@ -126,9 +135,13 @@
             {% if most_recent_grade.grader == None %}
               {% trans "(autograded)" %}
             {% else %}
+              {# Translators: the grade is awarded "by" some humman grader. #}
               {% blocktrans %} by {{ most_recent_grade.grader.get_full_name }} {% endblocktrans %}
             {% endif %}
-            {% blocktrans %} at {{ most_recent_grade.grade_time }} {% endblocktrans %}
+            {# Translators: the most recent grade is provided "at" some time. #}  
+            {% blocktrans trimmed with grade_time=most_recent_grade.grade_time %} 
+              at {{ grade_time }} 
+            {% endblocktrans %}
           </td>
         </tr>
         {% endif %}

@@ -37,6 +37,8 @@ from django.db import transaction
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
+from django.utils.translation import string_concat
+from django.utils.translation import pgettext
 from django.utils.functional import lazy
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
@@ -221,8 +223,10 @@ class FakeTimeForm(StyledForm):
         super(FakeTimeForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
+                # Translators: "set" fake time.
                 Submit("set", _("Set"), css_class="col-lg-offset-2"))
         self.helper.add_input(
+                # Translators: "unset" fake time.
                 Submit("unset", _("Unset")))
 
 
@@ -295,14 +299,15 @@ class InstantFlowRequestForm(StyledForm):
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
-                required=True)
+                required=True,
+                label=_("Flow ID"))
         self.fields["duration_in_minutes"] = forms.IntegerField(
-                required=True, initial=20, label=_("Duration in minutes"))
+                required=True, initial=20, label=pgettext("duration for instant flow","Duration in minutes"))
 
         self.helper.add_input(
-                Submit("add", _("Add"), css_class="col-lg-offset-2"))
+                Submit("add", pgettext("add an instant flow","Add"), css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("cancel", _("Cancel all")))
+                Submit("cancel", pgettext("cancel all instant flow(s)","Cancel all")))
 
 
 @course_view
@@ -369,10 +374,11 @@ class FlowTestForm(StyledForm):
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
-                required=True)
+                required=True,
+                label=_("Flow ID"))
 
         self.helper.add_input(
-                Submit("test", mark_safe_lazy(_("Go &raquo;")), css_class="col-lg-offset-2"))
+                Submit("test", mark_safe_lazy(string_concat(pgettext("Start an activity", "Go"), " &raquo;")), css_class="col-lg-offset-2"))
 
 
 @course_view
@@ -427,14 +433,16 @@ class ExceptionStage1Form(StyledForm):
                         )
                     .order_by("user__last_name")),
                 required=True,
-                help_text=_("Select participant for whom exception is to be granted."))
+                help_text=_("Select participant for whom exception is to be granted."),
+                label=_("Participant"))
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
-                required=True)
+                required=True,
+                label=_("Flow ID"))
 
         self.helper.add_input(
                 Submit(
-                    "next", mark_safe_lazy(_("Next &raquo;")),
+                    "next", mark_safe_lazy(string_concat(pgettext("Next step", "Next"), " &raquo;")),
                     css_class="col-lg-offset-2"))
 
 
@@ -487,7 +495,8 @@ class CreateSessionForm(StyledForm):
                 choices=session_tag_choices,
                 initial=default_tag,
                 help_text=_("If you click 'Create session', this tag will be "
-                "applied to the new session."))
+                "applied to the new session."),
+                label=_("Access rules tag for new session"))
 
         if create_session_is_override:
             self.helper.add_input(
@@ -508,9 +517,10 @@ class ExceptionStage2Form(StyledForm):
                     (session.id, strify_session_for_exception(session))
                     for session in sessions),
                 help_text=_("The rules that currently apply to selected session "
-                "will provide the default values for the rules on the next page."))
+                "will provide the default values for the rules on the next page."),
+                label=_("Session"))
 
-        self.helper.add_input(Submit("next", mark_safe_lazy(_("Next &raquo;")),
+        self.helper.add_input(Submit("next", mark_safe_lazy(string_concat(pgettext("Next step", "Next"), " &raquo;")),
                     css_class="col-lg-offset-2"))
 
 
@@ -525,7 +535,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     participation = get_object_or_404(Participation, id=participation_id)
 
-    form_text = (_("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
+    form_text = (string_concat("<div class='well'>", ugettext("Granting exception to '%(participation)s' for '%(flow_id)s'"), ".</div>")
         % {'participation':participation, 'flow_id':flow_id})
 
     from course.content import get_flow_desc
@@ -542,10 +552,10 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     else:
         access_rules_tags = []
 
-    NONE_SESSION_TAG = _("<<<NONE>>>")
+    NONE_SESSION_TAG = string_concat("<<<",_("NONE"), ">>>")
     session_tag_choices = [
             (tag, tag)
-            for tag in access_rules_tags] + [(NONE_SESSION_TAG, _("(None)"))]
+            for tag in access_rules_tags] + [(NONE_SESSION_TAG, string_concat("(",_("NONE"), ")"))]
 
     from course.utils import get_session_start_rule
     session_start_rule = get_session_start_rule(pctx.course, participation,
@@ -626,7 +636,8 @@ class ExceptionStage3Form(StyledForm):
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
-            required=False,
+            required=False,            
+            label=_("Access expires"),
             help_text=_("At the specified time, the special access granted below "
             "will expire "
             "and revert to being the same as for the rest of the class. "
@@ -653,21 +664,25 @@ class ExceptionStage3Form(StyledForm):
                 widget=DateTimePicker(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False,
-                help_text=_("The due date shown to the student. Also, the "
+                help_text=_("The due time shown to the student. Also, the "
                 "time after which "
                 "any session under these rules is subject to expiration."),
-                initial=default_data.get("due"))
+                initial=default_data.get("due"),
+                label=_("Due time"))
         self.fields["due_same_as_access_expiration"] = forms.BooleanField(
                 required=False, help_text=_("If True, the 'Due' field will be "
                 "disregarded."),
-                initial=default_data.get("due_same_as_access_expiration") or False)
+                initial=default_data.get("due_same_as_access_expiration") or False,
+                label=_("Due same as access expiration"))
 
         self.fields["credit_percent"] = forms.IntegerField(required=False,
-                initial=default_data.get("credit_percent"))
+                initial=default_data.get("credit_percent"),
+                label=_("Credit percent"))
 
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
-                initial=default_data.get("comment"))
+                initial=default_data.get("comment"),
+                label=_("Comment"))
 
         self.helper.add_input(
                 Submit(
@@ -747,7 +762,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     and session.access_rules_tag is not None):
                 new_access_rule["if_has_tag"] = session.access_rules_tag
 
-            validate_session_access_rule(vctx, _("newly created exception"),
+            validate_session_access_rule(vctx, ugettext("newly created exception"),
                     dict_to_struct(new_access_rule), tags)
 
             fre_access = FlowRuleException(
@@ -768,7 +783,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             if form.cleaned_data["due_same_as_access_expiration"]:
                 due = form.cleaned_data["access_expires"]
 
-            descr = _("Granted excecption")
+            descr = ugettext("Granted excecption")
             if form.cleaned_data["credit_percent"] is not None:
                 descr += " (%.1f%% credit)" % form.cleaned_data["credit_percent"]
 
@@ -805,7 +820,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 new_grading_rule["grade_aggregation_strategy"] = \
                         grading_rule.grade_aggregation_strategy
 
-            validate_session_grading_rule(vctx, _("newly created exception"),
+            validate_session_grading_rule(vctx, ugettext("newly created exception"),
                     dict_to_struct(new_grading_rule), tags)
 
             fre_grading = FlowRuleException(
@@ -820,7 +835,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             # }}}
 
             messages.add_message(pctx.request, messages.SUCCESS,
-                    _("Exception granted to '%(participation)s' for '%(flow_id)s'.") % {'participation':participation, 'flow_id':flow_id})
+                    ugettext("Exception granted to '%(participation)s' for '%(flow_id)s'.") % {'participation':participation, 'flow_id':flow_id})
             return redirect(
                     "relate-grant_exception",
                     pctx.course.identifier)
@@ -840,7 +855,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": ugettext("Grant Exception"),
-        "form_text": ugettext("<div class='well'>Granting exception to '%(participation)s' for '%(flow_id)s'.</div>")
+        "form_text": string_concat("<div class='well'>", ugettext("Granting exception to '%(participation)s' for '%(flow_id)s'"), ".</div>")
         % {'participation':participation, 'flow_id':flow_id},
     })
 

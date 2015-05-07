@@ -3,9 +3,12 @@
 
 {% load static %}
 
-{% block title %} {% blocktrans trimmed %} 
-  My Grades - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+    {% blocktrans trimmed %} 
+        My Grades
+    {% endblocktrans %}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block header_extra %}
     {# the min.js version contains all dependencies #}
@@ -28,13 +31,15 @@
       </thead>
       <tbody>
       <tr>
-        <td>{% trans "Username" %}</td>
+        <td>{% trans "User ID" %}</td>
         <td>{{ grade_participation.user.username }}</td>
       </tr>
       <tr>
-        <td>{% trans "Name" %}</td>
+        <td>{% trans "Name" context "real name of a user" %}</td>
         <td>
-          {{ grade_participation.user.last_name }}, {{ grade_participation.user.first_name }}
+            {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name %}
+                {{ last_name }}, {{ first_name }}
+            {% endblocktrans %}
         </td>
       </tr>
     </table>
@@ -42,7 +47,7 @@
 
   <table class="gradebook-single">
     <thead>
-      <th>{% trans "Name" %}</th>
+      <th>{% trans "Name of grading opportunity" %}</th>
       <th>{% trans "Grade" %}</th>
       <th>{% trans "Date" %}</th>
     </thead>

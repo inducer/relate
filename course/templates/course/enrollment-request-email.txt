@@ -1,5 +1,6 @@
 {% load i18n %}
-{% blocktrans %} Dear course staff of {{ course.identifier }},
+{% blocktrans with course_identifier=course.identifier admin_uri=admin_uri %}
+Dear course staff of {{ course_identifier }},
 
 User '{{user}}' has requested permission to enroll in your course.
 Please go to
@@ -10,5 +11,6 @@ to approve or deny the request. To do so, select the course participations
 in question and use the "Approve enrollment" or "Deny enrollment" admin
 actions.
 
-- RELATE staff
 {% endblocktrans %}
+
+{% blocktrans with RELATE="RELATE" %} - {{ RELATE }} staff {% endblocktrans %}

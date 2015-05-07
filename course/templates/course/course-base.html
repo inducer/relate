@@ -2,12 +2,9 @@
 {% load i18n %}
 
 {% block title %}  
-  {{ course_desc.number}}:
-  {{ course_desc.name}}
-{% blocktrans trimmed %}
-  -
-  RELATE
- {% endblocktrans %} {% endblock %}
+    {{ course_desc.number}}:{{ course_desc.name}}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block brand %}
   {{ course_desc.number}}
@@ -19,10 +16,12 @@
   {% with participation_role as pr %}
   {% block page_navbar %}
   {% endblock %}
-
+  
   {% if role != pr.unenrolled %}
+  
   <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Student" %}<b class="caret"></b></a>
+  {% comment %} Translators: The following are names for menu items in course page {% endcomment %}
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Student" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
       {% if course.course_xmpp_id %}
       <li><a href="{% url "relate-send_instant_message" course.identifier %}">{% trans "Send instant message" %}</a></li>
@@ -36,7 +35,7 @@
 
   {% if role == pr.instructor or role == pr.teaching_assistant or role == pr.observer %}
   <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Grading" %}<b class="caret"></b></a>
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Grading" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li><a href="{% url "relate-flow_list" course.identifier %}">{% trans "Analytics Overview" %}</a></li>
 
@@ -67,8 +66,8 @@
   {% endif %}
 
   {% if role == pr.instructor or role == pr.teaching_assistant %}
-  <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Content" %}<b class="caret"></b></a>
+  <li class="dropdown">    
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Content" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
       <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Update course" %}</a></li>
@@ -96,10 +95,10 @@
 
   {% if role == pr.instructor %}
   <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Instructor" %}<b class="caret"></b></a>
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Instructor" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li role="presentation" class="dropdown-header">{% trans "Participation" %}</li>
-      <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" %}</a></li>
+      <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
 
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">{% trans "Instant flow requests" %}</li>
@@ -125,14 +124,14 @@
   {% if instant_flow_requests %}
     <div class="alert alert-info">
       {% if num_instant_flow_requests == 1 %}
-        {% blocktrans %}There is an interactive activity going on right now.{% endblocktrans %}
+        {% trans "There is an interactive activity going on right now." %}
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>{% trans "Go to activity" %} &raquo;</b></a>
         {% endfor %}
       {% else %}
-        {% blocktrans %}There are some interactive activities going on right now.{% endblocktrans %}
+        {% trans "There are some interactive activities going on right now." %}
         {% for i, req in instant_flow_requests %}
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"

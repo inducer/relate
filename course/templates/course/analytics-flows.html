@@ -1,9 +1,9 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans trimmed %} 
-  Analytics - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %} 
+    {% trans "Analytics" %} - {% trans "RELATE" %}
+{% endblock %}
 
 {% block content %}
   <h1>{% trans "Analytics: List of Flows with Sessions" %}</h1>

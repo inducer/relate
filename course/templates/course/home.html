@@ -3,7 +3,8 @@
 
 {% block content %}
   <div class="jumbotron">
-    <h1>{% trans "Welcome to RELATE" %}</h1>
+    {% trans "RELATE" as RELATE %}  
+    <h1>{% blocktrans %} Welcome to {{ RELATE }} {% endblocktrans %}</h1>
     <p>{% trans "RELATE is an Environment for Learning And TEaching" %}</p>
     <p>
     <a class="btn btn-lg btn-primary" href="https://github.com/inducer/relate" role="button">{% trans "Learn more" %} &raquo;</a>
@@ -26,9 +27,13 @@
       {% endfor %}
     </div>
   {% else %}
-    {% trans "There are no courses hosted on this RELATE site." %}
+    {% trans "RELATE" as RELATE %} 
+    {% blocktrans trimmed %} There are no courses hosted on this {{ RELATE }} site. {% endblocktrans %}
     {% if not user.is_authenticated %}
-      <a href="{% url "relate-sign_in_by_user_pw" %}">{% trans "Sign in" %}</a> to get started.
+        {% url "relate-sign_in_by_user_pw" as sign_in_url %}
+        {% blocktrans trimmed %}
+          <a href="{{ sign_in_url }}">Sign in</a> to get started.
+        {% endblocktrans %}
     {% endif %}
   {% endif %}
   {% if user.is_staff %}

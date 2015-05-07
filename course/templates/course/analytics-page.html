@@ -1,12 +1,16 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans trimmed %} 
-  Analytics - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %} 
+    {% trans "Analytics" %} - {% trans "RELATE" %}
+{% endblock %}
 
 {% block content %}
-  <h1> {% blocktrans %} Analytics: <tt>{{ flow_identifier}} - {{ group_id }}/{{ page_id }}</tt> {% endblocktrans %} </h1>
+    <h1> 
+        {% blocktrans trimmed %} 
+        Analytics: <tt>{{ flow_identifier}} - {{ group_id }}/{{ page_id }}</tt> 
+        {% endblocktrans %} 
+    </h1>
 
   <div class="well">
     {{ body|safe }}
@@ -18,7 +22,11 @@
   {% for astats in answer_stats_list %}
     <div class="answer-entry">
       {{ astats.normalized_answer|safe }}
-      ({{ astats.count }} response{{ astats.count|pluralize }})
+      {% blocktrans trimmed with astats_count=astats.count count counter=astats.count %}
+        ({{ astats_count }} response)
+      {% plural %}
+        ({{ astats_count }} responses)
+      {% endblocktrans %}
 
       <div class="progress">
         <div class="progress-bar

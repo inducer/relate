@@ -14,11 +14,11 @@
    {% endblocktrans %} </p>
 
   {% if maintenance_mode %}
-{% url "relate-home" as relate_home %}
+{% url "relate-home" as relate-home %}
 <p> 
     {% blocktrans trimmed %}
   In the meantime, you may navigate back to the
-  <a href="{{ relate_home }}">home page</a>.{% endblocktrans %}
+  <a href="{{ relate-home }}">home page</a>.{% endblocktrans %}
     </p>
   {% endif %}
 

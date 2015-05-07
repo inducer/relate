@@ -36,6 +36,8 @@ from django.utils import six
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext
+from django.utils.translation import string_concat
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
@@ -73,17 +75,17 @@ def markup_to_html(page_context, text):
 
 def get_auto_feedback(correctness):
     if correctness == 0:
-        return _("Your answer is not correct.")
+        return unicode(_("Your answer is not correct."))
     elif correctness == 1:
-        return _("Your answer is correct.")
+        return unicode(_("Your answer is correct."))
     elif correctness > 0.5:
-        return _("Your answer is mostly correct. (%.1f %%)") \
-                % (100*correctness)
+        return unicode(_("Your answer is mostly correct. (%.1f %%)") \
+                % (100*correctness))
     elif correctness is None:
-        return _("(No information on correctness of answer.)")
+        return unicode(_("No information on correctness of answer."))
     else:
-        return _("Your answer is somewhat correct. (%.1f %%)") \
-                % (100*correctness)
+        return unicode(_("Your answer is somewhat correct. (%.1f %%)") \
+                % (100*correctness))
 
 
 class AnswerFeedback(object):
@@ -533,7 +535,8 @@ class HumanTextFeedbackForm(StyledForm):
 
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
-                help_text=_("Whether the grade and feedback below are to be shown to student"))
+                help_text=_("Whether the grade and feedback below are to be shown to student"),
+                label=_("Released"))
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
                 max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
@@ -541,7 +544,8 @@ class HumanTextFeedbackForm(StyledForm):
                 required=False,
 
                 # avoid unfortunate scroll wheel accidents reported by graders
-                widget=forms.TextInput)
+                widget=forms.TextInput,
+                label=_("Grade percent"))
 
         if point_value is not None:
             self.fields["grade_points"] = forms.FloatField(
@@ -552,7 +556,8 @@ class HumanTextFeedbackForm(StyledForm):
                     required=False,
 
                     # avoid unfortunate scroll wheel accidents reported by graders
-                    widget=forms.TextInput)
+                    widget=forms.TextInput,
+                    label=_("Grade points"))
 
         self.fields["feedback_text"] = forms.CharField(
                 widget=forms.Textarea(),
@@ -560,16 +565,19 @@ class HumanTextFeedbackForm(StyledForm):
                 help_text=mark_safe_lazy(_("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
-                    "RELATE-flavored Markdown</a>")))
+                    "RELATE-flavored Markdown</a>")),
+                label=_("Feedback text"))
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text=_("Checking this box and submitting the form "
                 "will notify the participant "
-                "with a generic message containing the feedback text"))
+                "with a generic message containing the feedback text"),
+                label=_("Notify"))
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
                 help_text=_("Internal notes, not shown to student"),
-                required=False)
+                required=False,
+                label=_("Notes"))
 
     def clean(self):
         grade_percent = self.cleaned_data.get("grade_percent")
@@ -699,7 +707,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=_("No answer provided."))
+                    feedback=ugettext("No answer provided."))
 
         if grade_data is None:
             return None
@@ -713,7 +721,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
             if grade_data["feedback_text"]:
                 feedback_text += (
-                        _("<p>The following feedback was provided:<p>")
+                        string_concat("<p>", _("The following feedback was provided"), ":<p>")
                         + markup_to_html(page_context, grade_data["feedback_text"]))
 
             return AnswerFeedback(

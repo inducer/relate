@@ -3,9 +3,12 @@
 
 {% load static %}
 
-{% block title %} {% blocktrans trimmed %} 
-  List of Participants - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+    {% blocktrans trimmed %}
+        List of Participants
+    {% endblocktrans %}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block header_extra %}
     {# the min.js version contains all dependencies #}
@@ -21,10 +24,10 @@
 
   <table class="gradebook-participants">
     <thead>
-      <th class="datacol">{% trans "Username" %}</th>
+      <th class="datacol">{% trans "User ID" %}</th>
       <th class="datacol">{% trans "Last Name" %}</th>
       <th class="datacol">{% trans "First Name" %}</th>
-      <th class="datacol">{% trans "Status" %}</th>
+      <th class="datacol">{% trans "Role" %}</th>
     </thead>
     <tbody>
       {% for participation in participations %}

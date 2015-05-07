@@ -1,12 +1,18 @@
 {% extends "course/course-base.html" %}
+
 {% load i18n %}
 
-{% block title %} {% blocktrans trimmed %} 
-  {{flow_desc.title}} - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+    {{flow_desc.title}}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block content %}
-  <h1> {% blocktrans %} End Session '{{flow_desc.title}}'? {% endblocktrans %} </h1>
+  <h1> 
+      {% blocktrans trimmed with flow_desc_title=flow_desc.title %}
+        End Session '{{flow_desc_title}}'? 
+      {% endblocktrans %} 
+  </h1>
 
   {% if unanswered_count %}
     <div class="alert alert-warning">
@@ -16,12 +22,18 @@
 
   {% if total_count %}
     <p> 
-    {% blocktrans %} There were {{total_count}} questions. {% endblocktrans %}
-    {% if answered_count == total_count %}
-      {% blocktrans %}  You have provided an answer for all of them.{% endblocktrans %}
-    {% else %}
-      {% blocktrans %} You have answered {{answered_count}} and left {{unanswered_count}} unanswered.{% endblocktrans %}
-    {% endif %}
+        {% blocktrans trimmed %} 
+            There were {{total_count}} questions. 
+        {% endblocktrans %}
+        {% if answered_count == total_count %}
+          {% blocktrans trimmed %}
+            You have provided an answer for all of them.
+          {% endblocktrans %}
+        {% else %}
+          {% blocktrans trimmed %}
+                You have answered {{answered_count}} and left {{unanswered_count}} unanswered.
+          {% endblocktrans %}
+        {% endif %}
     </p>
   {% endif %}
 
@@ -38,7 +50,7 @@
 
       <a class="btn btn-default"
         href="{% url "relate-view_flow_page" course.identifier flow_session.id last_page_nr %}"
-        role="button">{% trans "&laquo; Go back" %}</a>
+        role="button">&laquo; {% trans "Go back" %}</a>
 
       <button type="submit" name="submit" class="btn btn-primary">{% trans "Confirm: Submit answers and end session" %}</button>
     </form>

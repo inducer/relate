@@ -5,15 +5,15 @@
 {% load static %}
 
 {% block title %} 
-  {% if title %}
-    {% blocktrans %} [SB] {{ title }}{% endblocktrans %}
-  {% else %}
-    {% blocktrans %}Page Sandbox{% endblocktrans %}
-  {% endif %}
-    {% blocktrans trimmed %}
-        -
-        RELATE
-    {% endblocktrans %} 
+    {% if title %}
+        {% comment %} Translators: "[SB]" is abbreviation for "Sandbox" {% endcomment %}
+        {% blocktrans trimmed %}
+            [SB] {{ title }}
+        {% endblocktrans %}
+    {% else %}
+        {% blocktrans %}Page Sandbox{% endblocktrans %}
+    {% endif %}
+    - {% trans "RELATE" %}
 {% endblock %}
 
 {% block root_container %}

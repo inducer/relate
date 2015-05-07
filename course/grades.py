@@ -27,6 +27,7 @@ THE SOFTWARE.
 import re
 
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import pgettext
 from django.shortcuts import (  # noqa
         redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -335,12 +336,15 @@ class ModifySessionsForm(StyledForm):
         self.fields["rule_tag"] = forms.ChoiceField(
                 choices=tuple(
                     (rule_tag, str(rule_tag))
-                    for rule_tag in session_rule_tags))
+                    for rule_tag in session_rule_tags),
+                label=_("Rule tag"))
         self.fields["past_due_only"] = forms.BooleanField(
                 required=False,
                 initial=True,
                 help_text=_("Only act on in-progress sessions that are past "
-                "their access rule's due date (applies to 'expire' and 'end')"))
+                "their access rule's due date (applies to 'expire' and 'end')"),
+                # Translators: see help text above.
+                label=_("Past due only"))
 
         self.helper.add_input(
                 Submit("expire", _("Expire sessions"),
@@ -849,31 +853,41 @@ class ImportGradesForm(StyledForm):
                 .order_by("identifier")),
             help_text=_("Click to <a href='%s' target='_blank'>create</a> "
             "a new grading opportunity. Reload this form when done.")
-            % reverse("admin:course_gradingopportunity_add"))
+            % reverse("admin:course_gradingopportunity_add"),
+            label=pgettext("field name in Import grades form","Grading opportunity"))
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",
-                required=True)
-        self.fields["file"] = forms.FileField()
+                required=True,
+                label=_("Attempt ID"))
+        self.fields["file"] = forms.FileField(
+                label=_("File"))
 
         self.fields["format"] = forms.ChoiceField(
                 choices=(
                     ("csvhead", _("CSV with Header")),
                     ("csv", "CSV"),
-                    ))
+                    ),
+                label=_("Format"))
 
         self.fields["id_column"] = forms.IntegerField(
+                # Translators: the following strings are for the format informatioin for a CSV file to be imported.
                 help_text=_("1-based column index for the Email or NetID "
                 "used to locate student record"),
-                min_value=1)
+                min_value=1,
+                label=_("User ID column"))
         self.fields["points_column"] = forms.IntegerField(
                 help_text=_("1-based column index for the (numerical) grade"),
-                min_value=1)
+                min_value=1,
+                label=_("Points column"))
         self.fields["feedback_column"] = forms.IntegerField(
                 help_text=_("1-based column index for further (textual) feedback"),
-                min_value=1, required=False)
+                min_value=1, required=False,
+                label=_("Feedback column"))
         self.fields["max_points"] = forms.DecimalField(
-            initial=100)
+                initial=100,
+                # Translators: "Max point" refers to full credit in points.
+                label=_("Max points"))
 
         self.helper.add_input(
                 Submit("preview", _("Preview"),
@@ -913,10 +927,11 @@ def find_participant_from_id(course, id_str):
 
     if not surviving_matches:
         raise ParticipantNotFound(
-                _("no participant found for '%s'") % id_str)
+                # Translators: use id_string to find user (participant).
+                _("no participant found for '%(id_string)s'") % {"id_string": id_str})
     if len(surviving_matches) > 1:
         raise ParticipantNotFound(
-                _("more than one participant found for '%s'") % id_str)
+                _("more than one participant found for '%(id_string)s'") % {"id_string": id_str})
 
     return surviving_matches[0]
 

@@ -28,6 +28,7 @@ THE SOFTWARE.
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext
 
 from relate.utils import StyledForm
 from course.page.base import (
@@ -41,6 +42,8 @@ class ChoiceAnswerForm(StyledForm):
         super(ChoiceAnswerForm, self).__init__(*args, **kwargs)
 
         self.fields["choice"] = field
+        # Translators: "choice" in Choice Answer Form in a choice question.
+        self.fields["choice"].label = _("Choice")
 
 
 # {{{ choice question
@@ -190,7 +193,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=_("No answer provided."))
+                    feedback=ugettext("No answer provided."))
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]

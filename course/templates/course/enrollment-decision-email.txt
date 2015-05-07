@@ -1,26 +1,41 @@
 {% load i18n %}
-{% if user.first_name %}{% trans "Dear" %} {{user.first_name}},
-{% elif user.email %}{% trans "Dear" %} {{user.email}},
-{% else %}{% trans "Dear" %} {{user.username}},
-{% endif %}
+{% if user.first_name %}
+    {# Translators: if a user have a non-empty first_name, then use %(first_name) #} 
+    {% blocktrans trimmed with first_name=user.first_name last_name=user.last_name %}
+        Dear {{first_name}}
+    {% endblocktrans %}
+{% elif user.email %}
+    {# Translators: if a user have an empty first_name, then use his/her email #}
+    {% blocktrans trimmed with email=user.email %}
+        Dear {{email}}
+    {% endblocktrans %}    
+{% else %}
+    {# Translators: if a user do not use first_name and email, then use his/her username #}
+    {% blocktrans trimmed with username=user.username %}
+        Dear {{username}}
+    {% endblocktrans %}    
+{% endif %},
 {% if approved %}
-{% blocktrans %}
+{% blocktrans with course_identifier=course.identifier course_uri=course_uri %}
 Welcome! Your request to join the course 
-'{{course.identifier}}' has been approved.
+'{{course_identifier}}' has been approved.
 
 Find the course web page here:
 
 {{ course_uri }}
 
 Welcome, and we hope you have a productive class!{% endblocktrans %}
-{% else %}{% blocktrans %}We're sorry to let you know that your request to join the course 
-'{{course.identifier}}' has been denied. Please get in touch with the course
+{% else %}
+{% blocktrans with course_identifier=course.identifier %}
+We're sorry to let you know that your request to join the course 
+'{{course_identifier}}' has been denied. Please get in touch with the course
 staff (for example by replying to this email) to state your case.
 
 One common reason for this may be that you may have used your personal email
 (such as a GMail or Yahoo account) rather than your official university account
 to sign in. If that is the case, please use the official account and
-try again.
-{% endblocktrans %}
+try again.{% endblocktrans %}
+
 {% endif %}
-{% trans "- RELATE staff" %}
+{# Translators: sender of the email #}
+{% blocktrans with RELATE="RELATE" %} - {{ RELATE }} staff {% endblocktrans %}

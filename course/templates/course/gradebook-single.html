@@ -1,12 +1,19 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans trimmed %} 
-  Grade book: {{ opportunity.name }} - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+    {% blocktrans trimmed with opportunity_name=opportunity.name %}
+        Grade book: {{ opportunity_name }}
+    {% endblocktrans %}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block content %}
-  <h1> {% blocktrans %} Understand a grade: {{ opportunity.name }}  {% endblocktrans %} </h1>
+  <h1> 
+      {% blocktrans trimmed with opportunity_name=opportunity.name %}
+        Understand a grade: {{ opportunity_name }}  
+      {% endblocktrans %} 
+  </h1>
 
   <table class="table table-condensed">
     <thead>
@@ -16,12 +23,13 @@
     <tr>
       <td>{% trans "Participant" %}</td>
       <td>
-        {{ grade_participation.user.last_name }}, {{ grade_participation.user.first_name }}
-        ({{ grade_participation.user.username }})
+          {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name username=grade_participation.user.username %}
+        {{ last_name }}, {{ first_name }} ({{ username }})
+          {% endblocktrans %}
       </td>
     </tr>
     <tr>
-      <td>{% trans "Identifier" %}</td><td><tt>{{ opportunity.identifier }}</tt></td>
+      <td>{% trans "Grading Opportunity ID" %}</td><td><tt>{{ opportunity.identifier }}</tt></td>
     </tr>
     {% if opportunity.due_time != None %}
       <tr>
@@ -37,8 +45,10 @@
       <td>{% trans "Average grade" %}</td>
       <td>
         {% if avg_grade_percentage != None %}
-          {{ avg_grade_percentage|floatformat }}%
-          (out of {{ avg_grade_population }} grades)
+          {# Translators: average grade, format "10% (out of 5 grades)" #}
+          {% blocktrans trimmed with avg_grade_percentage=avg_grade_percentage|floatformat %}
+          {{ avg_grade_percentage }}% (out of {{ avg_grade_population }} grades)
+          {% endblocktrans %}
         {% else %}
           <i>{% trans "(no data)" %}</i>
         {% endif %}
@@ -54,7 +64,8 @@
   {% else %}
     <table class="table table-condensed table-striped">
       <thead>
-        <th>{% trans "Date" %}</th>
+        <th>{% trans "Time" %}</th>
+          {# Translators: "what" stand for the state of a grade, e.g. "graded" #}
         <th>{% trans "What" %}</th>
         <th>{% trans "Grade" %}</th>
         <th>{% trans "Further Information" %}</th>
@@ -71,9 +82,9 @@
           <td>
             {% if gchange.is_superseded %}<s>{% endif %}
             {% if gchange.points != None %}
-              {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
-              {% trans "points" %}
-              ({{ gchange.percentage|floatformat:1 }}%)
+                {% blocktrans trimmed with points=gchange.points|floatformat:1 max_points=gchange.max_points|floatformat:1 percentage=gchange.percentage|floatformat:1 %}
+                    {{ points }}/{{ max_points }} points ({{ percentage }}%)
+                {% endblocktrans %}
             {% else %}
               {% trans "(no grade)" %}
             {% endif %}
@@ -85,7 +96,9 @@
             {% endif %}
 
             {% if gchange.flow_session != None %}
-           {% blocktrans %} (from flow session {{ gchange.flow_session.id }}) {% endblocktrans %}
+                {% blocktrans trimmed with gchange_flow_session_id=gchange.flow_session.id %}
+                    (from flow session {{ gchange_flow_session_id }}) 
+                {% endblocktrans %}
             {% endif %}
           </td>
         </tr>
@@ -97,7 +110,9 @@
             <b>{{ state_machine.stringify_state }}</b>
           </td>
           <td>
-            {% blocktrans %}(Aggregation strategy: {{ opportunity.aggregation_strategy }}){% endblocktrans %} 
+            {% blocktrans trimmed with opportunity_aggregation_strategy=opportunity.aggregation_strategy %}
+              (Aggregation strategy: {{ opportunity_aggregation_strategy }})
+            {% endblocktrans %} 
           </td>
         </tr>
       </tbody>
@@ -116,7 +131,7 @@
       <table class="table table-condensed table-striped">
         <thead>
           <tr>
-            <th>{% trans "ID" %}</th>
+            <th>{% trans "Flow ID" %}</th>
             <th>{% trans "State" %}</th>
             <th>{% trans "Due" %}</th>
             <th>{% trans "Result" %}</th>
@@ -175,8 +190,10 @@
 
                     (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
                   {% else %}
-                    {% trans "(grade not available)" %}
-                    ({{ flow_session.max_points|floatformat:1 }} points achievable)
+                    {% blocktrans trimmed with max_points=flow_session.max_points|floatformat:1 %} 
+                        (grade not available)
+                        ({{ max_points }} points achievable)
+                    {% endblocktrans %}
                   {% endif %}
                 {% else %}
                   {% trans "(none)" %}

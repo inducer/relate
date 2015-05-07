@@ -3,8 +3,9 @@
 
 {% block content %}
   <div class="alert alert-info">
-      {% trans "RELATE is currently in maintenance mode. Sorry for the interruption,
-    we'll be back shortly." %}
+      {% trans "RELATE" as RELATE %}
+      {% blocktrans trimmed %} {{ RELATE }} is currently in maintenance mode. Sorry for the interruption,
+    we'll be back shortly.{% endblocktrans %}
   </div>
 {% endblock %}
 

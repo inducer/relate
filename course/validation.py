@@ -689,7 +689,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
 
         tp, e, _ = sys.exc_info()
 
-        raise ValidationError(_("%(fullname)s: %(err_type)s: %(err_str)s") % {
+        raise ValidationError("%(fullname)s: %(err_type)s: %(err_str)s" % {
             'fullname':full_name, 'err_type':tp.__name__, 'err_str':unicode(e)})
 
 

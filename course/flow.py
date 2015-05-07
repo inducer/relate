@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import string_concat
 from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -557,7 +558,7 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     if (points is not None
             and grading_rule.credit_percent is not None
             and grading_rule.credit_percent != 100):
-        # grade flow: calculating grade.
+        # Translators: grade flow: calculating grade.
         comment = _("Counted at %(percent).1f%% of %(point).1f points") % {
                 'percent':grading_rule.credit_percent, 'point':points}
         points = points * grading_rule.credit_percent / 100
@@ -902,12 +903,12 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
         if fpctx.page_data.ordinal + 1 < flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next",
-                        mark_safe_lazy(_("Save answer and move on &raquo;")),
+                        mark_safe_lazy(string_concat(_("Save answer and move on"), " &raquo;")),
                         css_class="relate-save-button"))
         else:
             form.helper.add_input(
                     Submit("save_and_finish",
-                        mark_safe_lazy(_("Save answer and finish &raquo;")),
+                        mark_safe_lazy(string_concat(_("Save answer and finish"), " &raquo;")),
                         css_class="relate-save-button"))
 
     return form
@@ -1373,20 +1374,23 @@ class RegradeFlowForm(StyledForm):
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 initial=participation_role.student,
-                required=True)
+                required=True,
+                label=_("Flow ID"))
         self.fields["access_rules_tag"] = forms.CharField(
                 required=False,
                 help_text=_("If non-empty, limit the regrading to sessions started "
-                "under this access rules tag."))
+                "under this access rules tag."),
+                label=_("Access rules tag"))
         self.fields["regraded_session_in_progress"] = forms.ChoiceField(
                 choices=(
                     ("any", _("Regrade in-progress and not-in-progress sessions")),
                     ("yes", _("Regrade in-progress sessions only")),
                     ("no", _("Regrade not-in-progress sessions only")),
-                    ))
+                    ),
+                label=_("Regraded session in progress"))
 
         self.helper.add_input(
-                Submit("regrade", "Regrade", css_class="col-lg-offset-2"))
+                Submit("regrade", _("Regrade"), css_class="col-lg-offset-2"))
 
 
 @transaction.atomic
@@ -1441,10 +1445,10 @@ def regrade_not_for_credit_flows_view(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text":
-        _("<p>This regrading process is only intended for flows "
+        string_concat("<p>", _("This regrading process is only intended for flows "
         "that do not show up in the grade book."
         "If you would like to regrade for-credit flows, "
-        "use the corresponding functionality in the grade book.</p>"),
+        "use the corresponding functionality in the grade book."), "</p>"),
         "form_description": _("Regrade not-for-credit Flow Sessions"),
     })
 

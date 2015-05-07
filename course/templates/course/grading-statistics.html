@@ -1,9 +1,12 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} {% blocktrans trimmed %} 
-  Grading Statistics: {{ flow_id }} - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+    {% blocktrans trimmed %} 
+        Grading Statistics: {{ flow_id }}
+    {% endblocktrans %}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block content %}
   <h1>{% trans "Grading Statistics: " %}<tt>{{flow_id}}</tt></h1>

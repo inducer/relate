@@ -4,9 +4,12 @@
 
 {% load static %}
 
-{% block title %} {% blocktrans trimmed %} 
-  List of Grading Opportunities - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %}
+    {% blocktrans trimmed %} 
+        List of Grading Opportunities
+    {% endblocktrans %}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block header_extra %}
     {# the min.js version contains all dependencies #}
@@ -22,10 +25,10 @@
 
   <table class="gradebook-opportunities">
     <thead>
-      <th class="datacol">{% trans "Name" %}</th>
+      <th class="datacol">{% trans "Name of grading opportunity" %}</th>
       <th class="datacol">{% trans "Flow ID" %}</th>
-      <th class="datacol">{% trans "Aggregation Strategy" %}</th>
-      <th class="datacol">{% trans "Due Time" %}</th>
+      <th class="datacol">{% trans "Aggregation strategy" %}</th>
+      <th class="datacol">{% trans "Due time" %}</th>
       <th class="datacol">{% trans "Shown to students" %}</th>
     </thead>
     <tbody>

@@ -3,9 +3,12 @@
 
 {% load static %}
 
-{% block title %} {% blocktrans trimmed %} 
-  Grade book - RELATE
- {% endblocktrans %} {% endblock %}
+{% block title %} 
+    {% blocktrans trimmed %} 
+        Grade book
+    {% endblocktrans %}
+    - {% trans "RELATE" %}
+{% endblock %}
 
 {% block header_extra %}
     {# the min.js version contains all dependencies #}
@@ -21,8 +24,8 @@
 
   <table class="gradebook">
     <thead>
-      <th class="headcol"></th>
-      <th class="datacol">{% trans "Name" %}</th>
+      <th class="headcol">{% trans "User ID" %}</th>
+      <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
       {% for opp in grading_opportunities %}
       <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</th>
       {% endfor %}
@@ -32,8 +35,9 @@
       <tr>
         <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}">{{ participation.user.username }}</a></td>
         <td class="datacol">
-          {{ participation.user.last_name }},
-          {{ participation.user.first_name }}
+            {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
+                {{ last_name }}, {{ first_name }}
+            {% endblocktrans %}
           {% if participation.role != participation_role.student %}
             ({{ participation.role }})
           {% endif %}

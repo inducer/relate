@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -124,8 +125,8 @@ class ImpersonateForm(StyledForm):
                         key=lambda user: user.last_name.lower())
                     ],
                 required=True,
-                help_text=_(_("Select user to impersonate.")),
-                label=_("user")
+                help_text=_("Select user to impersonate."),
+                label=_("User")
         )
 
         self.helper.add_input(Submit("submit", _("Impersonate"),
@@ -258,7 +259,7 @@ class LoginForm(AuthenticationFormBase):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        self.helper.add_input(Submit("submit", "Sign in",
+        self.helper.add_input(Submit("submit", _("Sign in"),
             css_class="col-lg-offset-2"))
 
         super(LoginForm, self).__init__(*args, **kwargs)
@@ -271,7 +272,7 @@ def sign_in_by_user_pw(request):
 
 
 class SignUpForm(StyledModelForm):
-    username = forms.CharField(required=True, max_length=30)
+    username = forms.CharField(required=True, max_length=30, label=_("Username"))
 
     class Meta:
         model = User
@@ -281,7 +282,7 @@ class SignUpForm(StyledModelForm):
         super(SignUpForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Send email",
+                Submit("submit", _("Send email"),
                     css_class="col-lg-offset-2"))
 
 
@@ -336,8 +337,8 @@ def sign_up(request):
                     })
 
                 from django.core.mail import send_mail
-                send_mail(_("[RELATE] Verify your email"), message,
-                        settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+                send_mail(string_concat('[', _("RELATE"), '] ', _("Verify your email")), message,
+                          settings.ROBOT_EMAIL_FROM, recipient_list=[email])
 
                 messages.add_message(request, messages.INFO,
                         _("Email sent. Please check your email and click the link."))
@@ -354,13 +355,13 @@ def sign_up(request):
 
 
 class ResetPasswordForm(StyledForm):
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(required=True, label=_("Email"))
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Send email", css_class="col-lg-offset-2"))
+                Submit("submit", _("Send email"), css_class="col-lg-offset-2"))
 
 
 def reset_password(request):
@@ -397,8 +398,8 @@ def reset_password(request):
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
-            send_mail(_("[RELATE] Password reset"), message,
-                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+            send_mail(string_concat('[', _("RELATE"), '] ', _("Password reset")), message,
+                          settings.ROBOT_EMAIL_FROM, recipient_list=[email])
 
             messages.add_message(request, messages.INFO,
                     _("Email sent. Please check your email and click the link."))
@@ -414,8 +415,10 @@ def reset_password(request):
 
 
 class ResetPasswordStage2Form(StyledForm):
-    password = forms.CharField(widget=forms.PasswordInput())
-    password_repeat = forms.CharField(widget=forms.PasswordInput())
+    password = forms.CharField(widget=forms.PasswordInput(),
+                              label=_("Password"))
+    password_repeat = forms.CharField(widget=forms.PasswordInput(),
+                              label=_("Password repeat"))
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
@@ -486,7 +489,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
 # {{{ email sign-in flow
 
 class SignInByEmailForm(StyledForm):
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(required=True, label=_("Email"))
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
@@ -534,8 +537,8 @@ def sign_in_by_email(request):
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
-            send_mail(_("Your RELATE sign-in link"), message,
-                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+            send_mail(_("Your %(RELATE)s sign-in link") % {"RELATE":_("RELATE")}, 
+                      message, settings.ROBOT_EMAIL_FROM, recipient_list=[email])
 
             messages.add_message(request, messages.INFO,
                     _("Email sent. Please check your email and click the link."))

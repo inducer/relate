@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
-from django.utils.translation import ugettext as _
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -25,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from django.utils.translation import ugettext as _
+from django.utils.translation import pgettext
 
 # Allow 10x extra credit at the very most.
 MAX_EXTRA_CREDIT_FACTOR = 10
@@ -53,11 +54,11 @@ class participation_role:  # noqa
 
 
 PARTICIPATION_ROLE_CHOICES = (
-        (participation_role.instructor, _("Instructor")),
-        (participation_role.teaching_assistant, _("Teaching Assistant")),
-        (participation_role.student, _("Student")),
-        (participation_role.observer, _("Observer")),
-        (participation_role.auditor, _("Auditor")),
+        (participation_role.instructor, pgettext("Role name displayed in admin", "Instructor")),
+        (participation_role.teaching_assistant, pgettext("Role name displayed in admin", "Teaching Assistant")),
+        (participation_role.student, pgettext("Role name displayed in admin", "Student")),
+        (participation_role.observer, pgettext("Role name displayed in admin", "Observer")),
+        (participation_role.auditor, pgettext("Role name displayed in admin", "Auditor")),
         # unenrolled is only used internally
         )
 
@@ -70,10 +71,10 @@ class participation_status:  # noqa
 
 
 PARTICIPATION_STATUS_CHOICES = (
-        (participation_status.requested, _("Requested")),
-        (participation_status.active, _("Active")),
-        (participation_status.dropped, _("Dropped")),
-        (participation_status.denied, _("Denied")),
+        (participation_status.requested, pgettext("User status displayed in admin","Requested")),
+        (participation_status.active, pgettext("User status displayed in admin","Active")),
+        (participation_status.dropped, pgettext("User status displayed in admin","Dropped")),
+        (participation_status.denied, pgettext("User status displayed in admin","Denied")),
         )
 
 
@@ -99,9 +100,9 @@ class flow_session_expiration_mode:  # noqa
     roll_over = "roll_over"
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
-        (flow_session_expiration_mode.end, _("End session and grade")),
+        (flow_session_expiration_mode.end, pgettext('flow session expiration mode', "End session and grade")),
         (flow_session_expiration_mode.roll_over,
-            _("Keep session and apply new rules")),
+            pgettext('flow session expiration mode', "Keep session and apply new rules")),
         )
 
 
@@ -151,14 +152,14 @@ class flow_permission:  # noqa
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
 
 FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view, _("View the flow")),
-        (flow_permission.submit_answer, _("Submit answers")),
-        (flow_permission.end_session, _("End session")),
-        (flow_permission.change_answer, _("Change already-graded answer")),
-        (flow_permission.see_correctness, _("See whether an answer is correct")),
-        (flow_permission.see_answer, _("See the correct answer")),
+        (flow_permission.view, pgettext("flow permission","View the flow")),
+        (flow_permission.submit_answer, pgettext("flow permission","Submit answers")),
+        (flow_permission.end_session, pgettext("flow permission","End session")),
+        (flow_permission.change_answer, pgettext("flow permission","Change already-graded answer")),
+        (flow_permission.see_correctness, pgettext("flow permission","See whether an answer is correct")),
+        (flow_permission.see_answer, pgettext("flow permission","See the correct answer")),
         (flow_permission.set_roll_over_expiration_mode,
-            _("Set the session to 'roll over' expiration mode")),
+            pgettext("flow permission", "Set the session to 'roll over' expiration mode")),
         )
 
 
@@ -169,9 +170,9 @@ class flow_rule_kind:  # noqa
 
 
 FLOW_RULE_KIND_CHOICES = (
-        (flow_rule_kind.start, _("Session Start")),
-        (flow_rule_kind.access, _("Session Access")),
-        (flow_rule_kind.grading, _("Grading")),
+        (flow_rule_kind.start, pgettext("flow rule kind","Session Start")),
+        (flow_rule_kind.access, pgettext("flow rule kind","Session Access")),
+        (flow_rule_kind.grading, pgettext("flow rule kind","Grading")),
         )
 
 
@@ -229,14 +230,14 @@ class grade_state_change_types:  # noqa
 
 
 GRADE_STATE_CHANGE_CHOICES = (
-        (grade_state_change_types.grading_started, _('Grading started')),
-        (grade_state_change_types.graded, _('Graded')),
-        (grade_state_change_types.retrieved, _('Retrieved')),
-        (grade_state_change_types.unavailable, _('Unavailable')),
-        (grade_state_change_types.extension, _('Extension')),
-        (grade_state_change_types.report_sent, _('Report sent')),
-        (grade_state_change_types.do_over, _('Do-over')),
-        (grade_state_change_types.exempt, _('Exempt')),
+        (grade_state_change_types.grading_started, pgettext('grade state change choices', 'Grading started')),
+        (grade_state_change_types.graded, pgettext('grade state change choices', 'Graded')),
+        (grade_state_change_types.retrieved, pgettext('grade state change choices', 'Retrieved')),
+        (grade_state_change_types.unavailable, pgettext('grade state change choices', 'Unavailable')),
+        (grade_state_change_types.extension, pgettext('grade state change choices', 'Extension')),
+        (grade_state_change_types.report_sent, pgettext('grade state change choices', 'Report sent')),
+        (grade_state_change_types.do_over, pgettext('grade state change choices', 'Do-over')),
+        (grade_state_change_types.exempt, pgettext('grade state change choices', 'Exempt')),
         )
 
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"
