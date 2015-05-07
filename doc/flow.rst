@@ -38,7 +38,7 @@ example:
            permissions: [view, modify, see_correctness]
 
          -
-           permissions: [view, see_correctness, see_answer]
+           permissions: [view, see_correctness, see_answer_after_submission]
 
       # Record grades under the machine-readable name 'test_quiz'.
       # If there is more than one grade, use the maximum.
@@ -162,7 +162,7 @@ Here's a commented example:
 
          -
            # Afterwards, they will also be allowed to see the correct answer.
-           permissions: [view, modify, see_correctness, see_answer]
+           permissions: [view, modify, see_correctness, see_answer_after_submission]
 
       grading:
         # Rules that govern how (permanent) grades are generated from the

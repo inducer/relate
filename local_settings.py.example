@@ -63,7 +63,7 @@ TIME_ZONE = "America/Chicago"
 
 # Uncomment one of these to choose the default sign-in method for students
 STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
-#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_user_bw"
+#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_user_pw"
 #STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_sso"  # not yet implemented
 
 # A string containing the image ID of the docker image to be used to run

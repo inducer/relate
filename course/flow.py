@@ -879,7 +879,7 @@ def get_and_check_flow_session(pctx, flow_session_id):
 def will_receive_feedback(permissions):
     return (
             flow_permission.see_correctness in permissions
-            or flow_permission.see_answer in permissions)
+            or flow_permission.see_answer_after_submission in permissions)
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
@@ -1142,16 +1142,20 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     if fpctx.page.expects_answer() and answer_was_graded:
         show_correctness = flow_permission.see_correctness in permissions
 
-        show_answer = flow_permission.see_answer in permissions
+        show_answer = flow_permission.see_answer_after_submission in permissions
 
         if show_correctness or show_answer:
             shown_feedback = feedback
 
     elif fpctx.page.expects_answer() and not answer_was_graded:
         # Don't show answer yet
-        pass
+        show_answer = (
+                flow_permission.see_answer_before_submission in permissions)
     else:
-        show_answer = flow_permission.see_answer in permissions
+        show_answer = (
+                flow_permission.see_answer_before_submission in permissions
+                or
+                flow_permission.see_answer_after_submission in permissions)
 
     title = fpctx.page.title(page_context, page_data.data)
     body = fpctx.page.body(page_context, page_data.data)

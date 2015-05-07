@@ -290,9 +290,10 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             self.pattern_sym = parse_sympy(pattern)
         except ImportError:
             tp, e, _ = sys.exc_info()
-            vctx.add_warning(location, _("%(location)s: unable to check "
-                    "symbolic expression (%(err_type)s: %(err_str)s)")
-                    % {'location':location, 'err_type':tp.__name__, 'err_str':str(e)})
+            if vctx is not None:
+	            vctx.add_warning(location, _("%(location)s: unable to check "
+	                    "symbolic expression (%(err_type)s: %(err_str)s)")
+	                    % {'location':location, 'err_type':tp.__name__, 'err_str':str(e)})
 
         except:
             tp, e, _ = sys.exc_info()
@@ -692,7 +693,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
-        CA_PATTERN = _("A correct answer is: '%s'.")
+        CA_PATTERN = _("A correct answer is: '%s'.")  # noqa
 
         for matcher in self.matchers:
             unspec_correct_answer_text = matcher.correct_answer_text()

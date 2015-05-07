@@ -133,7 +133,8 @@ class flow_permission:  # noqa
 
     .. attribute:: see_correctness
 
-    .. attribute:: see_answer
+    .. attribute:: see_answer_before_submission
+    .. attribute:: see_answer_after_submission
     .. attribute:: set_roll_over_expiration_mode
 
         Grants permission to let a student choose to let a flow
@@ -148,7 +149,8 @@ class flow_permission:  # noqa
     submit_answer = "submit_answer"
     change_answer = "change_answer"
     see_correctness = "see_correctness"
-    see_answer = "see_answer"
+    see_answer_before_submission = "see_answer_before_submission"
+    see_answer_after_submission = "see_answer_after_submission"
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
 
 FLOW_PERMISSION_CHOICES = (
@@ -157,7 +159,10 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.end_session, pgettext("flow permission","End session")),
         (flow_permission.change_answer, pgettext("flow permission","Change already-graded answer")),
         (flow_permission.see_correctness, pgettext("flow permission","See whether an answer is correct")),
-        (flow_permission.see_answer, pgettext("flow permission","See the correct answer")),
+        (flow_permission.see_answer_before_submission,
+            "See the correct answer before answering"),
+        (flow_permission.see_answer_after_submission,
+            "See the correct answer after answering"),
         (flow_permission.set_roll_over_expiration_mode,
             pgettext("flow permission", "Set the session to 'roll over' expiration mode")),
         )

@@ -68,7 +68,7 @@ Here's an example:
            message: "Welcome! This message is brought to you by the access rules."
 
          -
-           permissions: [view, modify, see_correctness, see_answer]
+           permissions: [view, modify, see_correctness, see_answer_after_submission]
 
       grading:
         -

@@ -190,14 +190,21 @@ def set_up_new_course(request):
                 except:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
+
+                    # Work around read-only files on Windows.
+                    # https://docs.python.org/3.5/library/shutil.html#rmtree-example
+
                     import os
                     import stat
                     import shutil
-                    def remove_readonly(func, path, excinfo):
+
+                    def remove_readonly(func, path, _):
+                        "Clear the readonly bit and reattempt the removal"
                         os.chmod(path, stat.S_IWRITE)
                         func(path)
-                    
+
                     shutil.rmtree(repo_path, onerror=remove_readonly)
+
                     raise
 
             except Exception as e:

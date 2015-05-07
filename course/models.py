@@ -304,9 +304,9 @@ class ParticipationTag(models.Model):
 
     def clean(self):
         import re
-        NAME_VALID_RE = re.compile(r"^\w+$")
+        name_valid_re = re.compile(r"^\w+$")
 
-        if NAME_VALID_RE.match(self.name) is None:
+        if name_valid_re.match(self.name) is None:
             # Translators: "Name" is the name of a ParticipationTag
             raise ValidationError({"name": _("Name contains invalid characters.")})
 
@@ -962,6 +962,7 @@ class GradeChange(models.Model):
             verbose_name = _('State'))
 
     attempt_id = models.CharField(max_length=50, null=True, blank=True,
+            default="main",
             # Translators: help text of "attempt_id" in GradeChange class
             help_text=_("Grade changes are grouped by their 'attempt ID' "
             "where later grades with the same attempt ID supersede earlier "

@@ -31,7 +31,8 @@ from django.utils.translation import pgettext
 from django.shortcuts import (  # noqa
         redirect, get_object_or_404)
 from django.contrib import messages  # noqa
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import (
+        PermissionDenied, SuspiciousOperation, ObjectDoesNotExist)
 from django.db import connection
 from django import forms
 from django.db import transaction
@@ -797,25 +798,29 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                 .order_by("start_time"))
 
         from collections import namedtuple
-        SessionProperties = namedtuple("SessionProperties",
+        SessionProperties = namedtuple(  # noqa
+                "SessionProperties",
                 ["due", "grade_description"])
 
         from course.utils import get_session_grading_rule
         from course.content import get_flow_desc
 
-        flow_desc = get_flow_desc(pctx.repo, pctx.course,
-                opportunity.flow_id, pctx.course_commit_sha)
+        try:
+            flow_desc = get_flow_desc(pctx.repo, pctx.course,
+                    opportunity.flow_id, pctx.course_commit_sha)
+        except ObjectDoesNotExist:
+            flow_sessions_and_session_properties = None
+        else:
+            flow_sessions_and_session_properties = []
+            for session in flow_sessions:
+                grading_rule = get_session_grading_rule(
+                        session, pctx.role, flow_desc, now_datetime)
 
-        flow_sessions_and_session_properties = []
-        for session in flow_sessions:
-            grading_rule = get_session_grading_rule(
-                    session, pctx.role, flow_desc, now_datetime)
-
-            session_properties = SessionProperties(
-                    due=grading_rule.due,
-                    grade_description=grading_rule.description)
-            flow_sessions_and_session_properties.append(
-                    (session, session_properties))
+                session_properties = SessionProperties(
+                        due=grading_rule.due,
+                        grade_description=grading_rule.description)
+                flow_sessions_and_session_properties.append(
+                        (session, session_properties))
 
     else:
         flow_sessions_and_session_properties = None

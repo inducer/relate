@@ -10,6 +10,19 @@
 
   <h2>{% trans "Grade Distribution" %}</h2>
 
+  <p>
+    {% if restrict_to_first_attempt %}
+      Showing results for <i>only the first attempt</i> by each participant.
+      <a href="?restrict_to_first_attempt=0">
+        Show all attempts
+      </a>
+    {% else %}
+      Showing results for <i>all attempts</i> by each participant.
+      <a href="?restrict_to_first_attempt=1">
+        Show only the first attempt
+      </a>
+    {% endif %}
+  </p>
   <p> 
     {% blocktrans trimmed with weight=grade_histogram.total_weight count counter=grade_histogram.total_weight %}
       {{ weight }} grade
@@ -33,7 +46,8 @@
   {% for astats in page_answer_stats_list %}
     <div class="page-entry">
       {% if astats.url %}
-        <a href="{{ astats.url }}"><tt>{{ astats.group_id }}/{{ astats.page_id }}</tt></a>:
+      <a href="{{ astats.url }}?restrict_to_first_attempt={{restrict_to_first_attempt}}">
+        <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt></a>:
       {% else %}
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
