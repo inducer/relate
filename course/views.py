@@ -726,9 +726,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             get_session_access_rule,
             get_session_grading_rule)
     access_rule = get_session_access_rule(
-            session, pctx.role, flow_desc, now_datetime)
+            session, participation.role, flow_desc, now_datetime)
     grading_rule = get_session_grading_rule(
-            session, pctx.role, flow_desc, now_datetime)
+            session, participation.role, flow_desc, now_datetime)
 
     request = pctx.request
     if request.method == "POST":

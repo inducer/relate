@@ -27,7 +27,7 @@ THE SOFTWARE.
 import re
 
 from django.shortcuts import (  # noqa
-        redirect, get_object_or_404)
+        render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
 from django.core.exceptions import (
         PermissionDenied, SuspiciousOperation, ObjectDoesNotExist)
@@ -47,6 +47,7 @@ from course.models import (
         GradingOpportunity, GradeChange, GradeStateMachine,
         grade_state_change_types,
         FlowSession)
+from course.views import get_now_or_fake_time
 
 
 # {{{ student grade book
@@ -626,6 +627,91 @@ def view_grades_by_opportunity(pctx, opp_id):
 # }}}
 
 
+# {{{ reopen session UI
+
+NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
+
+
+class ReopenSessionForm(StyledForm):
+    def __init__(self, flow_desc, current_tag, *args, **kwargs):
+        super(ReopenSessionForm, self).__init__(*args, **kwargs)
+
+        rules = getattr(flow_desc, "rules", object())
+        tags = getattr(rules, "tags", [])
+
+        tags = [NONE_SESSION_TAG] + tags
+        self.fields["set_access_rules_tag"] = forms.ChoiceField(
+                [(tag, tag) for tag in tags],
+                initial=(current_tag
+                    if current_tag is not None
+                    else NONE_SESSION_TAG))
+
+        self.fields["comment"] = forms.CharField(
+                widget=forms.Textarea, required=True)
+
+        self.helper.add_input(
+                Submit(
+                    "reopen", "Reopen", css_class="col-lg-offset-2"))
+
+
+@course_view
+@transaction.atomic
+def view_reopen_session(pctx, flow_session_id, opportunity_id):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    session = get_object_or_404(FlowSession, id=int(flow_session_id))
+
+    from course.content import get_flow_desc
+    try:
+        flow_desc = get_flow_desc(pctx.repo, pctx.course, session.flow_id,
+                pctx.course_commit_sha)
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    if request.method == "POST":
+        form = ReopenSessionForm(flow_desc, session.access_rules_tag,
+            request.POST, request.FILES)
+
+        if form.is_valid():
+            new_access_rules_tag = form.cleaned_data["set_access_rules_tag"]
+            if new_access_rules_tag == NONE_SESSION_TAG:
+                new_access_rules_tag = None
+
+            session.access_rules_tag = new_access_rules_tag
+
+            from relate.utils import local_now, as_local_time
+            session.append_comment(
+                    "Session reopened at %s by %s, "
+                    "previous completion time was '%s': %s."
+                    % (local_now(), pctx.request.user,
+                        as_local_time(session.completion_time),
+                        form.cleaned_data["comment"]))
+            session.save()
+
+            from course.flow import reopen_session
+            reopen_session(session, suppress_log=True)
+
+            return redirect("relate-view_single_grade",
+                    pctx.course.identifier,
+                    session.participation.id,
+                    opportunity_id)
+
+    else:
+        form = ReopenSessionForm(flow_desc, session.access_rules_tag)
+
+    return render(request, "generic-form.html", {
+        "form": form,
+        "form_description": "Reopen session"
+        })
+
+# }}}
+
+
 # {{{ view single grade
 
 def average_grade(opportunity):
@@ -671,7 +757,6 @@ def average_grade(opportunity):
 
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
-    from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(pctx.request)
 
     participation = get_object_or_404(Participation,
@@ -723,7 +808,6 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             op = action_match.group(1)
 
             from course.flow import (
-                    reopen_session,
                     regrade_session,
                     recalculate_session_grade,
                     expire_flow_session_standalone,
@@ -742,11 +826,6 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                             now_datetime=now_datetime)
                     messages.add_message(pctx.request, messages.SUCCESS,
                             "Session ended.")
-
-                elif op == "reopen":
-                    reopen_session(session)
-                    messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session reopened.")
 
                 elif op == "regrade":
                     regrade_session(
