@@ -37,7 +37,7 @@ from django.db import transaction
 
 from django.views.decorators.cache import cache_control
 
-from crispy_forms.layout import Submit
+from crispy_forms.layout import Submit, Layout, Div
 
 from relate.utils import StyledForm
 from bootstrap3_datetime.widgets import DateTimePicker
@@ -57,6 +57,9 @@ from course.models import (
 
 from course.content import (get_course_repo, get_course_desc)
 from course.utils import course_view, render_course_page
+
+
+NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
 
 
 # {{{ home
@@ -535,7 +538,6 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     else:
         access_rules_tags = []
 
-    NONE_SESSION_TAG = "<<<NONE>>>"
     session_tag_choices = [
             (tag, tag)
             for tag in access_rules_tags] + [(NONE_SESSION_TAG, "(None)")]
@@ -629,19 +631,42 @@ class ExceptionStage3Form(StyledForm):
             "do not expire and remain valid indefinitely, unless overridden by "
             "another exception.")
 
-    def __init__(self, default_data, base_session_tag, *args, **kwargs):
+    def __init__(self, default_data, flow_desc, base_session_tag, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
 
-        self.fields["restrict_to_same_tag"] = forms.BooleanField(
-                label="Exception only applies to sessions with tag '%s'"
-                % base_session_tag,
-                required=False,
-                initial=default_data.get("restrict_to_same_tag", True))
+        rules = getattr(flow_desc, "rules", object())
+        tags = getattr(rules, "tags", [])
 
+        layout = [Div("access_expires", css_class="well")]
+        if tags:
+            tags = [NONE_SESSION_TAG] + tags
+            self.fields["set_access_rules_tag"] = forms.ChoiceField(
+                    [(tag, tag) for tag in tags],
+                    initial=(base_session_tag
+                        if base_session_tag is not None
+                        else NONE_SESSION_TAG))
+            self.fields["restrict_to_same_tag"] = forms.BooleanField(
+                    label="Exception only applies to sessions with the above tag",
+                    required=False,
+                    initial=default_data.get("restrict_to_same_tag", True))
+
+            layout.append(
+                    Div("set_access_rules_tag", "restrict_to_same_tag",
+                        css_class="well"))
+
+        permission_ids = []
         for key, name in FLOW_PERMISSION_CHOICES:
             self.fields[key] = forms.BooleanField(label=name, required=False,
                     initial=default_data.get(key) or False)
 
+            permission_ids.append(key)
+
+        layout.append(Div(*permission_ids, css_class="well"))
+
+        self.fields["due_same_as_access_expiration"] = forms.BooleanField(
+                required=False, help_text="If set, the 'Due' field will be "
+                "disregarded.",
+                initial=default_data.get("due_same_as_access_expiration") or False)
         self.fields["due"] = forms.DateTimeField(
                 widget=DateTimePicker(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
@@ -650,22 +675,24 @@ class ExceptionStage3Form(StyledForm):
                 "time after which "
                 "any session under these rules is subject to expiration.",
                 initial=default_data.get("due"))
-        self.fields["due_same_as_access_expiration"] = forms.BooleanField(
-                required=False, help_text="If True, the 'Due' field will be "
-                "disregarded.",
-                initial=default_data.get("due_same_as_access_expiration") or False)
 
         self.fields["credit_percent"] = forms.IntegerField(required=False,
                 initial=default_data.get("credit_percent"))
+        layout.append(Div("due_same_as_access_expiration", "due", "credit_percent",
+            css_class="well"))
 
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
                 initial=default_data.get("comment"))
 
+        layout.append("comment")
+
         self.helper.add_input(
                 Submit(
                     "save", "Save",
                     css_class="col-lg-offset-2"))
+
+        self.helper.layout = Layout(*layout)
 
     def clean(self):
         if (self.cleaned_data["access_expires"] is None
@@ -705,7 +732,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
     request = pctx.request
     if request.method == "POST":
-        form = ExceptionStage3Form({}, session.access_rules_tag, request.POST)
+        form = ExceptionStage3Form(
+                {}, flow_desc, session.access_rules_tag, request.POST)
 
         from course.constants import flow_rule_kind
 
@@ -754,6 +782,14 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             fre_access.save()
 
             # }}}
+
+            new_access_rules_tag = form.cleaned_data["set_access_rules_tag"]
+            if new_access_rules_tag == NONE_SESSION_TAG:
+                new_access_rules_tag = None
+
+            if session.access_rules_tag != new_access_rules_tag:
+                session.access_rules_tag = new_access_rules_tag
+                session.save()
 
             # {{{ put together grading rule
 
@@ -828,13 +864,14 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
         for perm in access_rule.permissions:
             data[perm] = True
 
-        form = ExceptionStage3Form(data, session.access_rules_tag)
+        form = ExceptionStage3Form(data, flow_desc, session.access_rules_tag)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": "Grant Exception",
-        "form_text": "<div class='well'>Granting exception to '%s' for '%s'.</div>"
-        % (participation, flow_id),
+        "form_text": "<div class='well'>Granting exception to '%s' for '%s' "
+        "(session %s).</div>"
+        % (participation, flow_id, strify_session_for_exception(session))
     })
 
 # }}}
