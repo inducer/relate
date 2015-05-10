@@ -35,10 +35,12 @@ from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
 from django.utils import six
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext
-from django.utils.translation import string_concat
-from django.utils.translation import pgettext
+from django.utils.translation import (
+        ugettext_lazy as _ ,
+        ugettext,
+        string_concat,
+        pgettext,
+        )
 from django.utils.functional import lazy
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
@@ -477,7 +479,8 @@ def grant_exception(pctx):
 
 def strify_session_for_exception(session):
     from relate.utils import as_local_time
-    result = ("started at %s" % as_local_time(session.start_time)
+    # Translators: %s is the string of the start time of a session.
+    result = (_("started at %s") % as_local_time(session.start_time)
             .strftime('%b %d %Y - %I:%M %p'))
 
     if session.access_rules_tag:
@@ -535,7 +538,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     participation = get_object_or_404(Participation, id=participation_id)
 
-    form_text = (string_concat("<div class='well'>", ugettext("Granting exception to '%(participation)s' for '%(flow_id)s'"), ".</div>")
+    form_text = (string_concat("<div class='well'>", ugettext("Granting exception to '%(participation)s' for '%(flow_id)s'."), "</div>")
         % {'participation':participation, 'flow_id':flow_id})
 
     from course.content import get_flow_desc
@@ -855,7 +858,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": ugettext("Grant Exception"),
-        "form_text": string_concat("<div class='well'>", ugettext("Granting exception to '%(participation)s' for '%(flow_id)s'"), ".</div>")
+        "form_text": string_concat("<div class='well'>", ugettext("Granting exception to '%(participation)s' for '%(flow_id)s'."), "</div>")
         % {'participation':participation, 'flow_id':flow_id},
     })
 

@@ -56,7 +56,6 @@ MIDDLEWARE_CLASSES = (
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "course.auth.ImpersonateMiddleware",
-
 )
 
 
@@ -177,6 +176,5 @@ TEMPLATES = [
 ]
 
 LOCALE_PATHS = (
-    BASE_DIR+ '/locale',    
+    BASE_DIR+ '/locale',
 )
-    

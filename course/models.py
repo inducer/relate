@@ -29,8 +29,14 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import pgettext
+from django.utils.translation import (
+        ugettext_lazy as _ , 
+        pgettext_lazy, 
+        ugettext_noop,
+        string_concat, 
+        ugettext,
+        )
+
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
@@ -77,9 +83,10 @@ class FacilityIPRange(models.Model):
 
     ip_range = models.CharField(
             max_length=200,
-            verbose_name = _("IP Range"))
+            verbose_name = _("IP range"))
 
-    description = models.CharField(max_length=100,)
+    description = models.CharField(max_length=100,
+            verbose_name = _('Ip range description'))
 
     class Meta:
         verbose_name = _("Facility IP Range")
@@ -109,15 +116,20 @@ def get_user_status(user):
 
 
 class UserStatus(models.Model):
-    user = models.OneToOneField(User, db_index=True, related_name="user_status")
+    user = models.OneToOneField(User, db_index=True, related_name="user_status",
+            verbose_name = _('User ID'))
     status = models.CharField(max_length=50,
-            choices=USER_STATUS_CHOICES)
+            choices=USER_STATUS_CHOICES,
+            verbose_name = _('User status'))
     sign_in_key = models.CharField(max_length=50,
-            null=True, unique=True, db_index=True, blank=True)
-    key_time = models.DateTimeField(default=now)
+            null=True, unique=True, db_index=True, blank=True,
+            # Translators: the signing token of the user.
+            verbose_name = _('Sign in key'))
+    key_time = models.DateTimeField(default=now,
+            # Translators: the time when the key is generated.
+            verbose_name = _('Key time'))
 
-    editor_mode = models.CharField(max_length=20,
-            # Translators: the text editor used by participants
+    editor_mode = models.CharField(max_length=20,            
             choices=(
                 ("default", _("Default")),
                 ("sublime", "Sublime text"),
@@ -125,6 +137,7 @@ class UserStatus(models.Model):
                 ("vim", "Vim"),
                 ),
             default="default",
+            # Translators: the text editor used by participants
             verbose_name = _("Editor mode"))
 
     class Meta:
@@ -155,7 +168,7 @@ class Course(models.Model):
     listed = models.BooleanField(
             default=True,
             help_text=_("Should the course be listed on the main page?"),
-            verbose_name = _('Listed in main page'))
+            verbose_name = _('Listed on main page'))
     accepts_enrollment = models.BooleanField(
             default=True, verbose_name = _('Accepts enrollment'))
     valid = models.BooleanField(
@@ -197,8 +210,9 @@ class Course(models.Model):
             verbose_name = _('Enrollment required email suffix'))
 
     from_email = models.EmailField(
+            # Translators: replace "RELATE" with the brand name of you website if necessary.
             help_text=_("This email address will be used in the 'From' line "
-            "of automated emails sent by %(RELATE)s.") % {"RELATE": _("RELATE")},
+            "of automated emails sent by RELATE."),
             verbose_name = _('From email'))
 
     notify_email = models.EmailField(
@@ -253,7 +267,7 @@ class Event(models.Model):
     """
 
     course = models.ForeignKey(Course,
-            verbose_name = _('Course'))
+            verbose_name = _('Course ID'))
     kind = models.CharField(max_length=50,
             # Translators: format of event kind in Event model
             help_text=_("Should be lower_case_with_underscores, no spaces allowed."),
@@ -294,7 +308,7 @@ class Event(models.Model):
 
 class ParticipationTag(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name = _('Course'))    
+            verbose_name = _('Course ID'))    
     
     name = models.CharField(max_length=100, unique=True,
             # Translators: name format of ParticipationTag
@@ -321,11 +335,13 @@ class ParticipationTag(models.Model):
 
 
 class Participation(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User,
+            verbose_name = _('User ID'))
     course = models.ForeignKey(Course, related_name="participations",
-            verbose_name = _('Course'))
+            verbose_name = _('Course ID'))
 
-    enroll_time = models.DateTimeField(default=now)
+    enroll_time = models.DateTimeField(default=now,
+            verbose_name = _('Enroll time'))
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
             help_text=_("Instructors may update course content. "
@@ -339,18 +355,20 @@ class Participation(models.Model):
 
     time_factor = models.DecimalField(
             max_digits=10, decimal_places=2,
-            default=1)
+            default=1,
+            verbose_name = _('Time factor'))
 
     preview_git_commit_sha = models.CharField(max_length=200, null=True,
             blank=True,
             verbose_name = _('Preview git commit sha'))
 
-    tags = models.ManyToManyField(ParticipationTag, blank=True)
+    tags = models.ManyToManyField(ParticipationTag, blank=True,
+            verbose_name = _('Tags'))
 
     def __unicode__(self):
-        # Translators: displayed in admin: some user in some course as some role
+        # Translators: displayed format of Participation: some user in some course as some role
         return _("%(user)s in %(course)s as %(role)s") % {
-                'user':self.user, 'course':self.course, 'role':self.role}
+                'user':self.user, 'course':self.course, 'role':dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
 
     class Meta:
         verbose_name = _("Participation")
@@ -363,7 +381,7 @@ class ParticipationPreapproval(models.Model):
     email = models.EmailField(max_length=254,
             verbose_name = _('Email'))
     course = models.ForeignKey(Course,
-            verbose_name = _('Course'))
+            verbose_name = _('Course ID'))
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
             verbose_name = _('Role'))
@@ -388,7 +406,7 @@ class ParticipationPreapproval(models.Model):
 
 class InstantFlowRequest(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name = _('Course'))
+            verbose_name = _('Course ID'))
     flow_id = models.CharField(max_length=200,
             verbose_name = _('Flow ID'))
     start_time = models.DateTimeField(default=now,
@@ -408,7 +426,7 @@ class FlowSession(models.Model):
     # This looks like it's redundant with 'participation', below--but it's not.
     # 'participation' is nullable.
     course = models.ForeignKey(Course,
-            verbose_name = _('Course'))
+            verbose_name = _('Course ID'))
 
     participation = models.ForeignKey(Participation, null=True, blank=True,
             db_index=True,
@@ -515,6 +533,8 @@ class FlowPageData(models.Model):
             verbose_name = _('Page ID'))
 
     data = JSONField(null=True, blank=True,
+            # Show correct characters in admin for non ascii languages.
+            dump_kwargs={'ensure_ascii': False},
             verbose_name = _('Data'))
 
     class Meta:
@@ -559,6 +579,8 @@ class FlowPageVisit(models.Model):
             verbose_name = _('Is synthetic'))
 
     answer = JSONField(null=True, blank=True,
+            # Show correct characters in admin for non ascii languages.
+            dump_kwargs={'ensure_ascii': False},            
             # Translators: "Answer" is a Noun.
             verbose_name = _('Answer'))
 
@@ -630,6 +652,8 @@ class FlowPageVisitGrade(models.Model):
             verbose_name = _('Graded at git commit sha'))
 
     grade_data = JSONField(null=True, blank=True,
+            # Show correct characters in admin for non ascii languages.
+            dump_kwargs={'ensure_ascii': False}, 
             verbose_name = _('Grade data'))
 
     # This data should be recomputable, but we'll cache it here,
@@ -653,6 +677,7 @@ class FlowPageVisitGrade(models.Model):
     # separately for efficiency.
 
     feedback = JSONField(null=True, blank=True,
+            # Show correct characters in admin for non ascii languages.
             dump_kwargs={'ensure_ascii': False},
             # Translators: "Feedback" stands for the feedback of answers.
             verbose_name = _('Feedback'))
@@ -692,6 +717,8 @@ class FlowPageBulkFeedback(models.Model):
             verbose_name = _('Grade'))
 
     bulk_feedback = JSONField(null=True, blank=True,
+            # Show correct characters in admin for non ascii languages.
+            dump_kwargs={'ensure_ascii': False},                              
             verbose_name = _('Bulk feedback'))
 
 
@@ -763,6 +790,7 @@ class FlowAccessException(models.Model):
             "credit_percent. If not specified here, values will default "
             "to the stipulations in the course content."),
             validators=[validate_stipulations],
+            dump_kwargs={'ensure_ascii': False}, 
             verbose_name = _('Stipulations'))
 
     creator = models.ForeignKey(User, null=True,
@@ -827,11 +855,11 @@ class FlowRuleException(models.Model):
 
     kind = models.CharField(max_length=50, blank=False, null=False,
             choices=FLOW_RULE_KIND_CHOICES,
-            verbose_name = pgettext('the kind of flow rule exception','Kind'))
+            verbose_name = _('Kind'))
     rule = YAMLField(blank=False, null=False,
-            verbose_name = pgettext('the kind of flow rule exception','Rule'))
+            verbose_name = _('Rule'))
     active = models.BooleanField(default=True,
-            verbose_name = pgettext("whether the flow rule exception is activated", "Active"))
+            verbose_name = pgettext_lazy("is the flow rule exception activated?","Active"))
 
     def __unicode__(self):
         # Translators: For FlowRuleException
@@ -899,7 +927,7 @@ class FlowRuleException(models.Model):
 
 class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name = _('Course'))
+            verbose_name = _('Course ID'))
 
     identifier = models.CharField(max_length=200, blank=False, null=False,
             # Translators: format of identifier for GradingOpportunity
@@ -951,7 +979,7 @@ class GradeChange(models.Model):
     ones.
     """
     opportunity = models.ForeignKey(GradingOpportunity,
-            verbose_name = _('Opportunity'))
+            verbose_name = _('Grading opportunity'))
 
     participation = models.ForeignKey(Participation,
             verbose_name = _('Participation'))

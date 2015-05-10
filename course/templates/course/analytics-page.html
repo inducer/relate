@@ -20,14 +20,18 @@
 
   <p>
     {% if restrict_to_first_attempt %}
-      Showing results for <i>only the first attempt</i> by each participant.
+        {% comment %} 
+            Translators: the following are the options when showing attempts of particiants in 
+            grade analytics.
+        {% endcomment %}
+      {% trans "Showing results for <i>only the first attempt</i> by each participant." %}
       <a href="?restrict_to_first_attempt=0">
-        Show all attempts
+        {% trans "Show all attempts" %}
       </a>
     {% else %}
-      Showing results for <i>all attempts</i> by each participant.
+      {% trans "Showing results for <i>all attempts</i> by each participant." %}
       <a href="?restrict_to_first_attempt=1">
-        Show only the first attempt
+        {% trans "Show only the first attempt" %}
       </a>
     {% endif %}
   </p>

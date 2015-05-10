@@ -31,8 +31,12 @@ import django.forms as forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext, pgettext, string_concat
+from django.utils.translation import (
+        ugettext_lazy as _ , 
+        ugettext, 
+        pgettext, 
+        string_concat,
+        )
 
 from django.db import transaction
 
@@ -194,16 +198,16 @@ def set_up_new_course(request):
                     # Work around read-only files on Windows.
                     # https://docs.python.org/3.5/library/shutil.html#rmtree-example
 
-                    import os
-                    import stat
-                    import shutil
-
-                    def remove_readonly(func, path, _):
-                        "Clear the readonly bit and reattempt the removal"
-                        os.chmod(path, stat.S_IWRITE)
-                        func(path)
-
-                    shutil.rmtree(repo_path, onerror=remove_readonly)
+#                    import os
+#                    import stat
+#                    import shutil
+#
+#                    def remove_readonly(func, path, _):
+#                        "Clear the readonly bit and reattempt the removal"
+#                        os.chmod(path, stat.S_IWRITE)
+#                        func(path)
+#
+#                    shutil.rmtree(repo_path, onerror=remove_readonly)
 
                     raise
 

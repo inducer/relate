@@ -35,9 +35,11 @@ from django.forms import ValidationError as FormValidationError
 from django.utils import six
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext
-from django.utils.translation import string_concat
+from django.utils.translation import (
+        ugettext_lazy as _ ,
+        ugettext,
+        string_concat,
+        )
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 

@@ -27,8 +27,7 @@ THE SOFTWARE.
 
 import django.forms as forms
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext
+from django.utils.translation import ugettext_lazy as _ , ugettext
 
 from relate.utils import StyledForm
 from course.page.base import (
