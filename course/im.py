@@ -23,7 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from django.utils.translation import ugettext as _ , pgettext
+from django.utils.translation import ugettext as _ , pgettext_lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages  # noqa
@@ -47,7 +47,8 @@ import threading
 # {{{ instant message
 
 class InstantMessageForm(forms.Form):
-    message = forms.CharField(required=True, max_length=200)
+    message = forms.CharField(required=True, max_length=200,
+            label=pgettext_lazy("Instant message","message"))
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
@@ -57,7 +58,7 @@ class InstantMessageForm(forms.Form):
 
         self.helper.add_input(
                 # Translators: literals in this file are about the instant messaging function.
-                Submit("submit", pgettext("Send instant messages", "Send"), css_class="col-lg-offset-2"))
+                Submit("submit", pgettext_lazy("Send instant messages", "Send"), css_class="col-lg-offset-2"))
 
         super(InstantMessageForm, self).__init__(*args, **kwargs)
 

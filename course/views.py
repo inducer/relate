@@ -40,6 +40,7 @@ from django.utils.translation import (
         ugettext,
         string_concat,
         pgettext,
+        pgettext_lazy,
         )
 from django.utils.functional import lazy
 
@@ -307,7 +308,7 @@ class InstantFlowRequestForm(StyledForm):
                 required=True,
                 label=_("Flow ID"))
         self.fields["duration_in_minutes"] = forms.IntegerField(
-                required=True, initial=20, label=pgettext("duration for instant flow","Duration in minutes"))
+                required=True, initial=20, label=pgettext_lazy("duration for instant flow","Duration in minutes"))
 
         self.helper.add_input(
                 Submit("add", pgettext("add an instant flow","Add"), css_class="col-lg-offset-2"))
@@ -642,8 +643,8 @@ class ExceptionStage3Form(StyledForm):
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
-            required=False,            
-            label=_("Access expires"),
+            required=False,
+            label=pgettext_lazy("time when access expires","Access expires"),
             help_text=_("At the specified time, the special access granted below "
             "will expire "
             "and revert to being the same as for the rest of the class. "
@@ -656,11 +657,8 @@ class ExceptionStage3Form(StyledForm):
     def __init__(self, default_data, flow_desc, base_session_tag, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
 
-        self.fields["restrict_to_same_tag"] = forms.BooleanField(
-                label=_("Exception only applies to sessions with tag '%s'")
-                % base_session_tag,
-                required=False,
-                initial=default_data.get("restrict_to_same_tag", True))
+        rules = getattr(flow_desc, "rules", object())
+        tags = getattr(rules, "tags", [])
 
         layout = [Div("access_expires", css_class="well")]
         if tags:
@@ -669,9 +667,10 @@ class ExceptionStage3Form(StyledForm):
                     [(tag, tag) for tag in tags],
                     initial=(base_session_tag
                         if base_session_tag is not None
-                        else NONE_SESSION_TAG))
+                        else NONE_SESSION_TAG),
+                    label=_("Set access rules tag"))
             self.fields["restrict_to_same_tag"] = forms.BooleanField(
-                    label="Exception only applies to sessions with the above tag",
+                    label=_("Exception only applies to sessions with the above tag"),
                     required=False,
                     initial=default_data.get("restrict_to_same_tag", True))
 
@@ -689,9 +688,10 @@ class ExceptionStage3Form(StyledForm):
         layout.append(Div(*permission_ids, css_class="well"))
 
         self.fields["due_same_as_access_expiration"] = forms.BooleanField(
-                required=False, help_text="If set, the 'Due' field will be "
-                "disregarded.",
-                initial=default_data.get("due_same_as_access_expiration") or False)
+                required=False, help_text=_("If set, the 'Due' field will be "
+                "disregarded."),
+                initial=default_data.get("due_same_as_access_expiration") or False,
+                label=_("Due same as access expiration"))
         self.fields["due"] = forms.DateTimeField(
                 widget=DateTimePicker(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
@@ -701,11 +701,6 @@ class ExceptionStage3Form(StyledForm):
                 "any session under these rules is subject to expiration."),
                 initial=default_data.get("due"),
                 label=_("Due time"))
-        self.fields["due_same_as_access_expiration"] = forms.BooleanField(
-                required=False, help_text=_("If True, the 'Due' field will be "
-                "disregarded."),
-                initial=default_data.get("due_same_as_access_expiration") or False,
-                label=_("Due same as access expiration"))
 
         self.fields["credit_percent"] = forms.IntegerField(required=False,
                 initial=default_data.get("credit_percent"),

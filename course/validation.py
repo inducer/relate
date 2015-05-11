@@ -588,8 +588,8 @@ def validate_flow_permission(ctx, location, permission):
         return
 
     if permission == "see_answer":
-        ctx.add_warning(location, "Uses deprecated 'see_answer' permission--"
-                "replace by 'see_answer_after_submission'")
+        ctx.add_warning(location, _("Uses deprecated 'see_answer' permission--"
+                "replace by 'see_answer_after_submission'"))
         return
 
     if permission not in dict(FLOW_PERMISSION_CHOICES):

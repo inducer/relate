@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 
-from django.utils.translation import ugettext_lazy as _ , pgettext
+from django.utils.translation import ugettext_lazy as _ , pgettext_lazy, ugettext
 from django.shortcuts import (  # noqa
         render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -648,14 +648,16 @@ class ReopenSessionForm(StyledForm):
                 [(tag, tag) for tag in tags],
                 initial=(current_tag
                     if current_tag is not None
-                    else NONE_SESSION_TAG))
+                    else NONE_SESSION_TAG),
+                label=_("Set access rules tag"))
 
         self.fields["comment"] = forms.CharField(
-                widget=forms.Textarea, required=True)
+                widget=forms.Textarea, required=True,
+                label=_("Comment"))
 
         self.helper.add_input(
                 Submit(
-                    "reopen", "Reopen", css_class="col-lg-offset-2"))
+                    "reopen", _("Reopen"), css_class="col-lg-offset-2"))
 
 
 @course_view
@@ -690,11 +692,13 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
 
             from relate.utils import local_now, as_local_time
             session.append_comment(
-                    "Session reopened at %s by %s, "
-                    "previous completion time was '%s': %s."
-                    % (local_now(), pctx.request.user,
-                        as_local_time(session.completion_time),
-                        form.cleaned_data["comment"]))
+                    ugettext("Session reopened at %(now)s by %(user)s, "
+                    "previous completion time was '%(completion_time)s': %(comment)s.")
+                    % {"now":local_now(), 
+                       "user":pctx.request.user,
+                       "completion_time":as_local_time(session.completion_time),
+                       "comment":form.cleaned_data["comment"]
+                      })
             session.save()
 
             from course.flow import reopen_session
@@ -710,7 +714,7 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
 
     return render(request, "generic-form.html", {
         "form": form,
-        "form_description": "Reopen session"
+        "form_description": _("Reopen session")
         })
 
 # }}}
@@ -831,11 +835,6 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     messages.add_message(pctx.request, messages.SUCCESS,
                             _("Session ended."))
 
-                elif op == "reopen":
-                    reopen_session(session)
-                    messages.add_message(pctx.request, messages.SUCCESS,
-                            _("Session reopened."))
-
                 elif op == "regrade":
                     regrade_session(
                             pctx.repo, pctx.course, session)
@@ -942,7 +941,7 @@ class ImportGradesForm(StyledForm):
             help_text=_("Click to <a href='%s' target='_blank'>create</a> "
             "a new grading opportunity. Reload this form when done.")
             % reverse("admin:course_gradingopportunity_add"),
-            label=pgettext("field name in Import grades form","Grading opportunity"))
+            label=pgettext_lazy("field name in Import grades form","Grading opportunity"))
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",

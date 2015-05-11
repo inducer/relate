@@ -255,10 +255,10 @@
                       {% trans "End and grade" %}
                     </button>
                   {% else %}
-                    <button type="submit" name="reopen_{{flow_session.id}}"
+                    <a href="{% url "relate-view_reopen_session" course.identifier flow_session.id opportunity.id %}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
                       {% trans "Reopen" %}
-                    </button>
+                    </a>
                     <button type="submit" name="recalculate_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
                       {% trans "Recalculate grade" %}

@@ -35,6 +35,7 @@ from django.utils.translation import (
         ugettext_lazy as _ , 
         ugettext, 
         pgettext, 
+        pgettext_lazy, 
         string_concat,
         )
 
@@ -198,16 +199,16 @@ def set_up_new_course(request):
                     # Work around read-only files on Windows.
                     # https://docs.python.org/3.5/library/shutil.html#rmtree-example
 
-#                    import os
-#                    import stat
-#                    import shutil
-#
-#                    def remove_readonly(func, path, _):
-#                        "Clear the readonly bit and reattempt the removal"
-#                        os.chmod(path, stat.S_IWRITE)
-#                        func(path)
-#
-#                    shutil.rmtree(repo_path, onerror=remove_readonly)
+                    import os
+                    import stat
+                    import shutil
+
+                    def remove_readonly(func, path, _):
+                        "Clear the readonly bit and reattempt the removal"
+                        os.chmod(path, stat.S_IWRITE)
+                        func(path)
+
+                    shutil.rmtree(repo_path, onerror=remove_readonly)
 
                     raise
 
@@ -341,7 +342,8 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
 
 
 class GitUpdateForm(StyledForm):
-    new_sha = forms.CharField(required=True)
+    new_sha = forms.CharField(required=True,
+            label=pgettext_lazy("new git SHA for revision of course contents","New git SHA"))
 
     def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
@@ -419,21 +421,21 @@ def update_course(pctx):
                 {"new_sha": repo.head()})
 
     text_lines = [
-            string_concat("<b>", _("Current git HEAD"), ":</b> %(commit)s (%(message)s)") % {
+            string_concat("<b>", ugettext("Current git HEAD"), ":</b> %(commit)s (%(message)s)") % {
                 'commit': repo.head(),
                 'message': repo[repo.head()].message.strip()},
-            string_concat("<b>", _("Public active git SHA"), ":</b> %(commit)s (%(message)s)") % {
+            string_concat("<b>", ugettext("Public active git SHA"), ":</b> %(commit)s (%(message)s)") % {
                 'commit': course.active_git_commit_sha,
                 'message': repo[course.active_git_commit_sha.encode()].message.strip()},
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
-            string_concat("<b>", _("Current preview git SHA"), ":</b> %(commit)s (%(message)s)") % {
+            string_concat("<b>", ugettext("Current preview git SHA"), ":</b> %(commit)s (%(message)s)") % {
                 'commit': participation.preview_git_commit_sha,
                 'message': repo[participation.preview_git_commit_sha.encode()].message.strip(),
             })
     else:
-        text_lines.append(string_concat("<b>", _("Current preview git SHA"), ":</b> ", _("None")))
+        text_lines.append(string_concat("<b>", ugettext("Current preview git SHA"), ":</b> ", ugettext("None")))
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
