@@ -165,6 +165,14 @@ urlpatterns = [
         "/$",
         course.grades.view_single_grade,
         name="relate-view_single_grade"),
+    url(r"^course"
+        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/grading/reopen-session"
+        "/(?P<flow_session_id>[0-9]+)"
+        "/(?P<opportunity_id>[0-9]+)"
+        "/$",
+        course.grades.view_reopen_session,
+        name="relate-view_reopen_session"),
 
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
