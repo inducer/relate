@@ -792,7 +792,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             new_access_rule = {"permissions": permissions}
 
-            if (form.cleaned_data["restrict_to_same_tag"]
+            if (form.cleaned_data.get("restrict_to_same_tag")
                     and session.access_rules_tag is not None):
                 new_access_rule["if_has_tag"] = session.access_rules_tag
 
@@ -846,7 +846,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 new_grading_rule["credit_percent"] = \
                         form.cleaned_data["credit_percent"]
 
-            if (form.cleaned_data["restrict_to_same_tag"]
+            if (form.cleaned_data.get("restrict_to_same_tag")
                     and session.access_rules_tag is not None):
                 new_grading_rule["if_has_tag"] = session.access_rules_tag
 
