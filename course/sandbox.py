@@ -58,7 +58,8 @@ class SandboxForm(forms.Form):
                 widget=cm_widget,
                 help_text=mark_safe(
                     help_text + " Press Alt/Cmd+(Shift+)P to preview. "
-                    + cm_help_text))
+                    + cm_help_text),
+                label="Content")
 
         self.helper.add_input(
                 Submit(

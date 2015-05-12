@@ -40,6 +40,8 @@ class ChoiceAnswerForm(StyledForm):
         super(ChoiceAnswerForm, self).__init__(*args, **kwargs)
 
         self.fields["choice"] = field
+        # Translators: "choice" in Choice Answer Form in a choice question.
+        self.fields["choice"].label = "Choice"
 
 
 # {{{ choice question
@@ -104,8 +106,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
             try:
                 choice = str(choice)
             except:
-                raise ValidationError("%s, choice %d: unable to convert to string"
-                        % (location, choice_idx+1))
+                raise ValidationError("%(location)s, choice %(id)d: unable to convert to string"
+                        % {'location':location, 'id':choice_idx+1})
 
             if choice.startswith(self.CORRECT_TAG):
                 correct_choice_count += 1
@@ -115,8 +117,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                         remove_prefix(self.CORRECT_TAG, choice))
 
         if correct_choice_count < 1:
-            raise ValidationError("%s: one or more correct answer(s) "
-                    "expected, %d found" % (location, correct_choice_count))
+            raise ValidationError("%(location)s: one or more correct answer(s) "
+                    "expected, %(correct)d found" % {'location':location, 'correct':correct_choice_count})
 
     def required_attrs(self):
         return super(ChoiceQuestion, self).required_attrs() + (

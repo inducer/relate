@@ -530,7 +530,8 @@ class HumanTextFeedbackForm(StyledForm):
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
                 help_text="Whether the grade and feedback below are to be shown "
-                "to student")
+                "to student",
+                label="Released")
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
                 max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
@@ -538,7 +539,8 @@ class HumanTextFeedbackForm(StyledForm):
                 required=False,
 
                 # avoid unfortunate scroll wheel accidents reported by graders
-                widget=forms.TextInput)
+                widget=forms.TextInput,
+                label="Grade percent")
 
         if point_value is not None:
             self.fields["grade_points"] = forms.FloatField(
@@ -549,7 +551,8 @@ class HumanTextFeedbackForm(StyledForm):
                     required=False,
 
                     # avoid unfortunate scroll wheel accidents reported by graders
-                    widget=forms.TextInput)
+                    widget=forms.TextInput,
+                    label="Grade points")
 
         self.fields["feedback_text"] = forms.CharField(
                 widget=forms.Textarea(),
@@ -557,16 +560,19 @@ class HumanTextFeedbackForm(StyledForm):
                 help_text=mark_safe("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
-                    "RELATE-flavored Markdown</a>"))
+                    "RELATE-flavored Markdown</a>"),
+                label="Feedback text")
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text="Checking this box and submitting the form "
                 "will notify the participant "
-                "with a generic message containing the feedback text")
+                "with a generic message containing the feedback text",
+                label="Notify")
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
                 help_text="Internal notes, not shown to student",
-                required=False)
+                required=False,
+                label="Notes")
 
     def clean(self):
         grade_percent = self.cleaned_data.get("grade_percent")
@@ -666,9 +672,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
             from django.core.mail import send_mail
             from django.conf import settings
-            send_mail("[%s:%s] New notification"
-                    % (page_context.course.identifier,
-                        page_context.flow_session.flow_id),
+            send_mail("[%(identifier)s:%(flow_id)s] New notification"
+                    % {'identifier':page_context.course.identifier,
+                        'flow_id':page_context.flow_session.flow_id},
                     message,
                     settings.ROBOT_EMAIL_FROM,
                     recipient_list=[
