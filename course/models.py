@@ -570,7 +570,7 @@ class FlowPageVisit(models.Model):
             verbose_name = 'Remote address')
 
     is_synthetic = models.BooleanField(default=False,
-            help_text="NEED HELP TEXT"
+            help_text="NEED HELP TEXT",
             verbose_name = 'Is synthetic')
 
     answer = JSONField(null=True, blank=True,
