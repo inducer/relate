@@ -48,7 +48,7 @@ import threading
 
 class InstantMessageForm(forms.Form):
     message = forms.CharField(required=True, max_length=200,
-            label=pgettext_lazy("Instant message","message"))
+            label=pgettext_lazy("Instant message", "Message"))
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()

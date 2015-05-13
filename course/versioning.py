@@ -189,7 +189,7 @@ def set_up_new_course(request):
                                 "You may want to view the events used "
                                 "in the course content and create them. ")
                                 + string_concat('<a href="%s" class="btn btn-primary">',
-                                pgettext("view/create events","Check"), " &raquo;</a>")
+                                pgettext("view/create events", "Check"), " &raquo;</a>")
                                 % reverse("relate-check_events",
                                     args=(new_course.identifier,)))
                 except:
@@ -333,7 +333,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                 "are recognized. ")
                 + string_concat('<p><a href="%s" class="btn btn-primary" '
                 'style="margin-top:8px">', 
-                pgettext("view/create events","Check"), " &raquo;</a></p>")
+                pgettext("view/create events", "Check"), " &raquo;</a></p>")
                 % reverse("relate-check_events",
                     args=(pctx.course.identifier,)))
 
@@ -343,7 +343,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
 
 class GitUpdateForm(StyledForm):
     new_sha = forms.CharField(required=True,
-            label=pgettext_lazy("new git SHA for revision of course contents","New git SHA"))
+            label=pgettext_lazy("new git SHA for revision of course contents", "New git SHA"))
 
     def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
