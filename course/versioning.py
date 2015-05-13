@@ -169,6 +169,8 @@ def set_up_new_course(request):
                                 repo, new_course.course_file,
                                 new_course.events_file, new_sha)
 
+                        del repo
+
                         new_course.valid = True
                         new_course.active_git_commit_sha = new_sha
                         new_course.save()
@@ -202,6 +204,10 @@ def set_up_new_course(request):
                     import os
                     import stat
                     import shutil
+
+                    # Make sure files opened for 'repo' above are actually closed.
+                    import gc
+                    gc.collect()
 
                     def remove_readonly(func, path, _):
                         "Clear the readonly bit and reattempt the removal"
