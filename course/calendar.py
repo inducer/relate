@@ -73,22 +73,22 @@ def check_events(pctx):
 class RecurringEventForm(StyledForm):
     kind = forms.CharField(required=True,
             help_text=_("Should be lower_case_with_underscores, no spaces allowed."),
-            label=pgettext_lazy("kind of event","Kind of event"))
+            label=pgettext_lazy("kind of event", "Kind of event"))
     time = forms.DateTimeField(
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
-            label=pgettext_lazy("starting time of event","Starting time"))
+            label=pgettext_lazy("starting time of event", "Starting time"))
     duration_in_minutes = forms.FloatField(required=False,
             label=_("Duration in minutes"))
     interval = forms.ChoiceField(required=True,
             choices=(
                 ("weekly", _("Weekly")),
                 ),
-            label=pgettext_lazy("interval of recurring events","Interval"))
+            label=pgettext_lazy("interval of recurring events", "Interval"))
     starting_ordinal = forms.IntegerField(required=False,
-            label=pgettext_lazy("Starting ordinal of recurring events","Starting ordinal"))
+            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
     count = forms.IntegerField(required=True,
-            label=pgettext_lazy("Count of recurring events","Count"))
+            label=pgettext_lazy("Count of recurring events", "Count"))
 
     def __init__(self, *args, **kwargs):
         super(RecurringEventForm, self).__init__(*args, **kwargs)
@@ -197,9 +197,9 @@ def create_recurring_events(pctx):
 class RenumberEventsForm(StyledForm):
     kind = forms.CharField(required=True,
             help_text=_("Should be lower_case_with_underscores, no spaces allowed."),
-            label=pgettext_lazy("kind of event","Kind of event"))
+            label=pgettext_lazy("kind of event", "Kind of event"))
     starting_ordinal = forms.IntegerField(required=True, initial=1,
-            label=pgettext_lazy("Starting ordinal of recurring events","Starting ordinal"))
+            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
 
     def __init__(self, *args, **kwargs):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)

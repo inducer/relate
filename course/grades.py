@@ -941,7 +941,7 @@ class ImportGradesForm(StyledForm):
             help_text=_("Click to <a href='%s' target='_blank'>create</a> "
             "a new grading opportunity. Reload this form when done.")
             % reverse("admin:course_gradingopportunity_add"),
-            label=pgettext_lazy("field name in Import grades form","Grading opportunity"))
+            label=pgettext_lazy("field name in Import grades form", "Grading opportunity"))
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",

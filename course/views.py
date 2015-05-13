@@ -308,12 +308,12 @@ class InstantFlowRequestForm(StyledForm):
                 required=True,
                 label=_("Flow ID"))
         self.fields["duration_in_minutes"] = forms.IntegerField(
-                required=True, initial=20, label=pgettext_lazy("duration for instant flow","Duration in minutes"))
+                required=True, initial=20, label=pgettext_lazy("duration for instant flow", "Duration in minutes"))
 
         self.helper.add_input(
-                Submit("add", pgettext("add an instant flow","Add"), css_class="col-lg-offset-2"))
+                Submit("add", pgettext("add an instant flow", "Add"), css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("cancel", pgettext("cancel all instant flow(s)","Cancel all")))
+                Submit("cancel", pgettext("cancel all instant flow(s)", "Cancel all")))
 
 
 @course_view
@@ -559,10 +559,10 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     else:
         access_rules_tags = []
 
-    NONE_SESSION_TAG = string_concat("<<<",_("NONE"), ">>>")
+    NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")
     session_tag_choices = [
             (tag, tag)
-            for tag in access_rules_tags] + [(NONE_SESSION_TAG, string_concat("(",_("NONE"), ")"))]
+            for tag in access_rules_tags] + [(NONE_SESSION_TAG, string_concat("(", _("NONE"), ")"))]
 
     from course.utils import get_session_start_rule
     session_start_rule = get_session_start_rule(pctx.course, participation,
@@ -644,7 +644,7 @@ class ExceptionStage3Form(StyledForm):
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
             required=False,
-            label=pgettext_lazy("time when access expires","Access expires"),
+            label=pgettext_lazy("time when access expires", "Access expires"),
             help_text=_("At the specified time, the special access granted below "
             "will expire "
             "and revert to being the same as for the rest of the class. "

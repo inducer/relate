@@ -40,7 +40,7 @@ from relate.utils import StyledForm
 # {{{ upload question
 
 class FileUploadForm(StyledForm):
-    uploaded_file = forms.FileField(required=True,label=_('Uploaded file'))
+    uploaded_file = forms.FileField(required=True, label=_('Uploaded file'))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
         super(FileUploadForm, self).__init__(*args, **kwargs)
