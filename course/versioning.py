@@ -343,7 +343,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
 
 class GitUpdateForm(StyledForm):
     new_sha = forms.CharField(required=True,
-            label=pgettext_lazy("new git SHA for revision of course contents","New git SHA"))
+            label=pgettext_lazy("new git SHA for revision of course contents", "New git SHA"))
 
     def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)

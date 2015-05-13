@@ -641,7 +641,7 @@ class ExceptionStage3Form(StyledForm):
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
             required=False,
-            label=pgettext_lazy("time when access expires","Access expires"),
+            label=pgettext_lazy("time when access expires", "Access expires"),
             help_text="At the specified time, the special access granted below "
             "will expire "
             "and revert to being the same as for the rest of the class. "

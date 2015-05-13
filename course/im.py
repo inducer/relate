@@ -48,7 +48,7 @@ import threading
 
 class InstantMessageForm(forms.Form):
     message = forms.CharField(required=True, max_length=200,
-            label="message")
+            label="Message")
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
