@@ -209,7 +209,7 @@ class BulkPreapprovalsForm(StyledForm):
     role = forms.ChoiceField(
             choices=PARTICIPATION_ROLE_CHOICES,
             initial=participation_role.student,
-            label=_("Role"))
+            label="Role")
     emails = forms.CharField(required=True, widget=forms.Textarea,
             help_text=_("Enter fully qualified email addresses, one per line."),
             label=_("Emails"))
