@@ -29,11 +29,11 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.utils.translation import (
-        ugettext_lazy as _ , 
-        pgettext_lazy, 
+from django.utils.translation import (  # noqa
+        ugettext_lazy as _,
+        pgettext_lazy,
         ugettext_noop,
-        string_concat, 
+        string_concat,
         ugettext,
         )
 
@@ -143,7 +143,7 @@ class UserStatus(models.Model):
         ordering = ("key_time",)
 
     def __unicode__(self):
-        return "User status for %(user)s" % {'user':self.user}
+        return "User status for %(user)s" % {'user': self.user}
 
 # }}}
 
@@ -209,7 +209,7 @@ class Course(models.Model):
 
     from_email = models.EmailField(
             help_text="This email address will be used in the 'From' line "
-            "of automated emails sent by RELATE."),
+            "of automated emails sent by RELATE.",
             verbose_name='From email')
 
     notify_email = models.EmailField(
@@ -275,7 +275,8 @@ class Event(models.Model):
     end_time = models.DateTimeField(null=True, blank=True,
             verbose_name='End time')
     all_day = models.BooleanField(default=False,
-            # Translators: for when the due time is "All day", how the webpage of a event is displayed.
+            # Translators: for when the due time is "All day", how the webpage
+            # of a event is displayed.
             help_text="Only affects the rendering in the class calendar, "
             "in that a start time is not shown",
             verbose_name='All day')
@@ -361,9 +362,11 @@ class Participation(models.Model):
             verbose_name='Tags')
 
     def __unicode__(self):
-        # Translators: displayed format of Participation: some user in some course as some role
+        # Translators: displayed format of Participation: some user in some course
+        # as some role
         return "%(user)s in %(course)s as %(role)s" % {
-                'user':self.user, 'course':self.course, 'role':dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
+                "user": self.user, "course": self.course,
+                "role": dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
 
     class Meta:
         verbose_name = "Participation"
@@ -388,7 +391,8 @@ class ParticipationPreapproval(models.Model):
 
     def __unicode__(self):
         # Translators: somebody's email in some course in Particiaption Preapproval
-        return "%(email)s in %(course)s" % {"email": self.email, "course": self.course}
+        return "%(email)s in %(course)s" % {
+                "email": self.email, "course": self.course}
 
     class Meta:
         verbose_name = "Participation preapproval"
@@ -410,10 +414,11 @@ class InstantFlowRequest(models.Model):
             verbose_name='End time')
     cancelled = models.BooleanField(default=False,
             verbose_name='Cancelled')
-    
+
     class Meta:
         verbose_name = "Instant flow request"
         verbose_name_plural = "Instant flow requests"
+
 
 # {{{ flow session
 
@@ -469,13 +474,13 @@ class FlowSession(models.Model):
     def __unicode__(self):
         if self.participation is None:
             return "anonymous session %(session_id)d on '%(flow_id)s'" % {
-                    'session_id':self.id,
-                    'flow_id':self.flow_id}
+                    'session_id': self.id,
+                    'flow_id': self.flow_id}
         else:
             return "%(user)s's session %(session_id)d on '%(flow_id)s'" % {
-                    'user':self.participation.user,
-                    'session_id':self.id,
-                    'flow_id':self.flow_id}
+                    'user': self.participation.user,
+                    'session_id': self.id,
+                    'flow_id': self.flow_id}
 
     def append_comment(self, s):
         if s is None:
@@ -538,11 +543,12 @@ class FlowPageData(models.Model):
 
     def __unicode__(self):
         # flow page data
-        return "Data for page '%(group_id)s/%(page_id)s' (ordinal %(ordinal)s) in %(flow_session)s" % {
-                'group_id':self.group_id,
-                'page_id':self.page_id,
-                'ordinal':self.ordinal,
-                'flow_session':self.flow_session}
+        return ("Data for page '%(group_id)s/%(page_id)s' "
+                "(ordinal %(ordinal)s) in %(flow_session)s" % {
+                    'group_id': self.group_id,
+                    'page_id': self.page_id,
+                    'ordinal': self.ordinal,
+                    'flow_session': self.flow_session})
 
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
@@ -579,7 +585,7 @@ class FlowPageVisit(models.Model):
 
     answer = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
-            dump_kwargs={'ensure_ascii': False},            
+            dump_kwargs={'ensure_ascii': False},
             # Translators: "Answer" is a Noun.
             verbose_name='Answer')
 
@@ -592,19 +598,22 @@ class FlowPageVisit(models.Model):
     # True means it's a final, submitted answer fit for grading.
     # False means it's just a saved answer.
     is_submitted_answer = models.NullBooleanField(
-            # Translators: determine whether the answer is a final, submitted answer fit for grading.
+            # Translators: determine whether the answer is a final,
+            # submitted answer fit for grading.
             verbose_name='Is submitted answer')
 
     def __unicode__(self):
         # Translators: flow page visit
-        result = "'%(group_id)s/%(page_id)s' in '%(session)s' on %(time)s" % {
-                'group_id':self.page_data.group_id,
-                'page_id':self.page_data.page_id,
-                'session':self.flow_session,
-                'time':self.visit_time}
+        result = (
+                "'%(group_id)s/%(page_id)s' in '%(session)s' on %(time)s" % {
+                    "group_id": self.page_data.group_id,
+                    "page_id": self.page_data.page_id,
+                    "session": self.flow_session,
+                    "time": self.visit_time})
 
         if self.answer is not None:
-            # Translators: flow page visit: if the answer is provided by user then append the string.
+            # Translators: flow page visit: if the answer is provided by user
+            # then append the string.
             result += unicode(" (with answer)")
 
         return result
@@ -652,7 +661,7 @@ class FlowPageVisitGrade(models.Model):
 
     grade_data = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
-            dump_kwargs={'ensure_ascii': False}, 
+            dump_kwargs={'ensure_ascii': False},
             verbose_name='Grade data')
 
     # This data should be recomputable, but we'll cache it here,
@@ -704,7 +713,7 @@ class FlowPageVisitGrade(models.Model):
     def __unicode__(self):
         # information on FlowPageVisitGrade class
         return "grade of %(visit)s: %(percentage)s" % {
-                'visit':self.visit, 'percentage':self.percentage()}
+                "visit": self.visit, "percentage": self.percentage()}
 
 
 class FlowPageBulkFeedback(models.Model):
@@ -717,7 +726,7 @@ class FlowPageBulkFeedback(models.Model):
 
     bulk_feedback = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
-            dump_kwargs={'ensure_ascii': False},                              
+            dump_kwargs={'ensure_ascii': False},
             verbose_name='Bulk feedback')
 
 
@@ -783,13 +792,14 @@ class FlowAccessException(models.Model):
             verbose_name='Expiration')
 
     stipulations = JSONField(blank=True, null=True,
-            # Translators: help text for stipulations in FlowAccessException (deprecated) 
+            # Translators: help text for stipulations in FlowAccessException
+            # (deprecated)
             help_text="A dictionary of the same things that can be added "
             "to a flow access rule, such as allowed_session_count or "
             "credit_percent. If not specified here, values will default "
             "to the stipulations in the course content.",
             validators=[validate_stipulations],
-            dump_kwargs={'ensure_ascii': False}, 
+            dump_kwargs={'ensure_ascii': False},
             verbose_name='Stipulations')
 
     creator = models.ForeignKey(User, null=True,
@@ -812,8 +822,8 @@ class FlowAccessException(models.Model):
     def __unicode__(self):
         # Translators: flow access exception in admin (deprecated)
         return "Access exception for '%(user)s' to '%(flow_id)s' in '%(course)s'" % {
-                'user':self.participation.user, 'flow_id':self.flow_id,
-                'course':self.participation.course}
+                "user": self.participation.user, "flow_id": self.flow_id,
+                "course": self.participation.course}
 
 
 class FlowAccessExceptionEntry(models.Model):
@@ -858,14 +868,18 @@ class FlowRuleException(models.Model):
     rule = YAMLField(blank=False, null=False,
             verbose_name='Rule')
     active = models.BooleanField(default=True,
-            verbose_name=pgettext_lazy("is the flow rule exception activated?", "Active"))
+            verbose_name=pgettext_lazy(
+                "Is the flow rule exception activated?", "Active"))
 
     def __unicode__(self):
         # Translators: For FlowRuleException
-        return "%(kind)s exception for '%(user)s' to '%(flow_id)s' in '%(course)s'" % {
-                'kind':self.kind,
-                'user':self.participation.user, 'flow_id':self.flow_id,
-                'course':self.participation.course}
+        return (
+                "%(kind)s exception for '%(user)s' to '%(flow_id)s' in '%(course)s'"
+                % {
+                    "kind": self.kind,
+                    "user": self.participation.user,
+                    "flow_id": self.flow_id,
+                    "course": self.participation.course})
 
     def clean(self):
         if (self.kind == flow_rule_kind.grading
@@ -944,7 +958,8 @@ class GradingOpportunity(models.Model):
 
     aggregation_strategy = models.CharField(max_length=20,
             choices=GRADE_AGGREGATION_STRATEGY_CHOICES,
-            # Translators: strategy on how the grading of mutiple sessioins are aggregated.
+            # Translators: strategy on how the grading of mutiple sessioins are
+            # aggregated.
             verbose_name='Aggregation strategy')
 
     due_time = models.DateTimeField(default=None, blank=True, null=True,
@@ -966,7 +981,9 @@ class GradingOpportunity(models.Model):
     def __unicode__(self):
         # Translators: For GradingOpportunity
         return "%(opportunity_name)s (%(opportunity_id)s) in %(course)s" % {
-            'opportunity_name':self.name, 'opportunity_id':self.identifier, 'course':self.course}
+            "opportunity_name": self.name,
+            "opportunity_id": self.identifier,
+            "course": self.course}
 
 
 class GradeChange(models.Model):
@@ -1019,15 +1036,15 @@ class GradeChange(models.Model):
 
     class Meta:
         verbose_name = "Grade change"
-        verbose_name_plural = "Grade changes" 
+        verbose_name_plural = "Grade changes"
         ordering = ("opportunity", "participation", "grade_time")
 
     def __unicode__(self):
         # Translators: information for GradeChange
         return "%(participation)s %(state)s on %(opportunityname)s" % {
-            'participation':self.participation, 
-            'state':self.state,
-            'opportunityname':self.opportunity.name}
+            "participation": self.participation,
+            "state": self.state,
+            "opportunityname": self.opportunity.name}
 
     def clean(self):
         if self.opportunity.course != self.participation.course:
@@ -1212,7 +1229,9 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
             identifier=grading_rule.grade_identifier,
             defaults=dict(
                 # Translators: name of flow with prefix "Flow"
-                name="Flow: %(flow_desc_title)s" % {"flow_desc_title":flow_desc.title},
+                name=(
+                    "Flow: %(flow_desc_title)s"
+                    % {"flow_desc_title": flow_desc.title}),
                 flow_id=flow_id,
                 aggregation_strategy=grading_rule.grade_aggregation_strategy,
                 ))
@@ -1234,7 +1253,7 @@ class InstantMessage(models.Model):
 
     class Meta:
         verbose_name = "Instant message"
-        verbose_name_plural = "Instant messages" 
+        verbose_name_plural = "Instant messages"
         ordering = ("participation__course", "time")
 
     def __unicode__(self):
