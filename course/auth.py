@@ -125,8 +125,7 @@ class ImpersonateForm(StyledForm):
                     ],
                 required=True,
                 help_text=_("Select user to impersonate."),
-                label=_("User")
-        )
+                label=_("User"))
 
         self.helper.add_input(Submit("submit", _("Impersonate"),
             css_class="col-lg-offset-2"))

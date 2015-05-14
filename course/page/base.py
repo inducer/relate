@@ -537,7 +537,8 @@ class HumanTextFeedbackForm(StyledForm):
 
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
-                help_text=_("Whether the grade and feedback below are to be shown to student"),
+                help_text=_("Whether the grade and feedback below are to be shown "
+                "to student"),
                 label=_("Released"))
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,

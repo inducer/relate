@@ -122,12 +122,13 @@ class UserStatus(models.Model):
             choices=USER_STATUS_CHOICES,
             verbose_name=_('User status'))
     sign_in_key = models.CharField(max_length=50,
-            help_text=_("a sign in token sent out in email"),
+    key_time = models.DateTimeField(default=now)
+            help_text=_("The sign in token sent out in email."),
             null=True, unique=True, db_index=True, blank=True,
             # Translators: the sign in token of the user.
             verbose_name=_('Sign in key'))
     key_time = models.DateTimeField(default=now,
-            help_text=_("time stamp that a sign in token is sent out in email"),
+            help_text=_("The time stamp of the sign in token."),
             # Translators: the time when the token is sent out.
             verbose_name=_('Key time'))
 
@@ -161,6 +162,7 @@ class Course(models.Model):
             "no spaces. This is visible in URLs and determines the location "
             "on your file system where the course's git repository lives."),
             verbose_name=_('Course identifier'),
+            verbose_name='Course identifier',
             db_index=True)
 
     hidden = models.BooleanField(
