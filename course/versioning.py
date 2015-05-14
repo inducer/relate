@@ -31,11 +31,11 @@ import django.forms as forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.core.urlresolvers import reverse
-from django.utils.translation import (
-        ugettext_lazy as _ , 
-        ugettext, 
-        pgettext, 
-        pgettext_lazy, 
+from django.utils.translation import (  # noqa
+        ugettext_lazy as _,
+        ugettext,
+        pgettext,
+        pgettext_lazy,
         string_concat,
         )
 
@@ -209,12 +209,17 @@ def set_up_new_course(request):
                     import gc
                     gc.collect()
 
-                    def remove_readonly(func, path, _):
+                    def remove_readonly(func, path, _):  # noqa
                         "Clear the readonly bit and reattempt the removal"
                         os.chmod(path, stat.S_IWRITE)
                         func(path)
 
-                    shutil.rmtree(repo_path, onerror=remove_readonly)
+                    try:
+                        shutil.rmtree(repo_path, onerror=remove_readonly)
+                    except OSError:
+                        messages.add_message(request, messages.WARNING,
+                                ugettext("Failed to delete unused repository directory '%s'.")
+                                % repo_path)
 
                     raise
 

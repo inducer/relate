@@ -308,7 +308,8 @@ class InstantFlowRequestForm(StyledForm):
                 required=True,
                 label=_("Flow ID"))
         self.fields["duration_in_minutes"] = forms.IntegerField(
-                required=True, initial=20, label=pgettext_lazy("duration for instant flow", "Duration in minutes"))
+                required=True, initial=20,
+                label=pgettext_lazy("duration for instant flow", "Duration in minutes"))
 
         self.helper.add_input(
                 Submit("add", pgettext("add an instant flow", "Add"), css_class="col-lg-offset-2"))
