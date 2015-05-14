@@ -224,9 +224,12 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             flow_session, flow_session.participation.role,
             fpctx.flow_desc, get_now_or_fake_time(pctx.request))
 
-    grading_opportunity = get_flow_grading_opportunity(
-            pctx.course, flow_session.flow_id, fpctx.flow_desc,
-            grading_rule)
+    if grading_rule.grade_identifier is not None:
+        grading_opportunity = get_flow_grading_opportunity(
+                pctx.course, flow_session.flow_id, fpctx.flow_desc,
+                grading_rule)
+    else:
+        grading_opportunity = None
 
     return render_course_page(
             pctx,

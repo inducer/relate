@@ -52,15 +52,17 @@
           <th>Property</th><th>Value</th>
         </thead>
         <tbody>
-        <tr>
-          <td>Flow session</td>
-          <td>
-            <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
-            for
-            {{ flow_session.participation.user.last_name }}, {{ flow_session.participation.user.first_name }}
-            ({{ flow_session.participation.user.username }})
-          </td>
-        </tr>
+        {% if grading_opportunity != None %}
+          <tr>
+            <td>Flow session</td>
+            <td>
+              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
+              for
+              {{ flow_session.participation.user.last_name }}, {{ flow_session.participation.user.first_name }}
+              ({{ flow_session.participation.user.username }})
+            </td>
+          </tr>
+        {% endif %}
         <tr>
           <td>
             {% if prev_flow_session_id != None %}
