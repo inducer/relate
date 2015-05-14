@@ -122,7 +122,6 @@ class UserStatus(models.Model):
             choices=USER_STATUS_CHOICES,
             verbose_name=_('User status'))
     sign_in_key = models.CharField(max_length=50,
-    key_time = models.DateTimeField(default=now)
             help_text=_("The sign in token sent out in email."),
             null=True, unique=True, db_index=True, blank=True,
             # Translators: the sign in token of the user.
@@ -162,7 +161,6 @@ class Course(models.Model):
             "no spaces. This is visible in URLs and determines the location "
             "on your file system where the course's git repository lives."),
             verbose_name=_('Course identifier'),
-            verbose_name='Course identifier',
             db_index=True)
 
     hidden = models.BooleanField(
