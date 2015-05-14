@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
+from django.utils.translation import ugettext_lazy as _, pgettext_lazy
 from django.contrib.auth.decorators import login_required
 from course.utils import course_view, render_course_page
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
@@ -72,17 +72,23 @@ def check_events(pctx):
 
 class RecurringEventForm(StyledForm):
     kind = forms.CharField(required=True,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.")
+            help_text="Should be lower_case_with_underscores, no spaces allowed.",
+            label=pgettext_lazy("kind of event", "Kind of event"))
     time = forms.DateTimeField(
             widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}))
-    duration_in_minutes = forms.FloatField(required=False)
+                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+            label=pgettext_lazy("starting time of event", "Starting time"))
+    duration_in_minutes = forms.FloatField(required=False,
+            label="Duration in minutes")
     interval = forms.ChoiceField(required=True,
             choices=(
                 ("weekly", "Weekly"),
-                ))
-    starting_ordinal = forms.IntegerField(required=False)
-    count = forms.IntegerField(required=True)
+                ),
+            label=pgettext_lazy("interval of recurring events", "Interval"))
+    starting_ordinal = forms.IntegerField(required=False,
+            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
+    count = forms.IntegerField(required=True,
+            label=pgettext_lazy("Count of recurring events", "Count"))
 
     def __init__(self, *args, **kwargs):
         super(RecurringEventForm, self).__init__(*args, **kwargs)
@@ -190,8 +196,10 @@ def create_recurring_events(pctx):
 
 class RenumberEventsForm(StyledForm):
     kind = forms.CharField(required=True,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.")
-    starting_ordinal = forms.IntegerField(required=True, initial=1)
+            help_text="Should be lower_case_with_underscores, no spaces allowed.",
+            label=pgettext_lazy("kind of event", "Kind of event"))
+    starting_ordinal = forms.IntegerField(required=True, initial=1,
+            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
 
     def __init__(self, *args, **kwargs):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)

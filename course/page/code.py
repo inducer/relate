@@ -54,7 +54,8 @@ class PythonCodeForm(StyledForm):
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
             help_text=cm_help_text,
-            widget=cm_widget)
+            widget=cm_widget,
+            label="Answer")
 
     def clean(self):
         # FIXME Should try compilation

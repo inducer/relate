@@ -336,12 +336,14 @@ class ModifySessionsForm(StyledForm):
         self.fields["rule_tag"] = forms.ChoiceField(
                 choices=tuple(
                     (rule_tag, str(rule_tag))
-                    for rule_tag in session_rule_tags))
+                    for rule_tag in session_rule_tags),
+                label="Rule tag")
         self.fields["past_due_only"] = forms.BooleanField(
                 required=False,
                 initial=True,
                 help_text="Only act on in-progress sessions that are past "
-                "their access rule's due date (applies to 'expire' and 'end')")
+                "their access rule's due date (applies to 'expire' and 'end')",
+                label="Past due only")
 
         self.helper.add_input(
                 Submit("expire", "Expire sessions",
@@ -644,10 +646,12 @@ class ReopenSessionForm(StyledForm):
                 [(tag, tag) for tag in tags],
                 initial=(current_tag
                     if current_tag is not None
-                    else NONE_SESSION_TAG))
+                    else NONE_SESSION_TAG),
+                label="Set access rules tag")
 
         self.fields["comment"] = forms.CharField(
-                widget=forms.Textarea, required=True)
+                widget=forms.Textarea, required=True,
+                label="Comment")
 
         self.helper.add_input(
                 Submit(
@@ -932,31 +936,39 @@ class ImportGradesForm(StyledForm):
                 .order_by("identifier")),
             help_text="Click to <a href='%s' target='_blank'>create</a> "
             "a new grading opportunity. Reload this form when done."
-            % reverse("admin:course_gradingopportunity_add"))
+            % reverse("admin:course_gradingopportunity_add"),
+            label="Grading opportunity")
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",
-                required=True)
-        self.fields["file"] = forms.FileField()
+                required=True,
+                label="Attempt ID")
+        self.fields["file"] = forms.FileField(
+                label="File")
 
         self.fields["format"] = forms.ChoiceField(
                 choices=(
                     ("csvhead", "CSV with Header"),
                     ("csv", "CSV"),
-                    ))
+                    ),
+                label="Format")
 
         self.fields["id_column"] = forms.IntegerField(
                 help_text="1-based column index for the Email or NetID "
                 "used to locate student record",
-                min_value=1)
+                min_value=1,
+                label="User ID column")
         self.fields["points_column"] = forms.IntegerField(
                 help_text="1-based column index for the (numerical) grade",
-                min_value=1)
+                min_value=1,
+                label="Points column")
         self.fields["feedback_column"] = forms.IntegerField(
                 help_text="1-based column index for further (textual) feedback",
-                min_value=1, required=False)
+                min_value=1, required=False,
+                label="Feedback column")
         self.fields["max_points"] = forms.DecimalField(
-            initial=100)
+            initial=100,
+            label="Max points")
 
         self.helper.add_input(
                 Submit("preview", "Preview",

@@ -34,6 +34,17 @@ import django.views.decorators.http as http_dec
 from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
+from django.utils import six
+from django.utils.translation import (
+        ugettext_lazy as _ ,
+        ugettext,
+        string_concat,
+        pgettext,
+        pgettext_lazy,
+        )
+from django.utils.functional import lazy
+
+mark_safe_lazy = lazy(mark_safe, six.text_type)
 
 from django.views.decorators.cache import cache_control
 
@@ -211,7 +222,8 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
             widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}))
+                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+            label='Time')
 
     def __init__(self, *args, **kwargs):
         super(FakeTimeForm, self).__init__(*args, **kwargs)
@@ -291,9 +303,11 @@ class InstantFlowRequestForm(StyledForm):
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
-                required=True)
+                required=True,
+                label="Flow ID")
         self.fields["duration_in_minutes"] = forms.IntegerField(
-                required=True, initial=20)
+                required=True, initial=20,
+                label="Duration in minutes")
 
         self.helper.add_input(
                 Submit("add", "Add", css_class="col-lg-offset-2"))
@@ -365,7 +379,8 @@ class FlowTestForm(StyledForm):
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
-                required=True)
+                required=True,
+                label="Flow ID")
 
         self.helper.add_input(
                 Submit("test", mark_safe("Go &raquo;"), css_class="col-lg-offset-2"))
@@ -423,10 +438,12 @@ class ExceptionStage1Form(StyledForm):
                         )
                     .order_by("user__last_name")),
                 required=True,
-                help_text="Select participant for whom exception is to be granted.")
+                help_text="Select participant for whom exception is to be granted.",
+                label="Participant")
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
-                required=True)
+                required=True,
+                label="Flow ID")
 
         self.helper.add_input(
                 Submit(
@@ -483,7 +500,8 @@ class CreateSessionForm(StyledForm):
                 choices=session_tag_choices,
                 initial=default_tag,
                 help_text="If you click 'Create session', this tag will be "
-                "applied to the new session.")
+                "applied to the new session.",
+                label="Access rules tag for new session")
 
         if create_session_is_override:
             self.helper.add_input(
@@ -504,7 +522,8 @@ class ExceptionStage2Form(StyledForm):
                     (session.id, strify_session_for_exception(session))
                     for session in sessions),
                 help_text="The rules that currently apply to selected session "
-                "will provide the default values for the rules on the next page.")
+                "will provide the default values for the rules on the next page.",
+                label="Session")
 
         self.helper.add_input(Submit("next", mark_safe("Next &raquo;"),
                     css_class="col-lg-offset-2"))
@@ -622,6 +641,7 @@ class ExceptionStage3Form(StyledForm):
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
             required=False,
+            label=pgettext_lazy("time when access expires", "Access expires"),
             help_text="At the specified time, the special access granted below "
             "will expire "
             "and revert to being the same as for the rest of the class. "
@@ -644,7 +664,8 @@ class ExceptionStage3Form(StyledForm):
                     [(tag, tag) for tag in tags],
                     initial=(base_session_tag
                         if base_session_tag is not None
-                        else NONE_SESSION_TAG))
+                        else NONE_SESSION_TAG),
+                    label="Set access rules tag")
             self.fields["restrict_to_same_tag"] = forms.BooleanField(
                     label="Exception only applies to sessions with the above tag",
                     required=False,
@@ -666,24 +687,28 @@ class ExceptionStage3Form(StyledForm):
         self.fields["due_same_as_access_expiration"] = forms.BooleanField(
                 required=False, help_text="If set, the 'Due' field will be "
                 "disregarded.",
-                initial=default_data.get("due_same_as_access_expiration") or False)
+                initial=default_data.get("due_same_as_access_expiration") or False,
+                label="Due same as access expiration")
         self.fields["due"] = forms.DateTimeField(
                 widget=DateTimePicker(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False,
-                help_text="The due date shown to the student. Also, the "
+                help_text="The due time shown to the student. Also, the "
                 "time after which "
                 "any session under these rules is subject to expiration.",
-                initial=default_data.get("due"))
+                initial=default_data.get("due"),
+                label="Due time")
 
         self.fields["credit_percent"] = forms.IntegerField(required=False,
-                initial=default_data.get("credit_percent"))
+                initial=default_data.get("credit_percent"),
+                label="Credit percent")
         layout.append(Div("due_same_as_access_expiration", "due", "credit_percent",
             css_class="well"))
 
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
-                initial=default_data.get("comment"))
+                initial=default_data.get("comment"),
+                label="Comment")
 
         layout.append("comment")
 

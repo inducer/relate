@@ -124,7 +124,8 @@ class ImpersonateForm(StyledForm):
                         key=lambda user: user.last_name.lower())
                     ],
                 required=True,
-                help_text="Select user to impersonate.")
+                help_text="Select user to impersonate.",
+                label="User")
 
         self.helper.add_input(Submit("submit", "Impersonate",
             css_class="col-lg-offset-2"))
@@ -269,7 +270,7 @@ def sign_in_by_user_pw(request):
 
 
 class SignUpForm(StyledModelForm):
-    username = forms.CharField(required=True, max_length=30)
+    username = forms.CharField(required=True, max_length=30, label="Username")
 
     class Meta:
         model = User
@@ -352,7 +353,7 @@ def sign_up(request):
 
 
 class ResetPasswordForm(StyledForm):
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(required=True, label="Email")
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordForm, self).__init__(*args, **kwargs)
@@ -412,8 +413,10 @@ def reset_password(request):
 
 
 class ResetPasswordStage2Form(StyledForm):
-    password = forms.CharField(widget=forms.PasswordInput())
-    password_repeat = forms.CharField(widget=forms.PasswordInput())
+    password = forms.CharField(widget=forms.PasswordInput(),
+                              label="Password")
+    password_repeat = forms.CharField(widget=forms.PasswordInput(),
+                              label="Password repeat")
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
@@ -484,7 +487,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
 # {{{ email sign-in flow
 
 class SignInByEmailForm(StyledForm):
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(required=True, label="Email")
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)

@@ -47,7 +47,8 @@ import threading
 # {{{ instant message
 
 class InstantMessageForm(forms.Form):
-    message = forms.CharField(required=True, max_length=200)
+    message = forms.CharField(required=True, max_length=200,
+            label="Message")
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
@@ -163,10 +164,10 @@ def send_instant_message(pctx):
 
     xmpp = get_xmpp_connection(pctx.course)
     if xmpp.is_recipient_online():
-        form_text = "Recipient is <span class=\"label label-success\">Online</span>."
+        form_text = "Recipient is <span class='label label-success'>Online</span>."
     else:
-        form_text = "Recipient is <span class=\"label label-danger\">Offline</span>."
-    form_text = "<div class=\"well\">%s</div>" % form_text
+        form_text = "Recipient is <span class='label label-danger'>Offline</span>."
+    form_text = "<div class='well'>%s</div>" % form_text
 
     if request.method == "POST":
         form = InstantMessageForm(request.POST, request.FILES)

@@ -207,9 +207,11 @@ deny_enrollment.short_description = "Deny enrollment"
 class BulkPreapprovalsForm(StyledForm):
     role = forms.ChoiceField(
             choices=PARTICIPATION_ROLE_CHOICES,
-            initial=participation_role.student)
+            initial=participation_role.student,
+            label="Role")
     emails = forms.CharField(required=True, widget=forms.Textarea,
-            help_text="Enter fully qualified email addresses, one per line.")
+            help_text="Enter fully qualified email addresses, one per line.",
+            label="Emails")
 
     def __init__(self, *args, **kwargs):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)

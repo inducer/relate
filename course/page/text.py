@@ -91,7 +91,8 @@ class TextAnswerForm(StyledForm):
         self.fields["answer"] = forms.CharField(
                 required=True,
                 widget=widget,
-                help_text=help_text)
+                help_text=help_text,
+                label="Answer")
 
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()

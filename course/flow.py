@@ -1372,17 +1372,20 @@ class RegradeFlowForm(StyledForm):
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 initial=participation_role.student,
-                required=True)
+                required=True,
+                label="Flow ID")
         self.fields["access_rules_tag"] = forms.CharField(
                 required=False,
                 help_text="If non-empty, limit the regrading to sessions started "
-                "under this access rules tag.")
+                "under this access rules tag.",
+                label="Access rules tag")
         self.fields["regraded_session_in_progress"] = forms.ChoiceField(
                 choices=(
                     ("any", "Regrade in-progress and not-in-progress sessions"),
                     ("yes", "Regrade in-progress sessions only"),
                     ("no", "Regrade not-in-progress sessions only"),
-                    ))
+                    ),
+                label="Regraded session in progress")
 
         self.helper.add_input(
                 Submit("regrade", "Regrade", css_class="col-lg-offset-2"))
