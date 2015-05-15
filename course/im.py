@@ -23,7 +23,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from django.utils.translation import ugettext as _ , pgettext_lazy
+from django.utils.translation import (
+        ugettext as _, pgettext_lazy)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages  # noqa
@@ -57,8 +58,11 @@ class InstantMessageForm(forms.Form):
         self.helper.field_class = "col-lg-8"
 
         self.helper.add_input(
-                # Translators: literals in this file are about the instant messaging function.
-                Submit("submit", pgettext_lazy("Send instant messages", "Send"), css_class="col-lg-offset-2"))
+                # Translators: literals in this file are about the instant 
+                # messaging function.
+                Submit("submit", 
+                       pgettext_lazy("Send instant messages", "Send"),
+                       css_class="col-lg-offset-2"))
 
         super(InstantMessageForm, self).__init__(*args, **kwargs)
 
@@ -165,9 +169,11 @@ def send_instant_message(pctx):
 
     xmpp = get_xmpp_connection(pctx.course)
     if xmpp.is_recipient_online():
-        form_text = _("Recipient is <span class='label label-success'>Online</span>.")
+        form_text = _("Recipient is <span class='label label-success'>"
+                      "Online</span>.")
     else:
-        form_text = _("Recipient is <span class='label label-danger'>Offline</span>.")
+        form_text = _("Recipient is <span class='label label-danger'>"
+                      "Offline</span>.")
     form_text = "<div class='well'>%s</div>" % form_text
 
     if request.method == "POST":
@@ -195,7 +201,8 @@ def send_instant_message(pctx):
                 print_exc()
 
                 messages.add_message(request, messages.ERROR,
-                        _("An error occurred while sending the message. Sorry."))
+                        _("An error occurred while sending the message. "
+                          "Sorry."))
             else:
                 messages.add_message(request, messages.SUCCESS,
                         _("Message sent."))

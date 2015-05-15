@@ -24,7 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 from django.utils import six
-from django.utils.translation import ugettext_lazy as _ , string_concat
+from django.utils.translation import (
+        ugettext_lazy as _, string_concat)
 from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -530,8 +531,11 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         return finish_flow_session(fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
     else:
-        raise ValueError(_("invalid expiration mode '%(mode)s' on flow session ID %(session_id)d")
-                % {'mode':flow_session.expiration_mode, 'session_id':flow_session.id})
+        raise ValueError(
+                _("invalid expiration mode '%(mode)s' on flow session ID"
+                "%(session_id)d") % {
+                    'mode': flow_session.expiration_mode,
+                    'session_id': flow_session.id})
 
 
 def grade_flow_session(fctx, flow_session, grading_rule,
@@ -558,8 +562,10 @@ def grade_flow_session(fctx, flow_session, grading_rule,
             and grading_rule.credit_percent is not None
             and grading_rule.credit_percent != 100):
         # Translators: grade flow: calculating grade.
-        comment = _("Counted at %(percent).1f%% of %(point).1f points") % {
-                'percent':grading_rule.credit_percent, 'point':points}
+        comment = (
+                _("Counted at %(percent).1f%% of %(point).1f points") % {
+                    'percent': grading_rule.credit_percent,
+                    'point': points})
         points = points * grading_rule.credit_percent / 100
 
     flow_session.points = points
@@ -622,9 +628,11 @@ def grade_flow_session(fctx, flow_session, grading_rule,
 
 def reopen_session(session, force=False, suppress_log=False):
     if session.in_progress:
-        raise RuntimeError(_("Can't reopen a session that's already in progress"))
+        raise RuntimeError(
+                _("Can't reopen a session that's already in progress"))
     if session.participation is None:
-        raise RuntimeError(_("Can't reopen anonymous sessions"))
+        raise RuntimeError(
+                _("Can't reopen anonymous sessions"))
 
     if not force:
         other_in_progress_sessions = (FlowSession.objects
@@ -644,8 +652,10 @@ def reopen_session(session, force=False, suppress_log=False):
 
     if not suppress_log:
         session.append_comment(
-                _("Session reopened at %(now)s, previous completion time was '%(complete_time)s'.")
-                % {'now':local_now(), 'complete_time':as_local_time(session.completion_time)})
+                _("Session reopened at %(now)s, previous completion time "
+                "was '%(complete_time)s'.") % {
+                    'now': local_now(),
+                    'complete_time': as_local_time(session.completion_time)})
 
     session.completion_time = None
     session.save()
@@ -709,7 +719,8 @@ def regrade_session(repo, course, session):
     else:
         prev_completion_time = session.completion_time
 
-        session.append_comment(_("Session regraded at %(time)s.") % {'time':local_now()})
+        session.append_comment(
+                _("Session regraded at %(time)s.") % {'time': local_now()})
         session.save()
 
         reopen_session(session, force=True, suppress_log=True)
@@ -729,7 +740,8 @@ def recalculate_session_grade(repo, course, session):
 
     prev_completion_time = session.completion_time
 
-    session.append_comment(_("Session grade recomputed at %(time)s.") % {'time':local_now()})
+    session.append_comment(
+            _("Session grade recomputed at %(time)s.") % {'time': local_now()})
     session.save()
 
     reopen_session(session, force=True, suppress_log=True)
@@ -902,12 +914,18 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
         if fpctx.page_data.ordinal + 1 < flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next",
-                        mark_safe_lazy(string_concat(_("Save answer and move on"), " &raquo;")),
+                        mark_safe_lazy(
+                            string_concat(
+                                _("Save answer and move on"),
+                                " &raquo;")),
                         css_class="relate-save-button"))
         else:
             form.helper.add_input(
                     Submit("save_and_finish",
-                        mark_safe_lazy(string_concat(_("Save answer and finish"), " &raquo;")),
+                        mark_safe_lazy(
+                            string_concat(
+                                _("Save answer and finish"),
+                                " &raquo;")),
                         css_class="relate-save-button"))
 
     return form
@@ -1230,9 +1248,11 @@ def update_expiration_mode(pctx, flow_session_id):
     flow_session = get_object_or_404(FlowSession, id=flow_session_id)
 
     if flow_session.participation != pctx.participation:
-        raise PermissionDenied(_("may only change your own flow sessions"))
+        raise PermissionDenied(
+                _("may only change your own flow sessions"))
     if not flow_session.in_progress:
-        raise PermissionDenied(_("may only change in-progress flow sessions"))
+        raise PermissionDenied(
+                _("may only change in-progress flow sessions"))
 
     expmode = pctx.request.POST.get("expiration_mode")
     if not any(expmode == em_key
@@ -1311,10 +1331,12 @@ def finish_flow_session_view(pctx, flow_session_id):
             raise SuspiciousOperation(_("odd POST parameters"))
 
         if not flow_session.in_progress:
-            raise PermissionDenied(_("Can't end a session that's already ended"))
+            raise PermissionDenied(
+                    _("Can't end a session that's already ended"))
 
         if flow_permission.end_session not in access_rule.permissions:
-            raise PermissionDenied(_("not permitted to end session"))
+            raise PermissionDenied(
+                    _("not permitted to end session"))
 
         grading_rule = get_session_grading_rule(
                 flow_session, pctx.role, fctx.flow_desc, now_datetime)
@@ -1381,14 +1403,17 @@ class RegradeFlowForm(StyledForm):
                 label=_("Flow ID"))
         self.fields["access_rules_tag"] = forms.CharField(
                 required=False,
-                help_text=_("If non-empty, limit the regrading to sessions started "
-                "under this access rules tag."),
+                help_text=_("If non-empty, limit the regrading to sessions "
+                "started under this access rules tag."),
                 label=_("Access rules tag"))
         self.fields["regraded_session_in_progress"] = forms.ChoiceField(
                 choices=(
-                    ("any", _("Regrade in-progress and not-in-progress sessions")),
-                    ("yes", _("Regrade in-progress sessions only")),
-                    ("no", _("Regrade not-in-progress sessions only")),
+                    ("any", 
+                        _("Regrade in-progress and not-in-progress sessions")),
+                    ("yes", 
+                        _("Regrade in-progress sessions only")),
+                    ("no", 
+                        _("Regrade not-in-progress sessions only")),
                     ),
                 label=_("Regraded session in progress"))
 
@@ -1447,11 +1472,13 @@ def regrade_not_for_credit_flows_view(pctx):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_text":
-        string_concat("<p>", _("This regrading process is only intended for flows "
-        "that do not show up in the grade book."
-        "If you would like to regrade for-credit flows, "
-        "use the corresponding functionality in the grade book."), "</p>"),
+        "form_text": string_concat(
+            "<p>",
+            _("This regrading process is only intended for flows that do"
+            "not show up in the grade book. If you would like to regrade"
+            "for-credit flows, use the corresponding functionality in "
+            "the grade book."), 
+            "</p>"),
         "form_description": _("Regrade not-for-credit Flow Sessions"),
     })
 

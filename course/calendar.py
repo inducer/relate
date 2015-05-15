@@ -72,7 +72,8 @@ def check_events(pctx):
 
 class RecurringEventForm(StyledForm):
     kind = forms.CharField(required=True,
-            help_text=_("Should be lower_case_with_underscores, no spaces allowed."),
+            help_text=_("Should be lower_case_with_underscores, no spaces "
+                        "allowed."),
             label=pgettext_lazy("kind of event", "Kind of event"))
     time = forms.DateTimeField(
             widget=DateTimePicker(
@@ -86,7 +87,8 @@ class RecurringEventForm(StyledForm):
                 ),
             label=pgettext_lazy("interval of recurring events", "Interval"))
     starting_ordinal = forms.IntegerField(required=False,
-            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
+            label=pgettext_lazy("Starting ordinal of recurring events", 
+                                "Starting ordinal"))
     count = forms.IntegerField(required=True,
             label=pgettext_lazy("Count of recurring events", "Count"))
 
@@ -121,7 +123,9 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         try:
             evt.save()
         except IntegrityError:
-            raise EventAlreadyExists(_("'%(event_kind)s %(event_ordinal)d' already exists") % {'event_kind':kind, 'event_ordinal':ordinal})
+            raise EventAlreadyExists(
+                _("'%(event_kind)s %(event_ordinal)d' already exists") % 
+                {'event_kind': kind, 'event_ordinal': ordinal})
 
         if interval == "weekly":
             date = time.date()
@@ -170,16 +174,20 @@ def create_recurring_events(pctx):
                 except EventAlreadyExists as e:
                     if starting_ordinal_specified:
                         messages.add_message(request, messages.ERROR,
-                                _("%(err_type)s: %(err_str)s. No events created.") % {
-                                    'err_type':type(e).__name__, 'err_str':str(e)})
+                                _("%(err_type)s: %(err_str)s. No events "
+                                  "created.") % {
+                                      'err_type': type(e).__name__,
+                                      'err_str': str(e)})
                     else:
                         starting_ordinal += 10
                         continue
 
                 except Exception as e:
                     messages.add_message(request, messages.ERROR,
-                            _("%(err_type)s: %(err_str)s. No events created.") % {
-                                'err_type':type(e).__name__, 'err_str':str(e)})
+                            _("%(err_type)s: %(err_str)s. No events created.")
+                            % {
+                                'err_type': type(e).__name__,
+                                'err_str': str(e)})
                 else:
                     messages.add_message(request, messages.SUCCESS,
                             _("Events created."))
@@ -196,10 +204,12 @@ def create_recurring_events(pctx):
 
 class RenumberEventsForm(StyledForm):
     kind = forms.CharField(required=True,
-            help_text=_("Should be lower_case_with_underscores, no spaces allowed."),
+            help_text=_("Should be lower_case_with_underscores, no spaces "
+                        "allowed."),
             label=pgettext_lazy("kind of event", "Kind of event"))
     starting_ordinal = forms.IntegerField(required=True, initial=1,
-            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
+            label=pgettext_lazy("Starting ordinal of recurring events", 
+                                "Starting ordinal"))
 
     def __init__(self, *args, **kwargs):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)

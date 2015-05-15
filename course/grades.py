@@ -26,7 +26,8 @@ THE SOFTWARE.
 
 import re
 
-from django.utils.translation import ugettext_lazy as _ , pgettext_lazy, ugettext
+from django.utils.translation import (
+        ugettext_lazy as _, pgettext_lazy, ugettext)
 from django.shortcuts import (  # noqa
         render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -536,13 +537,16 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                _("Grade recalculated for %d session(s).") % count)
+                                _("Grade recalculated for %d session(s).") 
+                                % count)
 
                     else:
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
-                            _("Error: %(err_type)s %(err_str)s") % {'err_type':type(e).__name__, 'err_str':str(e)})
+                            _("Error: %(err_type)s %(err_str)s") % {
+                                'err_type': type(e).__name__,
+                                'err_str': str(e)})
                     raise
 
         else:
@@ -693,11 +697,12 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
             from relate.utils import local_now, as_local_time
             session.append_comment(
                     ugettext("Session reopened at %(now)s by %(user)s, "
-                    "previous completion time was '%(completion_time)s': %(comment)s.")
-                    % {"now":local_now(), 
-                       "user":pctx.request.user,
-                       "completion_time":as_local_time(session.completion_time),
-                       "comment":form.cleaned_data["comment"]
+                        "previous completion time was '%(completion_time)s': "
+                        "%(comment)s.") % {
+                            "now": local_now(),
+                            "user": pctx.request.user,
+                            "completion_time": as_local_time(session.completion_time),
+                            "comment": form.cleaned_data["comment"]
                       })
             session.save()
 
@@ -852,7 +857,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") % {'err_type':type(e).__name__, 'err_str':str(e)})
+                        _("Error: %(err_type)s %(err_str)s") % {
+                            'err_type': type(e).__name__,
+                            'err_str': str(e)})
     else:
         allow_session_actions = False
 
@@ -941,7 +948,8 @@ class ImportGradesForm(StyledForm):
             help_text=_("Click to <a href='%s' target='_blank'>create</a> "
             "a new grading opportunity. Reload this form when done.")
             % reverse("admin:course_gradingopportunity_add"),
-            label=pgettext_lazy("field name in Import grades form", "Grading opportunity"))
+            label=pgettext_lazy("field name in Import grades form", 
+                                "Grading opportunity"))
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",
@@ -958,7 +966,8 @@ class ImportGradesForm(StyledForm):
                 label=_("Format"))
 
         self.fields["id_column"] = forms.IntegerField(
-                # Translators: the following strings are for the format informatioin for a CSV file to be imported.
+                # Translators: the following strings are for the format informatioin for a 
+                # CSV file to be imported.
                 help_text=_("1-based column index for the Email or NetID "
                 "used to locate student record"),
                 min_value=1,
@@ -1015,10 +1024,12 @@ def find_participant_from_id(course, id_str):
     if not surviving_matches:
         raise ParticipantNotFound(
                 # Translators: use id_string to find user (participant).
-                _("no participant found for '%(id_string)s'") % {"id_string": id_str})
+                _("no participant found for '%(id_string)s'") % {
+                    "id_string": id_str})
     if len(surviving_matches) > 1:
         raise ParticipantNotFound(
-                _("more than one participant found for '%(id_string)s'") % {"id_string": id_str})
+                _("more than one participant found for '%(id_string)s'") % {
+                    "id_string": id_str})
 
     return surviving_matches[0]
 
@@ -1098,9 +1109,10 @@ def csv_to_grade_changes(
                     updated.append("comment")
 
                 if updated:
-                    log_lines.append(_("%(participation)s: %(updated)s updated") % {
-                        'participation':gchange.participation,
-                        'updated':", ".join(updated)})
+                    log_lines.append(_("%(participation)s: %(updated)s "
+                                       "updated") % {
+                        'participation': gchange.participation,
+                        'updated': ", ".join(updated)})
 
                     result.append(gchange)
             else:
@@ -1147,12 +1159,14 @@ def import_grades(pctx):
                         has_header=form.cleaned_data["format"] == "csvhead")
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") % {'err_type':type(e).__name__, 'err_str':str(e)})
+                        _("Error: %(err_type)s %(err_str)s") % {
+                        'err_type': type(e).__name__, 'err_str': str(e)})
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
                             _("%(total)d grades found, %(unchaged)d unchanged.")
-                            % {'total':total_count, 'unchaged':total_count - len(grade_changes)})
+                            % {'total': total_count,
+                               'unchaged': total_count - len(grade_changes)})
 
                 from django.template.loader import render_to_string
 

@@ -36,7 +36,7 @@ from django.utils import six
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
-        ugettext_lazy as _ ,
+        ugettext_lazy as _,
         ugettext,
         string_concat,
         )
@@ -681,8 +681,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
             from django.core.mail import send_mail
             from django.conf import settings
             send_mail("[%(identifier)s:%(flow_id)s] New notification"
-                    % {'identifier':page_context.course.identifier,
-                        'flow_id':page_context.flow_session.flow_id},
+                    % {'identifier': page_context.course.identifier,
+                        'flow_id': page_context.flow_session.flow_id},
                     message,
                     settings.ROBOT_EMAIL_FROM,
                     recipient_list=[

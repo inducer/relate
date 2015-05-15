@@ -23,7 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from django.utils.translation import ugettext_lazy as _ , string_concat
+from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -119,10 +119,20 @@ class ImpersonateForm(StyledForm):
 
         self.fields["user"] = forms.ChoiceField(
                 choices=[
-                    (u.id, "%s - %s, %s" % (u.email, u.last_name, u.first_name))
-                    for u in sorted(impersonees,
-                        key=lambda user: user.last_name.lower())
-                    ],
+                    # Translators: information displayed when select user
+                    # for impersonating, you can use your prefered  
+                    # style. For example %(user_lastname)s, 
+                    # %(user_firstname)s (user_email)s, but all three
+                    # strings should be used.
+                    (u.id, _("(user_email)%s - %(user_lastname)s, "
+                            "%(user_firstname)s")
+                            % {
+                                "user_email":u.email,
+                                "user_lastname":u.last_name,
+                                "user_firstname":u.first_name})
+                            for u in sorted(impersonees,
+                                key=lambda user: user.last_name.lower())
+                            ],
                 required=True,
                 help_text=_("Select user to impersonate."),
                 label=_("User"))
@@ -270,7 +280,8 @@ def sign_in_by_user_pw(request):
 
 
 class SignUpForm(StyledModelForm):
-    username = forms.CharField(required=True, max_length=30, label=_("Username"))
+    username = forms.CharField(required=True, max_length=30, 
+                              label=_("Username"))
 
     class Meta:
         model = User
@@ -286,7 +297,8 @@ class SignUpForm(StyledModelForm):
 
 def sign_up(request):
     if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
-        raise SuspiciousOperation(_("password-based sign-in is not being used"))
+        raise SuspiciousOperation(
+                _("password-based sign-in is not being used"))
 
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -335,11 +347,16 @@ def sign_up(request):
                     })
 
                 from django.core.mail import send_mail
-                send_mail(string_concat('[', _("RELATE"), '] ', _("Verify your email")), message,
-                          settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+                send_mail(
+                        string_concat("[", _("RELATE"), "] ",
+                                     _("Verify your email")),
+                        message,
+                        settings.ROBOT_EMAIL_FROM,
+                        recipient_list=[email])
 
                 messages.add_message(request, messages.INFO,
-                        _("Email sent. Please check your email and click the link."))
+                        _("Email sent. Please check your email and click "
+                        "the link."))
 
                 return redirect("relate-home")
 
@@ -364,7 +381,8 @@ class ResetPasswordForm(StyledForm):
 
 def reset_password(request):
     if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
-        raise SuspiciousOperation(_("password-based sign-in is not being used"))
+        raise SuspiciousOperation(
+                _("password-based sign-in is not being used"))
 
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
@@ -396,11 +414,16 @@ def reset_password(request):
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
-            send_mail(string_concat('[', _("RELATE"), '] ', _("Password reset")), message,
-                          settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+            send_mail(
+                    string_concat('[', _("RELATE"), '] ',
+                                 _("Password reset")),
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[email])
 
             messages.add_message(request, messages.INFO,
-                    _("Email sent. Please check your email and click the link."))
+                    _("Email sent. Please check your email and click "
+                    "the link."))
 
             return redirect("relate-home")
     else:
@@ -439,7 +462,8 @@ def reset_password_stage2(request, user_id, sign_in_key):
 
     if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
         messages.add_message(request, messages.ERROR,
-                _("Invalid sign-in token. Perhaps you've used an old token email?"))
+                _("Invalid sign-in token. Perhaps you've used an old token "
+                "email?"))
         raise PermissionDenied(_("invalid sign-in token"))
 
     if request.method == 'POST':
@@ -535,8 +559,11 @@ def sign_in_by_email(request):
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
-            send_mail(_("Your %(RELATE)s sign-in link") % {"RELATE":_("RELATE")}, 
-                      message, settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+            send_mail(
+                    _("Your %(RELATE)s sign-in link") % {"RELATE": _("RELATE")},
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[email])
 
             messages.add_message(request, messages.INFO,
                     _("Email sent. Please check your email and click the link."))
@@ -559,7 +586,8 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
     user = authenticate(user_id=int(user_id), token=sign_in_key)
     if user is None:
         messages.add_message(request, messages.ERROR,
-                _("Invalid sign-in token. Perhaps you've used an old token email?"))
+                _("Invalid sign-in token. Perhaps you've used an old "
+                "token email?"))
         raise PermissionDenied(_("invalid sign-in token"))
 
     if not user.is_active:

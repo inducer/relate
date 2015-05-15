@@ -23,7 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from django.utils.translation import ugettext_lazy as _ , pgettext
+from django.utils.translation import ugettext_lazy as _, pgettext
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -175,7 +175,8 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             })
 
         from django.core.mail import EmailMessage
-        msg = EmailMessage(_("[%s] Your enrollment request") % course.identifier,
+        msg = EmailMessage(
+                _("[%s] Your enrollment request") % course.identifier,
                 message,
                 course.from_email,
                 [participation.user.email])
@@ -265,8 +266,10 @@ def create_preapprovals(pctx):
                 created_count += 1
 
             messages.add_message(request, messages.INFO,
-                    _("%(n_created)d preapprovals created, %(n_exist)d already existed.")
-                    % {'n_created':created_count, 'n_exist':exist_count})
+                    _("%(n_created)d preapprovals created, "
+                    "%(n_exist)d already existed.") % {
+                        'n_created': created_count,
+                        'n_exist': exist_count})
             return redirect("relate-home")
 
     else:

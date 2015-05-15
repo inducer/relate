@@ -30,7 +30,6 @@ from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-
 from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
@@ -59,7 +58,8 @@ class SandboxForm(forms.Form):
                 initial=initial_text,
                 widget=cm_widget,
                 help_text=mark_safe(
-                    help_text + ugettext(" Press Alt/Cmd+(Shift+)P to preview. ")
+                    help_text 
+                    + ugettext(" Press Alt/Cmd+(Shift+)P to preview. ")
                     + cm_help_text),
                 label=_("Content"))
 
@@ -105,7 +105,8 @@ def view_markup_sandbox(pctx):
 
                 messages.add_message(pctx.request, messages.ERROR,
                         ugettext("Markup failed to render: "
-                        "%(err_type)s: %(err_str)s") % {'err_type':tp.__name__, 'err_str':e})
+                        "%(err_type)s: %(err_str)s") % {
+                            'err_type': tp.__name__, 'err_str': e})
 
         form = make_form(request.POST)
 
@@ -127,7 +128,8 @@ def view_page_sandbox(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to access sandbox"))
+        raise PermissionDenied(
+                ugettext("must be instructor or TA to access sandbox"))
 
     from relate.utils import dict_to_struct
     import yaml
@@ -172,7 +174,8 @@ def view_page_sandbox(pctx):
 
                 page_errors = (
                         _("Page failed to load/validate: "
-                        "%(err_type)s: %(err_str)s") % {'err_type':tp.__name__, 'err_str':e})
+                        "%(err_type)s: %(err_str)s") % {
+                            'err_type': tp.__name__, 'err_str': e})
 
             else:
                 # Yay, it did validate.

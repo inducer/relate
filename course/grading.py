@@ -56,14 +56,17 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to view grades"))
+        raise PermissionDenied(
+                _("must be instructor or TA to view grades"))
 
     flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
 
     if flow_session.course.pk != pctx.course.pk:
-        raise SuspiciousOperation(_("Flow session not part of specified course"))
+        raise SuspiciousOperation(
+                _("Flow session not part of specified course"))
     if flow_session.participation is None:
-        raise SuspiciousOperation(_("Cannot grade anonymous session"))
+        raise SuspiciousOperation(
+                _("Cannot grade anonymous session"))
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
             page_ordinal, participation=flow_session.participation,
@@ -269,7 +272,8 @@ def show_grading_statistics(pctx, flow_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to view grading stats"))
+        raise PermissionDenied(
+                _("must be instructor or TA to view grading stats"))
 
     grades = (FlowPageVisitGrade.objects
             .filter(

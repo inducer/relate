@@ -27,7 +27,7 @@ THE SOFTWARE.
 
 import django.forms as forms
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _ , ugettext
+from django.utils.translation import ugettext_lazy as _, ugettext
 
 from relate.utils import StyledForm
 from course.page.base import (
@@ -108,7 +108,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                 choice = str(choice)
             except:
                 raise ValidationError(_("%(location)s, choice %(id)d: unable to convert to string")
-                        % {'location':location, 'id':choice_idx+1})
+                        % {'location': location, 'id': choice_idx+1})
 
             if choice.startswith(self.CORRECT_TAG):
                 correct_choice_count += 1
@@ -119,7 +119,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         if correct_choice_count < 1:
             raise ValidationError(_("%(location)s: one or more correct answer(s) "
-                    "expected, %(correct)d found") % {'location':location, 'correct':correct_choice_count})
+                    "expected, %(correct)d found") % {'location': location, 'correct': correct_choice_count})
 
     def required_attrs(self):
         return super(ChoiceQuestion, self).required_attrs() + (
@@ -206,7 +206,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        return ("A correct answer is:%s"
+        return ("A correct answer is: %s"
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[corr_idx]).lstrip())
