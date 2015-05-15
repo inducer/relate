@@ -880,7 +880,7 @@ class FlowRuleException(models.Model):
     rule = YAMLField(blank=False, null=False,
             verbose_name=_('Rule'))
     active = models.BooleanField(default=True,
-            verbose_name=pgettext_lazy("is the flow rule exception activated?",
+            verbose_name=pgettext_lazy("Is the flow rule exception activated?",
                             "Active"))
 
     def __unicode__(self):
