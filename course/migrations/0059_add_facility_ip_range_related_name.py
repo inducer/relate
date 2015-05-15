@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('course', '0058_differentiate_see_answer_permisssion'),
+        ('course', '0058_differentiate_see_answer_permission'),
     ]
 
     operations = [
