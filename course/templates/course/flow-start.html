@@ -3,8 +3,7 @@
 
 
 {% block title %}
-    {{flow_desc.title}}
-    - {% trans "RELATE" %}
+  {{flow_desc.title}} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
@@ -52,10 +51,10 @@
               <td>
                 {% if flow_session.points_percentage %}
                   {% blocktrans trimmed with points=flow_session.points|floatformat max_points=flow_session.max_points|floatformat  percentage=flow_session.points_percentage|floatformat %}
-                        <b>{{ points}}</b>
-                      out of
-                        {{ max_points }}
-                        (<b>{{ percentage }}%</b>)
+                  <b>{{ points}}</b>
+                  out of
+                  {{ max_points }}
+                  (<b>{{ percentage }}%</b>)
                   {% endblocktrans %}
                 {% else %}
                   {% trans "(none)" %}
@@ -88,7 +87,7 @@
     {% if may_start %}
       {% if new_session_grading_rule.grade_identifier %}
         <div class="alert alert-info">
-            {% trans "If you start a new session, the following rules will apply:" %}
+          {% trans "If you start a new session, the following rules will apply:" %}
           <ul>
             {% if new_session_grading_rule.description %}
               <li> 
@@ -170,45 +169,48 @@
     {% if may_start or past_sessions_and_properties %}
     {% else %}
       <div class="alert alert-info">
-        <p> 
+        <p>
         <i class="fa fa-exclamation-triangle"></i>
-        {% trans "You do not have any existing sessions and are not allowed to start a new one." %}
-          </p>
+        {% blocktrans trimmed %}
+        You do not have any existing sessions and are not allowed to start
+        a new one.
+        {% endblocktrans %
+        </p>
 
         <p>
-            {% trans "Check the following:" %}
+        {% trans "Check the following:" %}
         <ul>
         {% if not user.is_authenticated %}
         <li> 
-            <a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>.        
-            {% url "relate-home" as relate-home %}
-            {% blocktrans trimmed %} 
-                You're not currently signed in. Access to the resource is restricted,
-                and since the site has no way of knowing who you are, it may have denied
-                you accesss.
-                Once you're signed in, navigate back to your course from the
-                <a href="{{ relate-home }}"> home page </a> and retry your last
-                action.
-            {% endblocktrans %}
+        <a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>.        
+        {% url "relate-home" as relate-home %}
+        {% blocktrans trimmed %} 
+          You're not currently signed in. Access to the resource is restricted,
+          and since the site has no way of knowing who you are, it may have denied
+          you accesss.
+          Once you're signed in, navigate back to your course from the
+          <a href="{{ relate-home }}"> home page </a> and retry your last
+          action.
+         {% endblocktrans %}
         </li>
         {% endif %}
         <li>
           {% trans "Has the deadline for this assignment passed?" %}
         </li>
         <li>
-            {% blocktrans trimmed %}
-                Complete your enrollment in your course. If you're not enrolled, a large
-                "Enroll now" button will show up at the top of your course page. Click that,
-                follow the indicated steps, and then retry your last action.
-            {% endblocktrans %} 
+        {% blocktrans trimmed %}
+        Complete your enrollment in your course. If you're not enrolled, a large
+        "Enroll now" button will show up at the top of your course page. Click that,
+        follow the indicated steps, and then retry your last action.
+        {% endblocktrans %} 
         </li>
         <li> 
-            {% url "relate-home" as relate-home %}
-            {% blocktrans trimmed %}
-                If none of the above steps help, please navigate back to your course from the
-                <a href="{{ relate-home }}"> home page </a> and contact your course staff.
-            {% endblocktrans %}
-         </li>
+        {% url "relate-home" as relate-home %}
+        {% blocktrans trimmed %}
+        If none of the above steps help, please navigate back to your course from the
+        <a href="{{ relate-home }}"> home page </a> and contact your course staff.
+        {% endblocktrans %}
+        </li>
         </ul>
       </div>
       </p>

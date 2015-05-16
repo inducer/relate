@@ -1,36 +1,31 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-
-
-
-
-
 {% load crispy_forms_tags %}
 
 {% block content %}
   <h1>{% trans "Sign in" %}</h1>
 
-  {% if "user_pw" not in student_sign_in_view %}    
+  {% if "user_pw" not in student_sign_in_view %}
     <div class="alert alert-warning">
     {% url student_sign_in_view as student_sign_in_view %}
-    {% blocktrans trimmed %} 
-        If you have a not been assigned a password, you should use the 
-        <a href='{{ student_sign_in_view }}'> standard sign-in process </a>.
-    {% endblocktrans %} 
+    {% blocktrans trimmed %}
+      If you have a not been assigned a password, you should use the 
+      <a href='{{ student_sign_in_view }}'> standard sign-in process </a>.
+    {% endblocktrans %}
     </div>
   {% else %}
     <div class="alert alert-warning">
     {% url "relate-sign_up" as relate-sign_up %}
     {% blocktrans trimmed %}
-        If you do not have an account, 
-        <a href='{{ relate-sign_up }}'>sign up</a>.
+      If you do not have an account,
+      <a href='{{ relate-sign_up }}'>sign up</a>.
     {% endblocktrans %} 
     {% url "relate-reset_password" as relate-reset_password %}
     {% blocktrans trimmed %}
-         If you do not remember your password, 
-        <a href="{{ relate-reset_password }}"> reset your password </a>.
-    {% endblocktrans %} 
+      If you do not remember your password,
+      <a href="{{ relate-reset_password }}"> reset your password </a>.
+    {% endblocktrans %}
     </div>
   {% endif %}
 

@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% url student_sign_in_view arg as student_sign_in_view %}
-
 {% block content %}
   <h1>{% trans "403 Forbidden" %}</h1>
 
@@ -13,16 +11,16 @@
   <ul>
     {% if not user.is_authenticated %}
     <li> 
-        <a href="{{ student_sign_in_view }}"> {% trans "Sign in" %} </a>.
+    <a href="{% url student_sign_in_view %}"> {% trans "Sign in" %} </a>.
 
-        {% url "relate-home" as relate-home %}
-        {% blocktrans trimmed %}
-          You're not currently signed in. Access to the resource is restricted,
-          and since the site has no way of knowing who you are, it denied you accesss.
-          Once you're signed in, navigate back to your course from the
-          <a href="{{ relate-home }}"> home page </a> and retry your last
-          action.
-        {% endblocktrans %}
+    {% url "relate-home" as relate-home %}
+    {% blocktrans trimmed %}
+      You're not currently signed in. Access to the resource is restricted,
+      and since the site has no way of knowing who you are, it denied you accesss.
+      Once you're signed in, navigate back to your course from the
+      <a href="{{ relate-home }}"> home page </a> and retry your last
+      action.
+    {% endblocktrans %}
        </li>
     {% endif %}
       {% url "relate-home" as relate-home %}
@@ -30,12 +28,15 @@
     Complete your enrollment in your course. If you're not enrolled, a large
     "Enroll now" button will show up at the top of your course page. Click that,
     follow the indicated steps, and then retry your last action.
-    {% endblocktrans %} </li>
-    <li> {% blocktrans trimmed %}
+    {% endblocktrans %}
+    </li>
+    <li>
+    {% blocktrans trimmed %}
     If none of the above steps help, please navigate back to your course from the
     <a href="{{ relate-home }}"> home page </a> and contact your course
-    staff.{% endblocktrans %} 
-      </li>
+    staff.
+    {% endblocktrans %} 
+    </li>
   </ul>
 
   {% blocktrans %} Sorry, and thanks for your patience! {% endblocktrans %}

@@ -5,15 +5,16 @@
 {% load static %}
 
 {% block title %} 
-    {% if title %}
-        {% comment %} Translators: "[SB]" is abbreviation for "Sandbox" {% endcomment %}
-        {% blocktrans trimmed %}
-            [SB] {{ title }}
-        {% endblocktrans %}
-    {% else %}
-        {% blocktrans %}Page Sandbox{% endblocktrans %}
-    {% endif %}
-    - {% trans "RELATE" %}
+  {% if title %}
+    {% comment %} Translators: "[SB]" is abbreviation for "Sandbox" {% endcomment %}
+    {% blocktrans trimmed %}
+    [SB] {{ title }}
+    {% endblocktrans %}
+  {% else %}
+    {% blocktrans %}Page Sandbox{% endblocktrans %}
+  {% endif %}
+  -
+  {% trans "RELATE" %}
 {% endblock %}
 
 {% block root_container %}
@@ -21,7 +22,7 @@
     <div class="row">
       <div class="alert alert-warning" style="float:right" id="save-warning">
         <i class="fa fa-warning"></i>
-       {% blocktrans  trimmed %}  What you type into this page is not saved once you navigate away.
+        {% blocktrans  trimmed %}  What you type into this page is not saved once you navigate away.
         Please make sure to retain a copy.{% endblocktrans %}
       </div>
 

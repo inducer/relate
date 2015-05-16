@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}  
-    {{ course_desc.number}}: {{ course_desc.name}}
-    - {% trans "RELATE" %}
+{% block title %}
+  {{ course_desc.number}}:
+  {{ course_desc.name}}
+  -
+  {% trans "RELATE" %}
 {% endblock %}
 
 {% block brand %}
@@ -16,11 +18,10 @@
   {% with participation_role as pr %}
   {% block page_navbar %}
   {% endblock %}
-  
+
   {% if role != pr.unenrolled %}
-  
   <li class="dropdown">
-  {% comment %} Translators: The following are names for menu items in course page {% endcomment %}
+    {% comment %} Translators: The following are names for menu items in course page {% endcomment %}
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Student" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
       {% if course.course_xmpp_id %}
@@ -66,7 +67,7 @@
   {% endif %}
 
   {% if role == pr.instructor or role == pr.teaching_assistant %}
-  <li class="dropdown">    
+  <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Content" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
@@ -112,7 +113,7 @@
 {% block version_advice %}
   {% if participation.preview_git_commit_sha %}
     <div class="alert alert-info">
-        {% trans "You are currently seeing a preview of revision" %}
+      {% trans "You are currently seeing a preview of revision" %}
       '{{participation.preview_git_commit_sha}}'.
       <a class="btn btn-sm btn-primary" href="{% url "relate-update_course" course.identifier %}"
         role="button">{% trans "View revisions" %}</a>

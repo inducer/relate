@@ -1,8 +1,8 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} 
-    {% trans "Analytics" %} - {% trans "RELATE" %}
+{% block title %}
+  {% trans "Analytics" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
@@ -18,7 +18,7 @@
       {% endfor %}
     </ul>
   {% else %}
-   {% trans " No flow sessions have been recorded." %}
+    {% trans " No flow sessions have been recorded." %}
   {% endif %}
 {% endblock %}
 

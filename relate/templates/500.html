@@ -1,28 +1,27 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-
-
-
 {% block content %}
   <h1>{% trans "500 Server Error" %}</h1>
 
-  <p> {% blocktrans trimmed %} 
+  <p>
+  {% blocktrans trimmed %} 
   Oops. That shouldn't have happened. Technical details of the error have been recorded.
   Please get in touch with your course staff to let them know what you were doing
   when the error occurred. Also mention the current time when sending your report.
-   {% endblocktrans %} </p>
+  {% endblocktrans %}
+  </p>
 
   {% if maintenance_mode %}
-{% url "relate-home" as relate-home %}
-<p> 
-    {% blocktrans trimmed %}
-  In the meantime, you may navigate back to the
+  <p>
+  {% url "relate-home" as relate-home %}
+  {% blocktrans trimmed %}
+  In the meantime, you may navigate back to  the
   <a href="{{ relate-home }}">home page</a>.{% endblocktrans %}
-    </p>
+  </p>
   {% endif %}
 
-  <p> {% blocktrans trimmed %} 
-  Sorry, and thanks for your patience!
-   {% endblocktrans %} </p>
+  <p>
+  {% blocktrans %}  Sorry, and thanks for your patience!{% endblocktrans %}
+  </p>
 {% endblock %}

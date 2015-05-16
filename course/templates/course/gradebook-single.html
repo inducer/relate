@@ -2,18 +2,11 @@
 {% load i18n %}
 
 {% block title %}
-    {% blocktrans trimmed with opportunity_name=opportunity.name %}
-        Grade book: {{ opportunity_name }}
-    {% endblocktrans %}
-    - {% trans "RELATE" %}
+  {% trans "Grade book" %}: {{ opportunity.name }} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-  <h1> 
-      {% blocktrans trimmed with opportunity_name=opportunity.name %}
-        Understand a grade: {{ opportunity_name }}  
-      {% endblocktrans %} 
-  </h1>
+  <h1>{% trans "Understand a grade" %}: {{ opportunity.name }} </h1>
 
   <table class="table table-condensed">
     <thead>
@@ -23,9 +16,9 @@
     <tr>
       <td>{% trans "Participant" %}</td>
       <td>
-          {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name username=grade_participation.user.username %}
-        {{ last_name }}, {{ first_name }} ({{ username }})
-          {% endblocktrans %}
+        {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name username=grade_participation.user.username %}
+          {{ last_name }}, {{ first_name }} ({{ username }})
+        {% endblocktrans %}
       </td>
     </tr>
     <tr>
@@ -47,7 +40,8 @@
         {% if avg_grade_percentage != None %}
           {# Translators: average grade, format "10% (out of 5 grades)" #}
           {% blocktrans trimmed with avg_grade_percentage=avg_grade_percentage|floatformat %}
-          {{ avg_grade_percentage }}% (out of {{ avg_grade_population }} grades)
+          {{ avg_grade_percentage }}%
+          (out of {{ avg_grade_population }} grades)
           {% endblocktrans %}
         {% else %}
           <i>{% trans "(no data)" %}</i>
@@ -65,7 +59,7 @@
     <table class="table table-condensed table-striped">
       <thead>
         <th>{% trans "Time" %}</th>
-          {# Translators: "what" stand for the state of a grade, e.g. "graded" #}
+        {# Translators: "what" stand for the state of a grade, e.g. "graded" #}
         <th>{% trans "What" %}</th>
         <th>{% trans "Grade" %}</th>
         <th>{% trans "Further Information" %}</th>
@@ -82,9 +76,11 @@
           <td>
             {% if gchange.is_superseded %}<s>{% endif %}
             {% if gchange.points != None %}
-                {% blocktrans trimmed with points=gchange.points|floatformat:1 max_points=gchange.max_points|floatformat:1 percentage=gchange.percentage|floatformat:1 %}
-                    {{ points }}/{{ max_points }} points ({{ percentage }}%)
-                {% endblocktrans %}
+              {% blocktrans trimmed with points=gchange.points|floatformat:1 max_points=gchange.max_points|floatformat:1 percentage=gchange.percentage|floatformat:1 %}
+              {{ points }}/{{ max_points }} 
+              points
+              ({{ percentage }}%)
+              {% endblocktrans %}
             {% else %}
               {% trans "(no grade)" %}
             {% endif %}
@@ -96,9 +92,9 @@
             {% endif %}
 
             {% if gchange.flow_session != None %}
-                {% blocktrans trimmed with gchange_flow_session_id=gchange.flow_session.id %}
-                    (from flow session {{ gchange_flow_session_id }}) 
-                {% endblocktrans %}
+              {% blocktrans trimmed with gchange_flow_session_id=gchange.flow_session.id %}
+                (from flow session {{ gchange_flow_session_id }})
+              {% endblocktrans %}
             {% endif %}
           </td>
         </tr>
@@ -191,8 +187,8 @@
                     (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
                   {% else %}
                     {% blocktrans trimmed with max_points=flow_session.max_points|floatformat:1 %} 
-                        (grade not available)
-                        ({{ max_points }} points achievable)
+                    (grade not available)
+                    ({{ max_points }} points achievable)
                     {% endblocktrans %}
                   {% endif %}
                 {% else %}
