@@ -277,7 +277,6 @@ class Event(models.Model):
     time = models.DateTimeField(verbose_name=_('Start time'))
     end_time = models.DateTimeField(null=True, blank=True,
             verbose_name=_('End time'))
-
     all_day = models.BooleanField(default=False,
             # Translators: for when the due time is "All day", how the webpage
             # of a event is displayed.

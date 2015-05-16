@@ -106,7 +106,7 @@ def view_markup_sandbox(pctx):
                 messages.add_message(pctx.request, messages.ERROR,
                         ugettext("Markup failed to render: "
                         "%(err_type)s: %(err_str)s") % {
-                            'err_type': tp.__name__, 'err_str': e})
+                            "err_type": tp.__name__, "err_str": e})
 
         form = make_form(request.POST)
 
@@ -175,7 +175,7 @@ def view_page_sandbox(pctx):
                 page_errors = (
                         _("Page failed to load/validate: "
                         "%(err_type)s: %(err_str)s") % {
-                            'err_type': tp.__name__, 'err_str': e})
+                            "err_type": tp.__name__, "err_str": e})
 
             else:
                 # Yay, it did validate.

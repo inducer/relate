@@ -31,7 +31,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import ugettext as _
 
-
 from relate.utils import StyledForm
 from course.page.base import (
         PageBaseWithTitle, markup_to_html, PageBaseWithValue,

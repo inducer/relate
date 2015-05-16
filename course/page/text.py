@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 from django.utils.translation import ugettext_lazy as _, ugettext
 from course.validation import validate_struct, ValidationError
 import django.forms as forms
@@ -146,7 +147,7 @@ class RELATEPageValidator(object):
             tp, e, _ = sys.exc_info()
 
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {'err_type': tp.__name__, 'err_str': str(e)})
+                    % {"err_type": tp.__name__, "err_str": str(e)})
 
 
 TEXT_ANSWER_VALIDATOR_CLASSES = [
@@ -245,7 +246,7 @@ class RegexMatcher(TextAnswerMatcher):
             tp, e, _ = sys.exc_info()
 
             raise ValidationError(_("%(location)s: regex '%(pattern)s' did not compile: %(err_type)s: %(err_str)s")
-                    % {'location': location, 'pattern': pattern, 'err_type': tp.__name__, 'err_str': str(e)})
+                    % {'location': location, 'pattern': pattern, "err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
         match = self.pattern.match(s)
@@ -292,12 +293,12 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             if vctx is not None:
 	            vctx.add_warning(location, _("%(location)s: unable to check "
 	                    "symbolic expression (%(err_type)s: %(err_str)s)")
-	                    % {'location': location, 'err_type': tp.__name__, 'err_str': str(e)})
+	                    % {'location': location, "err_type": tp.__name__, "err_str": str(e)})
 
         except:
             tp, e, _ = sys.exc_info()
             raise ValidationError("%(location)s: %(err_type)s: %(err_str)s"
-                    % {'location': location, 'err_type': tp.__name__, 'err_str': str(e)})
+                    % {'location': location, "err_type": tp.__name__, "err_str": str(e)})
 
     def validate(self, s):
         try:
@@ -305,7 +306,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {'err_type': tp.__name__, 'err_str': str(e)})
+                    % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
         from sympy import simplify
@@ -353,7 +354,7 @@ class FloatMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {'err_type': tp.__name__, 'err_str': str(e)})
+                    % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
         answer_float = float(s)

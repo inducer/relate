@@ -187,8 +187,8 @@ def validate_markup(ctx, location, markup_str):
         raise ValidationError(
                 "%(location)s: %(err_type)s: %(err_str)s" % {
                     'location': location,
-                    'err_type': tp.__name__,
-                    'err_str': str(e)})
+                    "err_type": tp.__name__,
+                    "err_str": str(e)})
 
 
 def validate_chunk_rule(ctx, location, chunk_rule):
@@ -329,8 +329,8 @@ def validate_flow_page(ctx, location, page_desc):
                 "%(err_type)s: %(err_str)s<br><pre>%(format_exc)s</pre>")
                 % {
                     'location': location,
-                    'err_type': tp.__name__,
-                    'err_str': str(e),
+                    "err_type": tp.__name__,
+                    "err_str": str(e),
                     'format_exc': format_exc()})
 
 
@@ -734,8 +734,8 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
         raise ValidationError(
                 "%(fullname)s: %(err_type)s: %(err_str)s" % {
                     'fullname': full_name,
-                    'err_type': tp.__name__,
-                    'err_str': unicode(e)})
+                    "err_type": tp.__name__,
+                    "err_str": unicode(e)})
 
 
 def validate_course_content(repo, course_file, events_file,

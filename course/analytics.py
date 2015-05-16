@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -388,8 +389,6 @@ def flow_analytics(pctx, flow_id):
             participation_role.observer,
             ]:
         raise PermissionDenied(_("must be at least TA to view analytics"))
-
-    print count_participants(pctx, flow_id)
 
     restrict_to_first_attempt = int(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))

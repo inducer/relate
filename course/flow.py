@@ -23,6 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+
 from django.utils import six
 from django.utils.translation import (
         ugettext_lazy as _, string_concat)
@@ -36,7 +37,6 @@ from django.core.exceptions import (
 from django.db import transaction
 from django.utils.safestring import mark_safe
 mark_safe_lazy = lazy(mark_safe, six.text_type)
-
 from django import forms
 from django import http
 

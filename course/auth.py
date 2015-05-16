@@ -416,7 +416,7 @@ def reset_password(request):
                 })
             from django.core.mail import send_mail
             send_mail(
-                    string_concat('[', _("RELATE"), '] ',
+                    string_concat("[", _("RELATE"), "] ",
                                  _("Password reset")),
                     message,
                     settings.ROBOT_EMAIL_FROM,

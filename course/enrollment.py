@@ -23,6 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+
 from django.utils.translation import ugettext_lazy as _, pgettext
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -193,7 +194,7 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 def approve_enrollment(modeladmin, request, queryset):
     decide_enrollment(True, modeladmin, request, queryset)
 
-approve_enrollment.short_description = pgettext("admin", "Approve enrollment")
+approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")
 
 
 def deny_enrollment(modeladmin, request, queryset):

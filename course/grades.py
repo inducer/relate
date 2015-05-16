@@ -545,8 +545,8 @@ def view_grades_by_opportunity(pctx, opp_id):
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
                             _("Error: %(err_type)s %(err_str)s") % {
-                                'err_type': type(e).__name__,
-                                'err_str': str(e)})
+                                "err_type": type(e).__name__,
+                                "err_str": str(e)})
                     raise
 
         else:
@@ -858,8 +858,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
                         _("Error: %(err_type)s %(err_str)s") % {
-                            'err_type': type(e).__name__,
-                            'err_str': str(e)})
+                            "err_type": type(e).__name__,
+                            "err_str": str(e)})
     else:
         allow_session_actions = False
 
@@ -948,7 +948,7 @@ class ImportGradesForm(StyledForm):
             help_text=_("Click to <a href='%s' target='_blank'>create</a> "
             "a new grading opportunity. Reload this form when done.")
             % reverse("admin:course_gradingopportunity_add"),
-            label=pgettext_lazy("field name in Import grades form",
+            label=pgettext_lazy("Field name in Import grades form",
                                 "Grading opportunity"))
 
         self.fields["attempt_id"] = forms.CharField(
@@ -1160,7 +1160,7 @@ def import_grades(pctx):
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
                         _("Error: %(err_type)s %(err_str)s") % {
-                        'err_type': type(e).__name__, 'err_str': str(e)})
+                        "err_type": type(e).__name__, "err_str": str(e)})
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,

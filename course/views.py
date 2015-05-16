@@ -309,18 +309,18 @@ class InstantFlowRequestForm(StyledForm):
                 label=_("Flow ID"))
         self.fields["duration_in_minutes"] = forms.IntegerField(
                 required=True, initial=20,
-                label=pgettext_lazy("duration for instant flow",
+                label=pgettext_lazy("Duration for instant flow",
                                    "Duration in minutes"))
 
         self.helper.add_input(
                 Submit(
                     "add",
-                    pgettext("add an instant flow", "Add"),
+                    pgettext("Add an instant flow", "Add"),
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
                 Submit(
                     "cancel",
-                    pgettext("cancel all instant flow(s)", "Cancel all")))
+                    pgettext("Cancel all instant flow(s)", "Cancel all")))
 
 
 @course_view
@@ -691,7 +691,7 @@ class ExceptionStage3Form(StyledForm):
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
             required=False,
-            label=pgettext_lazy("time when access expires", "Access expires"),
+            label=pgettext_lazy("Time when access expires", "Access expires"),
             help_text=_("At the specified time, the special access granted below "
             "will expire "
             "and revert to being the same as for the rest of the class. "

@@ -192,7 +192,7 @@ def set_up_new_course(request):
                                 "used in the course content and create them. ")
                                 + string_concat(
                                     '<a href="%s" class="btn btn-primary">',
-                                    pgettext("view/create events",
+                                    pgettext("View/create events",
                                         "Check"),
                                     " &raquo;</a>")
                                 % reverse("relate-check_events",
@@ -233,7 +233,7 @@ def set_up_new_course(request):
 
                 messages.add_message(request, messages.ERROR,
                         _("Course creation failed: %(err_type)s: %(err_str)s")
-                        % {'err_type': type(e).__name__, 'err_str': str(e)})
+                        % {"err_type": type(e).__name__, "err_str": str(e)})
             else:
                 return redirect(
                         "relate-course_page",
@@ -351,7 +351,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                 + string_concat(
                     "<p><a href='%s' class='btn btn-primary' "
                     "style='margin-top:8px'>",
-                    pgettext("view/create events", "Check"),
+                    pgettext("View/create events", "Check"),
                     " &raquo;</a></p>")
                 % reverse("relate-check_events",
                     args=(pctx.course.identifier,)))
@@ -433,7 +433,7 @@ def update_course(pctx):
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
                         _("Error: %(err_type)s %(err_str)s")
-                        % {'err_type': type(e).__name__, 'err_str': str(e)})
+                        % {"err_type": type(e).__name__, "err_str": str(e)})
 
     if response_form is None:
         previewing = bool(participation is not None
