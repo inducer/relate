@@ -4,10 +4,7 @@
 {% load static %}
 
 {% block title %}
-    {% blocktrans trimmed %} 
-        My Grades
-    {% endblocktrans %}
-    - {% trans "RELATE" %}
+  {% trans "My Grades" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block header_extra %}
@@ -37,9 +34,10 @@
       <tr>
         <td>{% trans "Name" context "real name of a user" %}</td>
         <td>
-            {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name %}
+          {# Translators: how the real name of a user is displayed. #}
+          {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name %}
                 {{ last_name }}, {{ first_name }}
-            {% endblocktrans %}
+          {% endblocktrans %}
         </td>
       </tr>
     </table>

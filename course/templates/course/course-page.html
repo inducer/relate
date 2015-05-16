@@ -16,14 +16,16 @@
   {% if course.hidden %}
     <div class="alert alert-info">
       {% trans "This course is only visible to course staff at the moment." %}
-      <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"        
+      <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
         role="button" target="_blank">{% trans "Change" context "change the visibility of a course" %} &raquo;</a>
     </div>
   {% endif %}
   {% if not course.valid %}
     <div class="alert alert-warning">
-      {% blocktrans trimmed %}There may be a problem with the validity of course data, which may lead
-      to students encountering unexpected errors.{% endblocktrans %}
+      {% blocktrans trimmed %}
+      There may be a problem with the validity of course data, which may lead
+      to students encountering unexpected errors.
+      {% endblocktrans %}
       <a class="btn btn-primary" href="{% url "relate-update_course" course.identifier %}"
         role="button">{% trans "Update" %} &raquo;</a>
     </div>

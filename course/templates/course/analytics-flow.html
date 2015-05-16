@@ -3,7 +3,7 @@
 
 {% block title %}
     {% trans "Analytics" %} - {% trans "RELATE" %}
- {% endblock %}
+{% endblock %}
 
 {% block content %}
   <h1> {% blocktrans %} Analytics: <tt>{{ flow_identifier}}</tt> {% endblocktrans %} </h1>
@@ -12,11 +12,13 @@
 
   <p>
     {% if restrict_to_first_attempt %}
-      {% comment %} 
+      {% comment %}
         Translators: the following are the options when showing attempts of particiants in 
-      grade analytics.
+        grade analytics.
       {% endcomment %}
-      {% trans "Showing results for <i>only the first attempt</i> by each participant." %}
+      {% blocktrans trimmed %}
+      Showing results for <i>only the first attempt</i> by each participant.
+      {% endblocktrans %}
       <a href="?restrict_to_first_attempt=0">
         {% trans "Show all attempts" %}
       </a>
@@ -34,7 +36,7 @@
       {{ weight }} grades
     {% endblocktrans %}
     {% if participant_count != None %}
-      {% blocktrans trimmed with participant_count=participant_count count counter=participant_count %}
+      {% blocktrans trimmed count counter=participant_count %}
         (from {{ participant_count }} distinct participant)
       {% plural %}
         (from {{ participant_count }} distinct participants)

@@ -3,41 +3,36 @@
 {% load i18n %}
 
 {% block title %}
-    {{flow_desc.title}}
-    - {% trans "RELATE" %}
+  {{flow_desc.title}} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-  <h1> 
-      {% blocktrans trimmed with flow_desc_title=flow_desc.title %}
-        End Session '{{flow_desc_title}}'? 
-      {% endblocktrans %} 
-  </h1>
+  <h1>{% trans "End Session" %} '{{flow_desc.title}}'?</h1>
 
   {% if unanswered_count %}
     <div class="alert alert-warning">
-      {% blocktrans %}You have left questions unanswered. {% endblocktrans %}
+      {% trans "You have left questions unanswered." %}
     </div>
   {% endif %}
 
   {% if total_count %}
-    <p> 
-        {% blocktrans trimmed %} 
-            There were {{total_count}} questions. 
-        {% endblocktrans %}
-        {% if answered_count == total_count %}
-          {% blocktrans trimmed %}
-            You have provided an answer for all of them.
-          {% endblocktrans %}
-        {% else %}
-          {% blocktrans trimmed %}
-                You have answered {{answered_count}} and left {{unanswered_count}} unanswered.
-          {% endblocktrans %}
-        {% endif %}
+    <p>
+    {% blocktrans trimmed %}
+    There were {{total_count}} questions.
+    {% endblocktrans %}
+    {% if answered_count == total_count %}
+      {% blocktrans trimmed %}
+      You have provided an answer for all of them.
+      {% endblocktrans %}
+    {% else %}
+      {% blocktrans trimmed %}
+      You have answered {{answered_count}} and left {{unanswered_count}} unanswered.
+      {% endblocktrans %}
+    {% endif %}
     </p>
   {% endif %}
 
-  {% blocktrans %} If you choose to end your session, the following things will happen:{% endblocktrans %}
+  {% trans "If you choose to end your session, the following things will happen:" %}
   <ul>
     <li>{% trans "You will be prevented from making further changes to your answers." %}</li>
     <li>{% trans "All your currently saved answers, if not graded already, will be graded." %}</li>

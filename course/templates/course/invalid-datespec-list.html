@@ -25,10 +25,12 @@
       <b>{% trans "Unrecognized events were found." %}</b>
       </p>
 
-      <p> {% blocktrans trimmed %} 
+      <p>
+      {% blocktrans trimmed %} 
       Check the "Calendar" functions in the instructor menu to add the
       missing labels.
-       {% endblocktrans %} </p>
+      {% endblocktrans %} 
+      </p>
     </div>
   {% else %}
     <div class="alert alert-success">

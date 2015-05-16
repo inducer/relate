@@ -1,16 +1,12 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% block title %} 
-    {% trans "Analytics" %} - {% trans "RELATE" %}
+{% block title %}
+  {% trans "Analytics" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-    <h1> 
-        {% blocktrans trimmed %} 
-        Analytics: <tt>{{ flow_identifier}} - {{ group_id }}/{{ page_id }}</tt> 
-        {% endblocktrans %} 
-    </h1>
+  <h1>{% trans "Analytics" %}: <tt>{{ flow_identifier}} - {{ group_id }}/{{ page_id }}</tt></h1>
 
   <div class="well">
     {{ body|safe }}
@@ -20,11 +16,13 @@
 
   <p>
     {% if restrict_to_first_attempt %}
-        {% comment %} 
-            Translators: the following are the options when showing attempts of particiants in 
-            grade analytics.
-        {% endcomment %}
-      {% trans "Showing results for <i>only the first attempt</i> by each participant." %}
+      {% comment %} 
+        Translators: the following are the options when showing attempts of particiants in 
+        grade analytics.
+      {% endcomment %}
+      {% blocktrans trimmed %}
+      Showing results for <i>only the first attempt</i> by each participant.
+      {% endblocktrans %}
       <a href="?restrict_to_first_attempt=0">
         {% trans "Show all attempts" %}
       </a>

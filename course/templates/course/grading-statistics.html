@@ -2,10 +2,7 @@
 {% load i18n %}
 
 {% block title %}
-    {% blocktrans trimmed %} 
-        Grading Statistics: {{ flow_id }}
-    {% endblocktrans %}
-    - {% trans "RELATE" %}
+  {% trans "Grading Statistics" %}: {{ flow_id }} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}

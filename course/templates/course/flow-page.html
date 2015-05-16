@@ -4,9 +4,9 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %} 
-    [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}] {{title}} - {{ flow_desc.title }}
-    - {% trans "RELATE" %}
+{% block title %}
+  [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
+  {{title}} - {{ flow_desc.title}} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}

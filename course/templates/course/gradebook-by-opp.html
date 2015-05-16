@@ -5,10 +5,7 @@
 {% load static %}
 
 {% block title %}
-    {% blocktrans trimmed with opportunity_name=opportunity.name %} 
-        Grade book: {{ opportunity_name }}
-    {% endblocktrans %} 
-    - {% trans "RELATE" %}
+  {% trans "Grade book" %}: {{ opportunity.name }} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block header_extra %}
@@ -22,11 +19,7 @@
 
 
 {% block content %}
-  <h1> 
-      {% blocktrans trimmed with opportunity_name=opportunity.name %} 
-        Grade book: {{ opportunity_name }}  
-      {% endblocktrans %} 
-  </h1>
+  <h1>{% trans "Grade book" %}: {{ opportunity.name }} </h1>
 
   <table class="table table-condensed">
     <thead>
@@ -52,12 +45,12 @@
       </td>
     </tr>
     <tr>
-        {# Translators: "Counts" on the quantities of total session and finished sessions #}
+      {# Translators: "Counts" on the quantities of total session and finished sessions #}
       <td>{% trans "Counts" %}</td>
       <td>
         {% blocktrans trimmed %} 
-            {{ total_sessions }} total sessions
-            ({{ finished_sessions }} finished) 
+        {{ total_sessions }} total sessions
+        ({{ finished_sessions }} finished)
         {% endblocktrans %}
       </td>
     </tr>
@@ -77,6 +70,7 @@
       <tr>
         <td class="datacol"><a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}">{{ participation.user.username }}</a></td>
         <td class="datacol">
+            {# Translators: Username displayed in gradebook by opportunity #}
             {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
                 {{ last_name }}, {{ first_name }}
             {% endblocktrans %}
@@ -108,7 +102,8 @@
                   {% endif %}
                   {% if flow_session.points != None %}
                     {% blocktrans trimmed with points=flow_session.points|floatformat:1 max_points=flow_session.max_points|floatformat:1 %}
-                        {{ points }}/{{ max_points }} points
+                    {{ points }}/{{ max_points }} 
+                    points
                     {% endblocktrans %}
                   {% endif %}
                 </li>

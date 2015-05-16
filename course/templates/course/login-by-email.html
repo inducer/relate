@@ -9,23 +9,23 @@
   <div class="alert alert-warning">
     <ul>
       <li>
-          {% comment %} 
-            Translators: For courses which require specific email suffix for enrollment, translate the following literals
-          with your customized email suffix.
-          {% endcomment %}
-          {% blocktrans trimmed %} 
-            Please use the <em>official</em> email address associated with the
-            university or school at which this course is taking place. Some courses
-            may require a certain email domain (such as "@illinois.edu") for
-            enrollment.
-          {% endblocktrans %}
+      {% comment %} 
+        Translators: For courses which require specific email suffix for enrollment, translate the following literals
+        with your customized email suffix.
+      {% endcomment %}
+      {% blocktrans trimmed %} 
+        Please use the <em>official</em> email address associated with the
+        university or school at which this course is taking place. Some courses
+        may require a certain email domain (such as "@illinois.edu") for
+        enrollment.
+      {% endblocktrans %}
       </li>
-      <li> 
-          {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}
-          {% blocktrans trimmed %} 
-            If you have a user name and a password, you should use the
-            <a href="{{ relate-sign_in_by_user_pw }}"> password-based sign-in process </a>.
-          {% endblocktrans %}
+      <li>
+      {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}
+      {% blocktrans trimmed %} 
+        If you have a user name and a password, you should use the
+        <a href="{{ relate-sign_in_by_user_pw }}">password-based sign-in process</a>.
+      {% endblocktrans %}
       </li>
     </ul>
   </div>
