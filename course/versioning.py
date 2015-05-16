@@ -192,8 +192,8 @@ def set_up_new_course(request):
                                 "used in the course content and create them. ")
                                 + string_concat(
                                     '<a href="%s" class="btn btn-primary">',
-                                    pgettext("view/create events", 
-                                        "Check"), 
+                                    pgettext("view/create events",
+                                        "Check"),
                                     " &raquo;</a>")
                                 % reverse("relate-check_events",
                                     args=(new_course.identifier,)))
@@ -325,7 +325,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                         _("Course content validated OK, with warnings: "),
                         "<ul>%s</ul>")
                     % ("".join(
-                        "<li><i>%(location)s</i>: %(warningtext)s</li>" 
+                        "<li><i>%(location)s</i>: %(warningtext)s</li>"
                         % {'location': w.location, 'warningtext': w.text}
                         for w in warnings)))
 
@@ -432,7 +432,7 @@ def update_course(pctx):
                         may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") 
+                        _("Error: %(err_type)s %(err_str)s")
                         % {'err_type': type(e).__name__, 'err_str': str(e)})
 
     if response_form is None:
@@ -453,7 +453,7 @@ def update_course(pctx):
             string_concat(
                 "<b>",
                 ugettext("Public active git SHA"),
-                ":</b> %(commit)s (%(message)s)") 
+                ":</b> %(commit)s (%(message)s)")
             % {
                 'commit': course.active_git_commit_sha,
                 'message': repo[course.active_git_commit_sha.encode()]\

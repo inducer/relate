@@ -90,32 +90,32 @@
           {% trans "If you start a new session, the following rules will apply:" %}
           <ul>
             {% if new_session_grading_rule.description %}
-              <li> 
+              <li>
                   {% blocktrans trimmed with description=new_session_grading_rule.description %}
-                    Your session will be a '<b>{{ new_session_grading_rule_description }}</b>'. 
-                  {% endblocktrans %} 
+                    Your session will be a '<b>{{ new_session_grading_rule_description }}</b>'.
+                  {% endblocktrans %}
               </li>
             {% endif %}
             {% if new_session_grading_rule.due %}
               <li>
-                  {% blocktrans trimmed with due=new_session_grading_rule.due %} 
-                    Your session will be due on <b>{{ due }}</b>. 
-                  {% endblocktrans %} 
+                  {% blocktrans trimmed with due=new_session_grading_rule.due %}
+                    Your session will be due on <b>{{ due }}</b>.
+                  {% endblocktrans %}
               </li>
             {% endif %}
-            <li> 
-                {% blocktrans trimmed with credit_percent=new_session_grading_rule.credit_percent|floatformat%} 
+            <li>
+                {% blocktrans trimmed with credit_percent=new_session_grading_rule.credit_percent|floatformat%}
                     You will receive <b>{{ credit_percent }}% credit</b>
-                    for your work. 
-                {% endblocktrans %} 
+                    for your work.
+                {% endblocktrans %}
             </li>
             {% if past_sessions_and_properties %}
-              <li> 
+              <li>
                   {% blocktrans trimmed %}
                     This is not your first session. If you start another one,
                     for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
                     among all your sessions.
-                  {% endblocktrans %} 
+                  {% endblocktrans %}
               </li>
             {% endif%}
           </ul>
@@ -181,10 +181,10 @@
         {% trans "Check the following:" %}
         <ul>
         {% if not user.is_authenticated %}
-        <li> 
-        <a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>.        
+        <li>
+        <a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>.
         {% url "relate-home" as relate-home %}
-        {% blocktrans trimmed %} 
+        {% blocktrans trimmed %}
           You're not currently signed in. Access to the resource is restricted,
           and since the site has no way of knowing who you are, it may have denied
           you accesss.
@@ -202,9 +202,9 @@
         Complete your enrollment in your course. If you're not enrolled, a large
         "Enroll now" button will show up at the top of your course page. Click that,
         follow the indicated steps, and then retry your last action.
-        {% endblocktrans %} 
+        {% endblocktrans %}
         </li>
-        <li> 
+        <li>
         {% url "relate-home" as relate-home %}
         {% blocktrans trimmed %}
         If none of the above steps help, please navigate back to your course from the

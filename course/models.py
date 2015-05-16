@@ -108,7 +108,7 @@ def get_user_status(user):
 
 
 class UserStatus(models.Model):
-    user = models.OneToOneField(User, db_index=True, 
+    user = models.OneToOneField(User, db_index=True,
             related_name="user_status",
             verbose_name=_('User ID'))
     status = models.CharField(max_length=50,
@@ -206,8 +206,8 @@ class Course(models.Model):
             verbose_name=_('Enrollment required email suffix'))
 
     from_email = models.EmailField(
-            # Translators: replace "RELATE" with the brand name of your 
-            #website if necessary.
+            # Translators: replace "RELATE" with the brand name of your
+            # website if necessary.
             help_text=_("This email address will be used in the 'From' line "
             "of automated emails sent by RELATE."),
             verbose_name=_('From email'))
@@ -277,7 +277,7 @@ class Event(models.Model):
     time = models.DateTimeField(verbose_name=_('Start time'))
     end_time = models.DateTimeField(null=True, blank=True,
             verbose_name=_('End time'))
-        
+
     all_day = models.BooleanField(default=False,
             # Translators: for when the due time is "All day", how the webpage
             # of a event is displayed.
@@ -367,8 +367,8 @@ class Participation(models.Model):
             verbose_name=_('Tags'))
 
     def __unicode__(self):
-        # Translators: displayed format of Participation: some user in some 
-        #course as some role
+        # Translators: displayed format of Participation: some user in some
+        # course as some role
         return _("%(user)s in %(course)s as %(role)s") % {
                 "user": self.user, "course": self.course,
                 "role": dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
@@ -611,7 +611,7 @@ class FlowPageVisit(models.Model):
     def __unicode__(self):
         # Translators: flow page visit
         result = (
-                _("'%(group_id)s/%(page_id)s' in '%(session)s' on %(time)s") 
+                _("'%(group_id)s/%(page_id)s' in '%(session)s' on %(time)s")
                 % {"group_id": self.page_data.group_id,
                     "page_id": self.page_data.page_id,
                     "session": self.flow_session,
@@ -799,8 +799,8 @@ class FlowAccessException(models.Model):
             verbose_name=_('Expiration'))
 
     stipulations = JSONField(blank=True, null=True,
-            # Translators: help text for stipulations in FlowAccessException 
-            #(deprecated) 
+            # Translators: help text for stipulations in FlowAccessException
+            # (deprecated)
             help_text=_("A dictionary of the same things that can be added "
             "to a flow access rule, such as allowed_session_count or "
             "credit_percent. If not specified here, values will default "
@@ -830,9 +830,9 @@ class FlowAccessException(models.Model):
         # Translators: flow access exception in admin (deprecated)
         return (
                 _("Access exception for '%(user)s' to '%(flow_id)s' "
-                "in '%(course)s'") % 
+                "in '%(course)s'") %
                 {
-                    "user": self.participation.user, 
+                    "user": self.participation.user,
                     "flow_id": self.flow_id,
                     "course": self.participation.course
                     })
@@ -971,7 +971,7 @@ class GradingOpportunity(models.Model):
 
     aggregation_strategy = models.CharField(max_length=20,
             choices=GRADE_AGGREGATION_STRATEGY_CHOICES,
-            # Translators: strategy on how the grading of mutiple sessioins 
+            # Translators: strategy on how the grading of mutiple sessioins
             # are aggregated.
             verbose_name=_('Aggregation strategy'))
 
@@ -994,7 +994,7 @@ class GradingOpportunity(models.Model):
     def __unicode__(self):
         # Translators: For GradingOpportunity
         return (
-                _("%(opportunity_name)s (%(opportunity_id)s) in %(course)s") 
+                _("%(opportunity_name)s (%(opportunity_id)s) in %(course)s")
                 % {
                     "opportunity_name": self.name,
                     "opportunity_id": self.identifier,
@@ -1051,7 +1051,7 @@ class GradeChange(models.Model):
 
     class Meta:
         verbose_name = _("Grade change")
-        verbose_name_plural = _("Grade changes") 
+        verbose_name_plural = _("Grade changes")
         ordering = ("opportunity", "participation", "grade_time")
 
     def __unicode__(self):
@@ -1272,7 +1272,7 @@ class InstantMessage(models.Model):
 
     class Meta:
         verbose_name = _("Instant message")
-        verbose_name_plural = _("Instant messages") 
+        verbose_name_plural = _("Instant messages")
         ordering = ("participation__course", "time")
 
     def __unicode__(self):

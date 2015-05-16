@@ -3,7 +3,7 @@
 
 {% block content %}
   <div class="jumbotron">
-    {% trans "RELATE" as RELATE %}  
+    {% trans "RELATE" as RELATE %}
     <h1>{% blocktrans %} Welcome to {{ RELATE }} {% endblocktrans %}</h1>
     <p>{% trans "RELATE is an Environment for Learning And TEaching" %}</p>
     <p>
@@ -27,7 +27,7 @@
       {% endfor %}
     </div>
   {% else %}
-    {% trans "RELATE" as RELATE %} 
+    {% trans "RELATE" as RELATE %}
     {% blocktrans trimmed %} There are no courses hosted on this {{ RELATE }} site. {% endblocktrans %}
     {% if not user.is_authenticated %}
       {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}

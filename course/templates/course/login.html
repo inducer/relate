@@ -10,7 +10,7 @@
     <div class="alert alert-warning">
     {% url student_sign_in_view as student_sign_in_view %}
     {% blocktrans trimmed %}
-      If you have a not been assigned a password, you should use the 
+      If you have a not been assigned a password, you should use the
       <a href='{{ student_sign_in_view }}'> standard sign-in process </a>.
     {% endblocktrans %}
     </div>
@@ -20,7 +20,7 @@
     {% blocktrans trimmed %}
       If you do not have an account,
       <a href='{{ relate-sign_up }}'>sign up</a>.
-    {% endblocktrans %} 
+    {% endblocktrans %}
     {% url "relate-reset_password" as relate-reset_password %}
     {% blocktrans trimmed %}
       If you do not remember your password,

@@ -1,6 +1,6 @@
 {% load i18n %}
 {% if user.first_name %}
-    {# Translators: if a user have a non-empty first_name, then use %(first_name) #} 
+    {# Translators: if a user have a non-empty first_name, then use %(first_name) #}
     {% blocktrans trimmed with first_name=user.first_name last_name=user.last_name %}
         Dear {{first_name}},
     {% endblocktrans %}
@@ -8,16 +8,16 @@
     {# Translators: if a user have an empty first_name, then use his/her email #}
     {% blocktrans trimmed with email=user.email %}
         Dear {{email}},
-    {% endblocktrans %}    
+    {% endblocktrans %}
 {% else %}
     {# Translators: if a user do not use first_name and email, then use his/her username #}
     {% blocktrans trimmed with username=user.username %}
         Dear {{username}},
-    {% endblocktrans %}    
+    {% endblocktrans %}
 {% endif %}
 {% if approved %}
 {% blocktrans with course_identifier=course.identifier course_uri=course_uri %}
-Welcome! Your request to join the course 
+Welcome! Your request to join the course
 '{{course_identifier}}' has been approved.
 
 Find the course web page here:
@@ -27,7 +27,7 @@ Find the course web page here:
 Welcome, and we hope you have a productive class!{% endblocktrans %}
 {% else %}
 {% blocktrans with course_identifier=course.identifier %}
-We're sorry to let you know that your request to join the course 
+We're sorry to let you know that your request to join the course
 '{{course_identifier}}' has been denied. Please get in touch with the course
 staff (for example by replying to this email) to state your case.
 

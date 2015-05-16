@@ -77,7 +77,7 @@
             {% if gchange.is_superseded %}<s>{% endif %}
             {% if gchange.points != None %}
               {% blocktrans trimmed with points=gchange.points|floatformat:1 max_points=gchange.max_points|floatformat:1 percentage=gchange.percentage|floatformat:1 %}
-              {{ points }}/{{ max_points }} 
+              {{ points }}/{{ max_points }}
               points
               ({{ percentage }}%)
               {% endblocktrans %}
@@ -108,7 +108,7 @@
           <td>
             {% blocktrans trimmed with opportunity_aggregation_strategy=opportunity.aggregation_strategy %}
               (Aggregation strategy: {{ opportunity_aggregation_strategy }})
-            {% endblocktrans %} 
+            {% endblocktrans %}
           </td>
         </tr>
       </tbody>
@@ -186,7 +186,7 @@
 
                     (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
                   {% else %}
-                    {% blocktrans trimmed with max_points=flow_session.max_points|floatformat:1 %} 
+                    {% blocktrans trimmed with max_points=flow_session.max_points|floatformat:1 %}
                     (grade not available)
                     ({{ max_points }} points achievable)
                     {% endblocktrans %}

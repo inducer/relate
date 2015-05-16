@@ -48,14 +48,14 @@
     </div>
 
     <p>
-    {% blocktrans trimmed with fully_correct_count=grade_info.fully_correct_count partially_correct_count=grade_info.partially_correct_count incorrect_count=grade_info.incorrect_count %} 
+    {% blocktrans trimmed with fully_correct_count=grade_info.fully_correct_count partially_correct_count=grade_info.partially_correct_count incorrect_count=grade_info.incorrect_count %}
     You have answered {{ fully_correct_count }} questions
     correctly, {{ partially_correct_count }} questions
     partially correctly, and {{ incorrect_count }} questions
     incorrectly.
     {% endblocktrans %}
     {% if grade_info.unknown_count %}
-    {% blocktrans trimmed with unknown_count=grade_info.unknown_count %} 
+    {% blocktrans trimmed with unknown_count=grade_info.unknown_count %}
     The grade for {{ unknown_count }} questions is not yet known.
     {% endblocktrans %}
     {% endif %}

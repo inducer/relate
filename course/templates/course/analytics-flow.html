@@ -13,7 +13,7 @@
   <p>
     {% if restrict_to_first_attempt %}
       {% comment %}
-        Translators: the following are the options when showing attempts of particiants in 
+        Translators: the following are the options when showing attempts of particiants in
         grade analytics.
       {% endcomment %}
       {% blocktrans trimmed %}
@@ -29,7 +29,7 @@
       </a>
     {% endif %}
   </p>
-  <p> 
+  <p>
     {% blocktrans trimmed with weight=grade_histogram.total_weight count counter=grade_histogram.total_weight %}
       {{ weight }} grade
     {% plural %}

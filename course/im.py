@@ -58,9 +58,9 @@ class InstantMessageForm(forms.Form):
         self.helper.field_class = "col-lg-8"
 
         self.helper.add_input(
-                # Translators: literals in this file are about the instant 
+                # Translators: literals in this file are about the instant
                 # messaging function.
-                Submit("submit", 
+                Submit("submit",
                        pgettext_lazy("Send instant messages", "Send"),
                        css_class="col-lg-offset-2"))
 

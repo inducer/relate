@@ -388,7 +388,7 @@ def flow_analytics(pctx, flow_id):
             participation_role.observer,
             ]:
         raise PermissionDenied(_("must be at least TA to view analytics"))
-        
+
     print count_participants(pctx, flow_id)
 
     restrict_to_first_attempt = int(

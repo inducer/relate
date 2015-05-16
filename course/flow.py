@@ -1408,11 +1408,11 @@ class RegradeFlowForm(StyledForm):
                 label=_("Access rules tag"))
         self.fields["regraded_session_in_progress"] = forms.ChoiceField(
                 choices=(
-                    ("any", 
+                    ("any",
                         _("Regrade in-progress and not-in-progress sessions")),
-                    ("yes", 
+                    ("yes",
                         _("Regrade in-progress sessions only")),
-                    ("no", 
+                    ("no",
                         _("Regrade not-in-progress sessions only")),
                     ),
                 label=_("Regraded session in progress"))
@@ -1477,7 +1477,7 @@ def regrade_not_for_credit_flows_view(pctx):
             _("This regrading process is only intended for flows that do"
             "not show up in the grade book. If you would like to regrade"
             "for-credit flows, use the corresponding functionality in "
-            "the grade book."), 
+            "the grade book."),
             "</p>"),
         "form_description": _("Regrade not-for-credit Flow Sessions"),
     })

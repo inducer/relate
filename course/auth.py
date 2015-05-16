@@ -23,6 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -120,8 +121,8 @@ class ImpersonateForm(StyledForm):
         self.fields["user"] = forms.ChoiceField(
                 choices=[
                     # Translators: information displayed when select user
-                    # for impersonating, you can use your prefered  
-                    # style. For example %(user_lastname)s, 
+                    # for impersonating, you can use your prefered
+                    # style. For example %(user_lastname)s,
                     # %(user_firstname)s (user_email)s, but all three
                     # strings should be used.
                     (u.id, _("(user_email)%s - %(user_lastname)s, "
@@ -280,7 +281,7 @@ def sign_in_by_user_pw(request):
 
 
 class SignUpForm(StyledModelForm):
-    username = forms.CharField(required=True, max_length=30, 
+    username = forms.CharField(required=True, max_length=30,
                               label=_("Username"))
 
     class Meta:
@@ -630,7 +631,7 @@ class UserForm(StyledModelForm):
 
 class UserStatusForm(StyledModelForm):
     class Meta:
-        model = UserStatus        
+        model = UserStatus
         fields = ("editor_mode",)
 
     def __init__(self, *args, **kwargs):

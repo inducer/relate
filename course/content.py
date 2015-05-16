@@ -751,7 +751,7 @@ def get_flow_page_class(repo, typename, commit_sha):
         if len(components) != 2:
             raise ClassNotFoundError(
                     _("repo page class must conist of two "
-                    "dotted components (invalid: '%s')") 
+                    "dotted components (invalid: '%s')")
                     % typename)
 
         module, classname = components

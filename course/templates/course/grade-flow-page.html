@@ -61,7 +61,7 @@
               {# Translators: the grade information "for" a participant with fullname + (username) #}
               {% blocktrans trimmed with last_name=flow_session.participation.user.last_name first_name=flow_session.participation.user.first_name username=flow_session.participation.user.username %}
               for
-              {{ last_name }}, {{ first_name }} 
+              {{ last_name }}, {{ first_name }}
               ({{ username }})
             {% endblocktrans %}
             </td>
@@ -120,13 +120,13 @@
               {% trans "(unknown)" %}
             {% endif %}
             /
-            {{ max_points|floatformat:1 }} 
+            {{ max_points|floatformat:1 }}
             {# Translators: the unit name in grading #}
             {% blocktrans trimmed count counter=max_points %}
               point
             {% plural %}
               points
-            {% endblocktrans %}  
+            {% endblocktrans %}
           </td>
         </tr>
         {% endif %}
@@ -142,9 +142,9 @@
               by {{ grader_name }}
               {% endblocktrans %}
             {% endif %}
-            {# Translators: the most recent grade is provided "at" some time. #}  
-            {% blocktrans trimmed with grade_time=most_recent_grade.grade_time %} 
-            at {{ grade_time }} 
+            {# Translators: the most recent grade is provided "at" some time. #}
+            {% blocktrans trimmed with grade_time=most_recent_grade.grade_time %}
+            at {{ grade_time }}
             {% endblocktrans %}
           </td>
         </tr>

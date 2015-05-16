@@ -172,7 +172,7 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.change_answer,
             pgettext_lazy("flow permission", "Change already-graded answer")),
         (flow_permission.see_correctness,
-            pgettext_lazy("flow permission", 
+            pgettext_lazy("flow permission",
                 "See whether an answer is correct")),
         (flow_permission.see_answer_before_submission,
             pgettext_lazy("flow permission",
@@ -193,7 +193,7 @@ class flow_rule_kind:  # noqa
 
 
 FLOW_RULE_KIND_CHOICES = (
-        (flow_rule_kind.start, 
+        (flow_rule_kind.start,
             pgettext_lazy("flow rule kind choices", "Session Start")),
         (flow_rule_kind.access,
             pgettext_lazy("flow rule kind choices", "Session Access")),
@@ -260,21 +260,21 @@ class grade_state_change_types:  # noqa
 
 
 GRADE_STATE_CHANGE_CHOICES = (
-        (grade_state_change_types.grading_started, 
+        (grade_state_change_types.grading_started,
             pgettext_lazy("grade state change", "Grading started")),
-        (grade_state_change_types.graded, 
+        (grade_state_change_types.graded,
             pgettext_lazy("grade state change", "Graded")),
-        (grade_state_change_types.retrieved, 
+        (grade_state_change_types.retrieved,
             pgettext_lazy("grade state change", "Retrieved")),
-        (grade_state_change_types.unavailable, 
+        (grade_state_change_types.unavailable,
             pgettext_lazy("grade state change", "Unavailable")),
-        (grade_state_change_types.extension, 
+        (grade_state_change_types.extension,
             pgettext_lazy("grade state change", "Extension")),
-        (grade_state_change_types.report_sent, 
+        (grade_state_change_types.report_sent,
             pgettext_lazy("grade state change", "Report sent")),
-        (grade_state_change_types.do_over, 
+        (grade_state_change_types.do_over,
             pgettext_lazy("grade state change", "Do-over")),
-        (grade_state_change_types.exempt, 
+        (grade_state_change_types.exempt,
             pgettext_lazy("grade state change", "Exempt")),
         )
 

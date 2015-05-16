@@ -8,7 +8,7 @@
     {% blocktrans trimmed %}
     The following events were found in course content that are not present
     in the database:
-    {% endblocktrans %} 
+    {% endblocktrans %}
     <ul>
       {% for datespec, locations in invalid_datespecs %}
         <li><tt>{{ datespec }}</tt>:
@@ -26,10 +26,10 @@
       </p>
 
       <p>
-      {% blocktrans trimmed %} 
+      {% blocktrans trimmed %}
       Check the "Calendar" functions in the instructor menu to add the
       missing labels.
-      {% endblocktrans %} 
+      {% endblocktrans %}
       </p>
     </div>
   {% else %}

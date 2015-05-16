@@ -48,7 +48,7 @@
       {# Translators: "Counts" on the quantities of total session and finished sessions #}
       <td>{% trans "Counts" %}</td>
       <td>
-        {% blocktrans trimmed %} 
+        {% blocktrans trimmed %}
         {{ total_sessions }} total sessions
         ({{ finished_sessions }} finished)
         {% endblocktrans %}
@@ -102,7 +102,7 @@
                   {% endif %}
                   {% if flow_session.points != None %}
                     {% blocktrans trimmed with points=flow_session.points|floatformat:1 max_points=flow_session.max_points|floatformat:1 %}
-                    {{ points }}/{{ max_points }} 
+                    {{ points }}/{{ max_points }}
                     points
                     {% endblocktrans %}
                   {% endif %}

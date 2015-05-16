@@ -87,7 +87,7 @@ class RecurringEventForm(StyledForm):
                 ),
             label=pgettext_lazy("interval of recurring events", "Interval"))
     starting_ordinal = forms.IntegerField(required=False,
-            label=pgettext_lazy("Starting ordinal of recurring events", 
+            label=pgettext_lazy("Starting ordinal of recurring events",
                                 "Starting ordinal"))
     count = forms.IntegerField(required=True,
             label=pgettext_lazy("Count of recurring events", "Count"))
@@ -124,7 +124,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
             evt.save()
         except IntegrityError:
             raise EventAlreadyExists(
-                _("'%(event_kind)s %(event_ordinal)d' already exists") % 
+                _("'%(event_kind)s %(event_ordinal)d' already exists") %
                 {'event_kind': kind, 'event_ordinal': ordinal})
 
         if interval == "weekly":
@@ -208,7 +208,7 @@ class RenumberEventsForm(StyledForm):
                         "allowed."),
             label=pgettext_lazy("kind of event", "Kind of event"))
     starting_ordinal = forms.IntegerField(required=True, initial=1,
-            label=pgettext_lazy("Starting ordinal of recurring events", 
+            label=pgettext_lazy("Starting ordinal of recurring events",
                                 "Starting ordinal"))
 
     def __init__(self, *args, **kwargs):

@@ -931,7 +931,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             messages.add_message(pctx.request, messages.SUCCESS,
                     ugettext(
                         "Exception granted to '%(participation)s' "
-                        "for '%(flow_id)s'.") 
+                        "for '%(flow_id)s'.")
                     % {
                         'participation': participation,
                         'flow_id': flow_id})

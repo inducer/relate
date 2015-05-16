@@ -113,7 +113,7 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
                     raise ValidationError(
                             _("%(location)s: attribute '%s(attr)' has "
                             "wrong type: got '%(name)s', "
-                            "expected '%(allowed)s'") 
+                            "expected '%(allowed)s'")
                             % {
                                 'location': location,
                                 'attr': attr,

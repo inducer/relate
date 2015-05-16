@@ -537,7 +537,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                _("Grade recalculated for %d session(s).") 
+                                _("Grade recalculated for %d session(s).")
                                 % count)
 
                     else:
@@ -948,7 +948,7 @@ class ImportGradesForm(StyledForm):
             help_text=_("Click to <a href='%s' target='_blank'>create</a> "
             "a new grading opportunity. Reload this form when done.")
             % reverse("admin:course_gradingopportunity_add"),
-            label=pgettext_lazy("field name in Import grades form", 
+            label=pgettext_lazy("field name in Import grades form",
                                 "Grading opportunity"))
 
         self.fields["attempt_id"] = forms.CharField(
@@ -966,7 +966,7 @@ class ImportGradesForm(StyledForm):
                 label=_("Format"))
 
         self.fields["id_column"] = forms.IntegerField(
-                # Translators: the following strings are for the format informatioin for a 
+                # Translators: the following strings are for the format informatioin for a
                 # CSV file to be imported.
                 help_text=_("1-based column index for the Email or NetID "
                 "used to locate student record"),

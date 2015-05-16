@@ -58,7 +58,7 @@ class SandboxForm(forms.Form):
                 initial=initial_text,
                 widget=cm_widget,
                 help_text=mark_safe(
-                    help_text 
+                    help_text
                     + ugettext(" Press Alt/Cmd+(Shift+)P to preview. ")
                     + cm_help_text),
                 label=_("Content"))
