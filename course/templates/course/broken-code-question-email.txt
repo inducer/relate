@@ -2,7 +2,7 @@
 {% blocktrans with page_id=page_id course_identifier=course.identifier error_message=error_message|safe %}
 Hi there,
 
-Bad news! A code question with ID '{{ page_id }}' in '{{ course.identifier }}'
+Bad news! A code question with ID '{{ page_id }}' in '{{ course_identifier }}'
 has just failed while a user was trying to get his or her code graded.
 Details of the problem are below:
 

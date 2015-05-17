@@ -532,7 +532,7 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
                 now_datetime=now_datetime)
     else:
         raise ValueError(
-                _("invalid expiration mode '%(mode)s' on flow session ID"
+                _("invalid expiration mode '%(mode)s' on flow session ID "
                 "%(session_id)d") % {
                     'mode': flow_session.expiration_mode,
                     'session_id': flow_session.id})

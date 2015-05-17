@@ -776,7 +776,7 @@ def validate_stipulations(stip):
 
     if "credit_percent" in stip and not isinstance(
             stip["credit_percent"], (int, float)):
-        raise ValidationError(_("'credit_percent' must be a float"))
+        raise ValidationError(_("credit_percent must be a float"))
     if ("allowed_session_count" in stip
             and (
                 not isinstance(stip["allowed_session_count"], int)
@@ -1246,8 +1246,8 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
             course=course,
             identifier=grading_rule.grade_identifier,
             defaults=dict(
-                # Translators: name of flow with prefix "Flow"
                 name=(
+                    # Translators: display the name of a flow
                     _("Flow: %(flow_desc_title)s")
                     % {"flow_desc_title": flow_desc.title}),
                 flow_id=flow_id,

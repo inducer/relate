@@ -221,7 +221,7 @@ def set_up_new_course(request):
                         shutil.rmtree(repo_path, onerror=remove_readonly)
                     except OSError:
                         messages.add_message(request, messages.WARNING,
-                                ugettext("Failed to delete unused repository"
+                                ugettext("Failed to delete unused repository "
                                 "directory '%s'.")
                                 % repo_path)
 
