@@ -125,7 +125,7 @@ class ImpersonateForm(StyledForm):
                     # style. For example %(user_lastname)s,
                     # %(user_firstname)s (user_email)s, but all three
                     # strings should be used.
-                    (u.id, _("(user_email)%s - %(user_lastname)s, "
+                    (u.id, _("%(user_email)s - %(user_lastname)s, "
                             "%(user_firstname)s")
                             % {
                                 "user_email":u.email,

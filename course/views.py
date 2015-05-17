@@ -439,7 +439,7 @@ class ParticipationChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         user = obj.user
         return (
-                _("(user_email)%s - %(user_lastname)s, "
+                _("%(user_email)s - %(user_lastname)s, "
                     "%(user_firstname)s")
                 % {
                     "user_email":user.email,
