@@ -55,31 +55,32 @@ following command::
 
     django-admin makemessages -l de
     
-will generate a message file for Germany language, where locale name `de`
+will generate a message file for Germany language, where locale name ``de``
 stands for Germany. The message file locates in the locale dirctory in root
 directory of your RELATE project. For example, the above command will generate
-a message file `django.po` in `/project/root/locale/de/LC_MESSAGES`.
+a message file ``django.po`` in ``/project/root/locale/de/LC_MESSAGES``.
 
-Edit the `django.po`. For each `msgid`string, put it's translation in `msgstr`
-right below. `msgctxt` strings, along with the commented `Translators` strings,
-are helpful if you need more information about the literals.
+Edit the ``django.po``. For each ``msgid`` string, put it's translation in 
+``msgstr`` right below. ``msgctxt`` strings, along with the commented 
+``Translators:`` strings above some ``msgid`` strings, are used to provide 
+more information for better understanding of the literals.
 
-When traslations are done, run the following command in root directory::
+When translations are done, run the following command in root directory::
 
     django-admin compilemessages -l de
 
 Your translations are ready for use. 
 
 To enable the translations, open your local_settings.py, uncomment the 
-`LANGUAGE_CODE` string and change 'en-us' to your locale name of your
+``LANGUAGE_CODE`` string and change 'en-us' to your locale name of your
 language.
 
 For more instructions, please refer to `Localization: how to create
-language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`.
+language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
 
 (TODO)
 
-i18n marks for javascript.
+Add i18n marks for javascript.
 
 Additional setup steps for Docker
 ---------------------------------
