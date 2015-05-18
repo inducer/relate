@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext as _, pgettext, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib.auth.decorators import login_required
@@ -99,14 +99,29 @@ class Histogram(object):
             self.string_weights[value] = \
                     self.string_weights.get(value, 0) + weight
         elif value is None:
-            self.add_data_point(_("(None)"), weight)
+            self.add_data_point(
+                "".join([
+                        "(",
+                        pgettext("No data","None"),
+                        ")"]),
+                weight)
         else:
             if (self.num_max_value is not None
                     and value > self.num_max_value):
-                self.add_data_point(_("(value greater than max)"), weight)
+                self.add_data_point(
+                    "".join([
+                            "(",
+                            pgettext("Value of grade", "value greater than max"),
+                            ")"]),
+                    weight)
             elif (self.num_min_value is not None
                     and value < self.num_min_value):
-                self.add_data_point(_("(value smaller than min)"), weight)
+                self.add_data_point(
+                    "".join([
+                            "(",
+                            pgettext("Value of grade", "value smaller than min"),
+                            ")"]),
+                    weight)
             else:
                 self.num_values.append((value, weight))
 
@@ -220,7 +235,10 @@ def make_grade_histogram(pctx, flow_id):
         num_max_value=100)
     for session in qset:
         if session.in_progress:
-            hist.add_data_point(_("<in progress>"))
+            hist.add_data_point(
+                    "".join(["<",
+                        pgettext("Status of session", "in progress"),
+                        ">"]))
         else:
             hist.add_data_point(session.points_percentage())
 
@@ -354,11 +372,17 @@ def make_time_histogram(pctx, flow_id):
 
     hist = Histogram(
             num_log_bins=True,
-            # Translators: "min" stands for abbreviation of time unit "minute"
-            num_bin_title_formatter=lambda minutes: _("$>$ %.1f min") % minutes)
+            num_bin_title_formatter=lambda minutes: \
+                    string_concat(
+                        "$>$ %.1f ",
+                        pgettext("Minute (time unit)", "min"))
+                    % minutes)
     for session in qset:
         if session.in_progress:
-            hist.add_data_point(_("<in progress>"))
+            hist.add_data_point(
+                    "".join(["<",
+                        pgettext("Status of session", "in progress"),
+                        ">"]))
         else:
             delta = session.completion_time - session.start_time
             minutes = delta.total_seconds() / 60

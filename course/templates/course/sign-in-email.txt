@@ -29,6 +29,4 @@ address into the {{ RELATE }} web site at
 If this was not you, it is safe to disregard this email.
 
 {% endblocktrans %}
-
-{% blocktrans %} - {{ RELATE }} staff {% endblocktrans %}
-
+{% blocktrans %}- {{ RELATE }} staff {% endblocktrans %}

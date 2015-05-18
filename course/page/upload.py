@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 import django.forms as forms
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext as _, string_concat
 
 from course.page.base import (
         PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
@@ -141,9 +141,16 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
-            raise ValidationError(_("%(location)s: unrecognized mime types '%(presenttype)s'")
-                    % {'location': location, 'presenttype': ", ".join(
-                        set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))})
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("unrecognized mime types"),
+                        " '%(presenttype)s'")
+                    % {
+                        'location': location,
+                        'presenttype': ", ".join(
+                            set(page_desc.mime_types)\
+                                    - set(self.ALLOWED_MIME_TYPES))})
 
         if not hasattr(page_desc, "value"):
             vctx.add_warning(location, _("upload question does not have "

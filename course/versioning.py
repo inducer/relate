@@ -188,8 +188,9 @@ def set_up_new_course(request):
 
                         messages.add_message(request, messages.INFO,
                                 _("Course content validated, creation "
-                                "succeeded. You may want to view the events "
-                                "used in the course content and create them. ")
+                                "succeeded. You may want to view the "
+                                "events used in the course content and "
+                                "create them. ")
                                 + string_concat(
                                     '<a href="%s" class="btn btn-primary">',
                                     pgettext("View/create events",
@@ -221,8 +222,8 @@ def set_up_new_course(request):
                         shutil.rmtree(repo_path, onerror=remove_readonly)
                     except OSError:
                         messages.add_message(request, messages.WARNING,
-                                ugettext("Failed to delete unused repository "
-                                "directory '%s'.")
+                                ugettext("Failed to delete unused "
+                                "repository directory '%s'.")
                                 % repo_path)
 
                     raise
@@ -232,8 +233,11 @@ def set_up_new_course(request):
                 print_exc()
 
                 messages.add_message(request, messages.ERROR,
-                        _("Course creation failed: %(err_type)s: %(err_str)s")
-                        % {"err_type": type(e).__name__, "err_str": str(e)})
+                        string_concat(
+                            _("Course creation failed"),
+                            ": %(err_type)s: %(err_str)s")
+                        % {"err_type": type(e).__name__,
+                            "err_str": str(e)})
             else:
                 return redirect(
                         "relate-course_page",
@@ -397,7 +401,8 @@ def update_course(pctx):
             participation_role.instructor,
             participation_role.teaching_assistant
             ]:
-        raise PermissionDenied(_("must be instructor or TA to update course"))
+        raise PermissionDenied(
+                _("must be instructor or TA to update course"))
 
     course = pctx.course
     request = pctx.request
@@ -432,8 +437,12 @@ def update_course(pctx):
                         may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s")
-                        % {"err_type": type(e).__name__, "err_str": str(e)})
+                        string_concat(
+                            pgettext("Starting of Error message",
+                                "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {"err_type": type(e).__name__,
+                            "err_str": str(e)})
 
     if response_form is None:
         previewing = bool(participation is not None

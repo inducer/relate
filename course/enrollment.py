@@ -24,7 +24,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import ugettext_lazy as _, pgettext
+from django.utils.translation import (
+        ugettext_lazy as _,
+        pgettext,
+        string_concat)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -130,7 +133,9 @@ def enroll(request, course_identifier):
                     reverse("admin:course_participation_changelist"))
             })
         from django.core.mail import send_mail
-        send_mail(_("[%s] New enrollment request") % course_identifier,
+        send_mail(
+                string_concat("[%s] ", _("New enrollment request"))
+                % course_identifier,
                 message,
                 settings.ROBOT_EMAIL_FROM,
                 recipient_list=[course.notify_email])
@@ -177,7 +182,8 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 
         from django.core.mail import EmailMessage
         msg = EmailMessage(
-                _("[%s] Your enrollment request") % course.identifier,
+                string_concat("[%s] ", _("Your enrollment request"))
+                % course.identifier,
                 message,
                 course.from_email,
                 [participation.user.email])

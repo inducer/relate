@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, string_concat
 from django.contrib import admin
 from course.models import (
         Facility, FacilityIPRange,
@@ -500,7 +500,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
         if obj.flow_session.participation:
             return obj.flow_session.participation.user
         else:
-            return _("(anonymous)")
+            return string_concat("(", _("anonymous"), ")")
 
     get_participant.short_description = _("Participant")
     get_participant.admin_order_field = "flow_session__participation"

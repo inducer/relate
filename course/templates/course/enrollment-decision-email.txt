@@ -35,7 +35,6 @@ One common reason for this may be that you may have used your personal email
 (such as a GMail or Yahoo account) rather than your official university account
 to sign in. If that is the case, please use the official account and
 try again.{% endblocktrans %}
-
 {% endif %}
 {# Translators: sender of the email #}
-{% blocktrans with RELATE="RELATE" %} - {{ RELATE }} staff {% endblocktrans %}
+{% blocktrans with RELATE="RELATE" %}- {{ RELATE }} staff {% endblocktrans %}

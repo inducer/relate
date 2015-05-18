@@ -81,12 +81,18 @@ def get_auto_feedback(correctness):
     elif correctness == 1:
         return unicode(_("Your answer is correct."))
     elif correctness > 0.5:
-        return unicode(_("Your answer is mostly correct. (%.1f %%)") \
+        return unicode(
+                string_concat(
+                    _("Your answer is mostly correct."),
+                    " (%.1f %%)")
                 % (100*correctness))
     elif correctness is None:
         return unicode(_("No information on correctness of answer."))
     else:
-        return unicode(_("Your answer is somewhat correct. (%.1f %%)") \
+        return unicode(
+                string_concat(
+                    _("Your answer is somewhat correct."),
+                    "(%.1f %%)")
                 % (100*correctness))
 
 
@@ -497,7 +503,9 @@ class PageBaseWithTitle(PageBase):
 
         if title is None:
             raise ValidationError(
-                    _("%s: no title found in body or title attribute")
+                    string_concat(
+                        "%s: ",
+                        _("no title found in body or title attribute"))
                     % (location))
 
         self._title = title
@@ -537,8 +545,8 @@ class HumanTextFeedbackForm(StyledForm):
 
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
-                help_text=_("Whether the grade and feedback below are to be shown "
-                "to student"),
+                help_text=_("Whether the grade and feedback below are to "
+                "be shown to student"),
                 label=_("Released"))
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
@@ -555,7 +563,8 @@ class HumanTextFeedbackForm(StyledForm):
                     min_value=0,
                     max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
                     help_text=_("Grade assigned, as points out of %.1f. "
-                    "Fill out either this or 'grade percent'.") % point_value,
+                    "Fill out either this or 'grade percent'.")\
+                            % point_value,
                     required=False,
 
                     # avoid unfortunate scroll wheel accidents reported by graders
@@ -565,7 +574,8 @@ class HumanTextFeedbackForm(StyledForm):
         self.fields["feedback_text"] = forms.CharField(
                 widget=forms.Textarea(),
                 required=False,
-                help_text=mark_safe_lazy(_("Feedback to be shown to student, using "
+                help_text=mark_safe_lazy(
+                    _("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
                     "RELATE-flavored Markdown</a>")),
@@ -592,7 +602,8 @@ class HumanTextFeedbackForm(StyledForm):
             direct_percent = grade_percent
 
             if abs(points_percent - direct_percent) > 0.1:
-                raise FormValidationError(_("Grade (percent) and Grade (points) "
+                raise FormValidationError(
+                        _("Grade (percent) and Grade (points) "
                         "disagree"))
 
         super(StyledForm, self).clean()
@@ -680,7 +691,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
             from django.core.mail import send_mail
             from django.conf import settings
-            send_mail("[%(identifier)s:%(flow_id)s] New notification"
+            send_mail(
+                    string_concat("[%(identifier)s:%(flow_id)s] ",
+                        _("New notification"))
                     % {'identifier': page_context.course.identifier,
                         'flow_id': page_context.flow_session.flow_id},
                     message,
@@ -724,8 +737,12 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
             if grade_data["feedback_text"]:
                 feedback_text += (
-                        string_concat("<p>", _("The following feedback was provided"), ":<p>")
-                        + markup_to_html(page_context, grade_data["feedback_text"]))
+                        string_concat(
+                            "<p>",
+                            _("The following feedback was provided"),
+                            ":<p>")
+                        + markup_to_html(
+                            page_context, grade_data["feedback_text"]))
 
             return AnswerFeedback(
                     correctness=correctness,

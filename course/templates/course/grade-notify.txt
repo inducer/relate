@@ -29,6 +29,4 @@ full text of the feedback follows.
 -------------------------------------------------------------------
 
 {% endblocktrans %}
-
-{% blocktrans with RELATE="RELATE" %} - {{ RELATE }} staff {% endblocktrans %}
-
+{% blocktrans with RELATE="RELATE" %}- {{ RELATE }} staff {% endblocktrans %}

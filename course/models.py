@@ -29,7 +29,8 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.utils.translation import ugettext_lazy as _, pgettext_lazy
+from django.utils.translation import (
+        ugettext_lazy as _, pgettext_lazy, string_concat)
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
@@ -717,6 +718,8 @@ class FlowPageVisitGrade(models.Model):
 
     def __unicode__(self):
         # information on FlowPageVisitGrade class
+        # Translators: return the information of the grade of a user
+        # by percentage.
         return _("grade of %(visit)s: %(percentage)s") % {
                 "visit": self.visit, "percentage": self.percentage()}
 
@@ -771,7 +774,10 @@ def validate_stipulations(stip):
         raise ValidationError(_("stipulations must be a dictionary"))
     allowed_keys = set(["credit_percent", "allowed_session_count"])
     if not set(stip.keys()) <= allowed_keys:
-        raise ValidationError(_("unrecognized keys in stipulations: %s")
+        raise ValidationError(
+                string_concat(
+                    _("unrecognized keys in stipulations"),
+                    ": %s")
                 % ", ".join(set(stip.keys()) - allowed_keys))
 
     if "credit_percent" in stip and not isinstance(
@@ -788,7 +794,7 @@ def validate_stipulations(stip):
 # {{{ deprecated exception stuff
 
 class FlowAccessException(models.Model):
-    # Translators: deprecated
+    # deprecated
 
     participation = models.ForeignKey(Participation, db_index=True,
             verbose_name=_('Participation'))
@@ -879,8 +885,8 @@ class FlowRuleException(models.Model):
     rule = YAMLField(blank=False, null=False,
             verbose_name=_('Rule'))
     active = models.BooleanField(default=True,
-            verbose_name=pgettext_lazy("Is the flow rule exception activated?",
-                            "Active"))
+            verbose_name=pgettext_lazy(
+                "Is the flow rule exception activated?", "Active"))
 
     def __unicode__(self):
         return (

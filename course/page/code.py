@@ -606,7 +606,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             if not is_nuisance_failure(response_dict):
                 from django.core.mail import send_mail
                 from django.conf import settings
-                send_mail("".join(["[%s]", _("code question execution failed")])
+                send_mail("".join(["[%s] ", _("code question execution failed")])
                         % page_context.course.identifier,
                         message,
                         settings.ROBOT_EMAIL_FROM,
@@ -635,64 +635,90 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "setup_error",
                 "test_compile_error",
                 "test_error"]:
-            feedback_bits.append(
-                    "".join(["<p>", _("The grading code failed. Sorry about that. "
-                    "The staff has been informed, and if this problem is due "
-                    "to an issue with the grading code, "
+            feedback_bits.append("".join([
+                "<p>", 
+                _("The grading code failed. Sorry about that. "
+                    "The staff has been informed, and if this problem is "
+                    "due to an issue with the grading code, "
                     "it will be fixed as soon as possible. "
                     "In the meantime, you'll see a traceback "
-                    "below that may help you figure out what went wrong."), "</p>"]))
+                    "below that may help you figure out what went wrong."
+                    ),
+                "</p>"]))
         elif response.result == "timeout":
-            feedback_bits.append(
-                    "".join(["<p>", _("Your code took too long to execute. The problem "
-                    "specifies that your code may take at most %s seconds to run. "
-                    "It took longer than that and was aborted."), "</p>"])
+            feedback_bits.append("".join([
+                "<p>",
+                _("Your code took too long to execute. The problem "
+                    "specifies that your code may take at most %s seconds "
+                    "to run. "
+                    "It took longer than that and was aborted."
+                    ),
+                "</p>"])
                     % self.page_desc.timeout)
 
             correctness = 0
         elif response.result == "user_compile_error":
-            feedback_bits.append(
-                    "".join(["<p>", _("Your code failed to compile. An error message is below."), "</p>"]))
+            feedback_bits.append("".join([
+                "<p>",
+                _("Your code failed to compile. An error message is "
+                    "below."),
+                "</p>"]))
 
             correctness = 0
         elif response.result == "user_error":
-            feedback_bits.append(
-                    "".join(["<p>", _("Your code failed with an exception. "
-                    "A traceback is below."), "</p>"]))
+            feedback_bits.append("".join([
+                "<p>",
+                _("Your code failed with an exception. "
+                    "A traceback is below."),
+                "</p>"]))
 
             correctness = 0
         else:
             raise RuntimeError("invalid runpy result: %s" % response.result)
 
         if hasattr(response, "feedback") and response.feedback:
-            feedback_bits.append(
-                    "".join(["<p>", _("Here is some feedback on your code"), ":"
-                    "<ul>%s</ul></p>"]) % "".join(
-                        "<li>%s</li>" % escape(fb_item)
-                        for fb_item in response.feedback))
+            feedback_bits.append("".join([
+                "<p>",
+                _("Here is some feedback on your code"),
+                ":"
+                "<ul>%s</ul></p>"]) %\
+                        "".join(
+                            "<li>%s</li>" % escape(fb_item)
+                            for fb_item in response.feedback))
         if hasattr(response, "traceback") and response.traceback:
-            feedback_bits.append(
-                    "".join(["<p>", _("This is the exception traceback"), ":"
-                    "<pre>%s</pre></p>"]) % escape(response.traceback))
+            feedback_bits.append("".join([
+                "<p>",
+                _("This is the exception traceback"),
+                ":"
+                "<pre>%s</pre></p>"]) % escape(response.traceback))
             print repr(response.traceback)
         if hasattr(response, "stdout") and response.stdout:
-            bulk_feedback_bits.append(
-                    "".join(["<p>", _("Your code printed the following output"), ":<pre>%s</pre></p>"])
+            bulk_feedback_bits.append("".join([
+                "<p>",
+                _("Your code printed the following output"),
+                ":"
+                "<pre>%s</pre></p>"])
                     % escape(response.stdout))
         if hasattr(response, "stderr") and response.stderr:
-            bulk_feedback_bits.append(
-                    "".join(["<p>", _("Your code printed the following error messages"), ":"
-                    "<pre>%s</pre></p>"]) % escape(response.stderr))
+            bulk_feedback_bits.append("".join([
+                "<p>",
+                _("Your code printed the following error messages"),
+                ":"
+                "<pre>%s</pre></p>"]) % escape(response.stderr))
         if hasattr(response, "figures") and response.figures:
-            fig_lines = [
-                    "".join(["<p>", _("Your code produced the following plots"), ":</p>"]),
-                    '<dl class="result-figure-list">',
-                    ]
+            fig_lines = ["".join([
+                "<p>",
+                _("Your code produced the following plots"),
+                ":</p>"]),
+                '<dl class="result-figure-list">',
+                ]
 
             for nr, mime_type, b64data in response.figures:
                 fig_lines.extend([
-                        "".join(["<dt>", _("Figure"), "%d<dt>"]) % nr,
-                        '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
+                    "".join([
+                        "<dt>",
+                        _("Figure"), "%d<dt>"]) % nr,
+                    '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
                         % (nr, mime_type, b64data)])
 
             fig_lines.append("</dl>")
@@ -712,9 +738,10 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     self.page_desc.correct_code_explanation)
 
         if hasattr(self.page_desc, "correct_code"):
-            result += (
-                    "".join([_("The following code is a valid answer"), ":<pre>%s</pre>"])
-                    % escape(self.page_desc.correct_code))
+            result += ("".join([
+                _("The following code is a valid answer"),
+                ": <pre>%s</pre>"])
+                % escape(self.page_desc.correct_code))
 
         return result
 
@@ -778,9 +805,11 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
         if (vctx is not None
                 and self.page_desc.human_feedback_value > self.page_desc.value):
-            raise ValidationError(
-                    "".join(["%s: ", _("human_feedback_value greater than overall "
-                    "value of question")]) % location)
+            raise ValidationError("".join([
+                "%s: ",
+                _("human_feedback_value greater than overall "
+                    "value of question")])
+                % location)
 
     def required_attrs(self):
         return super(

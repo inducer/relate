@@ -12,5 +12,4 @@ in question and use the "Approve enrollment" or "Deny enrollment" admin
 actions.
 
 {% endblocktrans %}
-
-{% blocktrans with RELATE="RELATE" %} - {{ RELATE }} staff {% endblocktrans %}
+{% blocktrans with RELATE="RELATE" %}- {{ RELATE }} staff {% endblocktrans %}

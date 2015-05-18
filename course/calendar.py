@@ -24,7 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import ugettext_lazy as _, pgettext_lazy
+from django.utils.translation import (
+        ugettext_lazy as _, pgettext_lazy, string_concat)
 from django.contrib.auth.decorators import login_required
 from course.utils import course_view, render_course_page
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
@@ -134,7 +135,13 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
                         time.hour, time.minute, time.second))
             del date
         else:
-            raise ValueError(_("unknown interval: %s") % interval)
+            raise ValueError(
+                    string_concat(
+                        pgettext_lazy(
+                            "Unkown time interval",
+                            "unknown interval"),
+                        ": %s")
+                    % interval)
 
         ordinal += 1
 
@@ -173,17 +180,21 @@ def create_recurring_events(pctx):
                 except EventAlreadyExists as e:
                     if starting_ordinal_specified:
                         messages.add_message(request, messages.ERROR,
-                                _("%(err_type)s: %(err_str)s. No events "
-                                  "created.") % {
-                                      "err_type": type(e).__name__,
-                                      "err_str": str(e)})
+                                string_concat(
+                                    "%(err_type)s: %(err_str)s. ",
+                                    _("No events created."))
+                                % {
+                                    "err_type": type(e).__name__,
+                                    "err_str": str(e)})
                     else:
                         starting_ordinal += 10
                         continue
 
                 except Exception as e:
                     messages.add_message(request, messages.ERROR,
-                            _("%(err_type)s: %(err_str)s. No events created.")
+                            string_concat(
+                                "%(err_type)s: %(err_str)s. ",
+                                _("No events created."))
                             % {
                                 "err_type": type(e).__name__,
                                 "err_str": str(e)})

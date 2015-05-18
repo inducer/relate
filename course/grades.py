@@ -27,7 +27,7 @@ THE SOFTWARE.
 import re
 
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy, ugettext)
+        ugettext_lazy as _, pgettext_lazy, ugettext, string_concat)
 from django.shortcuts import (  # noqa
         render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -544,7 +544,11 @@ def view_grades_by_opportunity(pctx, opp_id):
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
-                            _("Error: %(err_type)s %(err_str)s") % {
+                            string_concat(
+                                pgettext_lazy("Starting of Error message",
+                                    "Error"),
+                                ": %(err_type)s %(err_str)s") 
+                            % {
                                 "err_type": type(e).__name__,
                                 "err_str": str(e)})
                     raise
@@ -857,7 +861,11 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") % {
+                        string_concat(
+                            pgettext_lazy("Starting of Error message",
+                                "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {
                             "err_type": type(e).__name__,
                             "err_str": str(e)})
     else:
@@ -1109,8 +1117,8 @@ def csv_to_grade_changes(
                     updated.append("comment")
 
                 if updated:
-                    log_lines.append(_("%(participation)s: %(updated)s "
-                                       "updated") % {
+                    log_lines.append("%(participation)s: %(updated)s "
+                                       "updated" % {
                         'participation': gchange.participation,
                         'updated': ", ".join(updated)})
 
@@ -1159,8 +1167,13 @@ def import_grades(pctx):
                         has_header=form.cleaned_data["format"] == "csvhead")
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        _("Error: %(err_type)s %(err_str)s") % {
-                        "err_type": type(e).__name__, "err_str": str(e)})
+                        string_concat(
+                            pgettext_lazy("Starting of Error message",
+                                "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {
+                            "err_type": type(e).__name__,
+                            "err_str": str(e)})
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
