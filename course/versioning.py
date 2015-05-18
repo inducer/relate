@@ -472,11 +472,11 @@ def update_course(pctx):
             })
     else:
         text_lines.append(
-                string_concat(
+                "".join([
                     "<b>",
                     ugettext("Current preview git SHA"),
                     ":</b> ",
-                    ugettext("None")))
+                    ugettext("None")]))
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
