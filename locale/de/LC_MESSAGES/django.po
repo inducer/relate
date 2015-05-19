@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-05-18 18:54+0800\n"
+"POT-Creation-Date: 2015-05-19 21:16+0800\n"
 "PO-Revision-Date: 2015-05-18 18:54+0800\n"
 "Last-Translator:  NONE\n"
 "Language-Team: NONE\n"
@@ -1083,7 +1083,7 @@ msgstr ""
 msgid "Max points"
 msgstr ""
 
-#: .\course\grades.py:997 .\course\sandbox.py:68
+#: .\course\grades.py:997 .\course\sandbox.py:70
 #: .\course\templates\course\grade-import-preview.html:14
 #: .\course\versioning.py:394
 msgid "Preview"
@@ -2258,39 +2258,37 @@ msgstr ""
 msgid "upload question does not have assigned point value"
 msgstr ""
 
-#: .\course\sandbox.py:62
-msgid " Press Alt/Cmd+(Shift+)P to preview. "
+#: .\course\sandbox.py:63
+msgid "Press Alt/Cmd+(Shift+)P to preview."
 msgstr ""
 
-#: .\course\sandbox.py:64
+#: .\course\sandbox.py:66
 msgid "Content"
 msgstr ""
 
-#: .\course\sandbox.py:85
+#: .\course\sandbox.py:87
 msgid ""
 "Enter <a href=\"http://documen.tician.de/relate/content.html#relate-markup"
 "\">RELATE markup</a>."
 msgstr ""
 
-#: .\course\sandbox.py:107
-#, python-format
-msgid "Markup failed to render: %(err_type)s: %(err_str)s"
+#: .\course\sandbox.py:109
+msgid "Markup failed to render"
 msgstr ""
 
-#: .\course\sandbox.py:132
+#: .\course\sandbox.py:135
 msgid "must be instructor or TA to access sandbox"
 msgstr ""
 
-#: .\course\sandbox.py:153
+#: .\course\sandbox.py:156
 msgid "Enter YAML markup for a flow page."
 msgstr ""
 
-#: .\course\sandbox.py:176
-#, python-format
-msgid "Page failed to load/validate: %(err_type)s: %(err_str)s"
+#: .\course\sandbox.py:179
+msgid "Page failed to load/validate"
 msgstr ""
 
-#: .\course\sandbox.py:254
+#: .\course\sandbox.py:259
 msgid "Submit answer"
 msgstr ""
 

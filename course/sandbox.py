@@ -59,7 +59,9 @@ class SandboxForm(forms.Form):
                 widget=cm_widget,
                 help_text=mark_safe(
                     help_text
-                    + ugettext(" Press Alt/Cmd+(Shift+)P to preview. ")
+                    + " "
+                    + ugettext("Press Alt/Cmd+(Shift+)P to preview.")
+                    + " "
                     + cm_help_text),
                 label=_("Content"))
 
@@ -104,8 +106,9 @@ def view_markup_sandbox(pctx):
                 tp, e, _ = sys.exc_info()
 
                 messages.add_message(pctx.request, messages.ERROR,
-                        ugettext("Markup failed to render: "
-                        "%(err_type)s: %(err_str)s") % {
+                        ugettext("Markup failed to render")
+                        + ": "
+                        + "%(err_type)s: %(err_str)s" % {
                             "err_type": tp.__name__, "err_str": e})
 
         form = make_form(request.POST)
@@ -173,8 +176,9 @@ def view_page_sandbox(pctx):
                 tp, e, _ = sys.exc_info()
 
                 page_errors = (
-                        _("Page failed to load/validate: "
-                        "%(err_type)s: %(err_str)s") % {
+                        ugettext("Page failed to load/validate")
+                        + ": "
+                        + "%(err_type)s: %(err_str)s" % {
                             "err_type": tp.__name__, "err_str": e})
 
             else:
@@ -251,7 +255,9 @@ def view_page_sandbox(pctx):
 
             if page_form is not None:
                 page_form.helper.add_input(
-                        Submit("submit", ugettext("Submit answer"), accesskey="g",
+                        Submit("submit",
+                            ugettext("Submit answer"),
+                            accesskey="g",
                             css_class="col-lg-offset-2"))
                 page_form_html = page.form_to_html(
                         pctx.request, page_context, page_form, answer_data)
