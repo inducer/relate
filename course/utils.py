@@ -28,6 +28,7 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils.translation import ugettext as _
 
 from course.views import (
         get_role_and_participation
@@ -292,8 +293,8 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
                 description=getattr(rule, "description", None),
                 credit_percent=getattr(rule, "credit_percent", 100))
 
-    raise RuntimeError("grading rule determination was unable to find "
-            "a grading rule")
+    raise RuntimeError(_("grading rule determination was unable to find "
+            "a grading rule"))
 
 # }}}
 
@@ -528,8 +529,8 @@ def get_codemirror_widget(language_mode, interaction_mode,
     from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
     from django.core.urlresolvers import reverse
-    help_text = ("Press F9 to toggle full-screen mode. "
-            + "Set editor mode in <a href='%s'>user profile</a>."
+    help_text = (_("Press F9 to toggle full-screen mode. ")
+            + _("Set editor mode in <a href='%s'>user profile</a>.")
             % reverse("relate-user_profile"))
 
     actual_addon_css = (

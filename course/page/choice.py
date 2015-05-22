@@ -27,6 +27,8 @@ THE SOFTWARE.
 
 import django.forms as forms
 from django.utils.safestring import mark_safe
+from django.utils.translation import (
+        ugettext_lazy as _, ugettext, string_concat)
 
 from relate.utils import StyledForm
 from course.page.base import (
@@ -41,7 +43,7 @@ class ChoiceAnswerForm(StyledForm):
 
         self.fields["choice"] = field
         # Translators: "choice" in Choice Answer Form in a choice question.
-        self.fields["choice"].label = "Choice"
+        self.fields["choice"].label = _("Choice")
 
 
 # {{{ choice question
@@ -106,8 +108,12 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
             try:
                 choice = str(choice)
             except:
-                raise ValidationError("%(location)s, choice %(id)d: unable to convert to string"
-                        % {'location':location, 'id':choice_idx+1})
+                raise ValidationError(
+                        string_concat(
+                            "%(location)s, ",
+                            _("choice %(idx)d: unable to convert to string")
+                            )
+                        % {'location': location, 'idx': choice_idx+1})
 
             if choice.startswith(self.CORRECT_TAG):
                 correct_choice_count += 1
@@ -117,8 +123,14 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                         remove_prefix(self.CORRECT_TAG, choice))
 
         if correct_choice_count < 1:
-            raise ValidationError("%(location)s: one or more correct answer(s) "
-                    "expected, %(correct)d found" % {'location':location, 'correct':correct_choice_count})
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        "one or more correct answer(s) "
+                        "expected, %(n_correct)d found") 
+                    % {
+                        'location': location,
+                        'n_correct': correct_choice_count})
 
     def required_attrs(self):
         return super(ChoiceQuestion, self).required_attrs() + (
@@ -191,7 +203,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.")
+                    feedback=ugettext("No answer provided."))
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
@@ -205,7 +217,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        return ("A correct answer is:%s"
+        return (_("A correct answer is: %s")
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[corr_idx]).lstrip())
@@ -272,8 +284,12 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
             try:
                 choice = str(choice)
             except:
-                raise ValidationError("%s, choice %d: unable to convert to string"
-                        % (location, choice_idx+1))
+                raise ValidationError(
+                        string_concat(
+                            "%(location)s, ",
+                            _("choice %(idx)d: unable to convert to string")
+                            )
+                            % {"location": location, "idx": choice_idx+1})
 
             if vctx is not None:
                 validate_markup(vctx, location, choice)

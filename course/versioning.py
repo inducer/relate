@@ -31,7 +31,7 @@ import django.forms as forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.core.urlresolvers import reverse
-from django.utils.translation import (  # noqa
+from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
         pgettext,
@@ -130,14 +130,14 @@ class CourseCreationForm(StyledModelForm):
         super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Validate and create",
+                Submit("submit", _("Validate and create"),
                     css_class="col-lg-offset-2"))
 
 
 @login_required
 def set_up_new_course(request):
     if not request.user.is_staff:
-        raise PermissionDenied("only staff may create courses")
+        raise PermissionDenied(_("only staff may create courses"))
 
     if request.method == "POST":
         form = CourseCreationForm(request.POST)
@@ -187,11 +187,15 @@ def set_up_new_course(request):
                         # }}}
 
                         messages.add_message(request, messages.INFO,
-                                "Course content validated, creation succeeded. "
-                                "You may want to view the events used "
-                                "in the course content and create them. "
-                                + '<a href="%s" class="btn btn-primary">'
-                                'Check &raquo;</a>'
+                                _("Course content validated, creation "
+                                "succeeded. You may want to view the "
+                                "events used in the course content and "
+                                "create them. ")
+                                + string_concat(
+                                    '<a href="%s" class="btn btn-primary">',
+                                    pgettext("View/create events",
+                                        "Check"),
+                                    " &raquo;</a>")
                                 % reverse("relate-check_events",
                                     args=(new_course.identifier,)))
                 except:
@@ -218,7 +222,8 @@ def set_up_new_course(request):
                         shutil.rmtree(repo_path, onerror=remove_readonly)
                     except OSError:
                         messages.add_message(request, messages.WARNING,
-                                "Failed to delete unused repository directory '%s'."
+                                ugettext("Failed to delete unused "
+                                "repository directory '%s'.")
                                 % repo_path)
 
                     raise
@@ -228,8 +233,11 @@ def set_up_new_course(request):
                 print_exc()
 
                 messages.add_message(request, messages.ERROR,
-                        "Course creation failed: %s: %s" % (
-                            type(e).__name__, str(e)))
+                        string_concat(
+                            _("Course creation failed"),
+                            ": %(err_type)s: %(err_str)s")
+                        % {"err_type": type(e).__name__,
+                            "err_str": str(e)})
             else:
                 return redirect(
                         "relate-course_page",
@@ -239,7 +247,7 @@ def set_up_new_course(request):
         form = CourseCreationForm()
 
     return render(request, "generic-form.html", {
-        "form_description": "Set up new course",
+        "form_description": _("Set up new course"),
         "form": form
         })
 
@@ -274,7 +282,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
         command = command[6:]
 
         if not pctx.course.git_source:
-            raise RuntimeError("no git source URL specified")
+            raise RuntimeError(_("no git source URL specified"))
 
         client, remote_path = \
             get_dulwich_client_and_remote_path_from_course(pctx.course)
@@ -283,17 +291,17 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
         remote_head = remote_refs["HEAD"]
         if is_parent_commit(repo, repo[remote_head], repo["HEAD"],
                 max_history_check_size=10):
-            raise RuntimeError("fetch would discard commits, refusing")
+            raise RuntimeError(_("fetch would discard commits, refusing"))
 
         repo["HEAD"] = remote_head
 
-        messages.add_message(request, messages.SUCCESS, "Fetch successful.")
+        messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
         new_sha = repo.head()
 
     if command == "end_preview":
         messages.add_message(request, messages.INFO,
-                "Preview ended.")
+                _("Preview ended."))
         pctx.participation.preview_git_commit_sha = None
         pctx.participation.save()
 
@@ -307,27 +315,29 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
                 repo, pctx.course.course_file, pctx.course.events_file, new_sha)
     except ValidationError as e:
         messages.add_message(request, messages.ERROR,
-                "Course content did not validate successfully. (%s) "
-                "Update not applied." % str(e))
+                _("Course content did not validate successfully. (%s) "
+                "Update not applied.") % str(e))
         return
 
     else:
         if not warnings:
             messages.add_message(request, messages.SUCCESS,
-                    "Course content validated successfully.")
+                    _("Course content validated successfully."))
         else:
             messages.add_message(request, messages.WARNING,
-                    "Course content validated OK, with warnings:"
-                    "<ul>%s</ul>"
+                    string_concat(
+                        _("Course content validated OK, with warnings: "),
+                        "<ul>%s</ul>")
                     % ("".join(
-                        "<li><i>%s</i>: %s</li>" % (w.location, w.text)
+                        "<li><i>%(location)s</i>: %(warningtext)s</li>"
+                        % {'location': w.location, 'warningtext': w.text}
                         for w in warnings)))
 
     # }}}
 
     if command == "preview":
         messages.add_message(request, messages.INFO,
-                "Preview activated.")
+                _("Preview activated."))
 
         pctx.participation.preview_git_commit_sha = new_sha
         pctx.participation.save()
@@ -338,23 +348,27 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
         pctx.course.save()
 
         messages.add_message(request, messages.SUCCESS,
-                "Update applied. "
+                _("Update applied. "
                 "You may want to view the events used "
                 "in the course content and check that they "
-                "are recognized. "
-                + '<p><a href="%s" class="btn btn-primary" '
-                'style="margin-top:8px">'
-                'Check &raquo;</a></p>'
+                "are recognized. ")
+                + string_concat(
+                    "<p><a href='%s' class='btn btn-primary' "
+                    "style='margin-top:8px'>",
+                    pgettext("View/create events", "Check"),
+                    " &raquo;</a></p>")
                 % reverse("relate-check_events",
                     args=(pctx.course.identifier,)))
 
     else:
-        raise RuntimeError("invalid command")
+        raise RuntimeError(_("invalid command"))
 
 
 class GitUpdateForm(StyledForm):
     new_sha = forms.CharField(required=True,
-            label=pgettext_lazy("new git SHA for revision of course contents", "New git SHA"))
+            label=pgettext_lazy(
+                "new git SHA for revision of course contents",
+                "New git SHA"))
 
     def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
@@ -370,14 +384,14 @@ class GitUpdateForm(StyledForm):
                 self.helper.add_input(Submit(desc, label))
 
         if may_update:
-            add_button("fetch_update", "Fetch and update")
-            add_button("update", "Update")
+            add_button("fetch_update", _("Fetch and update"))
+            add_button("update", _("Update"))
 
         if previewing:
-            add_button("end_preview", "End preview")
+            add_button("end_preview", _("End preview"))
         else:
-            add_button("fetch_preview", "Fetch and preview")
-            add_button("preview", "Preview")
+            add_button("fetch_preview", _("Fetch and preview"))
+            add_button("preview", _("Preview"))
 
 
 @login_required
@@ -387,7 +401,8 @@ def update_course(pctx):
             participation_role.instructor,
             participation_role.teaching_assistant
             ]:
-        raise PermissionDenied("must be instructor or TA to update course")
+        raise PermissionDenied(
+                _("must be instructor or TA to update course"))
 
     course = pctx.course
     request = pctx.request
@@ -412,7 +427,7 @@ def update_course(pctx):
                 break
 
         if command is None:
-            raise SuspiciousOperation("invalid command")
+            raise SuspiciousOperation(_("invalid command"))
 
         if form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode()
@@ -422,7 +437,12 @@ def update_course(pctx):
                         may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        "Error: %s %s" % (type(e).__name__, str(e)))
+                        string_concat(
+                            pgettext("Starting of Error message",
+                                "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {"err_type": type(e).__name__,
+                            "err_str": str(e)})
 
     if response_form is None:
         previewing = bool(participation is not None
@@ -432,21 +452,40 @@ def update_course(pctx):
                 {"new_sha": repo.head()})
 
     text_lines = [
-            "<b>Current git HEAD:</b> %s (%s)" % (
-                repo.head(),
-                repo[repo.head()].message.strip()),
-            "<b>Public active git SHA:</b> %s (%s)" % (
-                course.active_git_commit_sha,
-                repo[course.active_git_commit_sha.encode()].message.strip()),
+            string_concat(
+                "<b>",
+                ugettext("Current git HEAD"),
+                ":</b> %(commit)s (%(message)s)")
+            % {
+                'commit': repo.head(),
+                'message': repo[repo.head()].message.strip()},
+            string_concat(
+                "<b>",
+                ugettext("Public active git SHA"),
+                ":</b> %(commit)s (%(message)s)")
+            % {
+                'commit': course.active_git_commit_sha,
+                'message': repo[course.active_git_commit_sha.encode()]\
+                        .message.strip()},
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
-            "<b>Current preview git SHA:</b> %s (%s)" % (
-                participation.preview_git_commit_sha,
-                repo[participation.preview_git_commit_sha.encode()].message.strip(),
-            ))
+                string_concat(
+                    "<b>",
+                    ugettext("Current preview git SHA"),
+                    ":</b> %(commit)s (%(message)s)")
+                % {
+                    'commit': participation.preview_git_commit_sha,
+                    'message': repo[participation.preview_git_commit_sha\
+                            .encode()].message.strip(),
+            })
     else:
-        text_lines.append("<b>Current preview git SHA:</b> None")
+        text_lines.append(
+                "".join([
+                    "<b>",
+                    ugettext("Current preview git SHA"),
+                    ":</b> ",
+                    ugettext("None")]))
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
@@ -454,7 +493,7 @@ def update_course(pctx):
             "<p>%s</p>" % line
             for line in text_lines
             ),
-        "form_description": "Update Course Revision",
+        "form_description": ugettext("Update Course Revision"),
     })
 
 # }}}

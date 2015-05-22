@@ -1,10 +1,11 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% load crispy_forms_tags %}
 {% load static %}
 
 {% block title %}
-  Grade book: {{ opportunity.name }} - RELATE
+  {% trans "Grade book" %}: {{ opportunity.name }} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block header_extra %}
@@ -18,36 +19,39 @@
 
 
 {% block content %}
-  <h1>Grade book: {{ opportunity.name }} </h1>
+  <h1>{% trans "Grade book" %}: {{ opportunity.name }} </h1>
 
   <table class="table table-condensed">
     <thead>
-      <th>Property</th><th>Value</th>
+      <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
     </thead>
     <tbody>
     <tr>
-      <td>Identifier</td><td><tt>{{ opportunity.identifier }}</tt></td>
+      <td>{% trans "Grading Opportunity ID" %}</td><td><tt>{{ opportunity.identifier }}</tt></td>
     </tr>
     <tr>
-      <td>Due</td><td><tt>{{ opportunity.due_time }}</tt></td>
+      <td>{% trans "Due" %}</td><td><tt>{{ opportunity.due_time }}</tt></td>
     </tr>
     <tr>
-      <td>Aggregation strategy</td><td><tt>{{ opportunity.aggregation_strategy }}</tt></td>
+      <td>{% trans "Aggregation strategy" %}</td><td><tt>{{ opportunity.aggregation_strategy }}</tt></td>
     </tr>
     {% if opportunity.flow_id %}
     <tr>
-      <td>Flow</td>
+      <td>{% trans "Flow" %}</td>
       <td>
         <tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
         &middot;
-        <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">Grading statistics</a>
+        <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">{% trans "Grading statistics" %}</a>
       </td>
     </tr>
     <tr>
-      <td>Counts</td>
+      {# Translators: "Counts" on the quantities of total session and finished sessions #}
+      <td>{% trans "Counts" %}</td>
       <td>
+        {% blocktrans trimmed %}
         {{ total_sessions }} total sessions
         ({{ finished_sessions }} finished)
+        {% endblocktrans %}
       </td>
     </tr>
     {% endif %}
@@ -56,18 +60,20 @@
 
   <table class="gradebook-by-opportunity">
     <thead>
-      <th class="datacol">User ID</th>
-      <th class="datacol">Name</th>
-      <th class="datacol">Overall grade</th>
-      <th class="datacol">Sessions</th>
+      <th class="datacol">{% trans "User ID" %}</th>
+      <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
+      <th class="datacol">{% trans "Overall grade" %}</th>
+      <th class="datacol">{% trans "Sessions" %}</th>
     </thead>
     <tbody>
       {% for participation, grade_info in grade_table %}
       <tr>
         <td class="datacol"><a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}">{{ participation.user.username }}</a></td>
         <td class="datacol">
-          {{ participation.user.last_name }},
-          {{ participation.user.first_name }}
+            {# Translators: Username displayed in gradebook by opportunity #}
+            {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
+                {{ last_name }}, {{ first_name }}
+            {% endblocktrans %}
           {% if participation.role != participation_role.student %}
             ({{ participation.role }})
           {% endif %}
@@ -92,11 +98,13 @@
                     ({{ flow_session.completion_time }})
                   {% endif %}
                   {% if flow_session.access_rules_tag %}
-                    (Rules tag: <tt>{{ flow_session.access_rules_tag }}</tt>)
+                    ({% trans "Rules tag" %}: <tt>{{ flow_session.access_rules_tag }}</tt>)
                   {% endif %}
                   {% if flow_session.points != None %}
-                    {{ flow_session.points|floatformat:1 }}/{{ flow_session.max_points|floatformat:1 }}
+                    {% blocktrans trimmed with points=flow_session.points|floatformat:1 max_points=flow_session.max_points|floatformat:1 %}
+                    {{ points }}/{{ max_points }}
                     points
+                    {% endblocktrans %}
                   {% endif %}
                 </li>
               {% endfor %}
@@ -118,7 +126,7 @@
 
   {% if batch_session_ops_form %}
     <div class="well" style="margin-top: 20px">
-      <h3 class="start-well-title">Batch sessions operations</h3>
+      <h3 class="start-well-title">{% trans "Batch sessions operations" %}</h3>
       {% crispy batch_session_ops_form %}
     </div>
   {% endif %}

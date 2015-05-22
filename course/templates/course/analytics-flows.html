@@ -1,11 +1,12 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% block title %}
-  Analytics - RELATE
+  {% trans "Analytics" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-  <h1>Analytics: List of Flows with Sessions</h1>
+  <h1>{% trans "Analytics: List of Flows with Sessions" %}</h1>
   {% if flow_ids %}
     <ul>
       {% for flow_id in flow_ids %}
@@ -17,7 +18,7 @@
       {% endfor %}
     </ul>
   {% else %}
-    No flow sessions have been recorded.
+    {% trans " No flow sessions have been recorded." %}
   {% endif %}
 {% endblock %}
 

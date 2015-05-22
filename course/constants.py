@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+from django.utils.translation import pgettext_lazy, ugettext
 # Allow 10x extra credit at the very most.
 MAX_EXTRA_CREDIT_FACTOR = 10
 
@@ -34,8 +35,8 @@ class user_status:  # noqa
     active = "active"
 
 USER_STATUS_CHOICES = (
-        (user_status.unconfirmed, "Unconfirmed"),
-        (user_status.active, "Active"),
+        (user_status.unconfirmed, pgettext_lazy("User status", "Unconfirmed")),
+        (user_status.active, pgettext_lazy("User status", "Active")),
         )
 
 
@@ -52,11 +53,16 @@ class participation_role:  # noqa
 
 
 PARTICIPATION_ROLE_CHOICES = (
-        (participation_role.instructor, "Instructor"),
-        (participation_role.teaching_assistant, "Teaching Assistant"),
-        (participation_role.student, "Student"),
-        (participation_role.observer, "Observer"),
-        (participation_role.auditor, "Auditor"),
+        (participation_role.instructor,
+            pgettext_lazy("Participation role", "Instructor")),
+        (participation_role.teaching_assistant,
+            pgettext_lazy("Participation role", "Teaching Assistant")),
+        (participation_role.student,
+            pgettext_lazy("Participation role", "Student")),
+        (participation_role.observer,
+            pgettext_lazy("Participation role", "Observer")),
+        (participation_role.auditor,
+            pgettext_lazy("Participation role", "Auditor")),
         # unenrolled is only used internally
         )
 
@@ -69,10 +75,14 @@ class participation_status:  # noqa
 
 
 PARTICIPATION_STATUS_CHOICES = (
-        (participation_status.requested, "Requested"),
-        (participation_status.active, "Active"),
-        (participation_status.dropped, "Dropped"),
-        (participation_status.denied, "Denied"),
+        (participation_status.requested,
+            pgettext_lazy("Participation status", "Requested")),
+        (participation_status.active,
+            pgettext_lazy("Participation status", "Active")),
+        (participation_status.dropped,
+            pgettext_lazy("Participation status", "Dropped")),
+        (participation_status.denied,
+            pgettext_lazy("Participation status", "Denied")),
         )
 
 
@@ -98,9 +108,11 @@ class flow_session_expiration_mode:  # noqa
     roll_over = "roll_over"
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
-        (flow_session_expiration_mode.end, "End session and grade"),
+        (flow_session_expiration_mode.end,
+            pgettext_lazy("Flow expiration mode", "End session and grade")),
         (flow_session_expiration_mode.roll_over,
-            "Keep session and apply new rules"),
+            pgettext_lazy("Flow expiration mode",
+                "Keep session and apply new rules")),
         )
 
 
@@ -112,7 +124,7 @@ def is_expiration_mode_allowed(expmode, permissions):
     elif expmode == flow_session_expiration_mode.end:
         return True
     else:
-        raise ValueError("unknown expiration mode")
+        raise ValueError(ugettext("unknown expiration mode"))
 
     return False
 
@@ -152,17 +164,26 @@ class flow_permission:  # noqa
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
 
 FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view, "View the flow"),
-        (flow_permission.submit_answer, "Submit answers"),
-        (flow_permission.end_session, "End session"),
-        (flow_permission.change_answer, "Change already-graded answer"),
-        (flow_permission.see_correctness, "See whether an answer is correct"),
+        (flow_permission.view,
+            pgettext_lazy("Flow permission", "View the flow")),
+        (flow_permission.submit_answer,
+            pgettext_lazy("Flow permission", "Submit answers")),
+        (flow_permission.end_session,
+            pgettext_lazy("Flow permission", "End session")),
+        (flow_permission.change_answer,
+            pgettext_lazy("Flow permission", "Change already-graded answer")),
+        (flow_permission.see_correctness,
+            pgettext_lazy("Flow permission",
+                "See whether an answer is correct")),
         (flow_permission.see_answer_before_submission,
-            "See the correct answer before answering"),
+            pgettext_lazy("Flow permission",
+                "See the correct answer before answering")),
         (flow_permission.see_answer_after_submission,
-            "See the correct answer after answering"),
+            pgettext_lazy("Flow permission",
+                "See the correct answer after answering")),
         (flow_permission.set_roll_over_expiration_mode,
-            "Set the session to 'roll over' expiration mode"),
+            pgettext_lazy("Flow permission",
+                "Set the session to 'roll over' expiration mode")),
         )
 
 
@@ -173,9 +194,12 @@ class flow_rule_kind:  # noqa
 
 
 FLOW_RULE_KIND_CHOICES = (
-        (flow_rule_kind.start, "Session Start"),
-        (flow_rule_kind.access, "Session Access"),
-        (flow_rule_kind.grading, "Grading"),
+        (flow_rule_kind.start,
+            pgettext_lazy("Flow rule kind choices", "Session Start")),
+        (flow_rule_kind.access,
+            pgettext_lazy("Flow rule kind choices", "Session Access")),
+        (flow_rule_kind.grading,
+            pgettext_lazy("Flow rule kind choices", "Grading")),
         )
 
 
@@ -212,12 +236,16 @@ class grade_aggregation_strategy:  # noqa
 
 
 GRADE_AGGREGATION_STRATEGY_CHOICES = (
-        (grade_aggregation_strategy.max_grade, "Use the max grade"),
-        (grade_aggregation_strategy.avg_grade, "Use the avg grade"),
-        (grade_aggregation_strategy.min_grade, "Use the min grade"),
-
-        (grade_aggregation_strategy.use_earliest, "Use the earliest grade"),
-        (grade_aggregation_strategy.use_latest, "Use the latest grade"),
+        (grade_aggregation_strategy.max_grade,
+            pgettext_lazy("Grade aggregation strategy", "Use the max grade")),
+        (grade_aggregation_strategy.avg_grade,
+            pgettext_lazy("Grade aggregation strategy", "Use the avg grade")),
+        (grade_aggregation_strategy.min_grade,
+            pgettext_lazy("Grade aggregation strategy", "Use the min grade")),
+        (grade_aggregation_strategy.use_earliest,
+            pgettext_lazy("Grade aggregation strategy", "Use the earliest grade")),
+        (grade_aggregation_strategy.use_latest,
+            pgettext_lazy("Grade aggregation strategy", "Use the latest grade")),
         )
 
 
@@ -233,14 +261,22 @@ class grade_state_change_types:  # noqa
 
 
 GRADE_STATE_CHANGE_CHOICES = (
-        (grade_state_change_types.grading_started, 'Grading started'),
-        (grade_state_change_types.graded, 'Graded'),
-        (grade_state_change_types.retrieved, 'Retrieved'),
-        (grade_state_change_types.unavailable, 'Unavailable'),
-        (grade_state_change_types.extension, 'Extension'),
-        (grade_state_change_types.report_sent, 'Report sent'),
-        (grade_state_change_types.do_over, 'Do-over'),
-        (grade_state_change_types.exempt, 'Exempt'),
+        (grade_state_change_types.grading_started,
+            pgettext_lazy("Grade state change", "Grading started")),
+        (grade_state_change_types.graded,
+            pgettext_lazy("Grade state change", "Graded")),
+        (grade_state_change_types.retrieved,
+            pgettext_lazy("Grade state change", "Retrieved")),
+        (grade_state_change_types.unavailable,
+            pgettext_lazy("Grade state change", "Unavailable")),
+        (grade_state_change_types.extension,
+            pgettext_lazy("Grade state change", "Extension")),
+        (grade_state_change_types.report_sent,
+            pgettext_lazy("Grade state change", "Report sent")),
+        (grade_state_change_types.do_over,
+            pgettext_lazy("Grade state change", "Do-over")),
+        (grade_state_change_types.exempt,
+            pgettext_lazy("Grade state change", "Exempt")),
         )
 
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"

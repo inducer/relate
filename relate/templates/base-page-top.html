@@ -1,3 +1,5 @@
+{% load i18n %}
+
 {% for message in messages %}
   <div class="alert
     {% if message.tags == "error" %}
@@ -12,8 +14,10 @@
 
 {% if fake_time %}
   <div class="alert alert-info">
+    {% blocktrans trimmed %}
     You are currently seeing a preview of what the site
     would look like at {{ fake_time }}.
+    {% endblocktrans %}
   </div>
 {% endif %}
 

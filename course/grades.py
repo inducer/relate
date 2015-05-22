@@ -26,6 +26,8 @@ THE SOFTWARE.
 
 import re
 
+from django.utils.translation import (
+        ugettext_lazy as _, pgettext_lazy, ugettext, string_concat)
 from django.shortcuts import (  # noqa
         render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -55,7 +57,7 @@ from course.views import get_now_or_fake_time
 @course_view
 def view_participant_grades(pctx, participation_id=None):
     if pctx.participation is None:
-        raise PermissionDenied("must be enrolled to view grades")
+        raise PermissionDenied(_("must be enrolled to view grades"))
 
     if participation_id is not None:
         grade_participation = Participation.objects.get(id=int(participation_id))
@@ -68,7 +70,7 @@ def view_participant_grades(pctx, participation_id=None):
         is_student_viewing = False
     elif pctx.role == participation_role.student:
         if grade_participation != pctx.participation:
-            raise PermissionDenied("may not view other people's grades")
+            raise PermissionDenied(_("may not view other people's grades"))
 
         is_student_viewing = True
     else:
@@ -146,7 +148,7 @@ def view_participant_list(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     participations = list(Participation.objects
             .filter(
@@ -169,7 +171,7 @@ def view_grading_opportunity_list(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     grading_opps = list((GradingOpportunity.objects
             .filter(
@@ -266,7 +268,7 @@ def view_gradebook(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
@@ -288,7 +290,7 @@ def export_gradebook_csv(pctx):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to export grades")
+        raise PermissionDenied(_("must be instructor or TA to export grades"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
@@ -337,23 +339,24 @@ class ModifySessionsForm(StyledForm):
                 choices=tuple(
                     (rule_tag, str(rule_tag))
                     for rule_tag in session_rule_tags),
-                label="Rule tag")
+                label=_("Rule tag"))
         self.fields["past_due_only"] = forms.BooleanField(
                 required=False,
                 initial=True,
-                help_text="Only act on in-progress sessions that are past "
-                "their access rule's due date (applies to 'expire' and 'end')",
-                label="Past due only")
+                help_text=_("Only act on in-progress sessions that are past "
+                "their access rule's due date (applies to 'expire' and 'end')"),
+                # Translators: see help text above.
+                label=_("Past due only"))
 
         self.helper.add_input(
-                Submit("expire", "Expire sessions",
+                Submit("expire", _("Expire sessions"),
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("end", "End sessions and grade"))
+                Submit("end", _("End sessions and grade")))
         self.helper.add_input(
-                Submit("regrade", "Regrade ended sessions"))
+                Submit("regrade", _("Regrade ended sessions")))
         self.helper.add_input(
-                Submit("recalculate", "Recalculate grades of ended sessions"))
+                Submit("recalculate", _("Recalculate grades of ended sessions")))
 
 
 @transaction.atomic
@@ -462,12 +465,12 @@ def view_grades_by_opportunity(pctx, opp_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(_("must be instructor or TA to view grades"))
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opp_id))
 
     if pctx.course != opportunity.course:
-        raise SuspiciousOperation("opportunity from wrong course")
+        raise SuspiciousOperation(_("opportunity from wrong course"))
 
     # {{{ batch sessions form
 
@@ -493,7 +496,7 @@ def view_grades_by_opportunity(pctx, opp_id):
             elif "recalculate" in request.POST:
                 op = "recalculate"
             else:
-                raise SuspiciousOperation("invalid operation")
+                raise SuspiciousOperation(_("invalid operation"))
 
             if batch_session_ops_form.is_valid():
                 rule_tag = batch_session_ops_form.cleaned_data["rule_tag"]
@@ -509,7 +512,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 past_due_only=past_due_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "%d session(s) expired." % count)
+                                _("%d session(s) expired.") % count)
 
                     elif op == "end":
                         count = finish_in_progress_sessions(
@@ -518,7 +521,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 past_due_only=past_due_only)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "%d session(s) ended." % count)
+                                _("%d session(s) ended.") % count)
 
                     elif op == "regrade":
                         count = regrade_ended_sessions(
@@ -526,7 +529,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "%d session(s) regraded." % count)
+                                _("%d session(s) regraded.") % count)
 
                     elif op == "recalculate":
                         count = recalculate_ended_sessions(
@@ -534,13 +537,20 @@ def view_grades_by_opportunity(pctx, opp_id):
                                 rule_tag)
 
                         messages.add_message(pctx.request, messages.SUCCESS,
-                                "Grade recalculated for %d session(s)." % count)
+                                _("Grade recalculated for %d session(s).")
+                                % count)
 
                     else:
                         raise SuspiciousOperation("invalid operation")
                 except Exception as e:
                     messages.add_message(pctx.request, messages.ERROR,
-                            "Error: %s %s" % (type(e).__name__, str(e)))
+                            string_concat(
+                                pgettext_lazy("Starting of Error message",
+                                    "Error"),
+                                ": %(err_type)s %(err_str)s") 
+                            % {
+                                "err_type": type(e).__name__,
+                                "err_str": str(e)})
                     raise
 
         else:
@@ -647,15 +657,15 @@ class ReopenSessionForm(StyledForm):
                 initial=(current_tag
                     if current_tag is not None
                     else NONE_SESSION_TAG),
-                label="Set access rules tag")
+                label=_("Set access rules tag"))
 
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
-                label="Comment")
+                label=_("Comment"))
 
         self.helper.add_input(
                 Submit(
-                    "reopen", "Reopen", css_class="col-lg-offset-2"))
+                    "reopen", _("Reopen"), css_class="col-lg-offset-2"))
 
 
 @course_view
@@ -690,11 +700,14 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
 
             from relate.utils import local_now, as_local_time
             session.append_comment(
-                    "Session reopened at %s by %s, "
-                    "previous completion time was '%s': %s."
-                    % (local_now(), pctx.request.user,
-                        as_local_time(session.completion_time),
-                        form.cleaned_data["comment"]))
+                    ugettext("Session reopened at %(now)s by %(user)s, "
+                        "previous completion time was '%(completion_time)s': "
+                        "%(comment)s.") % {
+                            "now": local_now(),
+                            "user": pctx.request.user,
+                            "completion_time": as_local_time(session.completion_time),
+                            "comment": form.cleaned_data["comment"]
+                      })
             session.save()
 
             from course.flow import reopen_session
@@ -710,7 +723,7 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
 
     return render(request, "generic-form.html", {
         "form": form,
-        "form_description": "Reopen session"
+        "form_description": _("Reopen session")
         })
 
 # }}}
@@ -767,7 +780,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             id=int(participation_id))
 
     if participation.course != pctx.course:
-        raise SuspiciousOperation("participation does not match course")
+        raise SuspiciousOperation(_("participation does not match course"))
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
@@ -776,17 +789,17 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             participation_role.teaching_assistant]:
         if not opportunity.shown_in_grade_book:
             messages.add_message(pctx.request, messages.INFO,
-                    "This grade is not shown in the grade book.")
+                    _("This grade is not shown in the grade book."))
         if not opportunity.shown_in_student_grade_book:
             messages.add_message(pctx.request, messages.INFO,
-                    "This grade is not shown in the student grade book.")
+                    _("This grade is not shown in the student grade book."))
 
     elif pctx.role == participation_role.student:
         if participation != pctx.participation:
-            raise PermissionDenied("may not view other people's grades")
+            raise PermissionDenied(_("may not view other people's grades"))
         if not (opportunity.shown_in_grade_book
                 and opportunity.shown_in_student_grade_book):
-            raise PermissionDenied("grade has not been released")
+            raise PermissionDenied(_("grade has not been released"))
     else:
         raise PermissionDenied()
 
@@ -806,7 +819,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     break
 
             if not action_match:
-                raise SuspiciousOperation("unknown action")
+                raise SuspiciousOperation(_("unknown action"))
 
             session = FlowSession.objects.get(id=int(action_match.group(2)))
             op = action_match.group(1)
@@ -822,33 +835,39 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                     expire_flow_session_standalone(
                             pctx.repo, pctx.course, session, now_datetime)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session expired.")
+                            _("Session expired."))
 
                 elif op == "end":
                     finish_flow_session_standalone(
                             pctx.repo, pctx.course, session,
                             now_datetime=now_datetime)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session ended.")
+                            _("Session ended."))
 
                 elif op == "regrade":
                     regrade_session(
                             pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session regraded.")
+                            _("Session regraded."))
 
                 elif op == "recalculate":
                     recalculate_session_grade(
                             pctx.repo, pctx.course, session)
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "Session grade recalculated.")
+                            _("Session grade recalculated."))
 
                 else:
-                    raise SuspiciousOperation("invalid session operation")
+                    raise SuspiciousOperation(_("invalid session operation"))
 
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        "Error: %s %s" % (type(e).__name__, str(e)))
+                        string_concat(
+                            pgettext_lazy("Starting of Error message",
+                                "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {
+                            "err_type": type(e).__name__,
+                            "err_str": str(e)})
     else:
         allow_session_actions = False
 
@@ -934,47 +953,51 @@ class ImportGradesForm(StyledForm):
             queryset=(GradingOpportunity.objects
                 .filter(course=course)
                 .order_by("identifier")),
-            help_text="Click to <a href='%s' target='_blank'>create</a> "
-            "a new grading opportunity. Reload this form when done."
+            help_text=_("Click to <a href='%s' target='_blank'>create</a> "
+            "a new grading opportunity. Reload this form when done.")
             % reverse("admin:course_gradingopportunity_add"),
-            label="Grading opportunity")
+            label=pgettext_lazy("Field name in Import grades form",
+                                "Grading opportunity"))
 
         self.fields["attempt_id"] = forms.CharField(
                 initial="main",
                 required=True,
-                label="Attempt ID")
+                label=_("Attempt ID"))
         self.fields["file"] = forms.FileField(
-                label="File")
+                label=_("File"))
 
         self.fields["format"] = forms.ChoiceField(
                 choices=(
-                    ("csvhead", "CSV with Header"),
+                    ("csvhead", _("CSV with Header")),
                     ("csv", "CSV"),
                     ),
-                label="Format")
+                label=_("Format"))
 
         self.fields["id_column"] = forms.IntegerField(
-                help_text="1-based column index for the Email or NetID "
-                "used to locate student record",
+                # Translators: the following strings are for the format informatioin for a
+                # CSV file to be imported.
+                help_text=_("1-based column index for the Email or NetID "
+                "used to locate student record"),
                 min_value=1,
-                label="User ID column")
+                label=_("User ID column"))
         self.fields["points_column"] = forms.IntegerField(
-                help_text="1-based column index for the (numerical) grade",
+                help_text=_("1-based column index for the (numerical) grade"),
                 min_value=1,
-                label="Points column")
+                label=_("Points column"))
         self.fields["feedback_column"] = forms.IntegerField(
-                help_text="1-based column index for further (textual) feedback",
+                help_text=_("1-based column index for further (textual) feedback"),
                 min_value=1, required=False,
-                label="Feedback column")
+                label=_("Feedback column"))
         self.fields["max_points"] = forms.DecimalField(
-            initial=100,
-            label="Max points")
+                initial=100,
+                # Translators: "Max point" refers to full credit in points.
+                label=_("Max points"))
 
         self.helper.add_input(
-                Submit("preview", "Preview",
+                Submit("preview", _("Preview"),
                     css_class="col-lg-offset-2"))
         self.helper.add_input(
-                Submit("import", "Import"))
+                Submit("import", _("Import")))
 
 
 class ParticipantNotFound(ValueError):
@@ -1008,10 +1031,13 @@ def find_participant_from_id(course, id_str):
 
     if not surviving_matches:
         raise ParticipantNotFound(
-                "no participant found for '%s'" % id_str)
+                # Translators: use id_string to find user (participant).
+                _("no participant found for '%(id_string)s'") % {
+                    "id_string": id_str})
     if len(surviving_matches) > 1:
         raise ParticipantNotFound(
-                "more than one participant found for '%s'" % id_str)
+                _("more than one participant found for '%(id_string)s'") % {
+                    "id_string": id_str})
 
     return surviving_matches[0]
 
@@ -1091,9 +1117,10 @@ def csv_to_grade_changes(
                     updated.append("comment")
 
                 if updated:
-                    log_lines.append("%s: %s updated" % (
-                        gchange.participation,
-                        ", ".join(updated)))
+                    log_lines.append("%(participation)s: %(updated)s "
+                                       "updated" % {
+                        'participation': gchange.participation,
+                        'updated': ", ".join(updated)})
 
                     result.append(gchange)
             else:
@@ -1140,12 +1167,19 @@ def import_grades(pctx):
                         has_header=form.cleaned_data["format"] == "csvhead")
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
-                        "Error: %s %s" % (type(e).__name__, str(e)))
+                        string_concat(
+                            pgettext_lazy("Starting of Error message",
+                                "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {
+                            "err_type": type(e).__name__,
+                            "err_str": str(e)})
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
-                            "%d grades found, %d unchanged."
-                            % (total_count, total_count - len(grade_changes)))
+                            _("%(total)d grades found, %(unchaged)d unchanged.")
+                            % {'total': total_count,
+                               'unchaged': total_count - len(grade_changes)})
 
                 from django.template.loader import render_to_string
 
@@ -1157,7 +1191,7 @@ def import_grades(pctx):
                                 "log_lines": log_lines,
                                 })
                     messages.add_message(pctx.request, messages.SUCCESS,
-                            "%d grades imported." % len(grade_changes))
+                            _("%d grades imported.") % len(grade_changes))
                 else:
                     form_text = render_to_string(
                             "course/grade-import-preview.html", {
@@ -1170,7 +1204,7 @@ def import_grades(pctx):
         form = ImportGradesForm(pctx.course)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
-        "form_description": "Import Grade Data",
+        "form_description": _("Import Grade Data"),
         "form": form,
         "form_text": form_text,
         })

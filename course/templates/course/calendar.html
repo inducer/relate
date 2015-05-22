@@ -1,20 +1,24 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% load static %}
 
 {% block title %}
   {{ course_desc.number}}
-  Calendar - RELATE
+  {% trans "Calendar" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {%block header_extra %}
   <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}' />
   <script src='{% static "moment/moment.js" %}'></script>
   <script src='{% static "fullcalendar/dist/fullcalendar.js" %}'></script>
+  {# load calendar with local language #}
+  {% get_current_language as LANGUAGE_CODE %}
+  <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE }}.js'></script>
 {% endblock %}
 
 {% block content %}
-  <h1>{{ course_desc.number}} Calendar</h1>
+  <h1>{{ course_desc.number}} {% trans "Calendar" %}</h1>
 
   <div id="coursecal" style="margin-top:3em"></div>
 
@@ -34,8 +38,10 @@
     });
   </script>
 
+{% blocktrans trimmed %}
   <b>Note:</b> Some calendar entries are clickable and link to entries
   below.
+{% endblocktrans %}
 
   <div style="margin-top:3ex">
   {% for event_info in event_info_list %}

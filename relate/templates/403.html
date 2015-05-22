@@ -1,37 +1,45 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block content %}
-  <h1>403 Forbidden</h1>
+  <h1>{% trans "403 Forbidden" %}</h1>
 
-  <p>Access to the page you requested was denied.
+  <p> {% trans "Access to the page you requested was denied." %}
 
-  Here are a few things you could try:
+  {% trans "Here are a few things you could try:" %}
   </p>
   <ul>
     {% if not user.is_authenticated %}
     <li>
-    <a href="{% url student_sign_in_view %}">Sign in</a>.
+    <a href="{% url student_sign_in_view %}"> {% trans "Sign in" %} </a>.
 
+    {% url "relate-home" as relate-home %}
+    {% blocktrans trimmed %}
       You're not currently signed in. Access to the resource is restricted,
       and since the site has no way of knowing who you are, it denied you accesss.
       Once you're signed in, navigate back to your course from the
-      <a href="{% url "relate-home" %}">home page</a> and retry your last
+      <a href="{{ relate-home }}"> home page </a> and retry your last
       action.
-    </li>
+    {% endblocktrans %}
+       </li>
     {% endif %}
-    <li>
+      {% url "relate-home" as relate-home %}
+    <li> {% blocktrans trimmed %}
     Complete your enrollment in your course. If you're not enrolled, a large
     "Enroll now" button will show up at the top of your course page. Click that,
     follow the indicated steps, and then retry your last action.
+    {% endblocktrans %}
     </li>
     <li>
+    {% blocktrans trimmed %}
     If none of the above steps help, please navigate back to your course from the
-    <a href="{% url "relate-home" %}">home page</a> and contact your course
+    <a href="{{ relate-home }}"> home page </a> and contact your course
     staff.
+    {% endblocktrans %}
     </li>
   </ul>
 
-  Sorry, and thanks for your patience!
+  {% blocktrans %} Sorry, and thanks for your patience! {% endblocktrans %}
 {% endblock %}
 
 

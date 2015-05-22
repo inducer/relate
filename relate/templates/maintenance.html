@@ -1,9 +1,13 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block content %}
   <div class="alert alert-info">
-    RELATE is currently in maintenance mode. Sorry for the interruption,
+    {% trans "RELATE" as RELATE %}
+    {% blocktrans trimmed %}
+    {{ RELATE }} is currently in maintenance mode. Sorry for the interruption,
     we'll be back shortly.
+    {% endblocktrans %}
   </div>
 {% endblock %}
 

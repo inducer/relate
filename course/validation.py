@@ -31,6 +31,8 @@ import sys
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
+from django.utils.translation import (
+        ugettext_lazy as _, ugettext, string_concat)
 
 from course.content import get_repo_blob
 from relate.utils import Struct
@@ -47,8 +49,12 @@ ID_RE = re.compile(r"^[\w]+$")
 
 def validate_identifier(location, s):
     if not ID_RE.match(s):
-        raise ValidationError("%s: invalid identifier '%s'"
-                % (location, s))
+        raise ValidationError(
+                string_concat(
+                    "%(location)s: ",
+                    _("invalid identifier"),
+                    " '%(string)s'")
+                % {'location': location, 'string': s})
 
 
 def validate_role(location, role):
@@ -60,8 +66,10 @@ def validate_role(location, role):
             participation_role.student,
             participation_role.unenrolled,
             ]:
-        raise ValidationError("%s: invalid role '%s'"
-                % (location, role))
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("invalid role '%(role)s'"))
+                % {'location': location, 'role': role})
 
 
 def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
@@ -90,8 +98,10 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
 
             if attr not in present_attrs:
                 if required:
-                    raise ValidationError("%s: attribute '%s' missing"
-                            % (location, attr))
+                    raise ValidationError(
+                            string_concat("%(location)s: ",
+                                _("attribute '%(attr)s' missing"))
+                            % {'location': location, 'attr': attr})
             else:
                 present_attrs.remove(attr)
                 val = getattr(obj, attr)
@@ -106,17 +116,25 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
                     allowed_types = (str, unicode)
 
                 if not isinstance(val, allowed_types):
-                    raise ValidationError("%s: attribute '%s' has "
-                            "wrong type: got '%s', expected '%s'"
-                            % (location, attr, type(val).__name__,
-                            escape(str(allowed_types))))
+                    raise ValidationError(
+                            string_concat("%(location)s: ",
+                                _("attribute '%(attr)s' has "
+                                    "wrong type: got '%(name)s', "
+                                    "expected '%(allowed)s'"))
+                            % {
+                                'location': location,
+                                'attr': attr,
+                                'name': type(val).__name__,
+                                'allowed': escape(str(allowed_types))})
 
                 if is_markup:
                     validate_markup(ctx, "%s: attribute %s" % (location, attr), val)
 
     if present_attrs:
-        raise ValidationError("%s: extraneous attribute(s) '%s'"
-                % (location, ",".join(present_attrs)))
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("extraneous attribute(s) '%(attr)s'"))
+                % {'location': location, 'attr': ",".join(present_attrs)})
 
 
 datespec_types = (datetime.date, six.string_types, datetime.datetime)
@@ -174,8 +192,11 @@ def validate_markup(ctx, location, markup_str):
 
         tp, e, _ = sys.exc_info()
 
-        raise ValidationError("%s: %s: %s" % (
-            location, tp.__name__, str(e)))
+        raise ValidationError(
+                "%(location)s: %(err_type)s: %(err_str)s" % {
+                    'location': location,
+                    "err_type": tp.__name__,
+                    "err_str": str(e)})
 
 
 def validate_chunk_rule(ctx, location, chunk_rule):
@@ -212,20 +233,20 @@ def validate_chunk_rule(ctx, location, chunk_rule):
     # {{{ deprecated
 
     if hasattr(chunk_rule, "start"):
-        ctx.add_warning(location, "Uses deprecated 'start' attribute--"
-                "use 'if_after' instead")
+        ctx.add_warning(location, _("Uses deprecated 'start' attribute--"
+                "use 'if_after' instead"))
 
         ctx.encounter_datespec(location, chunk_rule.start)
 
     if hasattr(chunk_rule, "end"):
-        ctx.add_warning(location, "Uses deprecated 'end' attribute--"
-                "use 'if_before' instead")
+        ctx.add_warning(location, _("Uses deprecated 'end' attribute--"
+                "use 'if_before' instead"))
 
         ctx.encounter_datespec(location, chunk_rule.end)
 
     if hasattr(chunk_rule, "roles"):
-        ctx.add_warning(location, "Uses deprecated 'roles' attribute--"
-                "use 'if_has_role' instead")
+        ctx.add_warning(location, _("Uses deprecated 'roles' attribute--"
+                "use 'if_has_role' instead"))
 
         for role in chunk_rule.roles:
             validate_role(location, role)
@@ -281,8 +302,11 @@ def validate_course_desc_struct(ctx, location, course_desc):
 
     for chunk in course_desc.chunks:
         if chunk.id in chunk_ids:
-            raise ValidationError("%s: chunk id '%s' not unique"
-                    % (location, chunk.id))
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("chunk id '%(chunkid)s' not unique"))
+                    % {'location': location, 'chunkid': chunk.id})
 
         chunk_ids.add(chunk.id)
 
@@ -295,7 +319,11 @@ def validate_course_desc_struct(ctx, location, course_desc):
 
 def validate_flow_page(ctx, location, page_desc):
     if not hasattr(page_desc, "id"):
-        raise ValidationError("%s: flow page has no ID" % location)
+        raise ValidationError(
+                string_concat(
+                    "%s: ", 
+                    ugettext("flow page has no ID"))
+                % location)
 
     validate_identifier(location, page_desc.id)
 
@@ -310,8 +338,16 @@ def validate_flow_page(ctx, location, page_desc):
 
         from traceback import format_exc
         raise ValidationError(
-                "%s: could not instantiate flow page: %s: %s<br><pre>%s</pre>"
-                % (location, tp.__name__, str(e), format_exc()))
+                string_concat(
+                    "%(location)s: ",
+                    _("could not instantiate flow page"),
+                    ": %(err_type)s: "
+                    "%(err_str)s<br><pre>%(format_exc)s</pre>")
+                % {
+                    'location': location,
+                    "err_type": tp.__name__,
+                    "err_str": str(e),
+                    'format_exc': format_exc()})
 
 
 def validate_flow_group(ctx, location, grp):
@@ -337,11 +373,19 @@ def validate_flow_group(ctx, location, grp):
                 page_desc)
 
     if len(grp.pages) == 0:
-        raise ValidationError("%s, group '%s': group is empty" % (location, grp.id))
+        raise ValidationError(
+                string_concat(
+                    "%(location)s, ",
+                    _("group '%(group_id)s': group is empty"))
+                % {'location': location, 'group_id': grp.id})
 
     if hasattr(grp, "max_page_count") and grp.max_page_count <= 0:
-        raise ValidationError("%s, group '%s': max_page_count is not positive"
-                % (location, grp.id))
+        raise ValidationError(
+                string_concat(
+                    "%(location)s, ",
+                    _("group '%(group_id)s': "
+                        "max_page_count is not positive"))
+                % {'location': location, 'group_id': grp.id})
 
     # {{{ check page id uniqueness
 
@@ -349,8 +393,11 @@ def validate_flow_group(ctx, location, grp):
 
     for page_desc in grp.pages:
         if page_desc.id in page_ids:
-            raise ValidationError("%s: page id '%s' not unique"
-                    % (location, page_desc.id))
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("page id '%(page_desc_id)s' not unique"))
+                    % {'location': location, 'page_desc_id': page_desc.id})
 
         page_ids.add(page_desc.id)
 
@@ -391,17 +438,19 @@ def validate_session_start_rule(ctx, location, nrule, tags):
     if not hasattr(nrule, "may_start_new_session"):
         ctx.add_warning(
                 location+", rules",
-                "attribute 'may_start_new_session' is not present")
+                _("attribute 'may_start_new_session' is not present"))
     if not hasattr(nrule, "may_list_existing_sessions"):
         ctx.add_warning(
                 location+", rules",
-                "attribute 'may_list_existing_sessions' is not present")
+                _("attribute 'may_list_existing_sessions' is not present"))
 
     if hasattr(nrule, "tag_session"):
         if not (nrule.tag_session is None or nrule.tag_session in tags):
             raise ValidationError(
-                    "%s: invalid tag '%s'"
-                    % (location, nrule.tag_session))
+                    string_concat(
+                        "%(location)s: ",
+                        _("invalid tag '%(tag)s'"))
+                    % {'location': location, 'tag': nrule.tag_session})
 
 
 def validate_session_access_rule(ctx, location, arule, tags):
@@ -438,16 +487,21 @@ def validate_session_access_rule(ctx, location, arule, tags):
     if hasattr(arule, "if_has_tag"):
         if not (arule.if_has_tag is None or arule.if_has_tag in tags):
             raise ValidationError(
-                    "%s: invalid tag '%s'"
-                    % (location, arule.if_has_tag))
+                    string_concat(
+                        "%(location)s: ",
+                        _("invalid tag '%(tag)s'"))
+                    % {'location': location, 'tag': arule.if_has_tag})
 
     if hasattr(arule, "if_expiration_mode"):
         from course.constants import FLOW_SESSION_EXPIRATION_MODE_CHOICES
         if arule.if_expiration_mode not in dict(
                 FLOW_SESSION_EXPIRATION_MODE_CHOICES):
             raise ValidationError(
-                    "%s: invalid expiration mode '%s'"
-                    % (location, arule.if_expiration_mode))
+                    string_concat("%(location)s: ",
+                        _("invalid expiration mode '%(expiremode)s'"))
+                    % {
+                        'location': location,
+                        'expiremode': arule.if_expiration_mode})
 
     for j, perm in enumerate(arule.permissions):
         validate_flow_permission(
@@ -494,8 +548,10 @@ def validate_session_grading_rule(ctx, location, grule, tags):
     if hasattr(grule, "if_has_tag"):
         if not (grule.if_has_tag is None or grule.if_has_tag in tags):
             raise ValidationError(
-                    "%s: invalid tag '%s'"
-                    % (location, grule.if_has_tag))
+                    string_concat(
+                        "%(locatioin)s: ",
+                        _("invalid tag '%(tag)s'"))
+                    % {'location': location, 'tag': grule.if_has_tag})
         has_conditionals = True
 
     if hasattr(grule, "due"):
@@ -506,14 +562,20 @@ def validate_session_grading_rule(ctx, location, grule, tags):
                 grule.grade_identifier)
         if not hasattr(grule, "grade_aggregation_strategy"):
             raise ValidationError(
-                    "%s: grading rule that have a grade identifier (%s: %s) "
-                    "must have a grade_aggregation_strategy"
-                    % (location,
-                        type(grule.grade_identifier), grule.grade_identifier))
+                    string_concat("%(location)s: ",
+                        _("grading rule that have a grade "
+                            "identifier (%(type)s: %(identifier)s) "
+                            "must have a grade_aggregation_strategy"))
+                    % {
+                        'location': location,
+                        'type': type(grule.grade_identifier),
+                        'identifier': grule.grade_identifier})
         from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
         if grule.grade_aggregation_strategy not in \
                 dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
-            raise ValidationError("%s: invalid grade aggregation strategy"
+            raise ValidationError(
+                    string_concat("%s: ",
+                        _("invalid grade aggregation strategy"))
                     % location)
 
     return has_conditionals
@@ -572,8 +634,10 @@ def validate_flow_rules(ctx, location, rules):
 
     if has_conditionals:
         raise ValidationError(
-                "%s, rules/grading: "
-                "last grading rule must be unconditional"
+                string_concat(
+                    "%s, ",
+                    _("rules/grading: "
+                        "last grading rule must be unconditional"))
                 % location)
 
     # }}}
@@ -582,18 +646,21 @@ def validate_flow_rules(ctx, location, rules):
 def validate_flow_permission(ctx, location, permission):
     from course.constants import FLOW_PERMISSION_CHOICES
     if permission == "modify":
-        ctx.add_warning(location, "Uses deprecated 'modify' permission--"
-                "replace by 'submit_answer' and 'end_session'")
+        ctx.add_warning(location, _("Uses deprecated 'modify' permission--"
+                "replace by 'submit_answer' and 'end_session'"))
         return
 
     if permission == "see_answer":
-        ctx.add_warning(location, "Uses deprecated 'see_answer' permission--"
-                "replace by 'see_answer_after_submission'")
+        ctx.add_warning(location, 
+                _("Uses deprecated 'see_answer' permission--"
+                "replace by 'see_answer_after_submission'"))
         return
 
     if permission not in dict(FLOW_PERMISSION_CHOICES):
-        raise ValidationError("%s: invalid flow permission '%s'"
-                % (location, permission))
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("invalid flow permission '%(permission)s'"))
+                % {'location': location, 'permission': permission})
 
 # }}}
 
@@ -628,11 +695,18 @@ def validate_flow_desc(ctx, location, flow_desc):
             break
 
         if not group_has_page:
-            raise ValidationError("%s, group %d ('%d'): no pages found"
-                    % (location, i+1, grp.id))
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s, ",
+                        _("group %(group_index)d ('%(group_id)d'): "
+                            "no pages found"))
+                    % {
+                        'location': location,
+                        'group_index': i+1,
+                        'group_id': grp.id})
 
     if not flow_has_page:
-        raise ValidationError("%s: no pages found"
+        raise ValidationError(_("%s: no pages found")
                 % location)
 
     # }}}
@@ -643,8 +717,10 @@ def validate_flow_desc(ctx, location, flow_desc):
 
     for grp in flow_desc.groups:
         if grp.id in group_ids:
-            raise ValidationError("%s: group id '%s' not unique"
-                    % (location, grp.id))
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("group id '%(group_id)s' not unique"))
+                    % {'location': location, 'group_id': grp.id})
 
         group_ids.add(grp.id)
 
@@ -693,8 +769,11 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
 
         tp, e, _ = sys.exc_info()
 
-        raise ValidationError("%s: %s: %s" % (
-            full_name, tp.__name__, unicode(e)))
+        raise ValidationError(
+                "%(fullname)s: %(err_type)s: %(err_str)s" % {
+                    'fullname': full_name,
+                    "err_type": tp.__name__,
+                    "err_str": unicode(e)})
 
 
 def validate_course_content(repo, course_file, events_file,
@@ -733,10 +812,13 @@ def validate_course_content(repo, course_file, events_file,
             flow_id = entry.path[:-4]
             match = re.match("^"+FLOW_ID_REGEX+"$", flow_id)
             if match is None:
-                raise ValidationError("%s: invalid flow name. "
-                        "Flow names may only contain (roman) "
-                        "letters, numbers, "
-                        "dashes and underscores." % entry.path)
+                raise ValidationError(
+                        string_concat("%s: ",
+                            _("invalid flow name. "
+                                "Flow names may only contain (roman) "
+                                "letters, numbers, "
+                                "dashes and underscores.")) 
+                        % entry.path)
 
             location = "flows/%s" % entry.path
             flow_desc = get_yaml_from_repo_safely(repo, location,
@@ -821,7 +903,7 @@ def validate_course_on_filesystem_script_entrypoint():
             validate_sha=fake_repo, datespec_callback=None)
 
     if warnings:
-        print("WARNINGS:")
+        print(_("WARNINGS: "))
         for w in warnings:
             print("***", w.location, w.text)
 

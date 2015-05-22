@@ -25,6 +25,8 @@ THE SOFTWARE.
 """
 
 
+from django.utils.translation import (
+        ugettext_lazy as _, ugettext, string_concat)
 from course.validation import validate_struct, ValidationError
 import django.forms as forms
 
@@ -92,7 +94,7 @@ class TextAnswerForm(StyledForm):
                 required=True,
                 widget=widget,
                 help_text=help_text,
-                label="Answer")
+                label=_("Answer"))
 
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()
@@ -138,15 +140,15 @@ class RELATEPageValidator(object):
             validate_flow_page(vctx, "submitted page", page_desc)
 
             if page_desc.type != self.validator_desc.page_type:
-                raise ValidationError("page must be of type '%s'"
+                raise ValidationError(ugettext("page must be of type '%s'")
                         % self.validator_desc.page_type)
 
         except:
             import sys
             tp, e, _ = sys.exc_info()
 
-            raise forms.ValidationError("%s: %s"
-                    % (tp.__name__, str(e)))
+            raise forms.ValidationError("%(err_type)s: %(err_str)s"
+                    % {"err_type": tp.__name__, "err_str": str(e)})
 
 
 TEXT_ANSWER_VALIDATOR_CLASSES = [
@@ -159,17 +161,28 @@ def get_validator_class(location, validator_type):
         if validator_class.type == validator_type:
             return validator_class
 
-    raise ValidationError("%s: unknown validator type '%s'"
-            % (location, validator_type))
+    raise ValidationError(
+            string_concat(
+                "%(location)s: ",
+                _("unknown validator type"),
+                "'%(type)s'")
+            % {'location': location, 'type': validator_type})
 
 
 def parse_validator(vctx, location, validator_desc):
     if not isinstance(validator_desc, Struct):
-        raise ValidationError("%s: must be struct or string"
+        raise ValidationError(
+                string_concat(
+                    "%s: ",
+                    _("must be struct or string"))
                 % location)
 
     if not hasattr(validator_desc, "type"):
-        raise ValidationError("%s: matcher must supply 'type'" % location)
+        raise ValidationError(
+                string_concat(
+                    "%s: ",
+                    "matcher must supply 'type'")
+                % location)
 
     return (get_validator_class(location, validator_desc.type)
         (vctx, location, validator_desc))
@@ -244,8 +257,16 @@ class RegexMatcher(TextAnswerMatcher):
         except:
             tp, e, _ = sys.exc_info()
 
-            raise ValidationError("%s: regex '%s' did not compile: %s: %s"
-                    % (location, pattern, tp.__name__, str(e)))
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("regex '%(pattern)s' did not compile"),
+                        ": %(err_type)s: %(err_str)s")
+                    % {
+                        "location": location,
+                        "pattern": pattern,
+                        "err_type": tp.__name__,
+                        "err_str": str(e)})
 
     def grade(self, s):
         match = self.pattern.match(s)
@@ -290,22 +311,35 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         except ImportError:
             tp, e, _ = sys.exc_info()
             if vctx is not None:
-                vctx.add_warning(location, "%s: unable to check "
-                        "symbolic expression (%s: %s)"
-                        % (location, tp.__name__, str(e)))
+                vctx.add_warning(
+                        location, 
+                        string_concat(
+                            "%(location)s: ",
+                            _("unable to check symbolic expression"),
+                            "(%(err_type)s: %(err_str)s)")
+                        % {
+                            'location': location,
+                            "err_type": tp.__name__,
+                            "err_str": str(e)
+                            })
 
         except:
             tp, e, _ = sys.exc_info()
-            raise ValidationError("%s: %s: %s"
-                    % (location, tp.__name__, str(e)))
+            raise ValidationError(
+                    "%(location)s: %(err_type)s: %(err_str)s"
+                    % {
+                        "location": location,
+                        "err_type": tp.__name__,
+                        "err_str": str(e)
+                        })
 
     def validate(self, s):
         try:
             parse_sympy(s)
         except:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%s: %s"
-                    % (tp.__name__, str(e)))
+            raise forms.ValidationError("%(err_type)s: %(err_str)s"
+                    % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
         from sympy import simplify
@@ -352,8 +386,8 @@ class FloatMatcher(TextAnswerMatcher):
             float(s)
         except:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%s: %s"
-                    % (tp.__name__, str(e)))
+            raise forms.ValidationError("%(err_type)s: %(err_str)s"
+                    % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
         answer_float = float(s)
@@ -393,13 +427,28 @@ def get_matcher_class(location, matcher_type, pattern_type):
         if matcher_class.type == matcher_type:
 
             if matcher_class.pattern_type != pattern_type:
-                raise ValidationError("%s: %s only accepts '%s' patterns"
-                        % (location, matcher_class.__name__, pattern_type))
+                raise ValidationError(
+                # Translators: a "matcher" is used to determine if the
+                # answer to text question (blank filling question) is 
+                # correct.
+                    string_concat(
+                        "%(location)s: ",
+                        _("%(matcherclassname)s only accepts "
+                            "'%(matchertype)s' patterns"))
+                        % {
+                            'location': location,
+                            'matcherclassname': matcher_class.__name__,
+                            'matchertype': pattern_type})
 
             return matcher_class
 
-    raise ValidationError("%s: unknown match type '%s'"
-            % (location, matcher_type))
+    raise ValidationError(
+            string_concat(
+                "%(location)s: ",
+                _("unknown match type '%(matchertype)s'"))
+            % {
+                'location': location,
+                'matchertype': matcher_type})
 
 
 def parse_matcher_string(vctx, location, matcher_desc):
@@ -412,14 +461,18 @@ def parse_matcher_string(vctx, location, matcher_desc):
         match = MATCHER_RE_2.match(matcher_desc)
 
         if match is None:
-            raise ValidationError("%s: does not specify match type"
+            raise ValidationError(
+                    string_concat(
+                        "%s: ",
+                        _("does not specify match type"))
                     % location)
 
         matcher_type = match.group(1)
         pattern = match.group(2)
 
         if vctx is not None:
-            vctx.add_warning(location, "uses deprecated 'matcher:answer' style")
+            vctx.add_warning(location,
+                    _("uses deprecated 'matcher:answer' style"))
 
     return (get_matcher_class(location, matcher_type, "string")
             (vctx, location, pattern))
@@ -430,11 +483,18 @@ def parse_matcher(vctx, location, matcher_desc):
         return parse_matcher_string(vctx, location, matcher_desc)
     else:
         if not isinstance(matcher_desc, Struct):
-            raise ValidationError("%s: must be struct or string"
+            raise ValidationError(
+                    string_concat(
+                        "%s: ",
+                        _("must be struct or string"))
                     % location)
 
         if not hasattr(matcher_desc, "type"):
-            raise ValidationError("%s: matcher must supply 'type'" % location)
+            raise ValidationError(
+                    string_concat(
+                        "%s: ",
+                        _("matcher must supply 'type'"))
+                    % location)
 
         return (get_matcher_class(location, matcher_desc.type, "struct")
             (vctx, location, matcher_desc))
@@ -481,8 +541,14 @@ class TextQuestionBase(PageBaseWithTitle):
                 check_only=True)
 
         if widget is None:
-            raise ValidationError("%s: unrecognized widget type '%s'"
-                    % (location, getattr(page_desc, "widget")))
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("unrecognized widget type"),
+                        "'%(type)s'")
+                    % {
+                        'location': location,
+                        'type': getattr(page_desc, "widget")})
 
     def required_attrs(self):
         return super(TextQuestionBase, self).required_attrs() + (
@@ -652,7 +718,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
         super(TextQuestion, self).__init__(vctx, location, page_desc)
 
         if len(page_desc.answers) == 0:
-            raise ValidationError("%s: at least one answer must be provided"
+            raise ValidationError(
+                    string_concat(
+                        "%s: ",
+                        _("at least one answer must be provided"))
                     % location)
 
         self.matchers = [
@@ -664,8 +733,12 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         if not any(matcher.correct_answer_text() is not None
                 for matcher in self.matchers):
-            raise ValidationError("%s: no matcher is able to provide a plain-text "
-                    "correct answer" % location)
+            raise ValidationError(
+                    string_concat(
+                        "%s: ",
+                        _("no matcher is able to provide a plain-text "
+                        "correct answer"))
+                    % location)
 
     def required_attrs(self):
         return super(TextQuestion, self).required_attrs() + (
@@ -678,7 +751,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback="No answer provided.")
+                    feedback=ugettext("No answer provided."))
 
         answer = answer_data["answer"]
 
@@ -691,7 +764,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
-        CA_PATTERN = "A correct answer is: '%s'."  # noqa
+        CA_PATTERN = _("A correct answer is: '%s'.")  # noqa
 
         for matcher in self.matchers:
             unspec_correct_answer_text = matcher.correct_answer_text()

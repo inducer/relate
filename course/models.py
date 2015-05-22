@@ -29,13 +29,8 @@ from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.utils.translation import (  # noqa
-        ugettext_lazy as _,
-        pgettext_lazy,
-        ugettext_noop,
-        string_concat,
-        ugettext,
-        )
+from django.utils.translation import (
+        ugettext_lazy as _, pgettext_lazy, string_concat)
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
@@ -59,15 +54,16 @@ class Facility(models.Model):
     """Data about a facility from where content may be accessed."""
 
     identifier = models.CharField(max_length=50, unique=True,
-            help_text="Format is lower-case-with-hyphens. "
-            "Do not use spaces.",
-            verbose_name="Facility ID")
+            help_text=_("Format is lower-case-with-hyphens. "
+            "Do not use spaces."),
+            verbose_name=_("Facility ID"))
     description = models.CharField(max_length=100,
-            verbose_name="Facility description")
+            verbose_name=_("Facility description"))
 
     class Meta:
-        verbose_name = "Facility"
-        verbose_name_plural = "Facilities"
+        verbose_name = _("Facility")
+        # Translators: plural form of facility
+        verbose_name_plural = _("Facilities")
 
     def __unicode__(self):
         return self.identifier
@@ -80,13 +76,13 @@ class FacilityIPRange(models.Model):
 
     ip_range = models.CharField(
             max_length=200,
-            verbose_name="IP range")
+            verbose_name=_("IP range"))
 
     description = models.CharField(max_length=100,
-            verbose_name='IP range description')
+            verbose_name=_('IP range description'))
 
     class Meta:
-        verbose_name = "Facility IP range"
+        verbose_name = _("Facility IP range")
 
     def clean(self):
         import ipaddr
@@ -113,37 +109,40 @@ def get_user_status(user):
 
 
 class UserStatus(models.Model):
-    user = models.OneToOneField(User, db_index=True, related_name="user_status",
-            verbose_name='User ID')
+    user = models.OneToOneField(User, db_index=True,
+            related_name="user_status",
+            verbose_name=_('User ID'))
     status = models.CharField(max_length=50,
             choices=USER_STATUS_CHOICES,
-            verbose_name='User status')
+            verbose_name=_('User status'))
     sign_in_key = models.CharField(max_length=50,
-            help_text="The sign in token sent out in email.",
+            help_text=_("The sign in token sent out in email."),
             null=True, unique=True, db_index=True, blank=True,
-            verbose_name='Sign in key')
+            # Translators: the sign in token of the user.
+            verbose_name=_('Sign in key'))
     key_time = models.DateTimeField(default=now,
-            help_text="The time stamp of the sign in token.",
-            verbose_name='Key time')
+            help_text=_("The time stamp of the sign in token."),
+            # Translators: the time when the token is sent out.
+            verbose_name=_('Key time'))
 
     editor_mode = models.CharField(max_length=20,
             choices=(
-                ("default", "Default"),
+                ("default", _("Default")),
                 ("sublime", "Sublime text"),
                 ("emacs", "Emacs"),
                 ("vim", "Vim"),
                 ),
             default="default",
             # Translators: the text editor used by participants
-            verbose_name="Editor mode")
+            verbose_name=_("Editor mode"))
 
     class Meta:
-        verbose_name = "User status"
-        verbose_name_plural = "User statuses"
+        verbose_name = _("User status")
+        verbose_name_plural = _("User statuses")
         ordering = ("key_time",)
 
     def __unicode__(self):
-        return "User status for %(user)s" % {'user': self.user}
+        return _("User status for %(user)s") % {'user': self.user}
 
 # }}}
 
@@ -152,100 +151,102 @@ class UserStatus(models.Model):
 
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
-            help_text="A course identifier. Alphanumeric with dashes, "
+            help_text=_("A course identifier. Alphanumeric with dashes, "
             "no spaces. This is visible in URLs and determines the location "
-            "on your file system where the course's git repository lives.",
-            verbose_name='Course identifier',
+            "on your file system where the course's git repository lives."),
+            verbose_name=_('Course identifier'),
             db_index=True)
 
     hidden = models.BooleanField(
             default=True,
-            help_text="Is the course only accessible to course staff?",
-            verbose_name='Hidden to student')
+            help_text=_("Is the course only accessible to course staff?"),
+            verbose_name=_('Hidden to student'))
     listed = models.BooleanField(
             default=True,
-            help_text="Should the course be listed on the main page?",
-            verbose_name='Listed on main page')
+            help_text=_("Should the course be listed on the main page?"),
+            verbose_name=_('Listed on main page'))
     accepts_enrollment = models.BooleanField(
             default=True,
-            verbose_name='Accepts enrollment')
+            verbose_name=_('Accepts enrollment'))
     valid = models.BooleanField(
             default=True,
-            help_text="Whether the course content has passed validation.",
-            verbose_name='Valid')
+            help_text=_("Whether the course content has passed validation."),
+            verbose_name=_('Valid'))
 
     git_source = models.CharField(max_length=200, blank=True,
-            help_text="A Git URL from which to pull course updates. "
+            help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
             "<tt>git://github.com/inducer/relate-sample</tt> "
-            "to get some sample content.",
-            verbose_name='git source')
+            "to get some sample content."),
+            verbose_name=_('git source'))
     ssh_private_key = models.TextField(blank=True,
-            help_text="An SSH private key to use for Git authentication. "
-            "Not needed for the sample URL above.",
-            verbose_name='SSH private key')
+            help_text=_("An SSH private key to use for Git authentication. "
+            "Not needed for the sample URL above."),
+            verbose_name=_('SSH private key'))
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
-            help_text="Name of a YAML file in the git repository that contains "
-            "the root course descriptor.",
-            verbose_name='Course file')
+            help_text=_("Name of a YAML file in the git repository that "
+            "contains the root course descriptor."),
+            verbose_name=_('Course file'))
     events_file = models.CharField(max_length=200,
             default="events.yml",
-            help_text="Name of a YAML file in the git repository that contains "
-            "calendar information.",
-            verbose_name='Events file')
+            help_text=_("Name of a YAML file in the git repository that "
+            "contains calendar information."),
+            verbose_name=_('Events file'))
 
     enrollment_approval_required = models.BooleanField(
             default=False,
-            help_text="If set, each enrolling student must be "
-            "individually approved.",
-            verbose_name='Enrollment approval required')
+            help_text=_("If set, each enrolling student must be "
+            "individually approved."),
+            verbose_name=_('Enrollment approval required'))
     enrollment_required_email_suffix = models.CharField(
             max_length=200, blank=True, null=True,
-            help_text="Enrollee's email addresses must end in the "
-            "specified suffix, such as '@illinois.edu'.",
-            verbose_name='Enrollment required email suffix')
+            help_text=_("Enrollee's email addresses must end in the "
+            "specified suffix, such as '@illinois.edu'."),
+            verbose_name=_('Enrollment required email suffix'))
 
     from_email = models.EmailField(
-            help_text="This email address will be used in the 'From' line "
-            "of automated emails sent by RELATE.",
-            verbose_name='From email')
+            # Translators: replace "RELATE" with the brand name of your
+            # website if necessary.
+            help_text=_("This email address will be used in the 'From' line "
+            "of automated emails sent by RELATE."),
+            verbose_name=_('From email'))
 
     notify_email = models.EmailField(
-            help_text="This email address will receive "
-            "notifications about the course.",
-            verbose_name='Notify email')
+            help_text=_("This email address will receive "
+            "notifications about the course."),
+            verbose_name=_('Notify email'))
 
     # {{{ XMPP
 
     course_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
-            help_text="(Required only if the instant message feature is desired.) "
-            "The Jabber/XMPP ID (JID) the course will use to sign in to an "
-            "XMPP server.",
-            verbose_name='Course xmpp ID')
+            help_text=_("(Required only if the instant message feature is "
+            "desired.) The Jabber/XMPP ID (JID) the course will use to sign "
+            "in to an XMPP server."),
+            verbose_name=_('Course xmpp ID'))
     course_xmpp_password = models.CharField(max_length=200, blank=True, null=True,
-            help_text="(Required only if the instant message feature is desired.) "
-            "The password to go with the JID above.",
-            verbose_name='Course xmpp password')
+            help_text=_("(Required only if the instant message feature is "
+            "desired.) The password to go with the JID above."),
+            verbose_name=_('Course xmpp password'))
 
     recipient_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
-            help_text="(Required only if the instant message feature is desired.) "
-            "The JID to which instant messages will be sent.",
-            verbose_name='Recipient xmpp ID')
+            help_text=_("(Required only if the instant message feature is "
+            "desired.) The JID to which instant messages will be sent."),
+            verbose_name=_('Recipient xmpp ID'))
 
     # }}}
 
     active_git_commit_sha = models.CharField(max_length=200, null=False,
             blank=False,
-            verbose_name='Active git commit SHA')
+            verbose_name=_('Active git commit SHA'))
 
     participants = models.ManyToManyField(User,
             through='Participation')
 
     class Meta:
-        verbose_name = "Course"
-        verbose_name_plural = "Courses"
+        verbose_name = _("Course")
+        verbose_name_plural = _("Courses")
 
     def __unicode__(self):
         return self.identifier
@@ -264,29 +265,32 @@ class Event(models.Model):
     """
 
     course = models.ForeignKey(Course,
-            verbose_name='Course identifier')
+            verbose_name=_('Course identifier'))
     kind = models.CharField(max_length=50,
-            help_text="Should be lower_case_with_underscores, no spaces allowed.",
-            verbose_name='Kind of event')
+            # Translators: format of event kind in Event model
+            help_text=_("Should be lower_case_with_underscores, no spaces "
+            "allowed."),
+            verbose_name=_('Kind of event'))
     ordinal = models.IntegerField(blank=True, null=True,
-            verbose_name='Ordinal of event')
+            # Translators: ordinal of event of the same kind
+            verbose_name=_('Ordinal of event'))
 
-    time = models.DateTimeField(verbose_name='Start time')
+    time = models.DateTimeField(verbose_name=_('Start time'))
     end_time = models.DateTimeField(null=True, blank=True,
-            verbose_name='End time')
+            verbose_name=_('End time'))
     all_day = models.BooleanField(default=False,
             # Translators: for when the due time is "All day", how the webpage
             # of a event is displayed.
-            help_text="Only affects the rendering in the class calendar, "
-            "in that a start time is not shown",
-            verbose_name='All day')
+            help_text=_("Only affects the rendering in the class calendar, "
+            "in that a start time is not shown"),
+            verbose_name=_('All day'))
 
     shown_in_calendar = models.BooleanField(default=True,
-            verbose_name='Shown in calendar')
+            verbose_name=_('Shown in calendar'))
 
     class Meta:
-        verbose_name = "Event"
-        verbose_name_plural = "Events"
+        verbose_name = _("Event")
+        verbose_name_plural = _("Events")
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
 
@@ -303,11 +307,12 @@ class Event(models.Model):
 
 class ParticipationTag(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name='Course identifier')
+            verbose_name=_('Course identifier'))
     name = models.CharField(max_length=100, unique=True,
-            help_text="Format is lower-case-with-hyphens. "
-            "Do not use spaces.",
-            verbose_name='Name of participation tag')
+            # Translators: name format of ParticipationTag
+            help_text=_("Format is lower-case-with-hyphens. "
+            "Do not use spaces."),
+            verbose_name=_('Name of participation tag'))
 
     def clean(self):
         import re
@@ -315,88 +320,89 @@ class ParticipationTag(models.Model):
 
         if name_valid_re.match(self.name) is None:
             # Translators: "Name" is the name of a ParticipationTag
-            raise ValidationError({"name": "Name contains invalid characters."})
+            raise ValidationError(
+                    {"name": _("Name contains invalid characters.")})
 
     def __unicode__(self):
         return "%s (%s)" % (self.name, self.course)
 
     class Meta:
-        verbose_name = "Participation tag"
-        verbose_name_plural = "Participation tags"
+        verbose_name = _("Participation tag")
+        verbose_name_plural = _("Participation tags")
         unique_together = (("course", "name"),)
         ordering = ("course", "name")
 
 
 class Participation(models.Model):
     user = models.ForeignKey(User,
-            verbose_name='User ID')
+            verbose_name=_('User ID'))
     course = models.ForeignKey(Course, related_name="participations",
-            verbose_name='Course identifier')
+            verbose_name=_('Course identifier'))
 
     enroll_time = models.DateTimeField(default=now,
-            verbose_name='Enroll time')
+            verbose_name=_('Enroll time'))
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
-            help_text="Instructors may update course content. "
+            help_text=_("Instructors may update course content. "
             "Teaching assistants may access and change grade data. "
             "Observers may access analytics. "
-            "Each role includes privileges from subsequent roles.",
-            verbose_name='Participation role')
+            "Each role includes privileges from subsequent roles."),
+            verbose_name=_('Participation role'))
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES,
-            verbose_name='Participation status')
+            verbose_name=_('Participation status'))
 
     time_factor = models.DecimalField(
             max_digits=10, decimal_places=2,
             default=1,
-            help_text="Multiplier for time available on time-limited "
-            "flows (time-limited flows are currently unimplemented).",
-            verbose_name='Time factor')
+            help_text=_("Multiplier for time available on time-limited "
+            "flows (time-limited flows are currently unimplemented)."),
+            verbose_name=_('Time factor'))
 
     preview_git_commit_sha = models.CharField(max_length=200, null=True,
             blank=True,
-            verbose_name='Preview git commit SHA')
+            verbose_name=_('Preview git commit SHA'))
 
     tags = models.ManyToManyField(ParticipationTag, blank=True,
-            help_text="NEED HELP TEXT",
-            verbose_name='Tags')
+            verbose_name=_('Tags'))
 
     def __unicode__(self):
-        # Translators: displayed format of Participation: some user in some course
-        # as some role
-        return "%(user)s in %(course)s as %(role)s" % {
+        # Translators: displayed format of Participation: some user in some
+        # course as some role
+        return _("%(user)s in %(course)s as %(role)s") % {
                 "user": self.user, "course": self.course,
                 "role": dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
 
     class Meta:
-        verbose_name = "Participation"
-        verbose_name_plural = "Participations"
+        verbose_name = _("Participation")
+        verbose_name_plural = _("Participations")
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
 
 
 class ParticipationPreapproval(models.Model):
     email = models.EmailField(max_length=254,
-            verbose_name='Email')
+            verbose_name=_('Email'))
     course = models.ForeignKey(Course,
-            verbose_name='Course identifier')
+            verbose_name=_('Course identifier'))
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
-            verbose_name='Role')
+            verbose_name=_('Role'))
 
     creator = models.ForeignKey(User, null=True,
-            verbose_name='Creator')
+            verbose_name=_('Creator'))
     creation_time = models.DateTimeField(default=now, db_index=True,
-            verbose_name='Creation time')
+            verbose_name=_('Creation time'))
 
     def __unicode__(self):
-        # Translators: somebody's email in some course in Particiaption Preapproval
-        return "%(email)s in %(course)s" % {
+        # Translators: somebody's email in some course in Particiaption
+        # Preapproval
+        return _("%(email)s in %(course)s") % {
                 "email": self.email, "course": self.course}
 
     class Meta:
-        verbose_name = "Participation preapproval"
-        verbose_name_plural = "Participation preapprovals"
+        verbose_name = _("Participation preapproval")
+        verbose_name_plural = _("Participation preapprovals")
         unique_together = (("course", "email"),)
         ordering = ("course", "email")
 
@@ -405,19 +411,19 @@ class ParticipationPreapproval(models.Model):
 
 class InstantFlowRequest(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name='Course identifier')
+            verbose_name=_('Course identifier'))
     flow_id = models.CharField(max_length=200,
-            verbose_name='Flow ID')
+            verbose_name=_('Flow ID'))
     start_time = models.DateTimeField(default=now,
-            verbose_name='Start time')
+            verbose_name=_('Start time'))
     end_time = models.DateTimeField(
-            verbose_name='End time')
+            verbose_name=_('End time'))
     cancelled = models.BooleanField(default=False,
-            verbose_name='Cancelled')
+            verbose_name=_('Cancelled'))
 
     class Meta:
-        verbose_name = "Instant flow request"
-        verbose_name_plural = "Instant flow requests"
+        verbose_name = _("Instant flow request")
+        verbose_name_plural = _("Instant flow requests")
 
 
 # {{{ flow session
@@ -426,31 +432,31 @@ class FlowSession(models.Model):
     # This looks like it's redundant with 'participation', below--but it's not.
     # 'participation' is nullable.
     course = models.ForeignKey(Course,
-            verbose_name='Course identifier')
+            verbose_name=_('Course identifier'))
 
     participation = models.ForeignKey(Participation, null=True, blank=True,
             db_index=True,
-            verbose_name='Participation')
+            verbose_name=_('Participation'))
     active_git_commit_sha = models.CharField(max_length=200,
-            verbose_name='Active git commit SHA')
+            verbose_name=_('Active git commit SHA'))
     flow_id = models.CharField(max_length=200, db_index=True,
-            verbose_name='Flow ID')
+            verbose_name=_('Flow ID'))
     start_time = models.DateTimeField(default=now,
-            verbose_name='Start time')
+            verbose_name=_('Start time'))
     completion_time = models.DateTimeField(null=True, blank=True,
-            verbose_name='Completition time')
+            verbose_name=_('Completition time'))
     page_count = models.IntegerField(null=True, blank=True,
-            verbose_name='Page count')
+            verbose_name=_('Page count'))
 
     in_progress = models.BooleanField(default=None,
-            verbose_name='In progress')
+            verbose_name=_('In progress'))
     access_rules_tag = models.CharField(max_length=200, null=True,
             blank=True,
-            verbose_name='Access rules tag')
+            verbose_name=_('Access rules tag'))
     expiration_mode = models.CharField(max_length=20, null=True,
             default=flow_session_expiration_mode.end,
             choices=FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-            verbose_name='Expiration mode')
+            verbose_name=_('Expiration mode'))
 
     # Non-normal: These fields can be recomputed, albeit at great expense.
     #
@@ -459,25 +465,25 @@ class FlowSession(models.Model):
 
     points = models.DecimalField(max_digits=10, decimal_places=2,
             blank=True, null=True,
-            verbose_name='Points')
+            verbose_name=_('Points'))
     max_points = models.DecimalField(max_digits=10, decimal_places=2,
             blank=True, null=True,
-            verbose_name='Max point')
+            verbose_name=_('Max point'))
     result_comment = models.TextField(blank=True, null=True,
-            verbose_name='Result comment')
+            verbose_name=_('Result comment'))
 
     class Meta:
-        verbose_name = "Flow session"
-        verbose_name_plural = "Flow sessions"
+        verbose_name = _("Flow session")
+        verbose_name_plural = _("Flow sessions")
         ordering = ("course", "-start_time")
 
     def __unicode__(self):
         if self.participation is None:
-            return "anonymous session %(session_id)d on '%(flow_id)s'" % {
+            return _("anonymous session %(session_id)d on '%(flow_id)s'") % {
                     'session_id': self.id,
                     'flow_id': self.flow_id}
         else:
-            return "%(user)s's session %(session_id)d on '%(flow_id)s'" % {
+            return _("%(user)s's session %(session_id)d on '%(flow_id)s'") % {
                     'user': self.participation.user,
                     'session_id': self.id,
                     'flow_id': self.flow_id}
@@ -523,28 +529,28 @@ class FlowSession(models.Model):
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
-            verbose_name='Flow session')
+            verbose_name=_('Flow session'))
     ordinal = models.IntegerField(null=True, blank=True,
-            verbose_name='Ordinal')
+            verbose_name=_('Ordinal'))
 
     group_id = models.CharField(max_length=200,
-            verbose_name='Group ID')
+            verbose_name=_('Group ID'))
     page_id = models.CharField(max_length=200,
-            verbose_name='Page ID')
+            verbose_name=_('Page ID'))
 
     data = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
             dump_kwargs={'ensure_ascii': False},
-            verbose_name='Data')
+            verbose_name=_('Data'))
 
     class Meta:
-        verbose_name = "Flow page data"
-        verbose_name_plural = "Flow page data"
+        verbose_name = _("Flow page data")
+        verbose_name_plural = _("Flow page data")
 
     def __unicode__(self):
         # flow page data
-        return ("Data for page '%(group_id)s/%(page_id)s' "
-                "(ordinal %(ordinal)s) in %(flow_session)s" % {
+        return (_("Data for page '%(group_id)s/%(page_id)s' "
+                "(ordinal %(ordinal)s) in %(flow_session)s") % {
                     'group_id': self.group_id,
                     'page_id': self.page_id,
                     'ordinal': self.ordinal,
@@ -567,27 +573,27 @@ class FlowPageVisit(models.Model):
     # page_data), but it helps the admin site understand the link
     # and provide editing.
     flow_session = models.ForeignKey(FlowSession, db_index=True,
-            verbose_name='Flow session')
+            verbose_name=_('Flow session'))
 
     page_data = models.ForeignKey(FlowPageData, db_index=True,
-            verbose_name='Page data')
+            verbose_name=_('Page data'))
     visit_time = models.DateTimeField(default=now, db_index=True,
-            verbose_name='Visit time')
+            verbose_name=_('Visit time'))
     remote_address = models.GenericIPAddressField(null=True, blank=True,
-            verbose_name='Remote address')
+            verbose_name=_('Remote address'))
 
     is_synthetic = models.BooleanField(default=False,
-            help_text="Synthetic flow page visits are generated for "
+            help_text=_("Synthetic flow page visits are generated for "
             "unvisited pages once a flow is finished. This is needed "
             "since grade information is attached to a visit, and it "
-            "needs a place to go.",
-            verbose_name='Is synthetic')
+            "needs a place to go."),
+            verbose_name=_('Is synthetic'))
 
     answer = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
             dump_kwargs={'ensure_ascii': False},
             # Translators: "Answer" is a Noun.
-            verbose_name='Answer')
+            verbose_name=_('Answer'))
 
     # is_submitted_answer may seem redundant with answers being
     # non-NULL, but it isn't. This supports saved (but as
@@ -600,13 +606,13 @@ class FlowPageVisit(models.Model):
     is_submitted_answer = models.NullBooleanField(
             # Translators: determine whether the answer is a final,
             # submitted answer fit for grading.
-            verbose_name='Is submitted answer')
+            verbose_name=_('Is submitted answer'))
 
     def __unicode__(self):
         # Translators: flow page visit
         result = (
-                "'%(group_id)s/%(page_id)s' in '%(session)s' on %(time)s" % {
-                    "group_id": self.page_data.group_id,
+                _("'%(group_id)s/%(page_id)s' in '%(session)s' on %(time)s")
+                % {"group_id": self.page_data.group_id,
                     "page_id": self.page_data.page_id,
                     "session": self.flow_session,
                     "time": self.visit_time})
@@ -614,13 +620,13 @@ class FlowPageVisit(models.Model):
         if self.answer is not None:
             # Translators: flow page visit: if the answer is provided by user
             # then append the string.
-            result += unicode(" (with answer)")
+            result += unicode(_(" (with answer)"))
 
         return result
 
     class Meta:
-        verbose_name = "Flow page visit"
-        verbose_name_plural = "Flow page visits"
+        verbose_name = _("Flow page visit")
+        verbose_name_plural = _("Flow page visits")
         # These must be distinguishable, to figure out what came later.
         unique_together = (("page_data", "visit_time"),)
 
@@ -647,22 +653,22 @@ class FlowPageVisit(models.Model):
 
 class FlowPageVisitGrade(models.Model):
     visit = models.ForeignKey(FlowPageVisit, related_name="grades",
-            verbose_name='Visit')
+            verbose_name=_('Visit'))
 
     # NULL means 'autograded'
     grader = models.ForeignKey(User, null=True, blank=True,
-            verbose_name='Grader')
+            verbose_name=_('Grader'))
     grade_time = models.DateTimeField(db_index=True, default=now,
-            verbose_name='Grade time')
+            verbose_name=_('Grade time'))
 
     graded_at_git_commit_sha = models.CharField(
             max_length=200, null=True, blank=True,
-            verbose_name='Graded at git commit SHA')
+            verbose_name=_('Graded at git commit SHA'))
 
     grade_data = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
             dump_kwargs={'ensure_ascii': False},
-            verbose_name='Grade data')
+            verbose_name=_('Grade data'))
 
     # This data should be recomputable, but we'll cache it here,
     # because it might be very expensive (container-launch expensive
@@ -670,14 +676,14 @@ class FlowPageVisitGrade(models.Model):
 
     max_points = models.FloatField(null=True, blank=True,
             # Translators: max point in grade
-            help_text="Point value of this question when receiving "
-            "full credit.",
-            verbose_name='Max points')
+            help_text=_("Point value of this question when receiving "
+            "full credit."),
+            verbose_name=_('Max points'))
     correctness = models.FloatField(null=True, blank=True,
             # Translators: correctness in grade
-            help_text="Real number between zero and one (inclusively) "
-            "indicating the degree of correctness of the answer.",
-            verbose_name='Correctness')
+            help_text=_("Real number between zero and one (inclusively) "
+            "indicating the degree of correctness of the answer."),
+            verbose_name=_('Correctness'))
 
     # This JSON object has fields corresponding to
     # :class:`course.page.AnswerFeedback`, except for
@@ -688,7 +694,7 @@ class FlowPageVisitGrade(models.Model):
             # Show correct characters in admin for non ascii languages.
             dump_kwargs={'ensure_ascii': False},
             # Translators: "Feedback" stands for the feedback of answers.
-            verbose_name='Feedback')
+            verbose_name=_('Feedback'))
 
     def percentage(self):
         if self.correctness is not None:
@@ -703,8 +709,8 @@ class FlowPageVisitGrade(models.Model):
             return None
 
     class Meta:
-        verbose_name = "Flow page visit grade"
-        verbose_name_plural = "Flow page visit grades"
+        verbose_name = _("Flow page visit grade")
+        verbose_name_plural = _("Flow page visit grades")
         # These must be distinguishable, to figure out what came later.
         unique_together = (("visit", "grade_time"),)
 
@@ -712,7 +718,9 @@ class FlowPageVisitGrade(models.Model):
 
     def __unicode__(self):
         # information on FlowPageVisitGrade class
-        return "grade of %(visit)s: %(percentage)s" % {
+        # Translators: return the information of the grade of a user
+        # by percentage.
+        return _("grade of %(visit)s: %(percentage)s") % {
                 "visit": self.visit, "percentage": self.percentage()}
 
 
@@ -720,14 +728,14 @@ class FlowPageBulkFeedback(models.Model):
     # We're only storing one of these per page, because
     # they're 'bulk' (i.e. big, like plots or program output)
     page_data = models.OneToOneField(FlowPageData,
-            verbose_name='Page data')
+            verbose_name=_('Page data'))
     grade = models.ForeignKey(FlowPageVisitGrade,
-            verbose_name='Grade')
+            verbose_name=_('Grade'))
 
     bulk_feedback = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
             dump_kwargs={'ensure_ascii': False},
-            verbose_name='Bulk feedback')
+            verbose_name=_('Bulk feedback'))
 
 
 def update_bulk_feedback(page_data, grade, bulk_feedback_json):
@@ -763,20 +771,24 @@ def validate_stipulations(stip):
         return
 
     if not isinstance(stip, dict):
-        raise ValidationError("stipulations must be a dictionary")
+        raise ValidationError(_("stipulations must be a dictionary"))
     allowed_keys = set(["credit_percent", "allowed_session_count"])
     if not set(stip.keys()) <= allowed_keys:
-        raise ValidationError("unrecognized keys in stipulations: %s"
+        raise ValidationError(
+                string_concat(
+                    _("unrecognized keys in stipulations"),
+                    ": %s")
                 % ", ".join(set(stip.keys()) - allowed_keys))
 
     if "credit_percent" in stip and not isinstance(
             stip["credit_percent"], (int, float)):
-        raise ValidationError("credit_percent must be a float")
+        raise ValidationError(_("credit_percent must be a float"))
     if ("allowed_session_count" in stip
             and (
                 not isinstance(stip["allowed_session_count"], int)
                 or stip["allowed_session_count"] < 0)):
-        raise ValidationError("allowed_session_count must be a non-negative integer")
+        raise ValidationError(
+                _("'allowed_session_count' must be a non-negative integer"))
 
 
 # {{{ deprecated exception stuff
@@ -785,45 +797,50 @@ class FlowAccessException(models.Model):
     # deprecated
 
     participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name='Participation')
+            verbose_name=_('Participation'))
     flow_id = models.CharField(max_length=200, blank=False, null=False,
-            verbose_name='Flow ID')
+            verbose_name=_('Flow ID'))
     expiration = models.DateTimeField(blank=True, null=True,
-            verbose_name='Expiration')
+            verbose_name=_('Expiration'))
 
     stipulations = JSONField(blank=True, null=True,
             # Translators: help text for stipulations in FlowAccessException
             # (deprecated)
-            help_text="A dictionary of the same things that can be added "
+            help_text=_("A dictionary of the same things that can be added "
             "to a flow access rule, such as allowed_session_count or "
             "credit_percent. If not specified here, values will default "
-            "to the stipulations in the course content.",
+            "to the stipulations in the course content."),
             validators=[validate_stipulations],
             dump_kwargs={'ensure_ascii': False},
-            verbose_name='Stipulations')
+            verbose_name=_('Stipulations'))
 
     creator = models.ForeignKey(User, null=True,
-            verbose_name='Creator')
+            verbose_name=_('Creator'))
     creation_time = models.DateTimeField(default=now, db_index=True,
-            verbose_name='Creation time')
+            verbose_name=_('Creation time'))
 
     is_sticky = models.BooleanField(
             default=False,
             # Translators: deprecated
-            help_text="Check if a flow started under this "
+            help_text=_("Check if a flow started under this "
             "exception rule set should stay "
-            "under this rule set until it is expired.",
+            "under this rule set until it is expired."),
             # Translators: deprecated
-            verbose_name='Is sticky')
+            verbose_name=_('Is sticky'))
 
     comment = models.TextField(blank=True, null=True,
-            verbose_name='Comment')
+            verbose_name=_('Comment'))
 
     def __unicode__(self):
         # Translators: flow access exception in admin (deprecated)
-        return "Access exception for '%(user)s' to '%(flow_id)s' in '%(course)s'" % {
-                "user": self.participation.user, "flow_id": self.flow_id,
-                "course": self.participation.course}
+        return (
+                _("Access exception for '%(user)s' to '%(flow_id)s' "
+                "in '%(course)s'") %
+                {
+                    "user": self.participation.user,
+                    "flow_id": self.flow_id,
+                    "course": self.participation.course
+                    })
 
 
 class FlowAccessExceptionEntry(models.Model):
@@ -831,14 +848,14 @@ class FlowAccessExceptionEntry(models.Model):
 
     exception = models.ForeignKey(FlowAccessException,
             related_name="entries",
-            verbose_name='Exception')
+            verbose_name=_('Exception'))
     permission = models.CharField(max_length=50,
             choices=FLOW_PERMISSION_CHOICES,
-            verbose_name='Permission')
+            verbose_name=_('Permission'))
 
     class Meta:
         # Translators: FlowAccessExceptionEntry (deprecated)
-        verbose_name_plural = "Flow access exception entries"
+        verbose_name_plural = _("Flow access exception entries")
 
     def __unicode__(self):
         return self.permission
@@ -848,33 +865,34 @@ class FlowAccessExceptionEntry(models.Model):
 
 class FlowRuleException(models.Model):
     flow_id = models.CharField(max_length=200, blank=False, null=False,
-            verbose_name='Flow ID')
+            verbose_name=_('Flow ID'))
     participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name='Participation')
+            verbose_name=_('Participation'))
     expiration = models.DateTimeField(blank=True, null=True,
-            verbose_name='Expiration')
+            verbose_name=_('Expiration'))
 
     creator = models.ForeignKey(User, null=True,
-            verbose_name='Creator')
+            verbose_name=_('Creator'))
     creation_time = models.DateTimeField(default=now, db_index=True,
-            verbose_name='Creation time')
+            verbose_name=_('Creation time'))
 
     comment = models.TextField(blank=True, null=True,
-            verbose_name='Comment')
+            verbose_name=_('Comment'))
 
     kind = models.CharField(max_length=50, blank=False, null=False,
             choices=FLOW_RULE_KIND_CHOICES,
-            verbose_name='Kind')
+            verbose_name=_('Kind'))
     rule = YAMLField(blank=False, null=False,
-            verbose_name='Rule')
+            verbose_name=_('Rule'))
     active = models.BooleanField(default=True,
             verbose_name=pgettext_lazy(
                 "Is the flow rule exception activated?", "Active"))
 
     def __unicode__(self):
-        # Translators: For FlowRuleException
         return (
-                "%(kind)s exception for '%(user)s' to '%(flow_id)s' in '%(course)s'"
+                # Translators: For FlowRuleException
+                _("%(kind)s exception for '%(user)s' to '%(flow_id)s'"
+                "in '%(course)s'")
                 % {
                     "kind": self.kind,
                     "user": self.participation.user,
@@ -884,7 +902,7 @@ class FlowRuleException(models.Model):
     def clean(self):
         if (self.kind == flow_rule_kind.grading
                 and self.expiration is not None):
-            raise ValidationError("grading rules may not expire")
+            raise ValidationError(_("grading rules may not expire"))
 
         from course.validation import (
                 ValidationError as ContentValidationError,
@@ -923,15 +941,15 @@ class FlowRuleException(models.Model):
                 validate_session_grading_rule(ctx, unicode(self), rule, tags)
             else:
                 # the rule refers to FlowRuleException rule
-                raise ValidationError("invalid rule kind: "+self.kind)
+                raise ValidationError(_("invalid rule kind: ")+self.kind)
 
         except ContentValidationError as e:
             # the rule refers to FlowRuleException rule
-            raise ValidationError("invalid existing_session_rules: "+str(e))
+            raise ValidationError(_("invalid existing_session_rules: ")+str(e))
 
     class Meta:
-        verbose_name = "Flow rule exception"
-        verbose_name_plural = "Flow rule exceptions"
+        verbose_name = _("Flow rule exception")
+        verbose_name_plural = _("Flow rule exceptions")
 
 # }}}
 
@@ -940,50 +958,52 @@ class FlowRuleException(models.Model):
 
 class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name='Course identifier')
+            verbose_name=_('Course identifier'))
 
     identifier = models.CharField(max_length=200, blank=False, null=False,
             # Translators: format of identifier for GradingOpportunity
-            help_text="A symbolic name for this grade. "
-            "lower_case_with_underscores, no spaces.",
-            verbose_name='Grading opportunity ID')
+            help_text=_("A symbolic name for this grade. "
+            "lower_case_with_underscores, no spaces."),
+            verbose_name=_('Grading opportunity ID'))
     name = models.CharField(max_length=200, blank=False, null=False,
             # Translators: name for GradingOpportunity
-            help_text="A human-readable identifier for the grade.",
-            verbose_name='Grading opportunity name')
+            help_text=_("A human-readable identifier for the grade."),
+            verbose_name=_('Grading opportunity name'))
     flow_id = models.CharField(max_length=200, blank=True, null=True,
-            help_text="Flow identifier that this grading opportunity "
-            "is linked to, if any",
-            verbose_name='Flow ID')
+            help_text=_("Flow identifier that this grading opportunity "
+            "is linked to, if any"),
+            verbose_name=_('Flow ID'))
 
     aggregation_strategy = models.CharField(max_length=20,
             choices=GRADE_AGGREGATION_STRATEGY_CHOICES,
-            # Translators: strategy on how the grading of mutiple sessioins are
-            # aggregated.
-            verbose_name='Aggregation strategy')
+            # Translators: strategy on how the grading of mutiple sessioins
+            # are aggregated.
+            verbose_name=_('Aggregation strategy'))
 
     due_time = models.DateTimeField(default=None, blank=True, null=True,
-            verbose_name='Due time')
+            verbose_name=_('Due time'))
     creation_time = models.DateTimeField(default=now,
-            verbose_name='Creation time')
+            verbose_name=_('Creation time'))
 
     shown_in_grade_book = models.BooleanField(default=True,
-            verbose_name='Shown in grade book')
+            verbose_name=_('Shown in grade book'))
     shown_in_student_grade_book = models.BooleanField(default=True,
-            verbose_name='Shown in student grade book')
+            verbose_name=_('Shown in student grade book'))
 
     class Meta:
-        verbose_name = "Grading opportunity"
-        verbose_name_plural = "Grading opportunities"
+        verbose_name = _("Grading opportunity")
+        verbose_name_plural = _("Grading opportunities")
         ordering = ("course", "due_time", "identifier")
         unique_together = (("course", "identifier"),)
 
     def __unicode__(self):
         # Translators: For GradingOpportunity
-        return "%(opportunity_name)s (%(opportunity_id)s) in %(course)s" % {
-            "opportunity_name": self.name,
-            "opportunity_id": self.identifier,
-            "course": self.course}
+        return (
+                _("%(opportunity_name)s (%(opportunity_id)s) in %(course)s")
+                % {
+                    "opportunity_name": self.name,
+                    "opportunity_id": self.identifier,
+                    "course": self.course})
 
 
 class GradeChange(models.Model):
@@ -995,61 +1015,61 @@ class GradeChange(models.Model):
     ones.
     """
     opportunity = models.ForeignKey(GradingOpportunity,
-            verbose_name='Grading opportunity')
+            verbose_name=_('Grading opportunity'))
 
     participation = models.ForeignKey(Participation,
-            verbose_name='Participation')
+            verbose_name=_('Participation'))
 
     state = models.CharField(max_length=50,
             choices=GRADE_STATE_CHANGE_CHOICES,
             # Translators: something like 'status'.
-            verbose_name='State')
+            verbose_name=_('State'))
 
     attempt_id = models.CharField(max_length=50, null=True, blank=True,
             default="main",
             # Translators: help text of "attempt_id" in GradeChange class
-            help_text="Grade changes are grouped by their 'attempt ID' "
+            help_text=_("Grade changes are grouped by their 'attempt ID' "
             "where later grades with the same attempt ID supersede earlier "
-            "ones.",
-            verbose_name='Attempt ID')
+            "ones."),
+            verbose_name=_('Attempt ID'))
 
     points = models.DecimalField(max_digits=10, decimal_places=2,
             blank=True, null=True,
-            verbose_name='Points')
+            verbose_name=_('Points'))
     max_points = models.DecimalField(max_digits=10, decimal_places=2,
-            verbose_name='Max points')
+            verbose_name=_('Max points'))
 
     comment = models.TextField(blank=True, null=True,
-            verbose_name='Comment')
+            verbose_name=_('Comment'))
 
     due_time = models.DateTimeField(default=None, blank=True, null=True,
-            verbose_name='Due time')
+            verbose_name=_('Due time'))
 
     creator = models.ForeignKey(User, null=True,
-            verbose_name='Creator')
+            verbose_name=_('Creator'))
     grade_time = models.DateTimeField(default=now, db_index=True,
-            verbose_name='Grade time')
+            verbose_name=_('Grade time'))
 
     flow_session = models.ForeignKey(FlowSession, null=True, blank=True,
             related_name="grade_changes",
-            verbose_name='Flow session')
+            verbose_name=_('Flow session'))
 
     class Meta:
-        verbose_name = "Grade change"
-        verbose_name_plural = "Grade changes"
+        verbose_name = _("Grade change")
+        verbose_name_plural = _("Grade changes")
         ordering = ("opportunity", "participation", "grade_time")
 
     def __unicode__(self):
         # Translators: information for GradeChange
-        return "%(participation)s %(state)s on %(opportunityname)s" % {
-            "participation": self.participation,
-            "state": self.state,
-            "opportunityname": self.opportunity.name}
+        return _("%(participation)s %(state)s on %(opportunityname)s") % {
+            'participation': self.participation,
+            'state': self.state,
+            'opportunityname': self.opportunity.name}
 
     def clean(self):
         if self.opportunity.course != self.participation.course:
-            raise ValidationError("Participation and opportunity must live "
-                    "in the same course")
+            raise ValidationError(_("Participation and opportunity must live "
+                    "in the same course"))
 
     def percentage(self):
         if self.max_points is not None and self.points is not None:
@@ -1095,11 +1115,13 @@ class GradeStateMachine(object):
 
         if gchange.state == grade_state_change_types.graded:
             if self.state == grade_state_change_types.unavailable:
-                raise ValueError("cannot accept grade once opportunity has been "
-                        "marked 'unavailable'")
+                raise ValueError(
+                        _("cannot accept grade once opportunity has been "
+                            "marked 'unavailable'"))
             if self.state == grade_state_change_types.exempt:
-                raise ValueError("cannot accept grade once opportunity has been "
-                        "marked 'exempt'")
+                raise ValueError(
+                        _("cannot accept grade once opportunity has been "
+                        "marked 'exempt'"))
 
             #if self.due_time is not None and gchange.grade_time > self.due_time:
                 #raise ValueError("cannot accept grade after due date")
@@ -1140,7 +1162,8 @@ class GradeStateMachine(object):
                 ]:
             pass
         else:
-            raise RuntimeError("invalid grade change state '%s'" % gchange.state)
+            raise RuntimeError(
+                    _("invalid grade change state '%s'") % gchange.state)
 
     def consume(self, iterable, set_is_superseded=False):
         for gchange in iterable:
@@ -1176,13 +1199,14 @@ class GradeStateMachine(object):
         elif strategy == grade_aggregation_strategy.use_latest:
             return self.valid_percentages[-1]
         else:
-            raise ValueError("invalid grade aggregation strategy '%s'" % strategy)
+            raise ValueError(
+                    _("invalid grade aggregation strategy '%s'") % strategy)
 
     def stringify_state(self):
         if self.state is None:
             return u"- ∅ -"
         elif self.state == grade_state_change_types.exempt:
-            return "(exempt)"
+            return "_((exempt))"
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
                 result = "%.1f%%" % self.percentage()
@@ -1192,7 +1216,7 @@ class GradeStateMachine(object):
             else:
                 return u"- ∅ -"
         else:
-            return "(other state)"
+            return "_((other state))"
 
     def stringify_machine_readable_state(self):
         if self.state is None:
@@ -1228,9 +1252,9 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
             course=course,
             identifier=grading_rule.grade_identifier,
             defaults=dict(
-                # Translators: name of flow with prefix "Flow"
                 name=(
-                    "Flow: %(flow_desc_title)s"
+                    # Translators: display the name of a flow
+                    _("Flow: %(flow_desc_title)s")
                     % {"flow_desc_title": flow_desc.title}),
                 flow_id=flow_id,
                 aggregation_strategy=grading_rule.grade_aggregation_strategy,
@@ -1245,15 +1269,15 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
 
 class InstantMessage(models.Model):
     participation = models.ForeignKey(Participation,
-            verbose_name='Participation')
+            verbose_name=_('Participation'))
     text = models.CharField(max_length=200,
-            verbose_name='Text')
+            verbose_name=_('Text'))
     time = models.DateTimeField(default=now,
-            verbose_name='Time')
+            verbose_name=_('Time'))
 
     class Meta:
-        verbose_name = "Instant message"
-        verbose_name_plural = "Instant messages"
+        verbose_name = _("Instant message")
+        verbose_name_plural = _("Instant messages")
         ordering = ("participation__course", "time")
 
     def __unicode__(self):

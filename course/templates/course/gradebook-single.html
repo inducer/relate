@@ -1,45 +1,50 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% block title %}
-  Grade book: {{ opportunity.name }} - RELATE
+  {% trans "Grade book" %}: {{ opportunity.name }} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-  <h1>Understand a grade: {{ opportunity.name }} </h1>
+  <h1>{% trans "Understand a grade" %}: {{ opportunity.name }} </h1>
 
   <table class="table table-condensed">
     <thead>
-      <th>Property</th><th>Value</th>
+      <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
     </thead>
     <tbody>
     <tr>
-      <td>Participant</td>
+      <td>{% trans "Participant" %}</td>
       <td>
-        {{ grade_participation.user.last_name }}, {{ grade_participation.user.first_name }}
-        ({{ grade_participation.user.username }})
+        {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name username=grade_participation.user.username %}
+          {{ last_name }}, {{ first_name }} ({{ username }})
+        {% endblocktrans %}
       </td>
     </tr>
     <tr>
-      <td>Identifier</td><td><tt>{{ opportunity.identifier }}</tt></td>
+      <td>{% trans "Grading Opportunity ID" %}</td><td><tt>{{ opportunity.identifier }}</tt></td>
     </tr>
     {% if opportunity.due_time != None %}
       <tr>
-        <td>Due</td><td><tt>{{ opportunity.due_time }}</tt></td>
+        <td>{% trans "Due" %}</td><td><tt>{{ opportunity.due_time }}</tt></td>
       </tr>
     {% endif %}
     {% if opportunity.flow_id %}
     <tr>
-      <td>Flow</td><td><tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+      <td>{% trans "Flow" %}</td><td><tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
     </tr>
     {% endif %}
     <tr>
-      <td>Average grade</td>
+      <td>{% trans "Average grade" %}</td>
       <td>
         {% if avg_grade_percentage != None %}
-          {{ avg_grade_percentage|floatformat }}%
+          {# Translators: average grade, format "10% (out of 5 grades)" #}
+          {% blocktrans trimmed with avg_grade_percentage=avg_grade_percentage|floatformat %}
+          {{ avg_grade_percentage }}%
           (out of {{ avg_grade_population }} grades)
+          {% endblocktrans %}
         {% else %}
-          <i>(no data)</i>
+          <i>{% trans "(no data)" %}</i>
         {% endif %}
       </td>
     </tr>
@@ -47,16 +52,17 @@
 
   {# {{{ grade history #}
 
-  <h2>Grade history</h2>
+  <h2>{% trans "Grade history" %}</h2>
   {% if not grade_changes%}
-    (no grade data available)
+    {% blocktrans %} (no grade data available){% endblocktrans %}
   {% else %}
     <table class="table table-condensed table-striped">
       <thead>
-        <th>Date</th>
-        <th>What</th>
-        <th>Grade</th>
-        <th>Further Information</th>
+        <th>{% trans "Time" %}</th>
+        {# Translators: "what" stand for the state of a grade, e.g. "graded" #}
+        <th>{% trans "What" %}</th>
+        <th>{% trans "Grade" %}</th>
+        <th>{% trans "Further Information" %}</th>
       </thead>
       <tbody>
         {% for gchange in grade_changes %}
@@ -70,11 +76,13 @@
           <td>
             {% if gchange.is_superseded %}<s>{% endif %}
             {% if gchange.points != None %}
-              {{ gchange.points|floatformat:1 }}/{{ gchange.max_points|floatformat:1 }}
+              {% blocktrans trimmed with points=gchange.points|floatformat:1 max_points=gchange.max_points|floatformat:1 percentage=gchange.percentage|floatformat:1 %}
+              {{ points }}/{{ max_points }}
               points
-              ({{ gchange.percentage|floatformat:1 }}%)
+              ({{ percentage }}%)
+              {% endblocktrans %}
             {% else %}
-              (no grade)
+              {% trans "(no grade)" %}
             {% endif %}
             {% if gchange.is_superseded %}</s>{% endif %}
           </td>
@@ -84,19 +92,23 @@
             {% endif %}
 
             {% if gchange.flow_session != None %}
-            (from flow session {{ gchange.flow_session.id }})
+              {% blocktrans trimmed with gchange_flow_session_id=gchange.flow_session.id %}
+                (from flow session {{ gchange_flow_session_id }})
+              {% endblocktrans %}
             {% endif %}
           </td>
         </tr>
         {% endfor %}
         <tr>
-          <td><b>Overall grade</b></td>
+          <td><b>{% trans "Overall grade" %}</b></td>
           <td></td>
           <td>
             <b>{{ state_machine.stringify_state }}</b>
           </td>
           <td>
-            (Aggregation strategy: {{ opportunity.aggregation_strategy }})
+            {% blocktrans trimmed with opportunity_aggregation_strategy=opportunity.aggregation_strategy %}
+              (Aggregation strategy: {{ opportunity_aggregation_strategy }})
+            {% endblocktrans %}
           </td>
         </tr>
       </tbody>
@@ -108,22 +120,22 @@
   {# {{{ flow-related #}
 
   {% if flow_sessions_and_session_properties %}
-    <h2>Flow sessions</h2>
+    <h2>{% trans "Flow sessions" %}</h2>
 
     <form method="POST">
       {% csrf_token %}
       <table class="table table-condensed table-striped">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>State</th>
-            <th>Due</th>
-            <th>Result</th>
+            <th>{% trans "Flow ID" %}</th>
+            <th>{% trans "State" %}</th>
+            <th>{% trans "Due" %}</th>
+            <th>{% trans "Result" %}</th>
             {% if show_privileged_info %}
-              <th>Pages</th>
+              <th>{% trans "Pages" %}</th>
             {% endif %}
             {% if allow_session_actions %}
-              <th>Actions</th>
+              <th>{% trans "Actions" %}</th>
             {% endif %}
           </tr>
         </thead>
@@ -136,25 +148,25 @@
                 <hr>
                 {% if flow_session.access_rules_tag %}
                   <p>
-                    <b>Grading rules:</b>
+                    <b>{% trans "Grading rules:" %}</b>
                     {% if session_properties.grade_description %}
                       {{ session_properties.grade_description }}
                     {% endif %}
                   </p>
                 {% endif %}
                 <p>
-                  <b>Expiration mode:</b>
+                  <b>{% trans "Expiration mode:" %}</b>
                   <tt>{{ flow_session.expiration_mode  }}</tt>
                 </p>
                 <p>
-                  <b>Started:</b> {{ flow_session.start_time }}
+                  <b>{% trans "Started:" %}</b> {{ flow_session.start_time }}
                 </p>
                 {% if not flow_session.in_progress %}
                   <p>
-                    <b>Completed:</b> {{ flow_session.completion_time }}
+                    <b>{% trans "Completed:" %}</b> {{ flow_session.completion_time }}
                   </p>
                   <p>
-                    <b>Last activity:</b> {{ flow_session.last_activity }}
+                    <b>{% trans "Last activity:" %}</b> {{ flow_session.last_activity }}
                   </p>
                 {% endif %}
               </td>
@@ -174,15 +186,17 @@
 
                     (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
                   {% else %}
+                    {% blocktrans trimmed with max_points=flow_session.max_points|floatformat:1 %}
                     (grade not available)
-                    ({{ flow_session.max_points|floatformat:1 }} points achievable)
+                    ({{ max_points }} points achievable)
+                    {% endblocktrans %}
                   {% endif %}
                 {% else %}
-                  (none)
+                  {% trans "(none)" %}
                 {% endif %}
                 {% if show_privileged_info and flow_session.result_comment %}
                   <p>
-                  <b> Notes:</b>
+                  <b>{% trans " Notes:" %}</b>
                   {{ flow_session.result_comment|linebreaks }}
                   </p>
                 {% endif %}
@@ -193,10 +207,10 @@
                   <table class="table table-striped table-condensed">
                     <tr>
                       <th></th>
-                      <th>Page ID</th>
-                      <th>Percent</th>
-                      <th>Points</th>
-                      <th>Grader</th>
+                      <th>{% trans "Page ID" %}</th>
+                      <th>{% trans "Percent" %}</th>
+                      <th>{% trans "Points" %}</th>
+                      <th>{% trans "Grader" %}</th>
                     </tr>
                   {% for visit in flow_session.answer_visits %}
                     {% if visit %}
@@ -210,7 +224,7 @@
                           <td>{{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }}</td>
                           <td>{{ visit.get_most_recent_grade.grader.username }} </td>
                         {% else %}
-                          <td>(no grade)</td>
+                          <td>{% trans "(no grade)" %}</td>
                           <td></td>
                           <td></td>
                         {% endif %}
@@ -225,30 +239,30 @@
                 <td>
                   <button type="submit" name="regrade_{{flow_session.id}}"
                     class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                    Regrade
+                    {% trans "Regrade" %}
                   </button>
                   {% if flow_session.in_progress %}
                     <button type="submit" name="expire_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      Expire
+                      {% trans "Expire" %}
                     </button>
                     <button type="submit" name="end_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      End and grade
+                      {% trans "End and grade" %}
                     </button>
                   {% else %}
                     <a href="{% url "relate-view_reopen_session" course.identifier flow_session.id opportunity.id %}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      Reopen
+                      {% trans "Reopen" %}
                     </a>
                     <button type="submit" name="recalculate_{{flow_session.id}}"
                       class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                      Recalculate grade
+                      {% trans "Recalculate grade" %}
                     </button>
                   {% endif %}
                   <a href="{% url "relate-grant_exception_stage_3" course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                     class="btn btn-primary btn-xs relate-btn-xs-vert-spaced">
-                    Grant exception
+                    {% trans "Grant exception" %}
                   </a>
                 </td>
               {% endif %}
@@ -263,7 +277,7 @@
     <div class="well">
       <a href="{% url "relate-grant_exception_stage_2" course.identifier grade_participation.id opportunity.flow_id %}"
         class="btn btn-primary btn-default">
-        Grant exception
+          {% trans "Grant exception" %}
       </a>
     </div>
   {% endif %}

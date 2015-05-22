@@ -24,6 +24,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from django.utils.translation import (
+        ugettext_lazy as _,
+        pgettext,
+        string_concat)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -55,19 +59,19 @@ from relate.utils import StyledForm
 @transaction.atomic
 def enroll(request, course_identifier):
     if request.method != "POST":
-        raise SuspiciousOperation("can only enroll using POST request")
+        raise SuspiciousOperation(_("can only enroll using POST request"))
 
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
 
     if not course.accepts_enrollment:
         messages.add_message(request, messages.ERROR,
-                "Course is not accepting enrollments.")
+                _("Course is not accepting enrollments."))
         return redirect("relate-course_page", course_identifier)
 
     if role != participation_role.unenrolled:
         messages.add_message(request, messages.ERROR,
-                "Already enrolled. Cannot re-renroll.")
+                _("Already enrolled. Cannot re-renroll."))
         return redirect("relate-course_page", course_identifier)
 
     user = request.user
@@ -75,16 +79,16 @@ def enroll(request, course_identifier):
     if (course.enrollment_required_email_suffix
             and ustatus.status != user_status.active):
         messages.add_message(request, messages.ERROR,
-                "Your email address is not yet confirmed. "
-                "Confirm your email to continue.")
+                _("Your email address is not yet confirmed. "
+                "Confirm your email to continue."))
         return redirect("relate-course_page", course_identifier)
 
     if (course.enrollment_required_email_suffix
             and not user.email.endswith(course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
-                "Enrollment not allowed. Please use your '%s' email to "
-                "enroll." % course.enrollment_required_email_suffix)
+                _("Enrollment not allowed. Please use your '%s' email to "
+                "enroll.") % course.enrollment_required_email_suffix)
         return redirect("relate-course_page", course_identifier)
 
     def enroll(status, role):
@@ -129,19 +133,21 @@ def enroll(request, course_identifier):
                     reverse("admin:course_participation_changelist"))
             })
         from django.core.mail import send_mail
-        send_mail("[%s] New enrollment request" % course_identifier,
+        send_mail(
+                string_concat("[%s] ", _("New enrollment request"))
+                % course_identifier,
                 message,
                 settings.ROBOT_EMAIL_FROM,
                 recipient_list=[course.notify_email])
 
         messages.add_message(request, messages.INFO,
-                "Enrollment request sent. You will receive notifcation "
-                "by email once your request has been acted upon.")
+                _("Enrollment request sent. You will receive notifcation "
+                "by email once your request has been acted upon."))
     else:
         enroll(participation_status.active, role)
 
         messages.add_message(request, messages.SUCCESS,
-                "Successfully enrolled.")
+                _("Successfully enrolled."))
 
     return redirect("relate-course_page", course_identifier)
 
@@ -175,7 +181,9 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             })
 
         from django.core.mail import EmailMessage
-        msg = EmailMessage("[%s] Your enrollment request" % course.identifier,
+        msg = EmailMessage(
+                string_concat("[%s] ", _("Your enrollment request"))
+                % course.identifier,
                 message,
                 course.from_email,
                 [participation.user.email])
@@ -185,19 +193,20 @@ def decide_enrollment(approved, modeladmin, request, queryset):
         count += 1
 
     messages.add_message(request, messages.INFO,
-            "%d requests processed." % count)
+            # Translators: how many enroll requests have ben processed.
+            _("%d requests processed.") % count)
 
 
 def approve_enrollment(modeladmin, request, queryset):
     decide_enrollment(True, modeladmin, request, queryset)
 
-approve_enrollment.short_description = "Approve enrollment"
+approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")
 
 
 def deny_enrollment(modeladmin, request, queryset):
     decide_enrollment(False, modeladmin, request, queryset)
 
-deny_enrollment.short_description = "Deny enrollment"
+deny_enrollment.short_description = _("Deny enrollment")
 
 # }}}
 
@@ -208,16 +217,16 @@ class BulkPreapprovalsForm(StyledForm):
     role = forms.ChoiceField(
             choices=PARTICIPATION_ROLE_CHOICES,
             initial=participation_role.student,
-            label="Role")
+            label=_("Role"))
     emails = forms.CharField(required=True, widget=forms.Textarea,
-            help_text="Enter fully qualified email addresses, one per line.",
-            label="Emails")
+            help_text=_("Enter fully qualified email addresses, one per line."),
+            label=_("Emails"))
 
     def __init__(self, *args, **kwargs):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Preapprove",
+                Submit("submit", _("Preapprove"),
                     css_class="col-lg-offset-2"))
 
 
@@ -226,7 +235,7 @@ class BulkPreapprovalsForm(StyledForm):
 @course_view
 def create_preapprovals(pctx):
     if pctx.role != participation_role.instructor:
-        raise PermissionDenied("only instructors may do that")
+        raise PermissionDenied(_("only instructors may do that"))
 
     request = pctx.request
 
@@ -264,8 +273,10 @@ def create_preapprovals(pctx):
                 created_count += 1
 
             messages.add_message(request, messages.INFO,
-                    "%d preapprovals created, %d already existed."
-                    % (created_count, exist_count))
+                    _("%(n_created)d preapprovals created, "
+                    "%(n_exist)d already existed.") % {
+                        'n_created': created_count,
+                        'n_exist': exist_count})
             return redirect("relate-home")
 
     else:
@@ -273,7 +284,7 @@ def create_preapprovals(pctx):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": "Create Participation Preapprovals",
+        "form_description": _("Create Participation Preapprovals"),
     })
 
 # }}}

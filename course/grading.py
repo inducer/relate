@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         get_object_or_404, redirect)
 from django.db import transaction
@@ -56,14 +57,17 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grades")
+        raise PermissionDenied(
+                _("must be instructor or TA to view grades"))
 
     flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
 
     if flow_session.course.pk != pctx.course.pk:
-        raise SuspiciousOperation("Flow session not part of specified course")
+        raise SuspiciousOperation(
+                _("Flow session not part of specified course"))
     if flow_session.participation is None:
-        raise SuspiciousOperation("Cannot grade anonymous session")
+        raise SuspiciousOperation(
+                _("Cannot grade anonymous session"))
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
             page_ordinal, participation=flow_session.participation,
@@ -196,7 +200,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         from crispy_forms.layout import Submit
         grading_form.helper.add_input(
                 Submit(
-                    "submit", "Submit",
+                    "submit", _("Submit"),
                     accesskey="s",
                     css_class="col-lg-offset-2 relate-grading-save-button"))
 
@@ -269,7 +273,8 @@ def show_grading_statistics(pctx, flow_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
-        raise PermissionDenied("must be instructor or TA to view grading stats")
+        raise PermissionDenied(
+                _("must be instructor or TA to view grading stats"))
 
     grades = (FlowPageVisitGrade.objects
             .filter(
