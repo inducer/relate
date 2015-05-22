@@ -120,20 +120,21 @@ class ImpersonateForm(StyledForm):
 
         self.fields["user"] = forms.ChoiceField(
                 choices=[
-                    # Translators: information displayed when select user
-                    # for impersonating, you can use your prefered
-                    # style. For example %(user_lastname)s,
-                    # %(user_firstname)s (user_email)s, but all three
-                    # strings should be used.
-                    (u.id, _("%(user_email)s - %(user_lastname)s, "
+                    # Translators: information displayed when selecting user
+                    # for impersonating. Customize how the name is shown, but
+                    # leave email first to retain usability of form sorted by
+                    # last name.
+                    (
+                        u.id, _("%(user_email)s - %(user_lastname)s, "
                             "%(user_firstname)s")
                             % {
-                                "user_email":u.email,
-                                "user_lastname":u.last_name,
-                                "user_firstname":u.first_name})
-                            for u in sorted(impersonees,
-                                key=lambda user: user.last_name.lower())
-                            ],
+                                "user_email": u.email,
+                                "user_lastname": u.last_name,
+                                "user_firstname": u.first_name
+                                })
+                    for u in sorted(impersonees,
+                        key=lambda user: user.last_name.lower())
+                    ],
                 required=True,
                 help_text=_("Select user to impersonate."),
                 label=_("User"))

@@ -47,41 +47,6 @@ Open a browser to http://localhost:8000, sign in (your user name will be the
 same as your system user name, or whatever `whoami` returned above) and select
 "Set up new course".
 
-Additional setup steps for i18n
--------------------------------
-
-RELATE website is translatable into languages other than English. Run the 
-following command::
-
-    django-admin makemessages -l de
-    
-will generate a message file for Germany language, where locale name ``de``
-stands for Germany. The message file locates in the locale dirctory in root
-directory of your RELATE project. For example, the above command will generate
-a message file ``django.po`` in ``/project/root/locale/de/LC_MESSAGES``.
-
-Edit the ``django.po``. For each ``msgid`` string, put it's translation in 
-``msgstr`` right below. ``msgctxt`` strings, along with the commented 
-``Translators:`` strings above some ``msgid`` strings, are used to provide 
-more information for better understanding of the literals.
-
-When translations are done, run the following command in root directory::
-
-    django-admin compilemessages -l de
-
-Your translations are ready for use. 
-
-To enable the translations, open your local_settings.py, uncomment the 
-``LANGUAGE_CODE`` string and change 'en-us' to your locale name of your
-language.
-
-For more instructions, please refer to `Localization: how to create
-language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
-
-(TODO)
-
-Add i18n marks for javascript.
-
 Additional setup steps for Docker
 ---------------------------------
 
@@ -114,6 +79,42 @@ a customized version of
 `this script <https://github.com/inducer/relate/blob/master/repack-repositories.sh>`_.
 This is needed about once every few hundred course update cycles, so relatively
 infrequently.
+
+How to translate RELATE
+-----------------------
+
+RELATE is translatable into languages other than English. Run the
+following command::
+
+    django-admin makemessages -l de
+
+This will generate a message file for German, where the locale name ``de``
+stands for Germany. The message file located in the ``locale`` directory
+directory of your RELATE installation. For example, the above command will generate
+a message file ``django.po`` in ``/project/root/locale/de/LC_MESSAGES``.
+
+Edit ``django.po``. For each ``msgid`` string, put it's translation in
+``msgstr`` right below. ``msgctxt`` strings, along with the commented
+``Translators:`` strings above some ``msgid`` strings, are used to provide
+more information for better understanding of the text to be translated.
+
+When translations are done, run the following command in root directory::
+
+    django-admin compilemessages -l de
+
+Your translations are ready for use. If you translate RELATE, please submit
+your translations for inclusion into the RELATE itself.
+
+To enable the translations, open your ``local_settings.py``, uncomment the
+``LANGUAGE_CODE`` string and change 'en-us' to your locale name of your
+language.
+
+For more instructions, please refer to `Localization: how to create
+language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
+
+(TODO)
+
+Add i18n marks for javascript.
 
 Tips
 ====
