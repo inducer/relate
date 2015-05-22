@@ -1,7 +1,9 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
+
 
 {% block title %}
-  {{flow_desc.title}} - RELATE
+  {{flow_desc.title}} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
@@ -14,16 +16,16 @@
 
     {% if past_sessions_and_properties %}
       <div class="well">
-        <h3 class="start-well-title">Past sessions</h3>
+        <h3 class="start-well-title">{% trans "Past sessions" %}</h3>
 
         <table class="past-flow-session-table">
           <tr>
-            <th>Start time</th>
-            <th>State</th>
-            <th>Grading rules</th>
-            <th>Due</th>
-            <th>Result</th>
-            <th>Actions</th>
+            <th>{% trans "Start time" %}</th>
+            <th>{% trans "State" %}</th>
+            <th>{% trans "Grading rules" %}</th>
+            <th>{% trans "Due" %}</th>
+            <th>{% trans "Result" %}</th>
+            <th>{% trans "Actions" %}</th>
           </tr>
           {% for flow_session, session_properties in past_sessions_and_properties %}
             <tr>
@@ -38,7 +40,7 @@
                 {% if session_properties.grade_description %}
                   {{ session_properties.grade_description }}
                 {% else %}
-                  (no description)
+                  {% trans "(no description)" %}
                 {% endif %}
               </td>
               <td>
@@ -48,13 +50,15 @@
               </td>
               <td>
                 {% if flow_session.points_percentage %}
-                  <b>{{ flow_session.points|floatformat }}</b>
+                  {% blocktrans trimmed with points=flow_session.points|floatformat max_points=flow_session.max_points|floatformat  percentage=flow_session.points_percentage|floatformat %}
+                  <b>{{ points }}</b>
                   out of
-                  {{ flow_session.max_points|floatformat }}
+                  {{ max_points }}
 
-                  (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                  (<b>{{ percentage }}%</b>)
+                  {% endblocktrans %}
                 {% else %}
-                  (none)
+                  {% trans "(none)" %}
                 {% endif %}
 
               </td>
@@ -62,16 +66,16 @@
                 {% if session_properties.may_view %}
                   <a href="{% url "relate-view_flow_page" course.identifier flow_session.id 0 %}" class="btn btn-primary btn-xs">
                     {% if session_properties.may_modify %}
-                      Resume &raquo;
+                      {% trans "Resume" %} &raquo;
                     {% else %}
-                      Review &raquo;
+                      {% trans "Review" %} &raquo;
                     {% endif %}
                   </a>
                 {% endif %}
 
                 {% if not flow_session.in_progress %}
                   <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
-                    Results
+                      {% trans "Results" %}
                   </a>
                 {% endif %}
               </td>
@@ -84,20 +88,35 @@
     {% if may_start %}
       {% if new_session_grading_rule.grade_identifier %}
         <div class="alert alert-info">
-          If you start a new session, the following rules will apply:
+          {% trans "If you start a new session, the following rules will apply:" %}
           <ul>
             {% if new_session_grading_rule.description %}
-              <li>Your session will be a '<b>{{ new_session_grading_rule.description }}</b>'.</li>
+              <li>
+                  {% blocktrans trimmed with description=new_session_grading_rule.description %}
+                    Your session will be a '<b>{{ new_session_grading_rule_description }}</b>'.
+                  {% endblocktrans %}
+              </li>
             {% endif %}
             {% if new_session_grading_rule.due %}
-              <li>Your session will be due on <b>{{ new_session_grading_rule.due }}</b>.</li>
+              <li>
+                  {% blocktrans trimmed with due=new_session_grading_rule.due %}
+                    Your session will be due on <b>{{ due }}</b>.
+                  {% endblocktrans %}
+              </li>
             {% endif %}
-            <li>You will receive <b>{{ new_session_grading_rule.credit_percent|floatformat }}% credit</b>
-              for your work.
+            <li>
+                {% blocktrans trimmed with credit_percent=new_session_grading_rule.credit_percent|floatformat%}
+                    You will receive <b>{{ credit_percent }}% credit</b>
+                    for your work.
+                {% endblocktrans %}
+            </li>
             {% if past_sessions_and_properties %}
-              <li>This is not your first session. If you start another one,
-                for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
-                among all your sessions.
+              <li>
+                  {% blocktrans trimmed %}
+                    This is not your first session. If you start another one,
+                    for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
+                    among all your sessions.
+                  {% endblocktrans %}
               </li>
             {% endif%}
           </ul>
@@ -108,15 +127,16 @@
 
       {% if start_may_decrease_grade %}
         <a id="pre-start-button" class="btn btn-primary">
-          Start &raquo;
+          {% trans "Start" %} &raquo;
         </a>
         <button id="start-button" type="submit" name="start" class="btn btn-danger"
           style="display:none"
-          data-content="I understand that starting a new session could lower my overall grade."
+          data-content='{% trans "I understand that starting a new session could lower my overall grade." %}'
           data-container="body"
           data-placement="right"
           >
-            I am sure &raquo;
+            {# Translators: student should confirm to start another session. #}
+            {% trans "I am sure" %} &raquo;
         </button>
 
         <script type="text/javascript">
@@ -139,7 +159,7 @@
 
       {% else %}
         <button type="submit" name="start" class="btn btn-primary">
-          Start &raquo;
+          {% trans "Start" %} &raquo;
         </button>
       {% endif %}
 
@@ -152,37 +172,45 @@
       <div class="alert alert-info">
         <p>
         <i class="fa fa-exclamation-triangle"></i>
+        {% blocktrans trimmed %}
         You do not have any existing sessions and are not allowed to start
         a new one.
+        {% endblocktrans %}
         </p>
 
         <p>
-        Check the following:
+        {% trans "Check the following:" %}
         <ul>
         {% if not user.is_authenticated %}
         <li>
-        <a href="{% url student_sign_in_view %}">Sign in</a>.
-
+        <a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>.
+        {% url "relate-home" as relate-home %}
+        {% blocktrans trimmed %}
           You're not currently signed in. Access to the resource is restricted,
           and since the site has no way of knowing who you are, it may have denied
           you accesss.
           Once you're signed in, navigate back to your course from the
-          <a href="{% url "relate-home" %}">home page</a> and retry your last
+          <a href="{{ relate-home }}"> home page </a> and retry your last
           action.
+         {% endblocktrans %}
         </li>
         {% endif %}
         <li>
-          Has the deadline for this assignment passed?
+          {% trans "Has the deadline for this assignment passed?" %}
         </li>
         <li>
+        {% blocktrans trimmed %}
         Complete your enrollment in your course. If you're not enrolled, a large
         "Enroll now" button will show up at the top of your course page. Click that,
         follow the indicated steps, and then retry your last action.
+        {% endblocktrans %}
         </li>
         <li>
+        {% url "relate-home" as relate-home %}
+        {% blocktrans trimmed %}
         If none of the above steps help, please navigate back to your course from the
-        <a href="{% url "relate-home" %}">home page</a> and contact your course
-        staff.
+        <a href="{{ relate-home }}"> home page </a> and contact your course staff.
+        {% endblocktrans %}
         </li>
         </ul>
       </div>

@@ -1,11 +1,12 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% load crispy_forms_tags %}
 {% load static %}
 
 {% block title %}
   [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
-  {{title}} - {{ flow_desc.title}} - RELATE
+  {{title}} - {{ flow_desc.title}} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
@@ -21,29 +22,30 @@
         {% if page_data.ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-            role="button">&laquo; Previous</a>
+            role="button">&laquo; {% trans "Previous" context "Preivious page/item in a flow" %}</a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
             href="#"
-            role="button">&laquo; Previous</a>
+            role="button">&laquo; {% trans "Previous" context "Preivious page/item in a flow" %}</a>
         {% endif %}
         {% if page_data.next_ordinal < flow_session.page_count %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-            role="button">Next &raquo;</a>
+            role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
         {% else %}
-          <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session &raquo; </button>
+          <button type="submit" name="finish" class="btn btn-default relate-nav-button">{% trans "End session" %} &raquo; </button>
         {% endif %}
       </div>
       <div style="float:right">
-        <button type="submit" name="finish" class="btn btn-default relate-nav-button">End session</button>
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button">{% trans "End session" %}</button>
       </div>
       {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
         <div class="flow-session-expiration-panel">
           <span id="expiration_mode_change_progress">
           </span>
           <label for="id_expiration_mode">
-            At deadline:
+            {# Translators: the string is followed by "what will happen" at deadline. #}
+            {% trans "At deadline:" %}
           </label>
           <select class="select form-control" id="id_expiration_mode"
               name="expiration_mode">
@@ -80,7 +82,11 @@
 
   {% if max_points %}
     <div style="float:right" class="well">
-      {{ max_points }} point{{ max_points|pluralize }}
+    {% blocktrans trimmed count counter=max_points %}
+      {{ max_points }} point
+    {% plural %}
+      {{ max_points }} points
+    {% endblocktrans %}
     </div>
   {% endif %}
 
@@ -92,7 +98,7 @@
 
       {% if may_change_graded_answer and will_receive_feedback %}
         <div class="text-muted col-lg-offset-2 ">
-          (You may still change your answer after you submit it.)
+          {% trans "(You may still change your answer after you submit it.)" %}
         </div>
       {% endif %}
     </div>

@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 from django.conf import settings
+from django.utils.translation import ugettext as _
 
 import re
 import datetime
@@ -71,7 +72,7 @@ def get_repo_blob(repo, full_name, commit_sha):
         mode, blob_sha = tree[names[-1].encode()]
         return repo[blob_sha]
     except KeyError:
-        raise ObjectDoesNotExist("resource '%s' not found" % full_name)
+        raise ObjectDoesNotExist(_("resource '%s' not found") % full_name)
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
@@ -246,7 +247,8 @@ class TagProcessingHTMLParser(HTMLParser):
         self.out_file.write("<!%s>" % decl)
 
     def handle_pi(self, data):
-        raise NotImplementedError("I have no idea what a processing instruction is.")
+        raise NotImplementedError(
+                _("I have no idea what a processing instruction is."))
 
     def unknown_decl(self, data):
         self.out_file.write("<![%s]>" % data)
@@ -521,7 +523,7 @@ class PlusDeltaPostprocessor(object):
         elif self.period.startswith("minute"):
             d = datetime.timedelta(minutes=self.count)
         else:
-            raise InvalidDatespec("invalid period: %s" % self.period)
+            raise InvalidDatespec(_("invalid period: %s" % self.period))
 
         return dtm + d
 
@@ -694,8 +696,12 @@ def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):
                 if page.id == page_id:
                     return page
 
-    raise ObjectDoesNotExist("page '%s/%s' in flow '%s'"
-            % (group_id, page_id, flow_id))
+    raise ObjectDoesNotExist(
+            _("page '%(group_id)s/%(page_id)s' in flow '%(flow_id)s'") % {
+                'group_id': group_id,
+                'page_id': page_id,
+                'flow_id': flow_id
+                })
 
 
 class ClassNotFoundError(RuntimeError):
@@ -743,8 +749,10 @@ def get_flow_page_class(repo, typename, commit_sha):
 
         components = stripped_typename.split(".")
         if len(components) != 2:
-            raise ClassNotFoundError("repo page class must conist of two "
-                    "dotted components (invalid: '%s')" % typename)
+            raise ClassNotFoundError(
+                    _("repo page class must conist of two "
+                    "dotted components (invalid: '%s')")
+                    % typename)
 
         module, classname = components
         module_name = "code/"+module+".py"

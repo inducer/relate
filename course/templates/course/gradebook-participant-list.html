@@ -1,9 +1,10 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% load static %}
 
 {% block title %}
-  List of Participants - RELATE
+  {% trans "List of Participants" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block header_extra %}
@@ -16,14 +17,14 @@
 {% endblock %}
 
 {% block content %}
-  <h1>List of Participants</h1>
+  <h1>{% trans "List of Participants" %}</h1>
 
   <table class="gradebook-participants">
     <thead>
-      <th class="datacol">Username</th>
-      <th class="datacol">Last Name</th>
-      <th class="datacol">First Name</th>
-      <th class="datacol">Status</th>
+      <th class="datacol">{% trans "User ID" %}</th>
+      <th class="datacol">{% trans "Last Name" %}</th>
+      <th class="datacol">{% trans "First Name" %}</th>
+      <th class="datacol">{% trans "Role" %}</th>
     </thead>
     <tbody>
       {% for participation in participations %}

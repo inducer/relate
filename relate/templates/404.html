@@ -1,24 +1,31 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block content %}
-  <h1>404 Not Found</h1>
+  <h1>{% trans "404 Not Found" %}</h1>
 
   <p>
-  Request URL: <tt>{{request_path}}</tt>
+  {% trans "Request URL" %}: <tt>{{request_path}}</tt>
   </p>
 
   <p>
+  {% blocktrans trimmed %}
   Oops. Either the URL you entered was invalid, or you stumbled on a dead link.
   If it was the latter, please get in touch with your course staff to let them
   know what you were doing when the error occurred.
+  {% endblocktrans %}
   </p>
 
   <p>
+  {% url "relate-home" as relate-home %}  {% blocktrans trimmed %}
   In the meantime, you may navigate back to  the
-  <a href="{% url "relate-home" %}">home page</a>.
+  <a href="{{ relate-home }}">home page</a>.
+  {% endblocktrans %}
   </p>
 
   <p>
+  {% blocktrans trimmed %}
   Sorry, and thanks for your patience!
+  {% endblocktrans %}
   </p>
 {% endblock %}

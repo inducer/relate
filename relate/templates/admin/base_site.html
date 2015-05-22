@@ -1,5 +1,7 @@
 {% extends "admin/base.html" %}
+{% load i18n %}
 
 {% block branding %}
-<h1 id="site-name">RELATE Administration</h1>
+{% trans "RELATE" as RELATE %}
+<h1 id="site-name">{% blocktrans %}{{ RELATE }} Administration{% endblocktrans %}</h1>
 {% endblock %}

@@ -1,38 +1,52 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% block title %}
-  Analytics - RELATE
+  {% trans "Analytics" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-  <h1>Analytics: <tt>{{ flow_identifier}}</tt></h1>
+  <h1> {% blocktrans %} Analytics: <tt>{{ flow_identifier}}</tt> {% endblocktrans %} </h1>
 
-  <h2>Grade Distribution</h2>
+  <h2>{% trans "Grade Distribution" %}</h2>
 
   <p>
     {% if restrict_to_first_attempt %}
+      {% comment %}
+        Translators: the following are the options when showing attempts of particiants in
+        grade analytics.
+      {% endcomment %}
+      {% blocktrans trimmed %}
       Showing results for <i>only the first attempt</i> by each participant.
+      {% endblocktrans %}
       <a href="?restrict_to_first_attempt=0">
-        Show all attempts
+        {% trans "Show all attempts" %}
       </a>
     {% else %}
-      Showing results for <i>all attempts</i> by each participant.
+      {% trans "Showing results for <i>all attempts</i> by each participant." %}
       <a href="?restrict_to_first_attempt=1">
-        Show only the first attempt
+        {% trans "Show only the first attempt" %}
       </a>
     {% endif %}
   </p>
-
   <p>
-    {{ grade_histogram.total_weight }} grade{{ grade_histogram.total_weight|pluralize }}
+    {% blocktrans trimmed with weight=grade_histogram.total_weight count counter=grade_histogram.total_weight %}
+      {{ weight }} grade
+    {% plural %}
+      {{ weight }} grades
+    {% endblocktrans %}
     {% if participant_count != None %}
-      (from {{ participant_count }} distinct participants)
+      {% blocktrans trimmed count counter=participant_count %}
+        (from {{ participant_count }} distinct participant)
+      {% plural %}
+        (from {{ participant_count }} distinct participants)
+      {% endblocktrans %}
     {% endif %}
   </p>
 
   {{ grade_histogram.html|safe }}
 
-  <h2>Page-by-Page Statistics</h2>
+  <h2>{% trans "Page-by-Page Statistics" %}</h2>
 
   <div class="page-by-page-analytics">
   {% for astats in page_answer_stats_list %}
@@ -44,8 +58,16 @@
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
       {{ astats.title }}
-      ({{ astats.answer_count }} non-empty response{{ astats.answer_count|pluralize }},
-      {{ astats.total_count }} response{{ astats.total_count|pluralize }} total)
+        {% blocktrans trimmed with answer_count=astats.answer_count count counter=astats.answer_count %}
+            ({{ answer_count }} non-empty response,
+        {% plural %}
+            ({{ answer_count }} non-empty responses,
+        {% endblocktrans %}
+        {% blocktrans trimmed with total_count=astats.total_count count counter=astats.total_count %}
+            {{ total_count }} response total)
+        {% plural %}
+            {{ total_count }} responses total)
+        {% endblocktrans %}
 
       <div class="progress">
         <div class="progress-bar progress-bar-success" role="progressbar"
@@ -68,7 +90,7 @@
   {% endfor %}
   <div>
 
-  <h2>Time Distribution</h2>
+  <h2>{% trans "Time Distribution" %}</h2>
 
   {{ time_histogram.html|safe }}
 {% endblock %}

@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from django.utils.translation import ugettext_lazy as _, string_concat
 from django.contrib import admin
 from course.models import (
         Facility, FacilityIPRange,
@@ -100,13 +101,13 @@ class UserStatusAdmin(admin.ModelAdmin):
     def get_user_first_name(self, obj):
         return obj.user.first_name
 
-    get_user_first_name.short_description = "First name"
+    get_user_first_name.short_description = _("First name")
     get_user_first_name.admin_order_field = "user__first_name"
 
     def get_user_last_name(self, obj):
         return obj.user.last_name
 
-    get_user_last_name.short_description = "Last name"
+    get_user_last_name.short_description = _("Last name")
     get_user_last_name.admin_order_field = "user__last_name"
 
     list_display = (
@@ -264,7 +265,8 @@ class ParticipationFrom(forms.ModelForm):
             if tag.course != self.cleaned_data.get("course"):
                 from django.core.exceptions import ValidationError
                 raise ValidationError(
-                    {"tags": "Tags must belong to same course as participation."})
+                    {"tags": _("Tags must belong to same course as "
+                               "participation.")})
 
 
 class ParticipationAdmin(admin.ModelAdmin):
@@ -273,13 +275,13 @@ class ParticipationAdmin(admin.ModelAdmin):
     def get_user_first_name(self, obj):
         return obj.user.first_name
 
-    get_user_first_name.short_description = "First name"
+    get_user_first_name.short_description = _("First name")
     get_user_first_name.admin_order_field = "user__first_name"
 
     def get_user_last_name(self, obj):
         return obj.user.last_name
 
-    get_user_last_name.short_description = "Last name"
+    get_user_last_name.short_description = _("Last name")
     get_user_last_name.admin_order_field = "user__last_name"
 
     list_display = (
@@ -382,7 +384,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
         return obj.participation.user
 
-    get_participant.short_description = "Participant"
+    get_participant.short_description = _("Participant")
     get_participant.admin_order_field = "participation__user"
 
     search_fields = (
@@ -477,12 +479,12 @@ class HasAnswerListFilter(admin.SimpleListFilter):
 class FlowPageVisitAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.flow_session.course
-    get_course.short_description = "Course"
+    get_course.short_description = _("Course")
     get_course.admin_order_field = "flow_session__course"
 
     def get_flow_id(self, obj):
         return obj.flow_session.flow_id
-    get_flow_id.short_description = "Flow ID"
+    get_flow_id.short_description = _("Flow ID")
     get_flow_id.admin_order_field = "flow_session__flow_id"
 
     def get_page_id(self, obj):
@@ -491,26 +493,26 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
                 obj.page_data.page_id,
                 obj.page_data.ordinal)
 
-    get_page_id.short_description = "Page ID"
+    get_page_id.short_description = _("Page ID")
     get_page_id.admin_order_field = "page_data__page_id"
 
     def get_participant(self, obj):
         if obj.flow_session.participation:
             return obj.flow_session.participation.user
         else:
-            return "(anonymous)"
+            return string_concat("(", _("anonymous"), ")")
 
-    get_participant.short_description = "Participant"
+    get_participant.short_description = _("Participant")
     get_participant.admin_order_field = "flow_session__participation"
 
     def get_answer_is_null(self, obj):
         return obj.answer is not None
-    get_answer_is_null.short_description = "Has answer"
+    get_answer_is_null.short_description = _("Has answer")
     get_answer_is_null.boolean = True
 
     def get_flow_session_id(self, obj):
         return obj.flow_session.id
-    get_flow_session_id.short_description = "Flow Session ID"
+    get_flow_session_id.short_description = _("Flow Session ID")
     get_flow_session_id.admin_order_field = "flow_session__id"
 
     list_filter = (
@@ -579,12 +581,12 @@ admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 class FlowRuleExceptionAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
-    get_course.short_description = "Course"
+    get_course.short_description = _("Course")
     get_course.admin_order_field = "participation__course"
 
     def get_participant(self, obj):
         return obj.participation.user
-    get_participant.short_description = "Participant"
+    get_participant.short_description = _("Participant")
     get_participant.admin_order_field = "participation__user"
 
     search_fields = (
@@ -687,17 +689,17 @@ admin.site.register(GradingOpportunity, GradingOpportunityAdmin)
 class GradeChangeAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
-    get_course.short_description = "Course"
+    get_course.short_description = _("Course")
     get_course.admin_order_field = "participation__course"
 
     def get_opportunity(self, obj):
         return obj.opportunity.name
-    get_opportunity.short_description = "Opportunity"
+    get_opportunity.short_description = _("Opportunity")
     get_opportunity.admin_order_field = "opportunity"
 
     def get_participant(self, obj):
         return obj.participation.user
-    get_participant.short_description = "Participant"
+    get_participant.short_description = _("Participant")
     get_participant.admin_order_field = "participation__user"
 
     def get_percentage(self, obj):
@@ -766,12 +768,12 @@ admin.site.register(GradeChange, GradeChangeAdmin)
 class InstantMessageAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
-    get_course.short_description = "Course"
+    get_course.short_description = _("Course")
     get_course.admin_order_field = "participation__course"
 
     def get_participant(self, obj):
         return obj.participation.user
-    get_participant.short_description = "Participant"
+    get_participant.short_description = _("Participant")
     get_participant.admin_order_field = "participation__user"
 
     list_filter = ("participation__course",)

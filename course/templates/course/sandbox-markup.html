@@ -1,4 +1,5 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% load crispy_forms_tags %}
 {% load static %}
@@ -8,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-  <h1>Markup Sandbox</h1>
+  <h1>{% trans "Markup Sandbox" %}</h1>
   {% if preview_text %}
   <div class="well">
     <div style="max-height:700px; overflow-y:scroll">

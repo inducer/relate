@@ -1,34 +1,42 @@
 {% extends "course/course-base.html" %}
 
+{% load i18n %}
+
 {% block title %}
-  {{flow_desc.title}} - RELATE
+  {{flow_desc.title}} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-  <h1>End Session '{{flow_desc.title}}'?</h1>
+  <h1>{% trans "End Session" %} '{{flow_desc.title}}'?</h1>
 
   {% if unanswered_count %}
     <div class="alert alert-warning">
-      You have left questions unanswered.
+      {% trans "You have left questions unanswered." %}
     </div>
   {% endif %}
 
   {% if total_count %}
     <p>
+    {% blocktrans trimmed %}
     There were {{total_count}} questions.
+    {% endblocktrans %}
     {% if answered_count == total_count %}
+      {% blocktrans trimmed %}
       You have provided an answer for all of them.
+      {% endblocktrans %}
     {% else %}
+      {% blocktrans trimmed %}
       You have answered {{answered_count}} and left {{unanswered_count}} unanswered.
+      {% endblocktrans %}
     {% endif %}
     </p>
   {% endif %}
 
-  If you choose to end your session, the following things will happen:
+  {% trans "If you choose to end your session, the following things will happen:" %}
   <ul>
-    <li>You will be prevented from making further changes to your answers.</li>
-    <li>All your currently saved answers, if not graded already, will be graded.</li>
-    <li>If possible, a final grade will be computed from all saved, graded answers.</li>
+    <li>{% trans "You will be prevented from making further changes to your answers." %}</li>
+    <li>{% trans "All your currently saved answers, if not graded already, will be graded." %}</li>
+    <li>{% trans "If possible, a final grade will be computed from all saved, graded answers." %}</li>
   </ul>
 
   <div class="well flow-well">
@@ -37,9 +45,9 @@
 
       <a class="btn btn-default"
         href="{% url "relate-view_flow_page" course.identifier flow_session.id last_page_nr %}"
-        role="button">&laquo; Go back</a>
+        role="button">&laquo; {% trans "Go back" %}</a>
 
-      <button type="submit" name="submit" class="btn btn-primary">Confirm: Submit answers and end session</button>
+      <button type="submit" name="submit" class="btn btn-primary">{% trans "Confirm: Submit answers and end session" %}</button>
     </form>
   </div>
 

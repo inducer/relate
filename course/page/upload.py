@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 
 import django.forms as forms
+from django.utils.translation import ugettext as _, string_concat
 
 from course.page.base import (
         PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
@@ -39,7 +40,7 @@ from relate.utils import StyledForm
 # {{{ upload question
 
 class FileUploadForm(StyledForm):
-    uploaded_file = forms.FileField(required=True, label='Uploaded file')
+    uploaded_file = forms.FileField(required=True, label=_('Uploaded file'))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
         super(FileUploadForm, self).__init__(*args, **kwargs)
@@ -53,14 +54,14 @@ class FileUploadForm(StyledForm):
 
         if uploaded_file._size > self.max_file_size:
             raise forms.ValidationError(
-                    "Please keep file size under %s. "
-                    "Current filesize is %s."
-                    % (filesizeformat(self.max_file_size),
-                        filesizeformat(uploaded_file._size)))
+                    _("Please keep file size under %(allowedsize)s. "
+                    "Current filesize is %(uploadedsize)s.")
+                    % {'allowedsize': filesizeformat(self.max_file_size),
+                        'uploadedsize': filesizeformat(uploaded_file._size)})
 
         if self.mime_types is not None and self.mime_types == ["application/pdf"]:
             if uploaded_file.read()[:4] != "%PDF":
-                raise forms.ValidationError("Uploaded file is not a PDF.")
+                raise forms.ValidationError(_("Uploaded file is not a PDF."))
 
         return uploaded_file
 
@@ -140,13 +141,20 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
-            raise ValidationError("%s: unrecognized mime types '%s'"
-                    % (location, ", ".join(
-                        set(page_desc.mime_types) - set(self.ALLOWED_MIME_TYPES))))
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("unrecognized mime types"),
+                        " '%(presenttype)s'")
+                    % {
+                        'location': location,
+                        'presenttype': ", ".join(
+                            set(page_desc.mime_types)\
+                                    - set(self.ALLOWED_MIME_TYPES))})
 
         if not hasattr(page_desc, "value"):
-            vctx.add_warning(location, "upload question does not have "
-                    "assigned point value")
+            vctx.add_warning(location, _("upload question does not have "
+                    "assigned point value"))
 
     def required_attrs(self):
         return super(FileUploadQuestion, self).required_attrs() + (

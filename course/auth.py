@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -108,7 +109,7 @@ class ImpersonateMiddleware(object):
                     request.user = User.objects.get(id=imp_id)
                 else:
                     messages.add_message(request, messages.ERROR,
-                            "Error while impersonating.")
+                            _("Error while impersonating."))
 
 
 class ImpersonateForm(StyledForm):
@@ -119,15 +120,25 @@ class ImpersonateForm(StyledForm):
 
         self.fields["user"] = forms.ChoiceField(
                 choices=[
-                    (u.id, "%s - %s, %s" % (u.email, u.last_name, u.first_name))
-                    for u in sorted(impersonees,
-                        key=lambda user: user.last_name.lower())
-                    ],
+                    # Translators: information displayed when select user
+                    # for impersonating, you can use your prefered
+                    # style. For example %(user_lastname)s,
+                    # %(user_firstname)s (user_email)s, but all three
+                    # strings should be used.
+                    (u.id, _("%(user_email)s - %(user_lastname)s, "
+                            "%(user_firstname)s")
+                            % {
+                                "user_email":u.email,
+                                "user_lastname":u.last_name,
+                                "user_firstname":u.first_name})
+                            for u in sorted(impersonees,
+                                key=lambda user: user.last_name.lower())
+                            ],
                 required=True,
-                help_text="Select user to impersonate.",
-                label="User")
+                help_text=_("Select user to impersonate."),
+                label=_("User"))
 
-        self.helper.add_input(Submit("submit", "Impersonate",
+        self.helper.add_input(Submit("submit", _("Impersonate"),
             css_class="col-lg-offset-2"))
 
 
@@ -135,7 +146,7 @@ class ImpersonateForm(StyledForm):
 def impersonate(request):
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
-                "Already impersonating someone.")
+                _("Already impersonating someone."))
         return redirect("relate-stop_impersonating")
 
     if request.method == 'POST':
@@ -144,7 +155,7 @@ def impersonate(request):
             user = User.objects.get(id=form.cleaned_data["user"])
 
             messages.add_message(request, messages.INFO,
-                    "Now impersonating '%s'." % user.username)
+                    _("Now impersonating '%s'.") % user.username)
             request.session['impersonate_id'] = user.id
 
             # Because we'll likely no longer have access to this page.
@@ -153,7 +164,7 @@ def impersonate(request):
         form = ImpersonateForm(request.user)
 
     return render(request, "generic-form.html", {
-        "form_description": "Impersonate user",
+        "form_description": _("Impersonate user"),
         "form": form
         })
 
@@ -163,20 +174,20 @@ class StopImpersonatingForm(forms.Form):
         self.helper = FormHelper()
         super(StopImpersonatingForm, self).__init__(*args, **kwargs)
 
-        self.helper.add_input(Submit("submit", "Stop impersonating"))
+        self.helper.add_input(Submit("submit", _("Stop impersonating")))
 
 
 def stop_impersonating(request):
     if not hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
-                "Not currently impersonating anyone.")
+                _("Not currently impersonating anyone."))
         return redirect("relate-home")
 
     if request.method == 'POST':
         form = StopImpersonatingForm(request.POST)
         if form.is_valid():
             messages.add_message(request, messages.INFO,
-                    "No longer impersonating anyone.")
+                    _("No longer impersonating anyone."))
             del request.session['impersonate_id']
 
             # Because otherwise the header will show stale data.
@@ -185,7 +196,7 @@ def stop_impersonating(request):
         form = StopImpersonatingForm()
 
     return render(request, "generic-form.html", {
-        "form_description": "Stop impersonating user",
+        "form_description": _("Stop impersonating user"),
         "form": form
         })
 
@@ -257,7 +268,7 @@ class LoginForm(AuthenticationFormBase):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        self.helper.add_input(Submit("submit", "Sign in",
+        self.helper.add_input(Submit("submit", _("Sign in"),
             css_class="col-lg-offset-2"))
 
         super(LoginForm, self).__init__(*args, **kwargs)
@@ -270,7 +281,8 @@ def sign_in_by_user_pw(request):
 
 
 class SignUpForm(StyledModelForm):
-    username = forms.CharField(required=True, max_length=30, label="Username")
+    username = forms.CharField(required=True, max_length=30,
+                              label=_("Username"))
 
     class Meta:
         model = User
@@ -280,13 +292,14 @@ class SignUpForm(StyledModelForm):
         super(SignUpForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Send email",
+                Submit("submit", _("Send email"),
                     css_class="col-lg-offset-2"))
 
 
 def sign_up(request):
     if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
-        raise SuspiciousOperation("password-based sign-in is not being used")
+        raise SuspiciousOperation(
+                _("password-based sign-in is not being used"))
 
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -296,14 +309,14 @@ def sign_up(request):
             if User.objects.filter(
                     username=form.cleaned_data["username"]).count():
                 messages.add_message(request, messages.ERROR,
-                        "That user name is already taken.")
+                        _("That user name is already taken."))
 
             elif User.objects.filter(
                     email__iexact=form.cleaned_data["email"]).count():
                 messages.add_message(request, messages.ERROR,
-                        "That email address is already in use. "
+                        _("That email address is already in use. "
                         "Would you like to "
-                        "<a href='%s'>reset your password</a> instead?"
+                        "<a href='%s'>reset your password</a> instead?")
                         % reverse(
                             "relate-reset_password")),
             else:
@@ -335,11 +348,16 @@ def sign_up(request):
                     })
 
                 from django.core.mail import send_mail
-                send_mail("[RELATE] Verify your email", message,
-                        settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+                send_mail(
+                        string_concat("[", _("RELATE"), "] ",
+                                     _("Verify your email")),
+                        message,
+                        settings.ROBOT_EMAIL_FROM,
+                        recipient_list=[email])
 
                 messages.add_message(request, messages.INFO,
-                        "Email sent. Please check your email and click the link.")
+                        _("Email sent. Please check your email and click "
+                        "the link."))
 
                 return redirect("relate-home")
 
@@ -347,24 +365,25 @@ def sign_up(request):
         form = SignUpForm()
 
     return render(request, "generic-form.html", {
-        "form_description": "Sign up",
+        "form_description": _("Sign up"),
         "form": form
         })
 
 
 class ResetPasswordForm(StyledForm):
-    email = forms.EmailField(required=True, label="Email")
+    email = forms.EmailField(required=True, label=_("Email"))
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Send email", css_class="col-lg-offset-2"))
+                Submit("submit", _("Send email"), css_class="col-lg-offset-2"))
 
 
 def reset_password(request):
     if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
-        raise SuspiciousOperation("password-based sign-in is not being used")
+        raise SuspiciousOperation(
+                _("password-based sign-in is not being used"))
 
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
@@ -379,7 +398,7 @@ def reset_password(request):
 
             if user is None:
                 messages.add_message(request, messages.ERROR,
-                        "Email address is not known.")
+                        _("Email address is not known."))
 
             from course.models import get_user_status
             ustatus = get_user_status(user)
@@ -396,33 +415,38 @@ def reset_password(request):
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
-            send_mail("[RELATE] Password reset", message,
-                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+            send_mail(
+                    string_concat("[", _("RELATE"), "] ",
+                                 _("Password reset")),
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[email])
 
             messages.add_message(request, messages.INFO,
-                    "Email sent. Please check your email and click the link.")
+                    _("Email sent. Please check your email and click "
+                    "the link."))
 
             return redirect("relate-home")
     else:
         form = ResetPasswordForm()
 
     return render(request, "generic-form.html", {
-        "form_description": "Reset Password",
+        "form_description": _("Reset Password"),
         "form": form
         })
 
 
 class ResetPasswordStage2Form(StyledForm):
     password = forms.CharField(widget=forms.PasswordInput(),
-                              label="Password")
+                              label=_("Password"))
     password_repeat = forms.CharField(widget=forms.PasswordInput(),
-                              label="Password repeat")
+                              label=_("Password repeat"))
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user", "Update",
+                Submit("submit_user", _("Update"),
                     css_class="col-lg-offset-2"))
 
     def clean(self):
@@ -430,17 +454,18 @@ class ResetPasswordStage2Form(StyledForm):
         password = cleaned_data.get("password")
         password_repeat = cleaned_data.get("password_repeat")
         if password and password != password_repeat:
-            self.add_error("password_repeat", "Passwords do not match")
+            self.add_error("password_repeat", _("Passwords do not match"))
 
 
 def reset_password_stage2(request, user_id, sign_in_key):
     if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
-        raise SuspiciousOperation("email-based sign-in is not being used")
+        raise SuspiciousOperation(_("email-based sign-in is not being used"))
 
     if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
         messages.add_message(request, messages.ERROR,
-                "Invalid sign-in token. Perhaps you've used an old token email?")
-        raise PermissionDenied("invalid sign-in token")
+                _("Invalid sign-in token. Perhaps you've used an old token "
+                "email?"))
+        raise PermissionDenied(_("invalid sign-in token"))
 
     if request.method == 'POST':
         form = ResetPasswordStage2Form(request.POST)
@@ -448,12 +473,12 @@ def reset_password_stage2(request, user_id, sign_in_key):
             from django.contrib.auth import authenticate, login
             user = authenticate(user_id=int(user_id), token=sign_in_key)
             if user is None:
-                raise PermissionDenied("invalid sign-in token")
+                raise PermissionDenied(_("invalid sign-in token"))
 
             if not user.is_active:
                 messages.add_message(request, messages.ERROR,
-                        "Account disabled.")
-                raise PermissionDenied("invalid sign-in token")
+                        _("Account disabled."))
+                raise PermissionDenied(_("invalid sign-in token"))
 
             user.set_password(form.cleaned_data["password"])
             user.save()
@@ -463,21 +488,21 @@ def reset_password_stage2(request, user_id, sign_in_key):
             if (not (user.first_name and user.last_name)
                     or "to_profile" in request.GET):
                 messages.add_message(request, messages.INFO,
-                        "Successfully signed in. "
-                        "Please complete your registration information below.")
+                        _("Successfully signed in. "
+                        "Please complete your registration information below."))
 
                 return redirect(
                        reverse("relate-user_profile")+"?first_login=1")
             else:
                 messages.add_message(request, messages.INFO,
-                        "Successfully signed in.")
+                        _("Successfully signed in."))
 
                 return redirect("relate-home")
     else:
         form = ResetPasswordStage2Form()
 
     return render(request, "generic-form.html", {
-        "form_description": "Reset Password",
+        "form_description": _("Reset Password"),
         "form": form
         })
 
@@ -487,19 +512,19 @@ def reset_password_stage2(request, user_id, sign_in_key):
 # {{{ email sign-in flow
 
 class SignInByEmailForm(StyledForm):
-    email = forms.EmailField(required=True, label="Email")
+    email = forms.EmailField(required=True, label=_("Email"))
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", "Send sign-in email",
+                Submit("submit", _("Send sign-in email"),
                     css_class="col-lg-offset-2"))
 
 
 def sign_in_by_email(request):
     if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
-        raise SuspiciousOperation("email-based sign-in is not being used")
+        raise SuspiciousOperation(_("email-based sign-in is not being used"))
 
     if request.method == 'POST':
         form = SignInByEmailForm(request.POST)
@@ -535,11 +560,14 @@ def sign_in_by_email(request):
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
-            send_mail("Your RELATE sign-in link", message,
-                    settings.ROBOT_EMAIL_FROM, recipient_list=[email])
+            send_mail(
+                    _("Your %(RELATE)s sign-in link") % {"RELATE": _("RELATE")},
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[email])
 
             messages.add_message(request, messages.INFO,
-                    "Email sent. Please check your email and click the link.")
+                    _("Email sent. Please check your email and click the link."))
 
             return redirect("relate-home")
     else:
@@ -553,32 +581,33 @@ def sign_in_by_email(request):
 
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
     if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
-        raise SuspiciousOperation("email-based sign-in is not being used")
+        raise SuspiciousOperation(_("email-based sign-in is not being used"))
 
     from django.contrib.auth import authenticate, login
     user = authenticate(user_id=int(user_id), token=sign_in_key)
     if user is None:
         messages.add_message(request, messages.ERROR,
-                "Invalid sign-in token. Perhaps you've used an old token email?")
-        raise PermissionDenied("invalid sign-in token")
+                _("Invalid sign-in token. Perhaps you've used an old "
+                "token email?"))
+        raise PermissionDenied(_("invalid sign-in token"))
 
     if not user.is_active:
         messages.add_message(request, messages.ERROR,
-                "Account disabled.")
-        raise PermissionDenied("invalid sign-in token")
+                _("Account disabled."))
+        raise PermissionDenied(_("invalid sign-in token"))
 
     login(request, user)
 
     if not (user.first_name and user.last_name):
         messages.add_message(request, messages.INFO,
-                "Successfully signed in. "
-                "Please complete your registration information below.")
+                _("Successfully signed in. "
+                "Please complete your registration information below."))
 
         return redirect(
                reverse("relate-user_profile")+"?first_login=1")
     else:
         messages.add_message(request, messages.INFO,
-                "Successfully signed in.")
+                _("Successfully signed in."))
 
         return redirect("relate-home")
 
@@ -596,7 +625,7 @@ class UserForm(StyledModelForm):
         super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user", "Update",
+                Submit("submit_user", _("Update"),
                     css_class="col-lg-offset-2"))
 
 
@@ -609,7 +638,7 @@ class UserStatusForm(StyledModelForm):
         super(UserStatusForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user_status", "Update",
+                Submit("submit_user_status", _("Update"),
                     css_class="col-lg-offset-2"))
 
 
@@ -630,7 +659,7 @@ def user_profile(request):
                 user_form.save()
 
                 messages.add_message(request, messages.INFO,
-                        "Profile data saved.")
+                        _("Profile data saved."))
                 if request.GET.get("first_login"):
                     return redirect("relate-home")
 
@@ -640,7 +669,7 @@ def user_profile(request):
             if user_status_form.is_valid():
                 user_status_form.save()
                 messages.add_message(request, messages.INFO,
-                        "Profile data saved.")
+                        _("Profile data saved."))
                 if request.GET.get("first_login"):
                     return redirect("relate-home")
 

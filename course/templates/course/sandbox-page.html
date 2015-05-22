@@ -1,16 +1,20 @@
 {% extends "course/course-base.html" %}
+{% load i18n %}
 
 {% load crispy_forms_tags %}
 {% load static %}
 
 {% block title %}
   {% if title %}
+    {% comment %} Translators: "[SB]" is abbreviation for "Sandbox" {% endcomment %}
+    {% blocktrans trimmed %}
     [SB] {{ title }}
+    {% endblocktrans %}
   {% else %}
-    Page Sandbox
+    {% blocktrans %}Page Sandbox{% endblocktrans %}
   {% endif %}
   -
-  RELATE
+  {% trans "RELATE" %}
 {% endblock %}
 
 {% block root_container %}
@@ -18,11 +22,11 @@
     <div class="row">
       <div class="alert alert-warning" style="float:right" id="save-warning">
         <i class="fa fa-warning"></i>
-        What you type into this page is not saved once you navigate away.
-        Please make sure to retain a copy.
+        {% blocktrans  trimmed %}  What you type into this page is not saved once you navigate away.
+        Please make sure to retain a copy.{% endblocktrans %}
       </div>
 
-      <h1>Page Sandbox</h1>
+      <h1>{% trans "Page Sandbox" %}</h1>
 
       {% if page_errors %}
         <div class="alert alert-danger">
@@ -68,7 +72,7 @@
           </div>
         {% endif %}
       {% else %}
-        <span class="text-muted" style="margin-top:30px">(Page preview appears here)</span>
+        <span class="text-muted" style="margin-top:30px">{% trans "(Page preview appears here)" %}</span>
       {% endif %}
     </div>
   </div>

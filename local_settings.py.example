@@ -11,7 +11,7 @@ ALLOWED_HOSTS = [
 #
 # DATABASES = {
 #     'default': {
-#         'ENGINE':'django.db.backends.postgresql_psycopg2',
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
 #         'NAME': 'relate',
 #         'USER': 'relate',
 #         'PASSWORD': '<PASSWORD>',
@@ -71,3 +71,9 @@ STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
 RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 
 RELATE_MAINTENANCE_MODE = False
+
+# Uncomment this to enable i18n, change 'en-us' to locale name your language.
+# Makesure you have generated, translate and compile the message file of your
+# language. If commented, RELATE will use default language 'en-us'.
+
+#LANGUAGE_CODE='en-us'
