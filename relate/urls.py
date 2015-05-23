@@ -90,7 +90,7 @@ urlpatterns = [
 
     # {{{ course
 
-    url(r'^$', 'course.views.home', name='relate-home'),
+    url(r'^$', course.views.home, name='relate-home'),
 
     url(r"^course"
         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
