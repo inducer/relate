@@ -152,20 +152,22 @@ class ValidationContext(object):
     """
     .. attribute:: repo
     .. attribute:: commit_sha
-    .. attribute:: datespec_callback
+    .. attribute:: course
 
-        a function that is supposed to be called on all encountered datespecs
+        A :class:`course.models.Course` instance, or *None*, if no database
+        is currently available.
     """
 
-    def __init__(self, repo, commit_sha, datespec_callback=None):
+    def __init__(self, repo, commit_sha, course=None):
         self.repo = repo
         self.commit_sha = commit_sha
-        self.datespec_callback = datespec_callback
+        self.course = course
+
         self.warnings = []
 
     def encounter_datespec(self, location, datespec):
-        if self.datespec_callback is not None:
-            self.datespec_callback(location, datespec)
+        from course.content import parse_date_spec
+        parse_date_spec(self.course, datespec, vctx=self, location=location)
 
     def add_warning(self, *args, **kwargs):
         self.warnings.append(ValidationWarning(*args, **kwargs))
@@ -777,14 +779,14 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
 
 
 def validate_course_content(repo, course_file, events_file,
-        validate_sha, datespec_callback=None):
+        validate_sha, course=None):
     course_desc = get_yaml_from_repo_safely(repo, course_file,
             commit_sha=validate_sha)
 
     ctx = ValidationContext(
             repo=repo,
             commit_sha=validate_sha,
-            datespec_callback=datespec_callback)
+            course=course)
 
     validate_course_desc_struct(ctx, course_file, course_desc)
 
@@ -887,6 +889,12 @@ class FileSystemFakeRepoFile(object):
 
 
 def validate_course_on_filesystem_script_entrypoint():
+    from django.conf import settings
+    settings.configure(DEBUG=True)
+
+    import django
+    django.setup()
+
     import os
     import argparse
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -900,7 +908,7 @@ def validate_course_on_filesystem_script_entrypoint():
     warnings = validate_course_content(
             fake_repo,
             args.course_file, args.events_file,
-            validate_sha=fake_repo, datespec_callback=None)
+            validate_sha=fake_repo, course=None)
 
     if warnings:
         print(_("WARNINGS: "))

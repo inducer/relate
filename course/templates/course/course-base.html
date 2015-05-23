@@ -86,7 +86,6 @@
       {% if user.is_staff %}
         <li><a href="{% url "admin:course_event_changelist" %}" target="_blank">{% trans "Edit events" %}</a></li>
       {% endif %}
-      <li><a href="{% url "relate-check_events" course.identifier %}">{% trans "Check events" %}</a></li>
       <li><a href="{% url "relate-create_recurring_events" course.identifier %}">{% trans "Create recurring events" %}</a></li>
       <li><a href="{% url "relate-renumber_events" course.identifier %}">{% trans "Renumber events" %}</a></li>
 

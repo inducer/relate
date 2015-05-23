@@ -534,9 +534,11 @@ DATESPEC_POSTPROCESSORS = [
         ]
 
 
-def parse_date_spec(course, datespec, return_now_on_error=True):
+def parse_date_spec(course, datespec, vctx=None, location=None):
     if datespec is None:
         return None
+
+    orig_datespec = datespec
 
     if isinstance(datespec, datetime.datetime):
         if datespec.tzinfo is None:
@@ -582,10 +584,17 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
                     int(match.group(2)),
                     int(match.group(3))))
 
-    from course.models import Event
-
     match = TRAILING_NUMERAL_RE.match(datespec)
     if match:
+        if vctx is not None:
+            from course.validation import validate_identifier
+            validate_identifier("%s: event kind" % location,
+                    match.group(1))
+
+        if course is None:
+            return now()
+
+        from course.models import Event
         try:
             return apply_postprocs(
                     Event.objects.get(
@@ -594,10 +603,22 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
                         ordinal=int(match.group(2))).time)
 
         except ObjectDoesNotExist:
-            if return_now_on_error:
-                return now()
-            else:
-                raise InvalidDatespec(datespec)
+            if vctx is not None:
+                vctx.add_warning(
+                        location,
+                        _("unrecognized date/time specification: '%s' "
+                        "(interpreted as 'now')")
+                        % orig_datespec)
+            return now()
+
+    if vctx is not None:
+        from course.validation import validate_identifier
+        validate_identifier("%s: event kind" % location, datespec)
+
+    if course is None:
+        return now()
+
+    from course.models import Event
 
     try:
         return apply_postprocs(
@@ -607,10 +628,13 @@ def parse_date_spec(course, datespec, return_now_on_error=True):
                     ordinal=None).time)
 
     except ObjectDoesNotExist:
-        if return_now_on_error:
-            return now()
-        else:
-            raise InvalidDatespec(datespec)
+        if vctx is not None:
+            vctx.add_warning(
+                    location,
+                    _("unrecognized date/time specification: '%s' "
+                    "(interpreted as 'now')")
+                    % orig_datespec)
+        return now()
 
 
 def compute_chunk_weight_and_shown(course, chunk, role, now_datetime,

@@ -30,7 +30,6 @@ from django.contrib import messages
 import django.forms as forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
-from django.core.urlresolvers import reverse
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
@@ -188,16 +187,7 @@ def set_up_new_course(request):
 
                         messages.add_message(request, messages.INFO,
                                 _("Course content validated, creation "
-                                "succeeded. You may want to view the "
-                                "events used in the course content and "
-                                "create them. ")
-                                + string_concat(
-                                    '<a href="%s" class="btn btn-primary">',
-                                    pgettext("View/create events",
-                                        "Check"),
-                                    " &raquo;</a>")
-                                % reverse("relate-check_events",
-                                    args=(new_course.identifier,)))
+                                "succeeded."))
                 except:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
@@ -312,7 +302,8 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
     from course.validation import validate_course_content, ValidationError
     try:
         warnings = validate_course_content(
-                repo, pctx.course.course_file, pctx.course.events_file, new_sha)
+                repo, pctx.course.course_file, pctx.course.events_file, new_sha,
+                course=pctx.course)
     except ValidationError as e:
         messages.add_message(request, messages.ERROR,
                 _("Course content did not validate successfully. (%s) "
@@ -348,17 +339,7 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
         pctx.course.save()
 
         messages.add_message(request, messages.SUCCESS,
-                _("Update applied. "
-                "You may want to view the events used "
-                "in the course content and check that they "
-                "are recognized. ")
-                + string_concat(
-                    "<p><a href='%s' class='btn btn-primary' "
-                    "style='margin-top:8px'>",
-                    pgettext("View/create events", "Check"),
-                    " &raquo;</a></p>")
-                % reverse("relate-check_events",
-                    args=(pctx.course.identifier,)))
+                _("Update applied. "))
 
     else:
         raise RuntimeError(_("invalid command"))

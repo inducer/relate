@@ -43,34 +43,6 @@ from course.models import (participation_role, Event)
 
 # {{{ creation
 
-@login_required
-@course_view
-def check_events(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("only instructors and TAs may do that"))
-
-    invalid_datespecs = {}
-
-    from course.content import InvalidDatespec, parse_date_spec
-
-    def datespec_callback(location, datespec):
-        try:
-            parse_date_spec(pctx.course, datespec, return_now_on_error=False)
-        except InvalidDatespec as e:
-            invalid_datespecs.setdefault(e.datespec, []).append(location)
-
-    from course.validation import validate_course_content
-    validate_course_content(
-            pctx.repo, pctx.course.course_file, pctx.course.events_file,
-            pctx.course_commit_sha, datespec_callback=datespec_callback)
-
-    return render_course_page(pctx, "course/invalid-datespec-list.html", {
-        "invalid_datespecs": sorted(invalid_datespecs.iteritems()),
-        })
-
-
 class RecurringEventForm(StyledForm):
     kind = forms.CharField(required=True,
             help_text=_("Should be lower_case_with_underscores, no spaces "
