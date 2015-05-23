@@ -398,7 +398,7 @@ class FlowTestForm(StyledForm):
                         string_concat(
                             pgettext("Start an activity", "Go"),
                             " &raquo;")),
-                        css_class="col-lg-offset-2"))
+                    css_class="col-lg-offset-2"))
 
 
 @course_view
@@ -442,9 +442,9 @@ class ParticipationChoiceField(forms.ModelChoiceField):
                 _("%(user_email)s - %(user_lastname)s, "
                     "%(user_firstname)s")
                 % {
-                    "user_email":user.email,
-                    "user_lastname":user.last_name,
-                    "user_firstname":user.first_name})
+                    "user_email": user.email,
+                    "user_lastname": user.last_name,
+                    "user_firstname": user.first_name})
 
 
 class ExceptionStage1Form(StyledForm):
@@ -604,10 +604,10 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     else:
         access_rules_tags = []
 
-    NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")
+    NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")  # noqa
     session_tag_choices = [
             (tag, tag)
-            for tag in access_rules_tags] + [(NONE_SESSION_TAG, \
+            for tag in access_rules_tags] + [(NONE_SESSION_TAG,
                     string_concat("(", _("NONE"), ")"))]
 
     from course.utils import get_session_start_rule

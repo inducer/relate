@@ -321,7 +321,7 @@ def validate_flow_page(ctx, location, page_desc):
     if not hasattr(page_desc, "id"):
         raise ValidationError(
                 string_concat(
-                    "%s: ", 
+                    "%s: ",
                     ugettext("flow page has no ID"))
                 % location)
 
@@ -334,7 +334,7 @@ def validate_flow_page(ctx, location, page_desc):
     except ValidationError:
         raise
     except:
-        tp, e, _ = sys.exc_info()
+        tp, e, __ = sys.exc_info()
 
         from traceback import format_exc
         raise ValidationError(
@@ -651,7 +651,7 @@ def validate_flow_permission(ctx, location, permission):
         return
 
     if permission == "see_answer":
-        ctx.add_warning(location, 
+        ctx.add_warning(location,
                 _("Uses deprecated 'see_answer' permission--"
                 "replace by 'see_answer_after_submission'"))
         return
@@ -817,7 +817,7 @@ def validate_course_content(repo, course_file, events_file,
                             _("invalid flow name. "
                                 "Flow names may only contain (roman) "
                                 "letters, numbers, "
-                                "dashes and underscores.")) 
+                                "dashes and underscores."))
                         % entry.path)
 
             location = "flows/%s" % entry.path

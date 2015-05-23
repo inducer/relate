@@ -88,7 +88,8 @@ class RecurringEventForm(StyledForm):
                 ),
             label=pgettext_lazy("Interval of recurring events", "Interval"))
     starting_ordinal = forms.IntegerField(required=False,
-            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
+            label=pgettext_lazy(
+                "Starting ordinal of recurring events", "Starting ordinal"))
     count = forms.IntegerField(required=True,
             label=pgettext_lazy("Count of recurring events", "Count"))
 
@@ -218,7 +219,8 @@ class RenumberEventsForm(StyledForm):
                         "allowed."),
             label=pgettext_lazy("Kind of event", "Kind of event"))
     starting_ordinal = forms.IntegerField(required=True, initial=1,
-            label=pgettext_lazy("Starting ordinal of recurring events", "Starting ordinal"))
+            label=pgettext_lazy(
+                "Starting ordinal of recurring events", "Starting ordinal"))
 
     def __init__(self, *args, **kwargs):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)

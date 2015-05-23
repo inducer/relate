@@ -465,8 +465,10 @@ def update_course(pctx):
                 ":</b> %(commit)s (%(message)s)")
             % {
                 'commit': course.active_git_commit_sha,
-                'message': repo[course.active_git_commit_sha.encode()]\
-                        .message.strip()},
+                'message': (
+                    repo[course.active_git_commit_sha.encode()]
+                    .message.strip())
+                },
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
@@ -476,9 +478,10 @@ def update_course(pctx):
                     ":</b> %(commit)s (%(message)s)")
                 % {
                     'commit': participation.preview_git_commit_sha,
-                    'message': repo[participation.preview_git_commit_sha\
-                            .encode()].message.strip(),
-            })
+                    'message': (
+                        repo[participation.preview_git_commit_sha
+                                .encode()].message.strip()),
+                })
     else:
         text_lines.append(
                 "".join([

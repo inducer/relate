@@ -312,7 +312,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             tp, e, _ = sys.exc_info()
             if vctx is not None:
                 vctx.add_warning(
-                        location, 
+                        location,
                         string_concat(
                             "%(location)s: ",
                             _("unable to check symbolic expression"),
@@ -428,9 +428,9 @@ def get_matcher_class(location, matcher_type, pattern_type):
 
             if matcher_class.pattern_type != pattern_type:
                 raise ValidationError(
-                # Translators: a "matcher" is used to determine if the
-                # answer to text question (blank filling question) is 
-                # correct.
+                    # Translators: a "matcher" is used to determine if the
+                    # answer to text question (blank filling question) is
+                    # correct.
                     string_concat(
                         "%(location)s: ",
                         _("%(matcherclassname)s only accepts "
