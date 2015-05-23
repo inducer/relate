@@ -547,7 +547,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                             string_concat(
                                 pgettext_lazy("Starting of Error message",
                                     "Error"),
-                                ": %(err_type)s %(err_str)s") 
+                                ": %(err_type)s %(err_str)s")
                             % {
                                 "err_type": type(e).__name__,
                                 "err_str": str(e)})
@@ -705,9 +705,10 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
                         "%(comment)s.") % {
                             "now": local_now(),
                             "user": pctx.request.user,
-                            "completion_time": as_local_time(session.completion_time),
+                            "completion_time":
+                                as_local_time(session.completion_time),
                             "comment": form.cleaned_data["comment"]
-                      })
+                            })
             session.save()
 
             from course.flow import reopen_session
@@ -974,8 +975,8 @@ class ImportGradesForm(StyledForm):
                 label=_("Format"))
 
         self.fields["id_column"] = forms.IntegerField(
-                # Translators: the following strings are for the format informatioin for a
-                # CSV file to be imported.
+                # Translators: the following strings are for the format
+                # informatioin for a CSV file to be imported.
                 help_text=_("1-based column index for the Email or NetID "
                 "used to locate student record"),
                 min_value=1,
@@ -1117,10 +1118,11 @@ def csv_to_grade_changes(
                     updated.append("comment")
 
                 if updated:
-                    log_lines.append("%(participation)s: %(updated)s "
-                                       "updated" % {
-                        'participation': gchange.participation,
-                        'updated': ", ".join(updated)})
+                    log_lines.append(
+                            "%(participation)s: %(updated)s "
+                            "updated" % {
+                                'participation': gchange.participation,
+                                'updated': ", ".join(updated)})
 
                     result.append(gchange)
             else:
