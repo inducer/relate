@@ -540,14 +540,18 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
 
     orig_datespec = datespec
 
-    if isinstance(datespec, datetime.datetime):
-        if datespec.tzinfo is None:
+    def localize_if_needed(d):
+        if d.tzinfo is None:
             from relate.utils import localize_datetime
-            return localize_datetime(datespec)
+            return localize_datetime(d)
         else:
-            return datespec
+            return d
+
+    if isinstance(datespec, datetime.datetime):
+        return localize_if_needed(datespec)
     if isinstance(datespec, datetime.date):
-        return datetime.datetime(datespec)
+        return localize_if_needed(
+                datetime.datetime.combine(datespec, datetime.time.min))
 
     datespec = datespec.strip()
 
