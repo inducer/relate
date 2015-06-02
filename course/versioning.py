@@ -471,9 +471,6 @@ def update_course(pctx):
                     ugettext("Current preview git SHA"),
                     ":</b> ",
                     ugettext("None")]))
-        
-    thestring="".join("<p>%s</p>" % line for line in text_lines)
-    print thestring
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
