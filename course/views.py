@@ -862,7 +862,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             # }}}
 
-            new_access_rules_tag = form.cleaned_data["set_access_rules_tag"]
+            new_access_rules_tag = form.cleaned_data.get("set_access_rules_tag")
             if new_access_rules_tag == NONE_SESSION_TAG:
                 new_access_rules_tag = None
 
