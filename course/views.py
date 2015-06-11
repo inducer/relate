@@ -878,7 +878,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             descr = ugettext("Granted excecption")
             if form.cleaned_data["credit_percent"] is not None:
-                descr += " (%.1f%% ugettext('credit')" \
+                descr += string_concat(" (%.1f%% ", ugettext('credit'), ")") \
                         % form.cleaned_data["credit_percent"]
 
             due_local_naive = due
