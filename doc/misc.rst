@@ -90,7 +90,7 @@ following command::
 
 This will generate a message file for German, where the locale name ``de``
 stands for Germany. The message file located in the ``locale`` directory
-directory of your RELATE installation. For example, the above command will generate
+of your RELATE installation. For example, the above command will generate
 a message file ``django.po`` in ``/project/root/locale/de/LC_MESSAGES``.
 
 Edit ``django.po``. For each ``msgid`` string, put it's translation in
@@ -106,15 +106,12 @@ Your translations are ready for use. If you translate RELATE, please submit
 your translations for inclusion into the RELATE itself.
 
 To enable the translations, open your ``local_settings.py``, uncomment the
-``LANGUAGE_CODE`` string and change 'en-us' to your locale name of your
+``LANGUAGE_CODE`` string and change 'en-us' to the locale name of your
 language.
 
 For more instructions, please refer to `Localization: how to create
 language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
 
-(TODO)
-
-Add i18n marks for javascript.
 
 Tips
 ====

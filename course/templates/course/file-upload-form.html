@@ -17,7 +17,9 @@
 
       $("#file_upload_viewer_div").html(
         "<object data='" + data_url + "' type='{{ mime_type }}' width='100%' height='800px' align='middle'>"
-        + '<p>(Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline.)</p>'
+        + '<p>('
+        + "{% blocktrans %} Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline. {% endblocktrans %}"
+        + ')</p>'
         + '</object><hr>');
     }
 
