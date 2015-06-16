@@ -15,7 +15,7 @@
         Dear {{username}},
     {% endblocktrans %}
 {% endif %}
-{% blocktrans page_title=page_title flow_id=flow_session.flow_id flow_id=flow_session.flow_id course_identifier=course.identifier feedback_text=feedback_text|safe %}
+{% blocktrans with flow_id=flow_session.flow_id flow_id=flow_session.flow_id course_identifier=course.identifier feedback_text=feedback_text|safe %}
 You have a new notification regarding your work on the problem
 with title
 
