@@ -634,18 +634,6 @@ def reopen_session(session, force=False, suppress_log=False):
         raise RuntimeError(
                 _("Can't reopen anonymous sessions"))
 
-    if not force:
-        other_in_progress_sessions = (FlowSession.objects
-                .filter(
-                    participation=session.participation,
-                    flow_id=session.flow_id,
-                    in_progress=True,
-                    participation__isnull=False)
-                .exclude(id=session.id))
-
-        if other_in_progress_sessions.count():
-            raise RuntimeError(_("Can't open multiple sessions at once"))
-
     session.in_progress = True
     session.points = None
     session.max_points = None
