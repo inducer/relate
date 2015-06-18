@@ -107,7 +107,8 @@ your translations for inclusion into the RELATE itself.
 
 To enable the translations, open your ``local_settings.py``, uncomment the
 ``LANGUAGE_CODE`` string and change 'en-us' to the locale name of your
-language.
+language. For now, a Simplified Chinese version of translation is available,
+you can use 'zh-CN' as ``LANGUAGE_CODE`` to enable it.
 
 For more instructions, please refer to `Localization: how to create
 language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
