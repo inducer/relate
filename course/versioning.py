@@ -50,6 +50,7 @@ from course.models import (
 from course.utils import course_view, render_course_page
 import paramiko
 import paramiko.client
+import cgi
 
 
 class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
@@ -439,7 +440,7 @@ def update_course(pctx):
                 ":</b> %(commit)s (%(message)s)")
             % {
                 'commit': repo.head(),
-                'message': repo[repo.head()].message.strip()},
+                'message': cgi.escape(repo[repo.head()].message.strip())},
             string_concat(
                 "<b>",
                 ugettext("Public active git SHA"),
@@ -447,8 +448,8 @@ def update_course(pctx):
             % {
                 'commit': course.active_git_commit_sha,
                 'message': (
-                    repo[course.active_git_commit_sha.encode()]
-                    .message.strip())
+                    cgi.escape(repo[course.active_git_commit_sha.encode()]
+                        .message.strip()))
                 },
             ]
     if participation is not None and participation.preview_git_commit_sha:
@@ -460,8 +461,8 @@ def update_course(pctx):
                 % {
                     'commit': participation.preview_git_commit_sha,
                     'message': (
-                        repo[participation.preview_git_commit_sha
-                                .encode()].message.strip()),
+                        cgi.escape(repo[participation.preview_git_commit_sha
+                            .encode()].message.strip())),
                 })
     else:
         text_lines.append(
