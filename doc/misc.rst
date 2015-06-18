@@ -97,6 +97,9 @@ Edit ``django.po``. For each ``msgid`` string, put it's translation in
 ``msgstr`` right below. ``msgctxt`` strings, along with the commented
 ``Translators:`` strings above some ``msgid`` strings, are used to provide
 more information for better understanding of the text to be translated.
+A Simplified Chinese version (demo) of translation is included for Chinese
+users, with locale name ``zh-CN``.
+
 
 When translations are done, run the following command in root directory::
 
@@ -107,8 +110,7 @@ your translations for inclusion into the RELATE itself.
 
 To enable the translations, open your ``local_settings.py``, uncomment the
 ``LANGUAGE_CODE`` string and change 'en-us' to the locale name of your
-language. For now, a Simplified Chinese version of translation is available,
-you can use 'zh-CN' as ``LANGUAGE_CODE`` to enable it.
+language. 
 
 For more instructions, please refer to `Localization: how to create
 language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
