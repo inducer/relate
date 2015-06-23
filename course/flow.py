@@ -1347,7 +1347,8 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     if (not is_graded_flow
             or
-            flow_permission.end_session not in access_rule.permissions):
+            (flow_session.in_progress
+                and flow_permission.end_session not in access_rule.permissions)):
         # No ability to end--just show completion page.
 
         return render_finish_response(
