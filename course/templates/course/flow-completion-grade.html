@@ -40,11 +40,11 @@
 
     <div class="progress">
       <div class="progress-bar progress-bar-success"
-        style="width: {{ grade_info.points_percent|floatformat:8 }}%"></div>
+        style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
       <div class="progress-bar progress-bar-danger"
-        style="width: {{ grade_info.missed_points_percent|floatformat:8 }}%"></div>
+        style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
       <div class="progress-bar progress-bar-info"
-        style="width: {{ grade_info.unreachable_points_percent|floatformat:8 }}%"></div>
+        style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
     </div>
 
     <p>
@@ -63,13 +63,13 @@
 
     <div class="progress">
       <div class="progress-bar progress-bar-success"
-        style="width: {{ grade_info.fully_correct_percent|floatformat:8 }}%"></div>
+        style="width: {{ grade_info.fully_correct_percent|stringformat:".8f" }}%"></div>
       <div class="progress-bar progress-bar-warning"
-        style="width: {{ grade_info.partially_correct_percent|floatformat:8 }}%"></div>
+        style="width: {{ grade_info.partially_correct_percent|stringformat:".8f" }}%"></div>
       <div class="progress-bar progress-bar-danger"
-        style="width: {{ grade_info.incorrect_percent|floatformat:8 }}%"></div>
+        style="width: {{ grade_info.incorrect_percent|stringformat:".8f" }}%"></div>
       <div class="progress-bar progress-bar-info"
-        style="width: {{ grade_info.unknown_percent|floatformat:8 }}%"></div>
+        style="width: {{ grade_info.unknown_percent|stringformat:".8f" }}%"></div>
     </div>
   </div>
   {% endif %}
