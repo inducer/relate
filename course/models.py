@@ -1170,10 +1170,15 @@ class GradeStateMachine(object):
             gchange.is_superseded = False
             self._consume_grade_change(gchange, set_is_superseded)
 
+        valid_grade_changes = sorted(
+                (gchange
+                for gchange in self.attempt_id_to_gchange.values()
+                if gchange.percentage() is not None),
+                key=lambda gchange: gchange.grade_time)
+
         self.valid_percentages.extend(
                 gchange.percentage()
-                for gchange in self.attempt_id_to_gchange.values()
-                if gchange.percentage() is not None)
+                for gchange in valid_grade_changes)
 
         del self.attempt_id_to_gchange
 
