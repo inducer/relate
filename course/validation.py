@@ -47,14 +47,24 @@ class ValidationError(RuntimeError):
 ID_RE = re.compile(r"^[\w]+$")
 
 
-def validate_identifier(location, s):
+def validate_identifier(ctx, location, s, warning_only=False):
     if not ID_RE.match(s):
-        raise ValidationError(
-                string_concat(
-                    "%(location)s: ",
-                    _("invalid identifier"),
-                    " '%(string)s'")
-                % {'location': location, 'string': s})
+
+        if warning_only:
+            msg = (string_concat(
+                        _("invalid identifier"),
+                        " '%(string)s'")
+                    % {'location': location, 'string': s})
+
+            ctx.add_warning(location, msg)
+        else:
+            msg = (string_concat(
+                        "%(location)s: ",
+                        _("invalid identifier"),
+                        " '%(string)s'")
+                    % {'location': location, 'string': s})
+
+            raise ValidationError(msg)
 
 
 def validate_role(location, role):
@@ -327,7 +337,7 @@ def validate_flow_page(ctx, location, page_desc):
                     ugettext("flow page has no ID"))
                 % location)
 
-    validate_identifier(location, page_desc.id)
+    validate_identifier(ctx, location, page_desc.id)
 
     from course.content import get_flow_page_class
     try:
@@ -405,7 +415,7 @@ def validate_flow_group(ctx, location, grp):
 
     # }}}
 
-    validate_identifier(location, grp.id)
+    validate_identifier(ctx, location, grp.id)
 
 
 # {{{ flow access rules
@@ -419,6 +429,8 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 ("if_before", datespec_types),
                 ("if_has_role", list),
                 ("if_in_facility", str),
+                ("if_has_in_progress_session", bool),
+                ("if_has_session_tagged", (str, unicode, type(None))),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
                 ("tag_session", (str, unicode, type(None))),
@@ -437,6 +449,11 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                     "%s, role %d" % (location, j+1),
                     role)
 
+    if hasattr(nrule, "if_has_session_tagged"):
+        if nrule.if_has_session_tagged is not None:
+            validate_identifier(ctx, "%s: if_has_session_tagged" % location,
+                    nrule.if_has_session_tagged)
+
     if not hasattr(nrule, "may_start_new_session"):
         ctx.add_warning(
                 location+", rules",
@@ -447,6 +464,10 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 _("attribute 'may_list_existing_sessions' is not present"))
 
     if hasattr(nrule, "tag_session"):
+        validate_identifier(ctx, "%s: tag_session" % location,
+                nrule.tag_session,
+                warning_only=True)
+
         if not (nrule.tag_session is None or nrule.tag_session in tags):
             raise ValidationError(
                     string_concat(
@@ -560,7 +581,7 @@ def validate_session_grading_rule(ctx, location, grule, tags):
         ctx.encounter_datespec(location, grule.due)
 
     if grule.grade_identifier:
-        validate_identifier("%s: grade_identifier" % location,
+        validate_identifier(ctx, "%s: grade_identifier" % location,
                 grule.grade_identifier)
         if not hasattr(grule, "grade_aggregation_strategy"):
             raise ValidationError(
@@ -602,7 +623,7 @@ def validate_flow_rules(ctx, location, rules):
     tags = getattr(rules, "tags", [])
 
     for i, tag in enumerate(tags):
-        validate_identifier("%s: tag %d" % (location, i+1), tag)
+        validate_identifier(ctx, "%s: tag %d" % (location, i+1), tag)
 
     # {{{ validate new-session rules
 

@@ -236,6 +236,16 @@ Here's a commented example:
         located in a computer-based testing center (which RELATE can
         recognize based on IP ranges).
 
+    .. attribute:: if_has_in_progress_session
+
+        (Optional) A Boolean (True/False) value, indicating that the rule only applies
+        if the participant has an in-progress session.
+
+    .. attribute:: if_has_session_tagged
+
+        (Optional) An identifier (or ``null``) indicating that the rule only applies
+        if the participant has a session with the corresponding tag.
+
     .. attribute:: if_has_fewer_sessions_than
 
         (Optional) An integer. The rule applies if the participant has fewer than this

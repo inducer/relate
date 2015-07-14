@@ -592,7 +592,7 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
     if match:
         if vctx is not None:
             from course.validation import validate_identifier
-            validate_identifier("%s: event kind" % location,
+            validate_identifier(vctx, "%s: event kind" % location,
                     match.group(1))
 
         if course is None:
@@ -617,7 +617,7 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
 
     if vctx is not None:
         from course.validation import validate_identifier
-        validate_identifier("%s: event kind" % location, datespec)
+        validate_identifier(vctx, "%s: event kind" % location, datespec)
 
     if course is None:
         return now()

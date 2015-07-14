@@ -152,6 +152,26 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
             if not is_address_in_facility(remote_address, rule.if_in_facility):
                 continue
 
+        if not for_rollover and hasattr(rule, "if_has_in_progress_session"):
+            session_count = FlowSession.objects.filter(
+                    participation=participation,
+                    course=course,
+                    flow_id=flow_id,
+                    in_progress=True).count()
+
+            if bool(session_count) != rule.if_has_in_progress_session:
+                continue
+
+        if not for_rollover and hasattr(rule, "if_has_session_tagged"):
+            tagged_session_count = FlowSession.objects.filter(
+                    participation=participation,
+                    course=course,
+                    access_rules_tag=rule.if_has_session_tagged,
+                    flow_id=flow_id).count()
+
+            if not tagged_session_count:
+                continue
+
         if not for_rollover and hasattr(rule, "if_has_fewer_sessions_than"):
             session_count = FlowSession.objects.filter(
                     participation=participation,
