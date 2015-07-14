@@ -199,4 +199,16 @@ table.gradebook-by-opportunity ul {
   margin-bottom: 0px;
 }
 
+/* Uncomment to blur out identifiable/grade-related data. Useful for demos on live data. */
+/*
+.sensitive {
+  color: transparent !important;
+  text-shadow: 0 0 1.25em black;
+}
+a .sensitive {
+  color: transparent !important;
+  text-shadow: 0 0 1.25em #337ab7;
+}
+*/
+
 /* vim: set foldmethod=marker: */

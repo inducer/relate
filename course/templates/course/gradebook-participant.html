@@ -29,15 +29,17 @@
       <tbody>
       <tr>
         <td>{% trans "User ID" %}</td>
-        <td>{{ grade_participation.user.username }}</td>
+        <td><span class="sensitive">{{ grade_participation.user.username }}</span></td>
       </tr>
       <tr>
         <td>{% trans "Name" context "real name of a user" %}</td>
         <td>
           {# Translators: how the real name of a user is displayed. #}
+          <span class="sensitive">
           {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name %}
                 {{ last_name }}, {{ first_name }}
           {% endblocktrans %}
+          </span>
         </td>
       </tr>
     </table>
@@ -56,7 +58,7 @@
         <td data-order="{{ grade_info.opportunity.identifier }}">{{ grade_info.opportunity.name }}</td>
         <td data-order="{{ gsm.stringify_percentage }}">
           <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
-            >{{ gsm.stringify_state }}</a>
+           ><span class="sensitive">{{ gsm.stringify_state }}</span></a>
         </td>
         <td
          {% if  gsm.last_graded_time %}

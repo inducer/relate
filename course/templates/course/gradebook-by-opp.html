@@ -68,12 +68,16 @@
     <tbody>
       {% for participation, grade_info in grade_table %}
       <tr>
-        <td class="datacol"><a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}">{{ participation.user.username }}</a></td>
+        <td class="datacol">
+          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">{{ participation.user.username }}</span></a>
+        </td>
         <td class="datacol">
             {# Translators: Username displayed in gradebook by opportunity #}
+            <span class="sensitive">
             {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
                 {{ last_name }}, {{ first_name }}
             {% endblocktrans %}
+            </span>
           {% if participation.role != participation_role.student %}
             ({{ participation.role }})
           {% endif %}
@@ -85,8 +89,9 @@
             data-order="-1"
           {% endif %}
           >
+
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
-            >{{ grade_info.grade_state_machine.stringify_state }}</a>
+             ><span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
         </td>
           <td class="datacol" data-order="{{ grade_info.flow_sessions|length }}">
           {% if grade_info.flow_sessions %}

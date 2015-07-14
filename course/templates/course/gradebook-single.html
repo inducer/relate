@@ -16,9 +16,11 @@
     <tr>
       <td>{% trans "Participant" %}</td>
       <td>
+        <span class="sensitive">
         {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name username=grade_participation.user.username %}
           {{ last_name }}, {{ first_name }} ({{ username }})
         {% endblocktrans %}
+        </span>
       </td>
     </tr>
     <tr>
@@ -75,6 +77,7 @@
           </td>
           <td>
             {% if gchange.is_superseded %}<s>{% endif %}
+            <span class="sensitive">
             {% if gchange.points != None %}
               {% blocktrans trimmed with points=gchange.points|floatformat:1 max_points=gchange.max_points|floatformat:1 percentage=gchange.percentage|floatformat:1 %}
               {{ points }}/{{ max_points }}
@@ -84,11 +87,12 @@
             {% else %}
               {% trans "(no grade)" %}
             {% endif %}
+            </span>
             {% if gchange.is_superseded %}</s>{% endif %}
           </td>
           <td>
             {% if gchange.comment %}
-              {{ gchange.comment }}
+              <span class="sensitive">{{ gchange.comment }}</span>
             {% endif %}
 
             {% if gchange.flow_session != None %}
@@ -103,7 +107,7 @@
           <td><b>{% trans "Overall grade" %}</b></td>
           <td></td>
           <td>
-            <b>{{ state_machine.stringify_state }}</b>
+            <b><span class="sensitive">{{ state_machine.stringify_state }}</span></b>
           </td>
           <td>
             {% blocktrans trimmed with opportunity_aggregation_strategy=opportunity.aggregation_strategy %}
@@ -178,6 +182,7 @@
               </td>
 
               <td>
+                <span class="sensitive">
                 {% if flow_session.max_points != None %}
                   {% if flow_session.points != None %}
                     <b>{{ flow_session.points|floatformat:1 }}</b>
@@ -200,6 +205,7 @@
                   {{ flow_session.result_comment|linebreaks }}
                   </p>
                 {% endif %}
+                </span>
               </td>
 
               {% if show_privileged_info and flow_session.answer_visits %}
@@ -220,11 +226,11 @@
                           <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
                         </td>
                         {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
-                          <td>{{ visit.get_most_recent_grade.percentage }}%</td>
-                          <td>{{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }}</td>
+                          <td><span class="sensitive">{{ visit.get_most_recent_grade.percentage }}%</span></td>
+                          <td><span class="sensitive">{{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }}</span></td>
                           <td>{{ visit.get_most_recent_grade.grader.username }} </td>
                         {% else %}
-                          <td>{% trans "(no grade)" %}</td>
+                          <td><span class="sensitive">{% trans "(no grade)" %}</span></td>
                           <td></td>
                           <td></td>
                         {% endif %}

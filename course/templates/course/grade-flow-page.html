@@ -59,11 +59,13 @@
             <td>
               <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
               {# Translators: the grade information "for" a participant with fullname + (username) #}
+              <span class="sensitive">
               {% blocktrans trimmed with last_name=flow_session.participation.user.last_name first_name=flow_session.participation.user.first_name username=flow_session.participation.user.username %}
               for
               {{ last_name }}, {{ first_name }}
               ({{ username }})
-            {% endblocktrans %}
+              {% endblocktrans %}
+              </span>
             </td>
           </tr>
         {% endif %}
@@ -114,6 +116,7 @@
         <tr>
           <td>{% trans "Points awarded" %}</td>
           <td>
+            <span class="sensitive">
             {% if points_awarded != None %}
               {{ points_awarded|floatformat:1 }}
             {% else %}
@@ -127,6 +130,7 @@
             {% plural %}
               points
             {% endblocktrans %}
+            </span>
           </td>
         </tr>
         {% endif %}
