@@ -93,7 +93,7 @@
             {% if new_session_grading_rule.description %}
               <li>
                   {% blocktrans trimmed with description=new_session_grading_rule.description %}
-                    Your session will be a '<b>{{ new_session_grading_rule_description }}</b>'.
+                    Your session will be a '<b>{{ description }}</b>'.
                   {% endblocktrans %}
               </li>
             {% endif %}
