@@ -49,7 +49,7 @@
                 {% endif %}
               </td>
               <td>
-                {% if flow_session.points_percentage %}
+                {% if flow_session.points_percentage != None %}
                   {% blocktrans trimmed with points=flow_session.points|floatformat max_points=flow_session.max_points|floatformat  percentage=flow_session.points_percentage|floatformat %}
                   <b>{{ points }}</b>
                   out of
