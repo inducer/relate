@@ -703,10 +703,10 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
                     ugettext("Session reopened at %(now)s by %(user)s, "
                         "previous completion time was '%(completion_time)s': "
                         "%(comment)s.") % {
-                            "now": local_now(),
+                            "now": local_now(formatted=True),
                             "user": pctx.request.user,
                             "completion_time":
-                                as_local_time(session.completion_time),
+                                as_local_time(session.completion_time, formatted=True),
                             "comment": form.cleaned_data["comment"]
                             })
             session.save()

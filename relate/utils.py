@@ -58,12 +58,16 @@ def settings_context_processor(request):
         }
 
 
-def as_local_time(datetime):
+def as_local_time(datetime, formatted=False):
     """Takes an timezone-aware datetime and applies the server timezone."""
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    return datetime.astimezone(tz)
+    if formatted:
+        from babel.dates import format_datetime
+        return format_datetime(datetime.astimezone(tz), locale=settings.LANGUAGE_CODE)
+    else:
+        return datetime.astimezone(tz)
 
 
 def localize_datetime(datetime):
@@ -74,12 +78,16 @@ def localize_datetime(datetime):
     return tz.localize(datetime)
 
 
-def local_now():
+def local_now(formatted=False):
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
     from datetime import datetime
-    return tz.localize(datetime.now())
+    if formatted:
+        from babel.dates import format_datetime
+        return format_datetime(tz.localize(datetime.now()), locale=settings.LANGUAGE_CODE)
+    else:
+        return tz.localize(datetime.now())
 
 
 # {{{ dict_to_struct
