@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 17:45+0800\n"
+"POT-Creation-Date: 2015-07-27 00:39+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -189,7 +189,7 @@ msgstr ""
 #: .\course\templates\course\analytics-flow.html:5
 #: .\course\templates\course\analytics-flows.html:5
 #: .\course\templates\course\analytics-page.html:5
-#: .\course\templates\course\broken-code-question-email.txt:12
+#: .\course\templates\course\broken-code-question-email.txt:6
 #: .\course\templates\course\calendar.html:8
 #: .\course\templates\course\course-base.html:8
 #: .\course\templates\course\flow-completion-grade.html:6
@@ -208,7 +208,7 @@ msgstr ""
 #: .\course\templates\course\home.html:6
 #: .\course\templates\course\home.html:30
 #: .\course\templates\course\sandbox-page.html:17
-#: .\course\templates\course\sign-in-email.txt:18
+#: .\course\templates\course\sign-in-email.txt:2
 #: .\relate\templates\admin\base_site.html:5 .\relate\templates\base.html:15
 #: .\relate\templates\base.html.py:60 .\relate\templates\maintenance.html:6
 msgid "RELATE"
@@ -2383,18 +2383,14 @@ msgid_plural "(%(astats_count)s responses)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: .\course\templates\course\broken-code-question-email.txt:2
+#: .\course\templates\course\broken-code-question-email.txt:1
 #, python-format
 msgid ""
-"\n"
 "Hi there,\n"
-"\n"
-"Bad news! A code question with ID '%(page_id)s' in '%(course_identifier)s'\n"
+"Bad news! A code question with ID '%(page_id)s' in '%(course_identifier)s' "
 "has just failed while a user was trying to get his or her code graded.\n"
 "Details of the problem are below:\n"
-"\n"
 "%(error_message)s\n"
-"\n"
 msgstr ""
 
 #: .\course\templates\course\calendar.html:8
@@ -2578,85 +2574,69 @@ msgstr ""
 msgid "Enroll"
 msgstr ""
 
-#. Translators: if a user have a non-empty first_name, then use %(first_name)
-#: .\course\templates\course\enrollment-decision-email.txt:4
-#: .\course\templates\course\grade-notify.txt:4
-#: .\course\templates\course\sign-in-email.txt:4
+#: .\course\templates\course\enrollment-decision-email.txt:1
+#: .\course\templates\course\grade-notify.txt:1
+#: .\course\templates\course\sign-in-email.txt:1
 #, python-format
 msgid "Dear %(first_name)s,"
 msgstr ""
 
-#. Translators: if a user have an empty first_name, then use his/her email
-#: .\course\templates\course\enrollment-decision-email.txt:9
-#: .\course\templates\course\grade-notify.txt:9
-#: .\course\templates\course\sign-in-email.txt:9
+#: .\course\templates\course\enrollment-decision-email.txt:1
+#: .\course\templates\course\grade-notify.txt:1
+#: .\course\templates\course\sign-in-email.txt:1
 #, python-format
 msgid "Dear %(email)s,"
 msgstr ""
 
-#. Translators: if a user do not use first_name and email, then use his/her username
-#: .\course\templates\course\enrollment-decision-email.txt:14
-#: .\course\templates\course\grade-notify.txt:14
-#: .\course\templates\course\sign-in-email.txt:14
+#: .\course\templates\course\enrollment-decision-email.txt:1
+#: .\course\templates\course\grade-notify.txt:1
+#: .\course\templates\course\sign-in-email.txt:1
 #, python-format
 msgid "Dear %(username)s,"
 msgstr ""
 
-#: .\course\templates\course\enrollment-decision-email.txt:19
+#: .\course\templates\course\enrollment-decision-email.txt:3
 #, python-format
 msgid ""
-"\n"
-"Welcome! Your request to join the course\n"
-"'%(course_identifier)s' has been approved.\n"
-"\n"
+"Welcome! Your request to join the course '%(course_identifier)s' has been "
+"approved.\n"
 "Find the course web page here:\n"
-"\n"
 "%(course_uri)s\n"
-"\n"
 "Welcome, and we hope you have a productive class!"
 msgstr ""
 
-#: .\course\templates\course\enrollment-decision-email.txt:29
+#: .\course\templates\course\enrollment-decision-email.txt:8
 #, python-format
 msgid ""
-"\n"
-"We're sorry to let you know that your request to join the course\n"
-"'%(course_identifier)s' has been denied. Please get in touch with the "
-"course\n"
+"We're sorry to let you know that your request to join the course '%"
+"(course_identifier)s' has been denied. Please get in touch with the course "
 "staff (for example by replying to this email) to state your case.\n"
-"\n"
-"One common reason for this may be that you may have used your personal "
-"email\n"
+"One common reason for this may be that you may have used your personal email "
 "(such as a GMail or Yahoo account) rather than your official university "
-"account\n"
-"to sign in. If that is the case, please use the official account and\n"
+"account to sign in. If that is the case, please use the official account and "
 "try again."
 msgstr ""
 
 #. Translators: sender of the email
-#: .\course\templates\course\enrollment-decision-email.txt:40
-#: .\course\templates\course\enrollment-request-email.txt:15
-#: .\course\templates\course\grade-notify.txt:32
-#: .\course\templates\course\sign-in-email.txt:32
+#: .\course\templates\course\enrollment-decision-email.txt:12
+#: .\course\templates\course\enrollment-request-email.txt:8
+#: .\course\templates\course\grade-notify.txt:8
+#: .\course\templates\course\sign-in-email.txt:12
 #, python-format
 msgid "- %(RELATE)s staff "
 msgstr ""
 
-#: .\course\templates\course\enrollment-request-email.txt:2
+#: .\course\templates\course\enrollment-request-email.txt:1
 #, python-format
 msgid ""
-"\n"
 "Dear course staff of %(course_identifier)s,\n"
 "\n"
-"User '%(user)s' has requested permission to enroll in your course.\n"
-"Please go to\n"
-"\n"
+"User '%(user)s' has requested permission to enroll in your course. Please go "
+"to\n"
 "%(admin_uri)s\n"
-"\n"
-"to approve or deny the request. To do so, select the course participations\n"
+"to approve or deny the request. To do so, select the course participations "
 "in question and use the \"Approve enrollment\" or \"Deny enrollment\" admin\n"
 "actions.\n"
-"\n"
 msgstr ""
 
 #: .\course\templates\course\feedback-code-with-human.html:4
@@ -2904,8 +2884,7 @@ msgstr ""
 
 #: .\course\templates\course\flow-start.html:95
 #, python-format
-msgid ""
-"Your session will be a '<b>%(new_session_grading_rule_description)s</b>'."
+msgid "Your session will be a '<b>%(description)s</b>'."
 msgstr ""
 
 #: .\course\templates\course\flow-start.html:102
@@ -3052,22 +3031,16 @@ msgstr ""
 msgid "at %(grade_time)s"
 msgstr ""
 
-#: .\course\templates\course\grade-notify.txt:18
+#: .\course\templates\course\grade-notify.txt:2
 #, python-format
 msgid ""
 "\n"
-"You have a new notification regarding your work on the problem\n"
-"with title\n"
-"\n"
-"  %(page_title)s\n"
-"\n"
-"in %(flow_id)s of %(course_identifier)s. The\n"
-"full text of the feedback follows.\n"
-"\n"
+"You have a new notification regarding your work on the problem with title %"
+"(page_title)s in %(flow_id)s of %(course_identifier)s. The full text of the "
+"feedback follows.\n"
 "-------------------------------------------------------------------\n"
 "%(feedback_text)s\n"
 "-------------------------------------------------------------------\n"
-"\n"
 msgstr ""
 
 #: .\course\templates\course\gradebook-by-opp.html:30
@@ -3422,21 +3395,18 @@ msgstr ""
 msgid "(Page preview appears here)"
 msgstr ""
 
-#: .\course\templates\course\sign-in-email.txt:19
+#: .\course\templates\course\sign-in-email.txt:2
 #, python-format
 msgid ""
 "\n"
 "Welcome to %(RELATE)s! Please click this link to sign in:\n"
-"\n"
 "%(sign_in_uri)s\n"
 "\n"
 "You have received this email because someone (maybe you) entered your email\n"
 "address into the %(RELATE)s web site at\n"
-"\n"
 "%(home_uri)s\n"
 "\n"
 "If this was not you, it is safe to disregard this email.\n"
-"\n"
 msgstr ""
 
 #: .\course\utils.py:316

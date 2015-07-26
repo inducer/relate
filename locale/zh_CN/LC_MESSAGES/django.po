@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 17:45+0800\n"
+"POT-Creation-Date: 2015-07-27 00:39+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -188,7 +188,7 @@ msgstr "该电子邮件已经注册, 您是否需要 <a href='%s'>重置密码</
 #: .\course\templates\course\analytics-flow.html:5
 #: .\course\templates\course\analytics-flows.html:5
 #: .\course\templates\course\analytics-page.html:5
-#: .\course\templates\course\broken-code-question-email.txt:12
+#: .\course\templates\course\broken-code-question-email.txt:6
 #: .\course\templates\course\calendar.html:8
 #: .\course\templates\course\course-base.html:8
 #: .\course\templates\course\flow-completion-grade.html:6
@@ -207,7 +207,7 @@ msgstr "该电子邮件已经注册, 您是否需要 <a href='%s'>重置密码</
 #: .\course\templates\course\home.html:6
 #: .\course\templates\course\home.html:30
 #: .\course\templates\course\sandbox-page.html:17
-#: .\course\templates\course\sign-in-email.txt:18
+#: .\course\templates\course\sign-in-email.txt:2
 #: .\relate\templates\admin\base_site.html:5 .\relate\templates\base.html:15
 #: .\relate\templates\base.html.py:60 .\relate\templates\maintenance.html:6
 msgid "RELATE"
@@ -2415,27 +2415,19 @@ msgid_plural "(%(astats_count)s responses)"
 msgstr[0] "(%(astats_count)s个回答)"
 msgstr[1] "(%(astats_count)s个回答)"
 
-#: .\course\templates\course\broken-code-question-email.txt:2
-#, python-format
+#: .\course\templates\course\broken-code-question-email.txt:1
 msgid ""
-"\n"
 "Hi there,\n"
-"\n"
-"Bad news! A code question with ID '%(page_id)s' in '%(course_identifier)s'\n"
+"Bad news! A code question with ID '%(page_id)s' in '%(course_identifier)s' "
 "has just failed while a user was trying to get his or her code graded.\n"
 "Details of the problem are below:\n"
-"\n"
 "%(error_message)s\n"
-"\n"
 msgstr ""
-"\n"
 "Hi 您好,\n"
-"\n"
-"坏消息！ 刚才有一位用户在完成编程作业时, 某个编程问题（课程%"
-"(course_identifier)s中，ID为%(page_id)s）崩溃了, 该问题的详细信息如下：\n"
-"\n"
+"    坏消息！ 刚才有一位用户在完成编程作业时, 某个编程问题（课程%"
+"(course_identifier)s中，ID为%(page_id)s）崩溃了。\n"
+"    该问题的详细信息如下：\n"
 "%(error_message)s\n"
-"\n"
 
 #: .\course\templates\course\calendar.html:8
 #: .\course\templates\course\calendar.html:21
@@ -2618,106 +2610,79 @@ msgstr "您还未登录. "
 msgid "Enroll"
 msgstr "加入课程"
 
-#. Translators: if a user have a non-empty first_name, then use %(first_name)
-#: .\course\templates\course\enrollment-decision-email.txt:4
-#: .\course\templates\course\grade-notify.txt:4
-#: .\course\templates\course\sign-in-email.txt:4
+#: .\course\templates\course\enrollment-decision-email.txt:1
+#: .\course\templates\course\grade-notify.txt:1
+#: .\course\templates\course\sign-in-email.txt:1
 #, python-format
 msgid "Dear %(first_name)s,"
 msgstr "尊敬的%(first_name)s: "
 
-#. Translators: if a user have an empty first_name, then use his/her email
-#: .\course\templates\course\enrollment-decision-email.txt:9
-#: .\course\templates\course\grade-notify.txt:9
-#: .\course\templates\course\sign-in-email.txt:9
+#: .\course\templates\course\enrollment-decision-email.txt:1
+#: .\course\templates\course\grade-notify.txt:1
+#: .\course\templates\course\sign-in-email.txt:1
 #, python-format
 msgid "Dear %(email)s,"
 msgstr "尊敬的%(email)s: "
 
-#. Translators: if a user do not use first_name and email, then use his/her username
-#: .\course\templates\course\enrollment-decision-email.txt:14
-#: .\course\templates\course\grade-notify.txt:14
-#: .\course\templates\course\sign-in-email.txt:14
+#: .\course\templates\course\enrollment-decision-email.txt:1
+#: .\course\templates\course\grade-notify.txt:1
+#: .\course\templates\course\sign-in-email.txt:1
 #, python-format
 msgid "Dear %(username)s,"
 msgstr "尊敬的%(username)s: "
 
-#: .\course\templates\course\enrollment-decision-email.txt:19
-#, python-format
+#: .\course\templates\course\enrollment-decision-email.txt:3
 msgid ""
-"\n"
-"Welcome! Your request to join the course\n"
-"'%(course_identifier)s' has been approved.\n"
-"\n"
+"Welcome! Your request to join the course '%(course_identifier)s' has been "
+"approved.\n"
 "Find the course web page here:\n"
-"\n"
 "%(course_uri)s\n"
-"\n"
 "Welcome, and we hope you have a productive class!"
 msgstr ""
-"\n"
-"欢迎您！您加入课程%(course_identifier)s的申请已经被批准, 在这里打开课程的页"
+"    欢迎您！您加入课程%(course_identifier)s的申请已经被批准, 在这里打开课程的页"
 "面：\n"
-"\n"
 "%(course_uri)s\n"
-"\n"
-"我们希望和您经历一门有效率和效益的学习课程！"
+"    我们希望和您经历一门有效率和效益的学习课程！"
 
-#: .\course\templates\course\enrollment-decision-email.txt:29
-#, python-format
+#: .\course\templates\course\enrollment-decision-email.txt:8
 msgid ""
-"\n"
-"We're sorry to let you know that your request to join the course\n"
-"'%(course_identifier)s' has been denied. Please get in touch with the "
-"course\n"
+"We're sorry to let you know that your request to join the course '%"
+"(course_identifier)s' has been denied. Please get in touch with the course "
 "staff (for example by replying to this email) to state your case.\n"
-"\n"
-"One common reason for this may be that you may have used your personal "
-"email\n"
+"One common reason for this may be that you may have used your personal email "
 "(such as a GMail or Yahoo account) rather than your official university "
-"account\n"
-"to sign in. If that is the case, please use the official account and\n"
+"account to sign in. If that is the case, please use the official account and "
 "try again."
 msgstr ""
-"\n"
 "很抱歉地告知您, 您参加课程%(course_identifier)s的申请被拒绝. 请与课程管理人员"
 "联系, 例如回复此邮件来说明您的情况. "
 
 #. Translators: sender of the email
-#: .\course\templates\course\enrollment-decision-email.txt:40
-#: .\course\templates\course\enrollment-request-email.txt:15
-#: .\course\templates\course\grade-notify.txt:32
-#: .\course\templates\course\sign-in-email.txt:32
+#: .\course\templates\course\enrollment-decision-email.txt:12
+#: .\course\templates\course\enrollment-request-email.txt:8
+#: .\course\templates\course\grade-notify.txt:8
+#: .\course\templates\course\sign-in-email.txt:12
 #, python-format
 msgid "- %(RELATE)s staff "
 msgstr "- %(RELATE)s 课程管理人员"
 
-#: .\course\templates\course\enrollment-request-email.txt:2
-#, python-format
+#: .\course\templates\course\enrollment-request-email.txt:1
 msgid ""
-"\n"
 "Dear course staff of %(course_identifier)s,\n"
 "\n"
-"User '%(user)s' has requested permission to enroll in your course.\n"
-"Please go to\n"
-"\n"
+"User '%(user)s' has requested permission to enroll in your course. Please go "
+"to\n"
 "%(admin_uri)s\n"
-"\n"
-"to approve or deny the request. To do so, select the course participations\n"
+"to approve or deny the request. To do so, select the course participations "
 "in question and use the \"Approve enrollment\" or \"Deny enrollment\" admin\n"
 "actions.\n"
-"\n"
 msgstr ""
-"\n"
 "尊敬的课程%(course_identifier)s的管理人员：\n"
 "\n"
-"用户\"%(user)s\"向您提出了加入课程的申请, 请到\n"
-"\n"
+"    用户\"%(user)s\"向您提出了加入课程的申请, 请到\n"
 "%(admin_uri)s\n"
-"\n"
-"去批准或拒绝这个申请. 提示, 选择(course participations)课程参与中的疑问部分, "
-"使用\"批准\" 或 \"拒绝\" 来达成. \n"
-"\n"
+"去批准或拒绝这个申请. 提示: 选定(course participations)课程参与中的相关请求, "
+"然后使用下拉菜单中的\"批准\" 或 \"拒绝\" 来达成. \n"
 
 #: .\course\templates\course\feedback-code-with-human.html:4
 #: .\course\templates\course\gradebook-by-opp.html:65
@@ -2903,10 +2868,8 @@ msgid "You have unsaved changes on this page."
 msgstr ""
 
 #: .\course\templates\course\flow-page.html:232
-#, fuzzy
-#| msgid "Save"
 msgid "Saved."
-msgstr "保存"
+msgstr "已保存"
 
 #: .\course\templates\course\flow-session-state.html:3
 msgid "in progress"
@@ -2968,10 +2931,9 @@ msgid "If you start a new session, the following rules will apply:"
 msgstr "如果您开始一个新的session, 以下的规则将会生效："
 
 #: .\course\templates\course\flow-start.html:95
+#, python-format
 msgid "Your session will be a '<b>%(description)s</b>'."
-msgstr ""
-"您的session将采取\"<b>%(description)s</b>\"的评分规"
-"则. "
+msgstr "您的session将采取\"<b>%(description)s</b>\"的评分规则. "
 
 #: .\course\templates\course\flow-start.html:102
 #, python-format
@@ -3126,34 +3088,21 @@ msgstr ", 评分者为%(grader_name)s"
 msgid "at %(grade_time)s"
 msgstr ", 评分时间为%(grade_time)s"
 
-#: .\course\templates\course\grade-notify.txt:18
-#, python-format
+#: .\course\templates\course\grade-notify.txt:2
 msgid ""
 "\n"
-"You have a new notification regarding your work on the problem\n"
-"with title\n"
-"\n"
-"  %(page_title)s\n"
-"\n"
-"in %(flow_id)s of %(course_identifier)s. The\n"
-"full text of the feedback follows.\n"
-"\n"
+"You have a new notification regarding your work on the problem with title %"
+"(page_title)s in %(flow_id)s of %(course_identifier)s. The full text of the "
+"feedback follows.\n"
 "-------------------------------------------------------------------\n"
 "%(feedback_text)s\n"
 "-------------------------------------------------------------------\n"
-"\n"
 msgstr ""
 "\n"
-"您有一个新的通知, 是关于您在标题为\n"
-"\n"
-"%(page_title)s\n"
-"\n"
-"的问题的回答(%(course_identifier)s课程的%(flow_id)s). 反馈信息的全文如下：\n"
-"\n"
+"    您有一个新的通知, 是关于您在标题为%(page_title)s的问题的回答(%(course_identifier)s课程的%(flow_id)s). 反馈信息的全文如下：\n"
 "-------------------------------------------------------------------\n"
 "%(feedback_text)s\n"
 "-------------------------------------------------------------------\n"
-"\n"
 
 #: .\course\templates\course\gradebook-by-opp.html:30
 #: .\course\templates\course\gradebook-single.html:27
@@ -3515,33 +3464,26 @@ msgstr "一旦您离开这个页面，您输入的内容将不会保存, 请保�
 msgid "(Page preview appears here)"
 msgstr "(在这里预览Page)"
 
-#: .\course\templates\course\sign-in-email.txt:19
-#, python-format
+#: .\course\templates\course\sign-in-email.txt:2
 msgid ""
 "\n"
 "Welcome to %(RELATE)s! Please click this link to sign in:\n"
-"\n"
 "%(sign_in_uri)s\n"
 "\n"
 "You have received this email because someone (maybe you) entered your email\n"
 "address into the %(RELATE)s web site at\n"
-"\n"
 "%(home_uri)s\n"
 "\n"
 "If this was not you, it is safe to disregard this email.\n"
-"\n"
 msgstr ""
 "\n"
-"欢迎来到%(RELATE)s! 请点击以下链接以登录网站:\n"
-"\n"
+"    欢迎来到%(RELATE)s! 请点击以下链接以登录网站:\n"
 "%(sign_in_uri)s\n"
 "\n"
-"您收到了这封邮件是因为有人（可能是您）在%(RELATE)s网站\n"
-"\n"
+"    您收到了这封邮件是因为有人（可能是您）在%(RELATE)s网站\n"
 "%(home_uri)s\n"
 "\n"
 "输入了您的电子邮件. 如果不是您操作的, 可忽略此邮件. \n"
-"\n"
 
 #: .\course\utils.py:316
 msgid "grading rule determination was unable to find a grading rule"
