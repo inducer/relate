@@ -508,10 +508,10 @@ def grant_exception(pctx):
 
 
 def strify_session_for_exception(session):
-    from relate.utils import as_local_time
+    from relate.utils import as_local_time, format_datetime_local
     # Translators: %s is the string of the start time of a session.
-    result = (_("started at %s") % as_local_time(session.start_time)
-            .strftime('%b %d %Y - %I:%M %p'))
+    result = (_("started at %s") % format_datetime_local(
+        as_local_time(session.start_time)))
 
     if session.access_rules_tag:
         result += " tagged '%s'" % session.access_rules_tag
@@ -617,10 +617,10 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += ("<div class='alert alert-info'>%s</div>"
-            % _("Creating a new session is (technically) not allowed by "
-            "course rules. Clicking 'Create Session' anyway will override "
-            "this rule."))
+        form_text += ("<div class='alert alert-info'>%s</div>" % 
+                (_("Creating a new session is (technically) not allowed "
+                "by course rules. Clicking 'Create Session' anyway will "
+                "override this rule.")))
 
     default_tag = session_start_rule.tag_session
     if default_tag is None:

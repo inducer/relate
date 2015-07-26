@@ -40,7 +40,9 @@ mark_safe_lazy = lazy(mark_safe, six.text_type)
 from django import forms
 from django import http
 
-from relate.utils import StyledForm, local_now, as_local_time
+from relate.utils import (
+        StyledForm, local_now, as_local_time, 
+        format_datetime_local)
 from crispy_forms.layout import Submit
 
 from course.constants import (
@@ -642,8 +644,10 @@ def reopen_session(session, force=False, suppress_log=False):
         session.append_comment(
                 _("Session reopened at %(now)s, previous completion time "
                 "was '%(complete_time)s'.") % {
-                    'now': local_now(),
-                    'complete_time': as_local_time(session.completion_time)})
+                    'now': format_datetime_local(local_now()),
+                    'complete_time': format_datetime_local(
+                        as_local_time(session.completion_time
+                            ))})
 
     session.completion_time = None
     session.save()
@@ -708,7 +712,9 @@ def regrade_session(repo, course, session):
         prev_completion_time = session.completion_time
 
         session.append_comment(
-                _("Session regraded at %(time)s.") % {'time': local_now()})
+                _("Session regraded at %(time)s.") % {
+                    'time': format_datetime_local(local_now())
+                    })
         session.save()
 
         reopen_session(session, force=True, suppress_log=True)
@@ -729,7 +735,9 @@ def recalculate_session_grade(repo, course, session):
     prev_completion_time = session.completion_time
 
     session.append_comment(
-            _("Session grade recomputed at %(time)s.") % {'time': local_now()})
+            _("Session grade recomputed at %(time)s.") % {
+                'time': format_datetime_local(local_now())
+                })
     session.save()
 
     reopen_session(session, force=True, suppress_log=True)

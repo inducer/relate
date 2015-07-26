@@ -698,15 +698,17 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
 
             session.access_rules_tag = new_access_rules_tag
 
-            from relate.utils import local_now, as_local_time
+            from relate.utils import (
+                    local_now, as_local_time,
+                    format_datetime_local)
             session.append_comment(
                     ugettext("Session reopened at %(now)s by %(user)s, "
                         "previous completion time was '%(completion_time)s': "
                         "%(comment)s.") % {
-                            "now": local_now(),
+                            "now": format_datetime_local(local_now()),
                             "user": pctx.request.user,
-                            "completion_time":
-                                as_local_time(session.completion_time),
+                            "completion_time": format_datetime_local(
+                                as_local_time(session.completion_time)),
                             "comment": form.cleaned_data["comment"]
                             })
             session.save()
