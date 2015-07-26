@@ -137,8 +137,10 @@ def view_page_sandbox(pctx):
     from relate.utils import dict_to_struct
     import yaml
 
-    PAGE_SESSION_KEY = "cf_validated_sandbox_page:" + pctx.course.identifier
-    ANSWER_DATA_SESSION_KEY = "cf_page_sandbox_answer_data:" + pctx.course.identifier
+    PAGE_SESSION_KEY = (  # noqa
+            "cf_validated_sandbox_page:" + pctx.course.identifier)
+    ANSWER_DATA_SESSION_KEY = (  # noqa
+        "cf_page_sandbox_answer_data:" + pctx.course.identifier)
 
     request = pctx.request
     page_source = pctx.request.session.get(PAGE_SESSION_KEY)
@@ -221,11 +223,14 @@ def view_page_sandbox(pctx):
 
         # Session storage uses JSON and may turn tuples into lists.
         if (isinstance(stored_answer_data_tuple, (list, tuple))
-                and len(stored_answer_data_tuple) == 2):
-            stored_answer_data_page_id, stored_answer_data = \
+                and len(stored_answer_data_tuple) == 3):
+            stored_answer_data_page_type, stored_answer_data_page_id, stored_answer_data = \
                     stored_answer_data_tuple
 
-            if stored_answer_data_page_id == page_desc.id:
+            if (
+                    stored_answer_data_page_type == page_desc.type
+                    and
+                    stored_answer_data_page_id == page_desc.id):
                 answer_data = stored_answer_data
 
         # }}}
@@ -247,7 +252,7 @@ def view_page_sandbox(pctx):
                             grade_data=None)
 
                     pctx.request.session[ANSWER_DATA_SESSION_KEY] = (
-                            page_desc.id, answer_data)
+                            page_desc.type, page_desc.id, answer_data)
 
             else:
                 page_form = page.make_form(page_context, page_data,
