@@ -55,4 +55,3 @@ class CourseCreationTest(TestCase):
             notify_email="inform@tiker.net"))
 
         self.assert_(resp.status_code == 302)
-        print resp.content
