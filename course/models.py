@@ -31,6 +31,7 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, string_concat)
+from django.core.validators import RegexValidator
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
@@ -41,6 +42,8 @@ from course.constants import (  # noqa
         grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
         flow_rule_kind, FLOW_RULE_KIND_CHOICES,
+
+        COURSE_ID_REGEX
         )
 
 
@@ -155,7 +158,15 @@ class Course(models.Model):
             "no spaces. This is visible in URLs and determines the location "
             "on your file system where the course's git repository lives."),
             verbose_name=_('Course identifier'),
-            db_index=True)
+            db_index=True,
+            validators=[
+                RegexValidator(
+                    "^"+COURSE_ID_REGEX+"$",
+                    message=_(
+                        "Identifier may only contain letters, "
+                        "numbers, and hypens ('-').")),
+                    ]
+            )
 
     hidden = models.BooleanField(
             default=True,

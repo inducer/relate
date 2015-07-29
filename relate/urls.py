@@ -27,7 +27,7 @@ THE SOFTWARE.
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.conf import settings
-from course.constants import FLOW_ID_REGEX
+from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX
 
 import django.contrib.auth.views
 import course.auth
@@ -93,24 +93,24 @@ urlpatterns = [
     url(r'^$', course.views.home, name='relate-home'),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/$",
         course.views.course_page,
         name="relate-course_page"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/instant-message/$",
         course.im.send_instant_message,
         name="relate-send_instant_message"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/sandbox/markup/$",
         course.sandbox.view_markup_sandbox,
         name="relate-view_markup_sandbox"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/sandbox/page/$",
         course.sandbox.view_page_sandbox,
         name="relate-view_page_sandbox"),
@@ -120,46 +120,46 @@ urlpatterns = [
     # {{{ grading
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/my/$",
         course.grades.view_participant_grades,
         name="relate-view_participant_grades"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/participant"
         "/(?P<participation_id>[0-9]+)"
         "/$",
         course.grades.view_participant_grades,
         name="relate-view_participant_grades"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/participants/$",
         course.grades.view_participant_list,
         name="relate-view_participant_list"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/opportunities/$",
         course.grades.view_grading_opportunity_list,
         name="relate-view_grading_opportunity_list"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/overview/$",
         course.grades.view_gradebook,
         name="relate-view_gradebook"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/overview/csv/$",
         course.grades.export_gradebook_csv,
         name="relate-export_gradebook_csv"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/by-opportunity"
         "/(?P<opp_id>[0-9]+)"
         "/$",
         course.grades.view_grades_by_opportunity,
         name="relate-view_grades_by_opportunity"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/single-grade"
         "/(?P<participation_id>[0-9]+)"
         "/(?P<opportunity_id>[0-9]+)"
@@ -167,7 +167,7 @@ urlpatterns = [
         course.grades.view_single_grade,
         name="relate-view_single_grade"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/reopen-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<opportunity_id>[0-9]+)"
@@ -176,7 +176,7 @@ urlpatterns = [
         name="relate-view_reopen_session"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading"
         "/csv-import"
         "/$",
@@ -184,7 +184,7 @@ urlpatterns = [
         name="relate-import_grades"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
@@ -194,7 +194,7 @@ urlpatterns = [
         name="relate-grade_flow_page"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grading/statistics"
         "/" + FLOW_ID_REGEX +
         "/$",
@@ -205,12 +205,12 @@ urlpatterns = [
     # {{{ enrollment
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/enroll/$",
         course.enrollment.enroll,
         name="relate-enroll"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/preapprove"
         "/$",
         course.enrollment.create_preapprovals,
@@ -221,14 +221,14 @@ urlpatterns = [
     # {{{ media
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/media/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<media_path>.*)$",
         course.views.get_media,
         name="relate-get_media"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/repo-file/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<path>.*)$",
         course.views.get_repo_file,
@@ -239,17 +239,17 @@ urlpatterns = [
     # {{{ calendar
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/create-recurring-events/$",
         course.calendar.create_recurring_events,
         name="relate-create_recurring_events"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/renumber-events/$",
         course.calendar.renumber_events,
         name="relate-renumber_events"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/calendar/$",
         course.calendar.view_calendar,
         name="relate-view_calendar"),
@@ -262,7 +262,7 @@ urlpatterns = [
         course.versioning.set_up_new_course,
         name="relate-set_up_new_course"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/update/$",
         course.versioning.update_course,
         name="relate-update_course"),
@@ -272,7 +272,7 @@ urlpatterns = [
     # {{{ flow-related
 
     url(r"^course"
-         "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
          "/flow"
          "/" + FLOW_ID_REGEX +
          "/start"
@@ -280,7 +280,7 @@ urlpatterns = [
          course.flow.view_start_flow,
          name="relate-view_start_flow"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<ordinal>[0-9]+)"
@@ -288,7 +288,7 @@ urlpatterns = [
         course.flow.view_flow_page,
         name="relate-view_flow_page"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[-0-9]+)"
         "/update-expiration-mode"
@@ -296,7 +296,7 @@ urlpatterns = [
         course.flow.update_expiration_mode,
         name="relate-update_expiration_mode"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/finish"
@@ -305,33 +305,33 @@ urlpatterns = [
         name="relate-finish_flow_session_view"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/test-flow"
         "/$",
         course.views.test_flow,
         name="relate-test_flow"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/instant-flow"
         "/$",
         course.views.manage_instant_flow_requests,
         name="relate-manage_instant_flow_requests"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/regrade-not-for-credit-flows"
         "/$",
         course.flow.regrade_not_for_credit_flows_view,
         name="relate-regrade_not_for_credit_flows_view"),
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grant-exception"
         "/$",
         course.views.grant_exception,
         name="relate-grant_exception"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grant-exception"
         "/(?P<participation_id>[0-9]+)"
         "/" + FLOW_ID_REGEX +
@@ -339,7 +339,7 @@ urlpatterns = [
         course.views.grant_exception_stage_2,
         name="relate-grant_exception_stage_2"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/grant-exception"
         "/(?P<participation_id>[0-9]+)"
         "/" + FLOW_ID_REGEX +
@@ -353,20 +353,20 @@ urlpatterns = [
     # {{{ analytics
 
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/flow-analytics"
         "/$",
         course.analytics.flow_list,
         name="relate-flow_list"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/flow-analytics"
         "/" + FLOW_ID_REGEX +
         "/$",
         course.analytics.flow_analytics,
         name="relate-flow_analytics"),
     url(r"^course"
-        "/(?P<course_identifier>[-a-zA-Z0-9]+)"
+        "/" + COURSE_ID_REGEX +
         "/flow-analytics"
         "/" + FLOW_ID_REGEX +
         "/page"

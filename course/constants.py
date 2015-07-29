@@ -30,6 +30,10 @@ from django.utils.translation import pgettext_lazy, ugettext
 MAX_EXTRA_CREDIT_FACTOR = 10
 
 
+COURSE_ID_REGEX = "(?P<course_identifier>[-a-zA-Z0-9]+)"
+FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"
+
+
 class user_status:  # noqa
     unconfirmed = "unconfirmed"
     active = "active"
@@ -279,4 +283,3 @@ GRADE_STATE_CHANGE_CHOICES = (
             pgettext_lazy("Grade state change", "Exempt")),
         )
 
-FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"
