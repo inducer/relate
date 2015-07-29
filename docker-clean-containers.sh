@@ -1,2 +1,2 @@
 #! /bin/bash
-docker rm $(docker ps -a | cut -d ' ' -f1 | tail -n +2)
+docker rm -f $(docker ps -a | cut -d ' ' -f1 | tail -n +2)

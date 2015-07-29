@@ -77,7 +77,7 @@ RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 RELATE_MAINTENANCE_MODE = False
 
 # Uncomment this to enable i18n, change 'en-us' to locale name your language.
-# Makesure you have generated, translate and compile the message file of your
+# Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language 'en-us'.
 
 #LANGUAGE_CODE='en-us'
