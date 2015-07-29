@@ -46,6 +46,9 @@ INSTALLED_APPS = (
     "djangobower",
 )
 
+if local_settings["RELATE_ENABLE_SAML2"]:
+    INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)
+
 MIDDLEWARE_CLASSES = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -64,6 +67,10 @@ AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     )
 
+if local_settings["RELATE_ENABLE_SAML2"]:
+    AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (
+            'djangosaml2.backends.Saml2Backend',
+            )
 
 RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "relate.utils.settings_context_processor",
@@ -178,3 +185,18 @@ TEMPLATES = [
 LOCALE_PATHS = (
     BASE_DIR+ '/locale',
 )
+
+# This makes SAML2 logins compatible with (and usable at the same time as)
+# email-based logins.
+SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'email'
+
+SAML_CREATE_UNKNOWN_USER = True
+
+SAML_ATTRIBUTE_MAPPING = {
+    'uid': ('username', ),
+    'mail': ('email', ),
+    'cn': ('first_name', ),
+    'sn': ('last_name', ),
+}
+
+SAML_CONFIG = join(BASE_DIR, "saml_config.py")

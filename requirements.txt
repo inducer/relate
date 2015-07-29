@@ -62,3 +62,7 @@ ipaddr
 
 # For localized datetime format
 babel
+
+# For interoperation with SAML2/Shibboleth
+pysaml2
+djangosaml2

@@ -61,6 +61,10 @@ ADMINS = (
 
 TIME_ZONE = "America/Chicago"
 
+RELATE_ENABLE_SAML2 = False
+# If you enable this, you must also have saml_config.py in this directory.
+# See saml_config.py.example for help.
+
 # Uncomment one of these to choose the default sign-in method for students
 STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
 #STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_user_pw"
