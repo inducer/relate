@@ -45,6 +45,14 @@ class ChoiceAnswerForm(StyledForm):
         # Translators: "choice" in Choice Answer Form in a choice question.
         self.fields["choice"].label = _("Choice")
 
+class MultipleChoiceAnswerForm(StyledForm):
+    def __init__(self, field, *args, **kwargs):
+        super(MultipleChoiceAnswerForm, self).__init__(*args, **kwargs)
+
+        self.fields["choice"] = field
+        # Translators: "Multiple choice" in Choice Answer Form in a mutliple choice question.
+        self.fields["choice"].label = _("Multiple Choices")
+
 
 # {{{ choice question
 
@@ -232,7 +240,135 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         return self.process_choice_string(
                 page_context,
                 self.page_desc.choices[permutation[choice]])
+# }}}
 
+# {{{ multiple choice question
+
+class MultipleChoiceQuestion(ChoiceQuestion):
+    """
+    A page asking the participant to choose one of multiple answers.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``MultipleChoiceQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: choices
+
+        A list of choices, each in :ref:`markup`. Correct
+        choices are indicated by the prefix ``~CORRECT~``.
+
+    .. attribute:: shuffle
+
+        Optional. ``True`` or ``False``. If true, the choices will
+        be presented in random order.
+        
+    .. attribute:: full_match
+
+        Optional. ``True`` or ``False``. If true (default), only 
+        answers which fully matches the correct answer is correct. 
+        If false, answers with subset of correct choices will get
+        a proportional credit.
+    """
+
+    def allowed_attrs(self):
+        return super(MultipleChoiceQuestion, self).allowed_attrs() + (
+                ("full_match", bool),
+                )
+
+
+    def make_choice_form(self, page_context, page_data, *args, **kwargs):
+        permutation = page_data["permutation"]
+
+        choices = tuple(
+                (i,  self.process_choice_string(
+                    page_context, self.page_desc.choices[src_i]))
+                for i, src_i in enumerate(permutation))
+        
+        return MultipleChoiceAnswerForm(
+            forms.TypedMultipleChoiceField(
+                choices=tuple(choices),
+                coerce=int,
+                widget=forms.CheckboxSelectMultiple()),
+            *args, **kwargs)
+
+
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback=ugettext("No answer provided."))
+
+        permutation = page_data["permutation"]
+        choice = answer_data["choice"]
+        
+        unpermed_idx_set = set([permutation[idx] for idx in choice])
+        correct_idx_set = set(self.unpermuted_correct_indices())
+
+        if unpermed_idx_set == correct_idx_set:
+            correctness = 1
+        else:
+            if getattr(self.page_desc, "full_match", True):
+                correctness = 0
+            else:
+                if unpermed_idx_set < correct_idx_set:
+                    correctness = len(unpermed_idx_set)/len(correct_idx_set)
+                else:
+                    correctness = 0
+
+        return AnswerFeedback(correctness=correctness)
+    
+    def get_answer_html(self, page_context, idx_list, unpermute=False):
+        answer_html_list = []
+        if unpermute:
+            idx_list = list(set(idx_list))
+        for idx in idx_list:
+            answer_html_list.append(
+                "<li>"
+                + self.process_choice_string(
+                    page_context,
+                    self.page_desc.choices[idx]).lstrip().replace("<p>","").replace("</p>","")
+                + "</li>"
+               )
+        answer_html = "<ul>"+"".join(answer_html_list)+"</ul>"
+        return answer_html
+
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        corr_idx_list = self.unpermuted_correct_indices()
+        
+        return (_("The correct answer is: %s")
+                % self.get_answer_html(page_context, corr_idx_list))
+
+    def normalized_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        permutation = page_data["permutation"]
+        choice = answer_data["choice"]
+
+        return self.get_answer_html(
+            page_context,
+            [permutation[idx] for idx in choice],
+            unpermute=True)
 # }}}
 
 
