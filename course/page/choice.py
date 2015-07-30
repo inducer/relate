@@ -42,16 +42,19 @@ class ChoiceAnswerForm(StyledForm):
         super(ChoiceAnswerForm, self).__init__(*args, **kwargs)
 
         self.fields["choice"] = field
-        # Translators: "choice" in Choice Answer Form in a choice question.
+        # Translators: "choice" in Choice Answer Form in a single-choice question.
         self.fields["choice"].label = _("Choice")
+
 
 class MultipleChoiceAnswerForm(StyledForm):
     def __init__(self, field, *args, **kwargs):
         super(MultipleChoiceAnswerForm, self).__init__(*args, **kwargs)
 
         self.fields["choice"] = field
-        # Translators: "Multiple choice" in Choice Answer Form in a mutliple choice question.
-        self.fields["choice"].label = _("Multiple Choices")
+
+        # Translators: "Choice" in Choice Answer Form in a multiple
+        # choice question in which multiple answers can be chosen.
+        self.fields["choice"].label = _("Choices")
 
 
 # {{{ choice question
@@ -135,7 +138,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                     string_concat(
                         "%(location)s: ",
                         "one or more correct answer(s) "
-                        "expected, %(n_correct)d found") 
+                        "expected, %(n_correct)d found")
                     % {
                         'location': location,
                         'n_correct': correct_choice_count})
@@ -242,11 +245,12 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                 self.page_desc.choices[permutation[choice]])
 # }}}
 
+
 # {{{ multiple choice question
 
 class MultipleChoiceQuestion(ChoiceQuestion):
     """
-    A page asking the participant to choose one of multiple answers.
+    A page asking the participant to choose a few of multiple available answers.
 
     .. attribute:: id
 
@@ -281,20 +285,20 @@ class MultipleChoiceQuestion(ChoiceQuestion):
 
         Optional. ``True`` or ``False``. If true, the choices will
         be presented in random order.
-        
-    .. attribute:: full_match
 
-        Optional. ``True`` or ``False``. If true (default), only 
-        answers which fully matches the correct answer is correct. 
-        If false, answers with subset of correct choices will get
-        a proportional credit.
+    .. attribute:: allow_partial_credit
+
+        Optional. ``True`` or ``False``. If False (default), only
+        answers in which all check marks match the reference solution will
+        be counted as correct.  If True, answers with subset of correct
+        choices will receive credit for each matching check box, irrespective
+        of whether it is checked or not.
     """
 
     def allowed_attrs(self):
         return super(MultipleChoiceQuestion, self).allowed_attrs() + (
-                ("full_match", bool),
+                ("allow_partial_credit", bool),
                 )
-
 
     def make_choice_form(self, page_context, page_data, *args, **kwargs):
         permutation = page_data["permutation"]
@@ -303,14 +307,13 @@ class MultipleChoiceQuestion(ChoiceQuestion):
                 (i,  self.process_choice_string(
                     page_context, self.page_desc.choices[src_i]))
                 for i, src_i in enumerate(permutation))
-        
+
         return MultipleChoiceAnswerForm(
             forms.TypedMultipleChoiceField(
                 choices=tuple(choices),
                 coerce=int,
                 widget=forms.CheckboxSelectMultiple()),
             *args, **kwargs)
-
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
@@ -319,42 +322,46 @@ class MultipleChoiceQuestion(ChoiceQuestion):
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
-        
+
         unpermed_idx_set = set([permutation[idx] for idx in choice])
         correct_idx_set = set(self.unpermuted_correct_indices())
 
         if unpermed_idx_set == correct_idx_set:
             correctness = 1
         else:
-            if getattr(self.page_desc, "full_match", True):
+            if not getattr(self.page_desc, "allow_partial_credit", False):
                 correctness = 0
             else:
-                if unpermed_idx_set < correct_idx_set:
-                    correctness = len(unpermed_idx_set)/len(correct_idx_set)
-                else:
-                    correctness = 0
+                correctness = (
+                        (
+                            len(self.page_desc.choices)
+                            -
+                            len(unpermed_idx_set
+                                .symmetric_difference(correct_idx_set)))
+                        /
+                        len(self.page_desc.choices))
 
         return AnswerFeedback(correctness=correctness)
-    
+
     def get_answer_html(self, page_context, idx_list, unpermute=False):
         answer_html_list = []
         if unpermute:
             idx_list = list(set(idx_list))
         for idx in idx_list:
             answer_html_list.append(
-                "<li>"
-                + self.process_choice_string(
-                    page_context,
-                    self.page_desc.choices[idx]).lstrip().replace("<p>","").replace("</p>","")
-                + "</li>"
-               )
+                    "<li>"
+                    + (self.process_choice_string(
+                        page_context,
+                        self.page_desc.choices[idx])
+                        .lstrip())
+                    + "</li>"
+                    )
         answer_html = "<ul>"+"".join(answer_html_list)+"</ul>"
         return answer_html
 
-
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx_list = self.unpermuted_correct_indices()
-        
+
         return (_("The correct answer is: %s")
                 % self.get_answer_html(page_context, corr_idx_list))
 
@@ -421,11 +428,11 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
                 choice = str(choice)
             except:
                 raise ValidationError(
-                        string_concat(
-                            "%(location)s, ",
-                            _("choice %(idx)d: unable to convert to string")
-                            )
-                            % {"location": location, "idx": choice_idx+1})
+                    string_concat(
+                        "%(location)s, ",
+                        _("choice %(idx)d: unable to convert to string")
+                        )
+                    % {"location": location, "idx": choice_idx+1})
 
             if vctx is not None:
                 validate_markup(vctx, location, choice)

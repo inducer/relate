@@ -475,7 +475,8 @@ The following page types are predefined:
 * :class:`Page` -- a page of static text
 * :class:`TextQuestion` -- a page allowing a textual answer
 * :class:`SurveyTextQuestion` -- a page allowing an ungraded textual answer
-* :class:`ChoiceQuestion` -- a multiple-choice question
+* :class:`ChoiceQuestion` -- a one-of-multiple-choice question
+* :class:`MultipleChoiceQuestion` -- a many-of-multiple-choice question
 * :class:`SurveyChoiceQuestion` -- a page allowing an ungraded multiple-choice answer
 * :class:`PythonCodeQuestion` -- an autograded code question
 * :class:`PythonCodeQuestionWithHumanTextFeedback`
@@ -513,6 +514,7 @@ The following page types are predefined:
 .. autoclass:: TextQuestion()
 .. autoclass:: SurveyTextQuestion()
 .. autoclass:: ChoiceQuestion()
+.. autoclass:: MultipleChoiceQuestion()
 .. autoclass:: SurveyChoiceQuestion()
 .. autoclass:: PythonCodeQuestion()
 .. autoclass:: PythonCodeQuestionWithHumanTextFeedback()
