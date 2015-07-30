@@ -84,7 +84,8 @@ def convert_page_inner(page):
     elif page.type == "FileUploadQuestion":
         prompt = convert_markup(page.prompt) + "\n\\vspace*{5cm}"
         return (prompt)
-    elif page.type in ["ChoiceQuestion", "SurveyChoiceQuestion"]:
+    elif page.type in ["ChoiceQuestion", "MultipleChoiceQuestion",
+            "SurveyChoiceQuestion"]:
         prompt = convert_markup(page.prompt)
 
         choices = [
