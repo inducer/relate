@@ -83,12 +83,18 @@ def local_now():
 
 
 def format_datetime_local(datetime, format='medium'):
-    """Format the output of a datetime object to a localized string"""    
+    """Format the output of a datetime object to a localized string"""
     from babel.dates import format_datetime
     from django.conf import settings
+    from django.utils.translation.trans_real import to_locale
     # See http://babel.pocoo.org/docs/api/dates/#date-and-time-formatting 
     # for customizing the output format.
-    return format_datetime(datetime, format, locale=settings.LANGUAGE_CODE)
+    try:
+        result = format_datetime(datetime, format, locale=to_locale(settings.LANGUAGE_CODE))
+    except ValueError:
+        result = format_datetime(datetime, format, locale="en_US")
+        
+    return result
 
 
 # {{{ dict_to_struct
