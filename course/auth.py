@@ -120,11 +120,11 @@ class ImpersonateForm(StyledForm):
 
         self.fields["user"] = forms.ChoiceField(
                 choices=[
+                    (
                     # Translators: information displayed when selecting user
                     # for impersonating. Customize how the name is shown, but
                     # leave email first to retain usability of form sorted by
                     # last name.
-                    (
                         u.id, _("%(user_email)s - %(user_lastname)s, "
                             "%(user_firstname)s")
                             % {
