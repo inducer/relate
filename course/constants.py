@@ -136,19 +136,42 @@ def is_expiration_mode_allowed(expmode, permissions):
 class flow_permission:  # noqa
     """
     .. attribute:: view
+
+        If present, the participant may view flow pages.
+
     .. attribute:: submit_answer
+
+        If present, the participant may submit answers to prompts provided on
+        a flow page.
+
     .. attribute:: end_session
+
+        If present, the participant may end their flow session and receive an overall
+        grade.
+
     .. attribute:: change_answer
 
-        Grants permission to change an already-graded answer,
-        which may then be graded again. Useful for
-        :class:`course.page.PythonCodeQuestion` to allow
-        iterative debugging.
+        Grants permission to change an already-graded answer, which may then be
+        graded again. Useful for :class:`course.page.PythonCodeQuestion` to
+        allow iterative debugging. Requires :attr:`submit_answer` to also be
+        present in order to be meaningful. (If a participant may not *submit*
+        answers in the first place, the ability to change answers is moot.)
 
     .. attribute:: see_correctness
 
+        If present, the participant will be shown to what extent their
+        submitted answer is correct. (See :attr:`submit_answer`.)
+
     .. attribute:: see_answer_before_submission
+
+        If present, shows the correct answer to the participant even before they
+        have submitted an answer of their own.
+
     .. attribute:: see_answer_after_submission
+
+        If present, shows the correct answer to the participant after they have
+        submitted an answer of their own.
+
     .. attribute:: set_roll_over_expiration_mode
 
         Grants permission to let a student choose to let a flow
