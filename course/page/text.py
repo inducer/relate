@@ -711,7 +711,53 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
     .. attribute:: answers
 
-        TODO
+        A list of answers. If the participant's response matches one of these
+        answers, it is considered fully correct. Each answer consists of a 'matcher'
+        and an answer template for that matcher to use. Each type of matcher
+        requires one of two syntax variants to be used. The
+        'simple/abbreviated' syntax::
+
+            - <plain>some_text
+
+        or the 'structured' syntax::
+
+            - type: float
+              value: 1.25
+              rtol: 0.2
+
+        Here are examples of all the supported simple/abbreviated matchers:
+
+        - ``<plain>some_text`` Matches exactly ``some_text``, in a
+          case-insensitive manner.
+          (i.e. capitalization does not matter)
+
+        - ``<case_sens_plain>some_text`` Matches exactly ``some_text``, in a
+          case-sensitive manner.
+          (i.e. capitalization matters)
+
+        - ``<regex>[a-z]+`` Matches anything matched by the given
+          (Python-style) regular expression that
+          follows. Case-insensitive, i.e. capitalization does not matter.
+
+        - ``<case_sens_regex>[a-z]+`` Matches anything matched by the given
+          (Python-style) regular expression that
+          follows. Case-sensitive, i.e. capitalization matters.
+
+        - ``<sym_expr>x+2*y`` Matches anything that :mod:`sympy` considers
+          equivalent to the given expression. Equivalence is determined
+          by simplifying ``user_answer - given_expr`` and testing the result
+          against 0 using :mod:`sympy`.
+
+        Here are examples of all the supported structured matchers:
+
+        - Floating point. Example::
+
+              -   type: float
+                  value: 1.25
+                  rtol: 0.2  # relative tolerance
+                  atol: 0.2  # absolute tolerance
+
+          One of ``rtol`` or ``atol`` must be given.
     """
 
     def __init__(self, vctx, location, page_desc):
