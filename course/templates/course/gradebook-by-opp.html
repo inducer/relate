@@ -72,8 +72,8 @@
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">{{ participation.user.username }}</span></a>
         </td>
         <td class="datacol">
-            {# Translators: Username displayed in gradebook by opportunity #}
             <span class="sensitive">
+            {# Translators: Username displayed in gradebook by opportunity #}
             {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
                 {{ last_name }}, {{ first_name }}
             {% endblocktrans %}

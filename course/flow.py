@@ -563,8 +563,8 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     if (points is not None
             and grading_rule.credit_percent is not None
             and grading_rule.credit_percent != 100):
-        # Translators: grade flow: calculating grade.
         comment = (
+                # Translators: grade flow: calculating grade.
                 _("Counted at %(percent).1f%% of %(point).1f points") % {
                     'percent': grading_rule.credit_percent,
                     'point': points})
