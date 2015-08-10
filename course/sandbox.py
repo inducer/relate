@@ -134,7 +134,8 @@ def view_page_sandbox(pctx):
         raise PermissionDenied(
                 ugettext("must be instructor or TA to access sandbox"))
 
-    from relate.utils import dict_to_struct
+    from course.validation import ValidationError
+    from relate.utils import dict_to_struct, Struct
     import yaml
 
     PAGE_SESSION_KEY = (  # noqa
@@ -165,6 +166,11 @@ def view_page_sandbox(pctx):
             try:
                 new_page_source = edit_form.cleaned_data["content"]
                 page_desc = dict_to_struct(yaml.load(new_page_source))
+
+                if not isinstance(page_desc, Struct):
+                    raise ValidationError("Provided page source code is not "
+                            "a dictionary. Do you need to remove a leading "
+                            "list marker ('-') or some stray indentation?")
 
                 from course.validation import validate_flow_page, ValidationContext
                 vctx = ValidationContext(
