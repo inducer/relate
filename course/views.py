@@ -43,6 +43,7 @@ from django.utils.translation import (
         pgettext_lazy,
         )
 from django.utils.functional import lazy
+from django.contrib.auth.decorators import login_required
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
@@ -1013,6 +1014,36 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             'flow_id': flow_id,
             'session': strify_session_for_exception(session)},
     })
+
+# }}}
+
+
+# {{{ ssh keypair
+
+@login_required
+def generate_ssh_keypair(request):
+    if not request.user.is_staff:
+        raise PermissionDenied(_("only staff may use this tool"))
+
+    from paramiko import RSAKey
+    key_class = RSAKey
+    prv = key_class.generate(bits=2048)
+
+    import six
+    prv_bio = six.BytesIO()
+    prv.write_private_key(prv_bio)
+
+    prv_bio_read = six.BytesIO(prv_bio.getvalue())
+
+    pub = key_class.from_private_key(prv_bio_read)
+
+    pub_bio = six.BytesIO()
+    pub_bio.write("%s %s relate-course-key" % (pub.get_name(), pub.get_base64()))
+
+    return render(request, "course/keypair.html", {
+        "public_key": prv_bio.getvalue().decode(),
+        "private_key": pub_bio.getvalue().decode(),
+        })
 
 # }}}
 

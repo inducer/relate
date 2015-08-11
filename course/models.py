@@ -171,7 +171,7 @@ class Course(models.Model):
     hidden = models.BooleanField(
             default=True,
             help_text=_("Is the course only accessible to course staff?"),
-            verbose_name=_('Hidden to student'))
+            verbose_name=_('Only visible to course staff'))
     listed = models.BooleanField(
             default=True,
             help_text=_("Should the course be listed on the main page?"),
@@ -192,7 +192,9 @@ class Course(models.Model):
             verbose_name=_('git source'))
     ssh_private_key = models.TextField(blank=True,
             help_text=_("An SSH private key to use for Git authentication. "
-            "Not needed for the sample URL above."),
+            "Not needed for the sample URL above."
+            "You may use <a href='/generate-ssh-key'>this tool</a> to generate "
+            "a key pair."),
             verbose_name=_('SSH private key'))
     course_root_path = models.CharField(max_length=200, blank=True,
             help_text=_(

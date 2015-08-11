@@ -73,6 +73,10 @@ urlpatterns = [
         course.auth.user_profile,
         name="relate-user_profile"),
 
+    url(r"^generate-ssh-key/$",
+        course.views.generate_ssh_keypair,
+        name="relate-generate_ssh_keypair"),
+
     # {{{ troubleshooting
 
     url(r'^user/impersonate/$',
