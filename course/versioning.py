@@ -117,7 +117,7 @@ class CourseCreationForm(StyledModelForm):
         fields = (
             "identifier", "hidden", "listed",
             "accepts_enrollment",
-            "git_source", "ssh_private_key",
+            "git_source", "ssh_private_key", "course_root_path",
             "course_file",
             "events_file",
             "enrollment_approval_required",
@@ -164,12 +164,19 @@ def set_up_new_course(request):
                         remote_refs = client.fetch(remote_path, repo)
                         new_sha = repo["HEAD"] = remote_refs["HEAD"]
 
+                        vrepo = repo
+                        if new_course.course_root_path:
+                            from course.content import SubdirRepoWrapper
+                            vrepo = SubdirRepoWrapper(
+                                    vrepo, new_course.course_root_path)
+
                         from course.validation import validate_course_content
                         validate_course_content(
-                                repo, new_course.course_file,
+                                vrepo, new_course.course_file,
                                 new_course.events_file, new_sha)
 
                         del repo
+                        del vrepo
 
                         new_course.valid = True
                         new_course.active_git_commit_sha = new_sha

@@ -194,6 +194,12 @@ class Course(models.Model):
             help_text=_("An SSH private key to use for Git authentication. "
             "Not needed for the sample URL above."),
             verbose_name=_('SSH private key'))
+    course_root_path = models.CharField(max_length=200, blank=True,
+            help_text=_(
+                'Subdirectory in git repository to use as '
+                'course root directory. Should not include trailing '
+                'slash.'),
+            verbose_name=_('Course root directory'))
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
