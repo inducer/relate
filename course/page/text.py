@@ -381,6 +381,14 @@ class FloatMatcher(TextAnswerMatcher):
                     ),
                 )
 
+        if (
+                not hasattr(matcher_desc, "atol")
+                and
+                not hasattr(matcher_desc, "rtol")):
+            vctx.add_warning(location,
+                    _("Float match should have either rtol or atol--"
+                        "otherwise it will match any number"))
+
     def validate(self, s):
         try:
             float(s)
