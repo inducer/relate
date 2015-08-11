@@ -630,7 +630,7 @@ class FlowPageVisit(models.Model):
                     "time": self.visit_time})
 
         if self.answer is not None:
-            # Translators: flow page visit: if an answer is 
+            # Translators: flow page visit: if an answer is
             # provided by user then append the string.
             result += unicode(_(" (with answer)"))
 
