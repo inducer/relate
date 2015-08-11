@@ -363,6 +363,7 @@ class FloatMatcher(TextAnswerMatcher):
     type = "float"
     is_case_sensitive = False
     pattern_type = "struct"
+    import math
 
     def __init__(self, vctx, location, matcher_desc):
         self.matcher_desc = matcher_desc
@@ -373,33 +374,60 @@ class FloatMatcher(TextAnswerMatcher):
                 matcher_desc,
                 required_attrs=(
                     ("type", str),
-                    ("value", (int, float)),
+                    ("value", (int, float, str)),
                     ),
                 allowed_attrs=(
-                    ("rtol", (int, float)),
-                    ("atol", (int, float)),
+                    ("rtol", (int, float, str)),
+                    ("atol", (int, float, str)),
                     ),
                 )
 
+        def validate_attr(attr):
+
+            attr_value=self.matcher_desc.__getattribute__(attr)
+
+            try:
+                eval(attr_value)
+            except:
+                raise ValidationError(
+                        string_concat(
+                            "%(location)s: ",
+                            _("attribute '%(attr)s' "
+                              "should be an instances "
+                              "of 'int', 'float' "
+                              "or a caculable string"))
+                        % {
+                            'location': location,
+                            'attr': attr})
+
+        validate_attr("value")
+
+        if hasattr(self.matcher_desc, "atol"):
+            validate_attr("atol")
+
+        if hasattr(self.matcher_desc, "rtol"):
+            validate_attr("rtol")
+
+
     def validate(self, s):
         try:
-            float(s)
+            float(eval(s))
         except:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
-        answer_float = float(s)
+        answer_float = float(eval(s))
 
         if hasattr(self.matcher_desc, "atol"):
-            if (abs(answer_float - self.matcher_desc.value)
-                    >= self.matcher_desc.atol):
+            if (abs(answer_float - eval(self.matcher_desc.value))
+                    >= eval(self.matcher_desc.atol)):
                 return 0
         if hasattr(self.matcher_desc, "rtol"):
-            if (abs(answer_float - self.matcher_desc.value)
-                    / abs(self.matcher_desc.value)
-                    >= self.matcher_desc.rtol):
+            if (abs(answer_float - eval(self.matcher_desc.value))
+                    / abs(eval(self.matcher_desc.value))
+                    >= eval(self.matcher_desc.rtol)):
                 return 0
 
         return 1
