@@ -229,10 +229,17 @@ urlpatterns = [
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +
-        "/repo-file/(?P<commit_sha>[a-f0-9]+)"
+        "/file-version/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<path>.*)$",
         course.views.get_repo_file,
         name="relate-get_repo_file"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/f"
+        "/(?P<path>.*)$",
+        course.views.get_current_repo_file,
+        name="relate-get_current_repo_file"),
 
     # }}}
 

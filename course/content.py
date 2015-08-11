@@ -290,6 +290,13 @@ class LinkFixerTreeprocessor(Treeprocessor):
                             self.commit_sha,
                             path))
 
+        elif url.startswith("repocur:"):
+            path = url[8:]
+            return self.reverse_func("relate-get_current_repo_file",
+                        args=(
+                            self.get_course_identifier(),
+                            path))
+
         elif url.strip() == "calendar:":
             return self.reverse_func("relate-view_calendar",
                         args=(self.get_course_identifier(),))
