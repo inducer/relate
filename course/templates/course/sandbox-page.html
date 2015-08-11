@@ -34,6 +34,18 @@
         </div>
       {% endif %}
 
+      {% if page_warnings %}
+        <div class="alert alert-warning">
+          {% blocktrans  trimmed %} Warnings were encountered when validating the page: {% endblocktrans %}
+
+          <ul>
+          {% for w in page_warnings %}
+            <li>{{ w.location }}: {{ w.text }}</li>
+          {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
       <div class="well">
         {% crispy edit_form %}
       </div>
