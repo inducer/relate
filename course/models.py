@@ -171,7 +171,7 @@ class Course(models.Model):
     hidden = models.BooleanField(
             default=True,
             help_text=_("Is the course only accessible to course staff?"),
-            verbose_name=_('Hidden to student'))
+            verbose_name=_('Only visible to course staff'))
     listed = models.BooleanField(
             default=True,
             help_text=_("Should the course be listed on the main page?"),
@@ -192,8 +192,16 @@ class Course(models.Model):
             verbose_name=_('git source'))
     ssh_private_key = models.TextField(blank=True,
             help_text=_("An SSH private key to use for Git authentication. "
-            "Not needed for the sample URL above."),
+            "Not needed for the sample URL above."
+            "You may use <a href='/generate-ssh-key'>this tool</a> to generate "
+            "a key pair."),
             verbose_name=_('SSH private key'))
+    course_root_path = models.CharField(max_length=200, blank=True,
+            help_text=_(
+                'Subdirectory in git repository to use as '
+                'course root directory. Should not include trailing '
+                'slash.'),
+            verbose_name=_('Course root directory'))
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
@@ -630,7 +638,7 @@ class FlowPageVisit(models.Model):
                     "time": self.visit_time})
 
         if self.answer is not None:
-            # Translators: flow page visit: if an answer is 
+            # Translators: flow page visit: if an answer is
             # provided by user then append the string.
             result += unicode(_(" (with answer)"))
 

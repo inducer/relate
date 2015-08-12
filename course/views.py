@@ -43,6 +43,7 @@ from django.utils.translation import (
         pgettext_lazy,
         )
 from django.utils.functional import lazy
+from django.contrib.auth.decorators import login_required
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
@@ -179,7 +180,7 @@ def get_media(request, course_identifier, commit_sha, media_path):
         raise http.Http404()
 
     from mimetypes import guess_type
-    content_type = guess_type(media_path)
+    content_type, _ = guess_type(media_path)
 
     return http.HttpResponse(data, content_type=content_type)
 
@@ -210,7 +211,56 @@ def get_repo_file(request, course_identifier, commit_sha, path):
         raise http.Http404()
 
     from mimetypes import guess_type
-    content_type = guess_type(path)
+    content_type, _ = guess_type(path)
+
+    return http.HttpResponse(data, content_type=content_type)
+
+
+def current_repo_file_etag_func(request, course_identifier, path):
+    course = get_object_or_404(Course, identifier=course_identifier)
+    role, participation = get_role_and_participation(
+            request, course)
+
+    from course.views import check_course_state
+    check_course_state(course, role)
+
+    from course.content import get_course_commit_sha
+    commit_sha = get_course_commit_sha(course, participation)
+
+    return ":".join([course_identifier, commit_sha, path])
+
+
+@cache_control(max_age=3600*24*31)  # cache for a month
+@http_dec.condition(etag_func=current_repo_file_etag_func)
+def get_current_repo_file(request, course_identifier, path):
+    course = get_object_or_404(Course, identifier=course_identifier)
+    role, participation = get_role_and_participation(
+            request, course)
+
+    from course.views import check_course_state
+    check_course_state(course, role)
+
+    from course.content import get_course_commit_sha
+    commit_sha = get_course_commit_sha(course, participation)
+
+    role, participation = get_role_and_participation(request, course)
+
+    repo = get_course_repo(course)
+
+    from course.content import is_repo_file_public
+    if not is_repo_file_public(repo, commit_sha, path):
+        raise PermissionDenied()
+
+    from course.content import get_repo_blob_data_cached
+
+    try:
+        data = get_repo_blob_data_cached(
+                repo, path, commit_sha.encode())
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    from mimetypes import guess_type
+    content_type, _ = guess_type(path)
 
     return http.HttpResponse(data, content_type=content_type)
 
@@ -617,7 +667,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += ("<div class='alert alert-info'>%s</div>" % 
+        form_text += ("<div class='alert alert-info'>%s</div>" %
                 (_("Creating a new session is (technically) not allowed "
                 "by course rules. Clicking 'Create Session' anyway will "
                 "override this rule.")))
@@ -964,6 +1014,36 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             'flow_id': flow_id,
             'session': strify_session_for_exception(session)},
     })
+
+# }}}
+
+
+# {{{ ssh keypair
+
+@login_required
+def generate_ssh_keypair(request):
+    if not request.user.is_staff:
+        raise PermissionDenied(_("only staff may use this tool"))
+
+    from paramiko import RSAKey
+    key_class = RSAKey
+    prv = key_class.generate(bits=2048)
+
+    import six
+    prv_bio = six.BytesIO()
+    prv.write_private_key(prv_bio)
+
+    prv_bio_read = six.BytesIO(prv_bio.getvalue())
+
+    pub = key_class.from_private_key(prv_bio_read)
+
+    pub_bio = six.BytesIO()
+    pub_bio.write("%s %s relate-course-key" % (pub.get_name(), pub.get_base64()))
+
+    return render(request, "course/keypair.html", {
+        "public_key": prv_bio.getvalue().decode(),
+        "private_key": pub_bio.getvalue().decode(),
+        })
 
 # }}}
 

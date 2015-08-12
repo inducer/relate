@@ -34,6 +34,18 @@
         </div>
       {% endif %}
 
+      {% if page_warnings %}
+        <div class="alert alert-warning">
+          {% blocktrans  trimmed %} Warnings were encountered when validating the page: {% endblocktrans %}
+
+          <ul>
+          {% for w in page_warnings %}
+            <li>{{ w.location }}: {{ w.text }}</li>
+          {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
       <div class="well">
         {% crispy edit_form %}
       </div>
@@ -77,7 +89,7 @@
     </div>
   </div>
 
-  {# {{{ codemirror resizing #}
+  {# {{{ save warning #}
 
   <script type="text/javascript">
     window.setTimeout(
@@ -102,6 +114,47 @@
               });
           }
       });
+
+  </script>
+
+  {# }}} #}
+
+  {# {{{ codemirror save -> preview #}
+
+  <script type="text/javascript">
+    function do_preview()
+    {
+      $("#submit-id-preview").click();
+    }
+
+    $("div#div_id_content div.CodeMirror").each(
+        function ()
+        {
+          var cm = this.CodeMirror;
+          cm.save = do_preview;
+        });
+
+  </script>
+
+  {# }}} #}
+
+  {# {{{ force focus onto cm #}
+
+  <script type="text/javascript">
+    // some form elements may try to autofocus (which is OK in a pure-page context, but really
+    // wrong in the sandbox)
+
+    function force_cm_focus()
+    {
+      $("div#div_id_content div.CodeMirror").each(
+          function ()
+          {
+            this.CodeMirror.focus();
+          });
+    }
+
+    setTimeout(force_cm_focus, 100);
+
   </script>
 
   {# }}} #}

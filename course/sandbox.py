@@ -147,6 +147,7 @@ def view_page_sandbox(pctx):
     page_source = pctx.request.session.get(PAGE_SESSION_KEY)
 
     page_errors = None
+    page_warnings = None
 
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
@@ -178,6 +179,8 @@ def view_page_sandbox(pctx):
                         commit_sha=pctx.course_commit_sha)
 
                 validate_flow_page(vctx, "sandbox", page_desc)
+
+                page_warnings = vctx.warnings
 
             except:
                 import sys
@@ -280,6 +283,7 @@ def view_page_sandbox(pctx):
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
             "page_errors": page_errors,
+            "page_warnings": page_warnings,
             "form": edit_form,  # to placate form.media
             "have_valid_page": True,
             "title": title,
@@ -296,6 +300,7 @@ def view_page_sandbox(pctx):
             "form": edit_form,  # to placate form.media
             "have_valid_page": False,
             "page_errors": page_errors,
+            "page_warnings": page_warnings,
         })
 
 # }}}

@@ -48,6 +48,18 @@ from yaml import load as load_yaml
 
 # {{{ repo interaction
 
+class SubdirRepoWrapper(object):
+    def __init__(self, repo, subdir):
+        self.repo = repo
+
+        # This wrapper should only get used if there is a subdir to be had.
+        assert subdir
+        self.subdir = subdir
+
+    def controldir(self):
+        return self.repo.controldir()
+
+
 def get_course_repo_path(course):
     from os.path import join
     return join(settings.GIT_ROOT, course.identifier)
@@ -55,10 +67,20 @@ def get_course_repo_path(course):
 
 def get_course_repo(course):
     from dulwich.repo import Repo
-    return Repo(get_course_repo_path(course))
+    repo = Repo(get_course_repo_path(course))
+
+    if course.course_root_path:
+        return SubdirRepoWrapper(repo, course.course_root_path)
+    else:
+        return repo
 
 
 def get_repo_blob(repo, full_name, commit_sha):
+    if isinstance(repo, SubdirRepoWrapper):
+        # full_name must be non-empty
+        full_name = repo.subdir + "/" + full_name
+        repo = repo.repo
+
     names = full_name.split("/")
 
     tree_sha = repo[commit_sha].tree
@@ -66,6 +88,10 @@ def get_repo_blob(repo, full_name, commit_sha):
 
     try:
         for name in names[:-1]:
+            if not name:
+                # tolerate empty path components (begrudgingly)
+                continue
+
             mode, blob_sha = tree[name.encode()]
             tree = repo[blob_sha]
 
@@ -288,6 +314,13 @@ class LinkFixerTreeprocessor(Treeprocessor):
                         args=(
                             self.get_course_identifier(),
                             self.commit_sha,
+                            path))
+
+        elif url.startswith("repocur:"):
+            path = url[8:]
+            return self.reverse_func("relate-get_current_repo_file",
+                        args=(
+                            self.get_course_identifier(),
                             path))
 
         elif url.strip() == "calendar:":

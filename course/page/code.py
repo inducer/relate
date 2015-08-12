@@ -508,7 +508,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             correct_code = ""
 
         import re
-        CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")
+        CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
 
         new_test_code_lines = []
         for l in test_code.split("\n"):
@@ -636,8 +636,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "test_compile_error",
                 "test_error"]:
             feedback_bits.append("".join([
-                "<p>", 
-                _("The grading code failed. Sorry about that. "
+                "<p>",
+                _(
+                    "The grading code failed. Sorry about that. "
                     "The staff has been informed, and if this problem is "
                     "due to an issue with the grading code, "
                     "it will be fixed as soon as possible. "
@@ -648,7 +649,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         elif response.result == "timeout":
             feedback_bits.append("".join([
                 "<p>",
-                _("Your code took too long to execute. The problem "
+                _(
+                    "Your code took too long to execute. The problem "
                     "specifies that your code may take at most %s seconds "
                     "to run. "
                     "It took longer than that and was aborted."
@@ -681,7 +683,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "<p>",
                 _("Here is some feedback on your code"),
                 ":"
-                "<ul>%s</ul></p>"]) %\
+                "<ul>%s</ul></p>"]) %
                         "".join(
                             "<li>%s</li>" % escape(fb_item)
                             for fb_item in response.feedback))
@@ -719,7 +721,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         "<dt>",
                         _("Figure"), "%d<dt>"]) % nr,
                     '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
-                        % (nr, mime_type, b64data)])
+                    % (nr, mime_type, b64data)])
 
             fig_lines.append("</dl>")
             bulk_feedback_bits.extend(fig_lines)
