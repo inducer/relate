@@ -359,9 +359,17 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         return self.pattern
 
 
+def float_or_sympy_evalf(s):
+    if isinstance(s, (int, float)):
+        return s
+
+    # return a float type value, expression not allowed
+    return float(parse_sympy(s).evalf())
+
+
 def _is_valid_float(s):
     try:
-        float(s)
+        float_or_sympy_evalf(s)
     except:
         return False
     else:
@@ -391,20 +399,36 @@ class FloatMatcher(TextAnswerMatcher):
                     ),
                 )
 
-        if (hasattr(matcher_desc, "rtol")
-                and not _is_valid_float(matcher_desc.rtol)):
+        try:
+            self.matcher_desc.value = \
+                    float_or_sympy_evalf(matcher_desc.value)
+        except:
             raise ValidationError(
                     string_concat(
                         "%s: ",
-                        _("rtol is not a valid float literal"))
-                    % location)
-        if (hasattr(matcher_desc, "atol")
-                and not _is_valid_float(matcher_desc.atol)):
-            raise ValidationError(
-                    string_concat(
-                        "%s: ",
-                        _("atol is not a valid float literal"))
-                    % location)
+                        _("'value' is not a valid float literal"))
+                    % location)           
+
+        if hasattr(matcher_desc, "rtol"):
+            try:
+                self.matcher_desc.rtol = \
+                        float_or_sympy_evalf(matcher_desc.rtol)
+            except:
+                raise ValidationError(
+                        string_concat(
+                            "%s: ",
+                            _("'rtol' is not a valid float literal"))
+                        % location)
+        if hasattr(matcher_desc, "atol"):
+            try:
+                self.matcher_desc.atol = \
+                        float_or_sympy_evalf(matcher_desc.atol)
+            except:
+                raise ValidationError(
+                        string_concat(
+                            "%s: ",
+                            _("'atol' is not a valid float literal"))
+                        % location)
 
         if (
                 not hasattr(matcher_desc, "atol")
@@ -418,23 +442,23 @@ class FloatMatcher(TextAnswerMatcher):
 
     def validate(self, s):
         try:
-            float(eval(s))
+            float_or_sympy_evalf(s)
         except:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
-        answer_float = float(eval(s))
+        answer_float = float_or_sympy_evalf(s)
 
         if hasattr(self.matcher_desc, "atol"):
-            if (abs(answer_float - eval(self.matcher_desc.value))
-                    >= eval(self.matcher_desc.atol)):
+            if (abs(answer_float - self.matcher_desc.value)
+                    >= self.matcher_desc.atol):
                 return 0
         if hasattr(self.matcher_desc, "rtol"):
-            if (abs(answer_float - eval(self.matcher_desc.value))
-                    / abs(eval(self.matcher_desc.value))
-                    >= eval(self.matcher_desc.rtol)):
+            if (abs(answer_float - self.matcher_desc.value)
+                    / abs(self.matcher_desc.value)
+                    >= self.matcher_desc.rtol):
                 return 0
 
         return 1
@@ -463,11 +487,11 @@ def get_matcher_class(location, matcher_type, pattern_type):
 
             if matcher_class.pattern_type != pattern_type:
                 raise ValidationError(
-                    # Translators: a "matcher" is used to determine if the
-                    # answer to text question (blank filling question) is
-                    # correct.
                     string_concat(
                         "%(location)s: ",
+                        # Translators: a "matcher" is used to determine
+                        # if the answer to text question (blank filling
+                        # question) is correct.
                         _("%(matcherclassname)s only accepts "
                             "'%(matchertype)s' patterns"))
                         % {
@@ -845,7 +869,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
-        CA_PATTERN = _("A correct answer is: '%s'.")  # noqa
+        CA_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
 
         for matcher in self.matchers:
             unspec_correct_answer_text = matcher.correct_answer_text()
