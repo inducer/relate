@@ -86,6 +86,9 @@ def get_repo_blob(repo, full_name, commit_sha):
     tree_sha = repo[commit_sha].tree
     tree = repo[tree_sha]
 
+    if not full_name:
+        return tree
+
     try:
         for name in names[:-1]:
             if not name:

@@ -93,6 +93,10 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
     as a second argument to :func:`isinstance`.
     """
 
+    if not isinstance(obj, Struct):
+        raise ValidationError(
+                "%s: not a key-value map" % location)
+
     present_attrs = set(name for name in dir(obj) if not name.startswith("_"))
 
     for required, attr_list in [
@@ -464,9 +468,10 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 _("attribute 'may_list_existing_sessions' is not present"))
 
     if hasattr(nrule, "tag_session"):
-        validate_identifier(ctx, "%s: tag_session" % location,
-                nrule.tag_session,
-                warning_only=True)
+        if nrule.tag_session is not None:
+            validate_identifier(ctx, "%s: tag_session" % location,
+                    nrule.tag_session,
+                    warning_only=True)
 
         if not (nrule.tag_session is None or nrule.tag_session in tags):
             raise ValidationError(
@@ -799,17 +804,52 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
                     "err_str": unicode(e)})
 
 
+def check_attributes_yml(vctx, repo, path, tree):
+    try:
+        _, attr_blob_sha = tree[".attributes.yml"]
+    except KeyError:
+        # no .attributes.yml here
+        pass
+    else:
+        from relate.utils import dict_to_struct
+        from yaml import load as load_yaml
+
+        att_yml = dict_to_struct(load_yaml(repo[attr_blob_sha].data))
+
+        loc = path + "/" + ".attributes.yml"
+        validate_struct(
+                vctx, loc, att_yml,
+                required_attrs=[],
+                allowed_attrs=[
+                    ("public", list),
+                ])
+
+        if hasattr(att_yml, "public"):
+            for i, l in enumerate(att_yml.public):
+                if not isinstance(l, (str, unicode)):
+                    raise ValidationError(
+                            "%s: entry %d in 'public' is not a string"
+                            % (loc, i+1))
+
+    import stat
+    for entry in tree.items():
+        if stat.S_ISDIR(entry.mode):
+            _, blob_sha = tree[entry.path]
+            subtree = repo[blob_sha]
+            check_attributes_yml(vctx, repo, path+"/"+entry.path, subtree)
+
+
 def validate_course_content(repo, course_file, events_file,
         validate_sha, course=None):
     course_desc = get_yaml_from_repo_safely(repo, course_file,
             commit_sha=validate_sha)
 
-    ctx = ValidationContext(
+    vctx = ValidationContext(
             repo=repo,
             commit_sha=validate_sha,
             course=course)
 
-    validate_course_desc_struct(ctx, course_file, course_desc)
+    validate_course_desc_struct(vctx, course_file, course_desc)
 
     try:
         from course.content import get_yaml_from_repo
@@ -819,7 +859,10 @@ def validate_course_content(repo, course_file, events_file,
         # That's OK--no calendar info.
         pass
     else:
-        validate_calendar_desc_struct(ctx, events_file, events_desc)
+        validate_calendar_desc_struct(vctx, events_file, events_desc)
+
+    check_attributes_yml(
+            vctx, repo, "", get_repo_blob(repo, "", validate_sha))
 
     try:
         flows_tree = get_repo_blob(repo, "flows", validate_sha)
@@ -847,9 +890,9 @@ def validate_course_content(repo, course_file, events_file,
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
-            validate_flow_desc(ctx, location, flow_desc)
+            validate_flow_desc(vctx, location, flow_desc)
 
-    return ctx.warnings
+    return vctx.warnings
 
 
 # {{{ validation script support
@@ -873,8 +916,9 @@ class FileSystemFakeRepo(object):
 
 
 class FileSystemFakeRepoTreeEntry(object):
-    def __init__(self, path):
+    def __init__(self, path, mode):
         self.path = path
+        self.mode = mode
 
 
 class FileSystemFakeRepoTree(object):
@@ -886,7 +930,7 @@ class FileSystemFakeRepoTree(object):
         name = join(self.root, name)
 
         if not exists(name):
-            raise ObjectDoesNotExist(name)
+            raise KeyError(name)
 
         # returns mode, "sha"
         if isdir(name):
@@ -896,7 +940,11 @@ class FileSystemFakeRepoTree(object):
 
     def items(self):
         import os
-        return [FileSystemFakeRepoTreeEntry(n) for n in os.listdir(self.root)]
+        return [
+                FileSystemFakeRepoTreeEntry(
+                    path=n,
+                    mode=os.stat(os.path.join(self.root, n)).st_mode)
+                for n in os.listdir(self.root)]
 
 
 class FileSystemFakeRepoFile(object):
