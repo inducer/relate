@@ -1391,7 +1391,7 @@ NAME_RE = re.compile(r"[^{](?=\[\[([^\[\]]*)\]\])[^}]")
 NAME_VALIDATE_RE = re.compile("^[a-zA-Z]+[a-zA-Z0-9_]{0,}$")
 
 
-class MultipleTextQuestion(TextQuestionBase, PageBaseWithValue):
+class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     """
     An auto-graded page with cloze like questions.
 
@@ -1401,7 +1401,7 @@ class MultipleTextQuestion(TextQuestionBase, PageBaseWithValue):
 
     .. attribute:: type
 
-        ``MultipleTextQuestion``
+        ``InlineMultiQuestion``
 
     .. attribute:: access_rules
 
@@ -1422,9 +1422,9 @@ class MultipleTextQuestion(TextQuestionBase, PageBaseWithValue):
         cloze question require an answer struct. The question now
         support cloze question of TextAnswer and ChoiceAnswer type.
 
-    Here is an example of MutlipleTextQuestion.
+    Here is an example of :class:`InlineMultiQuestion`::
 
-        type: MultipleTextQuestion
+        type: InlineMultiQuestion
         id: excelbasictry3
         value: 10
         prompt: |
@@ -1481,7 +1481,7 @@ class MultipleTextQuestion(TextQuestionBase, PageBaseWithValue):
     """
 
     def __init__(self, vctx, location, page_desc):
-        super(MultipleTextQuestion, self).__init__(
+        super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
 
         self.question = page_desc.question
@@ -1604,12 +1604,12 @@ class MultipleTextQuestion(TextQuestionBase, PageBaseWithValue):
             self.total_weight += self.answer_instance_list[idx].weight
 
     def required_attrs(self):
-        return super(MultipleTextQuestion, self).required_attrs() + (
+        return super(InlineMultiQuestion, self).required_attrs() + (
                 ("question", "markup"), ("answers", Struct),
                 )
 
     def allowed_attrs(self):
-        return super(MultipleTextQuestion, self).allowed_attrs() + (
+        return super(InlineMultiQuestion, self).allowed_attrs() + (
                 ("answer_comment", "markup"),
                 )
 
