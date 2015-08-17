@@ -1450,33 +1450,33 @@ class MultipleTextQuestion(TextQuestionBase, PageBaseWithValue):
                 hint: Tex can be rendered in hint, e.g. $x_1$.
                 hint_title: Hint
                 correct_answer:
-                    - <plain> BAR
-                    - <plain>bar
+                - <plain> BAR
+                - <plain>bar
 
             blank_2:
                 type: ShortAnswer
                 width: 10em
                 hint: <ol><li>with no hint title</li><li>HTML is OK</li><ol>
                 correct_answer:
-                    - <plain> "1/5"
-                    - type: float
-                      value: 1/5
-                      rtol: 0.00001
-                    - <plain> 0.2
+                - <plain> "1/5"
+                - type: float
+                  value: 1/5
+                  rtol: 0.00001
+                - <plain> 0.2
 
             choice_a:
                 type: ChoicesAnswer
                 required: True
                 choices:
-                    - ~CORRECT~ Correct
-                    - Wrong
+                - ~CORRECT~ Correct
+                - Wrong
 
             choice2:
                 type: ChoicesAnswer
                 choices:
-                    - ~CORRECT~ FOO
-                    - BAR
-                    - fOO
+                - ~CORRECT~ FOO
+                - BAR
+                - fOO
 
     """
 
