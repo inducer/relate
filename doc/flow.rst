@@ -475,6 +475,8 @@ The following page types are predefined:
 * :class:`Page` -- a page of static text
 * :class:`TextQuestion` -- a page allowing a textual answer
 * :class:`SurveyTextQuestion` -- a page allowing an ungraded textual answer
+* :class:`HumanGradedTextQuestion` -- a page allowing an textual answer graded by a human
+* :class:`InlineMultiQuestion` -- a page allowing answers to be given in-line of a block of text
 * :class:`ChoiceQuestion` -- a one-of-multiple-choice question
 * :class:`MultipleChoiceQuestion` -- a many-of-multiple-choice question
 * :class:`SurveyChoiceQuestion` -- a page allowing an ungraded multiple-choice answer
@@ -513,6 +515,8 @@ The following page types are predefined:
 .. autoclass:: Page()
 .. autoclass:: TextQuestion()
 .. autoclass:: SurveyTextQuestion()
+.. autoclass:: HumanGradedTextQuestion()
+.. autoclass:: InlineMultiQuestion()
 .. autoclass:: ChoiceQuestion()
 .. autoclass:: MultipleChoiceQuestion()
 .. autoclass:: SurveyChoiceQuestion()
