@@ -15,30 +15,23 @@ $('body').on('click', function (e) {
         MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.getAttribute("data-target")]);
     });
 });
-    
-$( window ).load(function() {
-    $('span[id^="error_1"]').each(function(){        
-        $(this).hide();
-    });
-});
 
+$('span[id^="error_1"]').each(function(){
+    $(this).hide();
+});
 
 $( document ).ready(function(){
     $('span[id^="error_1"]').each(function(){
         var error_id = $(this).attr('id');
         var the_html = $(this).html();
         var the_id = error_id.substring(8);
-        console.log(the_id);    
-        $("#" + the_id).attr("data-original-title", "").tooltip({ placement : 'bottom', title : the_html });;
-        console.log($("#" + the_id).attr("data-original-title"));
-        $(this).remove();
+        $("#" + the_id).attr("data-original-title", "").tooltip({ placement : 'bottom', title : the_html }).tooltip("show");
     });
 });
-
 </script>
 
-<style>
 
+<style>
 /*
 .tooltip.top .tooltip-inner {
     background-color:red;
