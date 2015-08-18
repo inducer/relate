@@ -30,8 +30,8 @@ from course.page.base import (
         markup_to_html)
 from course.page.static import Page
 from course.page.text import (
-        TextQuestion, SurveyTextQuestion, HumanGradedTextQuestion,
-        InlineMultiQuestion)
+        TextQuestion, SurveyTextQuestion, HumanGradedTextQuestion)
+from course.page.inline import InlineMultiQuestion
 from course.page.choice import (
         ChoiceQuestion, MultipleChoiceQuestion, SurveyChoiceQuestion)
 from course.page.code import (
