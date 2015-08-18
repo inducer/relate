@@ -41,7 +41,7 @@ from django import forms
 from django import http
 
 from relate.utils import (
-        StyledForm, local_now, as_local_time, 
+        StyledForm, local_now, as_local_time,
         format_datetime_local)
 from crispy_forms.layout import Submit
 
@@ -646,8 +646,8 @@ def reopen_session(session, force=False, suppress_log=False):
                 "was '%(complete_time)s'.") % {
                     'now': format_datetime_local(local_now()),
                     'complete_time': format_datetime_local(
-                        as_local_time(session.completion_time
-                            ))})
+                        as_local_time(session.completion_time))
+                    })
 
     session.completion_time = None
     session.save()
@@ -890,10 +890,14 @@ def will_receive_feedback(permissions):
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
+    btn_offset = "col-lg-offset-2 "
+    if getattr(form, "do_not_offset_submit_buttons", False):
+        btn_offset = ""
+
     from crispy_forms.layout import Submit
     form.helper.add_input(
             Submit("save", _("Save answer"),
-                css_class="col-lg-offset-2 relate-save-button"))
+                css_class=btn_offset+"relate-save-button"))
 
     if will_receive_feedback(permissions):
         if flow_permission.change_answer in permissions:

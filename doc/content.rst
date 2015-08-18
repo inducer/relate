@@ -49,42 +49,42 @@ Here's an example:
         applications of linear least squares, and more.
 
     rules:
-      start:
+        start:
         -
-          if_before: end_week 1
-          if_has_role: [student, ta, instructor]
-          if_has_fewer_sessions_than: 2
-          may_start_new_session: True
-          may_list_existing_sessions: True
+            if_before: end_week 1
+            if_has_role: [student, ta, instructor]
+            if_has_fewer_sessions_than: 2
+            may_start_new_session: True
+            may_list_existing_sessions: True
 
         -
-          may_start_new_session: False
-          may_list_existing_sessions: True
+            may_start_new_session: False
+            may_list_existing_sessions: True
 
-      access:
+        access:
          -
-           if_before: end_week 2
-           permissions: [view, modify, see_correctness]
-           message: "Welcome! This message is brought to you by the access rules."
+             if_before: end_week 2
+             permissions: [view, modify, see_correctness]
+             message: "Welcome! This message is brought to you by the access rules."
 
          -
-           permissions: [view, modify, see_correctness, see_answer_after_submission]
+             permissions: [view, modify, see_correctness, see_answer_after_submission]
 
-      grading:
+        grading:
         -
-          if_completed_before: end_week 1
-          grade_identifier: la_quiz
-          grade_aggregation_strategy: max_grade
-          credit_percent: 100
-
-        -
-          if_completed_before: end_week 2
-          grade_identifier: la_quiz
-          grade_aggregation_strategy: max_grade
-          credit_percent: 50
+            if_completed_before: end_week 1
+            grade_identifier: la_quiz
+            grade_aggregation_strategy: max_grade
+            credit_percent: 100
 
         -
-          grade_identifier: null
+            if_completed_before: end_week 2
+            grade_identifier: la_quiz
+            grade_aggregation_strategy: max_grade
+            credit_percent: 50
+
+        -
+            grade_identifier: null
 
      ...
 
@@ -374,19 +374,20 @@ Here's an example:
 
     chunks:
 
-      - title: "Welcome to the course"
+    -
+        title: "Welcome to the course"
         id: welcome
         rules:
-          - if_before: end_week 3
+        -   if_before: end_week 3
             weight: 100
 
-          - weight: 0
+        -   weight: 0
 
         content: |
 
-          # Welcome to the course!
+            # Welcome to the course!
 
-          Please take our introductory [quiz](flow:quiz-intro).
+            Please take our introductory [quiz](flow:quiz-intro).
 
 .. class:: CourseChunk
 

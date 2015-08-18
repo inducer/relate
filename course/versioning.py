@@ -273,9 +273,8 @@ def is_parent_commit(repo, potential_parent, child, max_history_check_size=None)
     return False
 
 
-def run_course_update_command(request, pctx, command, new_sha, may_update):
-    repo = pctx.repo
-
+def run_course_update_command(
+        request, repo, content_repo, pctx, command, new_sha, may_update):
     if command.startswith("fetch_"):
         command = command[6:]
 
@@ -310,8 +309,8 @@ def run_course_update_command(request, pctx, command, new_sha, may_update):
     from course.validation import validate_course_content, ValidationError
     try:
         warnings = validate_course_content(
-                repo, pctx.course.course_file, pctx.course.events_file, new_sha,
-                course=pctx.course)
+                content_repo, pctx.course.course_file, pctx.course.events_file,
+                new_sha, course=pctx.course)
     except ValidationError as e:
         messages.add_message(request, messages.ERROR,
                 _("Course content did not validate successfully. (%s) "
@@ -395,7 +394,14 @@ def update_course(pctx):
 
     course = pctx.course
     request = pctx.request
-    repo = pctx.repo
+    content_repo = pctx.repo
+
+    from course.content import SubdirRepoWrapper
+    if isinstance(content_repo, SubdirRepoWrapper):
+        repo = content_repo.repo
+    else:
+        repo = content_repo
+
     participation = pctx.participation
 
     previewing = bool(participation is not None
@@ -422,7 +428,8 @@ def update_course(pctx):
             new_sha = form.cleaned_data["new_sha"].encode()
 
             try:
-                run_course_update_command(request, pctx, command, new_sha,
+                run_course_update_command(
+                        request, repo, content_repo, pctx, command, new_sha,
                         may_update)
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
