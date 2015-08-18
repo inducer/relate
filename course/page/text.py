@@ -1355,13 +1355,13 @@ class ChoicesAnswer(AnswerBase):
                 for processed in self.answers_desc.choices]])
 
     def get_correctness(self, answer):
-        if answer is not None and answer >= 0:
+        if answer == "":
+            correctness = 0
+        elif int(answer) >= 0:
             if int(answer) in self.correct_indices():
                 correctness = 1
             else:
                 correctness = 0
-        else:
-            correctness = 0
         return correctness
 
     def get_form_field(self, force_required=False):
