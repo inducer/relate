@@ -39,6 +39,16 @@ class StyledForm(forms.Form):
         super(StyledForm, self).__init__(*args, **kwargs)
 
 
+class StyledInlineForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        from crispy_forms.helper import FormHelper
+        self.helper = FormHelper()
+        self.helper.form_class = "form-inline"
+        self.helper.label_class = "sr-only"
+
+        super(StyledInlineForm, self).__init__(*args, **kwargs)
+
+
 class StyledModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         from crispy_forms.helper import FormHelper

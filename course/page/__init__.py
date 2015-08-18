@@ -31,6 +31,7 @@ from course.page.base import (
 from course.page.static import Page
 from course.page.text import (
         TextQuestion, SurveyTextQuestion, HumanGradedTextQuestion)
+from course.page.inline import InlineMultiQuestion
 from course.page.choice import (
         ChoiceQuestion, MultipleChoiceQuestion, SurveyChoiceQuestion)
 from course.page.code import (
@@ -42,7 +43,10 @@ __all__ = (
         "get_auto_feedback",
         "markup_to_html",
         "Page",
+
         "TextQuestion", "SurveyTextQuestion", "HumanGradedTextQuestion",
+        "InlineMultiQuestion",
+
         "ChoiceQuestion", "SurveyChoiceQuestion", "MultipleChoiceQuestion",
         "PythonCodeQuestion", "PythonCodeQuestionWithHumanTextFeedback",
         "FileUploadQuestion",

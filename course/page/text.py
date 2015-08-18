@@ -27,10 +27,12 @@ THE SOFTWARE.
 
 from django.utils.translation import (
         ugettext_lazy as _, ugettext, string_concat)
-from course.validation import validate_struct, ValidationError
+from django.utils.safestring import mark_safe
+from course.validation import validate_struct, validate_markup, ValidationError
+from course.content import remove_prefix
 import django.forms as forms
 
-from relate.utils import StyledForm, Struct
+from relate.utils import StyledForm, Struct, StyledInlineForm
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer,
@@ -131,7 +133,8 @@ class RELATEPageValidator(object):
         try:
             page_desc = dict_to_struct(yaml.load(new_page_source))
 
-            from course.validation import validate_flow_page, ValidationContext
+            from course.validation import (
+                    validate_flow_page, ValidationContext)
             vctx = ValidationContext(
                     # FIXME
                     repo=None,
@@ -221,6 +224,13 @@ class TextAnswerMatcher(object):
         raise NotImplementedError()
 
 
+EXTRA_SPACES_RE = re.compile(r"\s\s+")
+
+
+def multiple_to_single_spaces(s):
+    return EXTRA_SPACES_RE.sub(" ", s).strip()
+
+
 class CaseSensitivePlainMatcher(TextAnswerMatcher):
     type = "case_sens_plain"
     is_case_sensitive = True
@@ -230,7 +240,10 @@ class CaseSensitivePlainMatcher(TextAnswerMatcher):
         self.pattern = pattern
 
     def grade(self, s):
-        return int(self.pattern == s)
+        return int(
+                multiple_to_single_spaces(self.pattern)
+                ==
+                multiple_to_single_spaces(s))
 
     def correct_answer_text(self):
         return self.pattern
@@ -242,7 +255,10 @@ class PlainMatcher(CaseSensitivePlainMatcher):
     pattern_type = "string"
 
     def grade(self, s):
-        return int(self.pattern.lower() == s.lower())
+        return int(
+            multiple_to_single_spaces(self.pattern.lower())
+            ==
+            multiple_to_single_spaces(s.lower()))
 
 
 class RegexMatcher(TextAnswerMatcher):
@@ -363,6 +379,11 @@ def float_or_sympy_evalf(s):
     if isinstance(s, (int, float)):
         return s
 
+    # avoiding IO error if empty input when
+    # the is field not required
+    if s == "":
+        return s
+
     # return a float type value, expression not allowed
     return float(parse_sympy(s).evalf())
 
@@ -380,7 +401,6 @@ class FloatMatcher(TextAnswerMatcher):
     type = "float"
     is_case_sensitive = False
     pattern_type = "struct"
-    import math
 
     def __init__(self, vctx, location, matcher_desc):
         self.matcher_desc = matcher_desc
@@ -407,7 +427,7 @@ class FloatMatcher(TextAnswerMatcher):
                     string_concat(
                         "%s: ",
                         _("'value' is not a valid float literal"))
-                    % location)           
+                    % location)
 
         if hasattr(matcher_desc, "rtol"):
             try:
@@ -449,6 +469,9 @@ class FloatMatcher(TextAnswerMatcher):
                     % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
+        if s == "":
+            return 0
+
         answer_float = float_or_sympy_evalf(s)
 
         if hasattr(self.matcher_desc, "atol"):

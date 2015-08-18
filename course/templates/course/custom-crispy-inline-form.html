@@ -1,0 +1,73 @@
+{% load crispy_forms_tags %}
+{% crispy form %}
+
+<script type="text/javascript">
+
+$( document ).ready(function()
+{
+    $('[data-toggle="popover"]')
+
+        // enable popovers
+        .popover({trigger: "focus"})
+
+        // render TeX in popovers
+        .on("shown.bs.popover", function () {
+            $(".popover-content").each(function() {
+                    MathJax.Hub.Queue(["Typeset", MathJax.Hub, this]);
+                });
+        });
+
+    // {{{ move form error messages into tooltips
+
+    $('span[id^="error_1"]').each(function(){
+        $(this).hide();
+    });
+
+    $('span[id^="error_1"]').each(function() {
+        var error_id = $(this).attr('id');
+        var the_html = $(this).html();
+        var the_id = error_id.substring(8);
+
+        // console.log(the_id);
+        $("#" + the_id).attr("data-original-title", "").tooltip({ placement : 'bottom', title : the_html });;
+        // console.log($("#" + the_id).attr("data-original-title"));
+
+        $(this).remove();
+    });
+
+    // }}}
+});
+
+</script>
+
+<style>
+
+/*
+.tooltip.top .tooltip-inner {
+    background-color:red;
+  }
+.tooltip.top .tooltip-arrow {
+          border-top-color: red;
+       }
+.tooltip.right .tooltip-inner {
+    background-color:blue;
+  }
+.tooltip.right .tooltip-arrow {
+          border-right-color: blue;
+       }
+*/
+.tooltip.bottom .tooltip-inner {
+    background-color:#a94442;
+  }
+.tooltip.bottom .tooltip-arrow {
+          border-bottom-color: #a94442;
+       }
+/*
+.tooltip.left .tooltip-inner {
+    background-color:yellow;
+  }
+.tooltip.left .tooltip-arrow {
+          border-left-color: yellow;
+       }
+*/
+</style>
