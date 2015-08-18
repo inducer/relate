@@ -47,9 +47,9 @@ from crispy_forms.layout import Layout, Field, HTML
 
 
 class MultipleTextAnswerForm(StyledInlineForm):
+    do_not_offset_submit_buttons = True
 
     def __init__(self, read_only, dict_for_form, *args, **kwargs):
-
         super(MultipleTextAnswerForm, self).__init__(*args, **kwargs)
         html_list = dict_for_form["HTML_list"]
         self.answer_instance_list = answer_instance_list = \
@@ -619,7 +619,8 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         # for correct render of question with more than one
         # paragraph, remove heading <p> tags and change </p>
         # to line break.
-        from course.content import markup_to_html # noqa
+
+        from course.content import markup_to_html
         remainder_html = markup_to_html(
                 course=None,
                 repo=None,
