@@ -76,7 +76,7 @@ class DulwichParamikoSSHVendor(object):
 
         channel = client.get_transport().open_session()
 
-        channel.exec_command(*command)
+        channel.exec_command(" ".join(command))
 
         from dulwich.client import ParamikoWrapper
         return ParamikoWrapper(
