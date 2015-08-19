@@ -1100,6 +1100,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 # because we were allowed this far in by the check above
 
                 feedback = None
+                messages.add_message(request, messages.ERROR,
+                        _("Failed to submit answer."))
 
                 # continue at common flow page generation below
 
