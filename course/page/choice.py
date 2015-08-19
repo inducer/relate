@@ -137,8 +137,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
             raise ValidationError(
                     string_concat(
                         "%(location)s: ",
-                        "one or more correct answer(s) "
-                        "expected, %(n_correct)d found")
+                        _("one or more correct answer(s) "
+                        "expected, %(n_correct)d found"))
                     % {
                         'location': location,
                         'n_correct': correct_choice_count})
@@ -228,7 +228,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        return (_("A correct answer is: %s")
+        return (string_concat(_("A correct answer is"), ": '%s'.")
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[corr_idx]).lstrip())
@@ -362,7 +362,7 @@ class MultipleChoiceQuestion(ChoiceQuestion):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx_list = self.unpermuted_correct_indices()
 
-        return (_("The correct answer is: %s")
+        return (string_concat(_("The correct answer is"), ": '%s'.")
                 % self.get_answer_html(page_context, corr_idx_list))
 
     def normalized_answer(self, page_context, page_data, answer_data):
