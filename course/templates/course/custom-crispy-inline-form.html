@@ -40,19 +40,13 @@ $( document ).ready(function()
                     html: true
                 })
                 .tooltip("show");
+        $('.tooltip-inner')
+                .css("background-color", "#a94442");
+        $('.tooltip-arrow')
+                .css("border-bottom-color", "#a94442");
     });
 
     // }}}
 });
 
 </script>
-
-<style>
-/* The css style of tooltip for error messages */
-.tooltip.bottom .tooltip-inner {
-    background-color:#a94442;
-}
-.tooltip.bottom .tooltip-arrow {
-    border-bottom-color: #a94442;
-}
-</style>
