@@ -47,7 +47,7 @@ from crispy_forms.layout import Layout, Field, HTML
 
 
 class MultipleTextAnswerForm(StyledInlineForm):
-    do_not_offset_submit_buttons = True
+    no_offset_labels = True
 
     def __init__(self, read_only, dict_for_form, *args, **kwargs):
         super(MultipleTextAnswerForm, self).__init__(*args, **kwargs)

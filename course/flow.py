@@ -891,7 +891,7 @@ def will_receive_feedback(permissions):
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
     btn_offset = "col-lg-offset-2 "
-    if getattr(form, "do_not_offset_submit_buttons", False):
+    if getattr(form, "no_offset_labels", False):
         btn_offset = ""
 
     from crispy_forms.layout import Submit
