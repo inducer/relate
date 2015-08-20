@@ -2,7 +2,7 @@
 
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+__copyright__ = "Copyright (C) 2015 Andreas Kloeckner, Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -129,7 +129,6 @@ class AnswerBase(object):
         self.name = name
         self.answers_desc = answers_desc
 
-        # FIXME: won't validate when required is True.
         self.required = getattr(answers_desc, "required", False)
 
     def get_correct_answer_text(self):
@@ -147,11 +146,9 @@ class AnswerBase(object):
     def get_field_layout(self):
         return Field(
                 self.name,
-                data_toggle="popover",
-                data_placement="top",
-                data_html="true",
-                title=getattr(self.answers_desc, "hint_title", ""),
-                data_content=getattr(self.answers_desc, "hint", ""),
+                use_popover="true",
+                popover_title=getattr(self.answers_desc, "hint_title", ""),
+                popover_content=getattr(self.answers_desc, "hint", ""),
                 style=self.width_str
                 )
 
@@ -619,8 +616,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         # for correct render of question with more than one
         # paragraph, remove heading <p> tags and change </p>
         # to line break.
-
-        from course.content import markup_to_html
+        from course.content import markup_to_html # noqa
         remainder_html = markup_to_html(
                 course=None,
                 repo=None,
