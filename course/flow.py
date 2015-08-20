@@ -1046,6 +1046,28 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     or flow_permission.change_answer
                     in permissions)
 
+            # {{{duplicate code
+                show_correctness = None
+                show_answer = None
+
+                shown_feedback = None
+
+                if fpctx.page.expects_answer() and answer_was_graded:
+                    show_correctness = flow_permission.see_correctness in permissions
+
+                    show_answer = flow_permission.see_answer_after_submission in permissions
+
+                elif fpctx.page.expects_answer() and not answer_was_graded:
+                    # Don't show answer yet
+                    show_answer = (
+                            flow_permission.see_answer_before_submission in permissions)
+                else:
+                    show_answer = (
+                            flow_permission.see_answer_before_submission in permissions
+                            or
+                            flow_permission.see_answer_after_submission in permissions)
+            #}}}
+
                 if fpctx.page.is_answer_gradable():
                     feedback = fpctx.page.grade(
                             page_context, page_data.data, page_visit.answer,
@@ -1081,7 +1103,13 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     return redirect("relate-finish_flow_session_view",
                             pctx.course.identifier, flow_session_id)
                 else:
-                    form = fpctx.page.make_form(
+                    if getattr(fpctx.page, "allow_feedback_form", False):
+                        if show_correctness or show_answer:
+                            form = fpctx.page.make_feedback_form(
+                                page_context, page_data.data,
+                                page_visit.answer, not may_change_answer)
+                    else:
+                        form = fpctx.page.make_form(
                             page_context, page_data.data,
                             page_visit.answer, not may_change_answer)
 
@@ -1122,6 +1150,28 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
                 and (flow_permission.submit_answer in permissions))
 
+    # {{{duplicate code
+        show_correctness = None
+        show_answer = None
+
+        shown_feedback = None
+
+        if fpctx.page.expects_answer() and answer_was_graded:
+            show_correctness = flow_permission.see_correctness in permissions
+
+            show_answer = flow_permission.see_answer_after_submission in permissions
+
+        elif fpctx.page.expects_answer() and not answer_was_graded:
+            # Don't show answer yet
+            show_answer = (
+                    flow_permission.see_answer_before_submission in permissions)
+        else:
+            show_answer = (
+                    flow_permission.see_answer_before_submission in permissions
+                    or
+                    flow_permission.see_answer_after_submission in permissions)
+    #}}}
+
         if fpctx.page.expects_answer():
             if fpctx.prev_answer_visit is not None:
                 answer_data = fpctx.prev_answer_visit.answer
@@ -1137,7 +1187,13 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             else:
                 feedback = None
 
-            form = fpctx.page.make_form(
+            if getattr(fpctx.page, "allow_feedback_form", False):
+                if show_correctness or show_answer:
+                    form = fpctx.page.make_feedback_form(
+                        page_context, page_data.data,
+                        answer_data, not may_change_answer)
+            else:
+                form = fpctx.page.make_form(
                     page_context, page_data.data,
                     answer_data, not may_change_answer)
         else:

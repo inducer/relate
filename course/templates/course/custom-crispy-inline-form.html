@@ -3,8 +3,8 @@
 
 <script type="text/javascript">
 
-$( document ).ready(function()
-{
+//$( document ).ready(function()
+//{
     $('[use-popover="true"]').each(function(){
 
         // enable popovers
@@ -47,6 +47,19 @@ $( document ).ready(function()
     });
 
     // }}}
-});
+//});
 
+    $('[correctness="1"]').parent("div")
+            .addClass("has-success")
+            .addClass("has-feedback")
+            .append('<span class="glyphicon glyphicon-ok \
+                    form-control-feedback" aria-hidden="true">\
+                    </span>');
+
+    $('[correctness="0"]').parent("div")
+            .addClass("has-error")
+            .addClass("has-feedback")
+            .append('<span class="glyphicon glyphicon-remove \
+                    form-control-feedback" aria-hidden="true">\
+                    </span>');
 </script>
