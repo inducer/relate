@@ -46,11 +46,11 @@ import re
 from crispy_forms.layout import Layout, Field, HTML
 
 
-class MultipleTextAnswerForm(StyledInlineForm):
+class InlineMultiQuestionForm(StyledInlineForm):
     no_offset_labels = True
 
     def __init__(self, read_only, dict_for_form, *args, **kwargs):
-        super(MultipleTextAnswerForm, self).__init__(*args, **kwargs)
+        super(InlineMultiQuestionForm, self).__init__(*args, **kwargs)
         html_list = dict_for_form["HTML_list"]
         self.answer_instance_list = answer_instance_list = \
                 dict_for_form["answer_instance_list"]
@@ -87,20 +87,43 @@ class MultipleTextAnswerForm(StyledInlineForm):
                     self.helper.layout.extend([
                             answer_instance_list[idx].get_field_layout(
                                 correctness=correctness_list[idx])])
-
+                if read_only:
+                    if isinstance(self.fields[field_name].widget, 
+                            forms.widgets.TextInput):
+                        self.fields[field_name].widget.attrs['readonly'] \
+                                = "readonly"
+                    elif isinstance(self.fields[field_name].widget, 
+                            forms.widgets.Select):
+                        self.fields[field_name].widget.attrs['disabled'] \
+                                = "disabled"
         self.helper.layout.extend([HTML("<br/><br/>")])
 
     def clean(self):
-        cleaned_data = super(MultipleTextAnswerForm, self).clean()
+        cleaned_data = super(InlineMultiQuestionForm, self).clean()
         answer_name_list = [answer_instance.name
                 for answer_instance in self.answer_instance_list]
 
         for answer in cleaned_data.keys():
             idx = answer_name_list.index(answer)
             instance_idx = self.answer_instance_list[idx]
+            field_name_idx = instance_idx.name
+            print field_name_idx
             if hasattr(instance_idx, "matchers"):
                 for validator in instance_idx.matchers:
-                    validator.validate(cleaned_data[answer])
+                    try:
+                        validator.validate(cleaned_data[answer], 
+                                validate_only=True)
+                    except:
+                        from traceback import print_exc
+                        print_exc()
+
+                        import sys
+                        tp, e, _ = sys.exc_info()
+
+                        self.add_error(field_name_idx,
+                                       "%(err_type)s: %(err_str)s" % {
+                                            "err_type": tp.__name__,
+                                            "err_str": str(e)})
 
 
 def get_question_class(location, q_type, answers_desc):
@@ -566,10 +589,9 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
 
-        self.question = page_desc.question
         self.embeded_wrapped_name_list = WRAPPED_NAME_RE.findall(
-                self.question)
-        self.embeded_name_list = NAME_RE.findall(self.question)
+                page_desc.question)
+        self.embeded_name_list = NAME_RE.findall(page_desc.question)
 
         from relate.utils import struct_to_dict
         answers_name_list = struct_to_dict(page_desc.answers).keys()
@@ -647,11 +669,11 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         # paragraph, remove heading <p> tags and change </p>
         # to line break.
         from course.content import markup_to_html # noqa
-        remainder_html = markup_to_html(
+        self.question = remainder_html = markup_to_html(
                 course=None,
                 repo=None,
                 commit_sha=None,
-                text=self.question,
+                text=page_desc.question,
                 ).replace("<p>", "").replace("</p>", "<br/>")
 
         self.html_list = []
@@ -721,15 +743,15 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 dict_feedback_form["correctness_list"] = correctness_list
 
             answer = answer_data["answer"]
-            form = MultipleTextAnswerForm(
+            form = InlineMultiQuestionForm(
                     read_only,
                     dict_feedback_form,
                     answer)
         else:
             answer = None
-            form = MultipleTextAnswerForm(
+            form = InlineMultiQuestionForm(
                     read_only,
-                    self.dict_for_form())
+                    self.get_dict_for_form())
 
         return form
 
@@ -739,13 +761,13 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         if answer_data is not None:
             answer = answer_data["answer"]
-            form = MultipleTextAnswerForm(
+            form = InlineMultiQuestionForm(
                     read_only,
                     self.get_dict_for_form(),
                     answer)
         else:
             answer = None
-            form = MultipleTextAnswerForm(
+            form = InlineMultiQuestionForm(
                     read_only,
                     self.get_dict_for_form())
 
@@ -754,7 +776,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     def post_form(self, page_context, page_data, post_data, files_data):
         read_only = False
 
-        return MultipleTextAnswerForm(
+        return InlineMultiQuestionForm(
                 read_only,
                 self.get_dict_for_form(),
                 post_data, files_data)
