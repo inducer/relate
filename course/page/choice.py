@@ -168,7 +168,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         return {"permutation": perm}
 
-    def make_choice_form(self, page_context, page_data, *args, **kwargs):
+    def make_choice_form(
+            self, page_context, page_data, page_behavior, *args, **kwargs):
         permutation = page_data["permutation"]
 
         choices = tuple(
@@ -176,29 +177,34 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                     page_context, self.page_desc.choices[src_i]))
                 for i, src_i in enumerate(permutation))
 
-        return ChoiceAnswerForm(
+        form = ChoiceAnswerForm(
             forms.TypedChoiceField(
                 choices=tuple(choices),
                 coerce=int,
                 widget=forms.RadioSelect()),
             *args, **kwargs)
 
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        if answer_data is not None:
-            form_data = {"choice": answer_data["choice"]}
-            form = self.make_choice_form(page_context, page_data, form_data)
-        else:
-            form = self.make_choice_form(page_context, page_data)
-
-        if answer_is_final:
+        if not page_behavior.may_change_answer:
             form.fields['choice'].widget.attrs['disabled'] = True
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def make_form(self, page_context, page_data,
+            answer_data, page_behavior):
+        if answer_data is not None:
+            form_data = {"choice": answer_data["choice"]}
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior, form_data)
+        else:
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior)
+
+        return form
+
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         return self.make_choice_form(
-                    page_context, page_data, post_data, files_data)
+                    page_context, page_data, page_behavior, post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"choice": form.cleaned_data["choice"]}
@@ -300,7 +306,8 @@ class MultipleChoiceQuestion(ChoiceQuestion):
                 ("allow_partial_credit", bool),
                 )
 
-    def make_choice_form(self, page_context, page_data, *args, **kwargs):
+    def make_choice_form(self, page_context, page_data, page_behavior,
+            *args, **kwargs):
         permutation = page_data["permutation"]
 
         choices = tuple(
@@ -308,12 +315,17 @@ class MultipleChoiceQuestion(ChoiceQuestion):
                     page_context, self.page_desc.choices[src_i]))
                 for i, src_i in enumerate(permutation))
 
-        return MultipleChoiceAnswerForm(
+        form = MultipleChoiceAnswerForm(
             forms.TypedMultipleChoiceField(
                 choices=tuple(choices),
                 coerce=int,
                 widget=forms.CheckboxSelectMultiple()),
             *args, **kwargs)
+
+        if not page_behavior.may_change_answer:
+            form.fields['choice'].widget.attrs['disabled'] = True
+
+        return form
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
@@ -460,36 +472,42 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def make_choice_form(self, page_context, page_data, *args, **kwargs):
+    def make_choice_form(self, page_context, page_data, page_behavior,
+            *args, **kwargs):
 
         choices = tuple(
                 (i,  self.process_choice_string(
                     page_context, self.page_desc.choices[i]))
                 for i in range(len(self.page_desc.choices)))
 
-        return ChoiceAnswerForm(
+        form = ChoiceAnswerForm(
             forms.TypedChoiceField(
                 choices=tuple(choices),
                 coerce=int,
                 widget=forms.RadioSelect()),
             *args, **kwargs)
 
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        if answer_data is not None:
-            form_data = {"choice": answer_data["choice"]}
-            form = self.make_choice_form(page_context, page_data, form_data)
-        else:
-            form = self.make_choice_form(page_context, page_data)
-
-        if answer_is_final:
+        if not page_behavior.may_change_answer:
             form.fields['choice'].widget.attrs['disabled'] = True
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def make_form(self, page_context, page_data,
+            answer_data, page_behavior):
+        if answer_data is not None:
+            form_data = {"choice": answer_data["choice"]}
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior, form_data)
+        else:
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior)
+
+        return form
+
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         return self.make_choice_form(
-                    page_context, page_data, post_data, files_data)
+                    page_context, page_data, page_behavior, post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"choice": form.cleaned_data["choice"]}

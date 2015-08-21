@@ -469,28 +469,29 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     })
 
     def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
+            answer_data, page_behavior):
 
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
             form = PythonCodeForm(
-                    answer_is_final,
+                    not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     answer)
         else:
             answer = None
             form = PythonCodeForm(
-                    answer_is_final,
+                    not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     )
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def process_form_post(
+            self, page_context, page_data, post_data, files_data, page_behavior):
         return PythonCodeForm(
-                False,
+                not page_behavior.may_change_answer,
                 get_editor_interaction_mode(page_context),
                 self._initial_code(),
                 post_data, files_data)
