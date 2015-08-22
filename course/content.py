@@ -853,8 +853,17 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
         course_identifier, flow_desc, commit_sha):
     from course.models import FlowPageData
 
+    def remove_page(fpd):
+        if fpd.ordinal is not None:
+            fpd.ordinal = None
+            fpd.save()
+
+    desc_group_ids = []
+
     ordinal = [0]
     for grp in flow_desc.groups:
+        desc_group_ids.append(grp.id)
+
         shuffle = getattr(grp, "shuffle", False)
         max_page_count = getattr(grp, "max_page_count", None)
 
@@ -901,11 +910,6 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
             ordinal[0] += 1
             available_page_ids.remove(fpd.page_id)
             group_pages.append(fpd)
-
-        def remove_page(fpd):
-            if fpd.ordinal is not None:
-                fpd.ordinal = None
-                fpd.save()
 
         # }}}
 
@@ -972,6 +976,19 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
             for fpd in id_to_fpd.values():
                 remove_page(fpd)
+
+    # {{{ remove pages orphaned because of group renames
+
+    for fpd in (
+            FlowPageData.objects
+            .filter(
+                flow_session=flow_session,
+                ordinal__isnull=False)
+            .exclude(group_id__in=desc_group_ids)
+            ):
+        remove_page(fpd)
+
+    # }}}
 
     if flow_session.page_count != ordinal[0]:
         flow_session.page_count = ordinal[0]
