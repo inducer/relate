@@ -27,12 +27,10 @@ THE SOFTWARE.
 
 from django.utils.translation import (
         ugettext_lazy as _, ugettext, string_concat)
-from django.utils.safestring import mark_safe
-from course.validation import validate_struct, validate_markup, ValidationError
-from course.content import remove_prefix
+from course.validation import validate_struct, ValidationError
 import django.forms as forms
 
-from relate.utils import StyledForm, Struct, StyledInlineForm
+from relate.utils import StyledForm, Struct
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer,
@@ -147,7 +145,6 @@ class RELATEPageValidator(object):
                         % self.validator_desc.page_type)
 
         except:
-            import sys
             tp, e, _ = sys.exc_info()
 
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
@@ -649,8 +646,8 @@ class TextQuestionBase(PageBaseWithTitle):
         return markup_to_html(page_context, self.page_desc.prompt)
 
     def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        read_only = answer_is_final
+            answer_data, page_behavior):
+        read_only = not page_behavior.may_change_answer
 
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
@@ -669,10 +666,10 @@ class TextQuestionBase(PageBaseWithTitle):
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
-        read_only = False
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         return TextAnswerForm(
-                read_only,
+                not page_behavior.may_change_answer,
                 get_editor_interaction_mode(page_context),
                 self.get_validators(), post_data, files_data,
                 widget_type=getattr(self.page_desc, "widget", None))

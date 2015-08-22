@@ -149,8 +149,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                     % {
                         'location': location,
                         'presenttype': ", ".join(
-                            set(page_desc.mime_types)\
-                                    - set(self.ALLOWED_MIME_TYPES))})
+                            set(page_desc.mime_types)
+                            - set(self.ALLOWED_MIME_TYPES))})
 
         if not hasattr(page_desc, "value"):
             vctx.add_warning(location, _("upload question does not have "
@@ -192,12 +192,13 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 }
 
     def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
+            answer_data, page_behavior):
         form = FileUploadForm(
                 self.page_desc.maximum_megabytes, self.page_desc.mime_types)
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         form = FileUploadForm(
                 self.page_desc.maximum_megabytes, self.page_desc.mime_types,
                 post_data, files_data)

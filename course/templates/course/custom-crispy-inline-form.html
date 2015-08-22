@@ -2,9 +2,8 @@
 {% crispy form %}
 
 <script type="text/javascript">
+    
 
-$( document ).ready(function()
-{
     $('[use-popover="true"]').each(function(){
 
         // enable popovers
@@ -27,26 +26,55 @@ $( document ).ready(function()
     // {{{ move form error messages into tooltips
 
     $('span[id^="error_1"]').each(function(){
-        $(this).hide();
 
-        var error_id = $(this).attr('id');
-        var the_html = $(this).html();
-        var the_id = error_id.substring(8);
+        var all_error_block = $(this).siblings('.help-block').andSelf();
+        all_error_block.hide();
+        
+        if(all_error_block.length > 1){
+            var error_message = "";
+            $(all_error_block).each(function(){
+                error_message += "<li align='left'>" + $(this).html() + "</li>";
+                });
+                error_message = "<ul>" + error_message + "</ul>";
+            }
+            else{
+                error_message = $(all_error_block[0]).html();
+            };
+            $(this).siblings('[use-popover]')
+                    .tooltip({
+                        placement : 'bottom',
+                        title : error_message,
+                        html: true
+                    });
+        });
 
-        $("#" + the_id)
-                .tooltip({
-                    placement : 'bottom',
-                    title : the_html, 
-                    html: true
-                })
-                .tooltip("show");
-        $('.tooltip-inner')
-                .css("background-color", "#a94442");
-        $('.tooltip-arrow')
-                .css("border-bottom-color", "#a94442");
+    $('.form-inline').ready(function(){
+        MathJax.Hub.Register.StartupHook("End", function() {
+
+            $('span[id^="error_1"]').each(function(){
+                $(this).siblings('[use-popover]').tooltip("show");
+
+            $('.tooltip-inner')
+                    .css("background-color", "#a94442");
+            $('.tooltip-arrow')
+                    .css("border-bottom-color", "#a94442");
+            });
+        });
     });
 
     // }}}
-});
 
+    $('[correctness="1"]').parent("div")
+            .addClass("has-success")
+            .addClass("has-feedback")
+            .append('<span class="glyphicon glyphicon-ok \
+                    form-control-feedback" aria-hidden="true">\
+                    </span>');
+
+    $('[correctness="0"]').parent("div")
+            .addClass("has-error")
+            .addClass("has-feedback")
+            .append('<span class="glyphicon glyphicon-remove \
+                    form-control-feedback" aria-hidden="true">\
+                    </span>');
 </script>

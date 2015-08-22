@@ -530,6 +530,7 @@ Definining your own page types
 ------------------------------
 
 .. autoclass:: PageContext
+.. autoclass:: PageBehavior
 .. autofunction:: get_auto_feedback
 .. autoclass:: AnswerFeedback
 .. autoclass:: PageBase

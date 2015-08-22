@@ -43,6 +43,7 @@ from django.utils.translation import (
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
+
 class PageContext(object):
     """
     .. attribute:: course
@@ -61,6 +62,26 @@ class PageContext(object):
         self.repo = repo
         self.commit_sha = commit_sha
         self.flow_session = flow_session
+
+
+class PageBehavior(object):
+    """
+    .. attribute:: show_correctness
+    .. attribute:: show_answer
+    .. attribute:: may_change_answer
+    """
+
+    def __init__(self, show_correctness, show_answer, may_change_answer):
+        self.show_correctness = show_correctness
+        self.show_answer = show_answer
+        self.may_change_answer = may_change_answer
+
+    def __bool__(self):
+        # This is for compatiblity: page_behavior used to be a bool argument
+        # 'answer_is_final'.
+        return not self.may_change_answer
+
+    __nonzero__ = __bool__
 
 
 def markup_to_html(page_context, text):
@@ -194,7 +215,7 @@ class PageBase(object):
 
     .. automethod:: answer_data
     .. automethod:: make_form
-    .. automethod:: post_form
+    .. automethod:: process_form_post
     .. automethod:: form_to_html
 
     .. rubric:: Grader Input
@@ -351,32 +372,46 @@ class PageBase(object):
         raise NotImplementedError()
 
     def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
+            answer_data, page_behavior):
         """
         :arg answer_data: value returned by :meth:`answer_data`.
              May be *None*.
+        :arg page_behavior: an instance of :class:`PageBehavior`
         :return:
             a :class:`django.forms.Form` instance with *answer_data* prepopulated.
-            If *answer_is_final* is *True*, the form should be read-only.
+            If ``page_behavior.may_change_answer`` is *False*, the form should
+            be read-only.
         """
 
         raise NotImplementedError()
 
     def post_form(self, page_context, page_data, post_data, files_data):
+        raise NotImplementedError()
+
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
+        :arg page_behavior: an instance of :class:`PageBehavior`
         :return: a
             :class:`django.forms.Form` instance with *answer_data* prepopulated.
-            If *answer_is_final* is *True*, the form should be read-only.
+            If ``page_behavior.may_change_answer`` is *False*, the form should
+            be read-only.
         """
-        raise NotImplementedError()
+
+        from warnings import warn
+        warn("%s is using the post_form compatiblity hook, which "
+                "is deprecated." % type(self).__name__,
+                DeprecationWarning)
+
+        return self.post_form(page_context, page_data, post_data, files_data)
 
     def form_to_html(self, request, page_context, form, answer_data):
         """Returns an HTML rendering of *form*."""
 
         from django.template import loader, RequestContext
-        from django import VERSION as django_version
+        from django import VERSION as django_version  # noqa
 
         if django_version >= (1, 9):
             return loader.render_to_string(
@@ -563,8 +598,8 @@ class HumanTextFeedbackForm(StyledForm):
                     min_value=0,
                     max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
                     help_text=_("Grade assigned, as points out of %.1f. "
-                    "Fill out either this or 'grade percent'.")\
-                            % point_value,
+                    "Fill out either this or 'grade percent'.")
+                    % point_value,
                     required=False,
 
                     # avoid unfortunate scroll wheel accidents reported by graders

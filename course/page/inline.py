@@ -46,14 +46,19 @@ import re
 from crispy_forms.layout import Layout, Field, HTML
 
 
-class MultipleTextAnswerForm(StyledInlineForm):
+class InlineMultiQuestionForm(StyledInlineForm):
     no_offset_labels = True
 
     def __init__(self, read_only, dict_for_form, *args, **kwargs):
-        super(MultipleTextAnswerForm, self).__init__(*args, **kwargs)
+        super(InlineMultiQuestionForm, self).__init__(*args, **kwargs)
         html_list = dict_for_form["HTML_list"]
         self.answer_instance_list = answer_instance_list = \
                 dict_for_form["answer_instance_list"]
+
+        correctness_list = None
+        if "correctness_list" in dict_for_form:
+            correctness_list = dict_for_form["correctness_list"]
+
         self.helper.layout = Layout()
 
         # for question with only one field, the field is forced
@@ -75,22 +80,43 @@ class MultipleTextAnswerForm(StyledInlineForm):
                 field_name = answer_instance_list[idx].name
                 self.fields[field_name] = answer_instance_list[idx] \
                         .get_form_field(force_required=force_required)
-                self.helper.layout.extend([
-                        answer_instance_list[idx].get_field_layout()])
-
+                if correctness_list is None:
+                    self.helper.layout.extend([
+                            answer_instance_list[idx].get_field_layout()])
+                else:
+                    self.helper.layout.extend([
+                            answer_instance_list[idx].get_field_layout(
+                                correctness=correctness_list[idx])])
+                if read_only:
+                    if isinstance(self.fields[field_name].widget,
+                            forms.widgets.TextInput):
+                        self.fields[field_name].widget.attrs['readonly'] \
+                                = "readonly"
+                    elif isinstance(self.fields[field_name].widget,
+                            forms.widgets.Select):
+                        self.fields[field_name].widget.attrs['disabled'] \
+                                = "disabled"
         self.helper.layout.extend([HTML("<br/><br/>")])
 
     def clean(self):
-        cleaned_data = super(MultipleTextAnswerForm, self).clean()
+        cleaned_data = super(InlineMultiQuestionForm, self).clean()
         answer_name_list = [answer_instance.name
                 for answer_instance in self.answer_instance_list]
 
         for answer in cleaned_data.keys():
             idx = answer_name_list.index(answer)
             instance_idx = self.answer_instance_list[idx]
+            field_name_idx = instance_idx.name
             if hasattr(instance_idx, "matchers"):
                 for validator in instance_idx.matchers:
-                    validator.validate(cleaned_data[answer])
+                    if answer in cleaned_data:
+                        try:
+                            validator.validate(cleaned_data[answer])
+                        except:
+                            import sys
+                            tp, e, _ = sys.exc_info()
+
+                            self.add_error(field_name_idx, e)
 
 
 def get_question_class(location, q_type, answers_desc):
@@ -143,14 +169,24 @@ class AnswerBase(object):
         else:
             return 0
 
-    def get_field_layout(self):
-        return Field(
-                self.name,
-                use_popover="true",
-                popover_title=getattr(self.answers_desc, "hint_title", ""),
-                popover_content=getattr(self.answers_desc, "hint", ""),
-                style=self.width_str
-                )
+    def get_field_layout(self, correctness=None):
+        if correctness is None:
+            return Field(
+                    self.name,
+                    use_popover="true",
+                    popover_title=getattr(self.answers_desc, "hint_title", ""),
+                    popover_content=getattr(self.answers_desc, "hint", ""),
+                    style=self.get_width_str()
+                    )
+        else:
+            return Field(
+                    self.name,
+                    use_popover="true",
+                    popover_title=getattr(self.answers_desc, "hint_title", ""),
+                    popover_content=getattr(self.answers_desc, "hint", ""),
+                    style=self.get_width_str(self.width + 2),
+                    correctness=correctness
+                    )
 
     def get_form_field(self):
         raise NotImplementedError()
@@ -258,11 +294,13 @@ class ShortAnswer(AnswerBase):
 
         parsed_length = self.get_length_attr_em(location, self.width)
 
+        self.width = 0
         if parsed_length is not None:
-            self.width_str = "width: " + str(
-                    max(MINIMUN_WIDTH, parsed_length)) + "em"
+            self.width = max(MINIMUN_WIDTH, parsed_length)
         else:
-            self.width_str = "width: " + str(DEFAULT_WIDTH) + "em"
+            self.width = DEFAULT_WIDTH
+
+        self.width_str = "width: " + str(self.width) + "em"
 
         self.matchers = [
                 parse_matcher(
@@ -279,6 +317,9 @@ class ShortAnswer(AnswerBase):
                         _("no matcher is able to provide a plain-text "
                         "correct answer"))
                     % location)
+
+    def get_width_str(self, opt_width=0):
+        return "width: " + str(max(self.width, opt_width)) + "em"
 
     def get_correct_answer_text(self):
         for matcher in self.matchers:
@@ -387,7 +428,10 @@ class ChoicesAnswer(AnswerBase):
                         'n_correct': correct_choice_count})
 
         self.hint = getattr(self.answers_desc, "hint", "")
-        self.width_str = ""
+        self.width = 0
+
+    def get_width_str(self, opt_width=0):
+        return None
 
     def correct_indices(self):
         result = []
@@ -536,10 +580,9 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
 
-        self.question = page_desc.question
         self.embeded_wrapped_name_list = WRAPPED_NAME_RE.findall(
-                self.question)
-        self.embeded_name_list = NAME_RE.findall(self.question)
+                page_desc.question)
+        self.embeded_name_list = NAME_RE.findall(page_desc.question)
 
         from relate.utils import struct_to_dict
         answers_name_list = struct_to_dict(page_desc.answers).keys()
@@ -616,12 +659,12 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         # for correct render of question with more than one
         # paragraph, remove heading <p> tags and change </p>
         # to line break.
-        from course.content import markup_to_html # noqa
-        remainder_html = markup_to_html(
+        from course.content import markup_to_html  # noqa
+        self.question = remainder_html = markup_to_html(
                 course=None,
                 repo=None,
                 commit_sha=None,
-                text=self.question,
+                text=page_desc.question,
                 ).replace("<p>", "").replace("</p>", "<br/>")
 
         self.html_list = []
@@ -674,28 +717,40 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 "answer_instance_list": self.answer_instance_list,
                }
 
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        read_only = answer_is_final
+    def make_form(self, page_context, page_data, answer_data, page_behavior):
+        read_only = not page_behavior.may_change_answer
 
         if answer_data is not None:
+            dict_feedback_form = self.get_dict_for_form()
+
             answer = answer_data["answer"]
-            form = MultipleTextAnswerForm(
+            if page_behavior.show_correctness:
+                correctness_list = []
+
+                for answer_instance in self.answer_instance_list:
+                    if answer[answer_instance.name] is not None:
+                        correctness_list.append(answer_instance.get_correctness(
+                                answer[answer_instance.name]))
+
+                    dict_feedback_form["correctness_list"] = correctness_list
+
+            form = InlineMultiQuestionForm(
                     read_only,
-                    self.get_dict_for_form(),
+                    dict_feedback_form,
                     answer)
         else:
             answer = None
-            form = MultipleTextAnswerForm(
+            form = InlineMultiQuestionForm(
                     read_only,
                     self.get_dict_for_form())
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
-        read_only = False
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
+        read_only = not page_behavior.may_change_answer
 
-        return MultipleTextAnswerForm(
+        return InlineMultiQuestionForm(
                 read_only,
                 self.get_dict_for_form(),
                 post_data, files_data)
