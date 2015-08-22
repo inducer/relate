@@ -248,9 +248,16 @@ def view_page_sandbox(pctx):
         page_form_html = None
 
         if page.expects_answer():
+            from course.page.base import PageBehavior
+            page_behavior = PageBehavior(
+                    show_correctness=True,
+                    show_answer=True,
+                    may_change_answer=True)
+
             if request.method == "POST" and not is_preview_post:
-                page_form = page.post_form(page_context, page_data,
-                        request.POST, request.FILES)
+                page_form = page.process_form_post(page_context, page_data,
+                        request.POST, request.FILES,
+                        page_behavior)
 
                 if page_form.is_valid():
 
@@ -265,7 +272,7 @@ def view_page_sandbox(pctx):
 
             else:
                 page_form = page.make_form(page_context, page_data,
-                        answer_data, answer_is_final=False)
+                        answer_data, page_behavior)
 
             if page_form is not None:
                 page_form.helper.add_input(

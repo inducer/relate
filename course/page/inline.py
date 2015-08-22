@@ -88,11 +88,11 @@ class InlineMultiQuestionForm(StyledInlineForm):
                             answer_instance_list[idx].get_field_layout(
                                 correctness=correctness_list[idx])])
                 if read_only:
-                    if isinstance(self.fields[field_name].widget, 
+                    if isinstance(self.fields[field_name].widget,
                             forms.widgets.TextInput):
                         self.fields[field_name].widget.attrs['readonly'] \
                                 = "readonly"
-                    elif isinstance(self.fields[field_name].widget, 
+                    elif isinstance(self.fields[field_name].widget,
                             forms.widgets.Select):
                         self.fields[field_name].widget.attrs['disabled'] \
                                 = "disabled"
@@ -107,11 +107,10 @@ class InlineMultiQuestionForm(StyledInlineForm):
             idx = answer_name_list.index(answer)
             instance_idx = self.answer_instance_list[idx]
             field_name_idx = instance_idx.name
-            print field_name_idx
             if hasattr(instance_idx, "matchers"):
                 for validator in instance_idx.matchers:
                     try:
-                        validator.validate(cleaned_data[answer], 
+                        validator.validate(cleaned_data[answer],
                                 validate_only=True)
                     except:
                         from traceback import print_exc
@@ -583,8 +582,6 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
     """
 
-    allow_feedback_form = True
-
     def __init__(self, vctx, location, page_desc):
         super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
@@ -668,7 +665,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         # for correct render of question with more than one
         # paragraph, remove heading <p> tags and change </p>
         # to line break.
-        from course.content import markup_to_html # noqa
+        from course.content import markup_to_html  # noqa
         self.question = remainder_html = markup_to_html(
                 course=None,
                 repo=None,
@@ -726,23 +723,23 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 "answer_instance_list": self.answer_instance_list,
                }
 
-    def make_feedback_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        read_only = answer_is_final
+    def make_form(self, page_context, page_data, answer_data, page_behavior):
+        read_only = not page_behavior.may_change_answer
 
         if answer_data is not None:
             dict_feedback_form = self.get_dict_for_form()
-            answer_dict = answer_data["answer"]
-            correctness_list = []
-
-            for answer_instance in self.answer_instance_list:
-                if answer_dict[answer_instance.name] is not None:
-                    correctness_list.append(answer_instance.get_correctness(
-                            answer_dict[answer_instance.name]))
-
-                dict_feedback_form["correctness_list"] = correctness_list
 
             answer = answer_data["answer"]
+            if page_behavior.show_correctness:
+                correctness_list = []
+
+                for answer_instance in self.answer_instance_list:
+                    if answer[answer_instance.name] is not None:
+                        correctness_list.append(answer_instance.get_correctness(
+                                answer[answer_instance.name]))
+
+                    dict_feedback_form["correctness_list"] = correctness_list
+
             form = InlineMultiQuestionForm(
                     read_only,
                     dict_feedback_form,
@@ -755,26 +752,9 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         return form
 
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        read_only = answer_is_final
-
-        if answer_data is not None:
-            answer = answer_data["answer"]
-            form = InlineMultiQuestionForm(
-                    read_only,
-                    self.get_dict_for_form(),
-                    answer)
-        else:
-            answer = None
-            form = InlineMultiQuestionForm(
-                    read_only,
-                    self.get_dict_for_form())
-
-        return form
-
-    def post_form(self, page_context, page_data, post_data, files_data):
-        read_only = False
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
+        read_only = not page_behavior.may_change_answer
 
         return InlineMultiQuestionForm(
                 read_only,
