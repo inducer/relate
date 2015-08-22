@@ -145,7 +145,6 @@ class RELATEPageValidator(object):
                         % self.validator_desc.page_type)
 
         except:
-            import sys
             tp, e, _ = sys.exc_info()
 
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
@@ -206,7 +205,7 @@ class TextAnswerMatcher(object):
     def __init__(self, vctx, location, pattern):
         pass
 
-    def validate(self, s, validate_only=False):
+    def validate(self, s):
         """Called to validate form input against simple input mistakes.
 
         Should raise :exc:`django.forms.ValidationError` on error.
@@ -347,10 +346,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
                         "err_str": str(e)
                         })
 
-    def validate(self, s, validate_only=False):
-        if validate_only:
-            return parse_sympy(s)
-
+    def validate(self, s):
         try:
             parse_sympy(s)
         except:
@@ -461,10 +457,7 @@ class FloatMatcher(TextAnswerMatcher):
                     _("Float match should have either rtol or atol--"
                         "otherwise it will match any number"))
 
-    def validate(self, s, validate_only=False):
-        if validate_only:
-            return float_or_sympy_evalf(s)
-
+    def validate(self, s):
         try:
             float_or_sympy_evalf(s)
         except:
