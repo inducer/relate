@@ -157,6 +157,10 @@ Custom URLs
 A few custom URL schemas are provided to facilitate easy linking around
 a RELATE site:
 
+* The URL schema ``course:course-name`` links to another course on the same
+  RELATE instance. A URL ``course:`` may be used to link to the current
+  course.
+
 * The URL schema ``flow:flow-name`` provides a link to the start page of a
   flow.
 
