@@ -208,9 +208,21 @@ def view_page_sandbox(pctx):
         page_desc = dict_to_struct(yaml.load(page_source))
 
         from course.content import instantiate_flow_page
-        page = instantiate_flow_page("sandbox", pctx.repo, page_desc,
-                pctx.course_commit_sha)
+        try:
+            page = instantiate_flow_page("sandbox", pctx.repo, page_desc,
+                    pctx.course_commit_sha)
+        except:
+            import sys
+            tp, e, _ = sys.exc_info()
 
+            page_errors = (
+                    ugettext("Page failed to load/validate")
+                    + ": "
+                    + "%(err_type)s: %(err_str)s" % {
+                        "err_type": tp.__name__, "err_str": e})
+            have_valid_page = False
+
+    if have_valid_page:
         page_data = page.make_page_data()
 
         from course.page import PageContext
