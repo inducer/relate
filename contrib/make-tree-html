@@ -14,10 +14,18 @@ def find_section_nodes(section_dict, node):
         find_section_nodes(section_dict, subnode)
 
 
-def render(outf, node, indent=0, skip=1):
+class RenderSettings:
+    def __init__(self, default_icon):
+        self.default_icon = default_icon
+
+
+def render(settings, outf, node, indent=0, skip=1):
     attrs = {}
+    icon = settings.default_icon
     if "icon" in node:
-        attrs["icon"] = node["icon"]
+        icon = node["icon"]
+
+    attrs["icon"] = icon
 
     text = node["text"]
     if "section" in node:
@@ -44,7 +52,7 @@ def render(outf, node, indent=0, skip=1):
         print(indent * " ", "<ul>", file=outf, sep="")
         indent += 2
         for subnode in subnodes:
-            render(outf, subnode, indent, skip=max(0, skip - 1))
+            render(settings, outf, subnode, indent, skip=max(0, skip - 1))
         indent -= 2
         print(indent * " ", "</ul>", file=outf, sep="")
 
@@ -76,6 +84,9 @@ def main():
     parser.add_argument("--pdf-dir", metavar="DIRECTORY")
     parser.add_argument("--pdf-urlroot", metavar="URL",
             help="(without the trailing slash)")
+
+    parser.add_argument("--default-icon", metavar="ICON_STR",
+            default="fa fa-file-o")
 
     parser.add_argument("input_file", metavar="FILE")
 
@@ -170,7 +181,7 @@ def main():
     # }}}
 
     with open(args.output_file, "wt") as outf:
-        render(outf, root_node)
+        render(RenderSettings(default_icon=args.default_icon), outf, root_node)
 
 
 if __name__ == "__main__":
