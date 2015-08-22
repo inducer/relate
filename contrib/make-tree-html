@@ -21,20 +21,24 @@ class RenderSettings:
 
 def render(settings, outf, node, indent=0, skip=1):
     attrs = {}
+
     icon = settings.default_icon
     if "icon" in node:
         icon = node["icon"]
-
     attrs["icon"] = icon
+
+    if "opened" in node and int(bool(node["opened"])):
+        attrs["opened"] = True
 
     text = node["text"]
     if "section" in node:
         text = "<b>%s</b>" % text
 
     if not skip:
+        from json import dumps
         print(
             indent * " ",
-            "<li data-jstree='%s'>" % repr(attrs).replace("'", '"'),
+            "<li data-jstree='%s'>" % dumps(attrs).replace("'", '"'),
             file=outf, sep="")
         indent += 2
         if "link" in node:
