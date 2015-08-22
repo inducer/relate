@@ -109,20 +109,21 @@ class InlineMultiQuestionForm(StyledInlineForm):
             field_name_idx = instance_idx.name
             if hasattr(instance_idx, "matchers"):
                 for validator in instance_idx.matchers:
-                    try:
-                        validator.validate(cleaned_data[answer],
-                                validate_only=True)
-                    except:
-                        from traceback import print_exc
-                        print_exc()
+                    if answer in cleaned_data:
+                        try:
+                            validator.validate(cleaned_data[answer],
+                                    validate_only=True)
+                        except:
+                            from traceback import print_exc
+                            print_exc()
 
-                        import sys
-                        tp, e, _ = sys.exc_info()
+                            import sys
+                            tp, e, _ = sys.exc_info()
 
-                        self.add_error(field_name_idx,
-                                       "%(err_type)s: %(err_str)s" % {
-                                            "err_type": tp.__name__,
-                                            "err_str": str(e)})
+                            self.add_error(field_name_idx,
+                                           "%(err_type)s: %(err_str)s" % {
+                                                "err_type": tp.__name__,
+                                                "err_str": str(e)})
 
 
 def get_question_class(location, q_type, answers_desc):
