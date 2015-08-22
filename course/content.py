@@ -298,7 +298,16 @@ class LinkFixerTreeprocessor(Treeprocessor):
             return self.course.identifier
 
     def process_url(self, url):
-        if url.startswith("flow:"):
+        if url.startswith("course:"):
+            course_id = url[7:]
+            if course_id:
+                return self.reverse_func("relate-course_page",
+                            args=(course_id,))
+            else:
+                return self.reverse_func("relate-course_page",
+                            args=(self.get_course_identifier(),))
+
+        elif url.startswith("flow:"):
             flow_id = url[5:]
             return self.reverse_func("relate-view_start_flow",
                         args=(self.get_course_identifier(), flow_id))
