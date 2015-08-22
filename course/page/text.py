@@ -100,8 +100,16 @@ class TextAnswerForm(StyledForm):
         cleaned_data = super(TextAnswerForm, self).clean()
 
         answer = cleaned_data.get("answer", "")
-        for validator in self.validators:
-            validator.validate(answer)
+        for i, validator in enumerate(self.validators):
+            try:
+                validator.validate(answer)
+            except forms.ValidationError:
+                if i + 1 == len(self.validators):
+                    # last one, and we flunked -> not valid
+                    raise
+            else:
+                # Found one that will take the input. Good enough.
+                break
 
 
 # {{{ validators
@@ -880,9 +888,17 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer = answer_data["answer"]
 
-        correctness, correct_answer_text = max(
-                (matcher.grade(answer), matcher.correct_answer_text())
-                for matcher in self.matchers)
+        correctnesses_and_answers = []
+        for matcher in self.matchers:
+            try:
+                matcher.validate(answer)
+            except forms.ValidationError:
+                continue
+
+            correctnesses_and_answers.append(
+                    (matcher.grade(answer), matcher.correct_answer_text()))
+
+        correctness, correct_answer_text = max(correctnesses_and_answers)
 
         return AnswerFeedback(correctness=correctness)
 
