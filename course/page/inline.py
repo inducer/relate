@@ -108,15 +108,19 @@ class InlineMultiQuestionForm(StyledInlineForm):
             instance_idx = self.answer_instance_list[idx]
             field_name_idx = instance_idx.name
             if hasattr(instance_idx, "matchers"):
-                for validator in instance_idx.matchers:
+                for i, validator in enumerate(instance_idx.matchers):
                     if answer in cleaned_data:
                         try:
                             validator.validate(cleaned_data[answer])
-                        except:
-                            import sys
-                            tp, e, _ = sys.exc_info()
-
-                            self.add_error(field_name_idx, e)
+                        except forms.ValidationError:
+                            if i + 1 == len(instance_idx.matchers):
+                                # last one, and we flunked -> not valid
+                                import sys
+                                tp, e, _ = sys.exc_info()
+                                self.add_error(field_name_idx, e)
+                        else:
+                            # Found one that will take the input. Good enough.
+                            break
 
 
 def get_question_class(location, q_type, answers_desc):
@@ -305,7 +309,9 @@ class ShortAnswer(AnswerBase):
         self.matchers = [
                 parse_matcher(
                     vctx,
-                    "%s, answer %d" % (location, i+1),
+                    string_concat("%s, ", 
+                                  _("answer"),
+                                  " %d") % (location, i+1),
                     answer)
                 for i, answer in enumerate(answers_desc.correct_answer)]
 
@@ -331,9 +337,22 @@ class ShortAnswer(AnswerBase):
         return unspec_correct_answer_text
 
     def get_correctness(self, answer):
-        correctness, correct_answer_text = max(
-                (matcher.grade(answer), matcher.correct_answer_text())
-                for matcher in self.matchers)
+        
+        correctnesses_and_answers = [(0, "")]
+        # If empty an list, sometime it will cause ValueError: 
+        # max() arg is an empty sequence, observed in SandBox
+
+        for matcher in self.matchers:
+            try:
+                matcher.validate(answer)
+            except forms.ValidationError:
+                continue
+
+            correctnesses_and_answers.append(
+                    (matcher.grade(answer), matcher.correct_answer_text()))
+
+        correctness, correct_answer_text = max(correctnesses_and_answers)
+
         return correctness
 
     def get_form_field(self, force_required=False):
@@ -521,7 +540,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     Here is an example of :class:`InlineMultiQuestion`::
 
         type: InlineMultiQuestion
-        id: excelbasictry3
+        id: inlinemulti
         value: 10
         prompt: |
 
@@ -532,7 +551,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         question: |
 
             Foo and [[blank1]] are often used in code examples, or
-            tutorials. The float weight of $\frac{1}{5}$ is [[blank_2]].
+            tutorials. The float value of $\frac{1}{5}$ is [[blank_2]].
 
             The correct answer for this choice question is [[choice_a]].
             The Upper case of "foo" is [[choice2]]
