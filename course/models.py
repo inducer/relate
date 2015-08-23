@@ -88,6 +88,8 @@ class FacilityIPRange(models.Model):
         verbose_name = _("Facility IP range")
 
     def clean(self):
+        super(FacilityIPRange, self).clean()
+
         import ipaddr
         try:
             ipaddr.IPNetwork(self.ip_range)
@@ -334,6 +336,8 @@ class ParticipationTag(models.Model):
             verbose_name=_('Name of participation tag'))
 
     def clean(self):
+        super(ParticipationTag, self).clean()
+
         import re
         name_valid_re = re.compile(r"^\w+$")
 
@@ -920,6 +924,8 @@ class FlowRuleException(models.Model):
                     "course": self.participation.course})
 
     def clean(self):
+        super(FlowRuleException, self).clean()
+
         if (self.kind == flow_rule_kind.grading
                 and self.expiration is not None):
             raise ValidationError(_("grading rules may not expire"))
@@ -1087,6 +1093,8 @@ class GradeChange(models.Model):
             'opportunityname': self.opportunity.name}
 
     def clean(self):
+        super(GradeChange, self).clean()
+
         if self.opportunity.course != self.participation.course:
             raise ValidationError(_("Participation and opportunity must live "
                     "in the same course"))

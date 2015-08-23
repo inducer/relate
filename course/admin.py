@@ -255,12 +255,14 @@ admin.site.register(ParticipationTag, ParticipationTagAdmin)
 
 # {{{ participations
 
-class ParticipationFrom(forms.ModelForm):
+class ParticipationForm(forms.ModelForm):
     class Meta:
         model = Participation
         exclude = ()
 
     def clean(self):
+        super(ParticipationForm, self).clean()
+
         for tag in self.cleaned_data.get("tags", []):
             if tag.course != self.cleaned_data.get("course"):
                 from django.core.exceptions import ValidationError
@@ -270,7 +272,7 @@ class ParticipationFrom(forms.ModelForm):
 
 
 class ParticipationAdmin(admin.ModelAdmin):
-    form = ParticipationFrom
+    form = ParticipationForm
 
     def get_user_first_name(self, obj):
         return obj.user.first_name
