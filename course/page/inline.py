@@ -488,7 +488,7 @@ NAME_VALIDATE_RE = re.compile("^[a-zA-Z]+[a-zA-Z0-9_]{0,}$")
 
 
 class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
-    """
+    r"""
     An auto-graded page with cloze like questions.
 
     .. attribute:: id
