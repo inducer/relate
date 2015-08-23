@@ -77,6 +77,12 @@ class SandboxForm(forms.Form):
 
 @course_view
 def view_markup_sandbox(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied(
+                ugettext("must be instructor or TA to access sandbox"))
+
     request = pctx.request
     preview_text = ""
 
