@@ -44,6 +44,17 @@ USER_STATUS_CHOICES = (
         )
 
 
+class course_status:  # noqa
+    open = "open"
+    inprogress = "inprogress"
+    ended = "ended"
+
+COURSE_STATUS_CHOICES = (
+        (course_status.open, pgettext_lazy("Course status", "Open")),
+        (course_status.inprogress, pgettext_lazy("Course status", "In_Progress")),
+        (course_status.ended, pgettext_lazy("Course status", "Ended")),
+        )
+
 class participation_role:  # noqa
     instructor = "instructor"
     teaching_assistant = "ta"

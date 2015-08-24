@@ -35,6 +35,7 @@ from django.core.validators import RegexValidator
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
+        course_status, COURSE_STATUS_CHOICES,
         participation_role, PARTICIPATION_ROLE_CHOICES,
         participation_status, PARTICIPATION_STATUS_CHOICES,
         flow_permission, FLOW_PERMISSION_CHOICES,
@@ -169,6 +170,12 @@ class Course(models.Model):
                         "numbers, and hypens ('-').")),
                     ]
             )
+    course_status = models.CharField(max_length=50,
+            default=course_status.open,
+            choices=COURSE_STATUS_CHOICES,
+            help_text=_("The current status of the course. If ended, only "
+            "Participants can see the course from his/her home page "),
+            verbose_name=_('Course status'))
 
     hidden = models.BooleanField(
             default=True,
