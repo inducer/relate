@@ -56,6 +56,7 @@ from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_role_and_participation
 from course.constants import (
+        course_status,
         participation_role,
         participation_status,
         FLOW_PERMISSION_CHOICES,
@@ -78,6 +79,9 @@ NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
 
 def home(request):
     courses_and_descs_and_invalid_flags = []
+    courses_and_descs_and_invalid_flags_open = []
+    courses_and_descs_and_invalid_flags_inprogress = []
+    courses_and_descs_and_invalid_flags_ended = []    
     for course in Course.objects.filter(listed=True):
         repo = get_course_repo(course)
         desc = get_course_desc(repo, course, course.active_git_commit_sha.encode())
@@ -98,6 +102,16 @@ def home(request):
             courses_and_descs_and_invalid_flags.append(
                     (course, desc, not course.valid))
 
+    for (course, desc, invalid) in courses_and_descs_and_invalid_flags:
+        if course.course_status == course_status.open:
+            courses_and_descs_and_invalid_flags_open.append((course, desc, invalid))
+        elif role in [participation_role.teaching_assistant, participation_role.student,
+                    participation_role.instructor]:
+            if course.course_status == course_status.inprogress:
+                courses_and_descs_and_invalid_flags_inprogress.append((course, desc, invalid))
+            elif course.course_status == course_status.ended:
+                courses_and_descs_and_invalid_flags_ended.append((course, desc, invalid))
+
     def course_sort_key(entry):
         course, desc, invalid_flag = entry
         return course.identifier
@@ -105,7 +119,10 @@ def home(request):
     courses_and_descs_and_invalid_flags.sort(key=course_sort_key)
 
     return render(request, "course/home.html", {
-        "courses_and_descs_and_invalid_flags": courses_and_descs_and_invalid_flags
+        "courses_and_descs_and_invalid_flags": courses_and_descs_and_invalid_flags,
+        "courses_and_descs_and_invalid_flags_open": courses_and_descs_and_invalid_flags_open,
+        "courses_and_descs_and_invalid_flags_inprogress": courses_and_descs_and_invalid_flags_inprogress,
+        "courses_and_descs_and_invalid_flags_ended": courses_and_descs_and_invalid_flags_ended,
         })
 
 # }}}
