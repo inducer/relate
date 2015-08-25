@@ -309,7 +309,10 @@ class ShortAnswer(AnswerBase):
         self.matchers = [
                 parse_matcher(
                     vctx,
-                    string_concat("%s, ", 
+                    string_concat("%s, ",
+                                  # Translators: refers to optional
+                                  # correct answer for checking
+                                  # correctness sumbitted by students.
                                   _("answer"),
                                   " %d") % (location, i+1),
                     answer)
@@ -616,9 +619,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             raise ValidationError(
                     string_concat(
                         "%s: ",
-                        _("invalid answers name %s. A valid answer "
-                         "should start with letters, and hyphen and "
-                          "numbers are allowed, without spaces."))
+                        _("invalid answers name %s. "),
+                        _("A valid name should start with letters. "
+                            "Alphanumeric with underscores. "
+                            "Do not use spaces."))
                     % (
                         location,
                         ", ".join([
@@ -633,9 +637,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             raise ValidationError(
                     string_concat(
                         "%s: ",
-                        _("invalid embeded question name %s. A valid name "
-                         "should start with letters, and hyphens and "
-                          "underscores are allowed, without spaces."))
+                        _("invalid embeded question name %s. "),
+                        _("A valid name should start with letters. "
+                            "Alphanumeric with underscores. "
+                            "Do not use spaces."))
                         % (
                             location,
                             ", ".join([
