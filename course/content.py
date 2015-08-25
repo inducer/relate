@@ -105,7 +105,9 @@ def get_repo_blob(repo, full_name, commit_sha):
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
-    cache_key = "%%%1".join((repo.controldir(), full_name, str(commit_sha)))
+    from six.moves.urllib.parse import quote_plus
+    cache_key = "%%%1".join((
+        quote_plus(repo.controldir()), quote_plus(full_name), str(commit_sha)))
 
     try:
         import django.core.cache as cache
@@ -151,7 +153,9 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     the given file in *repo* at *commit_sha*.
     """
 
-    cache_key = "%RAW%%2".join((repo.controldir(), full_name, commit_sha))
+    from six.moves.urllib.parse import quote_plus
+    cache_key = "%RAW%%2".join((
+        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha))
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
@@ -178,7 +182,10 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     """
 
     if cached:
-        cache_key = "%%%2".join((repo.controldir(), full_name, commit_sha))
+        from six.moves.urllib.parse import quote_plus
+        cache_key = "%%%2".join(
+                (quote_plus(repo.controldir()), quote_plus(full_name),
+                    commit_sha))
 
         import django.core.cache as cache
         def_cache = cache.caches["default"]
