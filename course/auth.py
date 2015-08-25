@@ -40,6 +40,7 @@ from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
 from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
+from django.core import validators
 
 from course.models import (
         UserStatus, user_status,
@@ -283,7 +284,18 @@ def sign_in_by_user_pw(request):
 
 class SignUpForm(StyledModelForm):
     username = forms.CharField(required=True, max_length=30,
-                              label=_("Username"))
+            label=_("Username"),
+            validators=[
+                validators.RegexValidator(r'^[a-zA-Z]+[a-zA-Z0-9_-]{0,}$',
+                    string_concat(
+                        _('Enter a valid username.'), 
+                        _(
+                            "A valid name should start with letters. "
+                            "Alphanumeric with hyphens and underscores. "
+                            "Do not use spaces.")
+                        ),
+                    'invalid')
+                ])
 
     class Meta:
         model = User
