@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-08-25 16:12+0800\n"
+"POT-Creation-Date: 2015-08-25 17:02+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -171,40 +171,35 @@ msgstr ""
 msgid "Username"
 msgstr ""
 
-#: .\course\auth.py:288
-msgid "Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only."
-msgstr ""
-
-#: .\course\auth.py:293
+#: .\course\auth.py:291
 msgid "Enter a valid username."
 msgstr ""
 
-#: .\course\auth.py:294
-msgid ""
-"Enter a valid username. This value may contain only letters, numbers and @/./"
+#: .\course\auth.py:292
+msgid "This value may contain only letters, numbers and @/./+/-/_ characters."
 msgstr ""
 
-#: .\course\auth.py:308 .\course\auth.py:393
+#: .\course\auth.py:306 .\course\auth.py:391
 msgid "Send email"
 msgstr ""
 
-#: .\course\auth.py:315 .\course\auth.py:399
+#: .\course\auth.py:313 .\course\auth.py:397
 msgid "password-based sign-in is not being used"
 msgstr ""
 
-#: .\course\auth.py:325
+#: .\course\auth.py:323
 msgid "A user with that username already exists."
 msgstr ""
 
-#: .\course\auth.py:330
+#: .\course\auth.py:328
 #, python-format
 msgid ""
 "That email address is already in use. Would you like to <a href='%s'>reset "
 "your password</a> instead?"
 msgstr ""
 
-#: .\course\auth.py:365 .\course\auth.py:434 .\course\auth.py:450
-#: .\course\auth.py:523 .\course\auth.py:582
+#: .\course\auth.py:363 .\course\auth.py:432 .\course\auth.py:448
+#: .\course\auth.py:521 .\course\auth.py:580
 #: .\course\templates\course\analytics-flow.html:5
 #: .\course\templates\course\analytics-flows.html:5
 #: .\course\templates\course\analytics-page.html:5
@@ -233,91 +228,91 @@ msgstr ""
 msgid "RELATE"
 msgstr ""
 
-#: .\course\auth.py:366
+#: .\course\auth.py:364
 msgid "Verify your email"
 msgstr ""
 
-#: .\course\auth.py:372 .\course\auth.py:441 .\course\auth.py:588
+#: .\course\auth.py:370 .\course\auth.py:439 .\course\auth.py:586
 msgid "Email sent. Please check your email and click the link."
 msgstr ""
 
-#: .\course\auth.py:381
+#: .\course\auth.py:379
 msgid "Sign up"
 msgstr ""
 
-#: .\course\auth.py:387 .\course\auth.py:533 .\course\models.py:408
+#: .\course\auth.py:385 .\course\auth.py:531 .\course\models.py:408
 msgid "Email"
 msgstr ""
 
-#: .\course\auth.py:414
+#: .\course\auth.py:412
 msgid ""
 "That email address doesn't have an associated user account. Are you sure "
 "you've registered?"
 msgstr ""
 
-#: .\course\auth.py:435
+#: .\course\auth.py:433
 msgid "Password reset"
 msgstr ""
 
-#: .\course\auth.py:449 .\course\auth.py:522
+#: .\course\auth.py:447 .\course\auth.py:520
 #, python-format
 msgid "Password reset on %(site_name)s"
 msgstr ""
 
-#: .\course\auth.py:457
+#: .\course\auth.py:455
 msgid "Password"
 msgstr ""
 
-#: .\course\auth.py:459
+#: .\course\auth.py:457
 msgid "Password confirmation"
 msgstr ""
 
-#: .\course\auth.py:465 .\course\auth.py:646 .\course\auth.py:659
+#: .\course\auth.py:463 .\course\auth.py:644 .\course\auth.py:657
 #: .\course\templates\course\course-page.html:30
 #: .\course\templates\course\home.html:22 .\course\versioning.py:376
 msgid "Update"
 msgstr ""
 
-#: .\course\auth.py:474
+#: .\course\auth.py:472
 msgid "The two password fields didn't match."
 msgstr ""
 
-#: .\course\auth.py:479 .\course\auth.py:545 .\course\auth.py:602
+#: .\course\auth.py:477 .\course\auth.py:543 .\course\auth.py:600
 msgid "email-based sign-in is not being used"
 msgstr ""
 
-#: .\course\auth.py:483 .\course\auth.py:608
+#: .\course\auth.py:481 .\course\auth.py:606
 msgid "Invalid sign-in token. Perhaps you've used an old token email?"
 msgstr ""
 
-#: .\course\auth.py:485 .\course\auth.py:493 .\course\auth.py:498
-#: .\course\auth.py:610 .\course\auth.py:615
+#: .\course\auth.py:483 .\course\auth.py:491 .\course\auth.py:496
+#: .\course\auth.py:608 .\course\auth.py:613
 msgid "invalid sign-in token"
 msgstr ""
 
-#: .\course\auth.py:497 .\course\auth.py:614
+#: .\course\auth.py:495 .\course\auth.py:612
 msgid "Account disabled."
 msgstr ""
 
-#: .\course\auth.py:508 .\course\auth.py:621
+#: .\course\auth.py:506 .\course\auth.py:619
 msgid ""
 "Successfully signed in. Please complete your registration information below."
 msgstr ""
 
-#: .\course\auth.py:515 .\course\auth.py:628
+#: .\course\auth.py:513 .\course\auth.py:626
 msgid "Successfully signed in."
 msgstr ""
 
-#: .\course\auth.py:539
+#: .\course\auth.py:537
 msgid "Send sign-in email"
 msgstr ""
 
-#: .\course\auth.py:582
+#: .\course\auth.py:580
 #, python-format
 msgid "Your %(RELATE)s sign-in link"
 msgstr ""
 
-#: .\course\auth.py:680 .\course\auth.py:690
+#: .\course\auth.py:678 .\course\auth.py:688
 msgid "Profile data saved."
 msgstr ""
 

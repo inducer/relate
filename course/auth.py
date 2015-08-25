@@ -285,14 +285,12 @@ def sign_in_by_user_pw(request):
 class SignUpForm(StyledModelForm):
     username = forms.CharField(required=True, max_length=30,
             label=_("Username"),
-            help_text=_("Required. 30 characters or fewer. Letters, "
-                "digits and @/./+/-/_ only."),
             validators=[
                 validators.RegexValidator('^[\\w.@+-]+$',
                     string_concat(
                         _('Enter a valid username.'), (' '),
-                        _('Enter a valid username. This value may '
-                            'contain only letters, numbers and @/./')
+                        _('This value may contain only letters, '
+                          'numbers and @/./+/-/_ characters.')
                         ),
                     'invalid')
                 ])
