@@ -430,8 +430,8 @@ class FloatMatcher(TextAnswerMatcher):
         except:
             raise ValidationError(
                     string_concat(
-                        "%s: ",
-                        _("'value' is not a valid float literal"))
+                        "%s: 'value' ",
+                        _("does not provide a valid float literal"))
                     % location)
 
         if hasattr(matcher_desc, "rtol"):
@@ -441,8 +441,8 @@ class FloatMatcher(TextAnswerMatcher):
             except:
                 raise ValidationError(
                         string_concat(
-                            "%s: ",
-                            _("'rtol' is not a valid float literal"))
+                            "%s: 'rtol' ",
+                            _("does not provide a valid float literal"))
                         % location)
         if hasattr(matcher_desc, "atol"):
             try:
@@ -451,8 +451,8 @@ class FloatMatcher(TextAnswerMatcher):
             except:
                 raise ValidationError(
                         string_concat(
-                            "%s: ",
-                            _("'atol' is not a valid float literal"))
+                            "%s: 'atol' ",
+                            _("does not provide a valid float literal"))
                         % location)
 
         if (
