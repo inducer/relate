@@ -122,10 +122,10 @@ class ImpersonateForm(StyledForm):
         self.fields["user"] = forms.ChoiceField(
                 choices=[
                     (
-                    # Translators: information displayed when selecting 
-                    # userfor impersonating. Customize how the name is 
-                    # shown, but leave email first to retain usability 
-                    # of form sorted by last name.
+                        # Translators: information displayed when selecting
+                        # userfor impersonating. Customize how the name is
+                        # shown, but leave email first to retain usability
+                        # of form sorted by last name.
                         u.id, _("%(user_email)s - %(user_lastname)s, "
                             "%(user_firstname)s")
                             % {
@@ -444,8 +444,9 @@ def reset_password(request):
         form = ResetPasswordForm()
 
     return render(request, "generic-form.html", {
-        "form_description": _("Password reset on %(site_name)s")
-                % {"site_name": _("RELATE")},
+        "form_description":
+            _("Password reset on %(site_name)s")
+            % {"site_name": _("RELATE")},
         "form": form
         })
 
@@ -468,7 +469,7 @@ class ResetPasswordStage2Form(StyledForm):
         password = cleaned_data.get("password")
         password_repeat = cleaned_data.get("password_repeat")
         if password and password != password_repeat:
-            self.add_error("password_repeat", 
+            self.add_error("password_repeat",
                     _("The two password fields didn't match."))
 
 
@@ -517,8 +518,9 @@ def reset_password_stage2(request, user_id, sign_in_key):
         form = ResetPasswordStage2Form()
 
     return render(request, "generic-form.html", {
-        "form_description": _("Password reset on %(site_name)s")
-                % {"site_name": _("RELATE")},
+        "form_description":
+            _("Password reset on %(site_name)s")
+            % {"site_name": _("RELATE")},
         "form": form
         })
 
