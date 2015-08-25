@@ -302,6 +302,8 @@ class SignUpForm(StyledModelForm):
     def __init__(self, *args, **kwargs):
         super(SignUpForm, self).__init__(*args, **kwargs)
 
+        self.fields["email"].required = True
+
         self.helper.add_input(
                 Submit("submit", _("Send email"),
                     css_class="col-lg-offset-2"))
