@@ -32,7 +32,7 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
@@ -58,20 +58,24 @@ from relate.utils import StyledForm
 @login_required
 @transaction.atomic
 def enroll(request, course_identifier):
-    if request.method != "POST":
-        raise SuspiciousOperation(_("can only enroll using POST request"))
-
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
+
+    if role != participation_role.unenrolled:
+        messages.add_message(request, messages.ERROR,
+                _("Already enrolled. Cannot re-renroll."))
+        return redirect("relate-course_page", course_identifier)
 
     if not course.accepts_enrollment:
         messages.add_message(request, messages.ERROR,
                 _("Course is not accepting enrollments."))
         return redirect("relate-course_page", course_identifier)
 
-    if role != participation_role.unenrolled:
+    if request.method != "POST":
+        # This can happen if someone tries to refresh the page, or switches to
+        # desktop view on mobile.
         messages.add_message(request, messages.ERROR,
-                _("Already enrolled. Cannot re-renroll."))
+                _("Can only enroll using POST request"))
         return redirect("relate-course_page", course_identifier)
 
     user = request.user
