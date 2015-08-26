@@ -152,9 +152,10 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                             set(page_desc.mime_types)
                             - set(self.ALLOWED_MIME_TYPES))})
 
-        if not hasattr(page_desc, "value"):
-            vctx.add_warning(location, _("upload question does not have "
-                    "assigned point value"))
+        if vctx is not None:
+            if not hasattr(page_desc, "value"):
+                vctx.add_warning(location, _("upload question does not have "
+                        "assigned point value"))
 
     def required_attrs(self):
         return super(FileUploadQuestion, self).required_attrs() + (
