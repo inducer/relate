@@ -138,16 +138,14 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
     if isinstance(yaml_str, six.binary_type):
         yaml_str = yaml_str.decode("utf-8")
 
-    def process_with_jinja(s):
-        from jinja2 import Environment, StrictUndefined
-        env = Environment(
-                loader=GitTemplateLoader(repo, commit_sha),
-                undefined=StrictUndefined)
-        template = env.from_string(s)
-        return template.render()
+    from jinja2 import Environment, StrictUndefined
+    jinja_env = Environment(
+            loader=GitTemplateLoader(repo, commit_sha),
+            undefined=StrictUndefined)
 
     def compute_replacement(match):
-        return process_with_jinja(match.group(1))
+        template = jinja_env.from_string(match.group(1))
+        return template.render()
 
     yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
 
@@ -158,30 +156,33 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
 
     # {{{ process non-block-scalar YAML lines through Jinja
 
+    block_var_num = [0]
+    block_vars = {}
+    block_name_template = "_RELATE_JINJA_BLOCK_SUB_%d"
+
     lines = yaml_str.split("\n")
-    processed_lines = []
-    jinja_block_lines = []
+    jinja_lines = []
+
+    def add_unprocessed_block(s):
+        my_block_num = block_var_num[0]
+        block_var_num[0] += 1
+
+        my_block_name = block_name_template % my_block_num
+        block_vars[my_block_name] = s
+        jinja_lines.append("{{ %s }}" % my_block_name)
 
     i = 0
     line_count = len(lines)
 
-    def process_jinja_block():
-        if jinja_block_lines:
-            block = "\n".join(jinja_block_lines)
-            processed_lines.append(process_with_jinja(block))
-            del jinja_block_lines[:]
-
     while i < line_count:
         l = lines[i]
         if GROUP_COMMENT_START.match(l):
-            process_jinja_block()
-            processed_lines.append(l)
+            add_unprocessed_block(l)
             i += 1
 
         elif YAML_BLOCK_START_SCALAR_RE.search(l):
-            process_jinja_block()
-
-            processed_lines.append(l)
+            unprocessed_block_lines = []
+            unprocessed_block_lines.append(l)
 
             block_start_indent = len(LEADING_SPACES_RE.match(l).group(1))
 
@@ -191,7 +192,7 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
                 l = lines[i]
 
                 if not l.rstrip():
-                    processed_lines.append(l)
+                    unprocessed_block_lines.append(l)
                     i += 1
                     continue
 
@@ -199,16 +200,19 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
                 if line_indent <= block_start_indent:
                     break
                 else:
-                    processed_lines.append(l)
+                    unprocessed_block_lines.append(l)
                     i += 1
 
+            add_unprocessed_block("\n".join(unprocessed_block_lines))
+
         else:
-            jinja_block_lines.append(l)
+            jinja_lines.append(l)
             i += 1
 
-    process_jinja_block()
+    jinja_str = "\n".join(jinja_lines)
 
-    yaml_str = "\n".join(processed_lines)
+    template = jinja_env.from_string(jinja_str)
+    yaml_str = template.render(block_vars)
 
     # }}}
 
