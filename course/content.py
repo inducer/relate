@@ -535,12 +535,16 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
     if text.lstrip().startswith(JINJA_PREFIX):
         text = remove_prefix(JINJA_PREFIX, text.lstrip())
 
-        from jinja2 import Environment, StrictUndefined
-        env = Environment(
-                loader=GitTemplateLoader(repo, commit_sha),
-                undefined=StrictUndefined)
-        template = env.from_string(text)
-        text = template.render()
+    # {{{ process through Jinja
+
+    from jinja2 import Environment, StrictUndefined
+    env = Environment(
+            loader=GitTemplateLoader(repo, commit_sha),
+            undefined=StrictUndefined)
+    template = env.from_string(text)
+    text = template.render()
+
+    # }}}
 
     if validate_only:
         return
