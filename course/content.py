@@ -761,12 +761,26 @@ def get_processed_course_chunks(course, repo, commit_sha,
             if chunk.shown]
 
 
-def get_flow_desc(repo, course, flow_id, commit_sha):
-    flow = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
+def normalize_flow_desc(flow_desc):
+    if hasattr(flow_desc, "pages"):
+        pages = flow_desc.pages
+        from relate.utils import struct_to_dict, Struct
+        d = struct_to_dict(flow_desc)
+        del d["pages"]
+        d["groups"] = [Struct({"id": "main", "pages": pages})]
+        return Struct(d)
 
-    flow.description_html = markup_to_html(
-            course, repo, commit_sha, getattr(flow, "description", None))
-    return flow
+    return flow_desc
+
+
+def get_flow_desc(repo, course, flow_id, commit_sha):
+    flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
+
+    flow_desc = normalize_flow_desc(flow_desc)
+
+    flow_desc.description_html = markup_to_html(
+            course, repo, commit_sha, getattr(flow_desc, "description", None))
+    return flow_desc
 
 
 def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):

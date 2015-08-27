@@ -701,16 +701,37 @@ def validate_flow_desc(ctx, location, flow_desc):
             required_attrs=[
                 ("title", str),
                 ("description", "markup"),
-                ("groups", list),
-                ("completion_text", "markup"),
                 ],
             allowed_attrs=[
+                ("completion_text", "markup"),
                 ("rules", Struct),
+                ("groups", list),
+                ("pages", list),
                 ]
             )
 
     if hasattr(flow_desc, "rules"):
         validate_flow_rules(ctx, location, flow_desc.rules)
+
+    # {{{ check for presence of 'groups' or 'pages'
+
+    if (
+            (not hasattr(flow_desc, "groups") and not hasattr(flow_desc, "pages"))
+            or
+            (hasattr(flow_desc, "groups") and hasattr(flow_desc, "pages"))):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("must have either 'groups' or 'pages'"))
+                % {'location': location})
+
+    # }}}
+
+    if hasattr(flow_desc, "pages"):
+        from course.content import normalize_flow_desc
+        flow_desc = normalize_flow_desc(flow_desc)
+
+        assert not hasattr(flow_desc, "pages")
+        assert hasattr(flow_desc, "groups")
 
     # {{{ check for non-emptiness
 

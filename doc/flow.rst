@@ -47,34 +47,31 @@ example:
             grade_identifier: test_quiz
             grade_aggregation_strategy: max_grade
 
-    groups:
+    pages:
+
     -
-        id: intro
-        pages:
+        type: Page
+        id: welcome
+        content: |
 
-        -
-            type: Page
-            id: welcome
-            content: |
+            # Welcome to the test quiz for RELATE!
 
-                # Welcome to the test quiz for RELATE!
+            Don't be scared.
 
-                Don't be scared.
+    -
+        type: ChoiceQuestion
+        id: color
+        prompt: |
 
-        -
-            type: ChoiceQuestion
-            id: color
-            prompt: |
+            # Colors
 
-                # Colors
+            What color is the sun?
 
-                What color is the sun?
+        choices:
 
-            choices:
-
-            - Blue
-            - Green
-            - ~CORRECT~ Yellow
+        - Blue
+        - Green
+        - ~CORRECT~ Yellow
 
     completion_text: |
 
@@ -106,20 +103,14 @@ a flow has the following components:
 
     .. attribute:: groups
 
-        A list of :class:`PageGroup`
-
-Pages (the units making up a flow) come in groups. Each group has the
-following attributes:
-
-.. class:: PageGroup
-
-    .. attribute:: id
-
-        An identifier for this group of pages.
+        A list of :class:`FlowPageGroup`.  Exactly one of
+        :attr:`groups` or :class:`pages` must be given.
 
     .. attribute:: pages
 
-        A list of :ref:`pages <flow-page>`
+        A list of :ref:`pages <flow-page>`. If you specify this, a single
+        :class:`FlowPageGroup` will be implicitly created. Exactly one of
+        :attr:`groups` or :class:`pages` must be given.
 
 .. _flow-rules:
 
@@ -418,8 +409,7 @@ Each of these would be a separate 'group'.
 
 Each group allows the following attributes:
 
-
-.. class:: FlowGroup
+.. class:: FlowPageGroup
 
     .. attribute:: id
 
