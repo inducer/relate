@@ -128,24 +128,91 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 JINJA_YAML_RE = re.compile(
     r"^\[JINJA\]\s*$(.*?)^\[\/JINJA\]\s*$",
     re.MULTILINE | re.DOTALL)
+YAML_BLOCK_START_SCALAR_RE = re.compile(
+    r":\s*[|>](?:[0-9][-+]?|[-+][0-9]?)?(?:\s*\#.*)?$")
+GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
+LEADING_SPACES_RE = re.compile(r"^( *)")
 
 
 def expand_yaml_macros(repo, commit_sha, yaml_str):
     if isinstance(yaml_str, six.binary_type):
         yaml_str = yaml_str.decode("utf-8")
 
-    def compute_replacement(match):
-        jinja_src = match.group(1)
-
+    def process_with_jinja(s):
         from jinja2 import Environment, StrictUndefined
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
-        template = env.from_string(jinja_src)
+        template = env.from_string(s)
         return template.render()
 
-    result, _ = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
-    return result
+    def compute_replacement(match):
+        return process_with_jinja(match.group(1))
+
+    yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
+
+    if count:
+        # The file uses explicit YAML tags. Assume that it doesn't
+        # want anything else processed through YAML.
+        return yaml_str
+
+    # {{{ process non-block-scalar YAML lines through Jinja
+
+    lines = yaml_str.split("\n")
+    processed_lines = []
+    jinja_block_lines = []
+
+    i = 0
+    line_count = len(lines)
+
+    def process_jinja_block():
+        if jinja_block_lines:
+            block = "\n".join(jinja_block_lines)
+            processed_lines.append(process_with_jinja(block))
+            del jinja_block_lines[:]
+
+    while i < line_count:
+        l = lines[i]
+        if GROUP_COMMENT_START.match(l):
+            process_jinja_block()
+            processed_lines.append(l)
+            i += 1
+
+        elif YAML_BLOCK_START_SCALAR_RE.search(l):
+            process_jinja_block()
+
+            processed_lines.append(l)
+
+            block_start_indent = len(LEADING_SPACES_RE.match(l).group(1))
+
+            i += 1
+
+            while i < line_count:
+                l = lines[i]
+
+                if not l.rstrip():
+                    processed_lines.append(l)
+                    i += 1
+                    continue
+
+                line_indent = len(LEADING_SPACES_RE.match(l).group(1))
+                if line_indent <= block_start_indent:
+                    break
+                else:
+                    processed_lines.append(l)
+                    i += 1
+
+        else:
+            jinja_block_lines.append(l)
+            i += 1
+
+    process_jinja_block()
+
+    yaml_str = "\n".join(processed_lines)
+
+    # }}}
+
+    return yaml_str
 
 
 def get_raw_yaml_from_repo(repo, full_name, commit_sha):
