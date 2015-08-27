@@ -94,7 +94,8 @@ a flow has the following components:
 
     .. attribute:: completion_text
 
-        Some text in :ref:`markup` shown once a student has completed the flow.
+        (Optional) Some text in :ref:`markup` shown once a student has
+        completed the flow.
 
     .. attribute:: rules
 

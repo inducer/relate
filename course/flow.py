@@ -1341,7 +1341,7 @@ def finish_flow_session_view(pctx, flow_session_id):
     from course.content import markup_to_html
     completion_text = markup_to_html(
             fctx.course, fctx.repo, pctx.course_commit_sha,
-            fctx.flow_desc.completion_text)
+            getattr(fctx.flow_desc, "completion_text", ""))
 
     (answered_count, unanswered_count) = count_answered_gradable(
             fctx, flow_session, answer_visits)
