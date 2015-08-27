@@ -781,7 +781,7 @@ def validate_flow_desc(ctx, location, flow_desc):
                 grp)
 
     validate_markup(ctx, location, flow_desc.description)
-    if hasattr(flow_desc.completion_text):
+    if hasattr(flow_desc, "completion_text"):
         validate_markup(ctx, location, flow_desc.completion_text)
 
 # }}}
