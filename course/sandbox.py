@@ -236,7 +236,8 @@ def view_page_sandbox(pctx):
                 course=pctx.course,
                 repo=pctx.repo,
                 commit_sha=pctx.course_commit_sha,
-                flow_session=None)
+                flow_session=None,
+                in_sandbox=True)
 
         title = page.title(page_context, page_data)
         body = page.body(page_context, page_data)

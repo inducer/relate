@@ -57,11 +57,13 @@ class PageContext(object):
     which is used internally by the flow views.
     """
 
-    def __init__(self, course, repo, commit_sha, flow_session):
+    def __init__(self, course, repo, commit_sha, flow_session,
+            in_sandbox=False):
         self.course = course
         self.repo = repo
         self.commit_sha = commit_sha
         self.flow_session = flow_session
+        self.in_sandbox = in_sandbox
 
 
 class PageBehavior(object):

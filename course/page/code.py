@@ -604,7 +604,10 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "error_message": error_msg,
                 })
 
-            if not is_nuisance_failure(response_dict):
+            if (
+                    not page_context.in_sandbox
+                    and
+                    not is_nuisance_failure(response_dict)):
                 from django.core.mail import send_mail
                 from django.conf import settings
                 send_mail("".join(["[%s] ", _("code question execution failed")])
