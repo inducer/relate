@@ -26,7 +26,28 @@ THE SOFTWARE.
 
 
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from . models import User
+
+
+def _remove_from_fieldsets(fs, field_name):
+    return tuple(
+        (heading, {"fields":
+            tuple(
+                f for f in props["fields"]
+                if f != field_name)})
+        for heading, props in fs)
+
+
+class UserAdmin(UserAdminBase):
+    list_display = tuple(
+            f for f in UserAdminBase.list_display
+            if f != "is_staff")
+    list_filter = tuple(
+            f for f in UserAdminBase.list_filter
+            if f != "is_staff")
+    fieldsets = _remove_from_fieldsets(
+            UserAdminBase.fieldsets, "is_staff")
+
 
 admin.site.register(User, UserAdmin)
