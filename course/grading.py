@@ -122,9 +122,15 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         else:
             feedback = None
 
+        from course.page.base import PageBehavior
+        page_behavior = PageBehavior(
+                show_correctness=True,
+                show_answer=False,
+                may_change_answer=False)
+
         form = fpctx.page.make_form(
                 fpctx.page_context, fpctx.page_data.data,
-                answer_data, answer_is_final=True)
+                answer_data, page_behavior)
 
     if form is not None:
         form_html = fpctx.page.form_to_html(
