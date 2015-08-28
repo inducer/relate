@@ -268,7 +268,7 @@ class PageBase(object):
                     from course.validation import validate_flow_permission
                     for attr in ["add_permissions", "remove_permissions"]:
                         if hasattr(page_desc.access_rules, attr):
-                            for perm in getattr(page_desc, attr):
+                            for perm in getattr(page_desc.access_rules, attr):
                                 validate_flow_permission(
                                         vctx,
                                         "%s: %s" % (ar_loc, attr),
