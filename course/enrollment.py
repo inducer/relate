@@ -87,7 +87,17 @@ def enroll(request, course_identifier):
                 "Confirm your email to continue."))
         return redirect("relate-course_page", course_identifier)
 
-    if (course.enrollment_required_email_suffix
+    preapproval = None
+    if request.user.email:
+        try:
+            preapproval = ParticipationPreapproval.objects.get(
+                    course=course, email__iexact=request.user.email)
+        except ParticipationPreapproval.DoesNotExist:
+            pass
+
+    if (
+            preapproval is None
+            and course.enrollment_required_email_suffix
             and not user.email.endswith(course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
@@ -112,14 +122,6 @@ def enroll(request, course_identifier):
             participation.save()
 
         return participation
-
-    preapproval = None
-    if request.user.email:
-        try:
-            preapproval = ParticipationPreapproval.objects.get(
-                    course=course, email__iexact=request.user.email)
-        except ParticipationPreapproval.DoesNotExist:
-            pass
 
     role = participation_role.student
 
