@@ -176,5 +176,5 @@ TEMPLATES = [
 ]
 
 LOCALE_PATHS = (
-    BASE_DIR+ '/locale',
+    BASE_DIR + '/locale',
 )
