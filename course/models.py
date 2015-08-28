@@ -25,13 +25,14 @@ THE SOFTWARE.
 """
 
 from django.db import models
-from django.contrib.auth.models import User
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, string_concat)
 from django.core.validators import RegexValidator
+
+from django.conf import settings
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
@@ -114,7 +115,7 @@ def get_user_status(user):
 
 
 class UserStatus(models.Model):
-    user = models.OneToOneField(User, db_index=True,
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, db_index=True,
             related_name="user_status",
             verbose_name=_('User ID'))
     status = models.CharField(max_length=50,
@@ -262,7 +263,7 @@ class Course(models.Model):
             blank=False,
             verbose_name=_('Active git commit SHA'))
 
-    participants = models.ManyToManyField(User,
+    participants = models.ManyToManyField(settings.AUTH_USER_MODEL,
             through='Participation')
 
     class Meta:
@@ -357,7 +358,7 @@ class ParticipationTag(models.Model):
 
 
 class Participation(models.Model):
-    user = models.ForeignKey(User,
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
             verbose_name=_('User ID'))
     course = models.ForeignKey(Course, related_name="participations",
             verbose_name=_('Course identifier'))
@@ -412,7 +413,7 @@ class ParticipationPreapproval(models.Model):
             choices=PARTICIPATION_ROLE_CHOICES,
             verbose_name=_('Role'))
 
-    creator = models.ForeignKey(User, null=True,
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
             verbose_name=_('Creator'))
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
@@ -680,7 +681,7 @@ class FlowPageVisitGrade(models.Model):
             verbose_name=_('Visit'))
 
     # NULL means 'autograded'
-    grader = models.ForeignKey(User, null=True, blank=True,
+    grader = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
             verbose_name=_('Grader'))
     grade_time = models.DateTimeField(db_index=True, default=now,
             verbose_name=_('Grade time'))
@@ -838,7 +839,7 @@ class FlowAccessException(models.Model):
             dump_kwargs={'ensure_ascii': False},
             verbose_name=_('Stipulations'))
 
-    creator = models.ForeignKey(User, null=True,
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
             verbose_name=_('Creator'))
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
@@ -895,7 +896,7 @@ class FlowRuleException(models.Model):
     expiration = models.DateTimeField(blank=True, null=True,
             verbose_name=_('Expiration'))
 
-    creator = models.ForeignKey(User, null=True,
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
             verbose_name=_('Creator'))
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
@@ -1071,7 +1072,7 @@ class GradeChange(models.Model):
     due_time = models.DateTimeField(default=None, blank=True, null=True,
             verbose_name=_('Due time'))
 
-    creator = models.ForeignKey(User, null=True,
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
             verbose_name=_('Creator'))
     grade_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Grade time'))

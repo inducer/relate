@@ -35,7 +35,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.db.models import Q
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
 from django.contrib.auth.decorators import user_passes_test
@@ -58,7 +58,7 @@ def may_impersonate(user):
 
 def whom_may_impersonate(impersonator):
     if impersonator.is_superuser:
-        return User.objects.filter(
+        return get_user_model().objects.filter(
                 participation__status=participation_status.active)
 
     my_privileged_participations = Participation.objects.filter(
@@ -95,7 +95,7 @@ def whom_may_impersonate(impersonator):
         else:
             q_object = q_object | part_q_object
 
-    return set(User.objects.filter(q_object).order_by("last_name"))
+    return set(get_user_model().objects.filter(q_object).order_by("last_name"))
 
 
 class ImpersonateMiddleware(object):
@@ -107,7 +107,7 @@ class ImpersonateMiddleware(object):
             if imp_id is not None:
                 impersonees = whom_may_impersonate(request.user)
                 if any(u.id == imp_id for u in impersonees):
-                    request.user = User.objects.get(id=imp_id)
+                    request.user = get_user_model().objects.get(id=imp_id)
                 else:
                     messages.add_message(request, messages.ERROR,
                             _("Error while impersonating."))
@@ -154,7 +154,7 @@ def impersonate(request):
     if request.method == 'POST':
         form = ImpersonateForm(request.user, request.POST)
         if form.is_valid():
-            user = User.objects.get(id=form.cleaned_data["user"])
+            user = get_user_model().objects.get(id=form.cleaned_data["user"])
 
             messages.add_message(request, messages.INFO,
                     _("Now impersonating '%s'.") % user.username)
@@ -225,7 +225,7 @@ def make_sign_in_key(user):
 
 
 def check_sign_in_key(user_id, token):
-    user = User.objects.get(id=user_id)
+    user = get_user_model().objects.get(id=user_id)
     ustatuses = UserStatus.objects.filter(
             user=user, sign_in_key=token)
 
@@ -238,7 +238,7 @@ def check_sign_in_key(user_id, token):
 
 class TokenBackend(object):
     def authenticate(self, user_id=None, token=None):
-        user = User.objects.get(id=user_id)
+        user = get_user_model().objects.get(id=user_id)
         ustatuses = UserStatus.objects.filter(
                 user=user, sign_in_key=token)
 
@@ -256,8 +256,8 @@ class TokenBackend(object):
 
     def get_user(self, user_id):
         try:
-            return User.objects.get(pk=user_id)
-        except User.DoesNotExist:
+            return get_user_model().objects.get(pk=user_id)
+        except get_user_model().DoesNotExist:
             return None
 
 
@@ -296,7 +296,7 @@ class SignUpForm(StyledModelForm):
                 ])
 
     class Meta:
-        model = User
+        model = get_user_model()
         fields = ("email",)
 
     def __init__(self, *args, **kwargs):
@@ -317,14 +317,12 @@ def sign_up(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            from django.contrib.auth.models import User
-
-            if User.objects.filter(
+            if get_user_model().objects.filter(
                     username=form.cleaned_data["username"]).count():
                 messages.add_message(request, messages.ERROR,
                         _("A user with that username already exists."))
 
-            elif User.objects.filter(
+            elif get_user_model().objects.filter(
                     email__iexact=form.cleaned_data["email"]).count():
                 messages.add_message(request, messages.ERROR,
                         _("That email address is already in use. "
@@ -334,7 +332,7 @@ def sign_up(request):
                             "relate-reset_password")),
             else:
                 email = form.cleaned_data["email"]
-                user = User(
+                user = get_user_model()(
                         email=email,
                         username=form.cleaned_data["username"])
 
@@ -401,11 +399,10 @@ def reset_password(request):
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
         if form.is_valid():
-            from django.contrib.auth.models import User
 
             email = form.cleaned_data["email"]
             try:
-                user = User.objects.get(email__iexact=email)
+                user = get_user_model().objects.get(email__iexact=email)
             except ObjectDoesNotExist:
                 user = None
 
@@ -549,10 +546,8 @@ def sign_in_by_email(request):
     if request.method == 'POST':
         form = SignInByEmailForm(request.POST)
         if form.is_valid():
-            from django.contrib.auth.models import User
-
             email = form.cleaned_data["email"]
-            user, created = User.objects.get_or_create(
+            user, created = get_user_model().objects.get_or_create(
                     email__iexact=email,
                     defaults=dict(username=email, email=email))
 
@@ -638,7 +633,7 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 class UserForm(StyledModelForm):
     class Meta:
-        model = User
+        model = get_user_model()
         fields = ("first_name", "last_name")
 
     def __init__(self, *args, **kwargs):
