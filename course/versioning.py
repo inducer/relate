@@ -275,8 +275,9 @@ def is_parent_commit(repo, potential_parent, child, max_history_check_size=None)
 
 def run_course_update_command(
         request, repo, content_repo, pctx, command, new_sha, may_update):
-    if command.startswith("fetch_"):
-        command = command[6:]
+    if command.startswith("fetch"):
+        if command != "fetch":
+            command = command[6:]
 
         if not pctx.course.git_source:
             raise RuntimeError(_("no git source URL specified"))
@@ -295,6 +296,9 @@ def run_course_update_command(
         messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
         new_sha = repo.head()
+
+    if command == "fetch":
+        return
 
     if command == "end_preview":
         messages.add_message(request, messages.INFO,
@@ -371,6 +375,8 @@ class GitUpdateForm(StyledForm):
             else:
                 self.helper.add_input(Submit(desc, label))
 
+        add_button("fetch", _("Fetch"))
+
         if may_update:
             add_button("fetch_update", _("Fetch and update"))
             add_button("update", _("Update"))
@@ -412,7 +418,7 @@ def update_course(pctx):
     response_form = None
     if request.method == "POST":
         form = GitUpdateForm(may_update, previewing, request.POST, request.FILES)
-        commands = ["fetch_update", "update", "fetch_preview",
+        commands = ["fetch", "fetch_update", "update", "fetch_preview",
                 "preview", "end_preview"]
 
         command = None
