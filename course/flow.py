@@ -872,7 +872,8 @@ def get_and_check_flow_session(pctx, flow_session_id):
             participation_role.observer,
             participation_role.auditor,
             participation_role.unenrolled]:
-        if pctx.participation != flow_session.participation:
+        if (pctx.participation != flow_session.participation
+                and flow_session.participation is not None):
             raise PermissionDenied(_("may not view other people's sessions"))
     else:
         raise PermissionDenied()
@@ -1218,6 +1219,24 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 answer_data, grade_data)
     else:
         correct_answer = None
+
+    if (
+            flow_session.participation is None
+            and
+            fpctx.page.expects_answer()
+            ):
+        messages.add_message(request, messages.WARNING,
+                _("<p><b>WARNING!</b> What you enter on this page will not be "
+                    "associated with your user account, likely because "
+                    "you have not completed your enrollment in this course. "
+                    "Any data you enter here will not be retrievable later "
+                    "and will not be graded. If this is not what you intended, "
+                    "save your work on this session now (outside of RELATE), "
+                    "complete your enrollment in this course in RELATE, "
+                    "and restart your work on this flow.</p>"
+                    "<p> To confirm that you've "
+                    "completed your enrollment, make sure there is no 'Sign in' "
+                    "or 'Enroll' button at the top of the main course page.<p>"))
 
     # {{{ render flow page
 
