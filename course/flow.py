@@ -1236,7 +1236,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     "and restart your work on this flow.</p>"
                     "<p> To confirm that you've "
                     "completed your enrollment, make sure there is no 'Sign in' "
-                    "or 'Enroll' button at the top of the main course page.<p>"))
+                    "or 'Enroll' button at the top of the main course page.<p>"
+                    "<p><b>In addition, you should immediately bookmark this page "
+                    "to ensure you'll be able to return to your work.</b>"))
 
     # {{{ render flow page
 
