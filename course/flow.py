@@ -890,7 +890,8 @@ def will_receive_feedback(permissions):
             or flow_permission.see_answer_after_submission in permissions)
 
 
-def get_page_behavior(page, permissions, session_in_progress, answer_was_graded):
+def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
+        has_grade_identifier, is_unenrolled_session):
     show_correctness = None
     show_answer = None
 
@@ -920,7 +921,11 @@ def get_page_behavior(page, permissions, session_in_progress, answer_was_graded)
                     # can happen if no answer was ever saved
                     and session_in_progress
 
-                    and (flow_permission.submit_answer in permissions)))
+                    and (flow_permission.submit_answer in permissions)
+
+                    and (has_grade_identifier and not is_unenrolled_session
+                        or (not has_grade_identifier))
+                    ))
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
@@ -1012,9 +1017,18 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 flow_session.id,
                 flow_session.page_count-1)
 
+    now_datetime = get_now_or_fake_time(request)
     access_rule = get_session_access_rule(
-            flow_session, pctx.role, fpctx.flow_desc, get_now_or_fake_time(request),
+            flow_session, pctx.role, fpctx.flow_desc, now_datetime,
             pctx.remote_address)
+
+    grading_rule = get_session_grading_rule(
+            flow_session, pctx.role, fpctx.flow_desc, now_datetime)
+    has_grade_identifier = (
+            getattr(grading_rule, "grade_identifier", None)
+            is not None)
+    del grading_rule
+
     permissions = fpctx.page.get_modified_permissions_for_page(
             access_rule.permissions)
 
@@ -1055,7 +1069,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     page=fpctx.page,
                     permissions=permissions,
                     session_in_progress=flow_session.in_progress,
-                    answer_was_graded=False)
+                    answer_was_graded=False,
+                    has_grade_identifier=has_grade_identifier,
+                    is_unenrolled_session=flow_session.participation is None)
 
             form = fpctx.page.process_form_post(
                     fpctx.page_context, fpctx.page_data.data,
@@ -1087,7 +1103,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                         page=fpctx.page,
                         permissions=permissions,
                         session_in_progress=flow_session.in_progress,
-                        answer_was_graded=answer_was_graded)
+                        answer_was_graded=answer_was_graded,
+                        has_grade_identifier=has_grade_identifier,
+                        is_unenrolled_session=flow_session.participation is None)
 
                 if fpctx.page.is_answer_gradable():
                     feedback = fpctx.page.grade(
@@ -1168,7 +1186,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 page=fpctx.page,
                 permissions=permissions,
                 session_in_progress=flow_session.in_progress,
-                answer_was_graded=answer_was_graded)
+                answer_was_graded=answer_was_graded,
+                has_grade_identifier=has_grade_identifier,
+                is_unenrolled_session=flow_session.participation is None)
 
         if fpctx.page.expects_answer():
             if fpctx.prev_answer_visit is not None:
@@ -1220,6 +1240,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     else:
         correct_answer = None
 
+    # {{{ FIXME: This warning should be deleted after October 2015
+
     if (
             flow_session.participation is None
             and
@@ -1239,6 +1261,17 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     "or 'Enroll' button at the top of the main course page.<p>"
                     "<p><b>In addition, you should immediately bookmark this page "
                     "to ensure you'll be able to return to your work.</b>"))
+
+    # }}}
+
+    if (has_grade_identifier
+            and flow_session.participation is None
+            and flow_permission.submit_answer in permissions):
+        messages.add_message(request, messages.INFO,
+                _("Changes to this session are being prevented "
+                    "because this session yields a permanent grade, but "
+                    "you have not completed your enrollment process in "
+                    "this course."))
 
     # {{{ render flow page
 
