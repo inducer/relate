@@ -709,11 +709,13 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
 
     match = DATE_RE.match(datespec)
     if match:
-        return apply_postprocs(
-                datetime.date(
-                    int(match.group(1)),
-                    int(match.group(2)),
-                    int(match.group(3))))
+        result = datetime.date(
+                int(match.group(1)),
+                int(match.group(2)),
+                int(match.group(3)))
+        result = localize_if_needed(
+                datetime.datetime.combine(result, datetime.time.min))
+        return apply_postprocs(result)
 
     match = TRAILING_NUMERAL_RE.match(datespec)
     if match:
