@@ -274,7 +274,8 @@ def is_parent_commit(repo, potential_parent, child, max_history_check_size=None)
 
 
 def run_course_update_command(
-        request, repo, content_repo, pctx, command, new_sha, may_update):
+        request, repo, content_repo, pctx, command, new_sha, may_update,
+        prevent_discarding_revisions):
     if command.startswith("fetch"):
         if command != "fetch":
             command = command[6:]
@@ -287,15 +288,18 @@ def run_course_update_command(
 
         remote_refs = client.fetch(remote_path, repo)
         remote_head = remote_refs["HEAD"]
-        if is_parent_commit(repo, repo[remote_head], repo["HEAD"],
-                max_history_check_size=10):
+        if (
+                prevent_discarding_revisions
+                and
+                is_parent_commit(repo, repo[remote_head], repo["HEAD"],
+                    max_history_check_size=20)):
             raise RuntimeError(_("fetch would discard commits, refusing"))
 
         repo["HEAD"] = remote_head
 
         messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
-        new_sha = repo.head()
+        new_sha = remote_head
 
     if command == "fetch":
         return
@@ -361,6 +365,10 @@ class GitUpdateForm(StyledForm):
             label=pgettext_lazy(
                 "new git SHA for revision of course contents",
                 "New git SHA"))
+    prevent_discarding_revisions = forms.BooleanField(
+            label=_("Prevent updating to a git revision "
+                "prior to the current one"),
+            initial=True, required=False)
 
     def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
@@ -436,7 +444,9 @@ def update_course(pctx):
             try:
                 run_course_update_command(
                         request, repo, content_repo, pctx, command, new_sha,
-                        may_update)
+                        may_update,
+                        prevent_discarding_revisions=form.cleaned_data[
+                            "prevent_discarding_revisions"])
             except Exception as e:
                 messages.add_message(pctx.request, messages.ERROR,
                         string_concat(
@@ -445,13 +455,18 @@ def update_course(pctx):
                             ": %(err_type)s %(err_str)s")
                         % {"err_type": type(e).__name__,
                             "err_str": str(e)})
+        else:
+            response_form = form
 
     if response_form is None:
         previewing = bool(participation is not None
                 and participation.preview_git_commit_sha)
 
         form = GitUpdateForm(may_update, previewing,
-                {"new_sha": repo.head()})
+                {
+                    "new_sha": repo.head(),
+                    "prevent_discarding_revisions": True,
+                    })
 
     text_lines = [
             string_concat(
