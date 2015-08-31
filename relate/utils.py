@@ -66,6 +66,7 @@ def settings_context_processor(request):
     return {
         "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
         "maintenance_mode": settings.RELATE_MAINTENANCE_MODE,
+        "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
         }
 
 

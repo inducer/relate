@@ -461,6 +461,13 @@ class FlowSession(models.Model):
     participation = models.ForeignKey(Participation, null=True, blank=True,
             db_index=True,
             verbose_name=_('Participation'))
+
+    # This looks like it's redundant with participation, above--but it's not.
+    # Again--'participation' is nullable, and it is useful to be able to
+    # remember what user a session belongs to, even if they're not enrolled.
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+            verbose_name=_('User'))
+
     active_git_commit_sha = models.CharField(max_length=200,
             verbose_name=_('Active git commit SHA'))
     flow_id = models.CharField(max_length=200, db_index=True,

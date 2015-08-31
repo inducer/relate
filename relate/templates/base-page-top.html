@@ -1,5 +1,11 @@
 {% load i18n %}
 
+{% if site_announcement %}
+  <div class="alert alert-warning">
+    {{ site_announcement|safe }}
+  </div>
+{% endif %}
+
 {% for message in messages %}
   <div class="alert
     {% if message.tags == "error" %}

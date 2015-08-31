@@ -58,6 +58,13 @@
 
   </table>
 
+  {% if batch_session_ops_form %}
+    <div class="well" style="margin-top: 20px">
+      <h3 class="start-well-title">{% trans "Batch sessions operations" %}</h3>
+      {% crispy batch_session_ops_form %}
+    </div>
+  {% endif %}
+
   <table class="gradebook-by-opportunity">
     <thead>
       <th class="datacol">{% trans "User ID" %}</th>
@@ -128,12 +135,5 @@
         "ordering": true,
     } );
   </script>
-
-  {% if batch_session_ops_form %}
-    <div class="well" style="margin-top: 20px">
-      <h3 class="start-well-title">{% trans "Batch sessions operations" %}</h3>
-      {% crispy batch_session_ops_form %}
-    </div>
-  {% endif %}
 
 {% endblock %}

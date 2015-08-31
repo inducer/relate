@@ -396,6 +396,9 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
+            "user__username",
+            "user__first_name",
+            "user__last_name",
             )
 
     list_display = (
@@ -426,7 +429,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
     inlines = (FlowPageDataInline,)
 
-    raw_id_fields = ("participation",)
+    raw_id_fields = ("participation", "user")
 
     save_on_top = True
 
