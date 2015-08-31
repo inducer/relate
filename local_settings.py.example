@@ -72,6 +72,9 @@ RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 
 RELATE_MAINTENANCE_MODE = False
 
+# May be set to a string to set a sitewide announcement visible on every page.
+RELATE_SITE_ANNOUNCEMENT = None
+
 # Uncomment this to enable i18n, change 'en-us' to locale name your language.
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language 'en-us'.
