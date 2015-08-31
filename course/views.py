@@ -707,7 +707,9 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
             if access_rules_tag == NONE_SESSION_TAG:
                 access_rules_tag = None
 
-            start_flow(pctx.repo, pctx.course, participation, flow_id,
+            start_flow(pctx.repo, pctx.course, participation,
+                    user=participation.user,
+                    flow_id=flow_id,
                     flow_desc=flow_desc,
                     access_rules_tag=access_rules_tag,
                     now_datetime=now_datetime)

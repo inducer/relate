@@ -426,7 +426,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
     inlines = (FlowPageDataInline,)
 
-    raw_id_fields = ("participation",)
+    raw_id_fields = ("participation", "user")
 
     save_on_top = True
 

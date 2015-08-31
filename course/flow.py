@@ -148,14 +148,18 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 
 # {{{ start flow
 
-def start_flow(repo, course, participation, flow_id, flow_desc,
+def start_flow(repo, course, participation, user, flow_id, flow_desc,
         access_rules_tag, now_datetime):
     from course.content import get_course_commit_sha
     course_commit_sha = get_course_commit_sha(course, participation)
 
+    if participation:
+        assert participation.user == user
+
     session = FlowSession(
         course=course,
         participation=participation,
+        user=user,
         active_git_commit_sha=course_commit_sha.decode(),
         flow_id=flow_id,
         in_progress=True,
@@ -769,9 +773,14 @@ def view_start_flow(pctx, flow_id):
             if not session_start_rule.may_start_new_session:
                 raise PermissionDenied(_("new session not allowed"))
 
+            flow_user = pctx.request.user
+            if not flow_user.is_authenticated():
+                flow_user = None
+
             session = start_flow(
                     pctx.repo, pctx.course, pctx.participation,
-                    flow_id, fctx.flow_desc,
+                    user=flow_user,
+                    flow_id=flow_id, flow_desc=fctx.flow_desc,
                     access_rules_tag=session_start_rule.tag_session,
                     now_datetime=now_datetime)
 
@@ -874,6 +883,10 @@ def get_and_check_flow_session(pctx, flow_session_id):
             participation_role.unenrolled]:
         if (pctx.participation != flow_session.participation
                 and flow_session.participation is not None):
+            raise PermissionDenied(_("may not view other people's sessions"))
+
+        if (flow_session.user is not None
+                and pctx.request.user != flow_session.user):
             raise PermissionDenied(_("may not view other people's sessions"))
     else:
         raise PermissionDenied()
