@@ -384,6 +384,15 @@ def float_or_sympy_evalf(s):
     if isinstance(s, (int, float)):
         return s
 
+    if not isinstance(s, str):
+        raise TypeError("expected string, int or float for floating point "
+                "literal")
+
+    try:
+        return float(s)
+    except ValueError:
+        pass
+
     # avoiding IO error if empty input when
     # the is field not required
     if s == "":
