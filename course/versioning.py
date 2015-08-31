@@ -375,8 +375,6 @@ class GitUpdateForm(StyledForm):
             else:
                 self.helper.add_input(Submit(desc, label))
 
-        add_button("fetch", _("Fetch"))
-
         if may_update:
             add_button("fetch_update", _("Fetch and update"))
             add_button("update", _("Update"))
@@ -386,6 +384,8 @@ class GitUpdateForm(StyledForm):
         else:
             add_button("fetch_preview", _("Fetch and preview"))
             add_button("preview", _("Preview"))
+
+        add_button("fetch", _("Fetch"))
 
 
 @login_required
