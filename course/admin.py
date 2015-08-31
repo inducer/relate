@@ -396,6 +396,9 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
+            "user__username",
+            "user__first_name",
+            "user__last_name",
             )
 
     list_display = (
