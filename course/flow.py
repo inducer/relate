@@ -1308,9 +1308,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "show_correctness": page_behavior.show_correctness,
         "may_change_answer": page_behavior.may_change_answer,
         "may_change_graded_answer": (
-            (flow_permission.change_answer
-                        in permissions)
-            and flow_session.in_progress),
+            page_behavior.may_change_answer
+            and
+            (flow_permission.change_answer in permissions)),
         "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": page_behavior.show_answer,
 
