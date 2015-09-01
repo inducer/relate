@@ -104,7 +104,7 @@ def request_python_run(run_req, run_timeout, image=None):
                 command=[
                     "/opt/runpy/runpy",
                     "-1"],
-                mem_limit=256e6,
+                mem_limit=256*10**6,
                 user="runpy")
 
         container_id = dresult["Id"]
