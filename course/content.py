@@ -115,7 +115,11 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
         return get_repo_blob(repo, full_name, commit_sha).data
 
     def_cache = cache.caches["default"]
-    result = def_cache.get(cache_key)
+
+    result = None
+    # Memcache is apparently limited to 250 characters.
+    if len(cache_key) < 240:
+        result = def_cache.get(cache_key)
     if result is not None:
         return result
 
@@ -230,7 +234,10 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
-    result = def_cache.get(cache_key)
+    result = None
+    # Memcache is apparently limited to 250 characters.
+    if len(cache_key) < 240:
+        result = def_cache.get(cache_key)
     if result is not None:
         return result
 
@@ -260,7 +267,10 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
 
         import django.core.cache as cache
         def_cache = cache.caches["default"]
-        result = def_cache.get(cache_key)
+        result = None
+        # Memcache is apparently limited to 250 characters.
+        if len(cache_key) < 240:
+            result = def_cache.get(cache_key)
         if result is not None:
             return result
 
