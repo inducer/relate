@@ -529,7 +529,9 @@ def reset_password_stage2(request, user_id, sign_in_key):
 # {{{ email sign-in flow
 
 class SignInByEmailForm(StyledForm):
-    email = forms.EmailField(required=True, label=_("Email"))
+    email = forms.EmailField(required=True, label=_("Email"),
+            # For now, until we upgrade to a custom user model.
+            max_length=30)
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
