@@ -274,11 +274,11 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         if result is not None:
             return result
 
-    result = dict_to_struct(
-            load_yaml(
-                expand_yaml_macros(
-                    repo, commit_sha,
-                    get_repo_blob(repo, full_name, commit_sha).data)))
+    expanded = expand_yaml_macros(
+            repo, commit_sha,
+            get_repo_blob(repo, full_name, commit_sha).data)
+
+    result = dict_to_struct(load_yaml(expanded))
 
     if cached:
         def_cache.add(cache_key, result, None)
