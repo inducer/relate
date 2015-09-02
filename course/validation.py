@@ -892,6 +892,8 @@ def validate_course_content(repo, course_file, events_file,
         # That's OK--no flows yet.
         pass
     else:
+        used_grade_identifiers = set()
+
         for entry in flows_tree.items():
             if not entry.path.endswith(".yml"):
                 continue
@@ -913,6 +915,30 @@ def validate_course_content(repo, course_file, events_file,
                     commit_sha=validate_sha)
 
             validate_flow_desc(vctx, location, flow_desc)
+
+            # {{{ check grade_identifier
+
+            flow_grade_identifiers = set()
+            if hasattr(flow_desc, "rules"):
+                for grule in flow_desc.rules.grading:
+                    if grule.grade_identifier is not None:
+                        flow_grade_identifiers.add(grule.grade_identifier)
+
+                if len(flow_grade_identifiers) > 1:
+                    vctx.add_warning(
+                            location, "flow uses more than one grade_identifier: %s"
+                            % ", ".join(flow_grade_identifiers))
+
+            if flow_grade_identifiers & used_grade_identifiers:
+                raise ValidationError(
+                        "%s: flow uses the same grade_identifier "
+                        "as another flow: %s"
+                        % (
+                            location,
+                            ", ".join(
+                                flow_grade_identifiers & used_grade_identifiers)))
+
+            used_grade_identifiers.update(flow_grade_identifiers)
 
     return vctx.warnings
 
