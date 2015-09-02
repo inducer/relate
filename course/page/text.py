@@ -385,7 +385,6 @@ def float_or_sympy_evalf(s):
     if isinstance(s, (int, float)):
         return s
 
-    print type(s)
     if not isinstance(s, six.string_types):
         raise TypeError("expected string, int or float for floating point "
                 "literal")
