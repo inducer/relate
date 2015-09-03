@@ -189,6 +189,14 @@ a RELATE site:
       - "*.png"
       - "*.jpeg"
 
+  In addition to "public", the file can also include the following
+  sections:
+
+  * ``public``: Allow access to these files from anywhere on the
+    Internet, except for locked-down exam sessions.
+  * ``in_exam``: Allow access to these files when a locked-down exam
+    is ongoing.
+
 * The URL schema ``repocur:some/file/name.png``
   generally works the same way as ``repo:``, with these differences:
 
