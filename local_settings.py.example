@@ -56,8 +56,8 @@ ROBOT_EMAIL_FROM = "Example Admin <admin@example.com>"
 SERVER_EMAIL = ROBOT_EMAIL_FROM
 
 ADMINS = (
-  ("Example Admin", "admin@example.com"),
-  )
+    ("Example Admin", "admin@example.com"),
+    )
 
 TIME_ZONE = "America/Chicago"
 
@@ -80,3 +80,14 @@ RELATE_SITE_ANNOUNCEMENT = None
 # language. If commented, RELATE will use default language 'en-us'.
 
 #LANGUAGE_CODE='en-us'
+
+RELATE_FACILITIES = {
+    "test_center": {
+        "ip_ranges": [
+            "192.168.192.0/24",
+            ],
+        "exams_only": True,
+    },
+}
+
+# vim: filetype=python

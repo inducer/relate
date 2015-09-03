@@ -25,7 +25,6 @@ THE SOFTWARE.
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.contrib import admin
 from course.models import (
-        Facility, FacilityIPRange,
         UserStatus,
         Course, Event,
         ParticipationTag,
@@ -70,28 +69,6 @@ def _filter_participation_linked_obj_for_user(queryset, user):
     return queryset.filter(
         participation__course__participations__user=user,
         participation__course__participations__role__in=admin_roles)
-
-# }}}
-
-
-# {{{ facility
-
-class FacilityIPRangeInline(admin.TabularInline):
-    model = FacilityIPRange
-    extra = 2
-
-
-class FacilityAdmin(admin.ModelAdmin):
-    inlines = (FacilityIPRangeInline,)
-
-    list_display = (
-            "identifier",
-            "description",
-            )
-
-    search_fields = list_display
-
-admin.site.register(Facility, FacilityAdmin)
 
 # }}}
 

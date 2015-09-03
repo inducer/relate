@@ -637,16 +637,12 @@ def is_address_in_facility(remote_address, facility_id):
     if remote_address is None:
         return False
 
-    from course.models import FacilityIPRange
-    try:
-        ip_ranges = (FacilityIPRange.objects
-                .filter(facility__identifier=facility_id))
-    except ObjectDoesNotExist:
-        return False
+    from django.conf import settings
+    ip_ranges = settings.RELATE_FACILITIES.get(facility_id, {}).get("ip_ranges", [])
 
     import ipaddr
     for ir in ip_ranges:
-        if remote_address in ipaddr.IPNetwork(ir.ip_range):
+        if remote_address in ipaddr.IPNetwork(ir):
             return True
 
     return False

@@ -19,7 +19,6 @@ import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-
 local_settings = {}
 try:
     with open(join(BASE_DIR, "local_settings.py")) as inf:
@@ -152,6 +151,8 @@ STATIC_ROOT = join(BASE_DIR, "static")
 
 SESSION_COOKIE_NAME = 'relate_sessionid'
 SESSION_COOKIE_AGE = 12096000  # 20 weeks
+
+RELATE_FACILITIES = {}
 
 for name, val in local_settings.items():
     if not name.startswith("_"):
