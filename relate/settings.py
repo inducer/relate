@@ -56,6 +56,7 @@ MIDDLEWARE_CLASSES = (
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "course.auth.ImpersonateMiddleware",
+    "course.exam.ExamLockdownMiddleware",
 )
 
 
@@ -70,6 +71,7 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "relate.utils.settings_context_processor",
             "course.auth.impersonation_context_processor",
             "course.views.fake_time_context_processor",
+            "course.exam.exam_lockdown_context_processor",
             )
 TEMPLATE_CONTEXT_PROCESSORS = (
         TEMPLATE_CONTEXT_PROCESSORS

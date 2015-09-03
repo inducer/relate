@@ -198,8 +198,12 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 
     repo = get_course_repo(course)
 
-    from course.content import is_repo_file_public
-    if not is_repo_file_public(repo, commit_sha, path):
+    access_kind = "public"
+    if request.relate_exam_lockdown:
+        access_kind = "in_exam"
+
+    from course.content import is_repo_file_accessible_as
+    if not is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
         raise PermissionDenied()
 
     from course.content import get_repo_blob_data_cached
@@ -247,8 +251,12 @@ def get_current_repo_file(request, course_identifier, path):
 
     repo = get_course_repo(course)
 
-    from course.content import is_repo_file_public
-    if not is_repo_file_public(repo, commit_sha, path):
+    access_kind = "public"
+    if request.relate_exam_lockdown:
+        access_kind = "in_exam"
+
+    from course.content import is_repo_file_accessible_as
+    if not is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
         raise PermissionDenied()
 
     from course.content import get_repo_blob_data_cached

@@ -12,14 +12,21 @@
   {{ course_desc.number}}
   {{ course_desc.run}}
 {% endblock %}
-{% block brand_link %}{% url "relate-course_page" course.identifier %}{% endblock %}
+
+{% block brand_link %}
+  {% if not relate_exam_lockdown %}
+    {% url "relate-course_page" course.identifier %}
+  {% else %}
+    #
+  {% endif %}
+{% endblock %}
 
 {% block navbar %}
   {% with participation_role as pr %}
   {% block page_navbar %}
   {% endblock %}
 
-  {% if role != pr.unenrolled %}
+  {% if not relate_exam_lockdown and role != pr.unenrolled %}
   <li class="dropdown">
     {% comment %} Translators: The following are names for menu items in course page {% endcomment %}
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Student" context "menu item" %}<b class="caret"></b></a>
@@ -68,9 +75,7 @@
         {% if user.is_staff %}
           <li><a href="{% url "admin:course_exam_changelist" %}" target="_blank">{% trans "Edit exams" %}</a></li>
         {% endif %}
-        <li><a href="{% url "relate-issue_exam_ticket" %}">{% trans "Issue exam tickets" %}</a></li>
         <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
-        <li><a href="{% url "relate-check_in_for_exam" %}">{% trans "Exam check-in" %}</a></li>
       {% endif %}
 
     </ul>

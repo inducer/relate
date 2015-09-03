@@ -37,7 +37,7 @@ from django.db import transaction
 
 from crispy_forms.layout import Submit
 
-from course.models import Exam, ExamTicket, Participation
+from course.models import Exam, ExamTicket, Participation, FlowSession
 from course.utils import course_view, render_course_page
 from course.constants import (
         exam_ticket_states,
@@ -94,6 +94,11 @@ class IssueTicketForm(StyledForm):
                 initial=initial_exam,
                 label=_("Exam"))
 
+        self.fields["revoke_prior"] = forms.BooleanField(
+                label=_("Revoke prior exam tickets for this user"),
+                required=False,
+                initial=True)
+
         self.helper.add_input(
                 Submit(
                     "issue",
@@ -101,7 +106,7 @@ class IssueTicketForm(StyledForm):
                     css_class="col-lg-offset-2"))
 
 
-@permission_required("course.can_check_in_student")
+@permission_required("course.can_issue_exam_tickets")
 def issue_exam_ticket(request):
     if request.method == "POST":
         form = IssueTicketForm(request.POST)
@@ -121,6 +126,13 @@ def issue_exam_ticket(request):
                 participation = None
 
             if participation is not None:
+                if form.cleaned_data["revoke_prior"]:
+                    ExamTicket.objects.filter(
+                            exam=exam,
+                            participation=participation,
+                            state=exam_ticket_states.valid,
+                            ).update(state=exam_ticket_states.revoked)
+
                 ticket = ExamTicket()
                 ticket.exam = exam
                 ticket.participation = participation
@@ -324,6 +336,8 @@ def check_in_for_exam(request):
                 ticket.usage_time = now_datetime
                 ticket.save()
 
+                request.session["relate_session_exam_ticket_pk"] = ticket.pk
+
                 return redirect("relate-view_start_flow",
                         ticket.exam.course.identifier,
                         ticket.exam.flow_id)
@@ -336,6 +350,83 @@ def check_in_for_exam(request):
             _("Check in for Exam"),
         "form": form
         })
+
+# }}}
+
+
+# {{{ lockdown middleware
+
+class ExamLockdownMiddleware(object):
+    def process_request(self, request):
+        request.relate_exam_lockdown = False
+
+        if "relate_session_exam_ticket_pk" in request.session:
+            ticket_pk = request.session['relate_session_exam_ticket_pk']
+
+            try:
+                ticket = ExamTicket.objects.get(pk=ticket_pk)
+            except ObjectDoesNotExist:
+                messages.add_message(request, messages.ERROR,
+                        _("Error while processing exam lockdown: ticket not found."))
+
+            if not ticket.exam.lock_down_sessions:
+                return None
+
+            request.relate_exam_lockdown = True
+
+            flow_session_ids = [fs.id for fs in FlowSession.objects.filter(
+                    participation=ticket.participation,
+                    flow_id=ticket.exam.flow_id)]
+
+            from django.core.urlresolvers import resolve
+            resolver_match = resolve(request.path)
+
+            from course.views import (get_repo_file, get_current_repo_file)
+            from course.flow import (view_start_flow, view_flow_page,
+                    update_expiration_mode, finish_flow_session_view)
+            from course.auth import user_profile
+            from django.contrib.auth.views import logout
+
+            ok = False
+            if resolver_match.func in [
+                    get_repo_file,
+                    get_current_repo_file,
+
+                    user_profile,
+                    logout]:
+                ok = True
+
+            if (resolver_match.func == view_start_flow
+                    and
+                    resolver_match.kwargs["course_identifier"]
+                    == ticket.exam.course.identifier
+                    and
+                    resolver_match.kwargs["flow_id"]
+                    == ticket.exam.flow_id):
+                ok = True
+
+            if (
+                    resolver_match.func in [
+                        view_flow_page,
+                        update_expiration_mode,
+                        finish_flow_session_view]
+                    and
+                    int(resolver_match.kwargs["flow_session_id"])
+                    in flow_session_ids):
+                ok = True
+
+            if not ok:
+                raise PermissionDenied("not allowed in exam lock-down")
+
+# }}}
+
+
+# {{{ lockdown context processor
+
+def exam_lockdown_context_processor(request):
+    return {
+            "relate_exam_lockdown": request.relate_exam_lockdown,
+            }
 
 # }}}
 

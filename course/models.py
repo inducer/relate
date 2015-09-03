@@ -65,10 +65,6 @@ class Facility(models.Model):
     description = models.CharField(max_length=100,
             verbose_name=_("Facility description"))
 
-    exams_only = models.BooleanField(
-            default=True,
-            verbose_name=_('Only allow exam logins and related flows'))
-
     class Meta:
         verbose_name = _("Facility")
         # Translators: plural form of facility
@@ -1351,6 +1347,13 @@ class Exam(models.Model):
             null=True, blank=True,
             verbose_name=_('No exams after'))
 
+    lock_down_sessions = models.BooleanField(
+            default=True,
+            verbose_name=_("Lock down sessions"),
+            help_text=_("Only allow access to exam content "
+                "(and no other content in this RELATE instance) "
+                "in sessions logged in through this exam"))
+
     class Meta:
         verbose_name = _("Exam")
         verbose_name_plural = _("Exams")
@@ -1385,7 +1388,7 @@ class ExamTicket(models.Model):
     code = models.CharField(max_length=50, db_index=True, unique=True)
 
     permissions = (
-            ("can_check_in_student", "Can check in student for exam"),
+            ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
             )
 
     class Meta:
