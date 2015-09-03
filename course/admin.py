@@ -34,7 +34,8 @@ from course.models import (
         FlowSession, FlowPageData,
         FlowPageVisit, FlowPageVisitGrade,
         FlowRuleException,
-        GradingOpportunity, GradeChange, InstantMessage)
+        GradingOpportunity, GradeChange, InstantMessage,
+        Exam, ExamTicket)
 from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
 from course.constants import participation_role
@@ -814,6 +815,78 @@ class InstantMessageAdmin(admin.ModelAdmin):
     # }}}
 
 admin.site.register(InstantMessage, InstantMessageAdmin)
+
+# }}}
+
+
+# {{{ exam tickets
+
+class ExamAdmin(admin.ModelAdmin):
+    def get_course(self, obj):
+        return obj.participation.course
+    get_course.short_description = _("Course")
+    get_course.admin_order_field = "participation__course"
+
+    list_filter = (
+            "course",
+            "active",
+            )
+
+    list_display = (
+            "get_course",
+            "flow_id",
+            "active",
+            )
+
+    search_fields = (
+            "flow_id",
+            )
+
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(ExamAdmin, self).get_queryset(request)
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(ExamAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
+
+    # }}}
+
+admin.site.register(Exam, ExamAdmin)
+
+
+class ExamTicketAdmin(admin.ModelAdmin):
+    list_filter = (
+            "participation__course",
+            )
+
+    search_fields = (
+            "exam__flow_id",
+            "participation__user__username",
+            "participation__user__first_name",
+            "participation__user__last_name",
+            )
+
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(ExamTicketAdmin, self).get_queryset(request)
+        return _filter_participation_linked_obj_for_user(qs, request.user)
+
+    exclude = ("creator",)
+
+    def save_model(self, request, obj, form, change):
+        obj.creator = request.user
+        obj.save()
+
+    # }}}
+
+admin.site.register(ExamTicket, ExamTicketAdmin)
 
 # }}}
 

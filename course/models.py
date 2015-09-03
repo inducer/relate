@@ -43,6 +43,7 @@ from course.constants import (  # noqa
         grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
         flow_rule_kind, FLOW_RULE_KIND_CHOICES,
+        exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
 
         COURSE_ID_REGEX
         )
@@ -63,6 +64,10 @@ class Facility(models.Model):
             verbose_name=_("Facility ID"))
     description = models.CharField(max_length=100,
             verbose_name=_("Facility description"))
+
+    exams_only = models.BooleanField(
+            default=True,
+            verbose_name=_('Only allow exam logins and related flows'))
 
     class Meta:
         verbose_name = _("Facility")
@@ -1323,6 +1328,59 @@ class InstantMessage(models.Model):
 
     def __unicode__(self):
         return "%s: %s" % (self.participation, self.text)
+
+# }}}
+
+
+# {{{ exam tickets
+
+class Exam(models.Model):
+    course = models.ForeignKey(Course,
+            verbose_name=_('Course'))
+    flow_id = models.CharField(max_length=200,
+            verbose_name=_('Flow ID'))
+    active = models.BooleanField(
+            default=True,
+            verbose_name=_('Currently active'))
+
+    no_exams_before = models.DateTimeField(
+            verbose_name=_('No exams before'))
+    no_exams_after = models.DateTimeField(
+            null=True, blank=True,
+            verbose_name=_('Creation time'))
+
+    class Meta:
+        verbose_name = _("Exam")
+        verbose_name_plural = _("Exams")
+        ordering = ("course", "no_exams_before",)
+
+
+class ExamTicket(models.Model):
+    exam = models.ForeignKey(Exam,
+            verbose_name=_('Exam'))
+
+    participation = models.ForeignKey(Participation, db_index=True,
+            verbose_name=_('Participation'))
+
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
+            verbose_name=_('Creator'))
+    creation_time = models.DateTimeField(default=now,
+            verbose_name=_('Creation time'))
+    usage_time = models.DateTimeField(
+            verbose_name=_('Usage time'))
+    usage_flow_session = models.ForeignKey(FlowSession,
+            verbose_name=_('Flow session for which ticket was used'))
+
+    state = models.CharField(max_length=50,
+            choices=EXAM_TICKET_STATE_CHOICES,
+            verbose_name=_('Exam ticket state'))
+
+    code = models.CharField(max_length=50, db_index=True, unique=True)
+
+    class Meta:
+        verbose_name = _("Exam ticket")
+        verbose_name_plural = _("Exam tickets")
+        ordering = ("exam__course", "exam", "usage_time")
 
 # }}}
 

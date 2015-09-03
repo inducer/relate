@@ -306,3 +306,18 @@ GRADE_STATE_CHANGE_CHOICES = (
             pgettext_lazy("Grade state change", "Exempt")),
         )
 
+
+class exam_ticket_states:  # noqa
+    valid = "valid"
+    used = "used"
+    revoked = "revoked"
+
+
+EXAM_TICKET_STATE_CHOICES = (
+        (exam_ticket_states.valid,
+            pgettext_lazy("Exam ticket state", "Valid")),
+        (exam_ticket_states.used,
+            pgettext_lazy("Exam ticket state", "Used")),
+        (exam_ticket_states.revoked,
+            pgettext_lazy("Exam ticket state", "Revoked")),
+        )
