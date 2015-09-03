@@ -180,6 +180,10 @@ class flow_permission:  # noqa
 
         See :ref:`flow-life-cycle`.
 
+    .. attribute:: see_session_time
+
+        Allows the participant to see the duration for which the
+        session has been going on.
     """
     view = "view"
     end_session = "end_session"
@@ -189,6 +193,7 @@ class flow_permission:  # noqa
     see_answer_before_submission = "see_answer_before_submission"
     see_answer_after_submission = "see_answer_after_submission"
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
+    see_session_time = "see_session_time"
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view,
@@ -211,6 +216,8 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.set_roll_over_expiration_mode,
             pgettext_lazy("Flow permission",
                 "Set the session to 'roll over' expiration mode")),
+        (flow_permission.see_session_time,
+            pgettext_lazy("Flow permission", "See session time")),
         )
 
 

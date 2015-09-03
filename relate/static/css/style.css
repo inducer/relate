@@ -64,6 +64,14 @@ code {
   background-color: #e8e8ff;
 }
 
+.relate-session-duration {
+  margin-top:1ex;
+  text-align: center;
+  background-color: #ddd;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
 /* }}} */
 
 /* {{{ histograms */

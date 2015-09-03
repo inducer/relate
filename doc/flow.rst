@@ -318,6 +318,12 @@ Here's a commented example:
         (Optional) One of :class:`flow_session_expiration_mode`. Rule applies if the expiration mode
         (see :ref:`flow-life-cycle`) matches.
 
+    .. attribute:: if_session_duration_shorter_than_minutes
+
+        (Optional) The rule applies if the current session has been going on for
+        less than the specified number of minutes. Fractional values (e.g. "0.5")
+        are accepted here.
+
     .. rubric:: Rules specified
 
     .. attribute:: permissions

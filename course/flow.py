@@ -1300,6 +1300,14 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         if is_expiration_mode_allowed(key, permissions):
             expiration_mode_choices.append((key, descr))
 
+    session_minutes = None
+    time_factor = 1
+    if flow_permission.see_session_time in permissions:
+        session_minutes = (
+                now_datetime - flow_session.start_time).total_seconds() / 60
+        if flow_session.participation is not None:
+            time_factor = flow_session.participation.time_factor
+
     args = {
         "flow_identifier": fpctx.flow_id,
         "flow_desc": fpctx.flow_desc,
@@ -1326,6 +1334,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             (flow_permission.change_answer in permissions)),
         "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": page_behavior.show_answer,
+
+        "session_minutes": session_minutes,
+        "time_factor": time_factor,
 
         "expiration_mode_choices": expiration_mode_choices,
         "expiration_mode_choice_count": len(expiration_mode_choices),

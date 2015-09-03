@@ -380,7 +380,7 @@ class Participation(models.Model):
             max_digits=10, decimal_places=2,
             default=1,
             help_text=_("Multiplier for time available on time-limited "
-            "flows (time-limited flows are currently unimplemented)."),
+            "flows"),
             verbose_name=_('Time factor'))
 
     preview_git_commit_sha = models.CharField(max_length=200, null=True,
