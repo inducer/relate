@@ -238,6 +238,15 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
             if session.expiration_mode != rule.if_expiration_mode:
                 continue
 
+        if hasattr(rule, "if_session_duration_shorter_than_minutes"):
+            duration_min = (now_datetime - session.start_time).total_seconds() / 60
+
+            if session.participation is not None:
+                duration_min /= float(session.participation.time_factor)
+
+            if duration_min > rule.if_session_duration_shorter_than_minutes:
+                continue
+
         if hasattr(rule, "if_in_facility"):
             if not is_address_in_facility(remote_address, rule.if_in_facility):
                 continue

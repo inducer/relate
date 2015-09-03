@@ -77,8 +77,21 @@
         {% endfor %}
       </div>
       <div style="clear:both; height:0px"></div>
+
+      {% if session_minutes != None %}
+        <div class="relate-session-duration">
+          {% trans "Session duration:" %}
+          {{ session_minutes|floatformat:1 }}
+          {% trans "minutes" %}
+
+          {% if time_factor != 1 %}
+          ({% trans "Time factor:" %} {{ time_factor|floatformat:2 }}x)
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
   </form>
+
 
   {% if max_points %}
     <div style="float:right" class="well">

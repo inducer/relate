@@ -496,6 +496,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),
                 ("if_expiration_mode", str),
+                ("if_session_duration_shorter_than_minutes", (int, float)),
                 ("message", datespec_types),
                 ]
             )
