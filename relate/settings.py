@@ -61,6 +61,7 @@ MIDDLEWARE_CLASSES = (
 
 AUTHENTICATION_BACKENDS = (
     "course.auth.TokenBackend",
+    "course.exam.ExamTicketBackend",
     "django.contrib.auth.backends.ModelBackend",
     )
 

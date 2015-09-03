@@ -62,6 +62,17 @@
         {% endif %}
       {% endif %}
 
+      {% if role == pr.instructor %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
+        {% if user.is_staff %}
+          <li><a href="{% url "admin:course_exam_changelist" %}" target="_blank">{% trans "Edit exams" %}</a></li>
+        {% endif %}
+        <li><a href="{% url "relate-issue_exam_ticket" %}">{% trans "Issue exam tickets" %}</a></li>
+        <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
+        <li><a href="{% url "relate-check_in_for_exam" %}">{% trans "Exam check-in" %}</a></li>
+      {% endif %}
+
     </ul>
   </li>
   {% endif %}

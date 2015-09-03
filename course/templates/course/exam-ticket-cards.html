@@ -1,0 +1,8 @@
+{% for ticket in tickets %}
+  <div class="relate-exam-ticket-card">
+    {{ ticket.participation.user.username }}
+    <br>
+    Code: <b>{{ ticket.code }}</b>
+  </div>
+{% endfor %}
+<div style="clear:left; margin-bottom:3ex"></div>

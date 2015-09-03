@@ -38,7 +38,7 @@ from course.models import (
         Exam, ExamTicket)
 from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
-from course.constants import participation_role
+from course.constants import participation_role, exam_ticket_states
 
 
 # {{{ permission helpers
@@ -822,25 +822,23 @@ admin.site.register(InstantMessage, InstantMessageAdmin)
 # {{{ exam tickets
 
 class ExamAdmin(admin.ModelAdmin):
-    def get_course(self, obj):
-        return obj.participation.course
-    get_course.short_description = _("Course")
-    get_course.admin_order_field = "participation__course"
-
     list_filter = (
             "course",
             "active",
             )
 
     list_display = (
-            "get_course",
+            "course",
             "flow_id",
             "active",
+            "no_exams_before",
             )
 
     search_fields = (
             "flow_id",
             )
+
+    date_hierarchy = "no_exams_before"
 
     # {{{ permissions
 
@@ -863,10 +861,22 @@ admin.site.register(Exam, ExamAdmin)
 class ExamTicketAdmin(admin.ModelAdmin):
     list_filter = (
             "participation__course",
+            "state",
             )
 
+    list_display = (
+            "exam",
+            "participation",
+            "state",
+            "usage_time",
+            )
+
+    date_hierarchy = "usage_time"
+
     search_fields = (
+            "exam__course__identifier",
             "exam__flow_id",
+            "exam__description",
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
@@ -885,6 +895,15 @@ class ExamTicketAdmin(admin.ModelAdmin):
         obj.save()
 
     # }}}
+
+    def revoke_exam_tickets(self, request, queryset):  # noqa
+        queryset \
+                .filter(state=exam_ticket_states.valid) \
+                .update(state=exam_ticket_states.revoked)
+
+    revoke_exam_tickets.short_description = _("Revoke Exam Tickets")
+
+    actions = [revoke_exam_tickets]
 
 admin.site.register(ExamTicket, ExamTicketAdmin)
 

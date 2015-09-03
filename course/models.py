@@ -424,7 +424,7 @@ class ParticipationPreapproval(models.Model):
             verbose_name=_('Creation time'))
 
     def __unicode__(self):
-        # Translators: somebody's email in some course in Particiaption
+        # Translators: somebody's email in some course in Participation
         # Preapproval
         return _("%(email)s in %(course)s") % {
                 "email": self.email, "course": self.course}
@@ -1337,6 +1337,8 @@ class InstantMessage(models.Model):
 class Exam(models.Model):
     course = models.ForeignKey(Course,
             verbose_name=_('Course'))
+    description = models.CharField(max_length=200,
+            verbose_name=_('Description'))
     flow_id = models.CharField(max_length=200,
             verbose_name=_('Flow ID'))
     active = models.BooleanField(
@@ -1347,12 +1349,18 @@ class Exam(models.Model):
             verbose_name=_('No exams before'))
     no_exams_after = models.DateTimeField(
             null=True, blank=True,
-            verbose_name=_('Creation time'))
+            verbose_name=_('No exams after'))
 
     class Meta:
         verbose_name = _("Exam")
         verbose_name_plural = _("Exams")
         ordering = ("course", "no_exams_before",)
+
+    def __unicode__(self):
+        return _("Exam  %(description)s in %(course)s") % {
+                'description': self.description,
+                'course': self.course,
+                }
 
 
 class ExamTicket(models.Model):
@@ -1367,9 +1375,8 @@ class ExamTicket(models.Model):
     creation_time = models.DateTimeField(default=now,
             verbose_name=_('Creation time'))
     usage_time = models.DateTimeField(
-            verbose_name=_('Usage time'))
-    usage_flow_session = models.ForeignKey(FlowSession,
-            verbose_name=_('Flow session for which ticket was used'))
+            verbose_name=_('Usage time'),
+            null=True, blank=True)
 
     state = models.CharField(max_length=50,
             choices=EXAM_TICKET_STATE_CHOICES,
@@ -1377,10 +1384,30 @@ class ExamTicket(models.Model):
 
     code = models.CharField(max_length=50, db_index=True, unique=True)
 
+    permissions = (
+            ("can_check_in_student", "Can check in student for exam"),
+            )
+
     class Meta:
         verbose_name = _("Exam ticket")
         verbose_name_plural = _("Exam tickets")
         ordering = ("exam__course", "exam", "usage_time")
+
+    def __unicode__(self):
+        return _("Exam  ticket for %(participation)s in %(exam)s") % {
+                'participation': self.participation,
+                'exam': self.exam,
+                }
+
+    def clean(self):
+        super(ExamTicket, self).clean()
+
+        try:
+            if self.exam.course != self.participation.course:
+                raise ValidationError(_("Participation and exam must live "
+                        "in the same course"))
+        except ObjectDoesNotExist:
+            pass
 
 # }}}
 

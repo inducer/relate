@@ -40,6 +40,7 @@ import course.calendar
 import course.versioning
 import course.flow
 import course.analytics
+import course.exam
 
 urlpatterns = [
     url(r"^login/$",
@@ -386,6 +387,24 @@ urlpatterns = [
         "/$",
         course.analytics.page_analytics,
         name="relate-page_analytics"),
+
+    # }}}
+
+    # {{{ exams
+
+    url(r"^issue-exam-ticket"
+        "/$",
+        course.exam.issue_exam_ticket,
+        name="relate-issue_exam_ticket"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/batch-issue-exam_tickets"
+        "/$",
+        course.exam.batch_issue_exam_tickets,
+        name="relate-batch_issue_exam_tickets"),
+    url(r"^exam-check-in/$",
+        course.exam.check_in_for_exam,
+        name="relate-check_in_for_exam"),
 
     # }}}
 

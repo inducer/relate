@@ -7,6 +7,7 @@
   {% if form_description %}
     <h1>{{ form_description }}</h1>
   {% endif %}
+  {{ form_text|safe }}
   <div class="well">
     {% crispy form %}
   </div>
