@@ -86,7 +86,7 @@ RELATE_FACILITIES = {
         "ip_ranges": [
             "192.168.192.0/24",
             ],
-        "exams_only": True,
+        "exams_only": False,
     },
 }
 

@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.contrib.auth import get_user_model
 import django.forms as forms
 from django.utils.translation import ugettext, ugettext_lazy as _
@@ -356,6 +358,64 @@ def check_in_for_exam(request):
 
 # {{{ lockdown middleware
 
+class ExamFacilityMiddleware(object):
+    def process_request(self, request):
+        import ipaddr
+
+        remote_address = ipaddr.IPAddress(request.META['REMOTE_ADDR'])
+
+        exams_only = False
+
+        from django.conf import settings
+        for name, props in six.iteritems(settings.RELATE_FACILITIES):
+            if props.get("exams_only", False):
+                continue
+
+            ip_ranges = props.get("ip_ranges", [])
+            for ir in ip_ranges:
+                if remote_address in ipaddr.IPNetwork(ir):
+                    exams_only = True
+                    break
+
+            if exams_only:
+                break
+
+        if (exams_only and
+                "relate_session_exam_ticket_pk" in request.session):
+            # ExamLockdownMiddleware is in control.
+            return None
+
+        from django.core.urlresolvers import resolve
+        resolver_match = resolve(request.path)
+
+        from course.exam import check_in_for_exam, issue_exam_ticket
+        from course.auth import (user_profile, sign_in_by_email,
+                sign_in_stage2_with_token, sign_in_by_user_pw)
+        from django.contrib.auth.views import logout
+
+        ok = False
+        if resolver_match.func in [
+                sign_in_by_email,
+                sign_in_stage2_with_token,
+                sign_in_by_user_pw,
+                check_in_for_exam,
+                user_profile,
+                logout]:
+            ok = True
+
+        elif request.user.is_staff:
+            ok = True
+
+        elif (
+                request.user.has_perm("course.can_issue_exam_tickets")
+                and
+                resolver_match.func == issue_exam_ticket):
+            ok = True
+
+        if not ok:
+            return redirect("relate-check_in_for_exam")
+
+
 class ExamLockdownMiddleware(object):
     def process_request(self, request):
         request.relate_exam_lockdown = False
@@ -368,6 +428,7 @@ class ExamLockdownMiddleware(object):
             except ObjectDoesNotExist:
                 messages.add_message(request, messages.ERROR,
                         _("Error while processing exam lockdown: ticket not found."))
+                raise SuspiciousOperation()
 
             if not ticket.exam.lock_down_sessions:
                 return None
@@ -396,7 +457,7 @@ class ExamLockdownMiddleware(object):
                     logout]:
                 ok = True
 
-            if (resolver_match.func == view_start_flow
+            elif (resolver_match.func == view_start_flow
                     and
                     resolver_match.kwargs["course_identifier"]
                     == ticket.exam.course.identifier
@@ -405,7 +466,7 @@ class ExamLockdownMiddleware(object):
                     == ticket.exam.flow_id):
                 ok = True
 
-            if (
+            elif (
                     resolver_match.func in [
                         view_flow_page,
                         update_expiration_mode,
