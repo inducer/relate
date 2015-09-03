@@ -287,7 +287,7 @@ class Event(models.Model):
     """
 
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'))
     kind = models.CharField(max_length=50,
             # Translators: format of event kind in Event model
             help_text=_("Should be lower_case_with_underscores, no spaces "
@@ -329,7 +329,7 @@ class Event(models.Model):
 
 class ParticipationTag(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'))
     name = models.CharField(max_length=100, unique=True,
             # Translators: name format of ParticipationTag
             help_text=_("Format is lower-case-with-hyphens. "
@@ -361,7 +361,7 @@ class Participation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
             verbose_name=_('User ID'))
     course = models.ForeignKey(Course, related_name="participations",
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'))
 
     enroll_time = models.DateTimeField(default=now,
             verbose_name=_('Enroll time'))
@@ -408,7 +408,7 @@ class ParticipationPreapproval(models.Model):
     email = models.EmailField(max_length=254,
             verbose_name=_('Email'))
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'))
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
             verbose_name=_('Role'))
@@ -435,7 +435,7 @@ class ParticipationPreapproval(models.Model):
 
 class InstantFlowRequest(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'))
     flow_id = models.CharField(max_length=200,
             verbose_name=_('Flow ID'))
     start_time = models.DateTimeField(default=now,
@@ -456,7 +456,7 @@ class FlowSession(models.Model):
     # This looks like it's redundant with 'participation', below--but it's not.
     # 'participation' is nullable.
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'))
 
     participation = models.ForeignKey(Participation, null=True, blank=True,
             db_index=True,
@@ -992,7 +992,7 @@ class FlowRuleException(models.Model):
 
 class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'))
 
     identifier = models.CharField(max_length=200, blank=False, null=False,
             # Translators: format of identifier for GradingOpportunity
