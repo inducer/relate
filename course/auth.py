@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
+        render, get_object_or_404, redirect, resolve_url)
 from django.contrib import messages
 import django.forms as forms
 from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
@@ -35,12 +35,20 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.db.models import Q
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
+        login as auth_login,)
 from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
+from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
 from django.core import validators
+from django.utils.http import is_safe_url
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.views.decorators.debug import sensitive_post_parameters
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
 
 from course.models import (
         UserStatus, user_status,
@@ -276,10 +284,50 @@ class LoginForm(AuthenticationFormBase):
         super(LoginForm, self).__init__(*args, **kwargs)
 
 
-def sign_in_by_user_pw(request):
-    from django.contrib.auth.views import login
-    return login(request, template_name="course/login.html",
-            authentication_form=LoginForm)
+@sensitive_post_parameters()
+@csrf_protect
+@never_cache
+def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
+    """
+    Displays the login form and handles the login action.
+    """
+    redirect_to = request.POST.get(redirect_field_name,
+                                   request.GET.get(redirect_field_name, ''))
+
+    if request.method == "POST":
+        form = LoginForm(request, data=request.POST)
+        if form.is_valid():
+
+            # Ensure the user-originating redirection url is safe.
+            if not is_safe_url(url=redirect_to, host=request.get_host()):
+                redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
+
+            user = form.get_user()
+
+            from course.exam import may_sign_in
+            if not may_sign_in(request, user):
+                messages.add_message(request, messages.ERROR,
+                        _("Sign-in not allowed in this facility."))
+                raise PermissionDenied(
+                        _("user not allowed to sign in in facility"))
+
+            # Okay, security check complete. Log the user in.
+            auth_login(request, user)
+
+            return HttpResponseRedirect(redirect_to)
+    else:
+        form = LoginForm(request)
+
+    current_site = get_current_site(request)
+
+    context = {
+        'form': form,
+        redirect_field_name: redirect_to,
+        'site': current_site,
+        'site_name': current_site.name,
+    }
+
+    return TemplateResponse(request, "course/login.html", context)
 
 
 class SignUpForm(StyledModelForm):
@@ -612,6 +660,12 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
         messages.add_message(request, messages.ERROR,
                 _("Account disabled."))
         raise PermissionDenied(_("invalid sign-in token"))
+
+    from course.exam import may_sign_in
+    if not may_sign_in(request, user):
+        messages.add_message(request, messages.ERROR,
+                _("Sign-in not allowed in this facility."))
+        raise PermissionDenied(_("user not allowed to sign in in facility"))
 
     login(request, user)
 

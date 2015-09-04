@@ -356,29 +356,35 @@ def check_in_for_exam(request):
 # }}}
 
 
+def is_from_exams_only_facility(request):
+    import ipaddr
+
+    remote_address = ipaddr.IPAddress(request.META['REMOTE_ADDR'])
+
+    exams_only = False
+
+    from django.conf import settings
+    for name, props in six.iteritems(settings.RELATE_FACILITIES):
+        if not props.get("exams_only", False):
+            continue
+
+        ip_ranges = props.get("ip_ranges", [])
+        for ir in ip_ranges:
+            if remote_address in ipaddr.IPNetwork(ir):
+                exams_only = True
+                break
+
+        if exams_only:
+            break
+
+    return exams_only
+
+
 # {{{ lockdown middleware
 
 class ExamFacilityMiddleware(object):
     def process_request(self, request):
-        import ipaddr
-
-        remote_address = ipaddr.IPAddress(request.META['REMOTE_ADDR'])
-
-        exams_only = False
-
-        from django.conf import settings
-        for name, props in six.iteritems(settings.RELATE_FACILITIES):
-            if not props.get("exams_only", False):
-                continue
-
-            ip_ranges = props.get("ip_ranges", [])
-            for ir in ip_ranges:
-                if remote_address in ipaddr.IPNetwork(ir):
-                    exams_only = True
-                    break
-
-            if exams_only:
-                break
+        exams_only = is_from_exams_only_facility(request)
 
         if not exams_only:
             return None
@@ -493,5 +499,24 @@ def exam_lockdown_context_processor(request):
             }
 
 # }}}
+
+
+# {{{ lockdown sign-in checker
+
+def may_sign_in(request, user):
+    exams_only = is_from_exams_only_facility(request)
+
+    if not exams_only:
+        return True
+    else:
+        if user.is_staff:
+            return True
+        elif user.has_perm("course.can_issue_exam_tickets"):
+            return True
+
+    return False
+
+# }}}
+
 
 # vim: foldmethod=marker
