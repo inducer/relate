@@ -155,6 +155,8 @@ SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 RELATE_FACILITIES = {}
 
+RELATE_CACHE_MAX_BYTES = 32768
+
 for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
