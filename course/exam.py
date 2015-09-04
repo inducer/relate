@@ -368,7 +368,7 @@ class ExamFacilityMiddleware(object):
 
         from django.conf import settings
         for name, props in six.iteritems(settings.RELATE_FACILITIES):
-            if props.get("exams_only", False):
+            if not props.get("exams_only", False):
                 continue
 
             ip_ranges = props.get("ip_ranges", [])
@@ -379,6 +379,9 @@ class ExamFacilityMiddleware(object):
 
             if exams_only:
                 break
+
+        if not exams_only:
+            return None
 
         if (exams_only and
                 "relate_session_exam_ticket_pk" in request.session):
