@@ -33,7 +33,14 @@
     {% endif %}
     {% if opportunity.flow_id %}
     <tr>
-      <td>{% trans "Flow" %}</td><td><tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt></td>
+      <td>{% trans "Flow" %}</td>
+      <td>
+        {% if show_privileged_info %}
+          <a href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}"><i class="fa fa-level-up"></i> <tt>{{ opportunity.flow_id }}</tt></a>
+          &middot;
+        {% endif %}
+        <a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{% trans "Flow start page" %}</a>
+      </td>
     </tr>
     {% endif %}
     <tr>

@@ -580,11 +580,6 @@ class HumanTextFeedbackForm(StyledForm):
 
         self.point_value = point_value
 
-        self.fields["released"] = forms.BooleanField(
-                initial=True, required=False,
-                help_text=_("Whether the grade and feedback below are to "
-                "be shown to student"),
-                label=_("Released"))
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
                 max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
@@ -623,6 +618,11 @@ class HumanTextFeedbackForm(StyledForm):
                 "will notify the participant "
                 "with a generic message containing the feedback text"),
                 label=_("Notify"))
+        self.fields["released"] = forms.BooleanField(
+                initial=True, required=False,
+                help_text=_("Whether the grade and feedback are to "
+                "be shown to student"),
+                label=_("Released"))
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
                 help_text=_("Internal notes, not shown to student"),

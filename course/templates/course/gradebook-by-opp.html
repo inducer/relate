@@ -39,7 +39,7 @@
     <tr>
       <td>{% trans "Flow" %}</td>
       <td>
-        <tt><a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{{ opportunity.flow_id }}</a></tt>
+        <a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}"><tt>{{ opportunity.flow_id }}</tt> {% trans "(Start page)" %}</a>
         &middot;
         <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">{% trans "Grading statistics" %}</a>
       </td>

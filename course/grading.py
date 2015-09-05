@@ -204,6 +204,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     if grading_form is not None:
         from crispy_forms.layout import Submit
+        grading_form.helper.form_class += " relate-grading-form"
         grading_form.helper.add_input(
                 Submit(
                     "submit", _("Submit"),
