@@ -62,6 +62,33 @@
     <div class="well" style="margin-top: 20px">
       <h3 class="start-well-title">{% trans "Batch sessions operations" %}</h3>
       {% crispy batch_session_ops_form %}
+
+      <div class="text-muted col-lg-offset-2" style="margin-top:1ex">
+      {% blocktrans trimmed %}
+        <p>
+        "Impose deadline (Expire sessions)" will find all sessions for this flow that match the
+        selected session tag and, depending on the session's selected choice of
+        action at the deadline (aka its "expiration mode"), either end the
+        session or roll it over to the now-current set of grading rules.
+        (The "session tag" corresponds to session tags you may have defined
+        in your access rules.)
+        </p>
+
+        <p>
+        "Regrade ended sessions" will rerun the grading code on all submissions
+        that are no longer in progress. If the flow involved code questions,
+        this may be a long-running operation.
+        </p>
+
+        <p>
+        "Recalculate grades of ended sessions", by contrast, will not try to
+        redetermine the correctness of the answers provided by the participant.
+        Instead, it will merely use the already available correctness
+        information to recompute the grade achieved, taking into account
+        possible changes in the grading rules.
+        </p>
+      {% endblocktrans %}
+      </div>
     </div>
   {% endif %}
 

@@ -339,20 +339,20 @@ class ModifySessionsForm(StyledForm):
                 choices=tuple(
                     (rule_tag, str(rule_tag))
                     for rule_tag in session_rule_tags),
-                label=_("Rule tag"))
+                label=_("Session tag"))
         self.fields["past_due_only"] = forms.BooleanField(
                 required=False,
                 initial=True,
                 help_text=_("Only act on in-progress sessions that are past "
-                "their access rule's due date (applies to 'expire' and 'end')"),
+                "their access rule's due date (applies to 'expire')"),
                 # Translators: see help text above.
                 label=_("Past due only"))
 
         self.helper.add_input(
-                Submit("expire", _("Expire sessions"),
+                Submit("expire", _("Impose deadline (Expire sessions)"),
                     css_class="col-lg-offset-2"))
-        self.helper.add_input(
-                Submit("end", _("End sessions and grade")))
+        # self.helper.add_input(
+        # Submit("end", _("End and grade all sessions")))
         self.helper.add_input(
                 Submit("regrade", _("Regrade ended sessions")))
         self.helper.add_input(
