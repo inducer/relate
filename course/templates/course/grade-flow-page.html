@@ -302,11 +302,11 @@
               return;
 
             var increment;
-            if (max_points < 4)
+            if (max_points <= 5.1)
               increment = 0.25;
-            else if (max_points < 8)
+            else if (max_points <= 10.1)
               increment = 0.5;
-            else if (max_points < 16)
+            else if (max_points <= 20.1)
               increment = 1;
             else
               increment = 5;
