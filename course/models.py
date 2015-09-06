@@ -1339,14 +1339,13 @@ class ExamTicket(models.Model):
 
     code = models.CharField(max_length=50, db_index=True, unique=True)
 
-    permissions = (
-            ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
-            )
-
     class Meta:
         verbose_name = _("Exam ticket")
         verbose_name_plural = _("Exam tickets")
         ordering = ("exam__course", "exam", "usage_time")
+        permissions = (
+                ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
+                )
 
     def __unicode__(self):
         return _("Exam  ticket for %(participation)s in %(exam)s") % {
