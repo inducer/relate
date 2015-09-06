@@ -768,9 +768,15 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if not grade_data["released"]:
             return None
 
-        if grade_data["grade_percent"] is not None:
-            correctness = grade_data["grade_percent"]/100
-            feedback_text = "<p>%s</p>" % get_auto_feedback(correctness)
+        if (grade_data["grade_percent"] is not None
+                or grade_data["feedback_text"]):
+            if grade_data["grade_percent"] is not None:
+                correctness = grade_data["grade_percent"]/100
+                feedback_text = "<p>%s</p>" % get_auto_feedback(correctness)
+
+            else:
+                correctness = None
+                feedback_text = ""
 
             if grade_data["feedback_text"]:
                 feedback_text += (
