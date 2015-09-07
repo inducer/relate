@@ -125,7 +125,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     result = get_repo_blob(repo, full_name, commit_sha).data
 
-    if len(result) <= settings.RELATE_CACHE_MAX_BYTES:
+    if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, result, None)
 
     return result
