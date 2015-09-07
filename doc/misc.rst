@@ -10,7 +10,7 @@ web page.
 
 (Optional) Make a virtualenv to install to::
 
-    virtualenv --system-site-packages my-relate-env
+    virtualenv my-relate-env
     source my-relate-env/bin/activate
 
 To install, clone the repository::
