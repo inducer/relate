@@ -148,8 +148,7 @@ class ImpersonateForm(StyledForm):
                 help_text=_("Select user to impersonate."),
                 label=_("User"))
 
-        self.helper.add_input(Submit("submit", _("Impersonate"),
-            css_class="col-lg-offset-2"))
+        self.helper.add_input(Submit("submit", _("Impersonate")))
 
 
 @user_passes_test(may_impersonate)
@@ -278,8 +277,7 @@ class LoginForm(AuthenticationFormBase):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        self.helper.add_input(Submit("submit", _("Sign in"),
-            css_class="col-lg-offset-2"))
+        self.helper.add_input(Submit("submit", _("Sign in")))
 
         super(LoginForm, self).__init__(*args, **kwargs)
 
@@ -353,8 +351,7 @@ class SignUpForm(StyledModelForm):
         self.fields["email"].required = True
 
         self.helper.add_input(
-                Submit("submit", _("Send email"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit", _("Send email")))
 
 
 def sign_up(request):
@@ -436,7 +433,7 @@ class ResetPasswordForm(StyledForm):
         super(ResetPasswordForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Send email"), css_class="col-lg-offset-2"))
+                Submit("submit", _("Send email")))
 
 
 def reset_password(request):
@@ -508,8 +505,7 @@ class ResetPasswordStage2Form(StyledForm):
         super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user", _("Update"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit_user", _("Update")))
 
     def clean(self):
         cleaned_data = super(ResetPasswordStage2Form, self).clean()
@@ -585,8 +581,7 @@ class SignInByEmailForm(StyledForm):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Send sign-in email"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit", _("Send sign-in email")))
 
 
 def sign_in_by_email(request):
@@ -696,8 +691,7 @@ class UserForm(StyledModelForm):
         super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user", _("Update"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit_user", _("Update")))
 
 
 class UserStatusForm(StyledModelForm):
@@ -709,8 +703,7 @@ class UserStatusForm(StyledModelForm):
         super(UserStatusForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit_user_status", _("Update"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit_user_status", _("Update")))
 
 
 def user_profile(request):

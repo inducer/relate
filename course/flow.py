@@ -942,14 +942,10 @@ def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
-    btn_offset = "col-lg-offset-2 "
-    if getattr(form, "no_offset_labels", False):
-        btn_offset = ""
-
     from crispy_forms.layout import Submit
     form.helper.add_input(
             Submit("save", _("Save answer"),
-                css_class=btn_offset+"relate-save-button"))
+                css_class="relate-save-button"))
 
     if will_receive_feedback(permissions):
         if flow_permission.change_answer in permissions:
@@ -1535,7 +1531,7 @@ class RegradeFlowForm(StyledForm):
                 label=_("Regraded session in progress"))
 
         self.helper.add_input(
-                Submit("regrade", _("Regrade"), css_class="col-lg-offset-2"))
+                Submit("regrade", _("Regrade")))
 
 
 @transaction.atomic

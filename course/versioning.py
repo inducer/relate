@@ -134,8 +134,7 @@ class CourseCreationForm(StyledModelForm):
         super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Validate and create"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit", _("Validate and create")))
 
 
 @login_required
@@ -377,15 +376,8 @@ class GitUpdateForm(StyledForm):
     def __init__(self, may_update, previewing, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
-        first_button = [True]
-
         def add_button(desc, label):
-            if first_button[0]:
-                self.helper.add_input(
-                        Submit(desc, label, css_class="col-lg-offset-2"))
-                first_button[0] = False
-            else:
-                self.helper.add_input(Submit(desc, label))
+            self.helper.add_input(Submit(desc, label))
 
         if may_update:
             add_button("fetch_update", _("Fetch and update"))
@@ -445,20 +437,20 @@ def update_course(pctx):
         if form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode()
 
-            #try:
-            run_course_update_command(
-                    request, repo, content_repo, pctx, command, new_sha,
-                    may_update,
-                    prevent_discarding_revisions=form.cleaned_data[
-                        "prevent_discarding_revisions"])
-            #except Exception as e:
-            #    messages.add_message(pctx.request, messages.ERROR,
-            #            string_concat(
-            #                pgettext("Starting of Error message",
-            #                    "Error"),
-            #                ": %(err_type)s %(err_str)s")
-            #            % {"err_type": type(e).__name__,
-            #                "err_str": str(e)})
+            try:
+                run_course_update_command(
+                        request, repo, content_repo, pctx, command, new_sha,
+                        may_update,
+                        prevent_discarding_revisions=form.cleaned_data[
+                            "prevent_discarding_revisions"])
+            except Exception as e:
+                messages.add_message(pctx.request, messages.ERROR,
+                        string_concat(
+                            pgettext("Starting of Error message",
+                                "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {"err_type": type(e).__name__,
+                            "err_str": str(e)})
         else:
             response_form = form
 

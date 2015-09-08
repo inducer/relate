@@ -357,8 +357,7 @@ class ModifySessionsForm(StyledForm):
                 label=_("Past due only"))
 
         self.helper.add_input(
-                Submit("expire", _("Impose deadline (Expire sessions)"),
-                    css_class="col-lg-offset-2"))
+                Submit("expire", _("Impose deadline (Expire sessions)")))
         # self.helper.add_input(
         # Submit("end", _("End and grade all sessions")))
         self.helper.add_input(
@@ -676,7 +675,7 @@ class ReopenSessionForm(StyledForm):
 
         self.helper.add_input(
                 Submit(
-                    "reopen", _("Reopen"), css_class="col-lg-offset-2"))
+                    "reopen", _("Reopen")))
 
 
 @course_view
@@ -1007,11 +1006,8 @@ class ImportGradesForm(StyledForm):
                 # Translators: "Max point" refers to full credit in points.
                 label=_("Max points"))
 
-        self.helper.add_input(
-                Submit("preview", _("Preview"),
-                    css_class="col-lg-offset-2"))
-        self.helper.add_input(
-                Submit("import", _("Import")))
+        self.helper.add_input(Submit("preview", _("Preview")))
+        self.helper.add_input(Submit("import", _("Import")))
 
 
 class ParticipantNotFound(ValueError):

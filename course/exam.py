@@ -104,8 +104,7 @@ class IssueTicketForm(StyledForm):
         self.helper.add_input(
                 Submit(
                     "issue",
-                    _("Issue ticket"),
-                    css_class="col-lg-offset-2"))
+                    _("Issue ticket")))
 
 
 @permission_required("course.can_issue_exam_tickets")
@@ -147,7 +146,7 @@ def issue_exam_ticket(request):
                         _(
                             "Ticket issued for <b>%(participation)s</b>. "
                             "The ticket code is <b>%(ticket_code)s</b>."
-                            ) % {"participation": participation, 
+                            ) % {"participation": participation,
                                  "ticket_code": ticket.code})
 
                 form = IssueTicketForm(initial_exam=exam)
@@ -193,8 +192,7 @@ class BatchIssueTicketsForm(StyledForm):
         self.helper.add_input(
                 Submit(
                     "issue",
-                    _("Issue tickets"),
-                    css_class="col-lg-offset-2"))
+                    _("Issue tickets")))
 
 
 @course_view
@@ -306,8 +304,7 @@ class ExamCheckInForm(StyledForm):
         super(ExamCheckInForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Check in"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit", _("Check in")))
 
 
 def check_in_for_exam(request):

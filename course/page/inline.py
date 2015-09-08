@@ -47,8 +47,6 @@ from crispy_forms.layout import Layout, Field, HTML
 
 
 class InlineMultiQuestionForm(StyledInlineForm):
-    no_offset_labels = True
-
     def __init__(self, read_only, dict_for_form, *args, **kwargs):
         super(InlineMultiQuestionForm, self).__init__(*args, **kwargs)
         html_list = dict_for_form["HTML_list"]
@@ -340,9 +338,9 @@ class ShortAnswer(AnswerBase):
         return unspec_correct_answer_text
 
     def get_correctness(self, answer):
-        
+
         correctnesses_and_answers = [(0, "")]
-        # If empty an list, sometime it will cause ValueError: 
+        # If empty an list, sometime it will cause ValueError:
         # max() arg is an empty sequence, observed in SandBox
 
         for matcher in self.matchers:

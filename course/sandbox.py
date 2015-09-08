@@ -297,8 +297,7 @@ def view_page_sandbox(pctx):
                 page_form.helper.add_input(
                         Submit("submit",
                             ugettext("Submit answer"),
-                            accesskey="g",
-                            css_class="col-lg-offset-2"))
+                            accesskey="g"))
                 page_form_html = page.form_to_html(
                         pctx.request, page_context, page_form, answer_data)
 

@@ -387,21 +387,20 @@
     function add_submit_next()
     {
       if (next_page_url)
-        $(".form-actions").append(
+        $(".form-group:last .controls:last").append(
             " <button class='btn btn-primary' id='save_next_page' type='button'>"
             + "{% trans "Submit and next page" %} &raquo;"
             + "</button>");
       if (next_session_url)
-        $(".form-actions").append(
+        $(".form-group:last .controls:last").append(
             " <button class='btn btn-primary' id='save_next_session' type='button'>"
             + "{% trans "Submit and next session" %} &raquo;"
             + "</button>");
-      $(".form-actions").append("<hr>");
 
       $("#save_next_page").click(save_and_next_page);
       $("#save_next_session").click(save_and_next_session);
 
-      $(".relate-grading-form").prepend($(".form-actions"));
+      $(".relate-grading-form").prepend($(".form-group:last"));
     }
 
     $(document).ready(add_submit_next);

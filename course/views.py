@@ -267,7 +267,7 @@ class FakeTimeForm(StyledForm):
 
         self.helper.add_input(
                 # Translators: "set" fake time.
-                Submit("set", _("Set"), css_class="col-lg-offset-2"))
+                Submit("set", _("Set")))
         self.helper.add_input(
                 # Translators: "unset" fake time.
                 Submit("unset", _("Unset")))
@@ -352,8 +352,7 @@ class InstantFlowRequestForm(StyledForm):
         self.helper.add_input(
                 Submit(
                     "add",
-                    pgettext("Add an instant flow", "Add"),
-                    css_class="col-lg-offset-2"))
+                    pgettext("Add an instant flow", "Add")))
         self.helper.add_input(
                 Submit(
                     "cancel",
@@ -435,7 +434,7 @@ class FlowTestForm(StyledForm):
                         string_concat(
                             pgettext("Start an activity", "Go"),
                             " &raquo;")),
-                    css_class="col-lg-offset-2"))
+                    ))
 
 
 @course_view
@@ -510,8 +509,7 @@ class ExceptionStage1Form(StyledForm):
                     mark_safe_lazy(
                         string_concat(
                             pgettext("Next step", "Next"),
-                            " &raquo;")),
-                    css_class="col-lg-offset-2"))
+                            " &raquo;"))))
 
 
 @course_view
@@ -572,14 +570,12 @@ class CreateSessionForm(StyledForm):
             self.helper.add_input(
                     Submit(
                         "create_session",
-                        _("Create session (override rules)"),
-                        css_class="btn-danger col-lg-offset-2"))
+                        _("Create session (override rules)")))
         else:
             self.helper.add_input(
                     Submit(
                         "create_session",
-                        _("Create session"),
-                        css_class="col-lg-offset-2"))
+                        _("Create session")))
 
 
 class ExceptionStage2Form(StyledForm):
@@ -601,8 +597,7 @@ class ExceptionStage2Form(StyledForm):
                     mark_safe_lazy(
                         string_concat(
                             pgettext("Next step", "Next"),
-                            " &raquo;")),
-                    css_class="col-lg-offset-2"))
+                            " &raquo;"))))
 
 
 @course_view
@@ -804,8 +799,7 @@ class ExceptionStage3Form(StyledForm):
 
         self.helper.add_input(
                 Submit(
-                    "save", _("Save"),
-                    css_class="col-lg-offset-2"))
+                    "save", _("Save")))
 
         self.helper.layout = Layout(*layout)
 

@@ -209,7 +209,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 Submit(
                     "submit", _("Submit"),
                     accesskey="s",
-                    css_class="col-lg-offset-2 relate-grading-save-button"))
+                    css_class="relate-grading-save-button"))
 
         grading_form_html = fpctx.page.grading_form_to_html(
                 pctx.request, fpctx.page_context, grading_form, grade_data)

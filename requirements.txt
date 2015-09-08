@@ -34,7 +34,8 @@ paramiko
 git+https://github.com/inducer/django-bootstrap3-datetimepicker.git
 
 # For in-class instant messaging
-dnspython3
+dnspython  # Py2
+#dnspython3  # Py3
 sleekxmpp
 
 # To manage web dependencies

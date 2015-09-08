@@ -71,7 +71,7 @@ class RecurringEventForm(StyledForm):
         super(RecurringEventForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Create"), css_class="col-lg-offset-2"))
+                Submit("submit", _("Create")))
 
 
 class EventAlreadyExists(Exception):
@@ -200,7 +200,7 @@ class RenumberEventsForm(StyledForm):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Renumber"), css_class="col-lg-offset-2"))
+                Submit("submit", _("Renumber")))
 
 
 @transaction.atomic

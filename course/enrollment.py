@@ -232,8 +232,7 @@ class BulkPreapprovalsForm(StyledForm):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Preapprove"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit", _("Preapprove")))
 
 
 @login_required
