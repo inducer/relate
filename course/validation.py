@@ -890,6 +890,18 @@ def validate_course_content(repo, course_file, events_file,
             vctx, repo, "", get_repo_blob(repo, "", validate_sha))
 
     try:
+        flows_tree = get_repo_blob(repo, "media", validate_sha)
+    except ObjectDoesNotExist:
+        # That's great--no media directory.
+        pass
+    else:
+        vctx.add_warning(
+                'media/', _(
+                    "Your course repository has a 'media/' directory. "
+                    "Linking to media files using 'media:' is discouraged. "
+                    "Use the 'repo:' and 'repocur:' linkng schemes instead."))
+
+    try:
         flows_tree = get_repo_blob(repo, "flows", validate_sha)
     except ObjectDoesNotExist:
         # That's OK--no flows yet.
