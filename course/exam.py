@@ -145,9 +145,10 @@ def issue_exam_ticket(request):
 
                 messages.add_message(request, messages.SUCCESS,
                         _(
-                            "Ticket issued for <b>%s</b>. "
-                            "The ticket code is <b>%s</b>."
-                            ) % (participation, ticket.code))
+                            "Ticket issued for <b>%(participation)s</b>. "
+                            "The ticket code is <b>%(ticket_code)s</b>."
+                            ) % {"participation": participation, 
+                                 "ticket_code": ticket.code})
 
                 form = IssueTicketForm(initial_exam=exam)
 

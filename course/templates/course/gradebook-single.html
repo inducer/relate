@@ -44,10 +44,11 @@
     </tr>
     {% endif %}
     <tr>
+      {# Translators: averaged grade of a flow of all participants #}
       <td>{% trans "Average grade" %}</td>
       <td>
         {% if avg_grade_percentage != None %}
-          {# Translators: average grade, format "10% (out of 5 grades)" #}
+          {# Translators: average grade of a flow, format "10% (out of 5 grades)" #}
           {% blocktrans trimmed with avg_grade_percentage=avg_grade_percentage|floatformat %}
           {{ avg_grade_percentage }}%
           (out of {{ avg_grade_population }} grades)
@@ -79,7 +80,7 @@
           <td>{{ gchange.grade_time }}</td>
           <td>
             {% if gchange.is_superseded %}<s>{% endif %}
-            {{ gchange.state }}
+            {{ gchange.get_state_desc }}
             {% if gchange.is_superseded %}</s>{% endif %}
           </td>
           <td>
@@ -117,9 +118,7 @@
             <b><span class="sensitive">{{ state_machine.stringify_state }}</span></b>
           </td>
           <td>
-            {% blocktrans trimmed with opportunity_aggregation_strategy=opportunity.aggregation_strategy %}
-              (Aggregation strategy: {{ opportunity_aggregation_strategy }})
-            {% endblocktrans %}
+              ({% trans "Aggregation strategy" %}: {{ opportunity.get_aggregation_strategy_descr }})
           </td>
         </tr>
       </tbody>
@@ -159,25 +158,28 @@
                 <hr>
                 {% if flow_session.access_rules_tag %}
                   <p>
-                    <b>{% trans "Grading rules:" %}</b>
+                    <b>{% trans "Grading rules" %}:</b>
                     {% if session_properties.grade_description %}
                       {{ session_properties.grade_description }}
                     {% endif %}
                   </p>
                 {% endif %}
                 <p>
-                  <b>{% trans "Expiration mode:" %}</b>
-                  <tt>{{ flow_session.expiration_mode  }}</tt>
+                  <b>{% trans "Expiration mode" %}:</b>
+                  <tt>{{ flow_session.get_expiration_mode_desc  }}</tt>
                 </p>
                 <p>
-                  <b>{% trans "Started:" %}</b> {{ flow_session.start_time }}
+                  {# Translators: means "Started at", which followed by a time string#}
+                  <b>{% trans "Started" %}:</b> {{ flow_session.start_time }}
                 </p>
                 {% if not flow_session.in_progress %}
                   <p>
-                    <b>{% trans "Completed:" %}</b> {{ flow_session.completion_time }}
+                    {# Translators: means "Completed at", which followed by a time string#}
+                    <b>{% trans "Completed" %}:</b> {{ flow_session.completion_time }}
                   </p>
                   <p>
-                    <b>{% trans "Last activity:" %}</b> {{ flow_session.last_activity }}
+                    {# Translators: means "Last activity at", which followed by a time string#}
+                    <b>{% trans "Last activity" %}:</b> {{ flow_session.last_activity }}
                   </p>
                 {% endif %}
               </td>
@@ -233,8 +235,8 @@
                           <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
                         </td>
                         {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
-                          <td><span class="sensitive">{{ visit.get_most_recent_grade.percentage }}%</span></td>
-                          <td><span class="sensitive">{{ visit.get_most_recent_grade.value }}/{{ visit.get_most_recent_grade.max_points }}</span></td>
+                          <td><span class="sensitive">{{ visit.get_most_recent_grade.percentage|floatformat:1 }}%</span></td>
+                          <td><span class="sensitive">{{ visit.get_most_recent_grade.value|floatformat:1 }}/{{ visit.get_most_recent_grade.max_points }}</span></td>
                           <td>{{ visit.get_most_recent_grade.grader.username }} </td>
                         {% else %}
                           <td><span class="sensitive">{% trans "(no grade)" %}</span></td>
