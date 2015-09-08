@@ -1242,17 +1242,25 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
     from course.utils import FlowSessionGradingRule
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
+    default_name=(
+            # Translators: display the name of a flow
+            _("Flow: %(flow_desc_title)s")
+            % {"flow_desc_title": flow_desc.title}) 
+
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
             identifier=grading_rule.grade_identifier,
             defaults=dict(
-                name=(
-                    # Translators: display the name of a flow
-                    _("Flow: %(flow_desc_title)s")
-                    % {"flow_desc_title": flow_desc.title}),
+                name=default_name,
                 flow_id=flow_id,
                 aggregation_strategy=grading_rule.grade_aggregation_strategy,
                 ))
+
+    # update gopp.name when flow_desc.title changed
+    if not created:
+        if gopp.name != default_name:
+            gopp.name = default_name
+            gopp.save()
 
     return gopp
 
