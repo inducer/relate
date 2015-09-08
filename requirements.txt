@@ -1,11 +1,11 @@
-django>=1.7
+django>=1.8,<1.9
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
-django-crispy-forms>=1.4.0
+django-crispy-forms>=1.5.1
 
 # Page data, answer data, ... all represented in JSON. This makes that editable
 # in the Django admin.
-https://github.com/bradjasper/django-jsonfield/archive/postgresql.tar.gz
+jsonfield>=1.0.3,<1.1
 django-yamlfield
 
 # For easy content formatting:
@@ -26,17 +26,16 @@ pytz
 # Course content is stored in YAML.
 pyyaml
 
-# dulwich does not yet support Python3
-# Using git version for fix to https://github.com/jelmer/dulwich/issues/135
-dulwich
+# dulwich (git for Py3 support)
+git+https://github.com/jelmer/dulwich
 paramiko
 
 # A date picker widget
 git+https://github.com/inducer/django-bootstrap3-datetimepicker.git
 
 # For in-class instant messaging
+dnspython3
 sleekxmpp
-dnspython
 
 # To manage web dependencies
 django-bower
@@ -58,7 +57,7 @@ pygments
 unicodecsv
 
 # To support network matching for facility recognition
-ipaddr
+ipaddress
 
 # For localized datetime format
 babel

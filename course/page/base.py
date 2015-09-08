@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 import django.forms as forms
 
 import re
@@ -32,7 +34,6 @@ from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from relate.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
-from django.utils import six
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
@@ -100,19 +101,19 @@ def markup_to_html(page_context, text):
 
 def get_auto_feedback(correctness):
     if correctness == 0:
-        return unicode(_("Your answer is not correct."))
+        return six.text_type(_("Your answer is not correct."))
     elif correctness == 1:
-        return unicode(_("Your answer is correct."))
+        return six.text_type(_("Your answer is correct."))
     elif correctness > 0.5:
-        return unicode(
+        return six.text_type(
                 string_concat(
                     _("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness is None:
-        return unicode(_("No information on correctness of answer."))
+        return six.text_type(_("No information on correctness of answer."))
     else:
-        return unicode(
+        return six.text_type(
                 string_concat(
                     _("Your answer is somewhat correct."),
                     "(%.1f %%)")
@@ -503,7 +504,7 @@ class PageBase(object):
 
 # {{{ utility base classes
 
-TITLE_RE = re.compile(ur"^\#\s*(\w.*)", re.UNICODE)
+TITLE_RE = re.compile(r"^\#\s*(\w.*)", re.UNICODE)
 
 
 def extract_title_from_markup(markup_text):

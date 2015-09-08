@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.contrib import admin
 from course.models import (
@@ -107,6 +109,9 @@ class UserStatusAdmin(admin.ModelAdmin):
     def __unicode__(self):
         return u"%s in status %s" % (self.user, self.status)
 
+    if six.PY3:
+        __str__ = __unicode__
+
     # {{{ permissions
 
     def has_add_permission(self, request):
@@ -183,6 +188,9 @@ class EventAdmin(admin.ModelAdmin):
 
     def __unicode__(self):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
+
+    if six.PY3:
+        __str__ = __unicode__
 
     list_editable = ("ordinal", "time", "end_time", "shown_in_calendar")
 

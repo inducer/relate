@@ -357,9 +357,9 @@ def check_in_for_exam(request):
 
 
 def is_from_exams_only_facility(request):
-    import ipaddr
+    import ipaddress
 
-    remote_address = ipaddr.IPAddress(request.META['REMOTE_ADDR'])
+    remote_address = ipaddress.ip_address(six.text_type(request.META['REMOTE_ADDR']))
 
     exams_only = False
 
@@ -370,7 +370,7 @@ def is_from_exams_only_facility(request):
 
         ip_ranges = props.get("ip_ranges", [])
         for ir in ip_ranges:
-            if remote_address in ipaddr.IPNetwork(ir):
+            if remote_address in ipaddress.ip_network(six.text_type(ir)):
                 exams_only = True
                 break
 

@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.db import models
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
@@ -102,6 +104,9 @@ class UserStatus(models.Model):
 
     def __unicode__(self):
         return _("User status for %(user)s") % {'user': self.user}
+
+    if six.PY3:
+        __str__ = __unicode__
 
 # }}}
 
@@ -226,6 +231,9 @@ class Course(models.Model):
     def __unicode__(self):
         return self.identifier
 
+    if six.PY3:
+        __str__ = __unicode__
+
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
@@ -275,6 +283,9 @@ class Event(models.Model):
         else:
             return self.kind
 
+    if six.PY3:
+        __str__ = __unicode__
+
 # }}}
 
 
@@ -302,6 +313,9 @@ class ParticipationTag(models.Model):
 
     def __unicode__(self):
         return "%s (%s)" % (self.name, self.course)
+
+    if six.PY3:
+        __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation tag")
@@ -350,6 +364,9 @@ class Participation(models.Model):
                 "user": self.user, "course": self.course,
                 "role": dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
 
+    if six.PY3:
+        __str__ = __unicode__
+
     class Meta:
         verbose_name = _("Participation")
         verbose_name_plural = _("Participations")
@@ -376,6 +393,9 @@ class ParticipationPreapproval(models.Model):
         # Preapproval
         return _("%(email)s in %(course)s") % {
                 "email": self.email, "course": self.course}
+
+    if six.PY3:
+        __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation preapproval")
@@ -472,6 +492,9 @@ class FlowSession(models.Model):
                     'session_id': self.id,
                     'flow_id': self.flow_id}
 
+    if six.PY3:
+        __str__ = __unicode__
+
     def append_comment(self, s):
         if s is None:
             return
@@ -540,6 +563,9 @@ class FlowPageData(models.Model):
                     'ordinal': self.ordinal,
                     'flow_session': self.flow_session})
 
+    if six.PY3:
+        __str__ = __unicode__
+
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
         return self.ordinal - 1
@@ -605,9 +631,12 @@ class FlowPageVisit(models.Model):
         if self.answer is not None:
             # Translators: flow page visit: if an answer is
             # provided by user then append the string.
-            result += unicode(_(" (with answer)"))
+            result += six.text_type(_(" (with answer)"))
 
         return result
+
+    if six.PY3:
+        __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Flow page visit")
@@ -707,6 +736,9 @@ class FlowPageVisitGrade(models.Model):
         # by percentage.
         return _("grade of %(visit)s: %(percentage)s") % {
                 "visit": self.visit, "percentage": self.percentage()}
+
+    if six.PY3:
+        __str__ = __unicode__
 
 
 class FlowPageBulkFeedback(models.Model):
@@ -827,6 +859,9 @@ class FlowAccessException(models.Model):
                     "course": self.participation.course
                     })
 
+    if six.PY3:
+        __str__ = __unicode__
+
 
 class FlowAccessExceptionEntry(models.Model):
     # deprecated
@@ -844,6 +879,9 @@ class FlowAccessExceptionEntry(models.Model):
 
     def __unicode__(self):
         return self.permission
+
+    if six.PY3:
+        __str__ = __unicode__
 
 # }}}
 
@@ -884,6 +922,9 @@ class FlowRuleException(models.Model):
                     "flow_id": self.flow_id,
                     "course": self.participation.course})
 
+    if six.PY3:
+        __str__ = __unicode__
+
     def clean(self):
         super(FlowRuleException, self).clean()
 
@@ -921,11 +962,11 @@ class FlowRuleException(models.Model):
 
         try:
             if self.kind == flow_rule_kind.start:
-                validate_session_start_rule(ctx, unicode(self), rule, tags)
+                validate_session_start_rule(ctx, six.text_type(self), rule, tags)
             elif self.kind == flow_rule_kind.access:
-                validate_session_access_rule(ctx, unicode(self), rule, tags)
+                validate_session_access_rule(ctx, six.text_type(self), rule, tags)
             elif self.kind == flow_rule_kind.grading:
-                validate_session_grading_rule(ctx, unicode(self), rule, tags)
+                validate_session_grading_rule(ctx, six.text_type(self), rule, tags)
             else:
                 # the rule refers to FlowRuleException rule
                 raise ValidationError(_("invalid rule kind: ")+self.kind)
@@ -992,6 +1033,9 @@ class GradingOpportunity(models.Model):
                     "opportunity_id": self.identifier,
                     "course": self.course})
 
+    if six.PY3:
+        __str__ = __unicode__
+
 
 class GradeChange(models.Model):
     """Per 'grading opportunity', each participant may accumulate multiple grades
@@ -1052,6 +1096,9 @@ class GradeChange(models.Model):
             'participation': self.participation,
             'state': self.state,
             'opportunityname': self.opportunity.name}
+
+    if six.PY3:
+        __str__ = __unicode__
 
     def clean(self):
         super(GradeChange, self).clean()
@@ -1242,10 +1289,10 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
     from course.utils import FlowSessionGradingRule
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
-    default_name=(
+    default_name = (
             # Translators: display the name of a flow
             _("Flow: %(flow_desc_title)s")
-            % {"flow_desc_title": flow_desc.title}) 
+            % {"flow_desc_title": flow_desc.title})
 
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
@@ -1284,6 +1331,9 @@ class InstantMessage(models.Model):
 
     def __unicode__(self):
         return "%s: %s" % (self.participation, self.text)
+
+    if six.PY3:
+        __str__ = __unicode__
 
 # }}}
 
@@ -1325,6 +1375,9 @@ class Exam(models.Model):
                 'course': self.course,
                 }
 
+    if six.PY3:
+        __str__ = __unicode__
+
 
 class ExamTicket(models.Model):
     exam = models.ForeignKey(Exam,
@@ -1360,6 +1413,9 @@ class ExamTicket(models.Model):
                 'participation': self.participation,
                 'exam': self.exam,
                 }
+
+    if six.PY3:
+        __str__ = __unicode__
 
     def clean(self):
         super(ExamTicket, self).clean()

@@ -351,9 +351,9 @@ class CoursePageContext(object):
 
     @property
     def remote_address(self):
-        import ipaddr
+        import ipaddress
         try:
-            return ipaddr.IPAddress(self.request.META['REMOTE_ADDR'])
+            return ipaddress.ip_address(self.request.META['REMOTE_ADDR'])
         except:
             return None
 
@@ -640,9 +640,9 @@ def is_address_in_facility(remote_address, facility_id):
     from django.conf import settings
     ip_ranges = settings.RELATE_FACILITIES.get(facility_id, {}).get("ip_ranges", [])
 
-    import ipaddr
+    import ipaddress
     for ir in ip_ranges:
-        if remote_address in ipaddr.IPNetwork(ir):
+        if remote_address in ipaddress.ip_network(ir):
             return True
 
     return False

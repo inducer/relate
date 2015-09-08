@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import division, print_function
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 
 from course.validation import ValidationError
 import django.forms as forms
@@ -72,18 +73,17 @@ class InvalidPingResponse(RuntimeError):
 
 def request_python_run(run_req, run_timeout, image=None):
     import json
-    import httplib
+    from six.moves import http_client
     from django.conf import settings
     import docker
     import socket
     import errno
-    from httplib import BadStatusLine
     from docker.errors import APIError as DockerAPIError
 
     debug = False
     if debug:
         def debug_print(s):
-            print s
+            print(s)
     else:
         def debug_print(s):
             pass
@@ -133,14 +133,14 @@ def request_python_run(run_req, run_timeout, image=None):
 
         while True:
             try:
-                connection = httplib.HTTPConnection('localhost', port)
+                connection = http_client.HTTPConnection('localhost', port)
 
                 connection.request('GET', '/ping')
 
                 response = connection.getresponse()
                 response_data = response.read().decode("utf-8")
 
-                if response_data != b"OK":
+                if response_data != "OK":
                     raise InvalidPingResponse()
 
                 break
@@ -159,7 +159,7 @@ def request_python_run(run_req, run_timeout, image=None):
                 else:
                     raise
 
-            except (BadStatusLine, InvalidPingResponse):
+            except (http_client.BadStatusLine, InvalidPingResponse):
                 if time() - start_time < docker_timeout:
                     sleep(0.1)
                     # and retry
@@ -176,7 +176,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
         try:
             # Add a second to accommodate 'wire' delays
-            connection = httplib.HTTPConnection('localhost', port,
+            connection = http_client.HTTPConnection('localhost', port,
                     timeout=1 + run_timeout)
 
             headers = {'Content-type': 'application/json'}
@@ -557,7 +557,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         b64encode(
                                 get_repo_blob(
                                     page_context.repo, data_file,
-                                    page_context.commit_sha).data)
+                                    page_context.commit_sha).data).decode()
 
         try:
             response_dict = request_python_run_with_retries(run_req,
@@ -584,7 +584,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             for key, val in sorted(response_dict.items()):
                 if (key not in ["result", "figures"]
                         and val
-                        and isinstance(val, (str, unicode))):
+                        and isinstance(val, six.string_types)):
                     error_msg_parts.append("-------------------------------------")
                     error_msg_parts.append(key)
                     error_msg_parts.append("-------------------------------------")
@@ -697,7 +697,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 _("This is the exception traceback"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.traceback))
-            print repr(response.traceback)
+            print(repr(response.traceback))
         if hasattr(response, "stdout") and response.stdout:
             bulk_feedback_bits.append("".join([
                 "<p>",

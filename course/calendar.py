@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, string_concat)
 from django.contrib.auth.decorators import login_required
@@ -292,7 +294,7 @@ def view_calendar(pctx):
             .order_by("-time")):
         kind_desc = event_kinds_desc.get(event.kind)
 
-        human_title = unicode(event)
+        human_title = six.text_type(event)
 
         event_json = {
                 "id": event.id,
@@ -312,7 +314,7 @@ def view_calendar(pctx):
                     human_title = kind_desc["title"]
 
         description = None
-        event_desc = event_info_desc.get(unicode(event))
+        event_desc = event_info_desc.get(six.text_type(event))
         if event_desc is not None:
             if "description" in event_desc:
                 description = markup_to_html(

@@ -133,7 +133,7 @@ def dict_to_struct(data):
 def struct_to_dict(data):
     return dict(
             (name, val)
-            for name, val in data.__dict__.iteritems()
+            for name, val in six.iteritems(data.__dict__)
             if not name.startswith("_"))
 
 # }}}

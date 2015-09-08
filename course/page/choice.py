@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+from six.moves import range
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
@@ -162,7 +163,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def make_page_data(self):
         import random
-        perm = range(len(self.page_desc.choices))
+        perm = list(range(len(self.page_desc.choices)))
         if getattr(self.page_desc, "shuffle", False):
             random.shuffle(perm)
 

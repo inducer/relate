@@ -60,7 +60,7 @@ class FileUploadForm(StyledForm):
                         'uploadedsize': filesizeformat(uploaded_file._size)})
 
         if self.mime_types is not None and self.mime_types == ["application/pdf"]:
-            if uploaded_file.read()[:4] != "%PDF":
+            if uploaded_file.read()[:4] != b"%PDF":
                 raise forms.ValidationError(_("Uploaded file is not a PDF."))
 
         return uploaded_file
@@ -188,7 +188,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             mime_type = files_data["uploaded_file"].content_type
         from base64 import b64encode
         return {
-                "base64_data": b64encode(buf),
+                "base64_data": b64encode(buf).decode(),
                 "mime_type": mime_type,
                 }
 

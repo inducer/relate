@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 import re
+import six
 
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, ugettext, string_concat)
@@ -272,10 +273,12 @@ def view_gradebook(pctx):
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
-    grade_table = sorted(zip(participations, grade_table),
-            key=lambda (participation, grades):
-                (participation.user.last_name.lower(),
-                    participation.user.first_name.lower()))
+    def grade_key(entry):
+        (participation, grades) = entry
+        return (participation.user.last_name.lower(),
+                    participation.user.first_name.lower())
+
+    grade_table = sorted(zip(participations, grade_table), key=grade_key)
 
     return render_course_page(pctx, "course/gradebook.html", {
         "grade_table": grade_table,
@@ -294,14 +297,19 @@ def export_gradebook_csv(pctx):
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
-    from six import BytesIO
-    csvfile = BytesIO()
+    from six import StringIO
+    csvfile = StringIO()
 
-    import unicodecsv
+    if six.PY2:
+        import unicodecsv as csv
+    else:
+        import csv
+
     fieldnames = ['user_name', 'last_name', 'first_name'] + [
             gopp.identifier for gopp in grading_opps]
 
-    writer = unicodecsv.writer(csvfile, encoding="utf-8")
+    writer = csv.writer(csvfile)
+
     writer.writerow(fieldnames)
 
     for participation, grades in zip(participations, grade_table):
@@ -313,7 +321,7 @@ def export_gradebook_csv(pctx):
                 for grade_info in grades])
 
     response = http.HttpResponse(
-            csvfile.getvalue(),
+            csvfile.getvalue().encode("utf-8"),
             content_type="text/plain; charset=utf-8")
     response['Content-Disposition'] = (
             'attachment; filename="grades-%s.csv"'
@@ -620,10 +628,13 @@ def view_grades_by_opportunity(pctx, opp_id):
                     grade_state_machine=state_machine,
                     flow_sessions=flow_sessions))
 
+    def grade_key(entry):
+        (participation, grades) = entry
+        return (participation.user.last_name.lower(),
+                    participation.user.first_name.lower())
+
     grade_table = sorted(zip(participations, grade_table),
-            key=lambda (participation, grades):
-                (participation.user.last_name.lower(),
-                    participation.user.first_name.lower()))
+            key=grade_key)
 
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,

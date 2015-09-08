@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -50,7 +52,6 @@ from course.models import (
 from course.utils import course_view, render_course_page
 import paramiko
 import paramiko.client
-import cgi
 
 
 class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
@@ -104,7 +105,10 @@ def get_dulwich_client_and_remote_path_from_course(course):
 
     # Work around
     # https://bugs.launchpad.net/dulwich/+bug/1025886
-    client._fetch_capabilities.remove('thin-pack')
+    try:
+        client._fetch_capabilities.remove('thin-pack')
+    except KeyError:
+        pass
 
     return client, remote_path
 
@@ -441,20 +445,20 @@ def update_course(pctx):
         if form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode()
 
-            try:
-                run_course_update_command(
-                        request, repo, content_repo, pctx, command, new_sha,
-                        may_update,
-                        prevent_discarding_revisions=form.cleaned_data[
-                            "prevent_discarding_revisions"])
-            except Exception as e:
-                messages.add_message(pctx.request, messages.ERROR,
-                        string_concat(
-                            pgettext("Starting of Error message",
-                                "Error"),
-                            ": %(err_type)s %(err_str)s")
-                        % {"err_type": type(e).__name__,
-                            "err_str": str(e)})
+            #try:
+            run_course_update_command(
+                    request, repo, content_repo, pctx, command, new_sha,
+                    may_update,
+                    prevent_discarding_revisions=form.cleaned_data[
+                        "prevent_discarding_revisions"])
+            #except Exception as e:
+            #    messages.add_message(pctx.request, messages.ERROR,
+            #            string_concat(
+            #                pgettext("Starting of Error message",
+            #                    "Error"),
+            #                ": %(err_type)s %(err_str)s")
+            #            % {"err_type": type(e).__name__,
+            #                "err_str": str(e)})
         else:
             response_form = form
 
@@ -468,6 +472,11 @@ def update_course(pctx):
                     "prevent_discarding_revisions": True,
                     })
 
+    if six.PY2:
+        from cgi import escape
+    else:
+        from html import escape
+
     text_lines = [
             string_concat(
                 "<b>",
@@ -475,7 +484,8 @@ def update_course(pctx):
                 ":</b> %(commit)s (%(message)s)")
             % {
                 'commit': repo.head(),
-                'message': cgi.escape(repo[repo.head()].message.strip())},
+                'message': escape(
+                    repo[repo.head()].message.strip().decode(errors="replace"))},
             string_concat(
                 "<b>",
                 ugettext("Public active git SHA"),
@@ -483,8 +493,8 @@ def update_course(pctx):
             % {
                 'commit': course.active_git_commit_sha,
                 'message': (
-                    cgi.escape(repo[course.active_git_commit_sha.encode()]
-                        .message.strip()))
+                    escape(repo[course.active_git_commit_sha.encode()]
+                        .message.strip().decode(errors="replace")))
                 },
             ]
     if participation is not None and participation.preview_git_commit_sha:
@@ -496,8 +506,8 @@ def update_course(pctx):
                 % {
                     'commit': participation.preview_git_commit_sha,
                     'message': (
-                        cgi.escape(repo[participation.preview_git_commit_sha
-                            .encode()].message.strip())),
+                        escape(repo[participation.preview_git_commit_sha
+                            .encode()].message.strip().decode(errors="replace"))),
                 })
     else:
         text_lines.append(

@@ -309,9 +309,10 @@ class CaseSensitiveRegexMatcher(RegexMatcher):
 
 
 def parse_sympy(s):
-    if isinstance(s, unicode):
-        # Sympy is not spectacularly happy with unicode function names
-        s = s.encode()
+    if six.PY2:
+        if isinstance(s, unicode):  # has Py2/3 guard
+            # Sympy is not spectacularly happy with unicode function names
+            s = s.encode()
 
     from pymbolic import parse
     from pymbolic.sympy_interface import PymbolicToSympyMapper
@@ -576,7 +577,7 @@ def parse_matcher_string(vctx, location, matcher_desc):
 
 
 def parse_matcher(vctx, location, matcher_desc):
-    if isinstance(matcher_desc, (str, unicode)):
+    if isinstance(matcher_desc, six.string_types):
         return parse_matcher_string(vctx, location, matcher_desc)
     else:
         if not isinstance(matcher_desc, Struct):

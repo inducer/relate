@@ -37,7 +37,7 @@ from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 
-from HTMLParser import HTMLParser
+from six.moves import html_parser
 
 from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
 
@@ -232,7 +232,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     from six.moves.urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
-        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha))
+        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode()))
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
@@ -265,7 +265,7 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         from six.moves.urllib.parse import quote_plus
         cache_key = "%%%2".join(
                 (quote_plus(repo.controldir()), quote_plus(full_name),
-                    commit_sha))
+                    commit_sha.decode()))
 
         import django.core.cache as cache
         def_cache = cache.caches["default"]
@@ -306,7 +306,7 @@ def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
     from fnmatch import fnmatch
     if isinstance(access_patterns, list):
         for pattern in access_patterns:
-            if isinstance(pattern, (str, unicode)):
+            if isinstance(pattern, six.string_types):
                 if fnmatch(path_basename, pattern):
                     return True
 
@@ -326,9 +326,9 @@ def _attr_to_string(key, val):
         return "%s=\"%s\"" % (key, val)
 
 
-class TagProcessingHTMLParser(HTMLParser):
+class TagProcessingHTMLParser(html_parser.HTMLParser):
     def __init__(self, out_file, process_tag_func):
-        HTMLParser.__init__(self)
+        html_parser.HTMLParser.__init__(self)
 
         self.out_file = out_file
         self.process_tag_func = process_tag_func
@@ -338,7 +338,7 @@ class TagProcessingHTMLParser(HTMLParser):
         attrs.update(self.process_tag_func(tag, attrs))
 
         self.out_file.write("<%s %s>" % (tag, " ".join(
-            _attr_to_string(k, v) for k, v in attrs.iteritems())))
+            _attr_to_string(k, v) for k, v in six.iteritems(attrs))))
 
     def handle_endtag(self, tag):
         self.out_file.write("</%s>" % tag)
@@ -460,7 +460,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_etree_element(self, element):
         changed_attrs = self.process_tag(element.tag, element.attrib)
 
-        for key, val in changed_attrs.iteritems():
+        for key, val in six.iteritems(changed_attrs):
             element.set(key, val)
 
     def walk_and_process_tree(self, root):
@@ -473,10 +473,10 @@ class LinkFixerTreeprocessor(Treeprocessor):
         self.walk_and_process_tree(root)
 
         # root through and process Markdown's HTML stash (gross!)
-        from StringIO import StringIO
+        from six.moves import cStringIO
 
         for i, (html, safe) in enumerate(self.md.htmlStash.rawHtmlBlocks):
-            outf = StringIO()
+            outf = cStringIO()
             parser = TagProcessingHTMLParser(outf, self.process_tag)
             parser.feed(html)
 
@@ -1131,7 +1131,7 @@ def list_flow_ids(repo, commit_sha):
         pass
     else:
         for entry in flows_tree.items():
-            if entry.path.endswith(".yml"):
+            if entry.path.endswith(b".yml"):
                 flow_ids.append(entry.path[:-4])
 
     return sorted(flow_ids)

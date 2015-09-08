@@ -127,7 +127,7 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
 
                 if allowed_types == str:
                     # Love you, too, Python 2.
-                    allowed_types = (str, unicode)
+                    allowed_types = six.string_types
 
                 if not isinstance(val, allowed_types):
                     raise ValidationError(
@@ -434,10 +434,10 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 ("if_has_role", list),
                 ("if_in_facility", str),
                 ("if_has_in_progress_session", bool),
-                ("if_has_session_tagged", (str, unicode, type(None))),
+                ("if_has_session_tagged", (six.string_types, type(None))),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
-                ("tag_session", (str, unicode, type(None))),
+                ("tag_session", (six.string_types, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
                 ]
@@ -492,7 +492,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 ("if_before", datespec_types),
                 ("if_has_role", list),
                 ("if_in_facility", str),
-                ("if_has_tag", (str, unicode, type(None))),
+                ("if_has_tag", (six.string_types, type(None))),
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),
                 ("if_expiration_mode", str),
@@ -551,7 +551,7 @@ def validate_session_grading_rule(ctx, location, grule, tags):
                 ],
             allowed_attrs=[
                 ("if_has_role", list),
-                ("if_has_tag", (str, unicode, type(None))),
+                ("if_has_tag", (six.string_types, type(None))),
                 ("if_completed_before", datespec_types),
 
                 ("credit_percent", (int, float)),
@@ -824,7 +824,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
                 "%(fullname)s: %(err_type)s: %(err_str)s" % {
                     'fullname': full_name,
                     "err_type": tp.__name__,
-                    "err_str": unicode(e)})
+                    "err_str": six.text_type(e)})
 
 
 def check_attributes_yml(vctx, repo, path, tree):
@@ -851,7 +851,7 @@ def check_attributes_yml(vctx, repo, path, tree):
         for access_kind in ["public", "in_exam"]:
             if hasattr(att_yml, access_kind):
                 for i, l in enumerate(att_yml.public):
-                    if not isinstance(l, (str, unicode)):
+                    if not isinstance(l, six.string_types):
                         raise ValidationError(
                                 "%s: entry %d in '%s' is not a string"
                                 % (loc, i+1, access_kind))
