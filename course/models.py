@@ -529,6 +529,10 @@ class FlowSession(models.Model):
 
         return None
 
+    def get_expiration_mode_desc(self):
+        return dict(FLOW_SESSION_EXPIRATION_MODE_CHOICES).get(
+                self.expiration_mode)
+
 # }}}
 
 
@@ -1036,6 +1040,10 @@ class GradingOpportunity(models.Model):
     if six.PY3:
         __str__ = __unicode__
 
+    def get_aggregation_strategy_descr(self):
+        return dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
+                self.aggregation_strategy)
+
 
 class GradeChange(models.Model):
     """Per 'grading opportunity', each participant may accumulate multiple grades
@@ -1112,6 +1120,10 @@ class GradeChange(models.Model):
             return 100*self.points/self.max_points
         else:
             return None
+
+    def get_state_desc(self):
+        return dict(GRADE_STATE_CHANGE_CHOICES).get(
+                self.state)
 
 # }}}
 
