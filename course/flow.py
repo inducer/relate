@@ -1253,13 +1253,25 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     else:
         correct_answer = None
 
+    if (has_grade_identifier
+            and flow_session.participation is None
+            and flow_permission.submit_answer in permissions):
+        messages.add_message(request, messages.INFO,
+                _("Changes to this session are being prevented "
+                    "because this session yields a permanent grade, but "
+                    "you have not completed your enrollment process in "
+                    "this course."))
+
     # {{{ FIXME: This warning should be deleted after October 2015
 
-    if (
+    elif (
             flow_session.participation is None
             and
             fpctx.page.expects_answer()
+            and
+            page_behavior.may_change_answer
             ):
+
         messages.add_message(request, messages.WARNING,
                 _("<p><b>WARNING!</b> What you enter on this page will not be "
                     "associated with your user account, likely because "
@@ -1276,15 +1288,6 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     "to ensure you'll be able to return to your work.</b>"))
 
     # }}}
-
-    if (has_grade_identifier
-            and flow_session.participation is None
-            and flow_permission.submit_answer in permissions):
-        messages.add_message(request, messages.INFO,
-                _("Changes to this session are being prevented "
-                    "because this session yields a permanent grade, but "
-                    "you have not completed your enrollment process in "
-                    "this course."))
 
     # {{{ render flow page
 
