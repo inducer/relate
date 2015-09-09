@@ -41,8 +41,9 @@ sleekxmpp
 # To manage web dependencies
 django-bower
 
-# For comfortable code entry
-django-codemirror-widget
+# For comfortable code entry (git for py3 fix in git rev 8979538)
+git+https://github.com/lambdalisue/django-codemirror-widget.git
+#django-codemirror-widget
 
 # Optional, used for caching
 python-memcached
