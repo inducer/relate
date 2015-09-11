@@ -697,7 +697,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 _("This is the exception traceback"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.traceback))
-            print(repr(response.traceback))
         if hasattr(response, "stdout") and response.stdout:
             bulk_feedback_bits.append("".join([
                 "<p>",
