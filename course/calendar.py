@@ -325,7 +325,7 @@ def view_calendar(pctx):
                 human_title = event_desc["title"]
 
             if "color" in event_desc:
-                human_title = event_desc["color"]
+                event_json["color"] = event_desc["color"]
 
         event_json["title"] = human_title
 
