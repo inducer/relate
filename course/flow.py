@@ -189,7 +189,7 @@ def start_flow(repo, course, participation, user, flow_id, flow_desc,
     # will implicitly modify and save the session if there are changes
     from course.content import adjust_flow_session_page_data
     adjust_flow_session_page_data(repo, session,
-            course.identifier, flow_desc, course_commit_sha)
+            course.identifier, flow_desc)
 
     return session
 
@@ -468,6 +468,10 @@ def finish_flow_session(fctx, flow_session, grading_rule,
 
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
+    from course.content import adjust_flow_session_page_data
+    adjust_flow_session_page_data(fctx.repo, flow_session,
+            fctx.course.identifier, fctx.flow_desc)
+
     answer_visits = assemble_answer_visits(flow_session)
 
     (answered_count, unanswered_count) = count_answered_gradable(
@@ -549,6 +553,10 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     """Updates the grade on an existing flow session and logs a
     grade change with the grade records subsystem.
     """
+
+    from course.content import adjust_flow_session_page_data
+    adjust_flow_session_page_data(fctx.repo, flow_session,
+            fctx.course.identifier, fctx.flow_desc)
 
     if answer_visits is None:
         answer_visits = assemble_answer_visits(flow_session)

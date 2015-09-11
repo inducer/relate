@@ -400,7 +400,7 @@ class FlowPageContext(FlowContext):
 
         from course.content import adjust_flow_session_page_data
         adjust_flow_session_page_data(repo, flow_session,
-                course.identifier, self.flow_desc, self.course_commit_sha)
+                course.identifier, self.flow_desc)
 
         if ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()
