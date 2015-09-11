@@ -368,7 +368,7 @@ class ModifySessionsForm(StyledForm):
 
 @transaction.atomic
 def expire_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
-        past_due_only):
+        past_due_only, print_progress=False):
     sessions = (FlowSession.objects
             .filter(
                 course=course,
@@ -381,10 +381,16 @@ def expire_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
     count = 0
 
     from course.flow import expire_flow_session_standalone
+
+    nsessions = sessions.count()
+
     for session in sessions:
         if expire_flow_session_standalone(repo, course, session, now_datetime,
                 past_due_only=past_due_only):
             count += 1
+
+        if print_progress:
+            print("%d/%d" % (count, nsessions))
 
     return count
 

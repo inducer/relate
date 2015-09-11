@@ -1,0 +1,28 @@
+#! /usr/bin/env python
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "relate.settings")
+
+import django
+django.setup()
+
+from course.models import Course
+import sys
+
+course_identifier = sys.argv[1]
+flow_id = sys.argv[2]
+rule_tag = sys.argv[3]
+
+if rule_tag == "None":
+    rule_tag = None
+
+c = Course.objects.get(identifier=course_identifier)
+
+from course.grades import expire_in_progress_sessions
+from course.content import get_course_repo
+
+repo = get_course_repo(c)
+
+from django.utils.timezone import now
+now_datetime = now()
+expire_in_progress_sessions(repo, c, flow_id, rule_tag, now_datetime,
+        past_due_only=True, print_progress=True)
