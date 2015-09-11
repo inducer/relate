@@ -881,8 +881,15 @@ def validate_course_content(repo, course_file, events_file,
         events_desc = get_yaml_from_repo(repo, events_file,
                 commit_sha=validate_sha, cached=False)
     except ObjectDoesNotExist:
-        # That's OK--no calendar info.
-        pass
+        if events_file != "events.yml":            
+            vctx.add_warning(
+                    _("Events file"), 
+                    _("Your course repository does not have an events "
+                        "file named '%s'.")
+                    % events_file)
+        else:
+            # That's OK--no calendar info.
+            pass
     else:
         validate_calendar_desc_struct(vctx, events_file, events_desc)
 
@@ -941,13 +948,17 @@ def validate_course_content(repo, course_file, events_file,
 
                 if len(flow_grade_identifiers) > 1:
                     vctx.add_warning(
-                            location, "flow uses more than one grade_identifier: %s"
+                            location,
+                            string_concat(_("flow uses more than one "
+                                          "grade_identifier"), ": %s")
                             % ", ".join(flow_grade_identifiers))
 
             if flow_grade_identifiers & used_grade_identifiers:
                 raise ValidationError(
-                        "%s: flow uses the same grade_identifier "
-                        "as another flow: %s"
+                        string_concat("%s: ", 
+                                      _("flow uses the same grade_identifier "
+                                        "as another flow"),
+                                      ": %s")
                         % (
                             location,
                             ", ".join(
