@@ -528,28 +528,31 @@ JINJA_PREFIX = "[JINJA]"
 
 
 def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
-        validate_only=False):
+        validate_only=False, jinja_env={}):
     if reverse_func is None:
         from django.core.urlresolvers import reverse
         reverse_func = reverse
 
-    try:
-        import django.core.cache as cache
-    except ImproperlyConfigured:
-        cache_key = None
+    if not jinja_env:
+        try:
+            import django.core.cache as cache
+        except ImproperlyConfigured:
+            cache_key = None
+        else:
+            import hashlib
+            cache_key = ("markup:%s:%s"
+                    % (str(commit_sha),
+                        hashlib.md5(text.encode("utf-8")).hexdigest()))
+
+            def_cache = cache.caches["default"]
+            result = def_cache.get(cache_key)
+            if result is not None:
+                return result
+
+        if text.lstrip().startswith(JINJA_PREFIX):
+            text = remove_prefix(JINJA_PREFIX, text.lstrip())
     else:
-        import hashlib
-        cache_key = ("markup:%s:%s"
-                % (str(commit_sha),
-                    hashlib.md5(text.encode("utf-8")).hexdigest()))
-
-        def_cache = cache.caches["default"]
-        result = def_cache.get(cache_key)
-        if result is not None:
-            return result
-
-    if text.lstrip().startswith(JINJA_PREFIX):
-        text = remove_prefix(JINJA_PREFIX, text.lstrip())
+        cache_key = None
 
     # {{{ process through Jinja
 
@@ -558,7 +561,7 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             loader=GitTemplateLoader(repo, commit_sha),
             undefined=StrictUndefined)
     template = env.from_string(text)
-    text = template.render()
+    text = template.render(**jinja_env)
 
     # }}}
 
