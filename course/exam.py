@@ -85,8 +85,8 @@ class IssueTicketForm(StyledForm):
                         )
                     .order_by("last_name")),
                 required=True,
-                help_text=_("Select participant for whom exception is to "
-                "be granted."),
+                help_text=_("Select participant for whom ticket is to "
+                "be issued."),
                 label=_("Participant"))
         self.fields["exam"] = forms.ModelChoiceField(
                 queryset=(
@@ -131,7 +131,10 @@ def issue_exam_ticket(request):
                     ExamTicket.objects.filter(
                             exam=exam,
                             participation=participation,
-                            state=exam_ticket_states.valid,
+                            state__in=(
+                                exam_ticket_states.valid,
+                                exam_ticket_states.used,
+                                )
                             ).update(state=exam_ticket_states.revoked)
 
                 ticket = ExamTicket()
@@ -216,7 +219,10 @@ def batch_issue_exam_tickets(pctx):
             if form.cleaned_data["revoke_prior"]:
                 ExamTicket.objects.filter(
                         exam=exam,
-                        state=exam_ticket_states.valid,
+                        state__in=(
+                            exam_ticket_states.valid,
+                            exam_ticket_states.used,
+                            )
                         ).update(state=exam_ticket_states.revoked)
 
             tickets = []
@@ -269,9 +275,21 @@ class ExamTicketBackend(object):
             ticket = ExamTicket.objects.get(
                     participation__user=user,
                     code=code,
-                    state=exam_ticket_states.valid,
+                    state__in=(
+                        exam_ticket_states.valid,
+                        exam_ticket_states.used,
+                        )
                     )
 
+            from django.conf import settings
+            from datetime import timedelta
+
+            validity_period = timedelta(
+                    minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
+
+            if (ticket.state == exam_ticket_states.used
+                    and now_datetime >= ticket.usage_time + validity_period):
+                return None
             if ticket.exam.no_exams_before >= now_datetime:
                 return None
             if (
@@ -330,11 +348,15 @@ def check_in_for_exam(request):
                 ticket = ExamTicket.objects.get(
                         participation__user=user,
                         code=code,
-                        state=exam_ticket_states.valid,
+                        state__in=(
+                            exam_ticket_states.valid,
+                            exam_ticket_states.used,
+                            )
                         )
-                ticket.state = exam_ticket_states.used
-                ticket.usage_time = now_datetime
-                ticket.save()
+                if ticket.state == exam_ticket_states.valid:
+                    ticket.state = exam_ticket_states.used
+                    ticket.usage_time = now_datetime
+                    ticket.save()
 
                 request.session["relate_session_exam_ticket_pk"] = ticket.pk
 

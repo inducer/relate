@@ -1403,7 +1403,7 @@ class ExamTicket(models.Model):
     creation_time = models.DateTimeField(default=now,
             verbose_name=_('Creation time'))
     usage_time = models.DateTimeField(
-            verbose_name=_('Usage time'),
+            verbose_name=_('Date and time of first usage of ticket'),
             null=True, blank=True)
 
     state = models.CharField(max_length=50,
