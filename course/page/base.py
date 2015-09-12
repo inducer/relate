@@ -573,6 +573,9 @@ class PageBaseWithValue(PageBase):
         return getattr(self.page_desc, "value", 1)
 
 
+# }}}
+
+
 # {{{ human text feedback page base
 
 class HumanTextFeedbackForm(StyledForm):
@@ -622,7 +625,10 @@ class HumanTextFeedbackForm(StyledForm):
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
                 help_text=_("Whether the grade and feedback are to "
-                "be shown to student"),
+                "be shown to student. (If you would like to release "
+                "all grades at once, do not use this. Instead, use "
+                "the 'shown to students' checkbox for this 'grading "
+                "opportunity' in the grade book admin.)"),
                 label=_("Released"))
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
@@ -806,8 +812,6 @@ class PageBaseWithCorrectAnswer(PageBase):
             return markup_to_html(page_context, self.page_desc.correct_answer)
         else:
             return None
-
-# }}}
 
 # }}}
 
