@@ -28,7 +28,8 @@ import six
 
 from django.contrib.auth import get_user_model
 import django.forms as forms
-from django.utils.translation import ugettext, ugettext_lazy as _
+from django.utils.translation import (
+        ugettext, ugettext_lazy as _, string_concat)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.core.exceptions import (  # noqa
@@ -36,6 +37,7 @@ from django.core.exceptions import (  # noqa
 from django.contrib import messages  # noqa
 from django.contrib.auth.decorators import permission_required
 from django.db import transaction
+from django.core.urlresolvers import reverse
 
 from crispy_forms.layout import Submit
 
@@ -165,12 +167,90 @@ def issue_exam_ticket(request):
 
 # }}}
 
-
 # {{{ batch-issue tickets
 
+INITIAL_EXAM_TICKET_TEMPLATE = _("""\
+# List
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>User</th> <th>Name</th><th>Code</th>
+    </tr>
+  </thead>
+
+  {% for ticket in tickets %}
+    <tr>
+      <td>
+        {{ ticket.participation.user.username }}
+      </td>
+      <td>
+        {{ ticket.participation.user.last_name }},
+        {{ ticket.participation.user.first_name }}
+      </td>
+      <td>
+        {{ ticket.code }}
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+
+----------------
+
+{% for ticket in tickets %}
+<h2 style="page-break-before: always">
+  Instructions for
+  {{ ticket.exam.description }}
+</h2>
+
+These are personalized instructions for
+{{ ticket.participation.user.last_name }},
+{{ ticket.participation.user.first_name }}.
+
+If this is not you, please let the proctor know so that you can get the
+correct set of instructions.
+
+Please sit down at your workstation and open a browser at this location:
+
+Exam URL: **`{{ checkin_uri }}`**
+
+You should see boxes prompting for your user name and a one-time check-in code.
+
+Enter the following information:
+
+User name: **`{{ ticket.participation.user.username }}`**
+
+Code: **`{{ ticket.code }}`**
+
+You have one hour to complete the exam.
+
+**Good luck!**
+
+{% endfor %}
+<div style="clear:left; margin-bottom:3ex"></div>""")
+
+
 class BatchIssueTicketsForm(StyledForm):
-    def __init__(self, course, *args, **kwargs):
+    def __init__(self, course, editor_mode, *args, **kwargs):
         super(BatchIssueTicketsForm, self).__init__(*args, **kwargs)
+
+        from course.utils import get_codemirror_widget
+        cm_widget, cm_help_text = get_codemirror_widget(
+                language_mode={"name": "markdown", "xml": True},
+                dependencies=("xml",),
+                interaction_mode=editor_mode)
+
+        help_text = (ugettext("Enter <a href=\"http://documen.tician.de/"
+                "relate/content.html#relate-markup\">"
+                "RELATE markup</a> containing Django template statements to render "
+                "your exam tickets. <tt>tickets</tt> contains a list of "
+                "data structures "
+                "containing ticket information. For each entry <tt>tkt</tt>  "
+                "in this list, "
+                "use <tt>{{ tkt.participation.user.user_name }}</tt>, "
+                "<tt>{{ tkt.code }}</tt>, <tt>{{ tkt.exam.description }}</tt>, "
+                "and <tt>{{ checkin_uri }}</tt> as placeholders. "
+                "See the example for how to use this."))
 
         self.fields["exam"] = forms.ModelChoiceField(
                 queryset=(
@@ -180,12 +260,11 @@ class BatchIssueTicketsForm(StyledForm):
                         )),
                 required=True,
                 label=_("Exam"))
-        self.fields["format"] = forms.ChoiceField(
-                choices=(
-                    ("list", _("List")),
-                    ("cards", _("Cards")),
-                    ),
+        self.fields["format"] = forms.CharField(
                 label=_("Ticket Format"),
+                help_text=help_text,
+                widget=cm_widget,
+                initial=INITIAL_EXAM_TICKET_TEMPLATE,
                 required=True)
         self.fields["revoke_prior"] = forms.BooleanField(
                 label=_("Revoke prior exam tickets"),
@@ -199,8 +278,10 @@ class BatchIssueTicketsForm(StyledForm):
 
 
 @course_view
-@transaction.atomic
 def batch_issue_exam_tickets(pctx):
+    from course.models import get_user_status
+    ustatus = get_user_status(pctx.request.user)
+
     if pctx.role not in [
             participation_role.instructor,
             ]:
@@ -211,51 +292,72 @@ def batch_issue_exam_tickets(pctx):
 
     request = pctx.request
     if request.method == "POST":
-        form = BatchIssueTicketsForm(pctx.course, request.POST)
+        form = BatchIssueTicketsForm(pctx.course, ustatus.editor_mode, request.POST)
 
         if form.is_valid():
             exam = form.cleaned_data["exam"]
 
-            if form.cleaned_data["revoke_prior"]:
-                ExamTicket.objects.filter(
-                        exam=exam,
-                        state__in=(
-                            exam_ticket_states.valid,
-                            exam_ticket_states.used,
-                            )
-                        ).update(state=exam_ticket_states.revoked)
+            from jinja2 import TemplateSyntaxError
+            from course.content import markup_to_html
+            try:
+                with transaction.atomic():
+                    if form.cleaned_data["revoke_prior"]:
+                        ExamTicket.objects.filter(
+                                exam=exam,
+                                state__in=(
+                                    exam_ticket_states.valid,
+                                    exam_ticket_states.used,
+                                    )
+                                ).update(state=exam_ticket_states.revoked)
 
-            tickets = []
-            for participation in (
-                    Participation.objects.filter(
-                        course=pctx.course,
-                        status=participation_status.active)
-                    .order_by(
-                        "user__username")):
-                ticket = ExamTicket()
-                ticket.exam = exam
-                ticket.participation = participation
-                ticket.creator = request.user
-                ticket.state = exam_ticket_states.valid
-                ticket.code = gen_ticket_code()
-                ticket.save()
+                    tickets = []
+                    for participation in (
+                            Participation.objects.filter(
+                                course=pctx.course,
+                                status=participation_status.active)
+                            .order_by(
+                                "user__username")):
+                        ticket = ExamTicket()
+                        ticket.exam = exam
+                        ticket.participation = participation
+                        ticket.creator = request.user
+                        ticket.state = exam_ticket_states.valid
+                        ticket.code = gen_ticket_code()
+                        ticket.save()
 
-                tickets.append(ticket)
+                        tickets.append(ticket)
 
-            from django.template.loader import render_to_string
-            form_text = render_to_string(
-                    "course/exam-ticket-%s.html" % form.cleaned_data["format"],
-                    {"tickets": tickets})
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("%d tickets issued.") % len(tickets))
-
-            form = None
+                        checkin_uri = pctx.request.build_absolute_uri(
+                                reverse("relate-check_in_for_exam"))
+                        form_text = markup_to_html(
+                                pctx.course, pctx.repo, pctx.course_commit_sha,
+                                form.cleaned_data["format"], jinja_env={
+                                        "tickets": tickets,
+                                        "checkin_uri": checkin_uri,
+                                        })
+            except TemplateSyntaxError as e:
+                messages.add_message(request, messages.ERROR,
+                    string_concat(
+                        _("Template rendering failed"),
+                        ": line %(lineno)d: %(err_str)s")
+                    % {
+                        "lineno": e.lineno,
+                        "err_str": e.message.decode("utf-8")})
+            except Exception as e:
+                messages.add_message(request, messages.ERROR,
+                    string_concat(
+                        _("Template rendering failed"),
+                        ": %(err_type)s: %(err_str)s")
+                    % {"err_type": type(e).__name__,
+                        "err_str": str(e)})
+            else:
+                messages.add_message(request, messages.SUCCESS,
+                        _("%d tickets issued.") % len(tickets))
 
     else:
-        form = BatchIssueTicketsForm(pctx.course)
+        form = BatchIssueTicketsForm(pctx.course, ustatus.editor_mode)
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
+    return render_course_page(pctx, "course/batch-exam-tickets-form.html", {
         "form": form,
         "form_text": form_text,
         "form_description": ugettext("Batch-Issue Exam Tickets")

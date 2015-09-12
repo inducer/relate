@@ -549,7 +549,7 @@ class PageInstanceCache(object):
 # {{{ codemirror config
 
 def get_codemirror_widget(language_mode, interaction_mode,
-        config=None, addon_css=(), addon_js=(),
+        config=None, addon_css=(), addon_js=(), dependencies=(),
         read_only=False):
     theme = "default"
     if read_only:
@@ -623,6 +623,7 @@ def get_codemirror_widget(language_mode, interaction_mode,
 
     return CodeMirrorTextarea(
                     mode=language_mode,
+                    dependencies=dependencies,
                     theme=theme,
                     addon_css=actual_addon_css,
                     addon_js=actual_addon_js,

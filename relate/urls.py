@@ -398,7 +398,7 @@ urlpatterns = [
         name="relate-issue_exam_ticket"),
     url(r"^course"
         "/" + COURSE_ID_REGEX +
-        "/batch-issue-exam_tickets"
+        "/batch-issue-exam-tickets"
         "/$",
         course.exam.batch_issue_exam_tickets,
         name="relate-batch_issue_exam_tickets"),

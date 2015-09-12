@@ -1,0 +1,24 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  {% if form_description %}
+    <h1>{{ form_description }}</h1>
+  {% endif %}
+
+  <style type="text/css">
+    @media print {
+      .well { display: none; }
+    }
+  </style>
+
+  {% if form %}
+    <div class="well">
+      {% crispy form %}
+    </div>
+  {% endif %}
+
+  {{ form_text|safe }}
+{% endblock %}

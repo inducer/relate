@@ -218,14 +218,5 @@ a .sensitive {
   text-shadow: 0 0 1.25em #337ab7;
 }
 */
-.relate-exam-ticket-card {
-  font-size: large;
-  min-width: 17em;
-  min-height: 8ex;
-  border: 1px solid black;
-  float:left;
-  margin: 2mm;
-  padding: 4mm;
-}
 
 /* vim: set foldmethod=marker: */
