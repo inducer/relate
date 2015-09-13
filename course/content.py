@@ -105,6 +105,10 @@ def get_repo_blob(repo, full_name, commit_sha):
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
+
+    # Allow non-Ascii file name
+    full_name = full_name.encode('utf-8')
+
     from six.moves.urllib.parse import quote_plus
     cache_key = "%%%1".join((
         quote_plus(repo.controldir()), quote_plus(full_name), str(commit_sha)))
