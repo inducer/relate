@@ -159,10 +159,12 @@ class Course(models.Model):
             verbose_name=_('SSH private key'))
     course_root_path = models.CharField(max_length=200, blank=True,
             help_text=_(
-                'Subdirectory in git repository to use as '
-                'course root directory. Should not include trailing '
-                'slash.'),
-            verbose_name=_('Course root directory'))
+                'Subdirectory *within* the git repository to use as '
+                'course root directory. Not required, and usually blank. '
+                'Use only if your course content lives in a subdirectory '
+                'of your git repository. '
+                'Should not include trailing slash.'),
+            verbose_name=_('Course root in repository'))
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
