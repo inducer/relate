@@ -460,6 +460,7 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
 @transaction.atomic
 def finish_flow_session(fctx, flow_session, grading_rule,
         force_regrade=False, now_datetime=None):
+
     if not flow_session.in_progress:
         raise RuntimeError(_("Can't end a session that's already ended"))
 
@@ -482,11 +483,21 @@ def finish_flow_session(fctx, flow_session, grading_rule,
 
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
+    # {{{ determine completion time
+
     if now_datetime is None:
         from django.utils.timezone import now
         now_datetime = now()
 
-    flow_session.completion_time = now_datetime
+    completion_time = now_datetime
+    if grading_rule.use_last_activity_as_completion_time:
+        last_activity = flow_session.last_activity()
+        if last_activity is not None:
+            completion_time = last_activity
+
+    flow_session.completion_time = completion_time
+
+    # }}}
 
     flow_session.in_progress = False
     flow_session.save()

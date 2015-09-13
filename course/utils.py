@@ -82,6 +82,7 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
             "generates_grade",
             "description",
             "credit_percent",
+            "use_last_activity_as_completion_time",
             ]
 
 
@@ -332,7 +333,10 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
                 due=due,
                 generates_grade=generates_grade,
                 description=getattr(rule, "description", None),
-                credit_percent=getattr(rule, "credit_percent", 100))
+                credit_percent=getattr(rule, "credit_percent", 100),
+                use_last_activity_as_completion_time=getattr(
+                    rule, "use_last_activity_as_completion_time", False),
+                )
 
     raise RuntimeError(_("grading rule determination was unable to find "
             "a grading rule"))

@@ -554,6 +554,7 @@ def validate_session_grading_rule(ctx, location, grule, tags, grade_identifier):
                 ("if_completed_before", datespec_types),
 
                 ("credit_percent", (int, float)),
+                ("use_last_activity_as_completion_time", bool),
                 ("due", datespec_types),
                 ("generates_grade", bool),
                 ("description", str),

@@ -400,6 +400,14 @@ Here's a commented example:
         *may* have been set to generate a grade must *always* be set to generate
         a grade. Defaults to ``true``.
 
+    .. attribute:: use_last_activity_as_completion_time
+
+        (Optional) A Boolean indicating whether the last time a participant made
+        a change to their flow should be used as the completion time.
+
+        Defaults to ``false`` to match past behavior. ``true`` is probably the more
+        sensible value for this.
+
     .. attribute:: description
 
         (Optional) A description of this set of grading rules being applied to the flow.
