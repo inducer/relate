@@ -868,6 +868,9 @@ def normalize_flow_desc(flow_desc):
             # Legacy content with grade_identifier in grading rule,
             # move first found grade_identifier up to rules.
 
+            rules.grade_identifier = None
+            rules.grade_aggregation_strategy = None
+
             for grule in rules.grading:
                 if grule.grade_identifier is not None:
                     rules.grade_identifier = grule.grade_identifier
