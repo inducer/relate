@@ -76,6 +76,10 @@ def get_course_repo(course):
 
 
 def get_repo_blob(repo, full_name, commit_sha):
+    """
+    :arg commit_sha: A byte string containing the commit hash
+    """
+
     if isinstance(repo, SubdirRepoWrapper):
         # full_name must be non-empty
         full_name = repo.subdir + "/" + full_name
@@ -105,9 +109,13 @@ def get_repo_blob(repo, full_name, commit_sha):
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
+    """
+    :arg commit_sha: A byte string containing the commit hash
+    """
+
     from six.moves.urllib.parse import quote_plus
     cache_key = "%%%1".join((
-        quote_plus(repo.controldir()), quote_plus(full_name), str(commit_sha)))
+        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode()))
 
     try:
         import django.core.cache as cache
@@ -228,6 +236,8 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
 def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     """Return decoded YAML data structure from
     the given file in *repo* at *commit_sha*.
+
+    :arg commit_sha: A byte string containing the commit hash
     """
 
     from six.moves.urllib.parse import quote_plus
@@ -289,6 +299,10 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
 
 
 def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
+    """
+    :arg commit_sha: A byte string containing the commit hash
+    """
+
     from os.path import dirname, basename, join
     attributes_path = join(dirname(path), ".attributes.yml")
 

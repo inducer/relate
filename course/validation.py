@@ -919,7 +919,9 @@ def check_attributes_yml(vctx, repo, path, tree):
         if stat.S_ISDIR(entry.mode):
             _, blob_sha = tree[entry.path]
             subtree = repo[blob_sha]
-            check_attributes_yml(vctx, repo, path+"/"+entry.path, subtree)
+            check_attributes_yml(
+                    vctx, repo,
+                    path+"/"+entry.path.decode("utf-8"), subtree)
 
 
 def validate_course_content(repo, course_file, events_file,
@@ -975,11 +977,12 @@ def validate_course_content(repo, course_file, events_file,
         used_grade_identifiers = set()
 
         for entry in flows_tree.items():
-            if not entry.path.endswith(".yml"):
+            entry_path = entry.path.decode("utf-8")
+            if not entry_path.endswith(".yml"):
                 continue
 
             from course.constants import FLOW_ID_REGEX
-            flow_id = entry.path[:-4]
+            flow_id = entry_path[:-4]
             match = re.match("^"+FLOW_ID_REGEX+"$", flow_id)
             if match is None:
                 raise ValidationError(
@@ -988,9 +991,9 @@ def validate_course_content(repo, course_file, events_file,
                                 "Flow names may only contain (roman) "
                                 "letters, numbers, "
                                 "dashes and underscores."))
-                        % entry.path)
+                        % entry_path)
 
-            location = "flows/%s" % entry.path
+            location = "flows/%s" % entry_path
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 

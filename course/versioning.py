@@ -101,7 +101,7 @@ def get_dulwich_client_and_remote_path_from_course(course):
 
     from dulwich.client import get_transport_and_path
     client, remote_path = get_transport_and_path(
-            course.git_source.encode())
+            course.git_source)
 
     try:
         # Work around
@@ -167,7 +167,7 @@ def set_up_new_course(request):
                                     new_course)
 
                         remote_refs = client.fetch(remote_path, repo)
-                        new_sha = repo["HEAD"] = remote_refs["HEAD"]
+                        new_sha = repo[b"HEAD"] = remote_refs[b"HEAD"]
 
                         vrepo = repo
                         if new_course.course_root_path:
@@ -184,7 +184,7 @@ def set_up_new_course(request):
                         del vrepo
 
                         new_course.valid = True
-                        new_course.active_git_commit_sha = new_sha
+                        new_course.active_git_commit_sha = new_sha.decode()
                         new_course.save()
 
                         # {{{ set up a participation for the course creator
@@ -292,15 +292,15 @@ def run_course_update_command(
             get_dulwich_client_and_remote_path_from_course(pctx.course)
 
         remote_refs = client.fetch(remote_path, repo)
-        remote_head = remote_refs["HEAD"]
+        remote_head = remote_refs[b"HEAD"]
         if (
                 prevent_discarding_revisions
                 and
-                is_parent_commit(repo, repo[remote_head], repo["HEAD"],
+                is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
                     max_history_check_size=20)):
             raise RuntimeError(_("fetch would discard commits, refusing"))
 
-        repo["HEAD"] = remote_head
+        repo[b"HEAD"] = remote_head
 
         messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
@@ -350,11 +350,11 @@ def run_course_update_command(
         messages.add_message(request, messages.INFO,
                 _("Preview activated."))
 
-        pctx.participation.preview_git_commit_sha = new_sha
+        pctx.participation.preview_git_commit_sha = new_sha.decode()
         pctx.participation.save()
 
     elif command == "update" and may_update:
-        pctx.course.active_git_commit_sha = new_sha
+        pctx.course.active_git_commit_sha = new_sha.decode()
         pctx.course.valid = True
         pctx.course.save()
 
@@ -446,6 +446,9 @@ def update_course(pctx):
                         prevent_discarding_revisions=form.cleaned_data[
                             "prevent_discarding_revisions"])
             except Exception as e:
+                import traceback
+                traceback.print_exc()
+
                 messages.add_message(pctx.request, messages.ERROR,
                         string_concat(
                             pgettext("Starting of Error message",
