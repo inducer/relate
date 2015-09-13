@@ -113,6 +113,9 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     :arg commit_sha: A byte string containing the commit hash
     """
 
+    # Allow non-ASCII file name
+    full_name = full_name.encode('utf-8')
+
     from six.moves.urllib.parse import quote_plus
     cache_key = "%%%1".join((
         quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode()))
