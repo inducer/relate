@@ -589,6 +589,7 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     # a grade record may *already* be saved, and that one might be mistaken
     # for the current one.
     if (grading_rule.grade_identifier
+            and grading_rule.generates_grade
             and is_graded_flow
             and flow_session.participation is not None):
         from course.models import get_flow_grading_opportunity
@@ -909,7 +910,7 @@ def will_receive_feedback(permissions):
 
 
 def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
-        has_grade_identifier, is_unenrolled_session):
+        generates_grade, is_unenrolled_session):
     show_correctness = None
     show_answer = None
 
@@ -941,8 +942,8 @@ def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
 
                     and (flow_permission.submit_answer in permissions)
 
-                    and (has_grade_identifier and not is_unenrolled_session
-                        or (not has_grade_identifier))
+                    and (generates_grade and not is_unenrolled_session
+                        or (not generates_grade))
                     ))
 
 
@@ -1038,9 +1039,10 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     grading_rule = get_session_grading_rule(
             flow_session, pctx.role, fpctx.flow_desc, now_datetime)
-    has_grade_identifier = (
-            getattr(grading_rule, "grade_identifier", None)
-            is not None)
+    generates_grade = (
+            grading_rule.grade_identifier is not None
+            and
+            grading_rule.generates_grade)
     del grading_rule
 
     permissions = fpctx.page.get_modified_permissions_for_page(
@@ -1084,7 +1086,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     permissions=permissions,
                     session_in_progress=flow_session.in_progress,
                     answer_was_graded=False,
-                    has_grade_identifier=has_grade_identifier,
+                    generates_grade=generates_grade,
                     is_unenrolled_session=flow_session.participation is None)
 
             form = fpctx.page.process_form_post(
@@ -1118,7 +1120,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                         permissions=permissions,
                         session_in_progress=flow_session.in_progress,
                         answer_was_graded=answer_was_graded,
-                        has_grade_identifier=has_grade_identifier,
+                        generates_grade=generates_grade,
                         is_unenrolled_session=flow_session.participation is None)
 
                 if fpctx.page.is_answer_gradable():
@@ -1201,7 +1203,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 permissions=permissions,
                 session_in_progress=flow_session.in_progress,
                 answer_was_graded=answer_was_graded,
-                has_grade_identifier=has_grade_identifier,
+                generates_grade=generates_grade,
                 is_unenrolled_session=flow_session.participation is None)
 
         if fpctx.page.expects_answer():
@@ -1254,7 +1256,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     else:
         correct_answer = None
 
-    if (has_grade_identifier
+    if (generates_grade
             and flow_session.participation is None
             and flow_permission.submit_answer in permissions):
         messages.add_message(request, messages.INFO,

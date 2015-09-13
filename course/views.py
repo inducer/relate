@@ -935,6 +935,10 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     and session.access_rules_tag is not None):
                 new_grading_rule["if_has_tag"] = session.access_rules_tag
 
+            if hasattr(grading_rule, "generates_grade"):
+                new_grading_rule["generates_grade"] = \
+                        grading_rule.generates_grade
+
             validate_session_grading_rule(vctx, ugettext("newly created exception"),
                     dict_to_struct(new_grading_rule), tags)
 

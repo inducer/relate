@@ -392,11 +392,18 @@ Here's a commented example:
         A :ref:`datespec <datespec>` indicating the due date of the flow. This is shown to the
         participant and also used to batch-expire 'past-due' flows.
 
+    .. attribute:: generates_grade
+
+        (Optional) A Boolean indicating whether a grade will be recorded when this
+        flow is ended. Note that the value of this rule must never change over
+        the lifetime of a flow. I.e. a flow that, at some point during its lifetime,
+        *may* have been set to generate a grade must *always* be set to generate
+        a grade. Defaults to ``true``.
+
     .. attribute:: description
 
         (Optional) A description of this set of grading rules being applied to the flow.
         Shown to the participant on the flow start page.
-
 
 .. autoclass:: grade_aggregation_strategy
 

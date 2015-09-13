@@ -79,6 +79,7 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
             "grade_identifier",
             "grade_aggregation_strategy",
             "due",
+            "generates_grade",
             "description",
             "credit_percent",
             ]
@@ -316,6 +317,8 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
         if due is not None:
             assert due.tzinfo is not None
 
+        generates_grade = getattr(rule, "generates_grade", True)
+
         grade_identifier = None
         grade_aggregation_strategy = None
         if flow_desc_rules is not None:
@@ -327,6 +330,7 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
                 grade_identifier=grade_identifier,
                 grade_aggregation_strategy=grade_aggregation_strategy,
                 due=due,
+                generates_grade=generates_grade,
                 description=getattr(rule, "description", None),
                 credit_percent=getattr(rule, "credit_percent", 100))
 

@@ -555,6 +555,7 @@ def validate_session_grading_rule(ctx, location, grule, tags):
 
                 ("credit_percent", (int, float)),
                 ("due", datespec_types),
+                ("generates_grade", bool),
                 ("description", str),
 
                 # legacy
