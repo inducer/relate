@@ -294,7 +294,7 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct(dict(
-                    grade_identifier=None,
+                    generates_grade=False,
                     ))])
 
     for rule in rules:

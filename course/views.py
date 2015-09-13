@@ -940,7 +940,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                         grading_rule.generates_grade
 
             validate_session_grading_rule(vctx, ugettext("newly created exception"),
-                    dict_to_struct(new_grading_rule), tags)
+                    dict_to_struct(new_grading_rule), tags,
+                    grading_rule.grade_identifier)
 
             fre_grading = FlowRuleException(
                 flow_id=flow_id,

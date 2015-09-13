@@ -539,7 +539,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 perm)
 
 
-def validate_session_grading_rule(ctx, location, grule, tags):
+def validate_session_grading_rule(ctx, location, grule, tags, grade_identifier):
     """
     :returns: whether the rule only applies conditionally
     """
@@ -607,6 +607,14 @@ def validate_session_grading_rule(ctx, location, grule, tags):
     if hasattr(grule, "due"):
         ctx.encounter_datespec(location, grule.due)
 
+    if (getattr(grule, "generates_grade", True)
+            and grade_identifier is None):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'generates_grade' is true, but no 'grade_identifier'"
+                        "is given."))
+                % {"location": location})
+
     return has_conditionals
 
 
@@ -634,7 +642,7 @@ def validate_flow_rules(ctx, location, rules):
                 string_concat("%(location)s: ",
                     _("'rules' block does not have a grade_identifier "
                         "attribute. This attribute needs to be moved out of "
-                        "the lower-level 'grading' rules block and into"
+                        "the lower-level 'grading' rules block and into "
                         "the 'rules' block itself."))
                 % {'location': location})
 
@@ -696,11 +704,20 @@ def validate_flow_rules(ctx, location, rules):
 
     has_conditionals = None
 
+    if len(rules.grading) == 0:
+        raise ValidationError(
+                string_concat(
+                    "%s, ",
+                    _("rules/grading: "
+                        "may not be an empty list"))
+                % location)
+
     for i, grule in enumerate(rules.grading):
         has_conditionals = validate_session_grading_rule(
                 ctx,
                 location="%s, rules/grading #%d"
-                % (location,  i+1), grule=grule, tags=tags)
+                % (location,  i+1), grule=grule, tags=tags,
+                grade_identifier=rules.grade_identifier)
 
     if has_conditionals:
         raise ValidationError(
@@ -986,7 +1003,10 @@ def validate_course_content(repo, course_file, events_file,
                 flow_grade_identifier = getattr(
                         flow_desc.rules, "grade_identifier", None)
 
-            if set([flow_grade_identifier]) & used_grade_identifiers:
+            if (
+                    flow_grade_identifier is not None
+                    and
+                    set([flow_grade_identifier]) & used_grade_identifiers):
                 raise ValidationError(
                         string_concat("%s: ",
                                       _("flow uses the same grade_identifier "
