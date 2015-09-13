@@ -550,7 +550,7 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
         from django.core.urlresolvers import reverse
         reverse_func = reverse
 
-    if not jinja_env:
+    if course is not None and not jinja_env:
         try:
             import django.core.cache as cache
         except ImproperlyConfigured:
