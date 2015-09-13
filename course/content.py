@@ -540,8 +540,8 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:%s:%s"
-                    % (str(commit_sha),
+            cache_key = ("markup:%d:%s:%s"
+                    % (course.id, str(commit_sha),
                         hashlib.md5(text.encode("utf-8")).hexdigest()))
 
             def_cache = cache.caches["default"]
