@@ -77,6 +77,7 @@ def get_course_repo(course):
 
 def get_repo_blob(repo, full_name, commit_sha):
     """
+    :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
     """
 
@@ -86,6 +87,9 @@ def get_repo_blob(repo, full_name, commit_sha):
         repo = repo.repo
 
     names = full_name.split("/")
+
+    # Allow non-ASCII file name
+    full_name = full_name.encode('utf-8')
 
     tree_sha = repo[commit_sha].tree
     tree = repo[tree_sha]
@@ -112,9 +116,6 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     """
     :arg commit_sha: A byte string containing the commit hash
     """
-
-    # Allow non-ASCII file name
-    full_name = full_name.encode('utf-8')
 
     from six.moves.urllib.parse import quote_plus
     cache_key = "%%%1".join((

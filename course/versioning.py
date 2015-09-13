@@ -77,7 +77,22 @@ class DulwichParamikoSSHVendor(object):
 
         channel = client.get_transport().open_session()
 
-        channel.exec_command(" ".join(command))
+        assert command
+        assert b' ' not in command[0]
+
+        command = (
+                command[0]
+                + b' '
+                + b' '.join(
+                    b"'" + c.replace(b"'", b"\\'") + b"'"
+                    for c in command[1:]))
+
+        channel.exec_command(command)
+
+        def progress_stderr(s):
+            import sys
+            sys.stderr.write(s.decode("utf-8"))
+            sys.stderr.flush()
 
         from dulwich.client import ParamikoWrapper
         return ParamikoWrapper(
@@ -87,8 +102,8 @@ class DulwichParamikoSSHVendor(object):
 def get_dulwich_client_and_remote_path_from_course(course):
     ssh_kwargs = {}
     if course.ssh_private_key:
-        from StringIO import StringIO
-        key_file = StringIO(course.ssh_private_key.encode())
+        from six import StringIO
+        key_file = StringIO(course.ssh_private_key)
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
     def get_dulwich_ssh_vendor():
@@ -111,6 +126,12 @@ def get_dulwich_client_and_remote_path_from_course(course):
         pass
     except AttributeError:
         pass
+
+    from dulwich.client import LocalGitClient
+    if not isinstance(client, LocalGitClient):
+        # LocalGitClient uses Py3 Unicode path names to refer to
+        # paths, so it doesn't want an encoded path.
+        remote_path = remote_path.encode("utf-8")
 
     return client, remote_path
 
@@ -475,31 +496,37 @@ def update_course(pctx):
         from html import escape
 
     text_lines = [
+            "<table class='table'>",
             string_concat(
-                "<b>",
-                ugettext("Current git HEAD"),
-                ":</b> %(commit)s (%(message)s)")
-            % {
-                'commit': repo.head(),
-                'message': escape(
-                    repo[repo.head()].message.strip().decode(errors="replace"))},
+                "<tr><th>",
+                ugettext("Git Source URL"),
+                "</th><td><tt>%(git_source)s</tt></td></tr>")
+            % {'git_source': pctx.course.git_source},
             string_concat(
-                "<b>",
+                "<tr><th>",
                 ugettext("Public active git SHA"),
-                ":</b> %(commit)s (%(message)s)")
+                "</th><td> %(commit)s (%(message)s)</td></tr>")
             % {
                 'commit': course.active_git_commit_sha,
                 'message': (
                     escape(repo[course.active_git_commit_sha.encode()]
                         .message.strip().decode(errors="replace")))
                 },
+            string_concat(
+                "<tr><th>",
+                ugettext("Current git HEAD"),
+                "</th><td>%(commit)s (%(message)s)</td></tr>")
+            % {
+                'commit': repo.head().decode(),
+                'message': escape(
+                    repo[repo.head()].message.strip().decode(errors="replace"))},
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
                 string_concat(
-                    "<b>",
+                    "<tr><th>",
                     ugettext("Current preview git SHA"),
-                    ":</b> %(commit)s (%(message)s)")
+                    "</th><td>%(commit)s (%(message)s)</td></tr>")
                 % {
                     'commit': participation.preview_git_commit_sha,
                     'message': (
@@ -509,10 +536,14 @@ def update_course(pctx):
     else:
         text_lines.append(
                 "".join([
-                    "<b>",
+                    "<tr><th>",
                     ugettext("Current preview git SHA"),
-                    ":</b> ",
-                    ugettext("None")]))
+                    "</th><td>",
+                    ugettext("None"),
+                    "</td></tr>",
+                    ]))
+
+    text_lines.append("</table>")
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
