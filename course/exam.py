@@ -29,7 +29,8 @@ import six
 from django.contrib.auth import get_user_model
 import django.forms as forms
 from django.utils.translation import (
-        ugettext, ugettext_lazy as _, string_concat)
+        ugettext, ugettext_lazy as _, string_concat,
+        pgettext)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.core.exceptions import (  # noqa
@@ -169,13 +170,15 @@ def issue_exam_ticket(request):
 
 # {{{ batch-issue tickets
 
-INITIAL_EXAM_TICKET_TEMPLATE = _("""\
-# List
+INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
+# """, _("List"), """
 
 <table class="table">
   <thead>
     <tr>
-      <th>User</th> <th>Name</th><th>Code</th>
+      <th>""", _("User"), "</th><th>", 
+pgettext("real name of a user", "Name"), "</th><th>", 
+pgettext("ticket code required to login exam", "Code"), """</th>
     </tr>
   </thead>
 
@@ -198,33 +201,35 @@ INITIAL_EXAM_TICKET_TEMPLATE = _("""\
 ----------------
 
 {% for ticket in tickets %}
-<h2 style="page-break-before: always">
-  Instructions for
-  {{ ticket.exam.description }}
+<h2 style="page-break-before: always">""",
+  _("Instructions for "
+  "{{ ticket.exam.description }}"),"""
 </h2>
 
-These are personalized instructions for
-{{ ticket.participation.user.last_name }},
-{{ ticket.participation.user.first_name }}.
+""", _("These are personalized instructions for "
+"{{ ticket.participation.user.last_name }}, "
+"{{ ticket.participation.user.first_name }}."), """
 
-If this is not you, please let the proctor know so that you can get the
-correct set of instructions.
+""", _("If this is not you, please let the proctor know "
+"so that you can get the correct set of instructions."), """
 
-Please sit down at your workstation and open a browser at this location:
+""", _("Please sit down at your workstation and open a "
+"browser at this location:"), """
 
-Exam URL: **`{{ checkin_uri }}`**
+""", _("Exam URL"), """: **`{{ checkin_uri }}`**
 
-You should see boxes prompting for your user name and a one-time check-in code.
+""", _("You should see boxes prompting for your user "
+"name and a one-time check-in code."), """
 
-Enter the following information:
+""", _("Enter the following information"), ":", """
 
-User name: **`{{ ticket.participation.user.username }}`**
+""", _("User name"), """: **`{{ ticket.participation.user.username }}`**
 
-Code: **`{{ ticket.code }}`**
+""", pgettext("ticket code required to login exam", "Code"), """: **`{{ ticket.code }}`**
 
-You have one hour to complete the exam.
+""", _("You have one hour to complete the exam."), """
 
-**Good luck!**
+**""", _("Good luck!"), """**
 
 {% endfor %}
 <div style="clear:left; margin-bottom:3ex"></div>""")
