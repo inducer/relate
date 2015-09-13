@@ -477,7 +477,9 @@ def instantiate_flow_page_with_ctx(fctx, page_data):
 def course_view(f):
     def wrapper(request, course_identifier, *args, **kwargs):
         pctx = CoursePageContext(request, course_identifier)
-        return f(pctx, *args, **kwargs)
+        response = f(pctx, *args, **kwargs)
+        pctx.repo.close()
+        return response
 
     from functools import update_wrapper
     update_wrapper(wrapper, f)
