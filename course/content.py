@@ -862,6 +862,19 @@ def normalize_flow_desc(flow_desc):
         d["groups"] = [Struct({"id": "main", "pages": pages})]
         return Struct(d)
 
+    if hasattr(flow_desc, "rules"):
+        rules = flow_desc.rules
+        if not hasattr(rules, "grade_identifier"):
+            # Legacy content with grade_identifier in grading rule,
+            # move first found grade_identifier up to rules.
+
+            for grule in rules.grading:
+                if grule.grade_identifier is not None:
+                    rules.grade_identifier = grule.grade_identifier
+                    rules.grade_aggregation_strategy = \
+                            grule.grade_aggregation_strategy
+                    break
+
     return flow_desc
 
 

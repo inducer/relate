@@ -51,7 +51,6 @@ from course.constants import (
         flow_session_expiration_mode,
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         is_expiration_mode_allowed,
-        flow_rule_kind,
         grade_aggregation_strategy,
         GRADE_AGGREGATION_STRATEGY_CHOICES
         )
@@ -171,19 +170,17 @@ def start_flow(repo, course, participation, user, flow_id, flow_desc,
     # Create flow grading opportunity. This makes the flow
     # show up in the grade book.
 
-    from course.utils import get_flow_rules
-    from course.models import get_flow_grading_opportunity
-    for grading_rule in get_flow_rules(
-            flow_desc, flow_rule_kind.grading, participation,
-            flow_id, now_datetime, consider_exceptions=False):
-        identifier = getattr(grading_rule, "grade_identifier", None)
+    rules = getattr(flow_desc, "rules", None)
+    if rules is not None:
+        identifier = rules.grade_identifier
+
         if identifier is not None:
+            from course.models import get_flow_grading_opportunity
             get_flow_grading_opportunity(
                     course, flow_id, flow_desc,
                     FlowSessionGradingRule(
                         grade_identifier=identifier,
-                        grade_aggregation_strategy=getattr(
-                            grading_rule, "grade_aggregation_strategy"),
+                        grade_aggregation_strategy=rules.grade_aggregation_strategy,
                         ))
 
     # will implicitly modify and save the session if there are changes

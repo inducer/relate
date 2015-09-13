@@ -547,7 +547,6 @@ def validate_session_grading_rule(ctx, location, grule, tags):
     validate_struct(
             ctx, location, grule,
             required_attrs=[
-                ("grade_identifier", (type(None), str)),
                 ],
             allowed_attrs=[
                 ("if_has_role", list),
@@ -556,10 +555,31 @@ def validate_session_grading_rule(ctx, location, grule, tags):
 
                 ("credit_percent", (int, float)),
                 ("due", datespec_types),
-                ("grade_aggregation_strategy", str),
                 ("description", str),
+
+                # legacy
+                ("grade_identifier", (type(None), str)),
+                ("grade_aggregation_strategy", str),
                 ]
             )
+
+    if hasattr(grule, "grade_identifier"):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'grade_identifier' attribute found. "
+                        "This attribute is no longer allowed here "
+                        "and should be moved upward into the 'rules' "
+                        "block."))
+                % {"location": location})
+
+    if hasattr(grule, "grade_aggregation_strategy"):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'grade_aggregation_strategy' attribute found. "
+                        "This attribute is no longer allowed here "
+                        "and should be moved upward into the 'rules' "
+                        "block."))
+                % {"location": location})
 
     has_conditionals = False
 
@@ -586,27 +606,6 @@ def validate_session_grading_rule(ctx, location, grule, tags):
     if hasattr(grule, "due"):
         ctx.encounter_datespec(location, grule.due)
 
-    if grule.grade_identifier:
-        validate_identifier(ctx, "%s: grade_identifier" % location,
-                grule.grade_identifier)
-        if not hasattr(grule, "grade_aggregation_strategy"):
-            raise ValidationError(
-                    string_concat("%(location)s: ",
-                        _("grading rule that have a grade "
-                            "identifier (%(type)s: %(identifier)s) "
-                            "must have a grade_aggregation_strategy"))
-                    % {
-                        'location': location,
-                        'type': type(grule.grade_identifier),
-                        'identifier': grule.grade_identifier})
-        from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
-        if grule.grade_aggregation_strategy not in \
-                dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
-            raise ValidationError(
-                    string_concat("%s: ",
-                        _("invalid grade aggregation strategy"))
-                    % location)
-
     return has_conditionals
 
 
@@ -623,8 +622,20 @@ def validate_flow_rules(ctx, location, rules):
                 # may not start with an underscore
                 ("start", list),
                 ("tags", list),
+
+                ("grade_identifier", (type(None), str)),
+                ("grade_aggregation_strategy", str),
                 ]
             )
+
+    if not hasattr(rules, "grade_identifier"):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'rules' block does not have a grade_identifier "
+                        "attribute. This attribute needs to be moved out of "
+                        "the lower-level 'grading' rules block and into"
+                        "the 'rules' block itself."))
+                % {'location': location})
 
     tags = getattr(rules, "tags", [])
 
@@ -648,6 +659,35 @@ def validate_flow_rules(ctx, location, rules):
                 ctx,
                 location="%s, rules/access #%d"
                 % (location,  i+1), arule=arule, tags=tags)
+
+    # }}}
+
+    # {{{ grade_id
+
+    if rules.grade_identifier:
+        validate_identifier(ctx, "%s: grade_identifier" % location,
+                rules.grade_identifier)
+        if not hasattr(rules, "grade_aggregation_strategy"):
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("grading rule that have a grade "
+                            "identifier (%(type)s: %(identifier)s) "
+                            "must have a grade_aggregation_strategy"))
+                    % {
+                        'location': location,
+                        'type': type(rules.grade_identifier),
+                        'identifier': rules.grade_identifier})
+
+    from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
+    if (
+            hasattr(rules, "grade_aggregation_strategy")
+            and
+            rules.grade_aggregation_strategy not in
+            dict(GRADE_AGGREGATION_STRATEGY_CHOICES)):
+        raise ValidationError(
+                string_concat("%s: ",
+                    _("invalid grade aggregation strategy"))
+                % location)
 
     # }}}
 
@@ -881,9 +921,9 @@ def validate_course_content(repo, course_file, events_file,
         events_desc = get_yaml_from_repo(repo, events_file,
                 commit_sha=validate_sha, cached=False)
     except ObjectDoesNotExist:
-        if events_file != "events.yml":            
+        if events_file != "events.yml":
             vctx.add_warning(
-                    _("Events file"), 
+                    _("Events file"),
                     _("Your course repository does not have an events "
                         "file named '%s'.")
                     % events_file)
@@ -940,31 +980,21 @@ def validate_course_content(repo, course_file, events_file,
 
             # {{{ check grade_identifier
 
-            flow_grade_identifiers = set()
+            flow_grade_identifier = None
             if hasattr(flow_desc, "rules"):
-                for grule in flow_desc.rules.grading:
-                    if grule.grade_identifier is not None:
-                        flow_grade_identifiers.add(grule.grade_identifier)
+                flow_grade_identifier = getattr(
+                        flow_desc.rules, "grade_identifier", None)
 
-                if len(flow_grade_identifiers) > 1:
-                    vctx.add_warning(
-                            location,
-                            string_concat(_("flow uses more than one "
-                                          "grade_identifier"), ": %s")
-                            % ", ".join(flow_grade_identifiers))
-
-            if flow_grade_identifiers & used_grade_identifiers:
+            if set([flow_grade_identifier]) & used_grade_identifiers:
                 raise ValidationError(
-                        string_concat("%s: ", 
+                        string_concat("%s: ",
                                       _("flow uses the same grade_identifier "
-                                        "as another flow"),
-                                      ": %s")
-                        % (
-                            location,
-                            ", ".join(
-                                flow_grade_identifiers & used_grade_identifiers)))
+                                        "as another flow"))
+                        % location)
 
-            used_grade_identifiers.update(flow_grade_identifiers)
+            used_grade_identifiers.add(flow_grade_identifier)
+
+            # }}}
 
     return vctx.warnings
 

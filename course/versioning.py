@@ -103,11 +103,13 @@ def get_dulwich_client_and_remote_path_from_course(course):
     client, remote_path = get_transport_and_path(
             course.git_source.encode())
 
-    # Work around
-    # https://bugs.launchpad.net/dulwich/+bug/1025886
     try:
+        # Work around
+        # https://bugs.launchpad.net/dulwich/+bug/1025886
         client._fetch_capabilities.remove('thin-pack')
     except KeyError:
+        pass
+    except AttributeError:
         pass
 
     return client, remote_path

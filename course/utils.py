@@ -286,6 +286,8 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
 
 
 def get_session_grading_rule(session, role, flow_desc, now_datetime):
+    flow_desc_rules = getattr(flow_desc, "rules", None)
+
     from relate.utils import dict_to_struct
     rules = get_flow_rules(flow_desc, flow_rule_kind.grading,
             session.participation, session.flow_id, now_datetime,
@@ -314,10 +316,16 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
         if due is not None:
             assert due.tzinfo is not None
 
+        grade_identifier = None
+        grade_aggregation_strategy = None
+        if flow_desc_rules is not None:
+            grade_identifier = flow_desc_rules.grade_identifier
+            grade_aggregation_strategy = getattr(
+                    flow_desc_rules, "grade_aggregation_strategy", None)
+
         return FlowSessionGradingRule(
-                grade_identifier=getattr(rule, "grade_identifier", None),
-                grade_aggregation_strategy=getattr(
-                    rule, "grade_aggregation_strategy", None),
+                grade_identifier=grade_identifier,
+                grade_aggregation_strategy=grade_aggregation_strategy,
                 due=due,
                 description=getattr(rule, "description", None),
                 credit_percent=getattr(rule, "credit_percent", 100))

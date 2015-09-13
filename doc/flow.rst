@@ -17,6 +17,7 @@ example:
         # (Things behind '#' hash marks are comments.)
         # Allow students to start two attempts at the quiz before the deadline.
         # After that, only allow access to previously started quizzes.
+
         start:
         -
             if_before: 2015-03-06 23:59:00
@@ -32,6 +33,7 @@ example:
         # Allow students to submit quiz answers before the deadline.
         # After the deadline, the quiz becomes read-only. (The 'modify'
         # permission goes away.)
+
         access:
         -
             if_before: 2015-03-06 23:59:00
@@ -42,10 +44,9 @@ example:
 
         # Record grades under the machine-readable name 'test_quiz'.
         # If there is more than one grade, use the maximum.
-        grading:
-        -
-            grade_identifier: test_quiz
-            grade_aggregation_strategy: max_grade
+
+        grade_identifier: test_quiz
+        grade_aggregation_strategy: max_grade
 
     pages:
 
@@ -123,57 +124,61 @@ Here's a commented example:
 .. code-block:: yaml
 
     rules:
-      start:
         # Rules that govern when a new session may be started and whether
         # existing sessions may be listed.
 
+        start:
         -
-          # Members of the listed roles may start a new session of this
-          # flow if they have fewer than 2 existing sessions if the current
-          # time is before the event 'end_week 1'.
+            # Members of the listed roles may start a new session of this
+            # flow if they have fewer than 2 existing sessions if the current
+            # time is before the event 'end_week 1'.
 
-          if_before: end_week 1
-          if_has_role: [student, ta, instructor]
-          if_has_fewer_sessions_than: 2
-          may_start_new_session: True
-          may_list_existing_sessions: True
+            if_before: end_week 1
+            if_has_role: [student, ta, instructor]
+            if_has_fewer_sessions_than: 2
+            may_start_new_session: True
+            may_list_existing_sessions: True
 
         -
-          # Otherwise, no new sessions will be allowed,
-          # but existing ones may be listed.
+            # Otherwise, no new sessions will be allowed,
+            # but existing ones may be listed.
 
-          may_start_new_session: False
-          may_list_existing_sessions: True
+            may_start_new_session: False
+            may_list_existing_sessions: True
 
-      access:
         # Rules that govern what a user may do with an existing session.
-         -
-           # Before the event 'end_week 2', a user may view, submit answers
-           # to the flow, and see the grade they received for their answers.
+        access:
+        -
+             # Before the event 'end_week 2', a user may view, submit answers
+             # to the flow, and see the grade they received for their answers.
 
-           if_before: end_week 2
-           permissions: [view, modify, see_correctness]
+             if_before: end_week 2
+             permissions: [view, modify, see_correctness]
 
-         -
-           # Afterwards, they will also be allowed to see the correct answer.
-           permissions: [view, modify, see_correctness, see_answer_after_submission]
+        -
+             # Afterwards, they will also be allowed to see the correct answer.
+             permissions: [view, modify, see_correctness, see_answer_after_submission]
 
-      grading:
         # Rules that govern how (permanent) grades are generated from the
         # results of a flow.
 
-        -
-          # If the user completes the flow before the event 'end_week 1', a
-          # grade with identifier 'la_quiz' is generated. Multiple such grades
-          # (if present) are aggregated by taking their maximum.
+        # Grades for this flow are recorded under grade identifier 'la_quiz'.
+        # Multiple such grades (if present) are aggregated by taking their maximum.
 
-          if_completed_before: end_week 1
-          grade_identifier: la_quiz
-          grade_aggregation_strategy: max_grade
+        grade_identifier: la_quiz
+        grade_aggregation_strategy: max_grade
+
+        grading:
+        -
+            # If the user completes the flow before the event 'end_week 1', they
+            # receive full credit.
+
+            if_completed_before: end_week 1
+            credit_percent: 100
 
         -
-          # Do not generate a grade otherwise
-          grade_identifier: null
+            # Otherwise, no credit is given.
+            credit_percent: 0
 
 .. class:: FlowRules
 
@@ -192,6 +197,19 @@ Here's a commented example:
 
         Rules are tested from top to bottom. The first rule
         whose conditions apply determines the access.
+
+    .. rubric:: Grading-Related
+
+    .. attribute:: grade_identifier
+
+        (Required) The identifier of the grade to be generated once the
+        participant completes the flow.  If ``null``, no grade is generated.
+
+    .. attribute:: grade_aggregation_strategy
+
+        (Mandatory if :attr:`grade_identifier` is not ``null``)
+
+        One of :class:`grade_aggregation_strategy`.
 
     .. attribute:: grading
 
@@ -363,17 +381,6 @@ Here's a commented example:
         this time.
 
     .. rubric:: Rules specified
-
-    .. attribute:: grade_identifier
-
-        (Required) The identifier of the grade to be generated once the
-        participant completes the flow.  If ``null``, no grade is generated.
-
-    .. attribute:: grade_aggregation_strategy
-
-        (Mandatory if :attr:`grade_identifier` is not ``null``)
-
-        One of :class:`grade_aggregation_strategy`.
 
     .. attribute:: credit_percent
 
