@@ -1039,6 +1039,9 @@ class FileSystemFakeRepo(object):
     def __str__(self):
         return "<FAKEREPO:%s>" % self.root
 
+    def decode(self):
+        return self
+
     @property
     def tree(self):
         return FileSystemFakeRepoTree(self.root)

@@ -117,13 +117,21 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     :arg commit_sha: A byte string containing the commit hash
     """
 
-    from six.moves.urllib.parse import quote_plus
-    cache_key = "%%%1".join((
-        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode()))
+    if isinstance(commit_sha, six.binary_type):
+        from six.moves.urllib.parse import quote_plus
+        cache_key = "%%%1".join((
+            quote_plus(repo.controldir()),
+            quote_plus(full_name),
+            commit_sha.decode()))
+    else:
+        cache_key = None
 
     try:
         import django.core.cache as cache
     except ImproperlyConfigured:
+        cache_key = None
+
+    if cache_key is None:
         return get_repo_blob(repo, full_name, commit_sha).data
 
     def_cache = cache.caches["default"]
