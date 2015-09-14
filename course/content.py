@@ -463,7 +463,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         if tag_name == "table":
             changed_attrs["class"] = "table table-condensed"
 
-        if tag_name == "a" and "href" in attrs:
+        if tag_name in ["a", "link"] and "href" in attrs:
             new_href = self.process_url(attrs["href"])
 
             if new_href is not None:
