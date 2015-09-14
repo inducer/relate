@@ -205,17 +205,6 @@ Here's a commented example:
         (Required) The identifier of the grade to be generated once the
         participant completes the flow.  If ``null``, no grade is generated.
 
-        If you would like to specify ``null``, i.e. 'no grade', you will find
-        that you are still required to have a :attr:`grading` block or that the
-        validation may complain about :attr:`FlowGradingRules.generates_grade`
-        still being ``true``. In this instance, use the following snippet to
-        entirely disable recording of grades for this flow::
-
-            grade_identifier: null
-
-            grading:
-            -   generates_grade: false
-
     .. attribute:: grade_aggregation_strategy
 
         (Required if :attr:`grade_identifier` is not ``null``)
@@ -224,7 +213,8 @@ Here's a commented example:
 
     .. attribute:: grading
 
-        (Required) A list of :class:`FlowGradingRules`
+        (Required if grade_identifier is not ``null``)
+        A list of :class:`FlowGradingRules`
 
         Rules are tested from top to bottom. The first rule
         whose conditions apply determines the access.

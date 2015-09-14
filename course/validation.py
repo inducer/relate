@@ -626,11 +626,11 @@ def validate_flow_rules(ctx, location, rules):
             rules,
             required_attrs=[
                 ("access", list),
-                ("grading", list),
                 ],
             allowed_attrs=[
                 # may not start with an underscore
                 ("start", list),
+                ("grading", list),
                 ("tags", list),
 
                 ("grade_identifier", (type(None), str)),
@@ -703,30 +703,39 @@ def validate_flow_rules(ctx, location, rules):
 
     # {{{ validate grading rules
 
-    has_conditionals = None
+    if not hasattr(rules, "grading"):
+        if rules.grade_identifier is not None:
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("'grading' block is required if grade_identifier "
+                            "is not null/None.")
+                        % {'location': location}))
 
-    if len(rules.grading) == 0:
-        raise ValidationError(
-                string_concat(
-                    "%s, ",
-                    _("rules/grading: "
-                        "may not be an empty list"))
-                % location)
+    else:
+        has_conditionals = None
 
-    for i, grule in enumerate(rules.grading):
-        has_conditionals = validate_session_grading_rule(
-                ctx,
-                location="%s, rules/grading #%d"
-                % (location,  i+1), grule=grule, tags=tags,
-                grade_identifier=rules.grade_identifier)
+        if len(rules.grading) == 0:
+            raise ValidationError(
+                    string_concat(
+                        "%s, ",
+                        _("rules/grading: "
+                            "may not be an empty list"))
+                    % location)
 
-    if has_conditionals:
-        raise ValidationError(
-                string_concat(
-                    "%s, ",
-                    _("rules/grading: "
-                        "last grading rule must be unconditional"))
-                % location)
+        for i, grule in enumerate(rules.grading):
+            has_conditionals = validate_session_grading_rule(
+                    ctx,
+                    location="%s, rules/grading #%d"
+                    % (location,  i+1), grule=grule, tags=tags,
+                    grade_identifier=rules.grade_identifier)
+
+        if has_conditionals:
+            raise ValidationError(
+                    string_concat(
+                        "%s, ",
+                        _("rules/grading: "
+                            "last grading rule must be unconditional"))
+                    % location)
 
     # }}}
 
