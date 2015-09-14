@@ -3,8 +3,41 @@ Flows
 
 .. currentmodule:: course.constants
 
-All interactive content in RELATE is part of a *flow*. Here is a complete
-example:
+All interactive content in RELATE is part of a *flow*. Relate uses the made-up
+word "flow" to denote an interactive experience that can be any of the
+following:
+
+* A quiz
+* A few pages of introductory text, combined with some videos
+* An exam
+* A long-form homework assignment
+
+And possibly many more different things. Technically, a flow consists of
+multiple webpages, each of which may allow the participant some type of
+interaction, such as submitting answers to questions. All interactions of the
+participant with a flow constitute a session. A participant may have multiple
+sessions per flow, corresponding to, for example, being able to take the same
+quiz multiple times.
+
+This chapter describes how flows are defined from the instructor's perspective.
+This consists of two main parts. The first part is defining the interactions
+themselves, by providing content for the flow pages. The second consists of
+describing what participants are allowed to do, and what grades they are to
+receive for their interactions. The system allows tremendous latitude in
+defining these rules.
+
+Things that can be decided by flow rules include the following:
+
+* Is student allowed only one or multiple sessions?
+* Is the student allowed to review past sessions?
+* What are the deadlines involved and how much credit is received for completing a flow?
+* Is a participant shown the correct answer and/or the correctness of their
+  answer? When are they shown this information? (Right after they submit their
+  answer or only after the deadline passes or perhaps right after they have
+  submitted their work for grading?)
+
+An Example
+----------
 
 .. code-block:: yaml
 
@@ -80,8 +113,10 @@ example:
 
         Thanks for completing the quiz.
 
-When described in YAML,
-a flow has the following components:
+Overall Structure of a Flow
+---------------------------
+
+When described in YAML, a flow has the following components:
 
 .. class:: Flow
 
@@ -118,6 +153,9 @@ a flow has the following components:
 
 Flow rules
 ----------
+
+An Example
+^^^^^^^^^^
 
 Here's a commented example:
 
@@ -180,11 +218,17 @@ Here's a commented example:
             # Otherwise, no credit is given.
             credit_percent: 0
 
+Overall structure
+^^^^^^^^^^^^^^^^^
+
 .. class:: FlowRules
 
     Found in the ``rules`` attribute of a flow.
 
     .. attribute:: start
+
+        Rules that govern when a new session may be started and whether
+        existing sessions may be listed.
 
         A list of :class:`FlowStartRules`
 
@@ -192,6 +236,9 @@ Here's a commented example:
         whose conditions apply determines the access.
 
     .. attribute:: access
+
+        Rules that govern what a user may do while they are interacting with an
+        existing session.
 
         A list of :class:`FlowAccessRules`.
 
@@ -213,12 +260,18 @@ Here's a commented example:
 
     .. attribute:: grading
 
+        Rules that govern how (permanent) overall grades are generated from the
+        results of a flow. These rules apply once a flow session ends/is submitted
+        for grading. See :ref:`flow-life-cycle`.
+
         (Required if grade_identifier is not ``null``)
         A list of :class:`FlowGradingRules`
 
         Rules are tested from top to bottom. The first rule
         whose conditions apply determines the access.
 
+Rules for starting new sessions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: FlowStartRules
 
@@ -288,6 +341,8 @@ Here's a commented example:
         This can be used by :attr:`FlowAccessRules.if_has_tag` and
         :attr:`FlowGradingRules.if_has_tag`.
 
+Rules about accessing and interacting with a flow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. class:: FlowAccessRules
 
@@ -359,6 +414,16 @@ Here's a commented example:
         (Optional) Some text in :ref:`markup` that is shown to the student in an 'alert'
         box at the top of the page if this rule applies.
 
+.. _flow-permissions:
+
+Access permission bits
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: flow_permission
+
+Determining how final (overall) grades of flows are computed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. class:: FlowGradingRules
 
     Rules that govern how (permanent) grades are generated from the
@@ -417,10 +482,15 @@ Here's a commented example:
 
 .. autoclass:: grade_aggregation_strategy
 
+.. _flow-page:
+
+Flow pages
+----------
+
 .. _flow-groups:
 
-Page groups
------------
+Grouping
+^^^^^^^^
 
 Each flow consists of a number of page groups, each of which is made up of
 individual :ref:`flow-page`.
@@ -462,34 +532,39 @@ Each group allows the following attributes:
         to a certain value. Allows selection of a random subset by combining
         with :attr:`FlowGroup.shuffle`.
 
-.. _flow-permissions:
-
-Permissions
------------
-
-RELATE currently supports the following permissions:
-
-.. autoclass:: flow_permission
-
-The ``modify`` permission is automatically removed from
-a finished session.
-
 .. _page-permissions:
 
 Per-page permissions
 ^^^^^^^^^^^^^^^^^^^^
 
-.. _flow-life-cycle:
+The granted access permissions for the entire flow (see
+:class:`FlowAccessRules`) can be modified on a per-page basis.  This happens in
+the ``access_rules`` sub-block of each page,
+e.g. in :attr:`course.page.ChoiceQuestion.access_rules`:
 
-Life cycle
-----------
+.. class:: PageAccessRules
 
-.. autoclass:: flow_session_expiration_mode
+    .. attribute:: add_permissions
 
-.. _flow-page:
+        A list of :class:`flow_permission` values that are granted *in addition* to
+        the globally granted ones.
 
-Flow pages
-----------
+    .. attribute:: remove_permissions
+        A list of :class:`flow_permission` values that are not granted for this page
+        even if they are granted by the global flow permissions.
+
+For example, to grant permission to revise an answer on a
+:class:`course.page.PythonCodeQuestion`, one might type::
+
+    type: PythonCodeQuestion
+    id: addition
+    access_rules:
+        add_permissions:
+            - change_answer
+    value: 1
+
+Predefined Page Types
+---------------------
 
 .. currentmodule:: course.page
 
@@ -535,16 +610,49 @@ The following page types are predefined:
     One of ``text_input`` (default), ``textarea``, ``editor:yaml``,
     ``editor:markdown``.
 
+Show a Page of Text/HTML (Ungraded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: Page()
+
+Fill-in-the-Blank (Automatically Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: TextQuestion()
+
+Free-Answer Survey (Ungraded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: SurveyTextQuestion()
+
+Fill-in-the-Blank (long-/short-form) (Human-graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: HumanGradedTextQuestion()
+
+Fill-in-Multiple-Blanks (Automatically Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: InlineMultiQuestion()
+
+One-out-of-Many Choice (Automaically Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: ChoiceQuestion()
+
+Many-out-of-Many Choice (Automaically Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: MultipleChoiceQuestion()
+
+One-out-of-Many Survey (Ungrade)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: SurveyChoiceQuestion()
+
+Write Python Code (Automatically Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: PythonCodeQuestion()
+
+Write Python Code (Automatically and Human-Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: PythonCodeQuestionWithHumanTextFeedback()
+
+Upload a File (Human-Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. autoclass:: FileUploadQuestion()
 
 Definining your own page types
@@ -560,3 +668,12 @@ Definining your own page types
 .. autoclass:: PageBaseWithTitle
 .. autoclass:: PageBaseWithHumanTextFeedback
 .. autoclass:: PageBaseWithCorrectAnswer
+
+.. _flow-life-cycle:
+
+Life cycle
+----------
+
+*  Pre-
+
+.. autoclass:: flow_session_expiration_mode
