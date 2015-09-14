@@ -127,7 +127,12 @@ class DulwichParamikoSSHVendor(object):
             sys.stderr.write(s.decode("utf-8"))
             sys.stderr.flush()
 
-        from dulwich.client import ParamikoWrapper
+        try:
+            from dulwich.client import ParamikoWrapper
+        except ImportError:
+            from dulwich.contrib.paramiko_vendor import (
+                    _ParamikoWrapper as ParamikoWrapper)
+
         return ParamikoWrapper(
             client, channel, progress_stderr=progress_stderr)
 
