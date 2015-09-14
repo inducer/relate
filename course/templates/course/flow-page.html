@@ -32,12 +32,21 @@
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
             role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
-        {% else %}
-          <button type="submit" name="finish" class="btn btn-default relate-nav-button">{% trans "End session" %} &raquo; </button>
         {% endif %}
       </div>
       <div style="float:right">
-        <button type="submit" name="finish" class="btn btn-default relate-nav-button">{% trans "End session" %}</button>
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button">
+          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
+            {% trans "Go to end" %}
+          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
+            {% trans "Submit" %}
+          {% elif interaction_kind == flow_session_interaction_kind.graded %}
+            {% trans "Submit for grading" %}
+          {% else %}
+            {% trans "Finish" %}
+          {% endif %}
+          &raquo;
+        </button>
       </div>
       {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
         <div class="flow-session-expiration-panel">

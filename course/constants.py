@@ -90,6 +90,12 @@ PARTICIPATION_STATUS_CHOICES = (
         )
 
 
+class flow_session_interaction_kind:  # noqa
+    noninteractive = "noninteractive"
+    ungraded = "ungraded"
+    graded = "graded"
+
+
 class flow_session_expiration_mode:  # noqa
     """
     .. attribute:: end
@@ -113,10 +119,10 @@ class flow_session_expiration_mode:  # noqa
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
         (flow_session_expiration_mode.end,
-            pgettext_lazy("Flow expiration mode", "End session and grade")),
+            pgettext_lazy("Flow expiration mode", "Submit session for grading")),
         (flow_session_expiration_mode.roll_over,
             pgettext_lazy("Flow expiration mode",
-                "Keep session and apply new rules")),
+                "Do not submit session for grading")),
         )
 
 

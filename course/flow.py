@@ -52,7 +52,8 @@ from course.constants import (
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         is_expiration_mode_allowed,
         grade_aggregation_strategy,
-        GRADE_AGGREGATION_STRATEGY_CHOICES
+        GRADE_AGGREGATION_STRATEGY_CHOICES,
+        flow_session_interaction_kind
         )
 from course.models import (
         FlowSession, FlowPageData, FlowPageVisit,
@@ -237,6 +238,28 @@ def assemble_answer_visits(flow_session):
             assert page_visit.is_submitted_answer is True
 
     return answer_visits
+
+
+def get_interaction_kind(fctx, flow_session):
+    all_page_data = (FlowPageData.objects
+            .filter(
+                flow_session=flow_session,
+                ordinal__isnull=False)
+            .order_by("ordinal"))
+
+    ikind = flow_session_interaction_kind.noninteractive
+
+    for i, page_data in enumerate(all_page_data):
+        assert i == page_data.ordinal
+
+        page = instantiate_flow_page_with_ctx(fctx, page_data)
+        if page.expects_answer():
+            if page.is_answer_gradable():
+                return flow_session_interaction_kind.graded
+            else:
+                ikind = flow_session_interaction_kind.ungraded
+
+    return ikind
 
 
 def count_answered_gradable(fctx, flow_session, answer_visits):
@@ -1358,6 +1381,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "expiration_mode_choices": expiration_mode_choices,
         "expiration_mode_choice_count": len(expiration_mode_choices),
         "expiration_mode": flow_session.expiration_mode,
+
+        "flow_session_interaction_kind": flow_session_interaction_kind,
+        "interaction_kind": get_interaction_kind(fpctx, flow_session),
     }
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
