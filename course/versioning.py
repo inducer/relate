@@ -60,6 +60,40 @@ class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
         return
 
 
+# {{{ shell quoting
+
+# Adapted from
+# https://github.com/python/cpython/blob/8cd133c63f156451eb3388b9308734f699f4f1af/Lib/shlex.py#L278
+
+def is_shell_safe(s):
+    import re
+    import sys
+
+    flags = 0
+    if sys.version_info >= (3,):
+        flags = re.ASCII
+
+    unsafe_re = re.compile(br'[^\w@%+=:,./-]', flags)
+
+    return unsafe_re.search(s) is None
+
+
+def shell_quote(s):
+    """Return a shell-escaped version of the byte string *s*."""
+
+    # Unconditionally quotes because that's apparently git's behavior, too,
+    # and some code hosting sites (notably Bitbucket) appear to rely on that.
+
+    if not s:
+        return b"''"
+
+    # use single quotes, and put single quotes into double quotes
+    # the string $'b is then quoted as '$'"'"'b'
+    return b"'" + s.replace(b"'", b"'\"'\"'") + b"'"
+
+# }}}
+
+
 class DulwichParamikoSSHVendor(object):
     def __init__(self, ssh_kwargs):
         self.ssh_kwargs = ssh_kwargs
@@ -78,14 +112,13 @@ class DulwichParamikoSSHVendor(object):
         channel = client.get_transport().open_session()
 
         assert command
-        assert b' ' not in command[0]
+        assert is_shell_safe(command[0])
 
         command = (
                 command[0]
                 + b' '
                 + b' '.join(
-                    b"'" + c.replace(b"'", b"\\'") + b"'"
-                    for c in command[1:]))
+                    shell_quote(c) for c in command[1:]))
 
         channel.exec_command(command)
 
