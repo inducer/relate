@@ -295,9 +295,7 @@ def count_answered(fctx, flow_session, answer_visits, force_gradeable=True):
     return (answered_count, unanswered_count)
 
 
-def count_answered_gradable(fctx, flow_session, answer_visits,
-                           force_gradeable=True):
-
+def count_answered_gradable(fctx, flow_session, answer_visits):
     return count_answered(fctx, flow_session, answer_visits,
                            force_gradeable=True)
 
