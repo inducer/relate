@@ -78,19 +78,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
         + RELATE_EXTRA_CONTEXT_PROCESSORS
         )
 
-# {{{ celery config
-
-BROKER_URL = 'django://'
-
-CELERY_ACCEPT_CONTENT = ['pickle']
-CELERY_TASK_SERIALIZER = 'pickle'
-CELERY_RESULT_SERIALIZER = 'pickle'
-CELERY_TRACK_STARTED = True
-
-CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
-
-# }}}
-
 # {{{ bower packages
 
 BOWER_COMPONENTS_ROOT = os.path.join(BASE_DIR, "components")
@@ -174,6 +161,33 @@ RELATE_CACHE_MAX_BYTES = 32768
 for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
+
+# {{{ celery config
+
+BROKER_URL = 'django://'
+
+CELERY_ACCEPT_CONTENT = ['pickle']
+CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_TRACK_STARTED = True
+
+if "CELERY_RESULT_BACKEND" not in globals():
+    if ("CACHES" in globals()
+            and "LocMem" not in CACHES["default"]["BACKEND"]  # noqa
+            and "Dummy" not in CACHES["default"]["BACKEND"]  # noqa
+            ):
+        # If possible, we would like to use an external cache as a
+        # result backend--because then the progress bars work, because
+        # the writes realizing them arent't stuck inside of an ongoing
+        # transaction. But if we're using the in-memory cache, using
+        # cache as a results backend doesn't make much sense.
+
+        CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
+
+    else:
+        CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
+
+# }}}
 
 TEMPLATES = [
     {

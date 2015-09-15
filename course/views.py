@@ -1038,11 +1038,16 @@ def monitor_task(request, task_id):
         current = meta["current"]
         total = meta["total"]
         if total > 0:
-            progress_percent = current / total
+            progress_percent = 100 * (current / total)
 
         progress_statement = (
                 _("%d out of %d items processed.")
                 % (current, total))
+
+    if async_res.state == "SUCCESS":
+        if (isinstance(async_res.result, dict)
+                and "message" in async_res.result):
+            progress_statement = async_res.result["message"]
 
     traceback = None
     if request.user.is_staff and async_res.state == "FAILURE":

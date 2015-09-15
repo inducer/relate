@@ -58,7 +58,7 @@
       {% if role == pr.instructor %}
         <li><a href="{% url "relate-import_grades" course.identifier %}">{% trans "Import Grades" %}</a></li>
       {% endif %}
-      <li><a href="{% url "relate-regrade_not_for_credit_flows_view" course.identifier %}">{% trans "Regrade not-for-credit flow" %}</a></li>
+      <li><a href="{% url "relate-regrade_flows_view" course.identifier %}">{% trans "Regrade flows" %}</a></li>
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>

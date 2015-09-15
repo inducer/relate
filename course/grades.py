@@ -427,7 +427,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                 from course.tasks import (
                         expire_in_progress_sessions,
                         finish_in_progress_sessions,
-                        regrade_ended_sessions,
+                        regrade_flow_sessions,
                         recalculate_ended_sessions)
 
                 if op == "expire":
@@ -447,9 +447,9 @@ def view_grades_by_opportunity(pctx, opp_id):
                     return redirect("relate-monitor_task", async_res.id)
 
                 elif op == "regrade":
-                    async_res = regrade_ended_sessions.delay(
+                    async_res = regrade_flow_sessions.delay(
                             pctx.course.id, opportunity.flow_id,
-                            rule_tag)
+                            rule_tag, inprog_value=False)
 
                     return redirect("relate-monitor_task", async_res.id)
 

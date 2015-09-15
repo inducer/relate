@@ -27,6 +27,7 @@ THE SOFTWARE.
 from celery import shared_task
 
 from django.db import transaction
+from django.utils.translation import ugettext as _
 
 from course.models import (Course, FlowSession)
 from course.content import get_course_repo
@@ -64,6 +65,8 @@ def expire_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
 
     repo.close()
 
+    return {"message": _("%d sessions expired.") % count}
+
 
 @shared_task(bind=True)
 @transaction.atomic
@@ -96,37 +99,7 @@ def finish_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
 
     repo.close()
 
-    return count
-
-
-@shared_task(bind=True)
-@transaction.atomic
-def regrade_ended_sessions(self, course_id, flow_id, rule_tag):
-    course = Course.objects.get(id=course_id)
-    repo = get_course_repo(course)
-
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=False,
-                ))
-
-    nsessions = sessions.count()
-    count = 0
-
-    from course.flow import regrade_session
-    for session in sessions:
-        regrade_session(repo, course, session)
-        count += 1
-
-        self.update_state(
-                state='PROGRESS',
-                meta={'current': count, 'total': nsessions})
-
-    repo.close()
+    return {"message": _("%d sessions ended.") % count}
 
 
 @shared_task(bind=True)
@@ -158,6 +131,8 @@ def recalculate_ended_sessions(self, course_id, flow_id, rule_tag):
 
     repo.close()
 
+    return {"message": _("Grades recalculated for %d sessions.") % count}
+
 
 @shared_task(bind=True)
 @transaction.atomic
@@ -168,6 +143,7 @@ def regrade_flow_sessions(self, course_id, flow_id, access_rules_tag, inprog_val
     sessions = (FlowSession.objects
             .filter(
                 course=course,
+                participation__isnull=False,
                 flow_id=flow_id))
 
     if access_rules_tag is not None:
@@ -189,6 +165,8 @@ def regrade_flow_sessions(self, course_id, flow_id, access_rules_tag, inprog_val
                 meta={'current': count, 'total': nsessions})
 
     repo.close()
+
+    return {"message": _("%d sessions regraded.") % count}
 
 
 # vim: foldmethod=marker

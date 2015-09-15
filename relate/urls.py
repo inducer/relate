@@ -337,10 +337,10 @@ urlpatterns = [
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +
-        "/regrade-not-for-credit-flows"
+        "/regrade-flows"
         "/$",
-        course.flow.regrade_not_for_credit_flows_view,
-        name="relate-regrade_not_for_credit_flows_view"),
+        course.flow.regrade_flows_view,
+        name="relate-regrade_flows_view"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +

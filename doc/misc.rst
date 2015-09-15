@@ -53,6 +53,12 @@ those long-running tasks. Start a worker by running::
 
     celery worker -A relate
 
+Note that, due to limitations of the demo configuration (i.e. due to not having
+out-of-process caches available), long-running tasks can only show
+"PENDING/STARTED/SUCCESS/FAILURE" as their progress, but no more detailed
+information. This will be better as soon as you provide actual caches (the "CACHES"
+option :file:`local_settings.py`).
+
 Additional setup steps for Docker
 ---------------------------------
 

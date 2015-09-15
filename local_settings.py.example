@@ -22,11 +22,15 @@ ALLOWED_HOSTS = [
 
 # Recommended, because dulwich is kind of slow in retrieving stuff.
 #
+# Also, progress bars for long-running operations will only work
+# properly if you enable this. (or a similar out-of-process cache
+# backend)
+#
 # CACHES = {
-#   'default': {
-#     'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-#     'LOCATION': '127.0.0.1:11211',
-#   }
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+#         'LOCATION': '127.0.0.1:11211',
+#     }
 # }
 
 # SECURITY WARNING: don't run with debug turned on in production!

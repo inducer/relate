@@ -1579,7 +1579,7 @@ class RegradeFlowForm(StyledForm):
 
 
 @course_view
-def regrade_not_for_credit_flows_view(pctx):
+def regrade_flows_view(pctx):
     if pctx.role != participation_role.instructor:
         raise PermissionDenied(_("must be instructor to regrade flows"))
 
