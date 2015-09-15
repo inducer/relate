@@ -41,7 +41,7 @@
           {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
             {% trans "Submit" %}
           {% elif interaction_kind == flow_session_interaction_kind.graded %}
-            {% trans "Submit for grading" %}
+            {% trans "Submit session for grading" %}
           {% else %}
             {% trans "Finish" %}
           {% endif %}
@@ -293,6 +293,62 @@
 
   {# }}} #}
 
+  {# {{{ blinking end session button #}
+
+  <script type="text/javascript">
+      $(function ()
+        {          
+          blink($(".blink"), -1, 300);
+      });
+        
+    function blink(elem, times, speed)
+      {
+          if (times > 0 || times < 0) {
+              if ($(elem).hasClass("btn-primary"))
+              {
+                  $(elem).removeClass("btn-primary");
+                  $(elem).addClass("btn-info");
+              }
+              else
+              {
+                  $(elem).removeClass("btn-info");
+                  $(elem).addClass("btn-primary");
+              }
+          }
+          
+          clearTimeout(function () {
+              blink(elem, times, speed);
+          });
+
+          if (times > 0 || times < 0) {
+              setTimeout(function () {
+                  blink(elem, times, speed);
+              }, speed);
+              times -= .5;
+          }
+      }
+
+  </script>
+
+  {# }}} #}
+
+  {# {{{ show tooltip on flow-session-expiration-panel #}
+
+  <script type="text/javascript">
+      $(function () {
+          $('[data-toggle="tooltip"]')
+              .tooltip({
+                    html: true,
+                    placement: "top"})
+              .on("shown.bs.tooltip", function () {
+          $('.tooltip-inner > p').css("text-align", "left")
+        });
+      })
+  </script>
+
+  {# }}} #}
+
+        
 {% endblock %}
 
 {# vim: set foldmethod=marker: #}
