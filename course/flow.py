@@ -262,7 +262,7 @@ def get_interaction_kind(fctx, flow_session):
     return ikind
 
 
-def count_answered_gradable(fctx, flow_session, answer_visits):
+def count_answered(fctx, flow_session, answer_visits, force_gradeable=True):
     all_page_data = (FlowPageData.objects
             .filter(
                 flow_session=flow_session,
@@ -280,13 +280,24 @@ def count_answered_gradable(fctx, flow_session, answer_visits):
             answer_data = None
 
         page = instantiate_flow_page_with_ctx(fctx, page_data)
-        if page.expects_answer() and page.is_answer_gradable():
-            if answer_data is None:
-                unanswered_count += 1
-            else:
-                answered_count += 1
+        if page.expects_answer():
+            if force_gradeable and page.is_answer_gradable():
+                if answer_data is None:
+                    unanswered_count += 1
+                else:
+                    answered_count += 1
+            elif not force_gradeable:
+                if answer_data is None:
+                    unanswered_count += 1
+                else:
+                    answered_count += 1
 
     return (answered_count, unanswered_count)
+
+
+def count_answered_gradable(fctx, flow_session, answer_visits):
+    return count_answered(fctx, flow_session, answer_visits,
+                           force_gradeable=True)
 
 
 class GradeInfo(object):
@@ -982,6 +993,14 @@ def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
+
+    # count unanswered questions
+    fctx = FlowContext(fpctx.repo, fpctx.course, flow_session.flow_id,
+            participation=flow_session.participation,
+            flow_session=flow_session)
+    answer_visits = assemble_answer_visits(flow_session)
+    (answered_count, unanswered_count) = count_answered(
+            fpctx, flow_session, answer_visits, force_gradeable=False)
     from crispy_forms.layout import Submit
     form.helper.add_input(
             Submit("save", _("Save answer"),
@@ -1015,6 +1034,11 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
                                 _("Save answer and finish"),
                                 " &raquo;")),
                         css_class="relate-save-button"))
+
+    if unanswered_count == 0:
+        form.helper.add_input(
+                Submit("finish", _("Submit session for grading"),
+                    css_class="relate-save-button blink"))
 
     return form
 
