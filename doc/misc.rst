@@ -127,6 +127,45 @@ language.
 For more instructions, please refer to `Localization: how to create
 language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
 
+Deployment
+----------
+
+Starting the Celery workers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use a variant of this as :file:`/etc/systemd/system/relate-celery.service`:
+
+    [Unit]
+    Description=Celery workers
+    After=network.target
+
+    [Service]
+    Type=forking
+    User=www-data
+    Group=www-data
+
+    WorkingDirectory=/home/andreas/relate
+
+    ExecStart=/home/andreas/my-relate-env/bin/celery multi start worker \
+        -A relate --pidfile=/var/run/celery/celery.pid \
+        --logfile=/var/log/celery/celery.log --loglevel="INFO"
+    ExecStop=/home/andreas/my-relate-env/bin/celery multi stopwait worker \
+        --pidfile=/var/run/celery/celery.pid
+
+    [Install]
+    WantedBy=multi-user.target
+
+Create the directories :file:`/var/run/celery` and :file:`/var/log/celery` and
+give ownership to ``www-data``::
+
+    # mkdir /var/{run,log}/celery
+    # chown www-data.www-data /var/{run,log}/celery
+
+Then run::
+
+    # systemctl daemon-reload
+    # systemctl start relate-celery.service
+    # systemctl status relate-celery.service
 
 Tips
 ====
