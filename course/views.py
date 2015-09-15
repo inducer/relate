@@ -1024,4 +1024,38 @@ def generate_ssh_keypair(request):
 # }}}
 
 
+# {{{ celery task monitoring
+
+def monitor_task(request, task_id):
+    from celery.result import AsyncResult
+    async_res = AsyncResult(task_id)
+
+    progress_percent = None
+    progress_statement = None
+
+    if async_res.state == "PROGRESS":
+        meta = async_res.info
+        current = meta["current"]
+        total = meta["total"]
+        if total > 0:
+            progress_percent = current / total
+
+        progress_statement = (
+                _("%d out of %d items processed.")
+                % (current, total))
+
+    traceback = None
+    if request.user.is_staff and async_res.state == "FAILURE":
+        traceback = async_res.traceback
+
+    return render(request, "course/task-monitor.html", {
+        "state": async_res.state,
+        "progress_percent": progress_percent,
+        "progress_statement": progress_statement,
+        "traceback": traceback,
+        })
+
+# }}}
+
+
 # vim: foldmethod=marker

@@ -47,6 +47,12 @@ Open a browser to http://localhost:8000, sign in (your user name will be the
 same as your system user name, or whatever `whoami` returned above) and select
 "Set up new course".
 
+As you play with the web interface, you may notice that some long-running tasks
+just sit there: That is because RELATE relies on a task queue to process
+those long-running tasks. Start a worker by running::
+
+    celery worker -A relate
+
 Additional setup steps for Docker
 ---------------------------------
 

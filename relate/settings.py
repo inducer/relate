@@ -1,11 +1,7 @@
+from __future__ import absolute_import
+
 """
-Django settings for relate project.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/dev/topics/settings/
-
-For the full list of settings and their values, see
-https://docs.djangoproject.com/en/dev/ref/settings/
+Django settings for RELATE.
 """
 
 # Do not change this file. All these settings can be overridden in
@@ -43,6 +39,10 @@ INSTALLED_APPS = (
     "jsonfield",
     "bootstrap3_datetime",
     "djangobower",
+
+    # message queue
+    "djcelery",
+    "kombu.transport.django"
 )
 
 MIDDLEWARE_CLASSES = (
@@ -78,6 +78,18 @@ TEMPLATE_CONTEXT_PROCESSORS = (
         + RELATE_EXTRA_CONTEXT_PROCESSORS
         )
 
+# {{{ celery config
+
+BROKER_URL = 'django://'
+
+CELERY_ACCEPT_CONTENT = ['pickle']
+CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_TRACK_STARTED = True
+
+CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
+
+# }}}
 
 # {{{ bower packages
 

@@ -1578,18 +1578,6 @@ class RegradeFlowForm(StyledForm):
                 Submit("regrade", _("Regrade")))
 
 
-@transaction.atomic
-def _regrade_sessions(repo, course, sessions):
-    count = 0
-
-    from course.flow import regrade_session
-    for session in sessions:
-        regrade_session(repo, course, session)
-        count += 1
-
-    return count
-
-
 @course_view
 def regrade_not_for_credit_flows_view(pctx):
     if pctx.role != participation_role.instructor:
@@ -1602,28 +1590,20 @@ def regrade_not_for_credit_flows_view(pctx):
     if request.method == "POST":
         form = RegradeFlowForm(flow_ids, request.POST, request.FILES)
         if form.is_valid():
-            sessions = (FlowSession.objects
-                    .filter(
-                        course=pctx.course,
-                        flow_id=form.cleaned_data["flow_id"]))
-            if form.cleaned_data["access_rules_tag"]:
-                sessions = sessions.filter(
-                        access_rules_tag=form.cleaned_data["access_rules_tag"])
-
             inprog_value = {
                     "any": None,
                     "yes": True,
                     "no": False,
                     }[form.cleaned_data["regraded_session_in_progress"]]
 
-            if inprog_value is not None:
-                sessions = sessions.filter(
-                        in_progress=inprog_value)
+            from course.tasks import regrade_flow_sessions
+            async_res = regrade_flow_sessions.delay(
+                    pctx.course.id,
+                    form.cleaned_data["flow_id"],
+                    form.cleaned_data["access_rules_tag"],
+                    inprog_value)
 
-            count = _regrade_sessions(pctx.repo, pctx.course, sessions)
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("%d sessions regraded.") % count)
+            return redirect("relate-monitor_task", async_res.id)
     else:
         form = RegradeFlowForm(flow_ids)
 

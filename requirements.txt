@@ -63,3 +63,7 @@ ipaddress
 
 # For localized datetime format
 babel
+
+# A task queue, used to execute long-running tasks
+celery
+django-celery

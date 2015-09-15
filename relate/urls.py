@@ -78,6 +78,12 @@ urlpatterns = [
         course.views.generate_ssh_keypair,
         name="relate-generate_ssh_keypair"),
 
+    url(r"^monitor-task"
+        "/(?P<task_id>[-0-9a-f]+)"
+        "$",
+        course.views.monitor_task,
+        name="relate-monitor_task"),
+
     # {{{ troubleshooting
 
     url(r'^user/impersonate/$',

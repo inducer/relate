@@ -366,100 +366,6 @@ class ModifySessionsForm(StyledForm):
                 Submit("recalculate", _("Recalculate grades of ended sessions")))
 
 
-@transaction.atomic
-def expire_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
-        past_due_only, print_progress=False):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=True,
-                ))
-
-    count = 0
-
-    from course.flow import expire_flow_session_standalone
-
-    nsessions = sessions.count()
-
-    for session in sessions:
-        if expire_flow_session_standalone(repo, course, session, now_datetime,
-                past_due_only=past_due_only):
-            count += 1
-
-        if print_progress:
-            print("%d/%d" % (count, nsessions))
-
-    return count
-
-
-@transaction.atomic
-def finish_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
-        past_due_only):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=True,
-                ))
-
-    count = 0
-
-    from course.flow import finish_flow_session_standalone
-    for session in sessions:
-        if finish_flow_session_standalone(repo, course, session,
-                now_datetime=now_datetime, past_due_only=past_due_only):
-            count += 1
-
-    return count
-
-
-@transaction.atomic
-def regrade_ended_sessions(repo, course, flow_id, rule_tag):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=False,
-                ))
-
-    count = 0
-
-    from course.flow import regrade_session
-    for session in sessions:
-        regrade_session(repo, course, session)
-        count += 1
-
-    return count
-
-
-@transaction.atomic
-def recalculate_ended_sessions(repo, course, flow_id, rule_tag):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=False,
-                ))
-
-    count = 0
-
-    from course.flow import recalculate_session_grade
-    for session in sessions:
-        recalculate_session_grade(repo, course, session)
-        count += 1
-
-    return count
-
-
 RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 
@@ -517,54 +423,45 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                 if rule_tag == RULE_TAG_NONE_STRING:
                     rule_tag = None
-                try:
-                    if op == "expire":
-                        count = expire_in_progress_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag, now_datetime,
-                                past_due_only=past_due_only)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("%d session(s) expired.") % count)
+                from course.tasks import (
+                        expire_in_progress_sessions,
+                        finish_in_progress_sessions,
+                        regrade_ended_sessions,
+                        recalculate_ended_sessions)
 
-                    elif op == "end":
-                        count = finish_in_progress_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag, now_datetime,
-                                past_due_only=past_due_only)
+                if op == "expire":
+                    async_res = expire_in_progress_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag, now_datetime,
+                            past_due_only=past_due_only)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("%d session(s) ended.") % count)
+                    return redirect("relate-monitor_task", async_res.id)
 
-                    elif op == "regrade":
-                        count = regrade_ended_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag)
+                elif op == "end":
+                    async_res = finish_in_progress_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag, now_datetime,
+                            past_due_only=past_due_only)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("%d session(s) regraded.") % count)
+                    return redirect("relate-monitor_task", async_res.id)
 
-                    elif op == "recalculate":
-                        count = recalculate_ended_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag)
+                elif op == "regrade":
+                    async_res = regrade_ended_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("Grade recalculated for %d session(s).")
-                                % count)
+                    return redirect("relate-monitor_task", async_res.id)
 
-                    else:
-                        raise SuspiciousOperation("invalid operation")
-                except Exception as e:
-                    messages.add_message(pctx.request, messages.ERROR,
-                            string_concat(
-                                pgettext_lazy("Starting of Error message",
-                                    "Error"),
-                                ": %(err_type)s %(err_str)s")
-                            % {
-                                "err_type": type(e).__name__,
-                                "err_str": str(e)})
-                    raise
+                elif op == "recalculate":
+                    async_res = recalculate_ended_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag)
+
+                    return redirect("relate-monitor_task", async_res.id)
+
+                else:
+                    raise SuspiciousOperation("invalid operation")
 
         else:
             batch_session_ops_form = ModifySessionsForm(session_rule_tags)
