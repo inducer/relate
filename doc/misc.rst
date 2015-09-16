@@ -135,7 +135,7 @@ The following assumes you are using systemd on your deployment system.
 Configuring uwsgi
 ^^^^^^^^^^^^^^^^^
 
-The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`.
+The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`::
 
     [uwsgi]
     plugins = python
@@ -158,7 +158,7 @@ Configuring nginx
 ^^^^^^^^^^^^^^^^^
 
 Adapt the following snippet to serve as part of your `nginx
-<http://nginx.org>`_ configuration:
+<http://nginx.org>`_ configuration::
 
     server {
       listen *:80;
@@ -198,7 +198,7 @@ Adapt the following snippet to serve as part of your `nginx
 Starting the message queue workers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use a variant of this as :file:`/etc/systemd/system/relate-celery.service`:
+Use a variant of this as :file:`/etc/systemd/system/relate-celery.service`::
 
     [Unit]
     Description=Celery workers for RELATE
