@@ -738,16 +738,6 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         if remainder_html != "":
             self.html_list.append(remainder_html)
 
-        # make sure all [[ and ]] are paired.
-        embeded_removed = " ".join(self.html_list)
-
-        for sep in ["[[", "]]"]:
-            if sep in embeded_removed:
-                raise ValidationError(
-                    string_concat(
-                        _("have unpaired '%s'."))
-                    % (sep))
-
         self.answer_instance_list = []
 
         for idx, name in enumerate(self.embeded_name_list):
