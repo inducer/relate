@@ -33,6 +33,7 @@ import six
 
 from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
+from django.core.urlresolvers import NoReverseMatch
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -414,46 +415,52 @@ class LinkFixerTreeprocessor(Treeprocessor):
             return self.course.identifier
 
     def process_url(self, url):
-        if url.startswith("course:"):
-            course_id = url[7:]
-            if course_id:
-                return self.reverse_func("relate-course_page",
-                            args=(course_id,))
-            else:
-                return self.reverse_func("relate-course_page",
+        try:
+            if url.startswith("course:"):
+                course_id = url[7:]
+                if course_id:
+                    return self.reverse_func("relate-course_page",
+                                args=(course_id,))
+                else:
+                    return self.reverse_func("relate-course_page",
+                                args=(self.get_course_identifier(),))
+
+            elif url.startswith("flow:"):
+                flow_id = url[5:]
+                return self.reverse_func("relate-view_start_flow",
+                            args=(self.get_course_identifier(), flow_id))
+
+            elif url.startswith("media:"):
+                media_path = url[6:]
+                return self.reverse_func("relate-get_media",
+                            args=(
+                                self.get_course_identifier(),
+                                self.commit_sha,
+                                media_path))
+
+            elif url.startswith("repo:"):
+                path = url[5:]
+                return self.reverse_func("relate-get_repo_file",
+                            args=(
+                                self.get_course_identifier(),
+                                self.commit_sha,
+                                path))
+
+            elif url.startswith("repocur:"):
+                path = url[8:]
+                return self.reverse_func("relate-get_current_repo_file",
+                            args=(
+                                self.get_course_identifier(),
+                                path))
+
+            elif url.strip() == "calendar:":
+                return self.reverse_func("relate-view_calendar",
                             args=(self.get_course_identifier(),))
 
-        elif url.startswith("flow:"):
-            flow_id = url[5:]
-            return self.reverse_func("relate-view_start_flow",
-                        args=(self.get_course_identifier(), flow_id))
-
-        elif url.startswith("media:"):
-            media_path = url[6:]
-            return self.reverse_func("relate-get_media",
-                        args=(
-                            self.get_course_identifier(),
-                            self.commit_sha,
-                            media_path))
-
-        elif url.startswith("repo:"):
-            path = url[5:]
-            return self.reverse_func("relate-get_repo_file",
-                        args=(
-                            self.get_course_identifier(),
-                            self.commit_sha,
-                            path))
-
-        elif url.startswith("repocur:"):
-            path = url[8:]
-            return self.reverse_func("relate-get_current_repo_file",
-                        args=(
-                            self.get_course_identifier(),
-                            path))
-
-        elif url.strip() == "calendar:":
-            return self.reverse_func("relate-view_calendar",
-                        args=(self.get_course_identifier(),))
+        except NoReverseMatch:
+            from base64 import b64encode
+            message = ("Invalid character in RELATE URL: " + url).encode("utf-8")
+            return "data:text/plain;base64,"+b64encode(message).decode()
 
         return None
 
