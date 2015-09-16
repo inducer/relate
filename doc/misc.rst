@@ -130,13 +130,78 @@ language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#l
 Deployment
 ----------
 
-Starting the Celery workers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The following assumes you are using systemd on your deployment system.
+
+Configuring uwsgi
+^^^^^^^^^^^^^^^^^
+
+The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`.
+
+    [uwsgi]
+    plugins = python
+    socket = /tmp/uwsgi-relate.sock
+    chdir=/home/andreas/relate
+    virtualenv=/home/andreas/my-relate-env
+    module=relate.wsgi:application
+    need-app = 1
+    reload-mercy=8
+    max-requests=300
+    workers=8
+
+Then run::
+
+    # cd /etc/uwsgi/apps-enabled
+    # ln -s ../apps-available/relate.ini
+    # service uwsgi restart
+
+Configuring nginx
+^^^^^^^^^^^^^^^^^
+
+Adapt the following snippet to serve as part of your `nginx
+<http://nginx.org>`_ configuration:
+
+    server {
+      listen *:80;
+      listen [::]:80;
+      server_name relate.cs.illinois.edu;
+
+      rewrite ^ https://$server_name$request_uri? permanent;  # enforce https
+
+      add_header X-Frame-Options SAMEORIGIN;
+    }
+
+    server {
+      listen *:443 ssl;
+      listen [::]:443 ssl;
+
+      ssl_certificate /etc/certs/2015-01/relate-combined.crt;
+      ssl_certificate_key /etc/certs/2015-01/relate.key;
+
+      client_max_body_size 100M;
+
+      location / {
+        include uwsgi_params;
+        uwsgi_read_timeout 300;
+        uwsgi_pass unix:/tmp/uwsgi-relate.sock;
+      }
+      location /static {
+        alias /home/andreas/relate/static;
+      }
+      location /media {
+        alias /home/andreas/relate/media;
+      }
+
+      add_header X-Frame-Options SAMEORIGIN;
+    }
+
+
+Starting the message queue workers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use a variant of this as :file:`/etc/systemd/system/relate-celery.service`:
 
     [Unit]
-    Description=Celery workers
+    Description=Celery workers for RELATE
     After=network.target
 
     [Service]
@@ -166,6 +231,7 @@ Then run::
     # systemctl daemon-reload
     # systemctl start relate-celery.service
     # systemctl status relate-celery.service
+    # systemctl enable relate-celery.service
 
 Tips
 ====
