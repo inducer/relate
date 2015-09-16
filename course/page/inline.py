@@ -47,6 +47,8 @@ from crispy_forms.layout import Layout, Field, HTML
 
 
 class InlineMultiQuestionForm(StyledInlineForm):
+    no_offset_labels = True
+
     def __init__(self, read_only, dict_for_form, page_context, *args, **kwargs):
         super(InlineMultiQuestionForm, self).__init__(*args, **kwargs)
         html_list = dict_for_form["HTML_list"]
