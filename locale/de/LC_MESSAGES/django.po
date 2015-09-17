@@ -20,21 +20,21 @@ msgstr ""
 
 #: .\course\admin.py:84 .\course\admin.py:266
 msgid "First name"
-msgstr ""
+msgstr "Vorname"
 
 #: .\course\admin.py:90 .\course\admin.py:272
 msgid "Last name"
-msgstr ""
+msgstr "Nachname"
 
 #: .\course\admin.py:256
 msgid "Tags must belong to same course as participation."
-msgstr ""
+msgstr "Tags müssen zum selben Kurs gehören wie die Teilnahme"
 
 #: .\course\admin.py:375 .\course\admin.py:496 .\course\admin.py:580
 #: .\course\admin.py:693 .\course\admin.py:768 .\course\exam.py:93
 #: .\course\templates\course\gradebook-single.html:17 .\course\views.py:500
 msgid "Participant"
-msgstr ""
+msgstr "Teilnehmer"
 
 #: .\course\admin.py:473 .\course\admin.py:575 .\course\admin.py:683
 #: .\course\admin.py:763 .\course\models.py:230 .\course\models.py:253
@@ -42,7 +42,7 @@ msgstr ""
 #: .\course\models.py:413 .\course\models.py:434 .\course\models.py:999
 #: .\course\models.py:1363
 msgid "Course"
-msgstr ""
+msgstr "Kurs"
 
 #: .\course\admin.py:478 .\course\flow.py:1523 .\course\models.py:415
 #: .\course\models.py:449 .\course\models.py:825 .\course\models.py:897
@@ -56,15 +56,15 @@ msgstr ""
 #: .\course\admin.py:487 .\course\models.py:552
 #: .\course\templates\course\gradebook-single.html:225
 msgid "Page ID"
-msgstr ""
+msgstr "Seiten-ID"
 
 #: .\course\admin.py:494
 msgid "anonymous"
-msgstr ""
+msgstr "anonym"
 
 #: .\course\admin.py:501
 msgid "Has answer"
-msgstr ""
+msgstr "Hat Antwort"
 
 #: .\course\admin.py:506
 msgid "Flow Session ID"
@@ -72,37 +72,37 @@ msgstr ""
 
 #: .\course\admin.py:688
 msgid "Opportunity"
-msgstr ""
+msgstr "Gelegenheit"
 
 #: .\course\admin.py:889
 msgid "Revoke Exam Tickets"
-msgstr ""
+msgstr "Prüfungsticket entwerten"
 
 #. Translators: "TA" is short for Teaching Assistant.
 #: .\course\analytics.py:58 .\course\analytics.py:416
 #: .\course\analytics.py:453
 msgid "must be at least TA to view analytics"
-msgstr ""
+msgstr "muss mindestens Kurs-Assistent sein um Analytics anzusehen"
 
 #: .\course\analytics.py:106
 msgctxt "No data"
 msgid "None"
-msgstr ""
+msgstr "Kein(e)"
 
 #: .\course\analytics.py:115
 msgctxt "Value of grade"
 msgid "value greater than max"
-msgstr ""
+msgstr "Wert größer als Maximum"
 
 #: .\course\analytics.py:123
 msgctxt "Value of grade"
 msgid "value smaller than min"
-msgstr ""
+msgstr "Wert kleiner als Minimum"
 
 #: .\course\analytics.py:241 .\course\analytics.py:385
 msgctxt "Status of session"
 msgid "in progress"
-msgstr ""
+msgstr "Im Gange"
 
 #: .\course\analytics.py:379
 msgctxt "Minute (time unit)"
@@ -111,11 +111,11 @@ msgstr ""
 
 #: .\course\apps.py:8
 msgid "Course module"
-msgstr ""
+msgstr "Kurs-Modul"
 
 #: .\course\auth.py:121
 msgid "Error while impersonating."
-msgstr ""
+msgstr "Fehler beim sich-ausgeben-als"
 
 #. Translators: information displayed when selecting
 #. userfor impersonating. Customize how the name is
@@ -128,91 +128,92 @@ msgstr ""
 
 #: .\course\auth.py:148
 msgid "Select user to impersonate."
-msgstr ""
+msgstr "Benutzer auswählen, als den/die Sie sich ausgeben möchten"
 
 #: .\course\auth.py:149 .\course\exam.py:179 .\course\models.py:444
 #: .\course\templates\course\grade-import-preview.html:18
 msgid "User"
-msgstr ""
+msgstr "Benutzer"
 
 #: .\course\auth.py:151
 msgid "Impersonate"
-msgstr ""
+msgstr "Sich-ausgeben-als"
 
 #: .\course\auth.py:158
 msgid "Already impersonating someone."
-msgstr ""
+msgstr "Sie geben sich bereits als jemand anders aus."
 
 #: .\course\auth.py:167
 #, python-format
 msgid "Now impersonating '%s'."
-msgstr ""
+msgstr "Sie geben sich jetzt als '%s' aus."
 
 #: .\course\auth.py:176 .\relate\templates\base.html:76
 msgid "Impersonate user"
-msgstr ""
+msgstr "Sich ausgeben als anderer Benutzer"
 
 #: .\course\auth.py:186 .\relate\templates\base.html:74
 msgid "Stop impersonating"
-msgstr ""
+msgstr "Nicht mehr als anderer Benutzer ausgeben"
 
 #: .\course\auth.py:192
 msgid "Not currently impersonating anyone."
-msgstr ""
+msgstr "Sie geben sich gegenwärtig nicht als jemand anders aus."
 
 #: .\course\auth.py:199
 msgid "No longer impersonating anyone."
-msgstr ""
+msgstr "Sie geben sich nicht mehr als jemand anders aus."
 
 #: .\course\auth.py:208
 msgid "Stop impersonating user"
-msgstr ""
+msgstr "Nicht mehr als jemand anders ausgeben"
 
 #: .\course\auth.py:280 .\course\templates\course\course-page.html:38
 #: .\course\templates\course\flow-start.html:186
 #: .\course\templates\course\login.html:7 .\relate\templates\403.html:14
 #: .\relate\templates\base.html:111
 msgid "Sign in"
-msgstr ""
+msgstr "Anmelden"
 
 #: .\course\auth.py:308 .\course\auth.py:662
 msgid "Sign-in not allowed in this facility."
-msgstr ""
+msgstr "Anmeldung in dieser Einrichtung nicht erlaubt"
 
 #: .\course\auth.py:310 .\course\auth.py:663
 msgid "user not allowed to sign in in facility"
-msgstr ""
+msgstr "Benutzer ist es nicht gestattet, sich in dieser Einrichtung anzumelden"
 
 #: .\course\auth.py:333
 msgid "Username"
-msgstr ""
+msgstr "Benutzername"
 
 #: .\course\auth.py:337
 msgid "Enter a valid username."
-msgstr ""
+msgstr "Geben Sie einen gültigen Benutzernamen ein."
 
 #: .\course\auth.py:338
 msgid "This value may contain only letters, numbers and @/./+/-/_ characters."
-msgstr ""
+msgstr "Dieser Wert darf nur Buchstaben, Zahlen und die Zeichen @/./+/-/_ enthalten."
 
 #: .\course\auth.py:354 .\course\auth.py:436
 msgid "Send email"
-msgstr ""
+msgstr "Email senden"
 
 #: .\course\auth.py:360 .\course\auth.py:442
 msgid "password-based sign-in is not being used"
-msgstr ""
+msgstr "Passwort-basierte Anmeldung wird nicht benutzt"
 
 #: .\course\auth.py:368
 msgid "A user with that username already exists."
-msgstr ""
+msgstr "Ein Benutzer mit diesem Benutzernamen existiert bereits"
 
 #: .\course\auth.py:373
 #, python-format
 msgid ""
 "That email address is already in use. Would you like to <a href='%s'>reset "
 "your password</a> instead?"
-msgstr ""
+msgstr "Diese Emailadresse wird bereits verwendet. Möchten Sie statt dessen "
+"Ihr <a href='%s'>Passwort zurücksetzen</a>?"
 
 #: .\course\auth.py:408 .\course\auth.py:476 .\course\auth.py:493
 #: .\course\auth.py:566 .\course\auth.py:624
@@ -246,15 +247,15 @@ msgstr ""
 
 #: .\course\auth.py:409
 msgid "Verify your email"
-msgstr ""
+msgstr "Email bestätigen"
 
 #: .\course\auth.py:415 .\course\auth.py:483 .\course\auth.py:630
 msgid "Email sent. Please check your email and click the link."
-msgstr ""
+msgstr "Email gesendet. Bitte schauen Sie in Ihre Email und klicken sie auf den Link."
 
 #: .\course\auth.py:424
 msgid "Sign up"
-msgstr ""
+msgstr "Registrieren"
 
 #: .\course\auth.py:430 .\course\auth.py:576 .\course\models.py:381
 msgid "Email"
@@ -264,217 +265,218 @@ msgstr ""
 msgid ""
 "That email address doesn't have an associated user account. Are you sure "
 "you've registered?"
-msgstr ""
+msgstr "Diese Email hat kein zugeordnetes Benutzerkonto. Sind Sie sicher, dass"
+"Sie sich registriert haben?"
 
 #: .\course\auth.py:477
 msgid "Password reset"
-msgstr ""
+msgstr "Passwort zurücksetzen"
 
 #: .\course\auth.py:492 .\course\auth.py:565
 #, python-format
 msgid "Password reset on %(site_name)s"
-msgstr ""
+msgstr "Password zurücksetzen auf %(site_name)s"
 
 #: .\course\auth.py:500
 msgid "Password"
-msgstr ""
+msgstr "Passwort"
 
 #: .\course\auth.py:502
 msgid "Password confirmation"
-msgstr ""
+msgstr "Passwort-Bestätigung"
 
 #: .\course\auth.py:508 .\course\auth.py:694 .\course\auth.py:706
 #: .\course\templates\course\course-page.html:30
 #: .\course\templates\course\home.html:22 .\course\versioning.py:386
 msgid "Update"
-msgstr ""
+msgstr "Aktualisieren"
 
 #: .\course\auth.py:516
 msgid "The two password fields didn't match."
-msgstr ""
+msgstr "Die zwei Passwortfelder stimmen nicht überein."
 
 #: .\course\auth.py:521 .\course\auth.py:589 .\course\auth.py:644
 msgid "email-based sign-in is not being used"
-msgstr ""
+msgstr "Email-basierte Anmeldung wird nicht verwendet"
 
 #: .\course\auth.py:525 .\course\auth.py:650
 msgid "Invalid sign-in token. Perhaps you've used an old token email?"
-msgstr ""
+msgstr "Ungültiges Anmelde-Token. Vielleicht haben Sie eine alte Token-Email verwendet?"
 
 #: .\course\auth.py:527 .\course\auth.py:535 .\course\auth.py:540
 #: .\course\auth.py:652 .\course\auth.py:657
 msgid "invalid sign-in token"
-msgstr ""
+msgstr "Ungültiges Anmelde-Token"
 
 #: .\course\auth.py:539 .\course\auth.py:656
 msgid "Account disabled."
-msgstr ""
+msgstr "Konto nicht verwendbar"
 
 #: .\course\auth.py:550 .\course\auth.py:669
 msgid ""
 "Successfully signed in. Please complete your registration information below."
-msgstr ""
+msgstr "Erfolgreich angemeldet. Bitte vervollständigen Sie Ihre Anmeldedaten unterhalb."
 
 #: .\course\auth.py:557 .\course\auth.py:676
 msgid "Successfully signed in."
-msgstr ""
+msgstr "Erfolgreich angemeldet."
 
 #: .\course\auth.py:584
 msgid "Send sign-in email"
-msgstr ""
+msgstr "Anmelde-Email senden"
 
 #: .\course\auth.py:624
 #, python-format
 msgid "Your %(RELATE)s sign-in link"
-msgstr ""
+msgstr "Ihr %(RELATE)s Amelde-Link"
 
 #: .\course\auth.py:726 .\course\auth.py:736
 msgid "Profile data saved."
-msgstr ""
+msgstr "Profildaten gesichert."
 
 #. Translators: format of event kind in Event model
 #: .\course\calendar.py:50 .\course\calendar.py:192 .\course\models.py:256
 msgid "Should be lower_case_with_underscores, no spaces allowed."
-msgstr ""
+msgstr "Sollte kleingeschrieben_mit_unterstrichen sein, ohne Leerzeichen."
 
 #: .\course\calendar.py:52 .\course\calendar.py:194
 msgctxt "Kind of event"
 msgid "Kind of event"
-msgstr ""
+msgstr "Typ des Ereignisses"
 
 #: .\course\calendar.py:56
 msgctxt "Starting time of event"
 msgid "Starting time"
-msgstr ""
+msgstr "Anfangszeit"
 
 #: .\course\calendar.py:58
 msgid "Duration in minutes"
-msgstr ""
+msgstr "Dauer in Minuten"
 
 #: .\course\calendar.py:61
 msgid "Weekly"
-msgstr ""
+msgstr "Wöchentlich"
 
 #: .\course\calendar.py:63
 msgctxt "Interval of recurring events"
 msgid "Interval"
-msgstr ""
+msgstr "Intervall"
 
 #: .\course\calendar.py:66 .\course\calendar.py:197
 msgctxt "Starting ordinal of recurring events"
 msgid "Starting ordinal"
-msgstr ""
+msgstr "Start-Ordnungszahl"
 
 #: .\course\calendar.py:68
 msgctxt "Count of recurring events"
 msgid "Count"
-msgstr ""
+msgstr "Anzahl"
 
 #: .\course\calendar.py:74
 msgid "Create"
-msgstr ""
+msgstr "Erstellen"
 
 #: .\course\calendar.py:102
 #, python-format
 msgid "'%(event_kind)s %(event_ordinal)d' already exists"
-msgstr ""
+msgstr "%(event_kind)s %(event_ordinal)d' existiert bereits"
 
 #: .\course\calendar.py:117
 msgctxt "Unkown time interval"
 msgid "unknown interval"
-msgstr ""
+msgstr "unbekanntes Intervall"
 
 #: .\course\calendar.py:130 .\course\calendar.py:213
 msgid "only instructors and TAs may do that"
-msgstr ""
+msgstr "Nur Instruktoren und Assistenten dürfen das"
 
 #: .\course\calendar.py:160 .\course\calendar.py:172
 msgid "No events created."
-msgstr ""
+msgstr "Keine Ereignisse erstellt."
 
 #: .\course\calendar.py:178
 msgid "Events created."
-msgstr ""
+msgstr "Ereignisse erstellt."
 
 #: .\course\calendar.py:186 .\course\templates\course\course-base.html:105
 msgid "Create recurring events"
-msgstr ""
+msgstr "Wiederkehrende Ereignisse erstellen"
 
 #: .\course\calendar.py:203
 msgid "Renumber"
-msgstr ""
+msgstr "Neu numerieren"
 
 #: .\course\calendar.py:245
 msgid "Events renumbered."
-msgstr ""
+msgstr "Ereignisse neu numeriert"
 
 #: .\course\calendar.py:248
 msgid "No events found."
-msgstr ""
+msgstr "Keine Ereignisse gefunden."
 
 #: .\course\calendar.py:255 .\course\templates\course\course-base.html:106
 msgid "Renumber events"
-msgstr ""
+msgstr "Ereignisse neu numerieren"
 
 #: .\course\constants.py:42
 msgctxt "User status"
 msgid "Unconfirmed"
-msgstr ""
+msgstr "Unbestätigt"
 
 #: .\course\constants.py:43
 msgctxt "User status"
 msgid "Active"
-msgstr ""
+msgstr "Aktiv"
 
 #: .\course\constants.py:61
 msgctxt "Participation role"
 msgid "Instructor"
-msgstr ""
+msgstr "Instruktor"
 
 #: .\course\constants.py:63
 msgctxt "Participation role"
 msgid "Teaching Assistant"
-msgstr ""
+msgstr "Assistent"
 
 #: .\course\constants.py:65
 msgctxt "Participation role"
 msgid "Student"
-msgstr ""
+msgstr "Student/Schüler"
 
 #: .\course\constants.py:67
 msgctxt "Participation role"
 msgid "Observer"
-msgstr ""
+msgstr "Beobachter"
 
 #: .\course\constants.py:69
 msgctxt "Participation role"
 msgid "Auditor"
-msgstr ""
+msgstr "Auditor"
 
 #: .\course\constants.py:83
 msgctxt "Participation status"
 msgid "Requested"
-msgstr ""
+msgstr "Beantragt"
 
 #: .\course\constants.py:85
 msgctxt "Participation status"
 msgid "Active"
-msgstr ""
+msgstr "Aktiv"
 
 #: .\course\constants.py:87
 msgctxt "Participation status"
 msgid "Dropped"
-msgstr ""
+msgstr "Abgemeldet"
 
 #: .\course\constants.py:89
 msgctxt "Participation status"
 msgid "Denied"
-msgstr ""
+msgstr "Abgelehnt"
 
 #: .\course\constants.py:116
 msgctxt "Flow expiration mode"
 msgid "End session and grade"
-msgstr ""
+msgstr "Sitzung beenden und benoten"
 
 #: .\course\constants.py:119
 msgctxt "Flow expiration mode"
