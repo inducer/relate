@@ -826,15 +826,15 @@ msgstr ""
 
 #: .\course\exam.py:226 .\course\exam.py:421
 msgid "User name"
-msgstr ""
+msgstr "Benutzername"
 
 #: .\course\exam.py:230
 msgid "You have one hour to complete the exam."
-msgstr ""
+msgstr "Sie haben eine Stunde, um die Prüfung zu bearbeiten."
 
 #: .\course\exam.py:232
 msgid "Good luck!"
-msgstr ""
+msgstr "Viel Glück!"
 
 #: .\course\exam.py:248
 msgid ""
@@ -882,11 +882,11 @@ msgstr ""
 
 #: .\course\exam.py:425
 msgid "Code"
-msgstr ""
+msgstr "Code"
 
 #: .\course\exam.py:432
 msgid "Check in"
-msgstr ""
+msgstr "Anmelden"
 
 #: .\course\exam.py:450
 msgid "Invalid check-in data."
@@ -894,7 +894,7 @@ msgstr ""
 
 #: .\course\exam.py:479
 msgid "Check in for Exam"
-msgstr ""
+msgstr "Für Prüfung Anmelden"
 
 #: .\course\exam.py:566
 msgid "Error while processing exam lockdown: ticket not found."
