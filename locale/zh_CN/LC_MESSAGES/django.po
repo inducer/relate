@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-09-17 11:27+0800\n"
+"POT-Creation-Date: 2015-09-17 11:33+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -476,9 +476,11 @@ msgid "Submit session for grading"
 msgstr "提交session用于评分"
 
 #: .\course\constants.py:126
+#, fuzzy
+#| msgid "Submit answer for grading"
 msgctxt "Flow expiration mode"
 msgid "Do not submit session for grading"
-msgstr "不要提交session并评分"
+msgstr "提交用于评分的回答"
 
 #: .\course\constants.py:138
 msgid "unknown expiration mode"
@@ -1792,7 +1794,7 @@ msgid "Instant flow requests"
 msgstr "即时flow"
 
 #: .\course\models.py:453
-msgid "Completion time"
+msgid "Completition time"
 msgstr "完成时间"
 
 #: .\course\models.py:455
