@@ -40,7 +40,9 @@
             {% trans "Go to end" %}
           {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
             {% trans "Submit" %}
-          {% elif interaction_kind == flow_session_interaction_kind.graded %}
+          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
+            {% trans "Finish" %}
+          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
             {% trans "Submit for grading" %}
           {% else %}
             {% trans "Finish" %}

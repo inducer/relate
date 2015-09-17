@@ -93,7 +93,8 @@ PARTICIPATION_STATUS_CHOICES = (
 class flow_session_interaction_kind:  # noqa
     noninteractive = "noninteractive"
     ungraded = "ungraded"
-    graded = "graded"
+    practice_grade = "practice_grade"
+    permanent_grade = "permanent_grade"
 
 
 class flow_session_expiration_mode:  # noqa

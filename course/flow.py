@@ -240,7 +240,7 @@ def assemble_answer_visits(flow_session):
     return answer_visits
 
 
-def get_interaction_kind(fctx, flow_session):
+def get_interaction_kind(fctx, flow_session, flow_generates_grade):
     all_page_data = (FlowPageData.objects
             .filter(
                 flow_session=flow_session,
@@ -255,7 +255,10 @@ def get_interaction_kind(fctx, flow_session):
         page = instantiate_flow_page_with_ctx(fctx, page_data)
         if page.expects_answer():
             if page.is_answer_gradable():
-                return flow_session_interaction_kind.graded
+                if flow_generates_grade:
+                    return flow_session_interaction_kind.permanent_grade
+                else:
+                    return flow_session_interaction_kind.practice_grade
             else:
                 ikind = flow_session_interaction_kind.ungraded
 
@@ -1383,7 +1386,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "expiration_mode": flow_session.expiration_mode,
 
         "flow_session_interaction_kind": flow_session_interaction_kind,
-        "interaction_kind": get_interaction_kind(fpctx, flow_session),
+        "interaction_kind": get_interaction_kind(
+            fpctx, flow_session, generates_grade),
     }
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
