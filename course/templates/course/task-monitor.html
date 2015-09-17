@@ -51,7 +51,7 @@
   {% endif %}
 
   {% if traceback %}
-    {% blocktrans %}
+    {% blocktrans trimmed %}
       The process failed and reported the following error:
     {% endblocktrans %}
     <pre>{{  traceback }}</pre>

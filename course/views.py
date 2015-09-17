@@ -1041,8 +1041,9 @@ def monitor_task(request, task_id):
             progress_percent = 100 * (current / total)
 
         progress_statement = (
-                _("%d out of %d items processed.")
-                % (current, total))
+                _("%(current)d out of %(total)d items processed.")
+                % {"current": current,
+                   "total": total})
 
     if async_res.state == "SUCCESS":
         if (isinstance(async_res.result, dict)
