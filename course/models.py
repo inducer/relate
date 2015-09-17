@@ -450,7 +450,7 @@ class FlowSession(models.Model):
     start_time = models.DateTimeField(default=now,
             verbose_name=_('Start time'))
     completion_time = models.DateTimeField(null=True, blank=True,
-            verbose_name=_('Completition time'))
+            verbose_name=_('Completion time'))
     page_count = models.IntegerField(null=True, blank=True,
             verbose_name=_('Page count'))
 

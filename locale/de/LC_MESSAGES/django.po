@@ -590,7 +590,7 @@ msgstr ""
 #: .\course\constants.py:305
 msgctxt "Grade state change"
 msgid "Unavailable"
-msgstr ""
+msgstr "Nicht verfügbar"
 
 #: .\course\constants.py:307
 msgctxt "Grade state change"
@@ -1091,7 +1091,7 @@ msgstr ""
 
 #: .\course\flow.py:1541 .\course\templates\course\gradebook-single.html:257
 msgid "Regrade"
-msgstr ""
+msgstr "Neu benoten"
 
 #: .\course\flow.py:1559
 msgid "must be instructor to regrade flows"
@@ -1100,7 +1100,7 @@ msgstr ""
 #: .\course\flow.py:1589
 #, python-format
 msgid "%d sessions regraded."
-msgstr ""
+msgstr "%d Sitzungen neu benotet."
 
 #: .\course\flow.py:1597
 msgid ""
@@ -1132,7 +1132,7 @@ msgstr ""
 
 #: .\course\grades.py:350
 msgid "Session tag"
-msgstr ""
+msgstr "Sitzungs-Tag"
 
 #: .\course\grades.py:354
 msgid ""
@@ -1456,11 +1456,11 @@ msgstr ""
 #. Translators: the text editor used by participants
 #: .\course\models.py:98
 msgid "Editor mode"
-msgstr ""
+msgstr "Editor-Modus"
 
 #: .\course\models.py:102
 msgid "User statuses"
-msgstr ""
+msgstr "Benutzer-Statuse"
 
 #: .\course\models.py:106
 #, python-format
@@ -1488,27 +1488,27 @@ msgstr ""
 
 #: .\course\models.py:135
 msgid "Only visible to course staff"
-msgstr ""
+msgstr "Nur für Kurs-Mitarbeiter sichtbar"
 
 #: .\course\models.py:138
 msgid "Should the course be listed on the main page?"
-msgstr ""
+msgstr "Soll der Kurs auf der Hauptseite gelistet werden?"
 
 #: .\course\models.py:139
 msgid "Listed on main page"
-msgstr ""
+msgstr "Auf der Hauptseite gelistet"
 
 #: .\course\models.py:142
 msgid "Accepts enrollment"
-msgstr ""
+msgstr "Akzeptiert Anmeldungen"
 
 #: .\course\models.py:145
 msgid "Whether the course content has passed validation."
-msgstr ""
+msgstr "Ob der Kurs die Validierung bestanden hat"
 
 #: .\course\models.py:146
 msgid "Valid"
-msgstr ""
+msgstr "Gültig"
 
 #: .\course\models.py:149
 msgid ""
@@ -1530,7 +1530,7 @@ msgstr ""
 
 #: .\course\models.py:159
 msgid "SSH private key"
-msgstr ""
+msgstr "Geheimer SSH-Schlüssel"
 
 #: .\course\models.py:162
 msgid ""
@@ -1541,7 +1541,7 @@ msgstr ""
 
 #: .\course\models.py:167
 msgid "Course root in repository"
-msgstr ""
+msgstr "Kurs-Wurzel im Repository"
 
 #: .\course\models.py:171
 msgid ""
@@ -1556,7 +1556,7 @@ msgstr ""
 #: .\course\models.py:176
 msgid ""
 "Name of a YAML file in the git repository that contains calendar information."
-msgstr ""
+msgstr "Name einer YAML-Datei, die die Kalender-Information enthält."
 
 #: .\course\models.py:178 .\course\validation.py:944
 msgid "Events file"
@@ -1635,7 +1635,7 @@ msgid "Active git commit SHA"
 msgstr ""
 
 #: .\course\models.py:231
-msgid "Courses"
+msgid "Kurse"
 msgstr ""
 
 #: .\course\models.py:258
@@ -1666,18 +1666,18 @@ msgstr ""
 
 #: .\course\models.py:271
 msgid "All day"
-msgstr ""
+msgstr "Ganztägig"
 
 #: .\course\models.py:274
 msgid "Shown in calendar"
 msgstr ""
 
 #: .\course\models.py:277
-msgid "Event"
+msgid "Ereignis"
 msgstr ""
 
 #: .\course\models.py:278
-msgid "Events"
+msgid "Ereignisse"
 msgstr ""
 
 #. Translators: name format of ParticipationTag
@@ -1695,11 +1695,11 @@ msgstr ""
 
 #: .\course\models.py:323
 msgid "Participation tag"
-msgstr ""
+msgstr "Teilnahmen-Tag"
 
 #: .\course\models.py:324
 msgid "Participation tags"
-msgstr ""
+msgstr "Teilnahmen-Tags"
 
 #: .\course\models.py:336
 msgid "Enroll time"
@@ -1714,11 +1714,11 @@ msgstr ""
 
 #: .\course\models.py:343
 msgid "Participation role"
-msgstr ""
+msgstr "Teilnahme-Rolle"
 
 #: .\course\models.py:346
 msgid "Participation status"
-msgstr ""
+msgstr "Teilname-Status"
 
 #: .\course\models.py:351
 msgid "Multiplier for time available on time-limited flows"
@@ -1726,7 +1726,7 @@ msgstr ""
 
 #: .\course\models.py:353
 msgid "Time factor"
-msgstr ""
+msgstr "Zeit-Faktor"
 
 #: .\course\models.py:357
 msgid "Preview git commit SHA"
@@ -1747,21 +1747,21 @@ msgstr ""
 #: .\course\models.py:899 .\course\models.py:1066 .\course\models.py:1339
 #: .\course\models.py:1405 .\course\templates\course\course-base.html:116
 msgid "Participation"
-msgstr ""
+msgstr "Teilnahme"
 
 #: .\course\models.py:374
 msgid "Participations"
-msgstr ""
+msgstr "Teilnahmen"
 
 #: .\course\models.py:389 .\course\models.py:841 .\course\models.py:904
 #: .\course\models.py:1094 .\course\models.py:1408
 msgid "Creator"
-msgstr ""
+msgstr "Ersteller"
 
 #: .\course\models.py:391 .\course\models.py:843 .\course\models.py:906
 #: .\course\models.py:1024 .\course\models.py:1410
 msgid "Creation time"
-msgstr ""
+msgstr "Erstellungszeitpunkt"
 
 #. Translators: somebody's email in some course in Participation
 #. Preapproval
@@ -1772,11 +1772,11 @@ msgstr ""
 
 #: .\course\models.py:403
 msgid "Participation preapproval"
-msgstr ""
+msgstr "Teilnahmen-Vorab-Bestätigung"
 
 #: .\course\models.py:404
 msgid "Participation preapprovals"
-msgstr ""
+msgstr "Teilnahmen-Vorab-Bestätigungen"
 
 #: .\course\models.py:421
 msgid "Cancelled"
@@ -1784,32 +1784,32 @@ msgstr ""
 
 #: .\course\models.py:424
 msgid "Instant flow request"
-msgstr ""
+msgstr "Sofort-Flow-Anforderung"
 
 #: .\course\models.py:425 .\course\templates\course\course-base.html:120
 msgid "Instant flow requests"
-msgstr ""
+msgstr "Sofort-Flow-Anforderungen"
 
 #: .\course\models.py:453
 msgid "Completition time"
-msgstr ""
+msgstr "Abschlusszeit"
 
 #: .\course\models.py:455
 msgid "Page count"
-msgstr ""
+msgstr "Seitenzahl"
 
 #: .\course\models.py:458
 msgid "In progress"
-msgstr ""
+msgstr "Im Gange"
 
 #: .\course\models.py:465 .\course\templates\course\gradebook-single.html:168
 msgid "Expiration mode"
-msgstr ""
+msgstr "Ablauf-Modus"
 
 #: .\course\models.py:474 .\course\models.py:1083
 #: .\course\templates\course\gradebook-single.html:227
 msgid "Points"
-msgstr ""
+msgstr "Punkte"
 
 #: .\course\models.py:477
 msgid "Max point"
@@ -1817,16 +1817,16 @@ msgstr ""
 
 #: .\course\models.py:479
 msgid "Result comment"
-msgstr ""
+msgstr "Resultats-Kommentar"
 
 #: .\course\models.py:482 .\course\models.py:545 .\course\models.py:592
 #: .\course\models.py:1100 .\course\templates\course\grade-flow-page.html:58
 msgid "Flow session"
-msgstr ""
+msgstr "Flow-Sitzung"
 
 #: .\course\models.py:483 .\course\templates\course\gradebook-single.html:133
 msgid "Flow sessions"
-msgstr ""
+msgstr "Flow-Sitzungen"
 
 #: .\course\models.py:488
 #, python-format
@@ -1844,7 +1844,7 @@ msgstr ""
 
 #: .\course\models.py:550
 msgid "Group ID"
-msgstr ""
+msgstr "Gruppen-ID"
 
 #: .\course\models.py:557
 msgid "Data"
@@ -1852,7 +1852,7 @@ msgstr ""
 
 #: .\course\models.py:560 .\course\models.py:561
 msgid "Flow page data"
-msgstr ""
+msgstr "Flow-Seiten-Daten"
 
 #: .\course\models.py:565
 #, python-format
@@ -1909,11 +1909,11 @@ msgstr ""
 
 #: .\course\models.py:648
 msgid "Flow page visit"
-msgstr ""
+msgstr "Flow-Seiten-Besuch"
 
 #: .\course\models.py:649
 msgid "Flow page visits"
-msgstr ""
+msgstr "Flow-Seiten-Besuche"
 
 #: .\course\models.py:676
 msgid "Visit"
@@ -1921,7 +1921,7 @@ msgstr ""
 
 #: .\course\models.py:680 .\course\templates\course\gradebook-single.html:228
 msgid "Grader"
-msgstr ""
+msgstr "Benotet von"
 
 #: .\course\models.py:682 .\course\models.py:1096
 msgid "Grade time"
@@ -1977,7 +1977,7 @@ msgstr ""
 #: .\course\templates\course\gradebook-participant.html:51
 #: .\course\templates\course\gradebook-single.html:74
 msgid "Grade"
-msgstr ""
+msgstr "Note"
 
 #: .\course\models.py:761
 msgid "Bulk feedback"
@@ -2080,11 +2080,11 @@ msgstr ""
 
 #: .\course\models.py:989
 msgid "Flow rule exception"
-msgstr ""
+msgstr "Flow-Regel-Ausnahme"
 
 #: .\course\models.py:990
 msgid "Flow rule exceptions"
-msgstr ""
+msgstr "Flow-Regel-Ausnahmen"
 
 #. Translators: format of identifier for GradingOpportunity
 #: .\course\models.py:1003
@@ -2131,11 +2131,11 @@ msgstr ""
 
 #: .\course\models.py:1032 .\course\models.py:1063
 msgid "Grading opportunity"
-msgstr ""
+msgstr "Benotungsmöglichkeit"
 
 #: .\course\models.py:1033
 msgid "Grading opportunities"
-msgstr ""
+msgstr "Benotungsmöglichkeiten"
 
 #. Translators: For GradingOpportunity
 #: .\course\models.py:1040
@@ -2147,7 +2147,7 @@ msgstr ""
 #: .\course\models.py:1071 .\course\templates\course\flow-start.html:24
 #: .\course\templates\course\gradebook-single.html:141
 msgid "State"
-msgstr ""
+msgstr "Zustand"
 
 #. Translators: help text of "attempt_id" in GradeChange class
 #: .\course\models.py:1076
@@ -2158,11 +2158,11 @@ msgstr ""
 
 #: .\course\models.py:1103
 msgid "Grade change"
-msgstr ""
+msgstr "Noten-Änderung"
 
 #: .\course\models.py:1104
 msgid "Grade changes"
-msgstr ""
+msgstr "Noten-Änderungen"
 
 #. Translators: information for GradeChange
 #: .\course\models.py:1109
@@ -2209,15 +2209,15 @@ msgstr ""
 
 #: .\course\models.py:1346
 msgid "Instant message"
-msgstr ""
+msgstr "Sofortnachricht"
 
 #: .\course\models.py:1347
 msgid "Instant messages"
-msgstr ""
+msgstr "Sofortnachrichten"
 
 #: .\course\models.py:1365
 msgid "Description"
-msgstr ""
+msgstr "Beschreibung"
 
 #: .\course\models.py:1370
 msgid "Currently active"
@@ -2244,7 +2244,7 @@ msgstr ""
 #: .\course\models.py:1387 .\course\templates\course\course-base.html:74
 #: .\relate\templates\base.html:84
 msgid "Exams"
-msgstr ""
+msgstr "Prüfungen"
 
 #: .\course\models.py:1391
 #, python-format
@@ -2261,11 +2261,11 @@ msgstr ""
 
 #: .\course\models.py:1422
 msgid "Exam ticket"
-msgstr ""
+msgstr "Prüfungsticket"
 
 #: .\course\models.py:1423
 msgid "Exam tickets"
-msgstr ""
+msgstr "Prüfungstickets"
 
 #: .\course\models.py:1426
 msgid "Can issue exam tickets to student"
@@ -2803,41 +2803,41 @@ msgstr ""
 
 #: .\course\templates\course\course-base.html:37
 msgid "View grades"
-msgstr ""
+msgstr "Noten ansehen"
 
 #: .\course\templates\course\course-base.html:38
 msgid "View calendar"
-msgstr ""
+msgstr "Kalender ansehen"
 
 #: .\course\templates\course\course-base.html:39
 msgid "Back to course page"
-msgstr ""
+msgstr "Zurück zur Kursseite"
 
 #: .\course\templates\course\course-base.html:46
 msgctxt "menu item"
 msgid "Grading"
-msgstr ""
+msgstr "Benotung"
 
 #: .\course\templates\course\course-base.html:48
 msgid "Analytics Overview"
-msgstr ""
+msgstr "Analytics-Überblick"
 
 #: .\course\templates\course\course-base.html:52
 #: .\course\templates\course\gradebook-participant.html:23
 msgid "Grades"
-msgstr ""
+msgstr "Noten"
 
 #: .\course\templates\course\course-base.html:53
 #: .\course\templates\course\gradebook-participant-list.html:7
 #: .\course\templates\course\gradebook-participant-list.html:20
 msgid "List of Participants"
-msgstr ""
+msgstr "Teilnehmerliste"
 
 #: .\course\templates\course\course-base.html:54
 #: .\course\templates\course\gradebook-opp-list.html:8
 #: .\course\templates\course\gradebook-opp-list.html:21
 msgid "List of Grading Opportunities"
-msgstr ""
+msgstr "Liste der Benotungsmöglichkeiten"
 
 #: .\course\templates\course\course-base.html:55
 #: .\course\templates\course\gradebook-by-opp.html:8
@@ -2846,15 +2846,15 @@ msgstr ""
 #: .\course\templates\course\gradebook.html:7
 #: .\course\templates\course\gradebook.html:20
 msgid "Grade book"
-msgstr ""
+msgstr "Notenbuch"
 
 #: .\course\templates\course\course-base.html:56
 msgid "Grade book (CSV export)"
-msgstr ""
+msgstr "Notenbuch (CSV-Export)"
 
 #: .\course\templates\course\course-base.html:59
 msgid "Import Grades"
-msgstr ""
+msgstr "Noten importieren"
 
 #: .\course\templates\course\course-base.html:61
 msgid "Regrade not-for-credit flow"
@@ -2862,34 +2862,34 @@ msgstr ""
 
 #: .\course\templates\course\course-base.html:65
 msgid "Exceptions"
-msgstr ""
+msgstr "Ausnahmen"
 
 #: .\course\templates\course\course-base.html:66
 #: .\course\templates\course\gradebook-single.html:280
 #: .\course\templates\course\gradebook-single.html:295
 msgid "Grant exception"
-msgstr ""
+msgstr "Ausnahme gewähren"
 
 #: .\course\templates\course\course-base.html:68
 msgid "Show exceptions"
-msgstr ""
+msgstr "Ausnahmen zeigen"
 
 #: .\course\templates\course\course-base.html:76
 msgid "Edit exams"
-msgstr ""
+msgstr "Prüfungen bearbeiten"
 
 #: .\course\templates\course\course-base.html:78
 msgid "Batch-issue exam tickets"
-msgstr ""
+msgstr "Prüfungstickets en masse ausgeben"
 
 #: .\course\templates\course\course-base.html:87
 msgctxt "menu item"
 msgid "Content"
-msgstr ""
+msgstr "Inhalte"
 
 #: .\course\templates\course\course-base.html:90
 msgid "Update course"
-msgstr ""
+msgstr "Kurs aktualisiern"
 
 #: .\course\templates\course\course-base.html:93
 msgid "Content creation"
@@ -2897,24 +2897,24 @@ msgstr ""
 
 #: .\course\templates\course\course-base.html:94
 msgid "Page sandbox"
-msgstr ""
+msgstr "Seiten-Sandkasten"
 
 #: .\course\templates\course\course-base.html:95
 msgid "Markup sandbox"
-msgstr ""
+msgstr "Markup-Sandkasten"
 
 #: .\course\templates\course\course-base.html:98
 msgid "Test flow"
-msgstr ""
+msgstr "Flow testen"
 
 #: .\course\templates\course\course-base.html:103
 msgid "Edit events"
-msgstr ""
+msgstr "Ereignisse bearbeiten"
 
 #: .\course\templates\course\course-base.html:114
 msgctxt "menu item"
 msgid "Instructor"
-msgstr ""
+msgstr "Instruktor"
 
 #: .\course\templates\course\course-base.html:117
 msgctxt "menu item"
@@ -2948,16 +2948,16 @@ msgstr ""
 
 #: .\course\templates\course\course-page.html:6
 msgid "Jump to"
-msgstr ""
+msgstr "Springen zu"
 
 #: .\course\templates\course\course-page.html:18
 msgid "This course is only visible to course staff at the moment."
-msgstr ""
+msgstr "Dieser Kurs ist im Moment nur für Kurs-Mitarbeiter sichtbar."
 
 #: .\course\templates\course\course-page.html:20
 msgctxt "change the visibility of a course"
 msgid "Change"
-msgstr ""
+msgstr "Ändern"
 
 #: .\course\templates\course\course-page.html:25
 msgid ""
@@ -3242,7 +3242,7 @@ msgstr ""
 
 #: .\course\templates\course\flow-session-state.html:3
 msgid "in progress"
-msgstr ""
+msgstr "im Gange"
 
 #: .\course\templates\course\flow-session-state.html:5
 msgid "finished"
@@ -3262,21 +3262,21 @@ msgstr ""
 #: .\course\templates\course\gradebook-single.html:31
 #: .\course\templates\course\gradebook-single.html:142
 msgid "Due"
-msgstr ""
+msgstr "Fällig"
 
 #: .\course\templates\course\flow-start.html:27
 #: .\course\templates\course\gradebook-single.html:143
 msgid "Result"
-msgstr ""
+msgstr "Ergebnis"
 
 #: .\course\templates\course\flow-start.html:28
 #: .\course\templates\course\gradebook-single.html:148
 msgid "Actions"
-msgstr ""
+msgstr "(Aktionen)"
 
 #: .\course\templates\course\flow-start.html:43
 msgid "(no description)"
-msgstr ""
+msgstr "(keine Beschreibung)"
 
 #: .\course\templates\course\flow-start.html:53
 #, python-format
@@ -3286,15 +3286,15 @@ msgstr ""
 #: .\course\templates\course\flow-start.html:61
 #: .\course\templates\course\gradebook-single.html:209
 msgid "(none)"
-msgstr ""
+msgstr "(kein)"
 
 #: .\course\templates\course\flow-start.html:69
 msgid "Resume"
-msgstr ""
+msgstr "Fortsetzen"
 
 #: .\course\templates\course\flow-start.html:71
 msgid "Review"
-msgstr ""
+msgstr "Ansehen"
 
 #: .\course\templates\course\flow-start.html:91
 msgid "If you start a new session, the following rules will apply:"
@@ -3380,21 +3380,21 @@ msgstr ""
 #: .\course\templates\course\grade-flow-page.html:46
 #: .\course\templates\course\prompt-code-question.html:23
 msgid "Grading"
-msgstr ""
+msgstr "Benotung"
 
 #: .\course\templates\course\grade-flow-page.html:53
 #: .\course\templates\course\gradebook-by-opp.html:26
 #: .\course\templates\course\gradebook-participant.html:27
 #: .\course\templates\course\gradebook-single.html:13
 msgid "Property"
-msgstr ""
+msgstr "Eigenschaft"
 
 #: .\course\templates\course\grade-flow-page.html:53
 #: .\course\templates\course\gradebook-by-opp.html:26
 #: .\course\templates\course\gradebook-participant.html:27
 #: .\course\templates\course\gradebook-single.html:13
 msgid "Value"
-msgstr ""
+msgstr "Wert"
 
 #. Translators: the grade information "for" a participant with fullname + (username)
 #: .\course\templates\course\grade-flow-page.html:63
@@ -3424,36 +3424,36 @@ msgstr ""
 
 #: .\course\templates\course\grade-flow-page.html:97
 msgid "Graded"
-msgstr ""
+msgstr "Benotet"
 
 #: .\course\templates\course\grade-flow-page.html:101
 #: .\course\templates\course\grading-statistics.html:19
 msgid "(autograded)"
-msgstr ""
+msgstr "(automatisch)"
 
 #. Translators: the grade is awarded "by" some humman grader.
 #: .\course\templates\course\grade-flow-page.html:104
 #, python-format
 msgid "by %(grader_name)s"
-msgstr ""
+msgstr "von %(grader_name)s"
 
 #. Translators: the most recent grade is provided "at" some time.
 #: .\course\templates\course\grade-flow-page.html:109
 #, python-format
 msgid "at %(grade_time)s"
-msgstr ""
+msgstr "am %(grade_time)s"
 
 #: .\course\templates\course\grade-flow-page.html:131 .\course\views.py:592
 msgid "Session"
-msgstr ""
+msgstr "Sitzung"
 
 #: .\course\templates\course\grade-flow-page.html:136
 msgid "Start:"
-msgstr ""
+msgstr "Start:"
 
 #: .\course\templates\course\grade-flow-page.html:154
 msgid "Page number"
-msgstr ""
+msgstr "Seite Nr."
 
 #: .\course\templates\course\grade-flow-page.html:235
 msgid "Enter new feedback item:"
@@ -3461,13 +3461,13 @@ msgstr ""
 
 #: .\course\templates\course\grade-flow-page.html:283
 msgid "Add phrase"
-msgstr ""
+msgstr "Phrase hinzufügen"
 
 #: .\course\templates\course\grade-flow-page.html:285
 #: .\course\templates\course\grade-flow-page.html:310
 #: .\course\templates\course\grade-flow-page.html:346
 msgid "Clear"
-msgstr ""
+msgstr "Löschen"
 
 #: .\course\templates\course\grade-flow-page.html:392
 msgid "Submit and next page"
@@ -3492,7 +3492,7 @@ msgstr ""
 #: .\course\templates\course\gradebook-by-opp.html:30
 #: .\course\templates\course\gradebook-single.html:27
 msgid "Grading Opportunity ID"
-msgstr ""
+msgstr "ID der Benotungsmöglichkeit"
 
 #: .\course\templates\course\gradebook-by-opp.html:40
 #: .\course\templates\course\gradebook-single.html:36
@@ -3501,16 +3501,16 @@ msgstr ""
 
 #: .\course\templates\course\gradebook-by-opp.html:42
 msgid "(Start page)"
-msgstr ""
+msgstr "(Startseite)"
 
 #: .\course\templates\course\gradebook-by-opp.html:44
 msgid "Grading statistics"
-msgstr ""
+msgstr "Benotungsstatistik"
 
 #. Translators: "Counts" on the quantities of total session and finished sessions
 #: .\course\templates\course\gradebook-by-opp.html:49
 msgid "Counts"
-msgstr ""
+msgstr "Anzahlen"
 
 #: .\course\templates\course\gradebook-by-opp.html:51
 #, python-format
@@ -3563,7 +3563,7 @@ msgstr ""
 #: .\course\templates\course\gradebook-opp-list.html:25
 #: .\course\templates\course\gradebook-participant.html:50
 msgid "Name of grading opportunity"
-msgstr ""
+msgstr "Name der Benotungsmöglichkeit"
 
 #: .\course\templates\course\gradebook-opp-list.html:29
 msgid "Shown to students"
@@ -3571,24 +3571,24 @@ msgstr ""
 
 #: .\course\templates\course\gradebook-participant-list.html:25
 msgid "Last Name"
-msgstr ""
+msgstr "Nachname"
 
 #: .\course\templates\course\gradebook-participant-list.html:26
 msgid "First Name"
-msgstr ""
+msgstr "Vorname"
 
 #: .\course\templates\course\gradebook-participant.html:7
 #: .\course\templates\course\gradebook-participant.html:21
 msgid "My Grades"
-msgstr ""
+msgstr "Meine Noten"
 
 #: .\course\templates\course\gradebook-participant.html:52
 msgid "Date"
-msgstr ""
+msgstr "Datum"
 
 #: .\course\templates\course\gradebook-single.html:9
 msgid "Understand a grade"
-msgstr ""
+msgstr "Noten-Details"
 
 #: .\course\templates\course\gradebook-single.html:20
 #, python-format
@@ -3597,12 +3597,12 @@ msgstr ""
 
 #: .\course\templates\course\gradebook-single.html:42
 msgid "Flow start page"
-msgstr ""
+msgstr "Flow-Startseite"
 
 #. Translators: averaged grade of a flow of all participants
 #: .\course\templates\course\gradebook-single.html:48
 msgid "Average grade"
-msgstr ""
+msgstr "Durchschnittsnote"
 
 #. Translators: average grade of a flow, format "10% (out of 5 grades)"
 #: .\course\templates\course\gradebook-single.html:52
@@ -3612,20 +3612,20 @@ msgstr ""
 
 #: .\course\templates\course\gradebook-single.html:57
 msgid "(no data)"
-msgstr ""
+msgstr "(keine Daten)"
 
 #: .\course\templates\course\gradebook-single.html:65
 msgid "Grade history"
-msgstr ""
+msgstr "Notengeschichte"
 
 #: .\course\templates\course\gradebook-single.html:67
-msgid " (no grade data available)"
+msgid " (keine Notendaten verfÚgbar)"
 msgstr ""
 
 #. Translators: "what" stand for the state of a grade, e.g. "graded"
 #: .\course\templates\course\gradebook-single.html:73
 msgid "What"
-msgstr ""
+msgstr "Was"
 
 #: .\course\templates\course\gradebook-single.html:75
 msgid "Further Information"
@@ -3639,7 +3639,7 @@ msgstr ""
 #: .\course\templates\course\gradebook-single.html:96
 #: .\course\templates\course\gradebook-single.html:242
 msgid "(no grade)"
-msgstr ""
+msgstr "(keine Note)"
 
 #: .\course\templates\course\gradebook-single.html:107
 #, python-format
@@ -3653,30 +3653,30 @@ msgstr ""
 #. Translators: means "Started at", which followed by a time string
 #: .\course\templates\course\gradebook-single.html:173
 msgid "Started"
-msgstr ""
+msgstr "Begonnen"
 
 #. Translators: means "Completed at", which followed by a time string
 #: .\course\templates\course\gradebook-single.html:178
 msgid "Completed"
-msgstr ""
+msgstr "Beendet"
 
 #. Translators: means "Last activity at", which followed by a time string
 #: .\course\templates\course\gradebook-single.html:182
 msgid "Last activity"
-msgstr ""
+msgstr "Letzte Aktivität"
 
 #: .\course\templates\course\gradebook-single.html:203
 #, python-format
 msgid "(grade not available) (%(max_points)s points achievable)"
-msgstr ""
+msgstr "(Note nicht verfügbar) (%(max_points)s Punkte erreichbar)"
 
 #: .\course\templates\course\gradebook-single.html:213
 msgid " Notes:"
-msgstr ""
+msgstr " Notizen:"
 
 #: .\course\templates\course\gradebook-single.html:226
 msgid "Percent"
-msgstr ""
+msgstr "Prozent"
 
 #: .\course\templates\course\gradebook-single.html:262
 msgid "Expire"
@@ -3684,11 +3684,11 @@ msgstr ""
 
 #: .\course\templates\course\gradebook-single.html:266
 msgid "End and grade"
-msgstr ""
+msgstr "Beenden und benoten"
 
 #: .\course\templates\course\gradebook-single.html:275
 msgid "Recalculate grade"
-msgstr ""
+msgstr "Note neu berechnen"
 
 #: .\course\templates\course\grading-statistics.html:5
 msgid "Grading Statistics"
@@ -3706,15 +3706,15 @@ msgstr ""
 #: .\course\templates\course\home.html:7
 #, python-format
 msgid " Welcome to %(RELATE)s "
-msgstr ""
+msgstr "Willkommen bei %(RELATE)s "
 
 #: .\course\templates\course\home.html:8
 msgid "RELATE is an Environment for Learning And TEaching"
-msgstr ""
+msgstr "RELATE is an Environment for Learning And TEaching -- eine Umgebung fürs Lernen und Lehren"
 
 #: .\course\templates\course\home.html:10
 msgid "Learn more"
-msgstr ""
+msgstr "Mehr erfahren"
 
 #: .\course\templates\course\home.html:21
 msgid "The course content has not yet been validated."
@@ -3722,7 +3722,7 @@ msgstr ""
 
 #: .\course\templates\course\home.html:24
 msgid "View"
-msgstr ""
+msgstr "Ansehen"
 
 #: .\course\templates\course\home.html:31
 #, python-format
@@ -3736,15 +3736,15 @@ msgstr ""
 
 #: .\course\templates\course\home.html:41 .\course\versioning.py:253
 msgid "Set up new course"
-msgstr ""
+msgstr "Neuen Kurs erstellen"
 
 #: .\course\templates\course\human-feedback-form.html:9
 msgid "Rubric"
-msgstr ""
+msgstr "Benotungsrichtlinie"
 
 #: .\course\templates\course\invalid-datespec-list.html:5
 msgid "Event validity check"
-msgstr ""
+msgstr "Ereignis-Gültigkeitsprüfung"
 
 #: .\course\templates\course\invalid-datespec-list.html:8
 msgid ""
@@ -3839,7 +3839,7 @@ msgstr ""
 #: .\course\templates\course\prompt-code-question.html:11
 #: .\course\templates\course\prompt-code-question.html:38
 msgid "(click to view)"
-msgstr ""
+msgstr "(klicken zum Ansehen)"
 
 #. Translators: "set-up" stands for set-up code for code question
 #: .\course\templates\course\prompt-code-question.html:19
@@ -3853,7 +3853,7 @@ msgstr ""
 
 #: .\course\templates\course\sandbox-markup.html:12
 msgid "Markup Sandbox"
-msgstr ""
+msgstr "Markup-Sandkasten"
 
 #. Translators: "[SB]" is abbreviation for "Sandbox"
 #: .\course\templates\course\sandbox-page.html:10
@@ -3864,7 +3864,7 @@ msgstr ""
 #: .\course\templates\course\sandbox-page.html:14
 #: .\course\templates\course\sandbox-page.html:29
 msgid "Page Sandbox"
-msgstr ""
+msgstr "Seiten-Sandkasten"
 
 #: .\course\templates\course\sandbox-page.html:25
 msgid ""
@@ -4236,22 +4236,22 @@ msgstr ""
 
 #: .\course\views.py:325 .\relate\templates\base.html:78
 msgid "Set fake time"
-msgstr ""
+msgstr "Eine andere Zeit vorgeben"
 
 #: .\course\views.py:350
 msgctxt "Duration for instant flow"
 msgid "Duration in minutes"
-msgstr ""
+msgstr "Dauer in Minuten"
 
 #: .\course\views.py:355
 msgctxt "Add an instant flow"
 msgid "Add"
-msgstr ""
+msgstr "Hinzufügen"
 
 #: .\course\views.py:359
 msgctxt "Cancel all instant flow(s)"
 msgid "Cancel all"
-msgstr ""
+msgstr "Alle abbrechen"
 
 #: .\course\views.py:366
 msgid "must be instructor to manage instant flow requests"
@@ -4272,7 +4272,7 @@ msgstr ""
 
 #: .\course\views.py:466
 msgid "Test Flow"
-msgstr ""
+msgstr "Flow testen"
 
 #: .\course\views.py:498
 msgid "Select participant for whom exception is to be granted."
@@ -4281,7 +4281,7 @@ msgstr ""
 #: .\course\views.py:511 .\course\views.py:599
 msgctxt "Next step"
 msgid "Next"
-msgstr ""
+msgstr "Weiter"
 
 #: .\course\views.py:521 .\course\views.py:609 .\course\views.py:822
 msgid "must be instructor or TA to grant exceptions"
@@ -4289,13 +4289,13 @@ msgstr ""
 
 #: .\course\views.py:541 .\course\views.py:718 .\course\views.py:982
 msgid "Grant Exception"
-msgstr ""
+msgstr "Ausnahme gewähren"
 
 #. Translators: %s is the string of the start time of a session.
 #: .\course\views.py:548
 #, python-format
 msgid "started at %s"
-msgstr ""
+msgstr "begonnen am %s"
 
 #: .\course\views.py:565
 msgid ""
@@ -4373,7 +4373,7 @@ msgstr ""
 
 #: .\course\views.py:802
 msgid "Save"
-msgstr ""
+msgstr "Sichern"
 
 #: .\course\views.py:811
 msgid ""
@@ -4457,11 +4457,11 @@ msgstr ""
 
 #: .\relate\templates\404.html:27 .\relate\templates\500.html:25
 msgid "Sorry, and thanks for your patience!"
-msgstr ""
+msgstr "Entschuldigung, und vielen Dank für Ihre Geduld!"
 
 #: .\relate\templates\500.html:5
 msgid "500 Server Error"
-msgstr ""
+msgstr "500 Server-Fehler"
 
 #: .\relate\templates\500.html:8
 msgid ""
@@ -4485,32 +4485,32 @@ msgstr ""
 
 #: .\relate\templates\base.html:67
 msgid "Staff"
-msgstr ""
+msgstr "Mitarbeiter"
 
 #: .\relate\templates\base.html:70
 msgid "Admin site"
-msgstr ""
+msgstr "Verwaltungs-Site"
 
 #: .\relate\templates\base.html:72
 msgid "Test/Troubleshoot"
-msgstr ""
+msgstr "Testen/Fehler beheben"
 
 #: .\relate\templates\base.html:85
 msgid "Issue exam tickets"
-msgstr ""
+msgstr "Prüfungstickets ausgeben"
 
 #: .\relate\templates\base.html:86
 msgid "Exam check-in"
-msgstr ""
+msgstr "Prüfungs-Check-In"
 
 #: .\relate\templates\base.html:96
 #, python-format
 msgid "Signed in as %(username)s"
-msgstr ""
+msgstr "Als %(username)s angemeldet"
 
 #: .\relate\templates\base.html:103
 msgid "(impersonated)"
-msgstr ""
+msgstr "(ausgegeben als)"
 
 #: .\relate\templates\maintenance.html:7
 #, python-format
@@ -4521,8 +4521,8 @@ msgstr ""
 
 #: .\relate\templates\user-profile-form.html:7
 msgid "User Profile"
-msgstr ""
+msgstr "Benutzerprofil"
 
 #: .\relate\templates\user-profile-form.html:15
 msgid "Sign out"
-msgstr ""
+msgstr "Abmelden"
