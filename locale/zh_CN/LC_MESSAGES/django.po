@@ -476,11 +476,9 @@ msgid "Submit session for grading"
 msgstr "提交session用于评分"
 
 #: .\course\constants.py:126
-#, fuzzy
-#| msgid "Submit answer for grading"
 msgctxt "Flow expiration mode"
 msgid "Do not submit session for grading"
-msgstr "提交用于评分的回答"
+msgstr "不要提交session并评分"
 
 #: .\course\constants.py:138
 msgid "unknown expiration mode"
@@ -1794,7 +1792,7 @@ msgid "Instant flow requests"
 msgstr "即时flow"
 
 #: .\course\models.py:453
-msgid "Completition time"
+msgid "Completion time"
 msgstr "完成时间"
 
 #: .\course\models.py:455
