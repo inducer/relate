@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-09-17 09:24+0800\n"
+"POT-Creation-Date: 2015-09-17 11:27+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -1792,7 +1792,7 @@ msgid "Instant flow requests"
 msgstr "即时flow"
 
 #: .\course\models.py:453
-msgid "Completition time"
+msgid "Completion time"
 msgstr "完成时间"
 
 #: .\course\models.py:455
