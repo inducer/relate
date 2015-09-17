@@ -878,7 +878,7 @@ msgstr ""
 
 #: .\course\exam.py:424
 msgid "This is typically your full email address."
-msgstr ""
+msgstr "Dies ist typischerweise Ihre volle Email-Adresse."
 
 #: .\course\exam.py:425
 msgid "Code"
@@ -1320,7 +1320,7 @@ msgstr ""
 #: .\course\templates\course\grade-import-preview.html:14
 #: .\course\versioning.py:392
 msgid "Preview"
-msgstr ""
+msgstr "Vorschau"
 
 #: .\course\grades.py:1016
 msgid "Import"
@@ -1635,8 +1635,8 @@ msgid "Active git commit SHA"
 msgstr ""
 
 #: .\course\models.py:231
-msgid "Kurse"
-msgstr ""
+msgid "Courses"
+msgstr "Kurse"
 
 #: .\course\models.py:258
 msgid "Kind of event"
@@ -1650,11 +1650,11 @@ msgstr ""
 #: .\course\models.py:263 .\course\models.py:417 .\course\models.py:451
 #: .\course\templates\course\flow-start.html:23
 msgid "Start time"
-msgstr ""
+msgstr "Anfangszeit"
 
 #: .\course\models.py:265 .\course\models.py:419
 msgid "End time"
-msgstr ""
+msgstr "Endzeit"
 
 #. Translators: for when the due time is "All day", how the webpage
 #. of a event is displayed.
@@ -1673,12 +1673,12 @@ msgid "Shown in calendar"
 msgstr ""
 
 #: .\course\models.py:277
-msgid "Ereignis"
-msgstr ""
+msgid "Event"
+msgstr "Ereignis"
 
 #: .\course\models.py:278
-msgid "Ereignisse"
-msgstr ""
+msgid "Events"
+msgstr "Ereignisse"
 
 #. Translators: name format of ParticipationTag
 #: .\course\models.py:301
@@ -2652,7 +2652,7 @@ msgstr ""
 
 #: .\course\sandbox.py:66
 msgid "Content"
-msgstr ""
+msgstr "Inhalt"
 
 #: .\course\sandbox.py:84 .\course\sandbox.py:141
 msgid "must be instructor or TA to access sandbox"
@@ -2678,7 +2678,7 @@ msgstr ""
 
 #: .\course\sandbox.py:299
 msgid "Submit answer"
-msgstr ""
+msgstr "Antwort einreichen"
 
 #: .\course\templates\course\analytics-flow.html:5
 #: .\course\templates\course\analytics-flows.html:5
@@ -2694,7 +2694,7 @@ msgstr ""
 
 #: .\course\templates\course\analytics-flow.html:11
 msgid "Grade Distribution"
-msgstr ""
+msgstr "Notenverteilung"
 
 #. Translators: the following are the options when showing attempts of particiants in
 #. grade analytics.
@@ -3091,7 +3091,7 @@ msgstr ""
 #: .\course\templates\course\flow-completion-grade.html:12
 #: .\course\templates\course\flow-start.html:78
 msgid "Results"
-msgstr ""
+msgstr "Ergebnis"
 
 #. Translators: the following 5 blocks of literals make a sentence. PartI
 #: .\course\templates\course\flow-completion-grade.html:16
@@ -3192,12 +3192,12 @@ msgstr ""
 #: .\course\templates\course\flow-page.html:29
 msgctxt "Preivious page/item in a flow"
 msgid "Previous"
-msgstr ""
+msgstr "Voherige"
 
 #: .\course\templates\course\flow-page.html:34
 msgctxt "Next page/item in a flow"
 msgid "Next"
-msgstr ""
+msgstr "Nächste"
 
 #: .\course\templates\course\flow-page.html:36
 #: .\course\templates\course\flow-page.html:40
@@ -3206,20 +3206,16 @@ msgstr ""
 
 #. Translators: the string is followed by "what will happen" at deadline.
 #: .\course\templates\course\flow-page.html:48
-msgid "At deadline:"
-msgstr ""
-
-#: .\course\templates\course\flow-page.html:83
-msgid "Session duration:"
+msgid "Wenn fällig:"
 msgstr ""
 
 #: .\course\templates\course\flow-page.html:85
-msgid "minutes"
-msgstr ""
+msgid "Minutes"
+msgstr "Minuten"
 
 #: .\course\templates\course\flow-page.html:88
 msgid "Time factor:"
-msgstr ""
+msgstr "Zeitfaktor:"
 
 #: .\course\templates\course\flow-page.html:98
 #, python-format
@@ -3230,15 +3226,15 @@ msgstr[1] ""
 
 #: .\course\templates\course\flow-page.html:118
 msgid "(You may still change your answer after you submit it.)"
-msgstr ""
+msgstr "(Sie können Ihre Antwort noch ändern nachdem Sie sie eingereicht haben.)"
 
 #: .\course\templates\course\flow-page.html:191
 msgid "You have unsaved changes on this page."
-msgstr ""
+msgstr "Sie haben ungespeicherte Änderungen auf dieser Seite."
 
 #: .\course\templates\course\flow-page.html:249
 msgid "Saved."
-msgstr ""
+msgstr "Gespeichert."
 
 #: .\course\templates\course\flow-session-state.html:3
 msgid "in progress"
@@ -3246,16 +3242,16 @@ msgstr "im Gange"
 
 #: .\course\templates\course\flow-session-state.html:5
 msgid "finished"
-msgstr ""
+msgstr "fertig"
 
 #: .\course\templates\course\flow-start.html:19
 msgid "Past sessions"
-msgstr ""
+msgstr "Vergangene Sitzungen"
 
 #: .\course\templates\course\flow-start.html:25
 #: .\course\templates\course\gradebook-single.html:161
 msgid "Grading rules"
-msgstr ""
+msgstr "Benotungsregeln"
 
 #: .\course\templates\course\flow-start.html:26
 #: .\course\templates\course\gradebook-by-opp.html:33
@@ -3281,7 +3277,7 @@ msgstr "(keine Beschreibung)"
 #: .\course\templates\course\flow-start.html:53
 #, python-format
 msgid "<b>%(points)s</b> out of %(max_points)s (<b>%(percentage)s%%</b>)"
-msgstr ""
+msgstr "<b>%(points)s</b> von %(max_points)s (<b>%(percentage)s%%</b>)"
 
 #: .\course\templates\course\flow-start.html:61
 #: .\course\templates\course\gradebook-single.html:209
@@ -3878,7 +3874,7 @@ msgstr ""
 
 #: .\course\templates\course\sandbox-page.html:87
 msgid "(Page preview appears here)"
-msgstr ""
+msgstr "(Seitenvorschau erscheint hier)"
 
 #: .\course\templates\course\sign-in-email.txt:2
 #, python-format
