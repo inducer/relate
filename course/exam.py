@@ -176,9 +176,9 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
 <table class="table">
   <thead>
     <tr>
-      <th>""", _("User"), "</th><th>", 
-pgettext("real name of a user", "Name"), "</th><th>", 
-pgettext("ticket code required to login exam", "Code"), """</th>
+      <th>""", _("User"), "</th><th>",
+        pgettext("real name of a user", "Name"), "</th><th>",
+        pgettext("ticket code required to login exam", "Code"), """</th>
     </tr>
   </thead>
 
@@ -202,8 +202,8 @@ pgettext("ticket code required to login exam", "Code"), """</th>
 
 {% for ticket in tickets %}
 <h2 style="page-break-before: always">""",
-  _("Instructions for "
-  "{{ ticket.exam.description }}"),"""
+_("Instructions for "  # noqa
+  "{{ ticket.exam.description }}"), """
 </h2>
 
 """, _("These are personalized instructions for "
@@ -320,8 +320,8 @@ def batch_issue_exam_tickets(pctx):
                             Participation.objects.filter(
                                 course=pctx.course,
                                 status=participation_status.active)
-                            .order_by(
-                                "user__username")):
+                            .order_by("user__username")
+                            ):
                         ticket = ExamTicket()
                         ticket.exam = exam
                         ticket.participation = participation
@@ -332,14 +332,14 @@ def batch_issue_exam_tickets(pctx):
 
                         tickets.append(ticket)
 
-                        checkin_uri = pctx.request.build_absolute_uri(
-                                reverse("relate-check_in_for_exam"))
-                        form_text = markup_to_html(
-                                pctx.course, pctx.repo, pctx.course_commit_sha,
-                                form.cleaned_data["format"], jinja_env={
-                                        "tickets": tickets,
-                                        "checkin_uri": checkin_uri,
-                                        })
+                    checkin_uri = pctx.request.build_absolute_uri(
+                            reverse("relate-check_in_for_exam"))
+                    form_text = markup_to_html(
+                            pctx.course, pctx.repo, pctx.course_commit_sha,
+                            form.cleaned_data["format"], jinja_env={
+                                    "tickets": tickets,
+                                    "checkin_uri": checkin_uri,
+                                    })
             except TemplateSyntaxError as e:
                 messages.add_message(request, messages.ERROR,
                     string_concat(
