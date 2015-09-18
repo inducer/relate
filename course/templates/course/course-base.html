@@ -87,7 +87,10 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Content" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
-      <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Update course" %}</a></li>
+      <li><a href="{% url "admin:course_course_change" course.id %}">{% trans "Edit course" %}</a></li>
+      <li role="presentation" class="divider"></li>
+
+      <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Retrieve/preview new course revisions" %}</a></li>
       <li role="presentation" class="divider"></li>
 
       <li role="presentation" class="dropdown-header">{% trans "Content creation" %}</li>
