@@ -41,6 +41,8 @@ from django.utils.translation import (
         ugettext,
         string_concat,
         )
+from django.utils import translation
+from django.conf import settings
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
@@ -724,26 +726,27 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 grade_data[k] = grading_form.cleaned_data[k]
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
-            from django.template.loader import render_to_string
-            message = render_to_string("course/grade-notify.txt", {
-                "page_title": self.title(page_context, page_data),
-                "course": page_context.course,
-                "participation": page_context.flow_session.participation,
-                "feedback_text": grade_data["feedback_text"],
-                "flow_session": page_context.flow_session,
-                })
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                message = render_to_string("course/grade-notify.txt", {
+                    "page_title": self.title(page_context, page_data),
+                    "course": page_context.course,
+                    "participation": page_context.flow_session.participation,
+                    "feedback_text": grade_data["feedback_text"],
+                    "flow_session": page_context.flow_session,
+                    })
 
-            from django.core.mail import send_mail
-            from django.conf import settings
-            send_mail(
-                    string_concat("[%(identifier)s:%(flow_id)s] ",
-                        _("New notification"))
-                    % {'identifier': page_context.course.identifier,
-                        'flow_id': page_context.flow_session.flow_id},
-                    message,
-                    settings.ROBOT_EMAIL_FROM,
-                    recipient_list=[
-                        page_context.flow_session.participation.user.email])
+                from django.core.mail import send_mail
+                from django.conf import settings
+                send_mail(
+                        string_concat("[%(identifier)s:%(flow_id)s] ",
+                            _("New notification"))
+                        % {'identifier': page_context.course.identifier,
+                            'flow_id': page_context.flow_session.flow_id},
+                        message,
+                        settings.ROBOT_EMAIL_FROM,
+                        recipient_list=[
+                            page_context.flow_session.participation.user.email])
 
         return grade_data
 

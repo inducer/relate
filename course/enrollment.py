@@ -37,6 +37,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django import forms
+from django.utils import translation
 
 from crispy_forms.layout import Submit
 
@@ -131,20 +132,22 @@ def enroll(request, course_identifier):
     if course.enrollment_approval_required and preapproval is None:
         enroll(participation_status.requested, role)
 
-        from django.template.loader import render_to_string
-        message = render_to_string("course/enrollment-request-email.txt", {
-            "user": user,
-            "course": course,
-            "admin_uri": request.build_absolute_uri(
-                    reverse("admin:course_participation_changelist"))
-            })
-        from django.core.mail import send_mail
-        send_mail(
-                string_concat("[%s] ", _("New enrollment request"))
-                % course_identifier,
-                message,
-                settings.ROBOT_EMAIL_FROM,
-                recipient_list=[course.notify_email])
+        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from django.template.loader import render_to_string
+            message = render_to_string("course/enrollment-request-email.txt", {
+                "user": user,
+                "course": course,
+                "admin_uri": request.build_absolute_uri(
+                        reverse("admin:course_participation_changelist"))
+                })
+
+            from django.core.mail import send_mail
+            send_mail(
+                    string_concat("[%s] ", _("New enrollment request"))
+                    % course_identifier,
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[course.notify_email])
 
         messages.add_message(request, messages.INFO,
                 _("Enrollment request sent. You will receive notifcation "
@@ -175,26 +178,27 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             participation.status = participation_status.denied
         participation.save()
 
-        course = participation.course
-        from django.template.loader import render_to_string
-        message = render_to_string("course/enrollment-decision-email.txt", {
-            "user": participation.user,
-            "approved": approved,
-            "course": course,
-            "course_uri": request.build_absolute_uri(
-                    reverse("relate-course_page",
-                        args=(course.identifier,)))
-            })
+        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            course = participation.course
+            from django.template.loader import render_to_string
+            message = render_to_string("course/enrollment-decision-email.txt", {
+                "user": participation.user,
+                "approved": approved,
+                "course": course,
+                "course_uri": request.build_absolute_uri(
+                        reverse("relate-course_page",
+                            args=(course.identifier,)))
+                })
 
-        from django.core.mail import EmailMessage
-        msg = EmailMessage(
-                string_concat("[%s] ", _("Your enrollment request"))
-                % course.identifier,
-                message,
-                course.from_email,
-                [participation.user.email])
-        msg.bcc = [course.notify_email]
-        msg.send()
+            from django.core.mail import EmailMessage
+            msg = EmailMessage(
+                    string_concat("[%s] ", _("Your enrollment request"))
+                    % course.identifier,
+                    message,
+                    course.from_email,
+                    [participation.user.email])
+            msg.bcc = [course.notify_email]
+            msg.send()
 
         count += 1
 

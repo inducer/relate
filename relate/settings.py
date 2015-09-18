@@ -158,6 +158,8 @@ RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
 
 RELATE_CACHE_MAX_BYTES = 32768
 
+RELATE_ADMIN_EMAIL_LOCALE = "en_US"
+
 for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
