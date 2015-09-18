@@ -22,15 +22,19 @@
         {% if page_data.ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-            role="button">&laquo; {% trans "Previous" context "Preivious page/item in a flow" %}</a>
+            role="button">&laquo; {% trans "Previous" context "Previous page/item in a flow" %}</a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
             href="#"
-            role="button">&laquo; {% trans "Previous" context "Preivious page/item in a flow" %}</a>
+            role="button">&laquo; {% trans "Previous" context "Previous page/item in a flow" %}</a>
         {% endif %}
         {% if page_data.next_ordinal < flow_session.page_count %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
+            role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
+        {% else %}
+          <a class="btn btn-default relate-nav-button disabled"
+            href="#"
             role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
         {% endif %}
       </div>
