@@ -76,7 +76,6 @@ class InvalidPingResponse(RuntimeError):
 def request_python_run(run_req, run_timeout, image=None):
     import json
     from six.moves import http_client
-    from django.conf import settings
     import docker
     import socket
     import errno
@@ -612,7 +611,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         and
                         not is_nuisance_failure(response_dict)):
                     from django.core.mail import send_mail
-                    from django.conf import settings
                     send_mail("".join(["[%s] ", _("code question execution failed")])
                             % page_context.course.identifier,
                             message,
