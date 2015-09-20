@@ -138,7 +138,8 @@ def enroll(request, course_identifier):
                 "user": user,
                 "course": course,
                 "admin_uri": request.build_absolute_uri(
-                        reverse("admin:course_participation_changelist"))
+                        reverse("admin:course_participation_changelist")
+                                + "?status__exact=requested")
                 })
 
             from django.core.mail import send_mail
@@ -178,6 +179,15 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             participation.status = participation_status.denied
         participation.save()
 
+        send_enrollment_decision(participation, approved, request)
+
+        count += 1
+
+    messages.add_message(request, messages.INFO,
+            # Translators: how many enroll requests have ben processed.
+            _("%d requests processed.") % count)
+
+def send_enrollment_decision(participation, approved, request):
         with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
             course = participation.course
             from django.template.loader import render_to_string
@@ -199,12 +209,6 @@ def decide_enrollment(approved, modeladmin, request, queryset):
                     [participation.user.email])
             msg.bcc = [course.notify_email]
             msg.send()
-
-        count += 1
-
-    messages.add_message(request, messages.INFO,
-            # Translators: how many enroll requests have ben processed.
-            _("%d requests processed.") % count)
 
 
 def approve_enrollment(modeladmin, request, queryset):
@@ -254,6 +258,7 @@ def create_preapprovals(pctx):
 
             created_count = 0
             exist_count = 0
+            pending_approved_count = 0
 
             role = form.cleaned_data["role"]
             for l in form.cleaned_data["emails"].split("\n"):
@@ -267,7 +272,23 @@ def create_preapprovals(pctx):
                             email__iexact=l,
                             course=pctx.course)
                 except ParticipationPreapproval.DoesNotExist:
-                    pass
+
+                    # approve if l is requesting enrollment
+                    try:
+                        pending_participation = Participation.objects.get(
+                                course=pctx.course,
+                                status=participation_status.requested,
+                                user__email__iexact=l)
+
+                    except Participation.DoesNotExist:
+                        pass
+
+                    else:
+                        pending_participation.status = participation_status.active
+                        pending_participation.save()
+                        send_enrollment_decision(pending_participation, True, request)
+                        pending_approved_count += 1
+
                 else:
                     exist_count += 1
                     continue
@@ -282,10 +303,15 @@ def create_preapprovals(pctx):
                 created_count += 1
 
             messages.add_message(request, messages.INFO,
-                    _("%(n_created)d preapprovals created, "
-                    "%(n_exist)d already existed.") % {
+                    _(
+                        "%(n_created)d preapprovals created, "
+                        "%(n_exist)d already existed, "
+                        "%(n_requested_approved)d pending requests approved.") 
+                    % {
                         'n_created': created_count,
-                        'n_exist': exist_count})
+                        'n_exist': exist_count,
+                        'n_requested_approved': pending_approved_count
+                        })
             return redirect("relate-home")
 
     else:
