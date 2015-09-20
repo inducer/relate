@@ -65,6 +65,7 @@ Table of Contents
 
     content.rst
     flow.rst
+    faq.rst
     misc.rst
 
 * :ref:`genindex`
