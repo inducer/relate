@@ -82,6 +82,22 @@ def validate_role(location, role):
                 % {'location': location, 'role': role})
 
 
+def validate_facility(ctx, location, facility):
+    from django.conf import settings
+    facilities = getattr(settings, "RELATE_FACILITIES", None)
+    if facilities is None:
+        return
+
+    if facility not in facilities:
+        ctx.add_warning(location, _(
+            "Name of facility not recognized: '%(fac_name)s'. "
+            "Known facility names: '%(known_fac_names)s'")
+            % {
+                "fac_name": facility,
+                "known_fac_names": ", ".join(facilities),
+                })
+
+
 def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
     """
     :arg required_attrs: an attribute validation list (see below)
@@ -245,6 +261,9 @@ def validate_chunk_rule(ctx, location, chunk_rule):
     if hasattr(chunk_rule, "if_has_role"):
         for role in chunk_rule.if_has_role:
             validate_role(location, role)
+
+    if hasattr(chunk_rule, "if_in_facility"):
+        validate_facility(ctx, location, chunk_rule.if_in_facility)
 
     # {{{ deprecated
 
@@ -453,6 +472,9 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                     "%s, role %d" % (location, j+1),
                     role)
 
+    if hasattr(nrule, "if_in_facility"):
+        validate_facility(ctx, location, nrule.if_in_facility)
+
     if hasattr(nrule, "if_has_session_tagged"):
         if nrule.if_has_session_tagged is not None:
             validate_identifier(ctx, "%s: if_has_session_tagged" % location,
@@ -513,6 +535,10 @@ def validate_session_access_rule(ctx, location, arule, tags):
             validate_role(
                     "%s, role %d" % (location, j+1),
                     role)
+
+    if hasattr(arule, "if_in_facility"):
+        validate_facility(ctx, location, arule.if_in_facility)
+
     if hasattr(arule, "if_has_tag"):
         if not (arule.if_has_tag is None or arule.if_has_tag in tags):
             raise ValidationError(
