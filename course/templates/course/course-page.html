@@ -15,6 +15,7 @@
 {% block content %}
   {% if course.hidden %}
     <div class="alert alert-info">
+      <i class="fa fa-info-circle"></i>
       {% trans "This course is only visible to course staff at the moment." %}
       <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
         role="button" target="_blank">{% trans "Change" context "change the visibility of a course" %}&nbsp;&raquo;</a>
@@ -22,6 +23,7 @@
   {% endif %}
   {% if not course.valid %}
     <div class="alert alert-warning">
+      <i class="fa fa-warning"></i>
       {% blocktrans trimmed %}
       There may be a problem with the validity of course data, which may lead
       to students encountering unexpected errors.

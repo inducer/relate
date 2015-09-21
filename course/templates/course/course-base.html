@@ -45,25 +45,25 @@
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Grading" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
-      <li><a href="{% url "relate-flow_list" course.identifier %}">{% trans "Analytics Overview" %}</a></li>
+      <li><a href="{% url "relate-flow_list" course.identifier %}" target="_blank">{% trans "Analytics Overview" %}</a></li>
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">{% trans "Grades" %}</li>
-        <li><a href="{% url "relate-view_participant_list" course.identifier %}">{% trans "List of Participants" %}</a></li>
-        <li><a href="{% url "relate-view_grading_opportunity_list" course.identifier %}">{% trans "List of Grading Opportunities" %}</a></li>
-        <li><a href="{% url "relate-view_gradebook" course.identifier %}">{% trans "Grade book" %}</a></li>
-        <li><a href="{% url "relate-export_gradebook_csv" course.identifier %}">{% trans "Grade book (CSV export)" %}</a></li>
+        <li><a href="{% url "relate-view_participant_list" course.identifier %}" target="_blank">{% trans "List of Participants" %}</a></li>
+        <li><a href="{% url "relate-view_grading_opportunity_list" course.identifier %}" target="_blank">{% trans "List of Grading Opportunities" %}</a></li>
+        <li><a href="{% url "relate-view_gradebook" course.identifier %}" target="_blank">{% trans "Grade book" %}</a></li>
+        <li><a href="{% url "relate-export_gradebook_csv" course.identifier %}" target="_blank">{% trans "Grade book (CSV export)" %}</a></li>
       {% endif %}
       {% if role == pr.instructor %}
-        <li><a href="{% url "relate-import_grades" course.identifier %}">{% trans "Import Grades" %}</a></li>
+        <li><a href="{% url "relate-import_grades" course.identifier %}" target="_blank">{% trans "Import Grades" %}</a></li>
       {% endif %}
       <li><a href="{% url "relate-regrade_flows_view" course.identifier %}">{% trans "Regrade flows" %}</a></li>
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">{% trans "Exceptions" %}</li>
-        <li><a href="{% url "relate-grant_exception" course.identifier %}">{% trans "Grant exception" %}</a></li>
+        <li><a href="{% url "relate-grant_exception" course.identifier %}" target="_blank">{% trans "Grant exception" %}</a></li>
         {% if user.is_staff %}
         <li><a href="{% url "admin:course_flowruleexception_changelist" %}" target="_blank">{% trans "Show exceptions" %}</a></li>
         {% endif %}
@@ -75,7 +75,7 @@
         {% if user.is_staff %}
           <li><a href="{% url "admin:course_exam_changelist" %}" target="_blank">{% trans "Edit exams" %}</a></li>
         {% endif %}
-        <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
+        <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}" target="_blank">{% trans "Batch-issue exam tickets" %}</a></li>
       {% endif %}
 
     </ul>
@@ -87,26 +87,26 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Content" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
-      <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Retrieve/preview new course revisions" %}</a></li>
+      <li><a href="{% url "relate-update_course" course.identifier %}" target="_blank">{% trans "Retrieve/preview new course revisions" %}</a></li>
       <li role="presentation" class="divider"></li>
 
-      <li><a href="{% url "admin:course_course_change" course.id %}">{% trans "Edit course" %}</a></li>
+      <li><a href="{% url "admin:course_course_change" course.id %}" target="_blank">{% trans "Edit course" %}</a></li>
       <li role="presentation" class="divider"></li>
 
       <li role="presentation" class="dropdown-header">{% trans "Content creation" %}</li>
-      <li><a href="{% url "relate-view_page_sandbox" course.identifier %}">{% trans "Page sandbox" %}</a></li>
-      <li><a href="{% url "relate-view_markup_sandbox" course.identifier %}">{% trans "Markup sandbox" %}</a></li>
+      <li><a href="{% url "relate-view_page_sandbox" course.identifier %}" target="_blank">{% trans "Page sandbox" %}</a></li>
+      <li><a href="{% url "relate-view_markup_sandbox" course.identifier %}" target="_blank">{% trans "Markup sandbox" %}</a></li>
 
       <li role="presentation" class="divider"></li>
-      <li><a href="{% url "relate-test_flow" course.identifier %}">{% trans "Test flow" %}</a></li>
+      <li><a href="{% url "relate-test_flow" course.identifier %}" target="_blank">{% trans "Test flow" %}</a></li>
 
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">{% trans "Calendar" %}</li>
       {% if user.is_staff %}
         <li><a href="{% url "admin:course_event_changelist" %}" target="_blank">{% trans "Edit events" %}</a></li>
       {% endif %}
-      <li><a href="{% url "relate-create_recurring_events" course.identifier %}">{% trans "Create recurring events" %}</a></li>
-      <li><a href="{% url "relate-renumber_events" course.identifier %}">{% trans "Renumber events" %}</a></li>
+      <li><a href="{% url "relate-create_recurring_events" course.identifier %}" target="_blank">{% trans "Create recurring events" %}</a></li>
+      <li><a href="{% url "relate-renumber_events" course.identifier %}" target="_blank">{% trans "Renumber events" %}</a></li>
 
     </ul>
   </li>
@@ -117,11 +117,11 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Instructor" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li role="presentation" class="dropdown-header">{% trans "Participation" %}</li>
-      <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
+      <li><a href="{% url "relate-create_preapprovals" course.identifier %}" target="_blank">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
 
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">{% trans "Instant flow requests" %}</li>
-      <li><a href="{% url "relate-manage_instant_flow_requests" course.identifier %}">{% trans "Manage instant flow requests" %}</a></li>
+      <li><a href="{% url "relate-manage_instant_flow_requests" course.identifier %}" target="_blank">{% trans "Manage instant flow requests" %}</a></li>
     </ul>
   </li>
   {% endif %}
@@ -131,6 +131,7 @@
 {% block version_advice %}
   {% if participation.preview_git_commit_sha %}
     <div class="alert alert-info">
+      <i class='fa fa-info-circle'></i>
       {% trans "You are currently seeing a preview of revision" %}
       '{{participation.preview_git_commit_sha}}'.
       <a class="btn btn-sm btn-primary" href="{% url "relate-update_course" course.identifier %}"
@@ -142,6 +143,7 @@
 {% block nav_recommendations %}
   {% if instant_flow_requests %}
     <div class="alert alert-info">
+      <i class='fa fa-info-circle'></i>
       {% if num_instant_flow_requests == 1 %}
         {% trans "There is an interactive activity going on right now." %}
         {% for i, req in instant_flow_requests %}

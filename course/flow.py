@@ -1136,7 +1136,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             if submission_allowed and form.is_valid():
                 # {{{ form validated, process answer
 
-                messages.add_message(request, messages.INFO,
+                messages.add_message(request, messages.SUCCESS,
                         _("Answer saved."))
 
                 page_visit = FlowPageVisit()

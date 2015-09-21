@@ -163,8 +163,6 @@ def impersonate(request):
         if form.is_valid():
             user = get_user_model().objects.get(id=form.cleaned_data["user"])
 
-            messages.add_message(request, messages.INFO,
-                    _("Now impersonating '%s'.") % user.username)
             request.session['impersonate_id'] = user.id
 
             # Because we'll likely no longer have access to this page.

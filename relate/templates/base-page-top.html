@@ -14,16 +14,41 @@
       alert-{{ message.tags }}
     {% endif %}
     ">
+    {% if message.tags == "error" %}
+        <i class="fa fa-ban"></i>
+    {% elif message.tags == "success" %}
+        <i class="fa fa-hand-scissors-o"></i>
+    {% elif message.tags == "info" %}
+        <i class="fa fa-info-circle"></i>
+    {% elif message.tags == "warning" %}
+        <i class="fa fa-warning"></i>
+    {% elif message.tags == "danger warning" %}
+        <i class="fa fa-warning"></i>
+    {% endif %}
     {{ message|safe }}
   </div>
 {% endfor %}
 
 {% if fake_time %}
   <div class="alert alert-info">
+    <i class="fa fa-info-circle"></i>
     {% blocktrans trimmed %}
     You are currently seeing a preview of what the site
     would look like at {{ fake_time }}.
     {% endblocktrans %}
+    {% if user.is_staff %}
+    <a class="btn btn-default btn-sm" href="{% url "relate-set_fake_time" %}" role="button" target="_blank">
+        {% trans "Set fake time" %} &raquo;</a>
+    {% endif %}
   </div>
 {% endif %}
 
+{% if currently_impersonating %}
+  <div class="alert alert-info">
+    <i class="fa fa-info-circle"></i>
+    {% blocktrans trimmed with username=user.username first_name=user.first_name last_name=user.last_name email=user.email %}
+    Now impersonating {{ first_name }} {{ last_name }} ({{ username }}, {{ email }}).
+    {% endblocktrans %}
+    <a class="btn btn-default btn-sm" href="{% url "relate-stop_impersonating" %}" role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>
+  </div>
+{% endif %}
