@@ -622,7 +622,8 @@ class ExamLockdownMiddleware(object):
 
 def exam_lockdown_context_processor(request):
     return {
-            "relate_exam_lockdown": request.relate_exam_lockdown,
+            "relate_exam_lockdown": getattr(
+                request, "relate_exam_lockdown", None)
             }
 
 # }}}
