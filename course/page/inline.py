@@ -478,7 +478,7 @@ class ChoicesAnswer(AnswerBase):
 
     def get_form_field(self, page_context, force_required=False):
         choices = tuple(
-            (i,  self.process_choice_string(
+            (i, self.process_choice_string(
                 page_context, self.answers_desc.choices[i]))
             for i, src_i in enumerate(self.answers_desc.choices))
         choices = (
@@ -791,6 +791,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         return InlineMultiQuestionForm(
                 read_only,
                 self.get_dict_for_form(page_context),
+                page_context,
                 post_data, files_data)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
