@@ -26,6 +26,7 @@ import six
 
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.contrib import admin
+
 from course.models import (
         UserStatus,
         Course, Event,
@@ -260,22 +261,31 @@ class ParticipationForm(forms.ModelForm):
 class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
 
-    def get_user_first_name(self, obj):
-        return obj.user.first_name
+    def get_user(self, obj):
+        def verbose_blank(s):
+            if not s:
+                return _("(blank)")
+            else:
+                return s
 
-    get_user_first_name.short_description = _("First name")
-    get_user_first_name.admin_order_field = "user__first_name"
+        from django.core.urlresolvers import reverse
+        from django.conf import settings
 
-    def get_user_last_name(self, obj):
-        return obj.user.last_name
+        return _("<a href='%(link)s'>%(last_name)s, %(first_name)s</a>") % {
+                "link": reverse(
+                    "admin:%s_change" % settings.AUTH_USER_MODEL.replace(".", "_")
+                    .lower(),
+                    args=(obj.user.id,)),
+                "last_name": verbose_blank(obj.user.last_name),
+                "first_name": verbose_blank(obj.user.first_name)}
 
-    get_user_last_name.short_description = _("Last name")
-    get_user_last_name.admin_order_field = "user__last_name"
+    get_user.short_description = _("Name")
+    get_user.admin_order_field = "user__last_name"
+    get_user.allow_tags = True
 
     list_display = (
             "user",
-            "get_user_first_name",
-            "get_user_last_name",
+            "get_user",
             "course",
             "role",
             "status",
