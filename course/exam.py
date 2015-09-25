@@ -168,6 +168,7 @@ def issue_exam_ticket(request):
 
 # }}}
 
+
 # {{{ batch-issue tickets
 
 INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
@@ -320,7 +321,7 @@ def batch_issue_exam_tickets(pctx):
                             Participation.objects.filter(
                                 course=pctx.course,
                                 status=participation_status.active)
-                            .order_by("user__username")
+                            .order_by("user__last_name")
                             ):
                         ticket = ExamTicket()
                         ticket.exam = exam
