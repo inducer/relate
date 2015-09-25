@@ -64,7 +64,6 @@ def markup_to_html_plain(page_context, s):
     # indepenent line.
     s = ''.join(['<td>', s.strip(), '</td>'])
     s = markup_to_html(page_context, s)
-    print s
     s = s[5:-5]
     return s
 
