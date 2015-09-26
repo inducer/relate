@@ -1505,6 +1505,9 @@ def finish_flow_session_view(pctx, flow_session_id):
                 now_datetime=now_datetime)
 
         if is_graded_flow:
+            if flow_permission.cannot_see_flow_result in access_rule.permissions:
+                grade_info = None
+
             return render_finish_response(
                     "course/flow-completion-grade.html",
                     completion_text=completion_text,
@@ -1532,6 +1535,9 @@ def finish_flow_session_view(pctx, flow_session_id):
     elif not flow_session.in_progress:
         # Just reviewing: re-show grades.
         grade_info = gather_grade_info(fctx, flow_session, answer_visits)
+
+        if flow_permission.cannot_see_flow_result in access_rule.permissions:
+            grade_info = None
 
         return render_finish_response(
                 "course/flow-completion-grade.html",
