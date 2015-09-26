@@ -311,7 +311,7 @@ class MultipleChoiceQuestion(ChoiceQuestion):
         choices will receive credit for each matching check box, irrespective
         of whether it is checked or not.
 
-    .. attribute:: allow_partial_credit_strict
+    .. attribute:: allow_partial_credit_subset_only
 
         Optional. ``True`` or ``False``. If False (default), only
         answers in which all check marks match the reference solution will
@@ -325,19 +325,19 @@ class MultipleChoiceQuestion(ChoiceQuestion):
         if (
             getattr(self.page_desc, "allow_partial_credit", False)
             and
-            getattr(self.page_desc, "allow_partial_credit_strict", False)):
+            getattr(self.page_desc, "allow_partial_credit_subset_only", False)):
             raise ValidationError(
                     string_concat(
                         "%(location)s: ",
                         _("'allow_partial_credit' and "
-                        "'allow_partial_credit_strict' are not allowed to "
+                        "'allow_partial_credit_subset_only' are not allowed to "
                         "co-exist when both attribute are 'True'"))
                     % {'location': location})
 
     def allowed_attrs(self):
         return super(MultipleChoiceQuestion, self).allowed_attrs() + (
                 ("allow_partial_credit", bool),
-                ("allow_partial_credit_strict", bool),
+                ("allow_partial_credit_subset_only", bool),
                 )
 
     def make_choice_form(self, page_context, page_data, page_behavior,
@@ -384,7 +384,7 @@ class MultipleChoiceQuestion(ChoiceQuestion):
                                 .symmetric_difference(correct_idx_set)))
                         /
                         len(self.page_desc.choices))
-            elif getattr(self.page_desc, "allow_partial_credit_strict",
+            elif getattr(self.page_desc, "allow_partial_credit_subset_only",
                          False):
                 if unpermed_idx_set < correct_idx_set:
                     correctness = (
