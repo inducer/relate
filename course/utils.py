@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
@@ -368,10 +370,7 @@ class CoursePageContext(object):
     @property
     def remote_address(self):
         import ipaddress
-        try:
-            return ipaddress.ip_address(self.request.META['REMOTE_ADDR'])
-        except:
-            return None
+        return ipaddress.ip_address(six.text_type(self.request.META['REMOTE_ADDR']))
 
 
 class FlowContext(object):
@@ -661,7 +660,7 @@ def is_address_in_facility(remote_address, facility_id):
 
     import ipaddress
     for ir in ip_ranges:
-        if remote_address in ipaddress.ip_network(ir):
+        if remote_address in ipaddress.ip_network(six.text_type(ir)):
             return True
 
     return False
