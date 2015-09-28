@@ -10,7 +10,8 @@
   <h1>{% trans "End Session" %} '{{flow_desc.title}}'?</h1>
 
   {% if unanswered_count %}
-    <div class="alert alert-warning">
+    <div class="alert alert-danger">
+      <i class="fa fa-warning"></i>
       {% trans "You have left questions unanswered." %}
     </div>
   {% endif %}

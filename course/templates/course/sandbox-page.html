@@ -30,12 +30,14 @@
 
       {% if page_errors %}
         <div class="alert alert-danger">
+          <i class="fa fa-ban"></i>
           {{ page_errors | safe }}
         </div>
       {% endif %}
 
       {% if page_warnings %}
         <div class="alert alert-warning">
+          <i class="fa fa-warning"></i>
           {% blocktrans  trimmed %} Warnings were encountered when validating the page: {% endblocktrans %}
 
           <ul>

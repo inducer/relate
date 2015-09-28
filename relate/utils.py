@@ -102,10 +102,11 @@ def format_datetime_local(datetime, format='medium'):
     # See http://babel.pocoo.org/docs/api/dates/#date-and-time-formatting
     # for customizing the output format.
     try:
-        result = format_datetime(
-                datetime, format, locale=to_locale(settings.LANGUAGE_CODE))
+        locale = to_locale(settings.LANGUAGE_CODE)
     except ValueError:
-        result = format_datetime(datetime, format, locale="en_US")
+        locale="en_US"
+
+    result = format_datetime(datetime, format, locale=locale)
 
     return result
 

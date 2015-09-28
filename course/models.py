@@ -87,6 +87,8 @@ class UserStatus(models.Model):
             verbose_name=_('Key time'))
 
     editor_mode = models.CharField(max_length=20,
+            help_text=_("Your favorite text editor mode for text "
+                        "block or code block."),
             choices=(
                 ("default", _("Default")),
                 ("sublime", "Sublime text"),
@@ -374,6 +376,10 @@ class Participation(models.Model):
         verbose_name_plural = _("Participations")
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
+
+    def get_role_desc(self):
+        return dict(PARTICIPATION_ROLE_CHOICES).get(
+                self.role)
 
 
 class ParticipationPreapproval(models.Model):
