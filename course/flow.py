@@ -966,22 +966,25 @@ def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
                 or
                 flow_permission.see_answer_after_submission in permissions)
 
+    may_change_answer = (
+            (not answer_was_graded
+                or (flow_permission.change_answer in permissions))
+
+            # can happen if no answer was ever saved
+            and session_in_progress
+
+            and (flow_permission.submit_answer in permissions)
+
+            and (generates_grade and not is_unenrolled_session
+                or (not generates_grade))
+            )
+
     from course.page.base import PageBehavior
     return PageBehavior(
             show_correctness=show_correctness,
             show_answer=show_answer,
-            may_change_answer=(
-                    (not answer_was_graded
-                        or (flow_permission.change_answer in permissions))
-
-                    # can happen if no answer was ever saved
-                    and session_in_progress
-
-                    and (flow_permission.submit_answer in permissions)
-
-                    and (generates_grade and not is_unenrolled_session
-                        or (not generates_grade))
-                    ))
+            may_change_answer=may_change_answer,
+            )
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
