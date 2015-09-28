@@ -414,6 +414,12 @@ urlpatterns = [
 
     # }}}
 
+    # {{{ django-select2
+
+    url(r'^select2/', include('django_select2.urls')),
+
+    #}}}
+
     url(r'^admin/', include(admin.site.urls)),
 ]
 

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load django_select2_tags %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+{% import_django_select2_css %}
+<link href="/static/select2-bootstrap-css/select2-bootstrap.min.css" rel="stylesheet">
+  {% if form_description %}
+    <h1>{{ form_description }}</h1>
+  {% endif %}
+  {{ form_text|safe }}
+  <div class="well">
+    {% crispy form %}
+  </div>
+{% endblock %}
