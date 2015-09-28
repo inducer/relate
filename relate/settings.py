@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     "jsonfield",
     "bootstrap3_datetime",
     "djangobower",
+    "django_select2",
 
     # message queue
     "djcelery",
@@ -97,6 +98,7 @@ BOWER_INSTALLED_APPS = (
     "datatables",
     "datatables-fixedcolumns",
     "jstree",
+    "select2-bootstrap-css",
     )
 
 CODEMIRROR_PATH = "codemirror"
