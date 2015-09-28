@@ -56,7 +56,6 @@ from course.models import (
         )
 
 from relate.utils import StyledForm, StyledModelForm
-from django_select2 import AutoSelect2Field
 from django_select2.widgets import Select2Widget
 
 
@@ -129,7 +128,7 @@ class ImpersonateForm(StyledForm):
 
         impersonees = whom_may_impersonate(impersonator)
 
-        self.fields["user"] = AutoSelect2Field(
+        self.fields["user"] = forms.ChoiceField(
                 choices=[
                     (
                         # Translators: information displayed when selecting

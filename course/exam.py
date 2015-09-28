@@ -40,6 +40,7 @@ from django.contrib.auth.decorators import permission_required
 from django.db import transaction
 from django.core.urlresolvers import reverse
 
+from django_select2.widgets import Select2Widget
 from crispy_forms.layout import Submit
 
 from course.models import Exam, ExamTicket, Participation, FlowSession
@@ -87,6 +88,7 @@ class IssueTicketForm(StyledForm):
                         is_active=True,
                         )
                     .order_by("last_name")),
+                widget=Select2Widget(),
                 required=True,
                 help_text=_("Select participant for whom ticket is to "
                 "be issued."),
@@ -160,7 +162,7 @@ def issue_exam_ticket(request):
     else:
         form = IssueTicketForm()
 
-    return render(request, "generic-form.html", {
+    return render(request, "select2-form.html", {
         "form_description":
             _("Issue Exam Ticket"),
         "form": form,
