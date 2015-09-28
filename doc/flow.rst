@@ -584,6 +584,14 @@ The following page types are predefined:
 * :class:`FileUploadQuestion`
   -- a question allowing a file upload and human grading
 
+.. warning::
+
+    If you change the type of a question, you *must* also change its ID.
+    Otherwise, RELATE will assume that existing answer data for this
+    question applies to the new question type, and will likely get very
+    confused, for one because the answer data found will not be of the
+    expected type.
+
 .. |id-page-attr| replace::
 
     A short identifying name, unique within the page group. Alphanumeric
