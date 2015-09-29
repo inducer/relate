@@ -960,6 +960,40 @@ def check_attributes_yml(vctx, repo, path, tree):
                     path+"/"+entry.path.decode("utf-8"), subtree)
 
 
+# {{{ check whether page types were changed
+
+def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
+    from course.content import normalize_flow_desc
+    n_flow_desc = normalize_flow_desc(flow_desc)
+
+    from course.models import FlowPageData
+    for grp in n_flow_desc.groups:
+        for page_desc in grp.pages:
+            fpd_with_mismatched_page_types = list(
+                    FlowPageData.objects
+                    .filter(
+                        flow_session__course=course,
+                        flow_session__flow_id=flow_id,
+                        group_id=grp.id,
+                        page_id=page_desc.id)
+                    .exclude(page_type=None)
+                    .exclude(page_type=page_desc.type)
+                    [0:1])
+
+            if fpd_with_mismatched_page_types:
+                mismatched_fpd, = fpd_with_mismatched_page_types
+                raise ValidationError(
+                        _("%(loc)s, group '%(group)s', page '%(page)s': "
+                            "page type ('%(type_new)s') differs from "
+                            "type used in database ('%(type_old)s')")
+                        % {"loc": location, "group": grp.id,
+                            "page": page_desc.id,
+                            "type_new": page_desc.type,
+                            "type_old": mismatched_fpd.page_type})
+
+# }}}
+
+
 def validate_course_content(repo, course_file, events_file,
         validate_sha, course=None):
     course_desc = get_yaml_from_repo_safely(repo, course_file,
@@ -1055,6 +1089,10 @@ def validate_course_content(repo, course_file, events_file,
             used_grade_identifiers.add(flow_grade_identifier)
 
             # }}}
+
+            if course is not None:
+                check_for_page_type_changes(
+                        vctx, location, course, flow_id, flow_desc)
 
     return vctx.warnings
 

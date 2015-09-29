@@ -1062,9 +1062,10 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
             return FlowPageData(
                     flow_session=flow_session,
+                    ordinal=None,
+                    page_type=new_page_desc.type,
                     group_id=grp.id,
                     page_id=new_page_desc.id,
-                    ordinal=None,
                     data=page.make_page_data())
 
         def add_page(fpd):
