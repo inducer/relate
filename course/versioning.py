@@ -39,6 +39,7 @@ from django.utils.translation import (
         pgettext_lazy,
         string_concat,
         )
+from bootstrap3_datetime.widgets import DateTimePicker
 
 from django.db import transaction
 
@@ -180,7 +181,13 @@ class CourseCreationForm(StyledModelForm):
     class Meta:
         model = Course
         fields = (
-            "identifier", "hidden", "listed",
+            "identifier",
+            "name",
+            "number",
+            "time_period",
+            "start_date",
+            "end_date",
+            "hidden", "listed",
             "accepts_enrollment",
             "git_source", "ssh_private_key", "course_root_path",
             "course_file",
@@ -190,6 +197,10 @@ class CourseCreationForm(StyledModelForm):
             "from_email",
             "notify_email",
             )
+        widgets = {
+                "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                }
 
     def __init__(self, *args, **kwargs):
         super(CourseCreationForm, self).__init__(*args, **kwargs)
@@ -242,7 +253,6 @@ def set_up_new_course(request):
                         del repo
                         del vrepo
 
-                        new_course.valid = True
                         new_course.active_git_commit_sha = new_sha.decode()
                         new_course.save()
 
@@ -414,7 +424,6 @@ def run_course_update_command(
 
     elif command == "update" and may_update:
         pctx.course.active_git_commit_sha = new_sha.decode()
-        pctx.course.valid = True
         pctx.course.save()
 
         messages.add_message(request, messages.SUCCESS,

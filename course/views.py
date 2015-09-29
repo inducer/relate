@@ -67,7 +67,7 @@ from course.models import (
         FlowSession,
         FlowRuleException)
 
-from course.content import (get_course_repo, get_course_desc)
+from course.content import get_course_repo
 from course.utils import course_view, render_course_page
 
 
@@ -77,11 +77,11 @@ NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
 # {{{ home
 
 def home(request):
-    courses_and_descs_and_invalid_flags = []
-    for course in Course.objects.filter(listed=True):
-        repo = get_course_repo(course)
-        desc = get_course_desc(repo, course, course.active_git_commit_sha.encode())
+    now_datetime = get_now_or_fake_time(request)
 
+    current_courses = []
+    past_courses = []
+    for course in Course.objects.filter(listed=True):
         role, participation = get_role_and_participation(request, course)
 
         show = True
@@ -90,22 +90,21 @@ def home(request):
                     participation_role.instructor]:
                 show = False
 
-        if not course.valid:
-            if role != participation_role.instructor:
-                show = False
-
         if show:
-            courses_and_descs_and_invalid_flags.append(
-                    (course, desc, not course.valid))
+            if now_datetime.date() <= course.end_date:
+                current_courses.append(course)
+            else:
+                past_courses.append(course)
 
-    def course_sort_key(entry):
-        course, desc, invalid_flag = entry
-        return course.identifier
+    def course_sort_key(course):
+        return (course.start_date, course.identifier)
 
-    courses_and_descs_and_invalid_flags.sort(key=course_sort_key)
+    current_courses.sort(key=course_sort_key, reverse=True)
+    past_courses.sort(key=course_sort_key, reverse=True)
 
     return render(request, "course/home.html", {
-        "courses_and_descs_and_invalid_flags": courses_and_descs_and_invalid_flags
+        "current_courses": current_courses,
+        "past_courses": past_courses,
         })
 
 # }}}
@@ -122,9 +121,6 @@ def check_course_state(course, role):
         if role not in [participation_role.teaching_assistant,
                 participation_role.instructor]:
             raise PermissionDenied(_("only course staff have access"))
-    elif not course.valid:
-        if role != participation_role.instructor:
-            raise PermissionDenied(_("only the instructor has access"))
 
 
 @course_view
@@ -649,7 +645,8 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += ("<div class='alert alert-info'>%s</div><i class='fa fa-info-circle'></i>" %
+        form_text += ("<div class='alert alert-info'>%s</div>"
+                "<i class='fa fa-info-circle'></i>" %
                 (_("Creating a new session is (technically) not allowed "
                 "by course rules. Clicking 'Create Session' anyway will "
                 "override this rule.")))

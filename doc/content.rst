@@ -328,9 +328,6 @@ The content of this file allows the following fields:
 
 .. class:: Course
 
-    .. attribute:: name
-    .. attribute:: number
-    .. attribute:: run
     .. attribute:: chunks
 
         A list of :ref:`course-chunks`.

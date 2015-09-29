@@ -350,10 +350,16 @@ def view_calendar(pctx):
 
         events_json.append(event_json)
 
+    from course.views import get_now_or_fake_time
+    default_date = get_now_or_fake_time(pctx.request).date()
+    if pctx.course.end_date is not None and default_date > pctx.course.end_date:
+        default_date = pctx.course.end_date
+
     from json import dumps
     return render_course_page(pctx, "course/calendar.html", {
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
+        "default_date": default_date.isoformat(),
     })
 
 # }}}

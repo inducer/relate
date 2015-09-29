@@ -130,6 +130,28 @@ class Course(models.Model):
                         "numbers, and hypens ('-').")),
                     ]
             )
+    name = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable name for the course. "
+                "(e.g. 'Numerical Methods')"))
+    number = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable course number/ID "
+                "for the course (e.g. 'CS123')"))
+    time_period = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable description of the "
+                "time period for the course (e.g. 'Fall 2014')"))
+
+    start_date = models.DateField(
+            verbose_name=_('Start date'),
+            null=True, blank=True)
+    end_date = models.DateField(
+            verbose_name=_('End date'),
+            null=True, blank=True)
 
     hidden = models.BooleanField(
             default=True,
@@ -142,10 +164,6 @@ class Course(models.Model):
     accepts_enrollment = models.BooleanField(
             default=True,
             verbose_name=_('Accepts enrollment'))
-    valid = models.BooleanField(
-            default=True,
-            help_text=_("Whether the course content has passed validation."),
-            verbose_name=_('Valid'))
 
     git_source = models.CharField(max_length=200, blank=True,
             help_text=_("A Git URL from which to pull course updates. "

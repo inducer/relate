@@ -315,15 +315,26 @@ def validate_course_desc_struct(ctx, location, course_desc):
             location,
             course_desc,
             required_attrs=[
-                ("name", str),
-                ("number", str),
-                ("run", str),
                 ("chunks", list),
                 ],
             allowed_attrs=[
                 ("grade_summary_code", str),
+
+                ("name", str),
+                ("number", str),
+                ("run", str),
                 ]
             )
+
+    if hasattr(course_desc, "name"):
+        ctx.add_warning(location, _("'name' is deprecated. "
+            "This information is now kept in the database."))
+    if hasattr(course_desc, "number"):
+        ctx.add_warning(location, _("'number' is deprecated. "
+            "This information is now kept in the database."))
+    if hasattr(course_desc, "run"):
+        ctx.add_warning(location, _("'run' is deprecated. "
+            "This information is now kept in the database."))
 
     for i, chunk in enumerate(course_desc.chunks):
         validate_chunk(ctx,

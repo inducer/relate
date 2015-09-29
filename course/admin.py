@@ -144,8 +144,30 @@ class CourseAdminForm(forms.ModelForm):
 
 
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("identifier", "hidden", "valid", "listed", "accepts_enrollment")
-    list_filter = ("hidden", "valid", "listed", "accepts_enrollment")
+    list_display = (
+            "identifier",
+            "number",
+            "name",
+            "time_period",
+            "start_date",
+            "end_date",
+            "hidden",
+            "listed",
+            "accepts_enrollment")
+    list_editable = (
+            "number",
+            "name",
+            "time_period",
+            "start_date",
+            "end_date",
+            )
+    list_filter = (
+            "number",
+            "time_period",
+            "hidden",
+            "listed",
+            "accepts_enrollment")
+    date_hierarchy = "start_date"
 
     form = CourseAdminForm
 

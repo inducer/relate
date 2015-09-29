@@ -21,18 +21,6 @@
         role="button" target="_blank">{% trans "Change" context "change the visibility of a course" %}&nbsp;&raquo;</a>
     </div>
   {% endif %}
-  {% if not course.valid %}
-    <div class="alert alert-warning">
-      <i class="fa fa-warning"></i>
-      {% blocktrans trimmed %}
-      There may be a problem with the validity of course data, which may lead
-      to students encountering unexpected errors.
-      {% endblocktrans %}
-      <a class="btn btn-primary" href="{% url "relate-update_course" course.identifier %}"
-        role="button">{% trans "Update" %}&nbsp;&raquo;</a>
-    </div>
-  {% endif %}
-
   {% if not user.is_authenticated %}
     <div class="well">
       {% trans "You're not currently signed in." %}
