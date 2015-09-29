@@ -676,7 +676,6 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                                 for item in redundant_answer_list]))
 
         if vctx is not None:
-            print vctx.course
             validate_markup(vctx, location, page_desc.question)
 
             remainder_html = markup_to_html(vctx, page_desc.question)
