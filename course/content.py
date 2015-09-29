@@ -60,6 +60,9 @@ class SubdirRepoWrapper(object):
     def controldir(self):
         return self.repo.controldir()
 
+    def close(self):
+        self.repo.close()
+
 
 def get_course_repo_path(course):
     from os.path import join
