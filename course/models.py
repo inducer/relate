@@ -552,6 +552,12 @@ class FlowPageData(models.Model):
     ordinal = models.IntegerField(null=True, blank=True,
             verbose_name=_('Ordinal'))
 
+    # This exists to catch changing page types in course content,
+    # which will generally lead to an inconsistency disaster.
+    #page_type = models.CharField(max_length=200,
+            #verbose_name=_('Page type as indicated in course content'),
+            #null=True, blank=True)
+
     group_id = models.CharField(max_length=200,
             verbose_name=_('Group ID'))
     page_id = models.CharField(max_length=200,
