@@ -737,7 +737,6 @@ class PageBaseWithHumanTextFeedback(PageBase):
                     })
 
                 from django.core.mail import send_mail
-                from django.conf import settings
                 send_mail(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("New notification"))
