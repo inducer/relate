@@ -39,6 +39,9 @@ from django.utils.safestring import mark_safe
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 from django import forms
 from django import http
+from django.utils import translation
+from django.conf import settings
+from django.core.urlresolvers import reverse
 
 from relate.utils import (
         StyledForm, local_now, as_local_time,
@@ -1502,6 +1505,49 @@ def finish_flow_session_view(pctx, flow_session_id):
         grade_info = finish_flow_session(
                 fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
+
+        # {{{ send notify email if requested
+
+        if (hasattr(fctx.flow_desc, "notify_on_submit")
+                and fctx.flow_desc.notify_on_submit):
+            if (grading_rule.grade_identifier
+                    and flow_session.participation is not None):
+                from course.models import get_flow_grading_opportunity
+                review_uri = reverse("relate-view_single_grade",
+                        args=(
+                            pctx.course.identifier,
+                            flow_session.participation.id,
+                            get_flow_grading_opportunity(
+                                pctx.course, flow_session.flow_id, fctx.flow_desc,
+                                grading_rule).id))
+            else:
+                review_uri = reverse("relate-view_flow_page",
+                        args=(
+                            pctx.course.identifier,
+                            flow_session.id,
+                            0))
+
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                message = render_to_string("course/submit-notify.txt", {
+                    "course": fctx.course,
+                    "flow_session": flow_session,
+                    "review_uri": pctx.request.build_absolute_uri(review_uri)
+                    })
+
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
+                        string_concat("[%(identifier)s:%(flow_id)s] ",
+                            _("Submission by %s") % flow_session.participation)
+                        % {'identifier': fctx.course.identifier,
+                            'flow_id': flow_session.flow_id},
+                        message,
+                        fctx.course.from_email,
+                        fctx.flow_desc.notify_on_submit)
+                msg.bcc = [fctx.course.notify_email]
+                msg.send()
+
+        # }}}
 
         if is_graded_flow:
             if flow_permission.cannot_see_flow_result in access_rule.permissions:
