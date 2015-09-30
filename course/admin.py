@@ -564,7 +564,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
 
     search_fields = (
             "=id",
-            "flow_session__id",
+            "=flow_session__id",
             "flow_session__flow_id",
             "page_data__group_id",
             "page_data__page_id",
