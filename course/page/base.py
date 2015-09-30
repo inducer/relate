@@ -736,16 +736,17 @@ class PageBaseWithHumanTextFeedback(PageBase):
                     "flow_session": page_context.flow_session,
                     })
 
-                from django.core.mail import send_mail
-                send_mail(
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("New notification"))
                         % {'identifier': page_context.course.identifier,
                             'flow_id': page_context.flow_session.flow_id},
                         message,
-                        settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[
-                            page_context.flow_session.participation.user.email])
+                        page_context.course.from_email,
+                        [page_context.flow_session.participation.user.email])
+                msg.bcc = [page_context.course.notify_email]
+                msg.send()
 
         return grade_data
 
