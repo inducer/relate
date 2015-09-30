@@ -1,8 +1,13 @@
 {% load i18n %}{% if participation.user.first_name %}{% blocktrans trimmed with first_name=participation.user.first_name last_name=participation.user.last_name %}Dear {{first_name}},{% endblocktrans %}{% elif participation.user.email %}{% blocktrans trimmed with email=participation.user.email %}Dear {{email}},{% endblocktrans %}{% else %}{% blocktrans trimmed with username=participation.user.username %}Dear {{username}},{% endblocktrans %}{% endif %}
 {% blocktrans with flow_id=flow_session.flow_id flow_id=flow_session.flow_id course_identifier=course.identifier feedback_text=feedback_text|safe %}
-You have a new notification regarding your work on the problem with title {{ page_title }} in {{ flow_id }} of {{ course_identifier }}. The full text of the feedback follows.
+You have a new notification regarding your work on the page with title
+'{{ page_title }}' in '{{ flow_id }}' of '{{ course_identifier }}'. The
+full text of the feedback follows.
 -------------------------------------------------------------------
 {{ feedback_text }}
 -------------------------------------------------------------------
+Click here to review the feedback in context:
+{{ review_uri }}
+
 {% endblocktrans %}
 {% blocktrans %}- RELATE staff {% endblocktrans %}
