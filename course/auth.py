@@ -56,7 +56,7 @@ from course.models import (
         )
 
 from relate.utils import StyledForm, StyledModelForm
-from django_select2.widgets import Select2Widget
+from django_select2.forms import Select2Widget
 
 
 # {{{ impersonation
@@ -172,7 +172,7 @@ def impersonate(request):
     else:
         form = ImpersonateForm(request.user)
 
-    return render(request, "select2-form.html", {
+    return render(request, "generic-form.html", {
         "form_description": _("Impersonate user"),
         "form": form
         })

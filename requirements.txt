@@ -69,4 +69,4 @@ celery
 django-celery
 
 # For searchable select forms
-django_select2
+django_select2==5.0.3
