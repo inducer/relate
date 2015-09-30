@@ -91,7 +91,8 @@ def home(request):
                 show = False
 
         if show:
-            if now_datetime.date() <= course.end_date:
+            if (course.end_date is None
+                    or now_datetime.date() <= course.end_date):
                 current_courses.append(course)
             else:
                 past_courses.append(course)
