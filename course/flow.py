@@ -811,27 +811,22 @@ def view_start_flow(pctx, flow_id):
             remote_address=pctx.remote_address)
 
     if request.method == "POST":
-        if "start" in request.POST:
+        if not session_start_rule.may_start_new_session:
+            raise PermissionDenied(_("new session not allowed"))
 
-            if not session_start_rule.may_start_new_session:
-                raise PermissionDenied(_("new session not allowed"))
+        flow_user = pctx.request.user
+        if not flow_user.is_authenticated():
+            flow_user = None
 
-            flow_user = pctx.request.user
-            if not flow_user.is_authenticated():
-                flow_user = None
+        session = start_flow(
+                pctx.repo, pctx.course, pctx.participation,
+                user=flow_user,
+                flow_id=flow_id, flow_desc=fctx.flow_desc,
+                access_rules_tag=session_start_rule.tag_session,
+                now_datetime=now_datetime)
 
-            session = start_flow(
-                    pctx.repo, pctx.course, pctx.participation,
-                    user=flow_user,
-                    flow_id=flow_id, flow_desc=fctx.flow_desc,
-                    access_rules_tag=session_start_rule.tag_session,
-                    now_datetime=now_datetime)
-
-            return redirect("relate-view_flow_page",
-                    pctx.course.identifier, session.id, 0)
-
-        else:
-            raise SuspiciousOperation(_("unrecognized POST action"))
+        return redirect("relate-view_flow_page",
+                pctx.course.identifier, session.id, 0)
 
     else:
         if session_start_rule.may_list_existing_sessions:

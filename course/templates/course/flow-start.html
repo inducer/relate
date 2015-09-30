@@ -158,10 +158,19 @@
         </script>
 
       {% else %}
-        <button type="submit" name="start" class="btn btn-primary">
+        <button id="start-button" type="submit" name="start" class="btn btn-primary">
           {% trans "Start" %} &raquo;
         </button>
       {% endif %}
+
+      <script type="text/javascript">
+        $("#start-button").on('click',
+            function()
+            {
+              $("#start-button").attr("disabled", "1");
+               $(this).parents('form').submit();
+            });
+      </script>
 
       {# }}} #}
 
