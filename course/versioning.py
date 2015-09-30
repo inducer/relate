@@ -227,6 +227,8 @@ def set_up_new_course(request):
                 import os
                 os.makedirs(repo_path)
 
+                repo = None
+
                 try:
                     with transaction.atomic():
                         from dulwich.repo import Repo
@@ -282,8 +284,8 @@ def set_up_new_course(request):
                     import shutil
 
                     # Make sure files opened for 'repo' above are actually closed.
-                    import gc
-                    gc.collect()
+                    if repo is not None:  # noqa
+                        repo.close()  # noqa
 
                     def remove_readonly(func, path, _):  # noqa
                         "Clear the readonly bit and reattempt the removal"
