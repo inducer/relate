@@ -813,6 +813,7 @@ def validate_flow_desc(ctx, location, flow_desc):
                 ("rules", Struct),
                 ("groups", list),
                 ("pages", list),
+                ("notify_on_submit", list),
                 ]
             )
 
@@ -889,6 +890,13 @@ def validate_flow_desc(ctx, location, flow_desc):
     validate_markup(ctx, location, flow_desc.description)
     if hasattr(flow_desc, "completion_text"):
         validate_markup(ctx, location, flow_desc.completion_text)
+
+    if hasattr(flow_desc, "notify_on_submit"):
+        for i, item in enumerate(flow_desc.notify_on_submit):
+            if not isinstance(item, six.string_types):
+                raise ValidationError(
+                        "%s, notify_on_submit: item %d is not a string"
+                        % (location, i+1))
 
 # }}}
 
