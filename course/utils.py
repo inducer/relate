@@ -409,7 +409,7 @@ class FlowPageContext(FlowContext):
     """
 
     def __init__(self, repo, course, flow_id, ordinal,
-             participation, flow_session):
+             participation, flow_session, request=None):
         FlowContext.__init__(self, repo, course, flow_id,
                 participation, flow_session=flow_session)
 
@@ -436,11 +436,19 @@ class FlowPageContext(FlowContext):
         else:
             self.page = instantiate_flow_page_with_ctx(self, page_data)
 
+            page_uri = None
+            if request is not None:
+                from django.core.urlresolvers import reverse
+                page_uri = request.build_absolute_uri(
+                        reverse("relate-view_flow_page",
+                            args=(course.identifier, flow_session.id, ordinal)))
+
             from course.page import PageContext
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
                     commit_sha=self.course_commit_sha,
-                    flow_session=flow_session)
+                    flow_session=flow_session,
+                    page_uri=page_uri)
 
         self._prev_answer_visit = False
 

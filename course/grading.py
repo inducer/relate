@@ -71,7 +71,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
             page_ordinal, participation=flow_session.participation,
-            flow_session=flow_session)
+            flow_session=flow_session, request=pctx.request)
 
     if fpctx.page_desc is None:
         raise http.Http404()

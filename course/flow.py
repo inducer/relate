@@ -1065,7 +1065,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     try:
         fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, ordinal,
                 participation=pctx.participation,
-                flow_session=flow_session)
+                flow_session=flow_session,
+                request=pctx.request)
     except PageOrdinalOutOfRange:
         return redirect("relate-view_flow_page",
                 pctx.course.identifier,

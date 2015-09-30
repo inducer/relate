@@ -139,7 +139,7 @@ def enroll(request, course_identifier):
                 "course": course,
                 "admin_uri": request.build_absolute_uri(
                         reverse("admin:course_participation_changelist")
-                                + "?status__exact=requested")
+                        + "?status__exact=requested")
                 })
 
             from django.core.mail import send_mail
@@ -186,6 +186,7 @@ def decide_enrollment(approved, modeladmin, request, queryset):
     messages.add_message(request, messages.INFO,
             # Translators: how many enroll requests have ben processed.
             _("%d requests processed.") % count)
+
 
 def send_enrollment_decision(participation, approved, request):
         with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
@@ -286,7 +287,8 @@ def create_preapprovals(pctx):
                     else:
                         pending_participation.status = participation_status.active
                         pending_participation.save()
-                        send_enrollment_decision(pending_participation, True, request)
+                        send_enrollment_decision(
+                                pending_participation, True, request)
                         pending_approved_count += 1
 
                 else:
@@ -306,7 +308,7 @@ def create_preapprovals(pctx):
                     _(
                         "%(n_created)d preapprovals created, "
                         "%(n_exist)d already existed, "
-                        "%(n_requested_approved)d pending requests approved.") 
+                        "%(n_requested_approved)d pending requests approved.")
                     % {
                         'n_created': created_count,
                         'n_exist': exist_count,
