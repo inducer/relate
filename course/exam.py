@@ -444,6 +444,9 @@ def check_in_for_exam(request):
             username = form.cleaned_data["username"]
             code = form.cleaned_data["code"]
 
+            pretend_facilities = request.session.get(
+                    "relate_pretend_facilities", None)
+
             from django.contrib.auth import authenticate, login
             user = authenticate(username=username, code=code,
                     now_datetime=now_datetime)
@@ -469,6 +472,10 @@ def check_in_for_exam(request):
                     ticket.save()
 
                 request.session["relate_session_exam_ticket_pk"] = ticket.pk
+
+                if pretend_facilities:
+                    # Make pretend-facilities survive exam login.
+                    request.session["relate_pretend_facilities"] = pretend_facilities
 
                 return redirect("relate-view_start_flow",
                         ticket.exam.course.identifier,
