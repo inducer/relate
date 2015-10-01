@@ -487,27 +487,16 @@ def check_in_for_exam(request):
 
 
 def is_from_exams_only_facility(request):
-    import ipaddress
-
-    remote_address = ipaddress.ip_address(six.text_type(request.META['REMOTE_ADDR']))
-
-    exams_only = False
-
     from django.conf import settings
     for name, props in six.iteritems(settings.RELATE_FACILITIES):
         if not props.get("exams_only", False):
             continue
 
-        ip_ranges = props.get("ip_ranges", [])
-        for ir in ip_ranges:
-            if remote_address in ipaddress.ip_network(six.text_type(ir)):
-                exams_only = True
-                break
+        # By now we know that this facility is exams-only
+        if name in request.relate_facilities:
+            return True
 
-        if exams_only:
-            break
-
-    return exams_only
+    return False
 
 
 # {{{ lockdown middleware

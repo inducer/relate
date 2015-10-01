@@ -75,6 +75,7 @@
                     <li><a href="{% url "relate-impersonate" %}" target="_blank">{% trans "Impersonate user" %}</a></li>
                   {% endif %}
                   <li><a href="{% url "relate-set_fake_time" %}" target="_blank">{% trans "Set fake time" %}</a></li>
+                  <li><a href="{% url "relate-set_pretend_facilities" %}" target="_blank">{% trans "Pretend to be in facilities" %}</a></li>
                 {% endif %}
                 {% if perms.course.can_issue_exam_tickets %}
                   {% if user.is_staff or currently_impersonating %}

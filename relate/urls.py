@@ -97,6 +97,10 @@ urlpatterns = [
         course.views.set_fake_time,
         name="relate-set_fake_time"),
 
+    url(r'^time/set-pretend-facilities/$',
+        course.views.set_pretend_facilities,
+        name="relate-set_pretend_facilities"),
+
     # }}}
 
     # {{{ course
