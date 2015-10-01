@@ -855,15 +855,23 @@ admin.site.register(Exam, ExamAdmin)
 
 
 class ExamTicketAdmin(admin.ModelAdmin):
+    def get_course(self, obj):
+        return obj.participation.course
+
+    get_course.short_description = _("Participant")
+    get_course.admin_order_field = "participation__course"
+
     list_filter = (
             "participation__course",
             "state",
             )
 
     list_display = (
+            "get_course",
             "exam",
             "participation",
             "state",
+            "creation_time",
             "usage_time",
             )
 
