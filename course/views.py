@@ -353,6 +353,7 @@ class FakeFacilityForm(StyledForm):
 
         self.fields["custom_facilities"] = forms.CharField(
                 label=_("Custom facilities"),
+                required=False,
                 help_text=_("More (non-predefined) facility names, separated "
                     "by commas, which would like to pretend to be in"))
 
