@@ -563,6 +563,8 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
 
         flow_session.access_rules_tag = session_start_rule.tag_session
 
+        # {{{ FIXME: This is weird and should probably not exist.
+
         access_rule = get_session_access_rule(flow_session,
                 flow_session.participation.role,
                 fctx.flow_desc, now_datetime)
@@ -570,6 +572,9 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         if not is_expiration_mode_allowed(
                 flow_session.expiration_mode, access_rule.permissions):
             flow_session.expiration_mode = flow_session_expiration_mode.end
+
+        # }}}
+
         flow_session.save()
 
         return True
@@ -811,7 +816,7 @@ def view_start_flow(pctx, flow_id):
 
     session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
             pctx.role, flow_id, fctx.flow_desc, now_datetime,
-            remote_address=pctx.remote_address)
+            facilities=pctx.request.relate_facilities)
 
     if request.method == "POST":
         if not session_start_rule.may_start_new_session:
@@ -848,7 +853,7 @@ def view_start_flow(pctx, flow_id):
             for session in past_sessions:
                 access_rule = get_session_access_rule(
                         session, pctx.role, fctx.flow_desc, now_datetime,
-                        remote_address=pctx.remote_address)
+                        facilities=pctx.request.relate_facilities)
                 grading_rule = get_session_grading_rule(
                         session, pctx.role, fctx.flow_desc, now_datetime)
 
@@ -1074,7 +1079,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     now_datetime = get_now_or_fake_time(request)
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fpctx.flow_desc, now_datetime,
-            pctx.remote_address)
+            facilities=pctx.request.relate_facilities)
 
     grading_rule = get_session_grading_rule(
             flow_session, pctx.role, fpctx.flow_desc, now_datetime)
@@ -1428,7 +1433,7 @@ def update_expiration_mode(pctx, flow_session_id):
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fctx.flow_desc,
             get_now_or_fake_time(pctx.request),
-            pctx.remote_address)
+            facilities=pctx.request.relate_facilities)
 
     if is_expiration_mode_allowed(expmode, access_rule.permissions):
         flow_session.expiration_mode = expmode
@@ -1461,7 +1466,7 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fctx.flow_desc, now_datetime,
-            pctx.remote_address)
+            facilities=pctx.request.relate_facilities)
 
     answer_visits = assemble_answer_visits(flow_session)
 

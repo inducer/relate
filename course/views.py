@@ -133,7 +133,7 @@ def course_page(pctx):
     chunks = get_processed_course_chunks(
             pctx.course, pctx.repo, pctx.course_commit_sha, pctx.course_desc,
             pctx.role, get_now_or_fake_time(pctx.request),
-            remote_address=pctx.remote_address)
+            facilities=pctx.request.relate_facilities)
 
     show_enroll_button = (
             pctx.course.accepts_enrollment
@@ -329,6 +329,81 @@ def set_fake_time(request):
 def fake_time_context_processor(request):
     return {
             "fake_time": get_fake_time(request),
+            }
+
+# }}}
+
+
+# {{{ space travel (i.e. pretend to be in facility)
+
+class FakeFacilityForm(StyledForm):
+    def __init__(self, *args, **kwargs):
+        from django.conf import settings
+
+        super(FakeFacilityForm, self).__init__(*args, **kwargs)
+
+        self.fields["facilities"] = forms.MultipleChoiceField(
+                choices=(
+                    (name, name)
+                    for name in settings.RELATE_FACILITIES),
+                widget=forms.CheckboxSelectMultiple,
+                required=False,
+                label=_("Facilities"),
+                help_text=_("Facilities you wish to pretend to be in"))
+
+        self.fields["custom_facilities"] = forms.CharField(
+                label=_("Custom facilities"),
+                help_text=_("More (non-predefined) facility names, separated "
+                    "by commas, which would like to pretend to be in"))
+
+        self.helper.add_input(
+                # Translators: "set" fake facility.
+                Submit("set", _("Set")))
+        self.helper.add_input(
+                # Translators: "unset" fake facility.
+                Submit("unset", _("Unset")))
+
+
+def set_pretend_facilities(request):
+    if not request.user.is_staff:
+        raise PermissionDenied(_("only staff may set fake facility"))
+
+    if request.method == "POST":
+        form = FakeFacilityForm(request.POST)
+        do_set = "set" in form.data
+        if form.is_valid():
+            if do_set:
+                pretend_facilities = (
+                        form.cleaned_data["facilities"]
+                        + [s.strip()
+                            for s in (
+                                form.cleaned_data["custom_facilities"].split(","))
+                            if s.strip()])
+
+                request.session["relate_pretend_facilities"] = pretend_facilities
+            else:
+                request.session.pop("relate_pretend_facilities", None)
+
+    else:
+        if "relate_pretend_facilities" in request.session:
+            form = FakeFacilityForm({
+                "facilities": [],
+                "custom_facilities": ",".join(
+                    request.session["relate_pretend_facilities"])
+                })
+        else:
+            form = FakeFacilityForm()
+
+    return render(request, "generic-form.html", {
+        "form": form,
+        "form_description": _("Pretend to be in Facilities"),
+    })
+
+
+def pretend_facilities_context_processor(request):
+    return {
+            "pretend_facilities": request.session.get(
+                "relate_pretend_facilities", []),
             }
 
 # }}}

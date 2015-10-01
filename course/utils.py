@@ -135,10 +135,13 @@ def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
 
 
 def get_session_start_rule(course, participation, role, flow_id, flow_desc,
-        now_datetime, remote_address=None, for_rollover=False):
+        now_datetime, facilities=None, for_rollover=False):
     """Return a :class:`FlowSessionStartRule` if a new session is
     permitted or *None* if no new session is allowed.
     """
+
+    if facilities is None:
+        facilities = frozenset()
 
     from relate.utils import dict_to_struct
     rules = get_flow_rules(flow_desc, flow_rule_kind.start,
@@ -153,7 +156,7 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
             continue
 
         if not for_rollover and hasattr(rule, "if_in_facility"):
-            if not is_address_in_facility(remote_address, rule.if_in_facility):
+            if rule.if_in_facility not in facilities:
                 continue
 
         if not for_rollover and hasattr(rule, "if_has_in_progress_session"):
@@ -209,10 +212,13 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
 
 
 def get_session_access_rule(session, role, flow_desc, now_datetime,
-        remote_address=None):
+        facilities=None):
     """Return a :class:`ExistingFlowSessionRule`` to describe
     how a flow may be accessed.
     """
+
+    if facilities is None:
+        facilities = frozenset()
 
     from relate.utils import dict_to_struct
     rules = get_flow_rules(flow_desc, flow_rule_kind.access,
@@ -227,7 +233,7 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
             continue
 
         if hasattr(rule, "if_in_facility"):
-            if not is_address_in_facility(remote_address, rule.if_in_facility):
+            if rule.if_in_facility not in facilities:
                 continue
 
         if hasattr(rule, "if_has_tag"):
@@ -249,10 +255,6 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
                 duration_min /= float(session.participation.time_factor)
 
             if duration_min > rule.if_session_duration_shorter_than_minutes:
-                continue
-
-        if hasattr(rule, "if_in_facility"):
-            if not is_address_in_facility(remote_address, rule.if_in_facility):
                 continue
 
         permissions = set(rule.permissions)
@@ -366,11 +368,6 @@ class CoursePageContext(object):
         self.repo = get_course_repo(self.course)
         self.course_desc = get_course_desc(self.repo, self.course,
                 self.course_commit_sha)
-
-    @property
-    def remote_address(self):
-        import ipaddress
-        return ipaddress.ip_address(six.text_type(self.request.META['REMOTE_ADDR']))
 
 
 class FlowContext(object):
@@ -657,21 +654,29 @@ def get_codemirror_widget(language_mode, interaction_mode,
 # }}}
 
 
-# {{{ facility checking
+# {{{ facility processing
 
-def is_address_in_facility(remote_address, facility_id):
-    if remote_address is None:
-        return False
+class FacilityFindingMiddleware(object):
+    def process_request(self, request):
+        pretend_facilities = request.session.get("relate_pretend_facilities")
 
-    from django.conf import settings
-    ip_ranges = settings.RELATE_FACILITIES.get(facility_id, {}).get("ip_ranges", [])
+        if pretend_facilities is not None:
+            facilities = pretend_facilities
+        else:
+            import ipaddress
+            remote_address = ipaddress.ip_address(
+                    six.text_type(request.META['REMOTE_ADDR']))
 
-    import ipaddress
-    for ir in ip_ranges:
-        if remote_address in ipaddress.ip_network(six.text_type(ir)):
-            return True
+            facilities = set()
 
-    return False
+            from django.conf import settings
+            for name, props in six.iteritems(settings.RELATE_FACILITIES):
+                ip_ranges = props.get("ip_ranges", [])
+                for ir in ip_ranges:
+                    if remote_address in ipaddress.ip_network(six.text_type(ir)):
+                        facilities.add(name)
+
+        request.relate_facilities = frozenset(facilities)
 
 # }}}
 
