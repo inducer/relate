@@ -376,41 +376,59 @@ def batch_issue_exam_tickets(pctx):
 
 # {{{ check in
 
+def check_exam_ticket(username, code, now_datetime):
+    """
+    :returns: (is_valid, msg)
+    """
+
+    try:
+        user = get_user_model().objects.get(
+                username=username,
+                is_active=True)
+        ticket = ExamTicket.objects.get(
+                participation__user=user,
+                code=code,
+                )
+    except ObjectDoesNotExist:
+        return (False, _("User name or ticket code not recognized."))
+
+    if ticket.state not in [
+            exam_ticket_states.valid,
+            exam_ticket_states.used
+            ]:
+        return (False, _("Ticket is not in usable state. (Has it been revoked?)"))
+
+    from django.conf import settings
+    from datetime import timedelta
+
+    validity_period = timedelta(
+            minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
+
+    if (ticket.state == exam_ticket_states.used
+            and now_datetime >= ticket.usage_time + validity_period):
+        return (False, _("Ticket has exceeded its validity period."))
+
+    if ticket.exam.no_exams_before >= now_datetime:
+        return (False, _("Exam has not started yet."))
+    if (
+            ticket.exam.no_exams_after is not None
+            and
+            ticket.exam.no_exams_after <= now_datetime):
+        return (False, _("Exam has ended."))
+
+    return True, _("Ticket is valid.")
+
+
 class ExamTicketBackend(object):
     def authenticate(self, username=None, code=None, now_datetime=None):
-        try:
-            user = get_user_model().objects.get(
-                    username=username,
-                    is_active=True)
-            ticket = ExamTicket.objects.get(
-                    participation__user=user,
-                    code=code,
-                    state__in=(
-                        exam_ticket_states.valid,
-                        exam_ticket_states.used,
-                        )
-                    )
+        is_valid, msg = check_exam_ticket(username, code, now_datetime)
 
-            from django.conf import settings
-            from datetime import timedelta
-
-            validity_period = timedelta(
-                    minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
-
-            if (ticket.state == exam_ticket_states.used
-                    and now_datetime >= ticket.usage_time + validity_period):
-                return None
-            if ticket.exam.no_exams_before >= now_datetime:
-                return None
-            if (
-                    ticket.exam.no_exams_after is not None
-                    and
-                    ticket.exam.no_exams_after <= now_datetime):
-                return None
-
-        except ObjectDoesNotExist:
+        if not is_valid:
             return None
 
+        user = get_user_model().objects.get(
+                username=username,
+                is_active=True)
         return user
 
     def get_user(self, user_id):
@@ -447,15 +465,16 @@ def check_in_for_exam(request):
             pretend_facilities = request.session.get(
                     "relate_pretend_facilities", None)
 
-            from django.contrib.auth import authenticate, login
-            user = authenticate(username=username, code=code,
-                    now_datetime=now_datetime)
-
-            if user is None:
-                messages.add_message(request, messages.ERROR,
-                        _("Invalid check-in data."))
-
+            is_valid, msg = check_exam_ticket(username, code, now_datetime)
+            if not is_valid:
+                messages.add_message(request, messages.ERROR, msg)
             else:
+                from django.contrib.auth import authenticate, login
+                user = authenticate(username=username, code=code,
+                        now_datetime=now_datetime)
+
+                assert user is not None
+
                 login(request, user)
 
                 ticket = ExamTicket.objects.get(

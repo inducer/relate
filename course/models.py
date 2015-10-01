@@ -1451,7 +1451,7 @@ class ExamTicket(models.Model):
     class Meta:
         verbose_name = _("Exam ticket")
         verbose_name_plural = _("Exam tickets")
-        ordering = ("exam__course", "exam", "usage_time")
+        ordering = ("exam__course", "-creation_time")
         permissions = (
                 ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
                 )
