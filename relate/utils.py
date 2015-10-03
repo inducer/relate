@@ -104,7 +104,7 @@ def format_datetime_local(datetime, format='medium'):
     try:
         locale = to_locale(settings.LANGUAGE_CODE)
     except ValueError:
-        locale="en_US"
+        locale = "en_US"
 
     result = format_datetime(datetime, format, locale=locale)
 
