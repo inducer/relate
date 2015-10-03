@@ -155,6 +155,8 @@
           </td>
           <td>
             {{ ordinal }}
+            &middot;
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id ordinal %}">{% trans "View in flow" %}</a>
           </td>
         </tr>
       </table>
