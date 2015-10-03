@@ -97,11 +97,17 @@ def home(request):
             else:
                 past_courses.append(course)
 
-    def course_sort_key(course):
-        return (course.start_date, course.identifier)
+    def course_sort_key_minor(course):
+        return course.number if course.number is not None else ""
 
-    current_courses.sort(key=course_sort_key, reverse=True)
-    past_courses.sort(key=course_sort_key, reverse=True)
+    def course_sort_key_major(course):
+        return (course.start_date
+                if course.start_date is not None else now_datetime.date())
+
+    current_courses.sort(key=course_sort_key_minor)
+    past_courses.sort(key=course_sort_key_minor)
+    current_courses.sort(key=course_sort_key_major, reverse=True)
+    past_courses.sort(key=course_sort_key_major, reverse=True)
 
     return render(request, "course/home.html", {
         "current_courses": current_courses,
