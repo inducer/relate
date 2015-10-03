@@ -214,11 +214,15 @@ def get_flow_session_graded_answers_qset(flow_session):
     return qset
 
 
-def get_prev_answer_visit(page_data):
-    previous_answer_visits = (
+def get_prev_answer_visits_qset(page_data):
+    return (
             get_flow_session_graded_answers_qset(page_data.flow_session)
             .filter(page_data=page_data)
             .order_by("-visit_time"))
+
+
+def get_prev_answer_visit(page_data):
+    previous_answer_visits = get_prev_answer_visits_qset(page_data)
 
     for prev_visit in previous_answer_visits[:1]:
         return prev_visit
@@ -950,7 +954,7 @@ def will_receive_feedback(permissions):
 
 
 def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
-        generates_grade, is_unenrolled_session):
+        generates_grade, is_unenrolled_session, viewing_prior_version=False):
     show_correctness = None
     show_answer = None
 
@@ -970,7 +974,9 @@ def get_page_behavior(page, permissions, session_in_progress, answer_was_graded,
                 flow_permission.see_answer_after_submission in permissions)
 
     may_change_answer = (
-            (not answer_was_graded
+            not viewing_prior_version
+
+            and (not answer_was_graded
                 or (flow_permission.change_answer in permissions))
 
             # can happen if no answer was ever saved
@@ -1103,6 +1109,11 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     if flow_permission.view not in permissions:
         raise PermissionDenied(_("not allowed to view flow"))
 
+    prev_answer_visits = list(
+            get_prev_answer_visits_qset(fpctx.page_data))
+    answer_visit = None
+    prev_visit_id = None
+
     if request.method == "POST":
         if "finish" in request.POST:
             return redirect("relate-finish_flow_session_view",
@@ -1117,8 +1128,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 submission_allowed = False
 
             # reject if previous answer was final
-            if (fpctx.prev_answer_visit is not None
-                    and fpctx.prev_answer_visit.is_submitted_answer
+            if (prev_answer_visits
+                    and prev_answer_visits[0].is_submitted_answer
                     and flow_permission.change_answer
                         not in permissions):
                 messages.add_message(request, messages.ERROR,
@@ -1146,18 +1157,20 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 messages.add_message(request, messages.SUCCESS,
                         _("Answer saved."))
 
-                page_visit = FlowPageVisit()
-                page_visit.flow_session = flow_session
-                page_visit.page_data = fpctx.page_data
-                page_visit.remote_address = request.META['REMOTE_ADDR']
+                answer_visit = FlowPageVisit()
+                answer_visit.flow_session = flow_session
+                answer_visit.page_data = fpctx.page_data
+                answer_visit.remote_address = request.META['REMOTE_ADDR']
 
-                answer_data = page_visit.answer = fpctx.page.answer_data(
+                answer_data = answer_visit.answer = fpctx.page.answer_data(
                         fpctx.page_context, fpctx.page_data.data,
                         form, request.FILES)
-                page_visit.is_submitted_answer = pressed_button == "submit"
-                page_visit.save()
+                answer_visit.is_submitted_answer = pressed_button == "submit"
+                answer_visit.save()
 
-                answer_was_graded = page_visit.is_submitted_answer
+                prev_answer_visits.insert(0, answer_visit)
+
+                answer_was_graded = answer_visit.is_submitted_answer
 
                 page_behavior = get_page_behavior(
                         page=fpctx.page,
@@ -1169,12 +1182,12 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
                 if fpctx.page.is_answer_gradable():
                     feedback = fpctx.page.grade(
-                            page_context, page_data.data, page_visit.answer,
+                            page_context, page_data.data, answer_visit.answer,
                             grade_data=None)
 
-                    if page_visit.is_submitted_answer:
+                    if answer_visit.is_submitted_answer:
                         grade = FlowPageVisitGrade()
-                        grade.visit = page_visit
+                        grade.visit = answer_visit
                         grade.max_points = fpctx.page.max_points(page_data.data)
                         grade.graded_at_git_commit_sha = pctx.course_commit_sha
 
@@ -1217,16 +1230,14 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
                 # }}}
 
-                del page_visit
-
             else:
                 # form did not validate
                 create_flow_page_visit(request, flow_session, fpctx.page_data)
 
                 answer_was_graded = False
 
-                if fpctx.prev_answer_visit is not None:
-                    answer_data = fpctx.prev_answer_visit.answer
+                if prev_answer_visits:
+                    answer_data = prev_answer_visits[0].answer
 
                 feedback = None
                 messages.add_message(request, messages.ERROR,
@@ -1237,8 +1248,51 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     else:
         create_flow_page_visit(request, flow_session, fpctx.page_data)
 
-        if fpctx.prev_answer_visit is not None:
-            answer_was_graded = fpctx.prev_answer_visit.is_submitted_answer
+        # {{{ fish out previous answer_visit
+
+        prev_visit_id = pctx.request.GET.get("visit_id")
+        if prev_visit_id is not None:
+            try:
+                prev_visit_id = int(prev_visit_id)
+            except ValueError:
+                raise SuspiciousOperation("non-integer passed for 'visit_id'")
+
+        viewing_prior_version = False
+        if prev_answer_visits and prev_visit_id is not None:
+            answer_visit = prev_answer_visits[0]
+
+            for ivisit, pvisit in enumerate(prev_answer_visits):
+                if pvisit.id == prev_visit_id:
+                    answer_visit = pvisit
+                    if ivisit > 0:
+                        viewing_prior_version = True
+
+                    break
+
+            if viewing_prior_version:
+                from django.template import defaultfilters
+                from relate.utils import as_local_time
+                messages.add_message(request, messages.INFO,
+                    _("Viewing prior submission dated %(date)s.")
+                    % {
+                        "date": defaultfilters.date(
+                            as_local_time(pvisit.visit_time),
+                            "DATETIME_FORMAT"),
+                        })
+
+            prev_visit_id = answer_visit.id
+
+        elif prev_answer_visits:
+            answer_visit = prev_answer_visits[0]
+            prev_visit_id = answer_visit.id
+
+        else:
+            answer_visit = None
+
+        # }}}
+
+        if answer_visit is not None:
+            answer_was_graded = answer_visit.is_submitted_answer
         else:
             answer_was_graded = False
 
@@ -1248,13 +1302,14 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 session_in_progress=flow_session.in_progress,
                 answer_was_graded=answer_was_graded,
                 generates_grade=generates_grade,
-                is_unenrolled_session=flow_session.participation is None)
+                is_unenrolled_session=flow_session.participation is None,
+                viewing_prior_version=viewing_prior_version)
 
         if fpctx.page.expects_answer():
-            if fpctx.prev_answer_visit is not None:
-                answer_data = fpctx.prev_answer_visit.answer
+            if answer_visit is not None:
+                answer_data = answer_visit.answer
 
-                most_recent_grade = fpctx.prev_answer_visit.get_most_recent_grade()
+                most_recent_grade = answer_visit.get_most_recent_grade()
                 if most_recent_grade is not None:
                     feedback = get_feedback_for_grade(most_recent_grade)
                     grade_data = most_recent_grade.grade_data
@@ -1395,6 +1450,9 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "flow_session_interaction_kind": flow_session_interaction_kind,
         "interaction_kind": get_interaction_kind(
             fpctx, flow_session, generates_grade),
+
+        "prev_answer_visits": prev_answer_visits,
+        "prev_visit_id": prev_visit_id,
     }
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
