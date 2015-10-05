@@ -56,17 +56,20 @@ class PageContext(object):
 
         May be None.
 
+    .. attribute:: page_uri
+
     Note that this is different from :class:`course.utils.FlowPageContext`,
     which is used internally by the flow views.
     """
 
     def __init__(self, course, repo, commit_sha, flow_session,
-            in_sandbox=False):
+            in_sandbox=False, page_uri=None):
         self.course = course
         self.repo = repo
         self.commit_sha = commit_sha
         self.flow_session = flow_session
         self.in_sandbox = in_sandbox
+        self.page_uri = page_uri
 
 
 class PageBehavior(object):
@@ -734,19 +737,20 @@ class PageBaseWithHumanTextFeedback(PageBase):
                     "participation": page_context.flow_session.participation,
                     "feedback_text": grade_data["feedback_text"],
                     "flow_session": page_context.flow_session,
+                    "review_uri": page_context.page_uri,
                     })
 
-                from django.core.mail import send_mail
-                from django.conf import settings
-                send_mail(
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("New notification"))
                         % {'identifier': page_context.course.identifier,
                             'flow_id': page_context.flow_session.flow_id},
                         message,
-                        settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[
-                            page_context.flow_session.participation.user.email])
+                        page_context.course.from_email,
+                        [page_context.flow_session.participation.user.email])
+                msg.bcc = [page_context.course.notify_email]
+                msg.send()
 
         return grade_data
 

@@ -133,6 +133,11 @@ When described in YAML, a flow has the following components:
         (Optional) Some text in :ref:`markup` shown once a student has
         completed the flow.
 
+    .. attribute:: notify_on_submit
+
+        A list of email addresses which to notify about a flow submission by
+        a participant.
+
     .. attribute:: rules
 
         (Optional) Some rules governing students' use and grading of the flow.
@@ -583,6 +588,14 @@ The following page types are predefined:
   -- a code question with automatic *and* human grading
 * :class:`FileUploadQuestion`
   -- a question allowing a file upload and human grading
+
+.. warning::
+
+    If you change the type of a question, you *must* also change its ID.
+    Otherwise, RELATE will assume that existing answer data for this
+    question applies to the new question type, and will likely get very
+    confused, for one because the answer data found will not be of the
+    expected type.
 
 .. |id-page-attr| replace::
 

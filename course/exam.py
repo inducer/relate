@@ -40,6 +40,7 @@ from django.contrib.auth.decorators import permission_required
 from django.db import transaction
 from django.core.urlresolvers import reverse
 
+from django_select2.forms import Select2Widget
 from crispy_forms.layout import Submit
 
 from course.models import Exam, ExamTicket, Participation, FlowSession
@@ -87,6 +88,7 @@ class IssueTicketForm(StyledForm):
                         is_active=True,
                         )
                     .order_by("last_name")),
+                widget=Select2Widget(),
                 required=True,
                 help_text=_("Select participant for whom ticket is to "
                 "be issued."),
@@ -167,6 +169,7 @@ def issue_exam_ticket(request):
         })
 
 # }}}
+
 
 # {{{ batch-issue tickets
 
@@ -320,7 +323,7 @@ def batch_issue_exam_tickets(pctx):
                             Participation.objects.filter(
                                 course=pctx.course,
                                 status=participation_status.active)
-                            .order_by("user__username")
+                            .order_by("user__last_name")
                             ):
                         ticket = ExamTicket()
                         ticket.exam = exam
@@ -373,41 +376,59 @@ def batch_issue_exam_tickets(pctx):
 
 # {{{ check in
 
+def check_exam_ticket(username, code, now_datetime):
+    """
+    :returns: (is_valid, msg)
+    """
+
+    try:
+        user = get_user_model().objects.get(
+                username=username,
+                is_active=True)
+        ticket = ExamTicket.objects.get(
+                participation__user=user,
+                code=code,
+                )
+    except ObjectDoesNotExist:
+        return (False, _("User name or ticket code not recognized."))
+
+    if ticket.state not in [
+            exam_ticket_states.valid,
+            exam_ticket_states.used
+            ]:
+        return (False, _("Ticket is not in usable state. (Has it been revoked?)"))
+
+    from django.conf import settings
+    from datetime import timedelta
+
+    validity_period = timedelta(
+            minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
+
+    if (ticket.state == exam_ticket_states.used
+            and now_datetime >= ticket.usage_time + validity_period):
+        return (False, _("Ticket has exceeded its validity period."))
+
+    if ticket.exam.no_exams_before >= now_datetime:
+        return (False, _("Exam has not started yet."))
+    if (
+            ticket.exam.no_exams_after is not None
+            and
+            ticket.exam.no_exams_after <= now_datetime):
+        return (False, _("Exam has ended."))
+
+    return True, _("Ticket is valid.")
+
+
 class ExamTicketBackend(object):
     def authenticate(self, username=None, code=None, now_datetime=None):
-        try:
-            user = get_user_model().objects.get(
-                    username=username,
-                    is_active=True)
-            ticket = ExamTicket.objects.get(
-                    participation__user=user,
-                    code=code,
-                    state__in=(
-                        exam_ticket_states.valid,
-                        exam_ticket_states.used,
-                        )
-                    )
+        is_valid, msg = check_exam_ticket(username, code, now_datetime)
 
-            from django.conf import settings
-            from datetime import timedelta
-
-            validity_period = timedelta(
-                    minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
-
-            if (ticket.state == exam_ticket_states.used
-                    and now_datetime >= ticket.usage_time + validity_period):
-                return None
-            if ticket.exam.no_exams_before >= now_datetime:
-                return None
-            if (
-                    ticket.exam.no_exams_after is not None
-                    and
-                    ticket.exam.no_exams_after <= now_datetime):
-                return None
-
-        except ObjectDoesNotExist:
+        if not is_valid:
             return None
 
+        user = get_user_model().objects.get(
+                username=username,
+                is_active=True)
         return user
 
     def get_user(self, user_id):
@@ -441,15 +462,19 @@ def check_in_for_exam(request):
             username = form.cleaned_data["username"]
             code = form.cleaned_data["code"]
 
-            from django.contrib.auth import authenticate, login
-            user = authenticate(username=username, code=code,
-                    now_datetime=now_datetime)
+            pretend_facilities = request.session.get(
+                    "relate_pretend_facilities", None)
 
-            if user is None:
-                messages.add_message(request, messages.ERROR,
-                        _("Invalid check-in data."))
-
+            is_valid, msg = check_exam_ticket(username, code, now_datetime)
+            if not is_valid:
+                messages.add_message(request, messages.ERROR, msg)
             else:
+                from django.contrib.auth import authenticate, login
+                user = authenticate(username=username, code=code,
+                        now_datetime=now_datetime)
+
+                assert user is not None
+
                 login(request, user)
 
                 ticket = ExamTicket.objects.get(
@@ -466,6 +491,10 @@ def check_in_for_exam(request):
                     ticket.save()
 
                 request.session["relate_session_exam_ticket_pk"] = ticket.pk
+
+                if pretend_facilities:
+                    # Make pretend-facilities survive exam login.
+                    request.session["relate_pretend_facilities"] = pretend_facilities
 
                 return redirect("relate-view_start_flow",
                         ticket.exam.course.identifier,
@@ -484,27 +513,16 @@ def check_in_for_exam(request):
 
 
 def is_from_exams_only_facility(request):
-    import ipaddress
-
-    remote_address = ipaddress.ip_address(six.text_type(request.META['REMOTE_ADDR']))
-
-    exams_only = False
-
     from django.conf import settings
     for name, props in six.iteritems(settings.RELATE_FACILITIES):
         if not props.get("exams_only", False):
             continue
 
-        ip_ranges = props.get("ip_ranges", [])
-        for ir in ip_ranges:
-            if remote_address in ipaddress.ip_network(six.text_type(ir)):
-                exams_only = True
-                break
+        # By now we know that this facility is exams-only
+        if name in request.relate_facilities:
+            return True
 
-        if exams_only:
-            break
-
-    return exams_only
+    return False
 
 
 # {{{ lockdown middleware
@@ -584,10 +602,14 @@ class ExamLockdownMiddleware(object):
             from course.auth import user_profile
             from django.contrib.auth.views import logout
 
+            from course.exam import check_in_for_exam
+
             ok = False
             if resolver_match.func in [
                     get_repo_file,
                     get_current_repo_file,
+
+                    check_in_for_exam,
 
                     user_profile,
                     logout]:
@@ -622,7 +644,8 @@ class ExamLockdownMiddleware(object):
 
 def exam_lockdown_context_processor(request):
     return {
-            "relate_exam_lockdown": request.relate_exam_lockdown,
+            "relate_exam_lockdown": getattr(
+                request, "relate_exam_lockdown", None)
             }
 
 # }}}

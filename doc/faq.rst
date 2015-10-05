@@ -78,3 +78,13 @@ Yes. All work *can* be made undoable by adding the "change_answer"
 permission, but by default, once an answer is "submitted", it cannot be
 changed. (That is distinct from just "saving" an answer which makes the
 system remember it but not consider it final.)
+
+Some events happen twice or three times in a week. How can I create create recurring events for that circumstance?
+------------------------------------------------------------------------------------------------------------------
+
+What I do in that case is create two recurring (weekly) event series (or three) and then renumber the result.
+
+Sometimes we need to postpone or put in advance all the following events, which belong or not belong to the same kind of events, by a specific interval of time. How do I avoid editing events one by one?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+"Delete one and renumber" might do the trick? That's what I do when, say, a class gets cancelled.

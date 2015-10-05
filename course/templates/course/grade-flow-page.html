@@ -155,6 +155,8 @@
           </td>
           <td>
             {{ ordinal }}
+            &middot;
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id ordinal %}">{% trans "View in flow" %}</a>
           </td>
         </tr>
       </table>
@@ -294,7 +296,7 @@
     {
       // percentages
 
-      $("#div_id_grade_percent .controls input").each(
+      $(".grading-page-grade-entry #div_id_grade_percent .controls input").each(
           function()
           {
             var percentages = [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100];
@@ -313,7 +315,7 @@
 
       // points
 
-      $("#div_id_grade_points .controls input").each(
+      $(".grading-page-grade-entry #div_id_grade_points .controls input").each(
           function()
           {
             {% if max_points != None %}
@@ -349,7 +351,7 @@
 
       // feedback
 
-      $("#div_id_feedback_text .controls textarea").each(
+      $(".grading-page-grade-entry #div_id_feedback_text .controls textarea").each(
           function()
           {
             $(this).after("<div id='canned_feedback_items'></div>");
@@ -387,12 +389,12 @@
     function add_submit_next()
     {
       if (next_page_url)
-        $(".form-group:last .controls:last").append(
+        $(".grading-page-grade-entry .form-group:last .controls:last").append(
             " <button class='btn btn-primary' id='save_next_page' type='button'>"
             + "{% trans "Submit and next page" %} &raquo;"
             + "</button>");
       if (next_session_url)
-        $(".form-group:last .controls:last").append(
+        $(".grading-page-grade-entry .form-group:last .controls:last").append(
             " <button class='btn btn-primary' id='save_next_session' type='button'>"
             + "{% trans "Submit and next session" %} &raquo;"
             + "</button>");

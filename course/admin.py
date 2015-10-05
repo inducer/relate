@@ -26,6 +26,7 @@ import six
 
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.contrib import admin
+
 from course.models import (
         UserStatus,
         Course, Event,
@@ -143,8 +144,30 @@ class CourseAdminForm(forms.ModelForm):
 
 
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("identifier", "hidden", "valid", "listed", "accepts_enrollment")
-    list_filter = ("hidden", "valid", "listed", "accepts_enrollment")
+    list_display = (
+            "identifier",
+            "number",
+            "name",
+            "time_period",
+            "start_date",
+            "end_date",
+            "hidden",
+            "listed",
+            "accepts_enrollment")
+    list_editable = (
+            "number",
+            "name",
+            "time_period",
+            "start_date",
+            "end_date",
+            )
+    list_filter = (
+            "number",
+            "time_period",
+            "hidden",
+            "listed",
+            "accepts_enrollment")
+    date_hierarchy = "start_date"
 
     form = CourseAdminForm
 
@@ -260,22 +283,31 @@ class ParticipationForm(forms.ModelForm):
 class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
 
-    def get_user_first_name(self, obj):
-        return obj.user.first_name
+    def get_user(self, obj):
+        def verbose_blank(s):
+            if not s:
+                return _("(blank)")
+            else:
+                return s
 
-    get_user_first_name.short_description = _("First name")
-    get_user_first_name.admin_order_field = "user__first_name"
+        from django.core.urlresolvers import reverse
+        from django.conf import settings
 
-    def get_user_last_name(self, obj):
-        return obj.user.last_name
+        return _("<a href='%(link)s'>%(last_name)s, %(first_name)s</a>") % {
+                "link": reverse(
+                    "admin:%s_change" % settings.AUTH_USER_MODEL.replace(".", "_")
+                    .lower(),
+                    args=(obj.user.id,)),
+                "last_name": verbose_blank(obj.user.last_name),
+                "first_name": verbose_blank(obj.user.first_name)}
 
-    get_user_last_name.short_description = _("Last name")
-    get_user_last_name.admin_order_field = "user__last_name"
+    get_user.short_description = _("Name")
+    get_user.admin_order_field = "user__last_name"
+    get_user.allow_tags = True
 
     list_display = (
             "user",
-            "get_user_first_name",
-            "get_user_last_name",
+            "get_user",
             "course",
             "role",
             "status",
@@ -532,6 +564,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
 
     search_fields = (
             "=id",
+            "=flow_session__id",
             "flow_session__flow_id",
             "page_data__group_id",
             "page_data__page_id",
@@ -844,15 +877,23 @@ admin.site.register(Exam, ExamAdmin)
 
 
 class ExamTicketAdmin(admin.ModelAdmin):
+    def get_course(self, obj):
+        return obj.participation.course
+
+    get_course.short_description = _("Participant")
+    get_course.admin_order_field = "participation__course"
+
     list_filter = (
             "participation__course",
             "state",
             )
 
     list_display = (
+            "get_course",
             "exam",
             "participation",
             "state",
+            "creation_time",
             "usage_time",
             )
 

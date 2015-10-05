@@ -38,6 +38,7 @@
             role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
         {% endif %}
       </div>
+
       <div style="float:right">
         <button type="submit" name="finish" class="btn btn-default relate-nav-button">
           {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
@@ -54,6 +55,39 @@
           &raquo;
         </button>
       </div>
+
+      {% if prev_answer_visits %}
+      <div style="float:right; padding-right: 0.4em">
+        <div class="dropdown">
+          <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            {% trans "Past submissions" %}
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+            {% for pvisit in prev_answer_visits %}
+            <li>
+              {% if forloop.first %}
+                <a href="?">
+              {% else %}
+                <a href="?visit_id={{ pvisit.id }}">
+              {% endif %}
+
+              {% if prev_visit_id == pvisit.id %}<b>{% endif %}
+                {{ pvisit.visit_time }}
+              {% if prev_visit_id == pvisit.id %}</b>{% endif %}
+              {% if forloop.first %}
+                {% trans "(current)" %}
+              {% endif %}
+              {% if pvisit.is_submitted_answer %}
+                {% trans "(submitted)" %}
+              {% endif %}
+            </a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% endif %}
+
       {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
         <div class="flow-session-expiration-panel">
           <span id="expiration_mode_change_progress">
@@ -121,7 +155,7 @@
   {{ body|safe }}
 
   {% if form_html %}
-    <div class="well">
+    <div class="well relate-interaction-container">
       {{ form_html|safe }}
 
       {% if may_change_graded_answer and will_receive_feedback %}
@@ -206,12 +240,25 @@
               return "{% trans 'You have unsaved changes on this page.' %}";
           });
 
-      function before_save(evt)
+      function before_submit(evt)
       {
         input_changed = false;
+
+        // We can't simply set "disabled" on the submitting button here.
+        // Otherwise the browser will simply remove that button from the POST
+        // data.
+
+        $(".relate-save-button").each(
+            function()
+            {
+              var clone = $(this).clone();
+              $(clone).attr("disabled", "1");
+              $(this).after(clone);
+              $(this).hide();
+            });
       }
 
-      $(".relate-save-button").on("click", before_save);
+      $(".relate-interaction-container form").on("submit", before_submit);
     }
 
     $(document).ready(activate_change_listening);

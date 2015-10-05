@@ -60,6 +60,9 @@ class SubdirRepoWrapper(object):
     def controldir(self):
         return self.repo.controldir()
 
+    def close(self):
+        self.repo.close()
+
 
 def get_course_repo_path(course):
     from os.path import join
@@ -826,7 +829,7 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
 
 
 def compute_chunk_weight_and_shown(course, chunk, role, now_datetime,
-        remote_address):
+        facilities):
     for rule in chunk.rules:
         if hasattr(rule, "if_has_role"):
             if role not in rule.if_has_role:
@@ -843,8 +846,7 @@ def compute_chunk_weight_and_shown(course, chunk, role, now_datetime,
                 continue
 
         if hasattr(rule, "if_in_facility"):
-            from course.utils import is_address_in_facility
-            if not is_address_in_facility(remote_address, rule.if_in_facility):
+            if rule.if_in_facility not in facilities:
                 continue
 
         # {{{ deprecated
@@ -879,12 +881,12 @@ def get_course_desc(repo, course, commit_sha):
 
 
 def get_processed_course_chunks(course, repo, commit_sha,
-        course_desc, role, now_datetime, remote_address, jinja_env):
+        course_desc, role, now_datetime, facilities, jinja_env):
     for chunk in course_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
                         course, chunk, role, now_datetime,
-                        remote_address)
+                        facilities)
         chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content, jinja_env=jinja_env)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight, reverse=True)
@@ -1069,9 +1071,10 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
             return FlowPageData(
                     flow_session=flow_session,
+                    ordinal=None,
+                    page_type=new_page_desc.type,
                     group_id=grp.id,
                     page_id=new_page_desc.id,
-                    ordinal=None,
                     data=page.make_page_data())
 
         def add_page(fpd):

@@ -231,12 +231,18 @@ def view_page_sandbox(pctx):
     if have_valid_page:
         page_data = page.make_page_data()
 
+        from course.models import FlowSession
         from course.page import PageContext
         page_context = PageContext(
                 course=pctx.course,
                 repo=pctx.repo,
                 commit_sha=pctx.course_commit_sha,
-                flow_session=None,
+
+                # This helps code pages retrieve the editor pref.
+                flow_session=FlowSession(
+                    course=pctx.course,
+                    participation=pctx.participation),
+
                 in_sandbox=True)
 
         title = page.title(page_context, page_data)

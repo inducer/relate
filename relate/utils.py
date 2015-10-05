@@ -102,10 +102,11 @@ def format_datetime_local(datetime, format='medium'):
     # See http://babel.pocoo.org/docs/api/dates/#date-and-time-formatting
     # for customizing the output format.
     try:
-        result = format_datetime(
-                datetime, format, locale=to_locale(settings.LANGUAGE_CODE))
+        locale = to_locale(settings.LANGUAGE_CODE)
     except ValueError:
-        result = format_datetime(datetime, format, locale="en_US")
+        locale = "en_US"
+
+    result = format_datetime(datetime, format, locale=locale)
 
     return result
 
@@ -137,5 +138,34 @@ def struct_to_dict(data):
             if not name.startswith("_"))
 
 # }}}
+
+
+def retry_transaction(f, args, kwargs={}, max_tries=None):
+    from django.db import transaction
+    from django.db.utils import OperationalError
+
+    if max_tries is None:
+        max_tries = 5
+
+    assert max_tries > 0
+    while True:
+        try:
+            with transaction.atomic():
+                return f(*args, **kwargs)
+        except OperationalError:
+            max_tries -= 1
+            if not max_tries:
+                raise
+
+
+def retry_transaction_decorator(f, max_tries=None):
+    from functools import update_wrapper
+
+    def wrapper(*args, **kwargs):
+        return retry_transaction(f, args, kwargs, max_tries=max_tries)
+
+    update_wrapper(wrapper, f)
+    return wrapper
+
 
 # vim: foldmethod=marker

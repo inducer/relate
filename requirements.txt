@@ -67,3 +67,6 @@ babel
 # A task queue, used to execute long-running tasks
 celery
 django-celery
+
+# For searchable select forms
+django_select2==5.0.3

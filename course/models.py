@@ -87,6 +87,8 @@ class UserStatus(models.Model):
             verbose_name=_('Key time'))
 
     editor_mode = models.CharField(max_length=20,
+            help_text=_("Your favorite text editor mode for text "
+                        "block or code block."),
             choices=(
                 ("default", _("Default")),
                 ("sublime", "Sublime text"),
@@ -128,6 +130,28 @@ class Course(models.Model):
                         "numbers, and hypens ('-').")),
                     ]
             )
+    name = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable name for the course. "
+                "(e.g. 'Numerical Methods')"))
+    number = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable course number/ID "
+                "for the course (e.g. 'CS123')"))
+    time_period = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable description of the "
+                "time period for the course (e.g. 'Fall 2014')"))
+
+    start_date = models.DateField(
+            verbose_name=_('Start date'),
+            null=True, blank=True)
+    end_date = models.DateField(
+            verbose_name=_('End date'),
+            null=True, blank=True)
 
     hidden = models.BooleanField(
             default=True,
@@ -140,10 +164,6 @@ class Course(models.Model):
     accepts_enrollment = models.BooleanField(
             default=True,
             verbose_name=_('Accepts enrollment'))
-    valid = models.BooleanField(
-            default=True,
-            help_text=_("Whether the course content has passed validation."),
-            verbose_name=_('Valid'))
 
     git_source = models.CharField(max_length=200, blank=True,
             help_text=_("A Git URL from which to pull course updates. "
@@ -375,6 +395,10 @@ class Participation(models.Model):
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
 
+    def get_role_desc(self):
+        return dict(PARTICIPATION_ROLE_CHOICES).get(
+                self.role)
+
 
 class ParticipationPreapproval(models.Model):
     email = models.EmailField(max_length=254,
@@ -545,6 +569,12 @@ class FlowPageData(models.Model):
             verbose_name=_('Flow session'))
     ordinal = models.IntegerField(null=True, blank=True,
             verbose_name=_('Ordinal'))
+
+    # This exists to catch changing page types in course content,
+    # which will generally lead to an inconsistency disaster.
+    page_type = models.CharField(max_length=200,
+            verbose_name=_('Page type as indicated in course content'),
+            null=True, blank=True)
 
     group_id = models.CharField(max_length=200,
             verbose_name=_('Group ID'))
@@ -1421,7 +1451,7 @@ class ExamTicket(models.Model):
     class Meta:
         verbose_name = _("Exam ticket")
         verbose_name_plural = _("Exam tickets")
-        ordering = ("exam__course", "exam", "usage_time")
+        ordering = ("exam__course", "-creation_time")
         permissions = (
                 ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
                 )

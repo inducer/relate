@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     "jsonfield",
     "bootstrap3_datetime",
     "djangobower",
+    "django_select2",
 
     # message queue
     "djcelery",
@@ -55,6 +56,7 @@ MIDDLEWARE_CLASSES = (
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "course.auth.ImpersonateMiddleware",
+    "course.utils.FacilityFindingMiddleware",
     "course.exam.ExamFacilityMiddleware",
     "course.exam.ExamLockdownMiddleware",
 )
@@ -71,6 +73,7 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "relate.utils.settings_context_processor",
             "course.auth.impersonation_context_processor",
             "course.views.fake_time_context_processor",
+            "course.views.pretend_facilities_context_processor",
             "course.exam.exam_lockdown_context_processor",
             )
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -88,7 +91,7 @@ STATICFILES_FINDERS = STATICFILES_FINDERS + (
 
 BOWER_INSTALLED_APPS = (
     "bootstrap#3.3.4",
-    "fontawesome",
+    "fontawesome#4.4.0",
     "videojs",
     "MathJax",
     "codemirror#5.2.0",
@@ -97,6 +100,7 @@ BOWER_INSTALLED_APPS = (
     "datatables",
     "datatables-fixedcolumns",
     "jstree",
+    "select2-bootstrap-css",
     )
 
 CODEMIRROR_PATH = "codemirror"

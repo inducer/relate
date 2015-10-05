@@ -179,6 +179,11 @@ class flow_permission:  # noqa
         If present, shows the correct answer to the participant after they have
         submitted an answer of their own.
 
+    .. attribute:: cannot_see_flow_result
+
+        If present, an overall result/grade for the flow will *not* be shown
+        at the end of a flow session.
+
     .. attribute:: set_roll_over_expiration_mode
 
         Grants permission to let a student choose to let a flow
@@ -199,6 +204,7 @@ class flow_permission:  # noqa
     see_correctness = "see_correctness"
     see_answer_before_submission = "see_answer_before_submission"
     see_answer_after_submission = "see_answer_after_submission"
+    cannot_see_flow_result = "cannot_see_flow_result"
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
     see_session_time = "see_session_time"
 
@@ -220,6 +226,9 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.see_answer_after_submission,
             pgettext_lazy("Flow permission",
                 "See the correct answer after answering")),
+        (flow_permission.cannot_see_flow_result,
+            pgettext_lazy("Flow permission",
+                "Cannot see flow result")),
         (flow_permission.set_roll_over_expiration_mode,
             pgettext_lazy("Flow permission",
                 "Set the session to 'roll over' expiration mode")),

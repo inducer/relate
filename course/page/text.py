@@ -455,6 +455,14 @@ class FloatMatcher(TextAnswerMatcher):
                             "%s: 'rtol' ",
                             _("does not provide a valid float literal"))
                         % location)
+
+            if matcher_desc.value == 0:
+                raise ValidationError(
+                        string_concat(
+                            "%s: 'rtol' ",
+                            _("not allowed when 'value' is zero"))
+                        % location)
+
         if hasattr(matcher_desc, "atol"):
             try:
                 self.matcher_desc.atol = \

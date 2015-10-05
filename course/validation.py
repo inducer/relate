@@ -82,6 +82,22 @@ def validate_role(location, role):
                 % {'location': location, 'role': role})
 
 
+def validate_facility(ctx, location, facility):
+    from django.conf import settings
+    facilities = getattr(settings, "RELATE_FACILITIES", None)
+    if facilities is None:
+        return
+
+    if facility not in facilities:
+        ctx.add_warning(location, _(
+            "Name of facility not recognized: '%(fac_name)s'. "
+            "Known facility names: '%(known_fac_names)s'")
+            % {
+                "fac_name": facility,
+                "known_fac_names": ", ".join(facilities),
+                })
+
+
 def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
     """
     :arg required_attrs: an attribute validation list (see below)
@@ -246,6 +262,9 @@ def validate_chunk_rule(ctx, location, chunk_rule):
         for role in chunk_rule.if_has_role:
             validate_role(location, role)
 
+    if hasattr(chunk_rule, "if_in_facility"):
+        validate_facility(ctx, location, chunk_rule.if_in_facility)
+
     # {{{ deprecated
 
     if hasattr(chunk_rule, "start"):
@@ -296,15 +315,26 @@ def validate_course_desc_struct(ctx, location, course_desc):
             location,
             course_desc,
             required_attrs=[
-                ("name", str),
-                ("number", str),
-                ("run", str),
                 ("chunks", list),
                 ],
             allowed_attrs=[
                 ("grade_summary_code", str),
+
+                ("name", str),
+                ("number", str),
+                ("run", str),
                 ]
             )
+
+    if hasattr(course_desc, "name"):
+        ctx.add_warning(location, _("'name' is deprecated. "
+            "This information is now kept in the database."))
+    if hasattr(course_desc, "number"):
+        ctx.add_warning(location, _("'number' is deprecated. "
+            "This information is now kept in the database."))
+    if hasattr(course_desc, "run"):
+        ctx.add_warning(location, _("'run' is deprecated. "
+            "This information is now kept in the database."))
 
     for i, chunk in enumerate(course_desc.chunks):
         validate_chunk(ctx,
@@ -453,6 +483,9 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                     "%s, role %d" % (location, j+1),
                     role)
 
+    if hasattr(nrule, "if_in_facility"):
+        validate_facility(ctx, location, nrule.if_in_facility)
+
     if hasattr(nrule, "if_has_session_tagged"):
         if nrule.if_has_session_tagged is not None:
             validate_identifier(ctx, "%s: if_has_session_tagged" % location,
@@ -513,6 +546,10 @@ def validate_session_access_rule(ctx, location, arule, tags):
             validate_role(
                     "%s, role %d" % (location, j+1),
                     role)
+
+    if hasattr(arule, "if_in_facility"):
+        validate_facility(ctx, location, arule.if_in_facility)
+
     if hasattr(arule, "if_has_tag"):
         if not (arule.if_has_tag is None or arule.if_has_tag in tags):
             raise ValidationError(
@@ -776,6 +813,7 @@ def validate_flow_desc(ctx, location, flow_desc):
                 ("rules", Struct),
                 ("groups", list),
                 ("pages", list),
+                ("notify_on_submit", list),
                 ]
             )
 
@@ -852,6 +890,13 @@ def validate_flow_desc(ctx, location, flow_desc):
     validate_markup(ctx, location, flow_desc.description)
     if hasattr(flow_desc, "completion_text"):
         validate_markup(ctx, location, flow_desc.completion_text)
+
+    if hasattr(flow_desc, "notify_on_submit"):
+        for i, item in enumerate(flow_desc.notify_on_submit):
+            if not isinstance(item, six.string_types):
+                raise ValidationError(
+                        "%s, notify_on_submit: item %d is not a string"
+                        % (location, i+1))
 
 # }}}
 
@@ -932,6 +977,40 @@ def check_attributes_yml(vctx, repo, path, tree):
             check_attributes_yml(
                     vctx, repo,
                     path+"/"+entry.path.decode("utf-8"), subtree)
+
+
+# {{{ check whether page types were changed
+
+def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
+    from course.content import normalize_flow_desc
+    n_flow_desc = normalize_flow_desc(flow_desc)
+
+    from course.models import FlowPageData
+    for grp in n_flow_desc.groups:
+        for page_desc in grp.pages:
+            fpd_with_mismatched_page_types = list(
+                    FlowPageData.objects
+                    .filter(
+                        flow_session__course=course,
+                        flow_session__flow_id=flow_id,
+                        group_id=grp.id,
+                        page_id=page_desc.id)
+                    .exclude(page_type=None)
+                    .exclude(page_type=page_desc.type)
+                    [0:1])
+
+            if fpd_with_mismatched_page_types:
+                mismatched_fpd, = fpd_with_mismatched_page_types
+                raise ValidationError(
+                        _("%(loc)s, group '%(group)s', page '%(page)s': "
+                            "page type ('%(type_new)s') differs from "
+                            "type used in database ('%(type_old)s')")
+                        % {"loc": location, "group": grp.id,
+                            "page": page_desc.id,
+                            "type_new": page_desc.type,
+                            "type_old": mismatched_fpd.page_type})
+
+# }}}
 
 
 def validate_course_content(repo, course_file, events_file,
@@ -1029,6 +1108,10 @@ def validate_course_content(repo, course_file, events_file,
             used_grade_identifiers.add(flow_grade_identifier)
 
             # }}}
+
+            if course is not None:
+                check_for_page_type_changes(
+                        vctx, location, course, flow_id, flow_desc)
 
     return vctx.warnings
 

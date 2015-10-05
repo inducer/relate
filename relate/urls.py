@@ -97,6 +97,10 @@ urlpatterns = [
         course.views.set_fake_time,
         name="relate-set_fake_time"),
 
+    url(r'^time/set-pretend-facilities/$',
+        course.views.set_pretend_facilities,
+        name="relate-set_pretend_facilities"),
+
     # }}}
 
     # {{{ course
@@ -413,6 +417,12 @@ urlpatterns = [
         name="relate-check_in_for_exam"),
 
     # }}}
+
+    # {{{ django-select2
+
+    url(r'^select2/', include('django_select2.urls')),
+
+    #}}}
 
     url(r'^admin/', include(admin.site.urls)),
 ]
