@@ -28,7 +28,7 @@ THE SOFTWARE.
 from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         get_object_or_404, redirect)
-from django.db import transaction
+from relate.utils import retry_transaction_decorator
 from django.core.exceptions import (  # noqa
         PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
@@ -50,7 +50,7 @@ from course.views import get_now_or_fake_time
 # {{{ grading driver
 
 @course_view
-@transaction.atomic
+@retry_transaction_decorator
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
     page_ordinal = int(page_ordinal)
 
