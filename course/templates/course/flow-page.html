@@ -155,7 +155,7 @@
   {{ body|safe }}
 
   {% if form_html %}
-    <div class="well">
+    <div class="well relate-interaction-container">
       {{ form_html|safe }}
 
       {% if may_change_graded_answer and will_receive_feedback %}
@@ -240,12 +240,25 @@
               return "{% trans 'You have unsaved changes on this page.' %}";
           });
 
-      function before_save(evt)
+      function before_submit(evt)
       {
         input_changed = false;
+
+        // We can't simply set "disabled" on the submitting button here.
+        // Otherwise the browser will simply remove that button from the POST
+        // data.
+
+        $(".relate-save-button").each(
+            function()
+            {
+              var clone = $(this).clone();
+              $(clone).attr("disabled", "1");
+              $(this).after(clone);
+              $(this).hide();
+            });
       }
 
-      $(".relate-save-button").on("click", before_save);
+      $(".relate-interaction-container form").on("submit", before_submit);
     }
 
     $(document).ready(activate_change_listening);
