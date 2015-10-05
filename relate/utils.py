@@ -139,4 +139,33 @@ def struct_to_dict(data):
 
 # }}}
 
+
+def retry_transaction(f, args, kwargs={}, max_tries=None):
+    from django.db import transaction
+    from django.db.utils import OperationalError
+
+    if max_tries is None:
+        max_tries = 5
+
+    assert max_tries > 0
+    while True:
+        try:
+            with transaction.atomic():
+                return f(*args, **kwargs)
+        except OperationalError:
+            max_tries -= 1
+            if not max_tries:
+                raise
+
+
+def retry_transaction_decorator(f, max_tries=None):
+    from functools import update_wrapper
+
+    def wrapper(*args, **kwargs):
+        return retry_transaction(f, args, kwargs, max_tries=max_tries)
+
+    update_wrapper(wrapper, f)
+    return wrapper
+
+
 # vim: foldmethod=marker

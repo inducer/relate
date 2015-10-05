@@ -73,6 +73,7 @@ from course.utils import (
         get_session_grading_rule,
         FlowSessionGradingRule)
 from course.views import get_now_or_fake_time
+from relate.utils import retry_transaction_decorator
 
 
 # {{{ grade page visit
@@ -151,6 +152,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 
 # {{{ start flow
 
+@retry_transaction_decorator
 def start_flow(repo, course, participation, user, flow_id, flow_desc,
         access_rules_tag, now_datetime):
     from course.content import get_course_commit_sha
@@ -1051,6 +1053,7 @@ def create_flow_page_visit(request, flow_session, page_data):
         is_submitted_answer=None).save()
 
 
+@retry_transaction_decorator
 @course_view
 def view_flow_page(pctx, flow_session_id, ordinal):
     request = pctx.request
@@ -1506,7 +1509,7 @@ def update_expiration_mode(pctx, flow_session_id):
 
 # {{{ view: finish flow
 
-@transaction.atomic
+@retry_transaction_decorator
 @course_view
 def finish_flow_session_view(pctx, flow_session_id):
     now_datetime = get_now_or_fake_time(pctx.request)
@@ -1556,8 +1559,8 @@ def finish_flow_session_view(pctx, flow_session_id):
             raise SuspiciousOperation(_("odd POST parameters"))
 
         if not flow_session.in_progress:
-            raise PermissionDenied(
-                    _("Can't end a session that's already ended"))
+            messages.add_message(request, messages.ERROR,
+                    _("Cannot end a session that's already ended"))
 
         if flow_permission.end_session not in access_rule.permissions:
             raise PermissionDenied(
