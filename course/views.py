@@ -130,10 +130,12 @@ def check_course_state(course, role):
 @course_view
 def course_page(pctx):
     from course.content import get_processed_course_chunks
+    jinja_env = {"now": get_now_or_fake_time(pctx.request)}
     chunks = get_processed_course_chunks(
             pctx.course, pctx.repo, pctx.course_commit_sha, pctx.course_desc,
             pctx.role, get_now_or_fake_time(pctx.request),
-            remote_address=pctx.remote_address)
+            remote_address=pctx.remote_address,
+            jinja_env=jinja_env)
 
     show_enroll_button = (
             pctx.course.accepts_enrollment

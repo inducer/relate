@@ -590,9 +590,16 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
     # {{{ process through Jinja
 
     from jinja2 import Environment, StrictUndefined
+    from relate.utils import as_local_time
     env = Environment(
             loader=GitTemplateLoader(repo, commit_sha),
             undefined=StrictUndefined)
+
+    def parse_date_spec_jinja(datespec):
+        return as_local_time(parse_date_spec(course, datespec))
+
+    env.globals["parse_date_spec"] = parse_date_spec_jinja
+
     template = env.from_string(text)
     text = template.render(**jinja_env)
 
@@ -872,13 +879,13 @@ def get_course_desc(repo, course, commit_sha):
 
 
 def get_processed_course_chunks(course, repo, commit_sha,
-        course_desc, role, now_datetime, remote_address):
+        course_desc, role, now_datetime, remote_address, jinja_env):
     for chunk in course_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
                         course, chunk, role, now_datetime,
                         remote_address)
-        chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content)
+        chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content, jinja_env=jinja_env)
 
     course_desc.chunks.sort(key=lambda chunk: chunk.weight, reverse=True)
 
