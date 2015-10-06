@@ -1035,15 +1035,6 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
     return form
 
 
-def get_pressed_button(form):
-    buttons = ["save", "save_and_next", "save_and_finish", "submit"]
-    for button in buttons:
-        if button in form.data:
-            return button
-
-    raise SuspiciousOperation(_("could not find which button was pressed"))
-
-
 def create_flow_page_visit(request, flow_session, page_data):
     FlowPageVisit(
         flow_session=flow_session,
@@ -1052,7 +1043,6 @@ def create_flow_page_visit(request, flow_session, page_data):
         is_submitted_answer=None).save()
 
 
-@retry_transaction_decorator
 @course_view
 def view_flow_page(pctx, flow_session_id, ordinal):
     request = pctx.request
@@ -1060,8 +1050,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     ordinal = int(ordinal)
 
     flow_session_id = int(flow_session_id)
-    flow_session = get_and_check_flow_session(
-            pctx, flow_session_id)
+    flow_session = get_and_check_flow_session(pctx, flow_session_id)
     flow_id = flow_session.flow_id
 
     if flow_session is None:
@@ -1111,8 +1100,6 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     if flow_permission.view not in permissions:
         raise PermissionDenied(_("not allowed to view flow"))
 
-    prev_answer_visits = list(
-            get_prev_answer_visits_qset(fpctx.page_data))
     answer_visit = None
     prev_visit_id = None
 
@@ -1121,134 +1108,28 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             return redirect("relate-finish_flow_session_view",
                     pctx.course.identifier, flow_session_id)
         else:
-            submission_allowed = True
+            post_result = post_flow_page(
+                    flow_session, fpctx, request, permissions, generates_grade)
 
-            # reject answer update if permission not present
-            if flow_permission.submit_answer not in permissions:
-                messages.add_message(request, messages.ERROR,
-                        _("Answer submission not allowed."))
-                submission_allowed = False
+            if not isinstance(post_result, tuple):
+                # ought to be an HTTP response
+                return post_result
 
-            # reject if previous answer was final
-            if (prev_answer_visits
-                    and prev_answer_visits[0].is_submitted_answer
-                    and flow_permission.change_answer
-                        not in permissions):
-                messages.add_message(request, messages.ERROR,
-                        _("Already have final answer."))
-                submission_allowed = False
+            (
+                page_behavior,
+                prev_answer_visits,
+                form,
+                feedback,
+                answer_data,
+                answer_was_graded) = post_result
 
-            page_behavior = get_page_behavior(
-                    page=fpctx.page,
-                    permissions=permissions,
-                    session_in_progress=flow_session.in_progress,
-                    answer_was_graded=False,
-                    generates_grade=generates_grade,
-                    is_unenrolled_session=flow_session.participation is None)
-
-            form = fpctx.page.process_form_post(
-                    fpctx.page_context, fpctx.page_data.data,
-                    post_data=request.POST, files_data=request.FILES,
-                    page_behavior=page_behavior)
-
-            pressed_button = get_pressed_button(form)
-
-            if submission_allowed and form.is_valid():
-                # {{{ form validated, process answer
-
-                messages.add_message(request, messages.SUCCESS,
-                        _("Answer saved."))
-
-                answer_visit = FlowPageVisit()
-                answer_visit.flow_session = flow_session
-                answer_visit.page_data = fpctx.page_data
-                answer_visit.remote_address = request.META['REMOTE_ADDR']
-
-                answer_data = answer_visit.answer = fpctx.page.answer_data(
-                        fpctx.page_context, fpctx.page_data.data,
-                        form, request.FILES)
-                answer_visit.is_submitted_answer = pressed_button == "submit"
-                answer_visit.save()
-
-                prev_answer_visits.insert(0, answer_visit)
-
-                answer_was_graded = answer_visit.is_submitted_answer
-
-                page_behavior = get_page_behavior(
-                        page=fpctx.page,
-                        permissions=permissions,
-                        session_in_progress=flow_session.in_progress,
-                        answer_was_graded=answer_was_graded,
-                        generates_grade=generates_grade,
-                        is_unenrolled_session=flow_session.participation is None)
-
-                if fpctx.page.is_answer_gradable():
-                    feedback = fpctx.page.grade(
-                            page_context, page_data.data, answer_visit.answer,
-                            grade_data=None)
-
-                    if answer_visit.is_submitted_answer:
-                        grade = FlowPageVisitGrade()
-                        grade.visit = answer_visit
-                        grade.max_points = fpctx.page.max_points(page_data.data)
-                        grade.graded_at_git_commit_sha = pctx.course_commit_sha
-
-                        bulk_feedback_json = None
-                        if feedback is not None:
-                            grade.correctness = feedback.correctness
-                            grade.feedback, bulk_feedback_json = feedback.as_json()
-
-                        grade.save()
-
-                        update_bulk_feedback(page_data, grade, bulk_feedback_json)
-
-                        del grade
-                else:
-                    feedback = None
-
-                if (pressed_button == "save_and_next"
-                        and not will_receive_feedback(permissions)):
-                    return redirect("relate-view_flow_page",
-                            pctx.course.identifier,
-                            flow_session_id,
-                            fpctx.ordinal + 1)
-                elif (pressed_button == "save_and_finish"
-                        and not will_receive_feedback(permissions)):
-                    return redirect("relate-finish_flow_session_view",
-                            pctx.course.identifier, flow_session_id)
-                else:
-                    # The form needs to be recreated here, although there
-                    # already is a form from the process_form_post above.  This
-                    # is because the value of 'answer_was_graded' may have
-                    # changed between then and now (and page_behavior with
-                    # it)--and that value depends on form validity, which we
-                    # can only decide once we have a form.
-
-                    form = fpctx.page.make_form(
-                            page_context, page_data.data,
-                            answer_data, page_behavior)
-
-                # continue at common flow page generation below
-
-                # }}}
-
-            else:
-                # form did not validate
-                create_flow_page_visit(request, flow_session, fpctx.page_data)
-
-                answer_was_graded = False
-
-                if prev_answer_visits:
-                    answer_data = prev_answer_visits[0].answer
-
-                feedback = None
-                messages.add_message(request, messages.ERROR,
-                        _("Failed to submit answer."))
-
-                # continue at common flow page generation below
+            # continue at common flow page generation below
 
     else:
         create_flow_page_visit(request, flow_session, fpctx.page_data)
+
+        prev_answer_visits = list(
+                get_prev_answer_visits_qset(fpctx.page_data))
 
         # {{{ fish out previous answer_visit
 
@@ -1333,8 +1214,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     # start common flow page generation
 
     # defined at this point:
-    # form, form_html, may_change_answer, answer_was_graded, feedback
-    # answer_data
+    # form, page_behavior, answer_was_graded, feedback
+    # answer_data, grade_data
 
     if form is not None and page_behavior.may_change_answer:
         form = add_buttons_to_form(form, fpctx, flow_session,
@@ -1465,6 +1346,155 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             allow_instant_flow_requests=False)
 
     # }}}
+
+
+def get_pressed_button(form):
+    buttons = ["save", "save_and_next", "save_and_finish", "submit"]
+    for button in buttons:
+        if button in form.data:
+            return button
+
+    raise SuspiciousOperation(_("could not find which button was pressed"))
+
+
+@retry_transaction_decorator
+def post_flow_page(flow_session, fpctx, request, permissions, generates_grade):
+    page_context = fpctx.page_context
+    page_data = fpctx.page_data
+
+    prev_answer_visits = list(
+            get_prev_answer_visits_qset(fpctx.page_data))
+
+    submission_allowed = True
+
+    # reject answer update if permission not present
+    if flow_permission.submit_answer not in permissions:
+        messages.add_message(request, messages.ERROR,
+                _("Answer submission not allowed."))
+        submission_allowed = False
+
+    # reject if previous answer was final
+    if (prev_answer_visits
+            and prev_answer_visits[0].is_submitted_answer
+            and flow_permission.change_answer
+                not in permissions):
+        messages.add_message(request, messages.ERROR,
+                _("Already have final answer."))
+        submission_allowed = False
+
+    page_behavior = get_page_behavior(
+            page=fpctx.page,
+            permissions=permissions,
+            session_in_progress=flow_session.in_progress,
+            answer_was_graded=False,
+            generates_grade=generates_grade,
+            is_unenrolled_session=flow_session.participation is None)
+
+    form = fpctx.page.process_form_post(
+            fpctx.page_context, fpctx.page_data.data,
+            post_data=request.POST, files_data=request.FILES,
+            page_behavior=page_behavior)
+
+    pressed_button = get_pressed_button(form)
+
+    if submission_allowed and form.is_valid():
+        # {{{ form validated, process answer
+
+        messages.add_message(request, messages.SUCCESS,
+                _("Answer saved."))
+
+        answer_visit = FlowPageVisit()
+        answer_visit.flow_session = flow_session
+        answer_visit.page_data = fpctx.page_data
+        answer_visit.remote_address = request.META['REMOTE_ADDR']
+
+        answer_data = answer_visit.answer = fpctx.page.answer_data(
+                fpctx.page_context, fpctx.page_data.data,
+                form, request.FILES)
+        answer_visit.is_submitted_answer = pressed_button == "submit"
+        answer_visit.save()
+
+        prev_answer_visits.insert(0, answer_visit)
+
+        answer_was_graded = answer_visit.is_submitted_answer
+
+        page_behavior = get_page_behavior(
+                page=fpctx.page,
+                permissions=permissions,
+                session_in_progress=flow_session.in_progress,
+                answer_was_graded=answer_was_graded,
+                generates_grade=generates_grade,
+                is_unenrolled_session=flow_session.participation is None)
+
+        if fpctx.page.is_answer_gradable():
+            feedback = fpctx.page.grade(
+                    page_context, page_data.data, answer_visit.answer,
+                    grade_data=None)
+
+            if answer_visit.is_submitted_answer:
+                grade = FlowPageVisitGrade()
+                grade.visit = answer_visit
+                grade.max_points = fpctx.page.max_points(page_data.data)
+                grade.graded_at_git_commit_sha = fpctx.course_commit_sha
+
+                bulk_feedback_json = None
+                if feedback is not None:
+                    grade.correctness = feedback.correctness
+                    grade.feedback, bulk_feedback_json = feedback.as_json()
+
+                grade.save()
+
+                update_bulk_feedback(page_data, grade, bulk_feedback_json)
+
+                del grade
+        else:
+            feedback = None
+
+        if (pressed_button == "save_and_next"
+                and not will_receive_feedback(permissions)):
+            return redirect("relate-view_flow_page",
+                    fpctx.course.identifier,
+                    flow_session.id,
+                    fpctx.ordinal + 1)
+        elif (pressed_button == "save_and_finish"
+                and not will_receive_feedback(permissions)):
+            return redirect("relate-finish_flow_session_view",
+                    fpctx.course.identifier, flow_session.id)
+        else:
+            # The form needs to be recreated here, although there
+            # already is a form from the process_form_post above.  This
+            # is because the value of 'answer_was_graded' may have
+            # changed between then and now (and page_behavior with
+            # it)--and that value depends on form validity, which we
+            # can only decide once we have a form.
+
+            form = fpctx.page.make_form(
+                    page_context, page_data.data,
+                    answer_data, page_behavior)
+
+        # }}}
+
+    else:
+        # form did not validate
+        create_flow_page_visit(request, flow_session, fpctx.page_data)
+
+        answer_data = None
+        answer_was_graded = False
+
+        if prev_answer_visits:
+            answer_data = prev_answer_visits[0].answer
+
+        feedback = None
+        messages.add_message(request, messages.ERROR,
+                _("Failed to submit answer."))
+
+    return (
+            page_behavior,
+            prev_answer_visits,
+            form,
+            feedback,
+            answer_data,
+            answer_was_graded)
 
 
 @course_view
