@@ -811,7 +811,6 @@ def recalculate_session_grade(repo, course, session):
 
 # {{{ view: start flow
 
-@transaction.atomic
 @course_view
 def view_start_flow(pctx, flow_id):
     request = pctx.request
