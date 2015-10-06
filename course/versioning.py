@@ -443,23 +443,14 @@ class GitUpdateForm(StyledForm):
 
         repo_refs = repo.get_refs()
         commit_iter = repo.get_walker(repo_refs.values())
-
-        def format_commit(commit):
-            return "%s - %s" % (
-                    commit.id[:8],
-                    "".join(commit.message.split("\n")[:1]))
-
-        def format_sha(sha):
-            return format_commit(repo[sha])
-
+        
         self.fields["new_sha"] = forms.ChoiceField(
                 choices=([
-                    (repo_refs[ref],
-                        "[%s] %s" % (ref, format_sha(repo_refs[ref])))
+                    (repo_refs[ref], ref + ': ' + repo_refs[ref])
                     for ref in repo_refs
-                    ] +
+                    ] + 
                     [
-                    (entry.commit.id, format_commit(entry.commit))
+                    (entry.commit.id, entry.commit.id)
                     for entry in commit_iter
                     ]),
                 required=True,
@@ -472,6 +463,7 @@ class GitUpdateForm(StyledForm):
                 label=_("Prevent updating to a git revision "
                     "prior to the current one"),
                 initial=True, required=False)
+
 
         def add_button(desc, label):
             self.helper.add_input(Submit(desc, label))
@@ -559,7 +551,7 @@ def update_course(pctx):
         previewing = bool(participation is not None
                 and participation.preview_git_commit_sha)
 
-        form = GitUpdateForm(may_update, previewing, repo,
+        form = GitUpdateForm(may_update, previewing, repo, 
                 {
                     "new_sha": repo.head(),
                     "prevent_discarding_revisions": True,
