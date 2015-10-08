@@ -51,7 +51,7 @@ class InlineMultiQuestionForm(StyledInlineForm):
 
     def __init__(self, read_only, dict_for_form, page_context, *args, **kwargs):
         super(InlineMultiQuestionForm, self).__init__(*args, **kwargs)
-        html_list = dict_for_form["HTML_list"]
+        html_list = dict_for_form["html_list"]
         self.answer_instance_list = answer_instance_list = \
                 dict_for_form["answer_instance_list"]
 
@@ -74,7 +74,7 @@ class InlineMultiQuestionForm(StyledInlineForm):
                 self.helper.layout.extend([
                         HTML(html_item)])
 
-            # for fields embeded in html, the defined html_list can be
+            # for fields embedded in html, the defined html_list can be
             # longer than the answer_instance_list.
             if idx < len(answer_instance_list):
                 field_name = answer_instance_list[idx].name
@@ -131,7 +131,7 @@ def get_question_class(location, q_type, answers_desc):
         raise ValidationError(
             string_concat(
                 "%(location)s: ",
-                _("unknown embeded question type '%(type)s'"))
+                _("unknown embedded question type '%(type)s'"))
             % {
                 'location': location,
                 'type': q_type})
@@ -597,15 +597,26 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
 
-        self.embeded_wrapped_name_list = WRAPPED_NAME_RE.findall(
+        self.embedded_wrapped_name_list = WRAPPED_NAME_RE.findall(
                 page_desc.question)
-        self.embeded_name_list = NAME_RE.findall(page_desc.question)
+        self.embedded_name_list = NAME_RE.findall(page_desc.question)
+
+        answer_instance_list = []
+
+        for idx, name in enumerate(self.embedded_name_list):
+            answers_desc = getattr(self.page_desc.answers, name)
+
+            parsed_answer = parse_question(
+                    None, None, name, answers_desc)
+            answer_instance_list.append(parsed_answer)
+
+        self.answer_instance_list = answer_instance_list
 
         from relate.utils import struct_to_dict
         answers_name_list = struct_to_dict(page_desc.answers).keys()
 
         invalid_answer_name = []
-        invalid_embeded_name = []
+        invalid_embedded_name = []
 
         for answers_name in answers_name_list:
             if NAME_VALIDATE_RE.match(answers_name) is None:
@@ -625,14 +636,14 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                             for name in invalid_answer_name])
                         ))
 
-        for embeded_name in self.embeded_name_list:
-            if NAME_VALIDATE_RE.match(embeded_name) is None:
-                invalid_embeded_name.append(embeded_name)
-        if len(invalid_embeded_name) > 0:
+        for embedded_name in self.embedded_name_list:
+            if NAME_VALIDATE_RE.match(embedded_name) is None:
+                invalid_embedded_name.append(embedded_name)
+        if len(invalid_embedded_name) > 0:
             raise ValidationError(
                     string_concat(
                         "%s: ",
-                        _("invalid embeded question name %s. "),
+                        _("invalid embedded question name %s. "),
                         _("A valid name should start with letters. "
                             "Alphanumeric with underscores. "
                             "Do not use spaces."))
@@ -640,22 +651,22 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                             location,
                             ", ".join([
                                 "'" + name + "'"
-                                for name in invalid_embeded_name])
+                                for name in invalid_embedded_name])
                             ))
 
-        if len(set(self.embeded_name_list)) < len(self.embeded_name_list):
+        if len(set(self.embedded_name_list)) < len(self.embedded_name_list):
             duplicated = list(
-                 set([x for x in self.embeded_name_list
-                      if self.embeded_name_list.count(x) > 1]))
+                 set([x for x in self.embedded_name_list
+                      if self.embedded_name_list.count(x) > 1]))
             raise ValidationError(
                  string_concat(
                      "%s: ",
-                     _("embeded question name %s not unique."))
+                     _("embedded question name %s not unique."))
                  % (location, ", ".join(duplicated)))
 
-        no_answer_set = set(self.embeded_name_list) - set(answers_name_list)
+        no_answer_set = set(self.embedded_name_list) - set(answers_name_list)
         redundant_answer_list = list(set(answers_name_list)
-                - set(self.embeded_name_list))
+                - set(self.embedded_name_list))
 
         if no_answer_set:
             raise ValidationError(
@@ -681,7 +692,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             remainder_html = markup_to_html(vctx, page_desc.question)
 
             html_list = []
-            for wrapped_name in self.embeded_wrapped_name_list:
+            for wrapped_name in self.embedded_wrapped_name_list:
                 [html, remainder_html] = remainder_html.split(wrapped_name)
                 html_list.append(html)
 
@@ -689,17 +700,17 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 html_list.append(remainder_html)
 
             # make sure all [[ and ]] are paired.
-            embeded_removed = " ".join(html_list)
+            embedded_removed = " ".join(html_list)
 
             for sep in ["[[", "]]"]:
-                if sep in embeded_removed:
+                if sep in embedded_removed:
                     raise ValidationError(
                         string_concat(
                             "%s: ",
                             _("have unpaired '%s'."))
                         % (location, sep))
 
-            for idx, name in enumerate(self.embeded_name_list):
+            for idx, name in enumerate(self.embedded_name_list):
                 answers_desc = getattr(page_desc.answers, name)
 
                 parse_question(vctx, location, name, answers_desc)
@@ -729,26 +740,16 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     def get_dict_for_form(self, page_context):
         remainder_html = self.get_question(page_context)
 
-        self.html_list = []
-        for wrapped_name in self.embeded_wrapped_name_list:
+        html_list = []
+        for wrapped_name in self.embedded_wrapped_name_list:
             [html, remainder_html] = remainder_html.split(wrapped_name)
-            self.html_list.append(html)
+            html_list.append(html)
 
         if remainder_html != "":
-            self.html_list.append(remainder_html)
-
-        self.answer_instance_list = []
-
-        for idx, name in enumerate(self.embeded_name_list):
-            answers_desc = getattr(self.page_desc.answers, name)
-
-            parsed_answer = parse_question(
-                    None, None, name, answers_desc)
-
-            self.answer_instance_list.append(parsed_answer)
+            html_list.append(remainder_html)
 
         return {
-                "HTML_list": self.html_list,
+                "html_list": html_list,
                 "answer_instance_list": self.answer_instance_list,
                }
 
@@ -798,7 +799,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         cor_answer_output = self.get_question(page_context)
 
-        for idx, wrapped in enumerate(self.embeded_wrapped_name_list):
+        for idx, wrapped in enumerate(self.embedded_wrapped_name_list):
             correct_answer_i = self.answer_instance_list[idx] \
                     .get_correct_answer_text(page_context)
             cor_answer_output = cor_answer_output.replace(
@@ -839,7 +840,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         total_weight = 0
 
-        for idx, name in enumerate(self.embeded_name_list):
+        for idx, name in enumerate(self.embedded_name_list):
             total_weight += self.answer_instance_list[idx].weight
 
         if total_weight > 0:
@@ -869,11 +870,11 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         nml_answer_output = self.get_question(page_context)
 
-        for idx, wrapped_name in enumerate(self.embeded_wrapped_name_list):
+        for idx, wrapped_name in enumerate(self.embedded_wrapped_name_list):
             nml_answer_output = nml_answer_output.replace(
                     wrapped_name,
                     "<strong>"
-                    + answer_dict[self.embeded_name_list[idx]]
+                    + answer_dict[self.embedded_name_list[idx]]
                     + "</strong>")
 
         return nml_answer_output
