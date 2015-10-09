@@ -50,7 +50,7 @@ from course.views import get_now_or_fake_time
 # {{{ grading driver
 
 @course_view
-@retry_transaction_decorator
+@retry_transaction_decorator()
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
     page_ordinal = int(page_ordinal)
 

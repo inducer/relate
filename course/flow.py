@@ -152,7 +152,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 
 # {{{ start flow
 
-@retry_transaction_decorator
+@transaction.atomic
 def start_flow(repo, course, participation, user, flow_id, flow_desc,
         access_rules_tag, now_datetime):
     from course.content import get_course_commit_sha
@@ -819,29 +819,13 @@ def view_start_flow(pctx, flow_id):
     fctx = FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
 
-    session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
-            pctx.role, flow_id, fctx.flow_desc, now_datetime,
-            facilities=pctx.request.relate_facilities)
-
     if request.method == "POST":
-        if not session_start_rule.may_start_new_session:
-            raise PermissionDenied(_("new session not allowed"))
-
-        flow_user = pctx.request.user
-        if not flow_user.is_authenticated():
-            flow_user = None
-
-        session = start_flow(
-                pctx.repo, pctx.course, pctx.participation,
-                user=flow_user,
-                flow_id=flow_id, flow_desc=fctx.flow_desc,
-                access_rules_tag=session_start_rule.tag_session,
-                now_datetime=now_datetime)
-
-        return redirect("relate-view_flow_page",
-                pctx.course.identifier, session.id, 0)
-
+        return post_start_flow(pctx, fctx, flow_id)
     else:
+        session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
+                pctx.role, flow_id, fctx.flow_desc, now_datetime,
+                facilities=pctx.request.relate_facilities)
+
         if session_start_rule.may_list_existing_sessions:
             past_sessions = (FlowSession.objects
                     .filter(
@@ -911,6 +895,32 @@ def view_start_flow(pctx, flow_id):
             "past_sessions_and_properties": past_sessions_and_properties,
             },
             allow_instant_flow_requests=False)
+
+
+@retry_transaction_decorator(serializable=True)
+def post_start_flow(pctx, fctx, flow_id):
+    now_datetime = get_now_or_fake_time(pctx.request)
+
+    session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
+            pctx.role, flow_id, fctx.flow_desc, now_datetime,
+            facilities=pctx.request.relate_facilities)
+
+    if not session_start_rule.may_start_new_session:
+        raise PermissionDenied(_("new session not allowed"))
+
+    flow_user = pctx.request.user
+    if not flow_user.is_authenticated():
+        flow_user = None
+
+    session = start_flow(
+            pctx.repo, pctx.course, pctx.participation,
+            user=flow_user,
+            flow_id=flow_id, flow_desc=fctx.flow_desc,
+            access_rules_tag=session_start_rule.tag_session,
+            now_datetime=now_datetime)
+
+    return redirect("relate-view_flow_page",
+            pctx.course.identifier, session.id, 0)
 
 # }}}
 
@@ -1357,7 +1367,7 @@ def get_pressed_button(form):
     raise SuspiciousOperation(_("could not find which button was pressed"))
 
 
-@retry_transaction_decorator
+@retry_transaction_decorator()
 def post_flow_page(flow_session, fpctx, request, permissions, generates_grade):
     page_context = fpctx.page_context
     page_data = fpctx.page_data
@@ -1538,7 +1548,7 @@ def update_expiration_mode(pctx, flow_session_id):
 
 # {{{ view: finish flow
 
-@retry_transaction_decorator
+@retry_transaction_decorator()
 @course_view
 def finish_flow_session_view(pctx, flow_session_id):
     now_datetime = get_now_or_fake_time(pctx.request)

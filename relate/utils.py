@@ -140,17 +140,27 @@ def struct_to_dict(data):
 # }}}
 
 
-def retry_transaction(f, args, kwargs={}, max_tries=None):
+def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
     from django.db import transaction
     from django.db.utils import OperationalError
 
     if max_tries is None:
         max_tries = 5
+    if serializable is None:
+        serializable = False
 
     assert max_tries > 0
     while True:
         try:
             with transaction.atomic():
+                if serializable:
+                    from django.db import connections, DEFAULT_DB_ALIAS
+                    conn = connections[DEFAULT_DB_ALIAS]
+                    if conn.vendor == "postgresql":
+                        cursor = conn.cursor()
+                        cursor.execute(
+                                "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;")
+
                 return f(*args, **kwargs)
         except OperationalError:
             max_tries -= 1
@@ -158,14 +168,21 @@ def retry_transaction(f, args, kwargs={}, max_tries=None):
                 raise
 
 
-def retry_transaction_decorator(f, max_tries=None):
-    from functools import update_wrapper
+class retry_transaction_decorator(object):
+    def __init__(self, max_tries=None, serializable=None):
+        self.max_tries = max_tries
+        self.serializable = serializable
 
-    def wrapper(*args, **kwargs):
-        return retry_transaction(f, args, kwargs, max_tries=max_tries)
+    def __call__(self, f):
+        from functools import update_wrapper
 
-    update_wrapper(wrapper, f)
-    return wrapper
+        def wrapper(*args, **kwargs):
+            return retry_transaction(f, args, kwargs,
+                    max_tries=self.max_tries,
+                    serializable=self.serializable)
+
+        update_wrapper(wrapper, f)
+        return wrapper
 
 
 # {{{ hang debugging
