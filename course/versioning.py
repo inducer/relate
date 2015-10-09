@@ -556,7 +556,7 @@ def update_course(pctx):
                         may_update,
                         prevent_discarding_revisions=form.cleaned_data[
                             "prevent_discarding_revisions"])
-            except int:
+            except Exception as e:
                 import traceback
                 traceback.print_exc()
 
