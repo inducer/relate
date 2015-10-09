@@ -45,6 +45,8 @@ from django.utils.translation import (
 from django.utils.functional import lazy
 from django.contrib.auth.decorators import login_required
 
+from django_select2.forms import Select2Widget
+
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
 from django.views.decorators.cache import cache_control
@@ -576,7 +578,8 @@ class ExceptionStage1Form(StyledForm):
                 required=True,
                 help_text=_("Select participant for whom exception is to "
                 "be granted."),
-                label=_("Participant"))
+                label=_("Participant"),
+                widget=Select2Widget())
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,
