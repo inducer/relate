@@ -61,6 +61,19 @@ class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
         return
 
 
+def _remove_prefix(prefix, s):
+    assert s.startswith(prefix)
+
+    return s[len(prefix):]
+
+
+def transfer_remote_refs(repo, remote_refs):
+    for ref, sha in six.iteritems(remote_refs):
+        if (ref.startswith(b"refs/heads/")
+                and not ref.startswith(b"refs/heads/origin/")):
+            repo["refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)] = sha
+
+
 # {{{ shell quoting
 
 # Adapted from
@@ -239,6 +252,7 @@ def set_up_new_course(request):
                                     new_course)
 
                         remote_refs = client.fetch(remote_path, repo)
+                        transfer_remote_refs(repo, remote_refs)
                         new_sha = repo[b"HEAD"] = remote_refs[b"HEAD"]
 
                         vrepo = repo
@@ -363,6 +377,7 @@ def run_course_update_command(
             get_dulwich_client_and_remote_path_from_course(pctx.course)
 
         remote_refs = client.fetch(remote_path, repo)
+        transfer_remote_refs(repo, remote_refs)
         remote_head = remote_refs[b"HEAD"]
         if (
                 prevent_discarding_revisions
@@ -515,7 +530,7 @@ def update_course(pctx):
                         may_update,
                         prevent_discarding_revisions=form.cleaned_data[
                             "prevent_discarding_revisions"])
-            except Exception as e:
+            except int:
                 import traceback
                 traceback.print_exc()
 
