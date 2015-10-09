@@ -457,7 +457,7 @@ class GitUpdateForm(StyledForm):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
         repo_refs = repo.get_refs()
-        commit_iter = repo.get_walker(repo_refs.values())
+        commit_iter = repo.get_walker(list(repo_refs.values()))
 
         def format_commit(commit):
             return "%s - %s" % (
