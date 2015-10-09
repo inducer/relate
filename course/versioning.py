@@ -39,6 +39,7 @@ from django.utils.translation import (
         pgettext_lazy,
         string_concat,
         )
+from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from django.db import transaction
@@ -451,17 +452,33 @@ def run_course_update_command(
 
 
 class GitUpdateForm(StyledForm):
-    new_sha = forms.CharField(required=True,
-            label=pgettext_lazy(
-                "new git SHA for revision of course contents",
-                "New git SHA"))
-    prevent_discarding_revisions = forms.BooleanField(
-            label=_("Prevent updating to a git revision "
-                "prior to the current one"),
-            initial=True, required=False)
 
-    def __init__(self, may_update, previewing, *args, **kwargs):
+    def __init__(self, may_update, previewing, repo, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
+
+        repo_refs = repo.get_refs()
+        commit_iter = repo.get_walker(repo_refs.values())
+        
+        self.fields["new_sha"] = forms.ChoiceField(
+                choices=([
+                    (repo_refs[ref], ref + ': ' + repo_refs[ref])
+                    for ref in repo_refs
+                    ] + 
+                    [
+                    (entry.commit.id, entry.commit.id)
+                    for entry in commit_iter
+                    ]),
+                required=True,
+                widget=Select2Widget(),
+                label=pgettext_lazy(
+                    "new git SHA for revision of course contents",
+                    "New git SHA"))
+
+        self.fields["prevent_discarding_revisions"] = forms.BooleanField(
+                label=_("Prevent updating to a git revision "
+                    "prior to the current one"),
+                initial=True, required=False)
+
 
         def add_button(desc, label):
             self.helper.add_input(Submit(desc, label))
@@ -508,7 +525,8 @@ def update_course(pctx):
 
     response_form = None
     if request.method == "POST":
-        form = GitUpdateForm(may_update, previewing, request.POST, request.FILES)
+        form = GitUpdateForm(may_update, previewing, repo, request.POST,
+            request.FILES)
         commands = ["fetch", "fetch_update", "update", "fetch_preview",
                 "preview", "end_preview"]
 
@@ -548,7 +566,7 @@ def update_course(pctx):
         previewing = bool(participation is not None
                 and participation.preview_git_commit_sha)
 
-        form = GitUpdateForm(may_update, previewing,
+        form = GitUpdateForm(may_update, previewing, repo, 
                 {
                     "new_sha": repo.head(),
                     "prevent_discarding_revisions": True,
