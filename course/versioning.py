@@ -497,9 +497,9 @@ class GitUpdateForm(StyledForm):
 
         if previewing:
             add_button("end_preview", _("End preview"))
-        else:
-            add_button("fetch_preview", _("Fetch and preview"))
-            add_button("preview", _("Preview"))
+
+        add_button("fetch_preview", _("Fetch and preview"))
+        add_button("preview", _("Preview"))
 
         add_button("fetch", _("Fetch"))
 
