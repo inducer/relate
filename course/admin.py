@@ -24,7 +24,8 @@ THE SOFTWARE.
 
 import six
 
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import (
+        ugettext_lazy as _, string_concat, pgettext)
 from django.contrib import admin
 
 from course.models import (
@@ -293,15 +294,18 @@ class ParticipationAdmin(admin.ModelAdmin):
         from django.core.urlresolvers import reverse
         from django.conf import settings
 
-        return _("<a href='%(link)s'>%(last_name)s, %(first_name)s</a>") % {
-                "link": reverse(
-                    "admin:%s_change" % settings.AUTH_USER_MODEL.replace(".", "_")
-                    .lower(),
-                    args=(obj.user.id,)),
-                "last_name": verbose_blank(obj.user.last_name),
-                "first_name": verbose_blank(obj.user.first_name)}
+        return string_concat(
+                "<a href='%(link)s'>", _("%(last_name)s, %(first_name)s"), 
+                "</a>"
+                ) % {
+                        "link": reverse(
+                            "admin:%s_change" % settings.AUTH_USER_MODEL.replace(".", "_")
+                            .lower(),
+                            args=(obj.user.id,)),
+                        "last_name": verbose_blank(obj.user.last_name),
+                        "first_name": verbose_blank(obj.user.first_name)}
 
-    get_user.short_description = _("Name")
+    get_user.short_description = pgettext("real name of a user", "Name")
     get_user.admin_order_field = "user__last_name"
     get_user.allow_tags = True
 
