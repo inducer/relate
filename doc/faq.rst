@@ -88,3 +88,40 @@ Sometimes we need to postpone or put in advance all the following events, which 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 "Delete one and renumber" might do the trick? That's what I do when, say, a class gets cancelled.
+
+How do I have students realistically deal with data files in code questions?
+----------------------------------------------------------------------------
+
+Here's an example page to give you an idea::
+
+    type: PythonCodeQuestion
+    id: file_read_demo
+    timeout: 3
+    prompt: |
+
+        # File Reading Demo
+
+    data_files:
+        - question-data/some.csv
+
+    setup_code: |
+
+        def open(filename, mode="r"):
+            try:
+                data = data_files["question-data/"+filename]
+            except KeyError:
+                raise IOError("file not found")
+
+            # 'data' is a 'bytes' object at this point.
+
+            from io import StringIO
+            return StringIO(data.decode("utf-8"))
+
+    names_for_user: [open]
+    correct_code: |
+
+        import csv
+        with open("some.csv") as infile:
+            reader = csv.reader(infile)
+            for row in reader:
+                print(row)
