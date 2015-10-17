@@ -69,10 +69,16 @@ def _remove_prefix(prefix, s):
 
 
 def transfer_remote_refs(repo, remote_refs):
+    valid_refs = []
     for ref, sha in six.iteritems(remote_refs):
         if (ref.startswith(b"refs/heads/")
                 and not ref.startswith(b"refs/heads/origin/")):
-            repo["refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)] = sha
+            new_ref = "refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
+            valid_refs.append(new_ref)
+            repo[new_ref] = sha
+    for ref in repo.get_refs().keys():
+        if ref.startswith(b"refs/remotes/origin/") and ref not in valid_refs:
+            del repo[ref]
 
 
 # {{{ shell quoting
