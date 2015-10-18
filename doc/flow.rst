@@ -687,6 +687,6 @@ Definining your own page types
 Life cycle
 ----------
 
-*  Pre-
+.. currentmodule:: course.constants
 
 .. autoclass:: flow_session_expiration_mode
