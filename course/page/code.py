@@ -30,7 +30,7 @@ from course.validation import ValidationError
 import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext as _, string_concat
 from django.utils import translation
 from django.conf import settings
 
@@ -573,6 +573,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
+        feedback_bits = []
+
         # {{{ send email if the grading code broke
 
         if response_dict["result"] in [
@@ -610,19 +612,43 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         not page_context.in_sandbox
                         and
                         not is_nuisance_failure(response_dict)):
-                    from django.core.mail import send_mail
-                    send_mail("".join(["[%s] ", _("code question execution failed")])
+                    try:
+                        from django.core.mail import send_mail
+                        send_mail("".join(["[%s] ",
+                            _("code question execution failed")])
                             % page_context.course.identifier,
                             message,
                             settings.ROBOT_EMAIL_FROM,
                             recipient_list=[page_context.course.notify_email])
+
+                    except Exception:
+                        from traceback import format_exc
+                        feedback_bits.append(
+                            six.text_type(string_concat(
+                                "<p>",
+                                _(
+                                    "Both the grading code and the attempt to "
+                                    "notify course staff about the issue failed. "
+                                    "Please contact the course or site staff and "
+                                    "inform them of this issue, mentioning this "
+                                    "entire error message:"),
+                                "</p>",
+                                "<p>",
+                                _(
+                                    "Sending an email to the course staff about the "
+                                    "following failure failed with "
+                                    "the following error message:"),
+                                "<pre>",
+                                "".join(format_exc()),
+                                "</pre>",
+                                _("The original failure message follows:"),
+                                "</p>")))
 
         # }}}
 
         from relate.utils import dict_to_struct
         response = dict_to_struct(response_dict)
 
-        feedback_bits = []
         bulk_feedback_bits = []
         if hasattr(response, "points"):
             correctness = response.points
