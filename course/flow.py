@@ -128,9 +128,10 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
             commit_sha=course_commit_sha,
             flow_session=flow_session)
 
-    answer_feedback = page.grade(
-            grading_page_context, visit.page_data.data,
-            visit.answer, grade_data=grade_data)
+    with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+        answer_feedback = page.grade(
+                grading_page_context, visit.page_data.data,
+                visit.answer, grade_data=grade_data)
 
     grade = visit_grade_model()
     grade.visit = visit
@@ -1437,9 +1438,10 @@ def post_flow_page(flow_session, fpctx, request, permissions, generates_grade):
                 is_unenrolled_session=flow_session.participation is None)
 
         if fpctx.page.is_answer_gradable():
-            feedback = fpctx.page.grade(
-                    page_context, page_data.data, answer_visit.answer,
-                    grade_data=None)
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                feedback = fpctx.page.grade(
+                        page_context, page_data.data, answer_visit.answer,
+                        grade_data=None)
 
             if answer_visit.is_submitted_answer:
                 grade = FlowPageVisitGrade()

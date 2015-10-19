@@ -45,6 +45,8 @@ from course.utils import (
         get_session_grading_rule,
         FlowPageContext)
 from course.views import get_now_or_fake_time
+from django.conf import settings
+from django.utils import translation
 
 
 # {{{ grading driver
@@ -156,9 +158,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         fpctx.page_context, fpctx.page_data, grade_data,
                         grading_form, request.FILES)
 
-                feedback = fpctx.page.grade(
-                        fpctx.page_context, fpctx.page_data,
-                        answer_data, grade_data)
+                with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                    feedback = fpctx.page.grade(
+                            fpctx.page_context, fpctx.page_data,
+                            answer_data, grade_data)
 
                 if feedback is not None:
                     correctness = feedback.correctness
