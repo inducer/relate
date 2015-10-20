@@ -820,20 +820,32 @@ def view_start_flow(pctx, flow_id):
     fctx = FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
 
+    past_sessions = (FlowSession.objects
+            .filter(
+                participation=pctx.participation,
+                flow_id=fctx.flow_id,
+                participation__isnull=False)
+           .order_by("start_time"))
+
     if request.method == "POST":
-        return post_start_flow(pctx, fctx, flow_id)
+        if past_sessions:
+            latest_session = past_sessions.reverse()[0]
+
+            from datetime import timedelta
+            if ((now_datetime - latest_session.start_time)
+                    < timedelta(seconds = 5)):
+                return redirect("relate-view_flow_page",
+                    pctx.course.identifier, latest_session.id, 0)
+            else:
+                return post_start_flow(pctx, fctx, flow_id)
+        else:
+            return post_start_flow(pctx, fctx, flow_id)
     else:
         session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
                 pctx.role, flow_id, fctx.flow_desc, now_datetime,
                 facilities=pctx.request.relate_facilities)
 
         if session_start_rule.may_list_existing_sessions:
-            past_sessions = (FlowSession.objects
-                    .filter(
-                        participation=pctx.participation,
-                        flow_id=fctx.flow_id,
-                        participation__isnull=False)
-                   .order_by("start_time"))
 
             from collections import namedtuple
             SessionProperties = namedtuple("SessionProperties",  # noqa
