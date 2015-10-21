@@ -58,7 +58,8 @@ EMAIL_USE_TLS = False
 ROBOT_EMAIL_FROM = "Example Admin <admin@example.com>"
 RELATE_ADMIN_EMAIL_LOCALE = "en_US"
 
-# Cool down time (seconds) before starting a new session of a flow
+# Cool down time (seconds) required before another new session of a flow
+# is allowed to be started.
 RELATE_SESSION_RESTART_COOLDOWN_SECONDS = 10
 
 SERVER_EMAIL = ROBOT_EMAIL_FROM
