@@ -902,6 +902,25 @@ def view_start_flow(pctx, flow_id):
 def post_start_flow(pctx, fctx, flow_id):
     now_datetime = get_now_or_fake_time(pctx.request)
 
+    past_sessions = (FlowSession.objects
+            .filter(
+                participation=pctx.participation,
+                flow_id=fctx.flow_id,
+                participation__isnull=False)
+           .order_by("start_time"))
+
+    if past_sessions:
+        latest_session = past_sessions.reverse()[0]
+
+        cooldown_seconds = getattr(
+            settings, "RELATE_SESSION_RESTART_COOLDOWN_SECONDS", 10)
+
+        from datetime import timedelta
+        if ((now_datetime - latest_session.start_time)
+                < timedelta(seconds = cooldown_seconds)):
+            return redirect("relate-view_flow_page",
+                pctx.course.identifier, latest_session.id, 0)
+
     session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
             pctx.role, flow_id, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities)
