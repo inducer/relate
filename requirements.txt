@@ -9,7 +9,7 @@ jsonfield>=1.0.3,<1.1
 django-yamlfield
 
 # For easy content formatting:
-markdown
+markdown>=2.6.3
 
 # For rendering macros in content:
 jinja2
