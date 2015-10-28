@@ -280,6 +280,7 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
         for page_desc in group_desc.pages:
             points = 0
             graded_count = 0
+            empty_count = 0
 
             answer_count = 0
             total_count = 0
@@ -330,6 +331,9 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
 
                 if visit.answer is not None:
                     answer_count += 1
+                else:
+                    empty_count += 1
+
                 total_count += 1
 
                 if (answer_feedback is not None
@@ -351,7 +355,7 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
                         title=title,
                         average_correctness=safe_div(points, graded_count),
                         average_emptiness=safe_div(
-                            graded_count - answer_count, graded_count),
+                            empty_count, graded_count),
                         answer_count=answer_count,
                         total_count=total_count,
                         url=reverse(
