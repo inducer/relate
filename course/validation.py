@@ -979,6 +979,38 @@ def check_attributes_yml(vctx, repo, path, tree):
                     path+"/"+entry.path.decode("utf-8"), subtree)
 
 
+# {{{ check whether flow grade identifiers were changed in sketchy ways
+
+def check_grade_identifier_link(
+        vctx, location, course, flow_id, flow_grade_identifier):
+
+    from course.models import GradingOpportunity
+    for bad_gopp in (
+            GradingOpportunity.objects
+            .filter(
+                course=course,
+                identifier=flow_grade_identifier)
+            .exclude(flow_id=flow_id)):
+        # 0 or 1 trips through this loop because of uniqueness
+
+        raise ValidationError(
+                _(
+                    "{location}: existing grading opportunity with identifier "
+                    "'{grade_identifier}' refers to flow '{other_flow_id}', however "
+                    "flow code in this flow ('{new_flow_id}') specifies the same "
+                    "grade identifier. "
+                    "(Have you renamed the flow? If so, edit the grading "
+                    "opportunity to match.)")
+                .format(
+                    location=location,
+                    grade_identifier=flow_grade_identifier,
+                    other_flow_id=bad_gopp.flow_id,
+                    new_flow_id=flow_id,
+                    new_grade_identifier=flow_grade_identifier))
+
+# }}}
+
+
 # {{{ check whether page types were changed
 
 def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
@@ -1106,6 +1138,11 @@ def validate_course_content(repo, course_file, events_file,
                         % location)
 
             used_grade_identifiers.add(flow_grade_identifier)
+
+            if (course is not None
+                    and flow_grade_identifier is not None):
+                check_grade_identifier_link(
+                        vctx, location, course, flow_id, flow_grade_identifier)
 
             # }}}
 
