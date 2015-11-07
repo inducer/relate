@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 import django.forms as forms
-from django.utils.translation import ugettext as _, string_concat
+from django.utils.translation import ugettext as _, ugettext_lazy, string_concat
 
 from course.page.base import (
         PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
@@ -40,7 +40,8 @@ from relate.utils import StyledForm
 # {{{ upload question
 
 class FileUploadForm(StyledForm):
-    uploaded_file = forms.FileField(required=True, label=_('Uploaded file'))
+    uploaded_file = forms.FileField(required=True,
+            label=ugettext_lazy('Uploaded file'))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
         super(FileUploadForm, self).__init__(*args, **kwargs)
