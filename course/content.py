@@ -47,7 +47,7 @@ from relate.utils import dict_to_struct
 from yaml import load as load_yaml
 
 
-# {{{ repo interaction
+# {{{ repo blob getting
 
 class SubdirRepoWrapper(object):
     def __init__(self, repo, subdir):
@@ -155,6 +155,39 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     return result
 
 
+def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
+    """
+    :arg commit_sha: A byte string containing the commit hash
+    """
+
+    from os.path import dirname, basename, join
+    attributes_path = join(dirname(path), ".attributes.yml")
+
+    from course.content import get_raw_yaml_from_repo
+    try:
+        attributes = get_raw_yaml_from_repo(
+                repo, attributes_path, commit_sha.encode())
+    except ObjectDoesNotExist:
+        # no attributes file: not public
+        return False
+
+    path_basename = basename(path)
+    access_patterns = attributes.get(access_kind, [])
+
+    from fnmatch import fnmatch
+    if isinstance(access_patterns, list):
+        for pattern in access_patterns:
+            if isinstance(pattern, six.string_types):
+                if fnmatch(path_basename, pattern):
+                    return True
+
+    return False
+
+# }}}
+
+
+# {{{ jinja interaction
+
 JINJA_YAML_RE = re.compile(
     r"^\[JINJA\]\s*$(.*?)^\[\/JINJA\]\s*$",
     re.MULTILINE | re.DOTALL)
@@ -164,42 +197,9 @@ GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
 
-def expand_yaml_macros(repo, commit_sha, yaml_str):
-    if isinstance(yaml_str, six.binary_type):
-        yaml_str = yaml_str.decode("utf-8")
-
-    from jinja2 import Environment, StrictUndefined
-    jinja_env = Environment(
-            loader=GitTemplateLoader(repo, commit_sha),
-            undefined=StrictUndefined)
-
-    def compute_replacement(match):
-        template = jinja_env.from_string(match.group(1))
-        return template.render()
-
-    yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
-
-    if count:
-        # The file uses explicit YAML tags. Assume that it doesn't
-        # want anything else processed through YAML.
-        return yaml_str
-
-    # {{{ process non-block-scalar YAML lines through Jinja
-
-    block_var_num = [0]
-    block_vars = {}
-    block_name_template = "_RELATE_JINJA_BLOCK_SUB_%d"
-
+def process_yaml_for_expansion(yaml_str):
     lines = yaml_str.split("\n")
     jinja_lines = []
-
-    def add_unprocessed_block(s):
-        my_block_num = block_var_num[0]
-        block_var_num[0] += 1
-
-        my_block_name = block_name_template % my_block_num
-        block_vars[my_block_name] = s
-        jinja_lines.append("{{ %s }}" % my_block_name)
 
     i = 0
     line_count = len(lines)
@@ -207,7 +207,9 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
     while i < line_count:
         l = lines[i]
         if GROUP_COMMENT_START.match(l):
-            add_unprocessed_block(l)
+            jinja_lines.append("{% raw %}")
+            jinja_lines.append(l)
+            jinja_lines.append("{% endraw %}")
             i += 1
 
         elif YAML_BLOCK_START_SCALAR_RE.search(l):
@@ -233,21 +235,85 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
                     unprocessed_block_lines.append(l)
                     i += 1
 
-            add_unprocessed_block("\n".join(unprocessed_block_lines))
+            jinja_lines.append("{% raw %}")
+            jinja_lines.extend(unprocessed_block_lines)
+            jinja_lines.append("{% endraw %}")
 
         else:
             jinja_lines.append(l)
             i += 1
 
-    jinja_str = "\n".join(jinja_lines)
+    return "\n".join(jinja_lines)
 
-    template = jinja_env.from_string(jinja_str)
-    yaml_str = template.render(block_vars)
+
+class GitTemplateLoader(BaseTemplateLoader):
+    def __init__(self, repo, commit_sha):
+        self.repo = repo
+        self.commit_sha = commit_sha
+
+    def get_source(self, environment, template):
+        try:
+            data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
+        except ObjectDoesNotExist:
+            raise TemplateNotFound(template)
+
+        source = data.decode('utf-8')
+
+        def is_up_to_date():
+            # There's not much point to caching here, because we create
+            # a new loader for every request anyhow...
+            return False
+
+        return source, None, is_up_to_date
+
+
+class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
+    def get_source(self, environment, template):
+        source, path, is_up_to_date = \
+                super(YamlBlockEscapingGitTemplateLoader, self).get_source(
+                        environment, template)
+
+        source = process_yaml_for_expansion(source)
+
+        return source, path, is_up_to_date
+
+
+def expand_yaml_macros(repo, commit_sha, yaml_str):
+    if isinstance(yaml_str, six.binary_type):
+        yaml_str = yaml_str.decode("utf-8")
+
+    from jinja2 import Environment, StrictUndefined
+    jinja_env = Environment(
+            loader=GitTemplateLoader(repo, commit_sha),
+            # https://github.com/inducer/relate/issues/130
+            # loader=YamlBlockEscapingGitTemplateLoader(repo, commit_sha),
+            undefined=StrictUndefined)
+
+    # {{{ process explicit [JINJA] tags (deprecated)
+
+    def compute_replacement(match):
+        template = jinja_env.from_string(match.group(1))
+        return template.render()
+
+    yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
+
+    if count:
+        # The file uses explicit [JINJA] tags. Assume that it doesn't
+        # want anything else processed through YAML.
+        return yaml_str
 
     # }}}
 
+    jinja_str = process_yaml_for_expansion(yaml_str)
+    template = jinja_env.from_string(jinja_str)
+    yaml_str = template.render()
+
     return yaml_str
 
+# }}}
+
+
+# {{{ repo yaml getting
 
 def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     """Return decoded YAML data structure from
@@ -313,34 +379,6 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
 
     return result
 
-
-def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
-    """
-    :arg commit_sha: A byte string containing the commit hash
-    """
-
-    from os.path import dirname, basename, join
-    attributes_path = join(dirname(path), ".attributes.yml")
-
-    from course.content import get_raw_yaml_from_repo
-    try:
-        attributes = get_raw_yaml_from_repo(
-                repo, attributes_path, commit_sha.encode())
-    except ObjectDoesNotExist:
-        # no attributes file: not public
-        return False
-
-    path_basename = basename(path)
-    access_patterns = attributes.get(access_kind, [])
-
-    from fnmatch import fnmatch
-    if isinstance(access_patterns, list):
-        for pattern in access_patterns:
-            if isinstance(pattern, six.string_types):
-                if fnmatch(path_basename, pattern):
-                    return True
-
-    return False
 
 # }}}
 
@@ -532,27 +570,6 @@ class LinkFixerExtension(Extension):
                         reverse_func=self.reverse_func)
 
 
-class GitTemplateLoader(BaseTemplateLoader):
-    def __init__(self, repo, commit_sha):
-        self.repo = repo
-        self.commit_sha = commit_sha
-
-    def get_source(self, environment, template):
-        try:
-            data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
-        except ObjectDoesNotExist:
-            raise TemplateNotFound(template)
-
-        source = data.decode('utf-8')
-
-        def is_up_to_date():
-            # There's not much point to caching here, because we create
-            # a new loader for every request anyhow...
-            return False
-
-        return source, None, lambda: False
-
-
 def remove_prefix(prefix, s):
     if s.startswith(prefix):
         return s[len(prefix):]
@@ -622,6 +639,8 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
 
 # }}}
 
+
+# {{{ datespec processing
 
 DATE_RE = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
 TRAILING_NUMERAL_RE = re.compile(r"^(.*)\s+([0-9]+)$")
@@ -820,6 +839,10 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
                     % orig_datespec)
         return now()
 
+# }}}
+
+
+# {{{ page chunks
 
 def compute_chunk_weight_and_shown(course, chunk, role, now_datetime,
         facilities):
@@ -869,10 +892,6 @@ def compute_chunk_weight_and_shown(course, chunk, role, now_datetime,
     return 0, True
 
 
-def get_course_desc(repo, course, commit_sha):
-    return get_yaml_from_repo(repo, course.course_file, commit_sha)
-
-
 def get_processed_course_chunks(course, repo, commit_sha,
         course_desc, role, now_datetime, facilities):
     for chunk in course_desc.chunks:
@@ -886,6 +905,15 @@ def get_processed_course_chunks(course, repo, commit_sha,
 
     return [chunk for chunk in course_desc.chunks
             if chunk.shown]
+
+
+# }}}
+
+
+# {{{ repo desc getting
+
+def get_course_desc(repo, course, commit_sha):
+    return get_yaml_from_repo(repo, course.course_file, commit_sha)
 
 
 def normalize_flow_desc(flow_desc):
@@ -940,6 +968,10 @@ def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):
                 'flow_id': flow_id
                 })
 
+# }}}
+
+
+# {{{ flow page handling
 
 class ClassNotFoundError(RuntimeError):
     pass
@@ -1012,6 +1044,10 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
 
     return class_(None, location, page_desc)
 
+# }}}
+
+
+# {{{ page data wrangling
 
 def _adjust_flow_session_page_data_inner(repo, flow_session,
         course_identifier, flow_desc):
@@ -1173,6 +1209,8 @@ def adjust_flow_session_page_data(repo, flow_session,
     with transaction.atomic():
         return _adjust_flow_session_page_data_inner(
                 repo, flow_session, course_identifier, flow_desc)
+
+# }}}
 
 
 def get_course_commit_sha(course, participation):
