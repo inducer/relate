@@ -79,6 +79,10 @@ STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
 # student Python code. Docker should download the image on first run.
 RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 
+# A URL pointing to the Docker command interface which RELATE should use
+# to spawn containers for student code.
+RELATE_DOCKER_URL = "unix://var/run/docker.sock"
+
 RELATE_MAINTENANCE_MODE = False
 
 # May be set to a string to set a sitewide announcement visible on every page.

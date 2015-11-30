@@ -94,7 +94,8 @@ def request_python_run(run_req, run_timeout, image=None):
     # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
     if 1:
         docker_cnx = docker.Client(
-                base_url='unix://var/run/docker.sock',
+                base_url=getattr(settings, "RELATE_DOCKER_URL",
+                    "unix://var/run/docker.sock"),
                 version='1.12', timeout=docker_timeout)
 
         if image is None:
