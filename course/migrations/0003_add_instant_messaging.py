@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('text', models.CharField(max_length=200)),
                 ('time', models.DateTimeField(default=django.utils.timezone.now)),
-                ('participation', models.ForeignKey(to='course.Participation')),
+                ('participation', models.ForeignKey(to='course.Participation', on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': (b'participation__course', b'time'),

@@ -72,7 +72,7 @@ def get_user_status(user):
 class UserStatus(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, db_index=True,
             related_name="user_status",
-            verbose_name=_('User ID'))
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
     status = models.CharField(max_length=50,
             choices=USER_STATUS_CHOICES,
             verbose_name=_('User status'))
@@ -270,7 +270,7 @@ class Event(models.Model):
     """
 
     course = models.ForeignKey(Course,
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     kind = models.CharField(max_length=50,
             # Translators: format of event kind in Event model
             help_text=_("Should be lower_case_with_underscores, no spaces "
@@ -315,7 +315,7 @@ class Event(models.Model):
 
 class ParticipationTag(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     name = models.CharField(max_length=100, unique=True,
             # Translators: name format of ParticipationTag
             help_text=_("Format is lower-case-with-hyphens. "
@@ -348,9 +348,9 @@ class ParticipationTag(models.Model):
 
 class Participation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
-            verbose_name=_('User ID'))
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
     course = models.ForeignKey(Course, related_name="participations",
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
 
     enroll_time = models.DateTimeField(default=now,
             verbose_name=_('Enroll time'))
@@ -404,13 +404,13 @@ class ParticipationPreapproval(models.Model):
     email = models.EmailField(max_length=254,
             verbose_name=_('Email'))
     course = models.ForeignKey(Course,
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
             verbose_name=_('Role'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -434,7 +434,7 @@ class ParticipationPreapproval(models.Model):
 
 class InstantFlowRequest(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     flow_id = models.CharField(max_length=200,
             verbose_name=_('Flow ID'))
     start_time = models.DateTimeField(default=now,
@@ -455,17 +455,17 @@ class FlowSession(models.Model):
     # This looks like it's redundant with 'participation', below--but it's not.
     # 'participation' is nullable.
     course = models.ForeignKey(Course,
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
 
     participation = models.ForeignKey(Participation, null=True, blank=True,
             db_index=True,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
 
     # This looks like it's redundant with participation, above--but it's not.
     # Again--'participation' is nullable, and it is useful to be able to
     # remember what user a session belongs to, even if they're not enrolled.
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-            verbose_name=_('User'))
+            verbose_name=_('User'), on_delete=models.CASCADE)
 
     active_git_commit_sha = models.CharField(max_length=200,
             verbose_name=_('Active git commit SHA'))
@@ -566,7 +566,7 @@ class FlowSession(models.Model):
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
-            verbose_name=_('Flow session'))
+            verbose_name=_('Flow session'), on_delete=models.CASCADE)
     ordinal = models.IntegerField(null=True, blank=True,
             verbose_name=_('Ordinal'))
 
@@ -619,10 +619,10 @@ class FlowPageVisit(models.Model):
     # page_data), but it helps the admin site understand the link
     # and provide editing.
     flow_session = models.ForeignKey(FlowSession, db_index=True,
-            verbose_name=_('Flow session'))
+            verbose_name=_('Flow session'), on_delete=models.CASCADE)
 
     page_data = models.ForeignKey(FlowPageData, db_index=True,
-            verbose_name=_('Page data'))
+            verbose_name=_('Page data'), on_delete=models.CASCADE)
     visit_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Visit time'))
     remote_address = models.GenericIPAddressField(null=True, blank=True,
@@ -703,11 +703,11 @@ class FlowPageVisit(models.Model):
 
 class FlowPageVisitGrade(models.Model):
     visit = models.ForeignKey(FlowPageVisit, related_name="grades",
-            verbose_name=_('Visit'))
+            verbose_name=_('Visit'), on_delete=models.CASCADE)
 
     # NULL means 'autograded'
     grader = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-            verbose_name=_('Grader'))
+            verbose_name=_('Grader'), on_delete=models.CASCADE)
     grade_time = models.DateTimeField(db_index=True, default=now,
             verbose_name=_('Grade time'))
 
@@ -781,9 +781,9 @@ class FlowPageBulkFeedback(models.Model):
     # We're only storing one of these per page, because
     # they're 'bulk' (i.e. big, like plots or program output)
     page_data = models.OneToOneField(FlowPageData,
-            verbose_name=_('Page data'))
+            verbose_name=_('Page data'), on_delete=models.CASCADE)
     grade = models.ForeignKey(FlowPageVisitGrade,
-            verbose_name=_('Grade'))
+            verbose_name=_('Grade'), on_delete=models.CASCADE)
 
     bulk_feedback = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
@@ -850,7 +850,7 @@ class FlowAccessException(models.Model):
     # deprecated
 
     participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
     flow_id = models.CharField(max_length=200, blank=False, null=False,
             verbose_name=_('Flow ID'))
     expiration = models.DateTimeField(blank=True, null=True,
@@ -868,7 +868,7 @@ class FlowAccessException(models.Model):
             verbose_name=_('Stipulations'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -904,7 +904,7 @@ class FlowAccessExceptionEntry(models.Model):
 
     exception = models.ForeignKey(FlowAccessException,
             related_name="entries",
-            verbose_name=_('Exception'))
+            verbose_name=_('Exception'), on_delete=models.CASCADE)
     permission = models.CharField(max_length=50,
             choices=FLOW_PERMISSION_CHOICES,
             verbose_name=_('Permission'))
@@ -926,12 +926,12 @@ class FlowRuleException(models.Model):
     flow_id = models.CharField(max_length=200, blank=False, null=False,
             verbose_name=_('Flow ID'))
     participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
     expiration = models.DateTimeField(blank=True, null=True,
             verbose_name=_('Expiration'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -1026,7 +1026,7 @@ class FlowRuleException(models.Model):
 
 class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
 
     identifier = models.CharField(max_length=200, blank=False, null=False,
             # Translators: format of identifier for GradingOpportunity
@@ -1090,10 +1090,10 @@ class GradeChange(models.Model):
     ones.
     """
     opportunity = models.ForeignKey(GradingOpportunity,
-            verbose_name=_('Grading opportunity'))
+            verbose_name=_('Grading opportunity'), on_delete=models.CASCADE)
 
     participation = models.ForeignKey(Participation,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
 
     state = models.CharField(max_length=50,
             choices=GRADE_STATE_CHANGE_CHOICES,
@@ -1121,13 +1121,13 @@ class GradeChange(models.Model):
             verbose_name=_('Due time'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     grade_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Grade time'))
 
     flow_session = models.ForeignKey(FlowSession, null=True, blank=True,
             related_name="grade_changes",
-            verbose_name=_('Flow session'))
+            verbose_name=_('Flow session'), on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = _("Grade change")
@@ -1366,7 +1366,7 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
 
 class InstantMessage(models.Model):
     participation = models.ForeignKey(Participation,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
     text = models.CharField(max_length=200,
             verbose_name=_('Text'))
     time = models.DateTimeField(default=now,
@@ -1390,7 +1390,7 @@ class InstantMessage(models.Model):
 
 class Exam(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     description = models.CharField(max_length=200,
             verbose_name=_('Description'))
     flow_id = models.CharField(max_length=200,
@@ -1429,13 +1429,13 @@ class Exam(models.Model):
 
 class ExamTicket(models.Model):
     exam = models.ForeignKey(Exam,
-            verbose_name=_('Exam'))
+            verbose_name=_('Exam'), on_delete=models.CASCADE)
 
     participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     creation_time = models.DateTimeField(default=now,
             verbose_name=_('Creation time'))
     usage_time = models.DateTimeField(

@@ -54,8 +54,8 @@ class Migration(migrations.Migration):
                     "indicating the degree of correctness of the answer.")),
                 ('feedback', jsonfield.fields.JSONField(null=True, blank=True)),
                 ('grader', models.ForeignKey(blank=True,
-                    to=settings.AUTH_USER_MODEL, null=True)),
-                ('visit', models.ForeignKey(to='course.FlowPageVisit')),
+                    to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
+                ('visit', models.ForeignKey(to='course.FlowPageVisit', on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': (b'visit', b'grade_time'),

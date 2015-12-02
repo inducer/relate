@@ -181,7 +181,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='event',
             name='course',
-            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='event',
@@ -241,7 +241,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowaccessexception',
             name='creator',
-            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True),
+            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowaccessexception',
@@ -261,7 +261,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowaccessexception',
             name='participation',
-            field=models.ForeignKey(verbose_name='Participation', to='course.Participation'),
+            field=models.ForeignKey(verbose_name='Participation', to='course.Participation', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowaccessexception',
@@ -271,7 +271,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowaccessexceptionentry',
             name='exception',
-            field=models.ForeignKey(related_name='entries', verbose_name='Exception', to='course.FlowAccessException'),
+            field=models.ForeignKey(related_name='entries', verbose_name='Exception', to='course.FlowAccessException', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowaccessexceptionentry',
@@ -286,12 +286,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowpagebulkfeedback',
             name='grade',
-            field=models.ForeignKey(verbose_name='Grade', to='course.FlowPageVisitGrade'),
+            field=models.ForeignKey(verbose_name='Grade', to='course.FlowPageVisitGrade', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagebulkfeedback',
             name='page_data',
-            field=models.OneToOneField(verbose_name='Page data', to='course.FlowPageData'),
+            field=models.OneToOneField(verbose_name='Page data', to='course.FlowPageData', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagedata',
@@ -301,7 +301,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowpagedata',
             name='flow_session',
-            field=models.ForeignKey(related_name='page_data', verbose_name='Flow session', to='course.FlowSession'),
+            field=models.ForeignKey(related_name='page_data', verbose_name='Flow session', to='course.FlowSession', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagedata',
@@ -326,7 +326,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowpagevisit',
             name='flow_session',
-            field=models.ForeignKey(verbose_name='Flow session', to='course.FlowSession'),
+            field=models.ForeignKey(verbose_name='Flow session', to='course.FlowSession', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagevisit',
@@ -341,7 +341,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowpagevisit',
             name='page_data',
-            field=models.ForeignKey(verbose_name='Page data', to='course.FlowPageData'),
+            field=models.ForeignKey(verbose_name='Page data', to='course.FlowPageData', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagevisit',
@@ -381,7 +381,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowpagevisitgrade',
             name='grader',
-            field=models.ForeignKey(verbose_name='Grader', blank=True, to=settings.AUTH_USER_MODEL, null=True),
+            field=models.ForeignKey(verbose_name='Grader', blank=True, to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagevisitgrade',
@@ -391,7 +391,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowpagevisitgrade',
             name='visit',
-            field=models.ForeignKey(related_name='grades', verbose_name='Visit', to='course.FlowPageVisit'),
+            field=models.ForeignKey(related_name='grades', verbose_name='Visit', to='course.FlowPageVisit', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowruleexception',
@@ -411,7 +411,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowruleexception',
             name='creator',
-            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True),
+            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowruleexception',
@@ -431,7 +431,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowruleexception',
             name='participation',
-            field=models.ForeignKey(verbose_name='Participation', to='course.Participation'),
+            field=models.ForeignKey(verbose_name='Participation', to='course.Participation', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowruleexception',
@@ -456,7 +456,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowsession',
             name='course',
-            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowsession',
@@ -486,7 +486,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowsession',
             name='participation',
-            field=models.ForeignKey(verbose_name='Participation', blank=True, to='course.Participation', null=True),
+            field=models.ForeignKey(verbose_name='Participation', blank=True, to='course.Participation', null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowsession',
@@ -516,7 +516,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='gradechange',
             name='creator',
-            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True),
+            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='gradechange',
@@ -526,7 +526,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='gradechange',
             name='flow_session',
-            field=models.ForeignKey(related_name='grade_changes', verbose_name='Flow session', blank=True, to='course.FlowSession', null=True),
+            field=models.ForeignKey(related_name='grade_changes', verbose_name='Flow session', blank=True, to='course.FlowSession', null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='gradechange',
@@ -541,12 +541,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='gradechange',
             name='opportunity',
-            field=models.ForeignKey(verbose_name='Grading opportunity', to='course.GradingOpportunity'),
+            field=models.ForeignKey(verbose_name='Grading opportunity', to='course.GradingOpportunity', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='gradechange',
             name='participation',
-            field=models.ForeignKey(verbose_name='Participation', to='course.Participation'),
+            field=models.ForeignKey(verbose_name='Participation', to='course.Participation', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='gradechange',
@@ -566,7 +566,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='gradingopportunity',
             name='course',
-            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='gradingopportunity',
@@ -611,7 +611,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='instantflowrequest',
             name='course',
-            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='instantflowrequest',
@@ -631,7 +631,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='instantmessage',
             name='participation',
-            field=models.ForeignKey(verbose_name='Participation', to='course.Participation'),
+            field=models.ForeignKey(verbose_name='Participation', to='course.Participation', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='instantmessage',
@@ -646,7 +646,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='participation',
             name='course',
-            field=models.ForeignKey(related_name='participations', verbose_name='Course identifier', to='course.Course'),
+            field=models.ForeignKey(related_name='participations', verbose_name='Course identifier', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participation',
@@ -681,12 +681,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='participation',
             name='user',
-            field=models.ForeignKey(verbose_name='User ID', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(verbose_name='User ID', to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participationpreapproval',
             name='course',
-            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participationpreapproval',
@@ -696,7 +696,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='participationpreapproval',
             name='creator',
-            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True),
+            field=models.ForeignKey(verbose_name='Creator', to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participationpreapproval',
@@ -711,7 +711,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='participationtag',
             name='course',
-            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course identifier', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participationtag',
@@ -741,6 +741,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='userstatus',
             name='user',
-            field=models.OneToOneField(related_name='user_status', verbose_name='User ID', to=settings.AUTH_USER_MODEL),
+            field=models.OneToOneField(related_name='user_status', verbose_name='User ID', to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
         ),
     ]

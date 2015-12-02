@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowsession',
             name='course',
-            field=models.ForeignKey(to='course.Course'),
+            field=models.ForeignKey(to='course.Course', on_delete=models.CASCADE),
         ),
     ]

@@ -14,36 +14,36 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='event',
             name='course',
-            field=models.ForeignKey(verbose_name='Course', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowsession',
             name='course',
-            field=models.ForeignKey(verbose_name='Course', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='gradingopportunity',
             name='course',
-            field=models.ForeignKey(verbose_name='Course', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='instantflowrequest',
             name='course',
-            field=models.ForeignKey(verbose_name='Course', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participation',
             name='course',
-            field=models.ForeignKey(related_name='participations', verbose_name='Course', to='course.Course'),
+            field=models.ForeignKey(related_name='participations', verbose_name='Course', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participationpreapproval',
             name='course',
-            field=models.ForeignKey(verbose_name='Course', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course', to='course.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='participationtag',
             name='course',
-            field=models.ForeignKey(verbose_name='Course', to='course.Course'),
+            field=models.ForeignKey(verbose_name='Course', to='course.Course', on_delete=models.CASCADE),
         ),
     ]

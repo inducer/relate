@@ -77,7 +77,7 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "course.exam.exam_lockdown_context_processor",
             )
 TEMPLATE_CONTEXT_PROCESSORS = (
-        TEMPLATE_CONTEXT_PROCESSORS
+        tuple(TEMPLATE_CONTEXT_PROCESSORS)
         + RELATE_EXTRA_CONTEXT_PROCESSORS
         )
 
@@ -85,7 +85,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 BOWER_COMPONENTS_ROOT = os.path.join(BASE_DIR, "components")
 
-STATICFILES_FINDERS = STATICFILES_FINDERS + (
+STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
     "djangobower.finders.BowerFinder",
     )
 
