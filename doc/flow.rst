@@ -651,8 +651,8 @@ Many-out-of-Many Choice (Automaically Graded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: MultipleChoiceQuestion()
 
-One-out-of-Many Survey (Ungrade)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+One-out-of-Many Survey (Ungraded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: SurveyChoiceQuestion()
 
 Write Python Code (Automatically Graded)
