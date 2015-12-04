@@ -127,7 +127,7 @@ Here's an example page to give you an idea::
                 print(row)
 
 I wrote a Yes/No question, but RELATE shows "True/False" instead of "Yes/No"--why on earth would it do that?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------------------------------------------------------------------------------
 
 This is a bit of a misfeature in YAML (which relate uses), wich parses ``No`` as
 a :class:`bool` instead of a literal string. Once that has happened, relate can't
