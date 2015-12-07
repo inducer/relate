@@ -1277,33 +1277,6 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                     "you have not completed your enrollment process in "
                     "this course."))
 
-    # {{{ FIXME: This warning should be deleted after October 2015
-
-    elif (
-            flow_session.participation is None
-            and
-            fpctx.page.expects_answer()
-            and
-            page_behavior.may_change_answer
-            ):
-
-        messages.add_message(request, messages.WARNING,
-                _("<p><b>WARNING!</b> What you enter on this page will not be "
-                    "associated with your user account, likely because "
-                    "you have not completed your enrollment in this course. "
-                    "Any data you enter here will not be retrievable later "
-                    "and will not be graded. If this is not what you intended, "
-                    "save your work on this session now (outside of RELATE), "
-                    "complete your enrollment in this course in RELATE, "
-                    "and restart your work on this flow.</p>"
-                    "<p> To confirm that you've "
-                    "completed your enrollment, make sure there is no 'Sign in' "
-                    "or 'Enroll' button at the top of the main course page.<p>"
-                    "<p><b>In addition, you should immediately bookmark this page "
-                    "to ensure you'll be able to return to your work.</b>"))
-
-    # }}}
-
     # {{{ render flow page
 
     if form is not None:
