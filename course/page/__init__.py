@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 from course.page.base import (
+        InvalidPageData,
         PageBase, AnswerFeedback, PageContext, PageBehavior,
         get_auto_feedback,
         markup_to_html)
@@ -39,6 +40,7 @@ from course.page.code import (
 from course.page.upload import FileUploadQuestion
 
 __all__ = (
+        "InvalidPageData",
         "PageBase", "AnswerFeedback", "PageContext", "PageBehavior",
         "get_auto_feedback",
         "markup_to_html",

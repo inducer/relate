@@ -196,6 +196,10 @@ class AnswerFeedback(object):
 
 # {{{ abstract page base class
 
+class InvalidPageData(RuntimeError):
+    pass
+
+
 class PageBase(object):
     """The abstract interface of a flow page.
 

@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 from django.utils import six
 from django.utils.translation import (
-        ugettext_lazy as _, string_concat)
+        ugettext, ugettext_lazy as _, string_concat)
 from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -71,7 +71,9 @@ from course.utils import (
         get_session_start_rule,
         get_session_access_rule,
         get_session_grading_rule,
-        FlowSessionGradingRule)
+        FlowSessionGradingRule,
+        )
+from course.page import InvalidPageData
 from course.views import get_now_or_fake_time
 from relate.utils import retry_transaction_decorator
 
@@ -1233,9 +1235,22 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             else:
                 feedback = None
 
-            form = fpctx.page.make_form(
-                    page_context, page_data.data,
-                    answer_data, page_behavior)
+            try:
+                form = fpctx.page.make_form(
+                        page_context, page_data.data,
+                        answer_data, page_behavior)
+            except InvalidPageData as e:
+                messages.add_message(request, messages.ERROR,
+                        ugettext(
+                            "The page data stored in the database was found "
+                            "to be invalid for the page as given in the "
+                            "course content. Likely the course content was "
+                            "changed in an incompatible way (say, by adding "
+                            "an option to a choice question) without changing "
+                            "the question ID. The precise error encountered "
+                            "was the following: "+str(e)))
+
+                return render_course_page(pctx, "course/course-base.html", {})
 
         else:
             form = None

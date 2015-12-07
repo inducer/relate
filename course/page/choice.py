@@ -199,6 +199,15 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def make_form(self, page_context, page_data,
             answer_data, page_behavior):
+        if (
+                "permutation" not in page_data
+                or (set(page_data["permutation"])
+                    != set(range(len(self.page_desc.choices))))):
+            from course.page import InvalidPageData
+            raise InvalidPageData(ugettext(
+                "existing choice permutation not "
+                "suitable for number of choices in question"))
+
         if answer_data is not None:
             form_data = {"choice": answer_data["choice"]}
             form = self.make_choice_form(
