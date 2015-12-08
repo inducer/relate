@@ -67,8 +67,8 @@ def may_impersonate(user):
 
 def whom_may_impersonate(impersonator):
     if impersonator.is_superuser:
-        return get_user_model().objects.filter(
-                participation__status=participation_status.active)
+        return set(get_user_model().objects.filter(
+                participation__status=participation_status.active))
 
     my_privileged_participations = Participation.objects.filter(
             user=impersonator,
