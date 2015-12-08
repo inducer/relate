@@ -695,10 +695,10 @@ def grade_flow_session(fctx, flow_session, grading_rule,
 def reopen_session(session, force=False, suppress_log=False):
     if session.in_progress:
         raise RuntimeError(
-                _("Can't reopen a session that's already in progress"))
+                _("Cannot reopen a session that's already in progress"))
     if session.participation is None:
         raise RuntimeError(
-                _("Can't reopen anonymous sessions"))
+                _("Cannot reopen anonymous sessions"))
 
     session.in_progress = True
     session.points = None
