@@ -61,7 +61,7 @@
   <div class="alert alert-info">
     <i class="fa fa-info-circle"></i>
     {% blocktrans trimmed with username=user.username first_name=user.first_name last_name=user.last_name email=user.email %}
-    Now impersonating {{ last_name }}, {{ first_name }} ({{ username }}, {{ email }}).
+    Now impersonating {{ last_name }}, {{ first_name }} (user: {{ username }}, email: {{ email }}).
     {% endblocktrans %}
     <a class="btn btn-default btn-sm" href="{% url "relate-stop_impersonating" %}" role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>
   </div>
