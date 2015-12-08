@@ -604,7 +604,13 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
         form = ReopenSessionForm(flow_desc, session.access_rules_tag,
             request.POST, request.FILES)
 
-        if form.is_valid():
+        may_reopen = True
+        if session.in_progress:
+            messages.add_message(pctx.request, messages.ERROR,
+                    _("Cannot reopen a session that's already in progress."))
+            may_reopen = False
+
+        if form.is_valid() and may_reopen:
             new_access_rules_tag = form.cleaned_data["set_access_rules_tag"]
             if new_access_rules_tag == NONE_SESSION_TAG:
                 new_access_rules_tag = None
