@@ -28,7 +28,7 @@ THE SOFTWARE.
 from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         get_object_or_404, redirect)
-from django.db import transaction
+from relate.utils import retry_transaction_decorator
 from django.core.exceptions import (  # noqa
         PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
@@ -45,12 +45,14 @@ from course.utils import (
         get_session_grading_rule,
         FlowPageContext)
 from course.views import get_now_or_fake_time
+from django.conf import settings
+from django.utils import translation
 
 
 # {{{ grading driver
 
 @course_view
-@transaction.atomic
+@retry_transaction_decorator()
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
     page_ordinal = int(page_ordinal)
 
@@ -71,7 +73,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
             page_ordinal, participation=flow_session.participation,
-            flow_session=flow_session)
+            flow_session=flow_session, request=pctx.request)
 
     if fpctx.page_desc is None:
         raise http.Http404()
@@ -122,9 +124,15 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         else:
             feedback = None
 
+        from course.page.base import PageBehavior
+        page_behavior = PageBehavior(
+                show_correctness=True,
+                show_answer=False,
+                may_change_answer=False)
+
         form = fpctx.page.make_form(
                 fpctx.page_context, fpctx.page_data.data,
-                answer_data, answer_is_final=True)
+                answer_data, page_behavior)
 
     if form is not None:
         form_html = fpctx.page.form_to_html(
@@ -150,9 +158,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         fpctx.page_context, fpctx.page_data, grade_data,
                         grading_form, request.FILES)
 
-                feedback = fpctx.page.grade(
-                        fpctx.page_context, fpctx.page_data,
-                        answer_data, grade_data)
+                with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                    feedback = fpctx.page.grade(
+                            fpctx.page_context, fpctx.page_data,
+                            answer_data, grade_data)
 
                 if feedback is not None:
                     correctness = feedback.correctness
@@ -198,11 +207,12 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     if grading_form is not None:
         from crispy_forms.layout import Submit
+        grading_form.helper.form_class += " relate-grading-form"
         grading_form.helper.add_input(
                 Submit(
                     "submit", _("Submit"),
                     accesskey="s",
-                    css_class="col-lg-offset-2 relate-grading-save-button"))
+                    css_class="relate-grading-save-button"))
 
         grading_form_html = fpctx.page.grading_form_to_html(
                 pctx.request, fpctx.page_context, grading_form, grade_data)

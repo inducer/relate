@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 ('expiration', models.DateTimeField(null=True, blank=True)),
                 ('stipulations', jsonfield.fields.JSONField(help_text=b'A dictionary of the same things that can be added to a flow access rule, such as allowed_session_count or credit_percent. If not specified here, values will default to the stipulations in the course content.', null=True, blank=True)),
                 ('creation_time', models.DateTimeField(default=django.utils.timezone.now, db_index=True)),
-                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True)),
+                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('permission', models.CharField(max_length=50, choices=[(b'view', b'View flow'), (b'view_past', b'Review past attempts'), (b'start_credit', b'Start for-credit session'), (b'start_no_credit', b'Start not-for-credit session'), (b'see_correctness', b'See whether answer is correct'), (b'see_answer', b'See the correct answer')])),
-                ('exception', models.ForeignKey(to='course.FlowAccessException')),
+                ('exception', models.ForeignKey(to='course.FlowAccessException', on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -82,7 +82,7 @@ class Migration(migrations.Migration):
                 ('answer', jsonfield.fields.JSONField(null=True, blank=True)),
                 ('answer_is_final', models.NullBooleanField()),
                 ('grade_data', jsonfield.fields.JSONField(null=True, blank=True)),
-                ('page_data', models.ForeignKey(to='course.FlowPageData')),
+                ('page_data', models.ForeignKey(to='course.FlowPageData', on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -111,7 +111,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='flowpagevisit',
             name='flow_session',
-            field=models.ForeignKey(to='course.FlowSession'),
+            field=models.ForeignKey(to='course.FlowSession', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -121,7 +121,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='flowpagedata',
             name='flow_session',
-            field=models.ForeignKey(to='course.FlowSession'),
+            field=models.ForeignKey(to='course.FlowSession', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -138,8 +138,8 @@ class Migration(migrations.Migration):
                 ('comment', models.TextField(null=True, blank=True)),
                 ('due_time', models.DateTimeField(default=None, null=True, blank=True)),
                 ('grade_time', models.DateTimeField(default=django.utils.timezone.now, db_index=True)),
-                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True)),
-                ('flow_session', models.ForeignKey(blank=True, to='course.FlowSession', null=True)),
+                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
+                ('flow_session', models.ForeignKey(blank=True, to='course.FlowSession', null=True, on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': (b'opportunity', b'participation', b'grade_time'),
@@ -155,7 +155,7 @@ class Migration(migrations.Migration):
                 ('flow_id', models.CharField(help_text=b'Flow identifier that this grading opportunity is linked to, if any', max_length=200, null=True, blank=True)),
                 ('aggregation_strategy', models.CharField(max_length=20, choices=[(b'max_grade', b'Use the max grade'), (b'avg_grade', b'Use the avg grade'), (b'min_grade', b'Use the min grade'), (b'use_earliest', b'Use the earliest grade'), (b'use_latest', b'Use the latest grade')])),
                 ('due_time', models.DateTimeField(default=None, null=True, blank=True)),
-                ('course', models.ForeignKey(to='course.Course')),
+                ('course', models.ForeignKey(to='course.Course', on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': (b'course', b'due_time', b'identifier'),
@@ -166,7 +166,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='gradechange',
             name='opportunity',
-            field=models.ForeignKey(to='course.GradingOpportunity'),
+            field=models.ForeignKey(to='course.GradingOpportunity', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -180,7 +180,7 @@ class Migration(migrations.Migration):
                 ('flow_id', models.CharField(max_length=200)),
                 ('start_time', models.DateTimeField(default=django.utils.timezone.now)),
                 ('end_time', models.DateTimeField()),
-                ('course', models.ForeignKey(to='course.Course')),
+                ('course', models.ForeignKey(to='course.Course', on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -205,19 +205,19 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='gradechange',
             name='participation',
-            field=models.ForeignKey(to='course.Participation'),
+            field=models.ForeignKey(to='course.Participation', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='flowsession',
             name='participation',
-            field=models.ForeignKey(blank=True, to='course.Participation', null=True),
+            field=models.ForeignKey(blank=True, to='course.Participation', null=True, on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='flowaccessexception',
             name='participation',
-            field=models.ForeignKey(to='course.Participation'),
+            field=models.ForeignKey(to='course.Participation', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -229,13 +229,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='participation',
             name='course',
-            field=models.ForeignKey(to='course.Course'),
+            field=models.ForeignKey(to='course.Course', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='participation',
             name='user',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -249,7 +249,7 @@ class Migration(migrations.Migration):
                 ('kind', models.CharField(help_text=b'Should be lower_case_with_underscores, no spaces allowed.', max_length=50)),
                 ('ordinal', models.IntegerField(null=True, blank=True)),
                 ('time', models.DateTimeField()),
-                ('course', models.ForeignKey(to='course.Course')),
+                ('course', models.ForeignKey(to='course.Course', on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': (b'course', b'time'),
@@ -267,7 +267,7 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(max_length=50, choices=[(b'unconfirmed', b'Unconfirmed'), (b'active', b'Active')])),
                 ('sign_in_key', models.CharField(db_index=True, max_length=50, unique=True, null=True, blank=True)),
                 ('key_time', models.DateTimeField(default=django.utils.timezone.now)),
-                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': (b'key_time',),

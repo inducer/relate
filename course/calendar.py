@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, string_concat)
 from django.contrib.auth.decorators import login_required
@@ -69,7 +71,7 @@ class RecurringEventForm(StyledForm):
         super(RecurringEventForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Create"), css_class="col-lg-offset-2"))
+                Submit("submit", _("Create")))
 
 
 class EventAlreadyExists(Exception):
@@ -198,7 +200,7 @@ class RenumberEventsForm(StyledForm):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Renumber"), css_class="col-lg-offset-2"))
+                Submit("submit", _("Renumber")))
 
 
 @transaction.atomic
@@ -292,7 +294,7 @@ def view_calendar(pctx):
             .order_by("-time")):
         kind_desc = event_kinds_desc.get(event.kind)
 
-        human_title = unicode(event)
+        human_title = six.text_type(event)
 
         event_json = {
                 "id": event.id,
@@ -312,7 +314,7 @@ def view_calendar(pctx):
                     human_title = kind_desc["title"]
 
         description = None
-        event_desc = event_info_desc.get(unicode(event))
+        event_desc = event_info_desc.get(six.text_type(event))
         if event_desc is not None:
             if "description" in event_desc:
                 description = markup_to_html(
@@ -323,7 +325,7 @@ def view_calendar(pctx):
                 human_title = event_desc["title"]
 
             if "color" in event_desc:
-                human_title = event_desc["color"]
+                event_json["color"] = event_desc["color"]
 
         event_json["title"] = human_title
 
@@ -348,10 +350,16 @@ def view_calendar(pctx):
 
         events_json.append(event_json)
 
+    from course.views import get_now_or_fake_time
+    default_date = get_now_or_fake_time(pctx.request).date()
+    if pctx.course.end_date is not None and default_date > pctx.course.end_date:
+        default_date = pctx.course.end_date
+
     from json import dumps
     return render_course_page(pctx, "course/calendar.html", {
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
+        "default_date": default_date.isoformat(),
     })
 
 # }}}

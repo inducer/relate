@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='flowsession',
             name='course',
-            field=models.ForeignKey(to='course.Course', null=True),
+            field=models.ForeignKey(to='course.Course', null=True, on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.RunPython(set_course),

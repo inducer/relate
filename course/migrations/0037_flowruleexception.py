@@ -26,8 +26,8 @@ class Migration(migrations.Migration):
                 ('kind', models.CharField(max_length=50, choices=[(b'new_session', b'New Session'), (b'access', b'Session Access'), (b'grading', b'Grading')])),
                 ('rule', yamlfield.fields.YAMLField()),
                 ('active', models.BooleanField(default=True)),
-                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True)),
-                ('participation', models.ForeignKey(to='course.Participation')),
+                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
+                ('participation', models.ForeignKey(to='course.Participation', on_delete=models.CASCADE)),
             ],
             options={
             },

@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('ip_range', models.CharField(max_length=200)),
                 ('ip_range_description', models.CharField(max_length=100)),
-                ('facility', models.ForeignKey(to='course.Facility')),
+                ('facility', models.ForeignKey(to='course.Facility', on_delete=models.CASCADE)),
             ],
         ),
     ]

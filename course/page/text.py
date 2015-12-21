@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+import six
 from django.utils.translation import (
         ugettext_lazy as _, ugettext, string_concat)
 from course.validation import validate_struct, ValidationError
@@ -308,9 +309,10 @@ class CaseSensitiveRegexMatcher(RegexMatcher):
 
 
 def parse_sympy(s):
-    if isinstance(s, unicode):
-        # Sympy is not spectacularly happy with unicode function names
-        s = s.encode()
+    if six.PY2:
+        if isinstance(s, unicode):  # has Py2/3 guard
+            # Sympy is not spectacularly happy with unicode function names
+            s = s.encode()
 
     from pymbolic import parse
     from pymbolic.sympy_interface import PymbolicToSympyMapper
@@ -384,6 +386,15 @@ def float_or_sympy_evalf(s):
     if isinstance(s, (int, float)):
         return s
 
+    if not isinstance(s, six.string_types):
+        raise TypeError("expected string, int or float for floating point "
+                "literal")
+
+    try:
+        return float(s)
+    except ValueError:
+        pass
+
     # avoiding IO error if empty input when
     # the is field not required
     if s == "":
@@ -444,6 +455,14 @@ class FloatMatcher(TextAnswerMatcher):
                             "%s: 'rtol' ",
                             _("does not provide a valid float literal"))
                         % location)
+
+            if matcher_desc.value == 0:
+                raise ValidationError(
+                        string_concat(
+                            "%s: 'rtol' ",
+                            _("not allowed when 'value' is zero"))
+                        % location)
+
         if hasattr(matcher_desc, "atol"):
             try:
                 self.matcher_desc.atol = \
@@ -566,7 +585,7 @@ def parse_matcher_string(vctx, location, matcher_desc):
 
 
 def parse_matcher(vctx, location, matcher_desc):
-    if isinstance(matcher_desc, (str, unicode)):
+    if isinstance(matcher_desc, six.string_types):
         return parse_matcher_string(vctx, location, matcher_desc)
     else:
         if not isinstance(matcher_desc, Struct):

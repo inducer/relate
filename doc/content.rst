@@ -70,22 +70,20 @@ Here's an example:
          -
              permissions: [view, modify, see_correctness, see_answer_after_submission]
 
+        grade_identifier: la_quiz
+        grade_aggregation_strategy: max_grade
+
         grading:
         -
             if_completed_before: end_week 1
-            grade_identifier: la_quiz
-            grade_aggregation_strategy: max_grade
             credit_percent: 100
 
         -
             if_completed_before: end_week 2
-            grade_identifier: la_quiz
-            grade_aggregation_strategy: max_grade
             credit_percent: 50
 
         -
-            grade_identifier: null
-
+            credit_percent: 0
      ...
 
 TODO: Macro expansion in YAML
@@ -188,6 +186,14 @@ a RELATE site:
       public:
       - "*.png"
       - "*.jpeg"
+
+  In addition to "public", the file can also include the following
+  sections:
+
+  * ``public``: Allow access to these files from anywhere on the
+    Internet, except for locked-down exam sessions.
+  * ``in_exam``: Allow access to these files when a locked-down exam
+    is ongoing.
 
 * The URL schema ``repocur:some/file/name.png``
   generally works the same way as ``repo:``, with these differences:
@@ -322,9 +328,6 @@ The content of this file allows the following fields:
 
 .. class:: Course
 
-    .. attribute:: name
-    .. attribute:: number
-    .. attribute:: run
     .. attribute:: chunks
 
         A list of :ref:`course-chunks`.

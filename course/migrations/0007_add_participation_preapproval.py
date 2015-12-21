@@ -21,8 +21,8 @@ class Migration(migrations.Migration):
                 ('email', models.EmailField(max_length=254)),
                 ('role', models.CharField(max_length=50, choices=[(b'instructor', b'Instructor'), (b'ta', b'Teaching Assistant'), (b'student', b'Student')])),
                 ('creation_time', models.DateTimeField(default=django.utils.timezone.now, db_index=True)),
-                ('course', models.ForeignKey(to='course.Course')),
-                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True)),
+                ('course', models.ForeignKey(to='course.Course', on_delete=models.CASCADE)),
+                ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': (b'course', b'email'),

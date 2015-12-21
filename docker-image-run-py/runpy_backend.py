@@ -289,14 +289,16 @@ def run_code(result, run_req):
             return
 
     user_ctx = {}
-    from copy import deepcopy
     if hasattr(run_req, "names_for_user"):
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
                 result["message"] = "Setup code did not define '%s'." % name
 
-            user_ctx[name] = deepcopy(maint_ctx[name])
+            user_ctx[name] = maint_ctx[name]
+
+    from copy import deepcopy
+    user_ctx = deepcopy(user_ctx)
 
     try:
         exec(user_code, user_ctx)

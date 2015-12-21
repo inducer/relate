@@ -11,21 +11,41 @@
     </p>
   </div>
 
-  {% if courses_and_descs_and_invalid_flags %}
-    <div class="row">
-      {% for course, desc, invalid in courses_and_descs_and_invalid_flags %}
-        <div class="col-md-4">
-          <h3>{{desc.number}} {{desc.run}}</h3>
-          <p>{{desc.name}}</p>
-          {% if invalid %}
-            <div class="alert alert-warning">{% trans "The course content has not yet been validated." %}</div>
-            <p><a class="btn btn-default" href="{% url 'course.versioning.fetch_course_updates' course.identifier %}" role="button">{% trans "Update" %} &raquo;</a></p>
-          {% else %}
+  {% if current_courses or past_courses %}
+    {% if current_courses %}
+      <div class="row">
+        {% for course in current_courses %}
+          <div class="col-md-4">
+            <h3>{{course.number}} {{course.time_period}}</h3>
+            <p>{{course.name}}</p>
             <p><a class="btn btn-default" href="{% url 'course.views.course_page' course.identifier %}" role="button">{% trans "View" %} &raquo;</a></p>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if past_courses %}
+      <h3>{% trans "Past Courses" %}</h3>
+      <table class="table table-condensed">
+        <tr>
+          <th>Number</th>
+          <th></th>
+          <th>Name</th>
+          <th>Time</th>
+        </tr>
+        {% for course in past_courses %}
+          <tr
+             {% if not course.accepts_enrollment or course.hidden %}
+                class="text-muted"
+             {% endif %}
+            >
+            <td><a href="{% url 'course.views.course_page' course.identifier %}">{{course.number}}</a>
+            <td><a href="{% url 'course.views.course_page' course.identifier %}">{{course.time_period}}</a>
+            <td>{{course.name}}</td>
+            <td>{{course.start_date}}{% if course.end_date %} - {{course.end_date}}{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
   {% else %}
     {% trans "RELATE" as RELATE %}
     {% blocktrans trimmed %} There are no courses hosted on this {{ RELATE }} site. {% endblocktrans %}

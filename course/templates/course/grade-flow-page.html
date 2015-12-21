@@ -70,18 +70,63 @@
           </tr>
         {% endif %}
         <tr>
+          <td>{% trans "Points awarded" %}</td>
+          <td>
+            {% if max_points != None %}
+              <span class="sensitive">
+              {% if points_awarded != None %}
+                {{ points_awarded|floatformat:1 }}
+              {% else %}
+                {% trans "(unknown)" %}
+              {% endif %}
+              /
+              {{ max_points|floatformat:1 }}
+              {# Translators: the unit name in grading #}
+              {% blocktrans trimmed count counter=max_points %}
+                point
+              {% plural %}
+                points
+              {% endblocktrans %}
+              </span>
+            {% else %}
+              {% trans "(n/a)" %}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td>{% trans "Graded" %}</td>
+          <td>
+            {% if most_recent_grade != None %}
+              {% if most_recent_grade.grader == None %}
+                {% trans "(autograded)" %}
+              {% else %}
+                {# Translators: the grade is awarded "by" some humman grader. #}
+                {% blocktrans trimmed with grader_name=most_recent_grade.grader.get_full_name %}
+                by {{ grader_name }}
+                {% endblocktrans %}
+              {% endif %}
+              {# Translators: the most recent grade is provided "at" some time. #}
+              {% blocktrans trimmed with grade_time=most_recent_grade.grade_time %}
+              at {{ grade_time }}
+              {% endblocktrans %}
+            {% else %}
+              {% trans "(n/a)" %}
+            {% endif%}
+          </td>
+        </tr>
+        <tr>
           <td>
             {% if prev_flow_session_id != None %}
               <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.ordinal %}"
-                 accesskey="p" class="btn btn-default btn-xs" title="Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
+                 accesskey="p" class="btn btn-default" title="Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-left"></i></a>
+              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
             {% endif %}
             {% if next_flow_session_id %}
               <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}"
-                 accesskey="n" class="btn btn-default btn-xs" title="Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
+                 accesskey="n" class="btn btn-default" title="Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>
+              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-right"></i></a>
             {% endif %}
             {% trans "Session" %}
           </td>
@@ -96,63 +141,24 @@
           <td>
             {% if page_data.ordinal > 0 %}
               <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-                  class="btn btn-default btn-xs"><i class="fa fa-chevron-left"></i></a>
+                  class="btn btn-default"><i class="fa fa-chevron-left"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-left"></i></a>
+              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
             {% endif %}
             {% if page_data.next_ordinal < flow_session.page_count %}
               <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-                  class="btn btn-default btn-xs"><i class="fa fa-chevron-right"></i></a>
+                  class="btn btn-default"><i class="fa fa-chevron-right"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default btn-xs disabled"><i class="fa fa-chevron-right"></i></a>
+              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-right"></i></a>
             {% endif %}
             {% trans "Page number" %}
           </td>
           <td>
             {{ ordinal }}
+            &middot;
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id ordinal %}">{% trans "View in flow" %}</a>
           </td>
         </tr>
-        {% if max_points != None %}
-        <tr>
-          <td>{% trans "Points awarded" %}</td>
-          <td>
-            <span class="sensitive">
-            {% if points_awarded != None %}
-              {{ points_awarded|floatformat:1 }}
-            {% else %}
-              {% trans "(unknown)" %}
-            {% endif %}
-            /
-            {{ max_points|floatformat:1 }}
-            {# Translators: the unit name in grading #}
-            {% blocktrans trimmed count counter=max_points %}
-              point
-            {% plural %}
-              points
-            {% endblocktrans %}
-            </span>
-          </td>
-        </tr>
-        {% endif %}
-        {% if most_recent_grade != None %}
-        <tr>
-          <td>{% trans "Graded" %}</td>
-          <td>
-            {% if most_recent_grade.grader == None %}
-              {% trans "(autograded)" %}
-            {% else %}
-              {# Translators: the grade is awarded "by" some humman grader. #}
-              {% blocktrans trimmed with grader_name=most_recent_grade.grader.get_full_name %}
-              by {{ grader_name }}
-              {% endblocktrans %}
-            {% endif %}
-            {# Translators: the most recent grade is provided "at" some time. #}
-            {% blocktrans trimmed with grade_time=most_recent_grade.grade_time %}
-            at {{ grade_time }}
-            {% endblocktrans %}
-          </td>
-        </tr>
-        {% endif %}
       </table>
       {# }}} #}
 
@@ -165,6 +171,245 @@
       {# }}} #}
     </div>
   </div>
+
+  {# {{{ grade ui #}
+
+  <script>
+
+    // http://stackoverflow.com/a/30558011
+    var SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+        // Match everything outside of normal chars and " (quote character)
+        NON_ALPHANUMERIC_REGEXP = /([^\#-~| |!])/g;
+
+    function encode_entities(value)
+    {
+      return value.
+        replace(/&/g, '&amp;').
+        replace(SURROGATE_PAIR_REGEXP, function(value) {
+          var hi = value.charCodeAt(0);
+          var low = value.charCodeAt(1);
+          return '&#' + (((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000) + ';';
+        }).
+        replace(NON_ALPHANUMERIC_REGEXP, function(value) {
+          return '&#' + value.charCodeAt(0) + ';';
+        }).
+        replace(/</g, '&lt;').
+        replace(/>/g, '&gt;');
+    }
+
+    function set_grade_percent(p)
+    {
+      $("#id_grade_percent").val(p);
+    }
+
+    function set_grade_points(p)
+    {
+      $("#id_grade_points").val(p);
+    }
+
+    function set_feedback(p)
+    {
+      $("#id_feedback_text").val(p);
+    }
+
+    function get_feedback_items()
+    {
+      var items = localStorage["relate_grade_feedback_items"];
+      if (items)
+        return JSON.parse(items);
+      else
+        return [];
+    }
+
+    function add_feedback(idx)
+    {
+      var items = get_feedback_items();
+
+      var val = $("#id_feedback_text").val();
+      if (val)
+        val += "\n";
+      val += items[idx];
+      $("#id_feedback_text").val(val);
+    }
+
+    function add_feedback_item(p)
+    {
+      var item = prompt("{%trans "Enter new feedback item:" %}");
+      if (!item)
+        return;
+
+      var items = get_feedback_items();
+      items.push(item);
+      localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
+
+      update_feedback_items();
+    }
+
+    function remove_feedback_item(evt)
+    {
+      evt.stopPropagation();
+
+      var id = evt.target.parentNode.id.substr("remove_fb_".length);
+      var index = parseInt(id);
+
+      var items = get_feedback_items();
+      items.splice(index, 1);
+      localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
+
+      update_feedback_items();
+    }
+
+    function update_feedback_items()
+    {
+      var buttons = "";
+
+      var items = get_feedback_items();
+
+      buttons += "<p>";
+      for (var i = 0; i < items.length; ++i)
+      {
+        var fb = items[i];
+        buttons += ("<button class='btn btn-xs btn-default' type='button' "
+            + "onclick='add_feedback(" + i + ")'>"
+            + encode_entities(fb)
+            + "</button>"
+            + " <a class='remove_fb_button' id='remove_fb_"+i+"' href='#'>"
+            +   "<i class='fa fa-times-circle'></i>"
+            + "</a> "
+            );
+      }
+      buttons += "</p>";
+
+      buttons += "<p>";
+      buttons += ("<button class='btn btn-xs btn-default' type='button' "
+          + "onclick='add_feedback_item()'><i class='fa fa-plus'></i> {% trans "Add phrase" %}</button>");
+      buttons += ("<button class='btn btn-xs btn-default' type='button' "
+          + "onclick='set_feedback(\"\")'>{% trans "Clear" %}</button>");
+      buttons += "</p>";
+
+      $("#canned_feedback_items").html(buttons);
+
+      $(".remove_fb_button").click(remove_feedback_item);
+    }
+
+    function add_grade_ui()
+    {
+      // percentages
+
+      $(".grading-page-grade-entry #div_id_grade_percent .controls input").each(
+          function()
+          {
+            var percentages = [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100];
+            var buttons = "";
+            for (var i = 0; i < percentages.length; ++i)
+            {
+              var percentage = percentages[i];
+              buttons += ("<button class='btn btn-xs btn-default' type='button' "
+                  + "onclick='set_grade_percent(" + percentage + ")'>"
+                  + percentage + "</button>");
+            }
+            buttons += ("<button class='btn btn-xs btn-default' type='button' "
+                + "onclick='set_grade_percent(\"\")'>{% trans "Clear" %}</button>");
+            $(this).after("<p>" + buttons + "</p>");
+          });
+
+      // points
+
+      $(".grading-page-grade-entry #div_id_grade_points .controls input").each(
+          function()
+          {
+            {% if max_points != None %}
+              var max_points = {{ max_points }};
+            {% else %}
+              var max_points = null;
+            {% endif %}
+
+            if (max_points == null)
+              return;
+
+            var increment;
+            if (max_points <= 5.1)
+              increment = 0.25;
+            else if (max_points <= 10.1)
+              increment = 0.5;
+            else if (max_points <= 20.1)
+              increment = 1;
+            else
+              increment = 5;
+
+            var buttons = "";
+            for (var pts = 0; pts <= max_points + 0.01; pts += increment)
+            {
+              buttons += ("<button class='btn btn-xs btn-default' type='button' "
+                  + "onclick='set_grade_points(" + pts + ")'>"
+                  + pts + "</button>");
+            }
+            buttons += ("<button class='btn btn-xs btn-default' type='button' "
+                + "onclick='set_grade_points(\"\")'>{% trans "Clear" %}</button>");
+            $(this).after("<p>" + buttons + "</p>");
+          });
+
+      // feedback
+
+      $(".grading-page-grade-entry #div_id_feedback_text .controls textarea").each(
+          function()
+          {
+            $(this).after("<div id='canned_feedback_items'></div>");
+          });
+
+      update_feedback_items();
+    }
+
+    $(document).ready(add_grade_ui);
+
+    {% if page_data.next_ordinal < flow_session.page_count %}
+      var next_page_url = "{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}";
+    {% else %}
+      var next_page_url = null;
+    {% endif %}
+
+    {% if next_flow_session_id %}
+      var next_session_url = "{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}";
+    {% else %}
+      var next_session_url = null;
+    {% endif %}
+
+    function save_and_next_page()
+    {
+      window.open(next_page_url, "_blank");
+      $("#submit-id-submit").click();
+    }
+
+    function save_and_next_session()
+    {
+      window.open(next_session_url, "_blank");
+      $("#submit-id-submit").click();
+    }
+
+    function add_submit_next()
+    {
+      if (next_page_url)
+        $(".grading-page-grade-entry .form-group:last .controls:last").append(
+            " <button class='btn btn-primary' id='save_next_page' type='button'>"
+            + "{% trans "Submit and next page" %} &raquo;"
+            + "</button>");
+      if (next_session_url)
+        $(".grading-page-grade-entry .form-group:last .controls:last").append(
+            " <button class='btn btn-primary' id='save_next_session' type='button'>"
+            + "{% trans "Submit and next session" %} &raquo;"
+            + "</button>");
+
+      $("#save_next_page").click(save_and_next_page);
+      $("#save_next_session").click(save_and_next_session);
+
+      $(".relate-grading-form").prepend($(".form-group:last"));
+    }
+
+    $(document).ready(add_submit_next);
+  </script>
+
+  {# }}} #}
+
 {% endblock %}
 
 {# vim: set foldmethod=marker: #}

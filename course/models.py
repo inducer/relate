@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.db import models
 from django.utils.timezone import now
 from django.core.urlresolvers import reverse
@@ -43,6 +45,7 @@ from course.constants import (  # noqa
         grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
         flow_rule_kind, FLOW_RULE_KIND_CHOICES,
+        exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
 
         COURSE_ID_REGEX
         )
@@ -50,54 +53,6 @@ from course.constants import (  # noqa
 
 from jsonfield import JSONField
 from yamlfield.fields import YAMLField
-
-
-# {{{ facility
-
-class Facility(models.Model):
-    """Data about a facility from where content may be accessed."""
-
-    identifier = models.CharField(max_length=50, unique=True,
-            help_text=_("Format is lower-case-with-hyphens. "
-            "Do not use spaces."),
-            verbose_name=_("Facility ID"))
-    description = models.CharField(max_length=100,
-            verbose_name=_("Facility description"))
-
-    class Meta:
-        verbose_name = _("Facility")
-        # Translators: plural form of facility
-        verbose_name_plural = _("Facilities")
-
-    def __unicode__(self):
-        return self.identifier
-
-
-class FacilityIPRange(models.Model):
-    """Network data about a facility from where content may be accessed."""
-
-    facility = models.ForeignKey(Facility, related_name="ip_ranges")
-
-    ip_range = models.CharField(
-            max_length=200,
-            verbose_name=_("IP range"))
-
-    description = models.CharField(max_length=100,
-            verbose_name=_('IP range description'))
-
-    class Meta:
-        verbose_name = _("Facility IP range")
-
-    def clean(self):
-        super(FacilityIPRange, self).clean()
-
-        import ipaddr
-        try:
-            ipaddr.IPNetwork(self.ip_range)
-        except Exception as e:
-            raise ValidationError({"ip_range": str(e)})
-
-# }}}
 
 
 # {{{ user status
@@ -117,7 +72,7 @@ def get_user_status(user):
 class UserStatus(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, db_index=True,
             related_name="user_status",
-            verbose_name=_('User ID'))
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
     status = models.CharField(max_length=50,
             choices=USER_STATUS_CHOICES,
             verbose_name=_('User status'))
@@ -132,6 +87,8 @@ class UserStatus(models.Model):
             verbose_name=_('Key time'))
 
     editor_mode = models.CharField(max_length=20,
+            help_text=_("Your favorite text editor mode for text "
+                        "block or code block."),
             choices=(
                 ("default", _("Default")),
                 ("sublime", "Sublime text"),
@@ -149,6 +106,9 @@ class UserStatus(models.Model):
 
     def __unicode__(self):
         return _("User status for %(user)s") % {'user': self.user}
+
+    if six.PY3:
+        __str__ = __unicode__
 
 # }}}
 
@@ -170,6 +130,28 @@ class Course(models.Model):
                         "numbers, and hypens ('-').")),
                     ]
             )
+    name = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable name for the course. "
+                "(e.g. 'Numerical Methods')"))
+    number = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable course number/ID "
+                "for the course (e.g. 'CS123')"))
+    time_period = models.CharField(
+            null=True, blank=False,
+            max_length=200,
+            help_text=_("A human-readable description of the "
+                "time period for the course (e.g. 'Fall 2014')"))
+
+    start_date = models.DateField(
+            verbose_name=_('Start date'),
+            null=True, blank=True)
+    end_date = models.DateField(
+            verbose_name=_('End date'),
+            null=True, blank=True)
 
     hidden = models.BooleanField(
             default=True,
@@ -182,10 +164,6 @@ class Course(models.Model):
     accepts_enrollment = models.BooleanField(
             default=True,
             verbose_name=_('Accepts enrollment'))
-    valid = models.BooleanField(
-            default=True,
-            help_text=_("Whether the course content has passed validation."),
-            verbose_name=_('Valid'))
 
     git_source = models.CharField(max_length=200, blank=True,
             help_text=_("A Git URL from which to pull course updates. "
@@ -201,10 +179,12 @@ class Course(models.Model):
             verbose_name=_('SSH private key'))
     course_root_path = models.CharField(max_length=200, blank=True,
             help_text=_(
-                'Subdirectory in git repository to use as '
-                'course root directory. Should not include trailing '
-                'slash.'),
-            verbose_name=_('Course root directory'))
+                'Subdirectory *within* the git repository to use as '
+                'course root directory. Not required, and usually blank. '
+                'Use only if your course content lives in a subdirectory '
+                'of your git repository. '
+                'Should not include trailing slash.'),
+            verbose_name=_('Course root in repository'))
 
     course_file = models.CharField(max_length=200,
             default="course.yml",
@@ -273,6 +253,9 @@ class Course(models.Model):
     def __unicode__(self):
         return self.identifier
 
+    if six.PY3:
+        __str__ = __unicode__
+
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
@@ -287,7 +270,7 @@ class Event(models.Model):
     """
 
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     kind = models.CharField(max_length=50,
             # Translators: format of event kind in Event model
             help_text=_("Should be lower_case_with_underscores, no spaces "
@@ -322,6 +305,9 @@ class Event(models.Model):
         else:
             return self.kind
 
+    if six.PY3:
+        __str__ = __unicode__
+
 # }}}
 
 
@@ -329,7 +315,7 @@ class Event(models.Model):
 
 class ParticipationTag(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     name = models.CharField(max_length=100, unique=True,
             # Translators: name format of ParticipationTag
             help_text=_("Format is lower-case-with-hyphens. "
@@ -350,6 +336,9 @@ class ParticipationTag(models.Model):
     def __unicode__(self):
         return "%s (%s)" % (self.name, self.course)
 
+    if six.PY3:
+        __str__ = __unicode__
+
     class Meta:
         verbose_name = _("Participation tag")
         verbose_name_plural = _("Participation tags")
@@ -359,9 +348,9 @@ class ParticipationTag(models.Model):
 
 class Participation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
-            verbose_name=_('User ID'))
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
     course = models.ForeignKey(Course, related_name="participations",
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
 
     enroll_time = models.DateTimeField(default=now,
             verbose_name=_('Enroll time'))
@@ -380,7 +369,7 @@ class Participation(models.Model):
             max_digits=10, decimal_places=2,
             default=1,
             help_text=_("Multiplier for time available on time-limited "
-            "flows (time-limited flows are currently unimplemented)."),
+            "flows"),
             verbose_name=_('Time factor'))
 
     preview_git_commit_sha = models.CharField(max_length=200, null=True,
@@ -397,32 +386,42 @@ class Participation(models.Model):
                 "user": self.user, "course": self.course,
                 "role": dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
 
+    if six.PY3:
+        __str__ = __unicode__
+
     class Meta:
         verbose_name = _("Participation")
         verbose_name_plural = _("Participations")
         unique_together = (("user", "course"),)
         ordering = ("course", "user")
 
+    def get_role_desc(self):
+        return dict(PARTICIPATION_ROLE_CHOICES).get(
+                self.role)
+
 
 class ParticipationPreapproval(models.Model):
     email = models.EmailField(max_length=254,
             verbose_name=_('Email'))
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     role = models.CharField(max_length=50,
             choices=PARTICIPATION_ROLE_CHOICES,
             verbose_name=_('Role'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
     def __unicode__(self):
-        # Translators: somebody's email in some course in Particiaption
+        # Translators: somebody's email in some course in Participation
         # Preapproval
         return _("%(email)s in %(course)s") % {
                 "email": self.email, "course": self.course}
+
+    if six.PY3:
+        __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation preapproval")
@@ -435,7 +434,7 @@ class ParticipationPreapproval(models.Model):
 
 class InstantFlowRequest(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
     flow_id = models.CharField(max_length=200,
             verbose_name=_('Flow ID'))
     start_time = models.DateTimeField(default=now,
@@ -456,11 +455,18 @@ class FlowSession(models.Model):
     # This looks like it's redundant with 'participation', below--but it's not.
     # 'participation' is nullable.
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
 
     participation = models.ForeignKey(Participation, null=True, blank=True,
             db_index=True,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    # This looks like it's redundant with participation, above--but it's not.
+    # Again--'participation' is nullable, and it is useful to be able to
+    # remember what user a session belongs to, even if they're not enrolled.
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+            verbose_name=_('User'), on_delete=models.CASCADE)
+
     active_git_commit_sha = models.CharField(max_length=200,
             verbose_name=_('Active git commit SHA'))
     flow_id = models.CharField(max_length=200, db_index=True,
@@ -468,7 +474,7 @@ class FlowSession(models.Model):
     start_time = models.DateTimeField(default=now,
             verbose_name=_('Start time'))
     completion_time = models.DateTimeField(null=True, blank=True,
-            verbose_name=_('Completition time'))
+            verbose_name=_('Completion time'))
     page_count = models.IntegerField(null=True, blank=True,
             verbose_name=_('Page count'))
 
@@ -512,6 +518,9 @@ class FlowSession(models.Model):
                     'session_id': self.id,
                     'flow_id': self.flow_id}
 
+    if six.PY3:
+        __str__ = __unicode__
+
     def append_comment(self, s):
         if s is None:
             return
@@ -546,6 +555,10 @@ class FlowSession(models.Model):
 
         return None
 
+    def get_expiration_mode_desc(self):
+        return dict(FLOW_SESSION_EXPIRATION_MODE_CHOICES).get(
+                self.expiration_mode)
+
 # }}}
 
 
@@ -553,9 +566,15 @@ class FlowSession(models.Model):
 
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
-            verbose_name=_('Flow session'))
+            verbose_name=_('Flow session'), on_delete=models.CASCADE)
     ordinal = models.IntegerField(null=True, blank=True,
             verbose_name=_('Ordinal'))
+
+    # This exists to catch changing page types in course content,
+    # which will generally lead to an inconsistency disaster.
+    page_type = models.CharField(max_length=200,
+            verbose_name=_('Page type as indicated in course content'),
+            null=True, blank=True)
 
     group_id = models.CharField(max_length=200,
             verbose_name=_('Group ID'))
@@ -580,6 +599,9 @@ class FlowPageData(models.Model):
                     'ordinal': self.ordinal,
                     'flow_session': self.flow_session})
 
+    if six.PY3:
+        __str__ = __unicode__
+
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
         return self.ordinal - 1
@@ -597,10 +619,10 @@ class FlowPageVisit(models.Model):
     # page_data), but it helps the admin site understand the link
     # and provide editing.
     flow_session = models.ForeignKey(FlowSession, db_index=True,
-            verbose_name=_('Flow session'))
+            verbose_name=_('Flow session'), on_delete=models.CASCADE)
 
     page_data = models.ForeignKey(FlowPageData, db_index=True,
-            verbose_name=_('Page data'))
+            verbose_name=_('Page data'), on_delete=models.CASCADE)
     visit_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Visit time'))
     remote_address = models.GenericIPAddressField(null=True, blank=True,
@@ -645,9 +667,12 @@ class FlowPageVisit(models.Model):
         if self.answer is not None:
             # Translators: flow page visit: if an answer is
             # provided by user then append the string.
-            result += unicode(_(" (with answer)"))
+            result += six.text_type(_(" (with answer)"))
 
         return result
+
+    if six.PY3:
+        __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Flow page visit")
@@ -678,11 +703,11 @@ class FlowPageVisit(models.Model):
 
 class FlowPageVisitGrade(models.Model):
     visit = models.ForeignKey(FlowPageVisit, related_name="grades",
-            verbose_name=_('Visit'))
+            verbose_name=_('Visit'), on_delete=models.CASCADE)
 
     # NULL means 'autograded'
     grader = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-            verbose_name=_('Grader'))
+            verbose_name=_('Grader'), on_delete=models.CASCADE)
     grade_time = models.DateTimeField(db_index=True, default=now,
             verbose_name=_('Grade time'))
 
@@ -748,14 +773,17 @@ class FlowPageVisitGrade(models.Model):
         return _("grade of %(visit)s: %(percentage)s") % {
                 "visit": self.visit, "percentage": self.percentage()}
 
+    if six.PY3:
+        __str__ = __unicode__
+
 
 class FlowPageBulkFeedback(models.Model):
     # We're only storing one of these per page, because
     # they're 'bulk' (i.e. big, like plots or program output)
     page_data = models.OneToOneField(FlowPageData,
-            verbose_name=_('Page data'))
+            verbose_name=_('Page data'), on_delete=models.CASCADE)
     grade = models.ForeignKey(FlowPageVisitGrade,
-            verbose_name=_('Grade'))
+            verbose_name=_('Grade'), on_delete=models.CASCADE)
 
     bulk_feedback = JSONField(null=True, blank=True,
             # Show correct characters in admin for non ascii languages.
@@ -822,7 +850,7 @@ class FlowAccessException(models.Model):
     # deprecated
 
     participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
     flow_id = models.CharField(max_length=200, blank=False, null=False,
             verbose_name=_('Flow ID'))
     expiration = models.DateTimeField(blank=True, null=True,
@@ -840,7 +868,7 @@ class FlowAccessException(models.Model):
             verbose_name=_('Stipulations'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -867,13 +895,16 @@ class FlowAccessException(models.Model):
                     "course": self.participation.course
                     })
 
+    if six.PY3:
+        __str__ = __unicode__
+
 
 class FlowAccessExceptionEntry(models.Model):
     # deprecated
 
     exception = models.ForeignKey(FlowAccessException,
             related_name="entries",
-            verbose_name=_('Exception'))
+            verbose_name=_('Exception'), on_delete=models.CASCADE)
     permission = models.CharField(max_length=50,
             choices=FLOW_PERMISSION_CHOICES,
             verbose_name=_('Permission'))
@@ -885,6 +916,9 @@ class FlowAccessExceptionEntry(models.Model):
     def __unicode__(self):
         return self.permission
 
+    if six.PY3:
+        __str__ = __unicode__
+
 # }}}
 
 
@@ -892,12 +926,12 @@ class FlowRuleException(models.Model):
     flow_id = models.CharField(max_length=200, blank=False, null=False,
             verbose_name=_('Flow ID'))
     participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
     expiration = models.DateTimeField(blank=True, null=True,
             verbose_name=_('Expiration'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -923,6 +957,9 @@ class FlowRuleException(models.Model):
                     "user": self.participation.user,
                     "flow_id": self.flow_id,
                     "course": self.participation.course})
+
+    if six.PY3:
+        __str__ = __unicode__
 
     def clean(self):
         super(FlowRuleException, self).clean()
@@ -956,16 +993,20 @@ class FlowRuleException(models.Model):
                 self.flow_id, commit_sha)
 
         tags = None
+        grade_identifier = None
         if hasattr(flow_desc, "rules"):
             tags = getattr(flow_desc.rules, "tags", None)
+            grade_identifier = flow_desc.rules.grade_identifier
 
         try:
             if self.kind == flow_rule_kind.start:
-                validate_session_start_rule(ctx, unicode(self), rule, tags)
+                validate_session_start_rule(ctx, six.text_type(self), rule, tags)
             elif self.kind == flow_rule_kind.access:
-                validate_session_access_rule(ctx, unicode(self), rule, tags)
+                validate_session_access_rule(ctx, six.text_type(self), rule, tags)
             elif self.kind == flow_rule_kind.grading:
-                validate_session_grading_rule(ctx, unicode(self), rule, tags)
+                validate_session_grading_rule(
+                        ctx, six.text_type(self), rule, tags,
+                        grade_identifier)
             else:
                 # the rule refers to FlowRuleException rule
                 raise ValidationError(_("invalid rule kind: ")+self.kind)
@@ -985,7 +1026,7 @@ class FlowRuleException(models.Model):
 
 class GradingOpportunity(models.Model):
     course = models.ForeignKey(Course,
-            verbose_name=_('Course identifier'))
+            verbose_name=_('Course'), on_delete=models.CASCADE)
 
     identifier = models.CharField(max_length=200, blank=False, null=False,
             # Translators: format of identifier for GradingOpportunity
@@ -1032,6 +1073,13 @@ class GradingOpportunity(models.Model):
                     "opportunity_id": self.identifier,
                     "course": self.course})
 
+    if six.PY3:
+        __str__ = __unicode__
+
+    def get_aggregation_strategy_descr(self):
+        return dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
+                self.aggregation_strategy)
+
 
 class GradeChange(models.Model):
     """Per 'grading opportunity', each participant may accumulate multiple grades
@@ -1042,10 +1090,10 @@ class GradeChange(models.Model):
     ones.
     """
     opportunity = models.ForeignKey(GradingOpportunity,
-            verbose_name=_('Grading opportunity'))
+            verbose_name=_('Grading opportunity'), on_delete=models.CASCADE)
 
     participation = models.ForeignKey(Participation,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
 
     state = models.CharField(max_length=50,
             choices=GRADE_STATE_CHANGE_CHOICES,
@@ -1073,13 +1121,13 @@ class GradeChange(models.Model):
             verbose_name=_('Due time'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'))
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
     grade_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Grade time'))
 
     flow_session = models.ForeignKey(FlowSession, null=True, blank=True,
             related_name="grade_changes",
-            verbose_name=_('Flow session'))
+            verbose_name=_('Flow session'), on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = _("Grade change")
@@ -1093,6 +1141,9 @@ class GradeChange(models.Model):
             'state': self.state,
             'opportunityname': self.opportunity.name}
 
+    if six.PY3:
+        __str__ = __unicode__
+
     def clean(self):
         super(GradeChange, self).clean()
 
@@ -1105,6 +1156,10 @@ class GradeChange(models.Model):
             return 100*self.points/self.max_points
         else:
             return None
+
+    def get_state_desc(self):
+        return dict(GRADE_STATE_CHANGE_CHOICES).get(
+                self.state)
 
 # }}}
 
@@ -1282,17 +1337,25 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
     from course.utils import FlowSessionGradingRule
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
+    default_name = (
+            # Translators: display the name of a flow
+            _("Flow: %(flow_desc_title)s")
+            % {"flow_desc_title": flow_desc.title})
+
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
             identifier=grading_rule.grade_identifier,
             defaults=dict(
-                name=(
-                    # Translators: display the name of a flow
-                    _("Flow: %(flow_desc_title)s")
-                    % {"flow_desc_title": flow_desc.title}),
+                name=default_name,
                 flow_id=flow_id,
                 aggregation_strategy=grading_rule.grade_aggregation_strategy,
                 ))
+
+    # update gopp.name when flow_desc.title changed
+    if not created:
+        if gopp.name != default_name:
+            gopp.name = default_name
+            gopp.save()
 
     return gopp
 
@@ -1303,7 +1366,7 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
 
 class InstantMessage(models.Model):
     participation = models.ForeignKey(Participation,
-            verbose_name=_('Participation'))
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
     text = models.CharField(max_length=200,
             verbose_name=_('Text'))
     time = models.DateTimeField(default=now,
@@ -1316,6 +1379,101 @@ class InstantMessage(models.Model):
 
     def __unicode__(self):
         return "%s: %s" % (self.participation, self.text)
+
+    if six.PY3:
+        __str__ = __unicode__
+
+# }}}
+
+
+# {{{ exam tickets
+
+class Exam(models.Model):
+    course = models.ForeignKey(Course,
+            verbose_name=_('Course'), on_delete=models.CASCADE)
+    description = models.CharField(max_length=200,
+            verbose_name=_('Description'))
+    flow_id = models.CharField(max_length=200,
+            verbose_name=_('Flow ID'))
+    active = models.BooleanField(
+            default=True,
+            verbose_name=_('Currently active'))
+
+    no_exams_before = models.DateTimeField(
+            verbose_name=_('No exams before'))
+    no_exams_after = models.DateTimeField(
+            null=True, blank=True,
+            verbose_name=_('No exams after'))
+
+    lock_down_sessions = models.BooleanField(
+            default=True,
+            verbose_name=_("Lock down sessions"),
+            help_text=_("Only allow access to exam content "
+                "(and no other content in this RELATE instance) "
+                "in sessions logged in through this exam"))
+
+    class Meta:
+        verbose_name = _("Exam")
+        verbose_name_plural = _("Exams")
+        ordering = ("course", "no_exams_before",)
+
+    def __unicode__(self):
+        return _("Exam  %(description)s in %(course)s") % {
+                'description': self.description,
+                'course': self.course,
+                }
+
+    if six.PY3:
+        __str__ = __unicode__
+
+
+class ExamTicket(models.Model):
+    exam = models.ForeignKey(Exam,
+            verbose_name=_('Exam'), on_delete=models.CASCADE)
+
+    participation = models.ForeignKey(Participation, db_index=True,
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
+            verbose_name=_('Creator'), on_delete=models.CASCADE)
+    creation_time = models.DateTimeField(default=now,
+            verbose_name=_('Creation time'))
+    usage_time = models.DateTimeField(
+            verbose_name=_('Date and time of first usage of ticket'),
+            null=True, blank=True)
+
+    state = models.CharField(max_length=50,
+            choices=EXAM_TICKET_STATE_CHOICES,
+            verbose_name=_('Exam ticket state'))
+
+    code = models.CharField(max_length=50, db_index=True, unique=True)
+
+    class Meta:
+        verbose_name = _("Exam ticket")
+        verbose_name_plural = _("Exam tickets")
+        ordering = ("exam__course", "-creation_time")
+        permissions = (
+                ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
+                )
+
+    def __unicode__(self):
+        return _("Exam  ticket for %(participation)s in %(exam)s") % {
+                'participation': self.participation,
+                'exam': self.exam,
+                }
+
+    if six.PY3:
+        __str__ = __unicode__
+
+    def clean(self):
+        super(ExamTicket, self).clean()
+
+        try:
+            if self.exam.course != self.participation.course:
+                raise ValidationError(_("Participation and exam must live "
+                        "in the same course"))
+        except ObjectDoesNotExist:
+            pass
 
 # }}}
 

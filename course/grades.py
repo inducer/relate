@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 import re
+import six
 
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, ugettext, string_concat)
@@ -272,10 +273,12 @@ def view_gradebook(pctx):
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
-    grade_table = sorted(zip(participations, grade_table),
-            key=lambda (participation, grades):
-                (participation.user.last_name.lower(),
-                    participation.user.first_name.lower()))
+    def grade_key(entry):
+        (participation, grades) = entry
+        return (participation.user.last_name.lower(),
+                    participation.user.first_name.lower())
+
+    grade_table = sorted(zip(participations, grade_table), key=grade_key)
 
     return render_course_page(pctx, "course/gradebook.html", {
         "grade_table": grade_table,
@@ -294,14 +297,19 @@ def export_gradebook_csv(pctx):
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
-    from six import BytesIO
-    csvfile = BytesIO()
+    from six import StringIO
+    csvfile = StringIO()
 
-    import unicodecsv
+    if six.PY2:
+        import unicodecsv as csv
+    else:
+        import csv
+
     fieldnames = ['user_name', 'last_name', 'first_name'] + [
             gopp.identifier for gopp in grading_opps]
 
-    writer = unicodecsv.writer(csvfile, encoding="utf-8")
+    writer = csv.writer(csvfile)
+
     writer.writerow(fieldnames)
 
     for participation, grades in zip(participations, grade_table):
@@ -313,7 +321,7 @@ def export_gradebook_csv(pctx):
                 for grade_info in grades])
 
     response = http.HttpResponse(
-            csvfile.getvalue(),
+            csvfile.getvalue().encode("utf-8"),
             content_type="text/plain; charset=utf-8")
     response['Content-Disposition'] = (
             'attachment; filename="grades-%s.csv"'
@@ -339,112 +347,23 @@ class ModifySessionsForm(StyledForm):
                 choices=tuple(
                     (rule_tag, str(rule_tag))
                     for rule_tag in session_rule_tags),
-                label=_("Rule tag"))
+                label=_("Session tag"))
         self.fields["past_due_only"] = forms.BooleanField(
                 required=False,
                 initial=True,
                 help_text=_("Only act on in-progress sessions that are past "
-                "their access rule's due date (applies to 'expire' and 'end')"),
+                "their access rule's due date (applies to 'expire')"),
                 # Translators: see help text above.
                 label=_("Past due only"))
 
         self.helper.add_input(
-                Submit("expire", _("Expire sessions"),
-                    css_class="col-lg-offset-2"))
-        self.helper.add_input(
-                Submit("end", _("End sessions and grade")))
+                Submit("expire", _("Impose deadline (Expire sessions)")))
+        # self.helper.add_input(
+        # Submit("end", _("End and grade all sessions")))
         self.helper.add_input(
                 Submit("regrade", _("Regrade ended sessions")))
         self.helper.add_input(
                 Submit("recalculate", _("Recalculate grades of ended sessions")))
-
-
-@transaction.atomic
-def expire_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
-        past_due_only):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=True,
-                ))
-
-    count = 0
-
-    from course.flow import expire_flow_session_standalone
-    for session in sessions:
-        if expire_flow_session_standalone(repo, course, session, now_datetime,
-                past_due_only=past_due_only):
-            count += 1
-
-    return count
-
-
-@transaction.atomic
-def finish_in_progress_sessions(repo, course, flow_id, rule_tag, now_datetime,
-        past_due_only):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=True,
-                ))
-
-    count = 0
-
-    from course.flow import finish_flow_session_standalone
-    for session in sessions:
-        if finish_flow_session_standalone(repo, course, session,
-                now_datetime=now_datetime, past_due_only=past_due_only):
-            count += 1
-
-    return count
-
-
-@transaction.atomic
-def regrade_ended_sessions(repo, course, flow_id, rule_tag):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=False,
-                ))
-
-    count = 0
-
-    from course.flow import regrade_session
-    for session in sessions:
-        regrade_session(repo, course, session)
-        count += 1
-
-    return count
-
-
-@transaction.atomic
-def recalculate_ended_sessions(repo, course, flow_id, rule_tag):
-    sessions = (FlowSession.objects
-            .filter(
-                course=course,
-                flow_id=flow_id,
-                participation__isnull=False,
-                access_rules_tag=rule_tag,
-                in_progress=False,
-                ))
-
-    count = 0
-
-    from course.flow import recalculate_session_grade
-    for session in sessions:
-        recalculate_session_grade(repo, course, session)
-        count += 1
-
-    return count
 
 
 RULE_TAG_NONE_STRING = "<<<NONE>>>"
@@ -504,54 +423,45 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                 if rule_tag == RULE_TAG_NONE_STRING:
                     rule_tag = None
-                try:
-                    if op == "expire":
-                        count = expire_in_progress_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag, now_datetime,
-                                past_due_only=past_due_only)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("%d session(s) expired.") % count)
+                from course.tasks import (
+                        expire_in_progress_sessions,
+                        finish_in_progress_sessions,
+                        regrade_flow_sessions,
+                        recalculate_ended_sessions)
 
-                    elif op == "end":
-                        count = finish_in_progress_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag, now_datetime,
-                                past_due_only=past_due_only)
+                if op == "expire":
+                    async_res = expire_in_progress_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag, now_datetime,
+                            past_due_only=past_due_only)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("%d session(s) ended.") % count)
+                    return redirect("relate-monitor_task", async_res.id)
 
-                    elif op == "regrade":
-                        count = regrade_ended_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag)
+                elif op == "end":
+                    async_res = finish_in_progress_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag, now_datetime,
+                            past_due_only=past_due_only)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("%d session(s) regraded.") % count)
+                    return redirect("relate-monitor_task", async_res.id)
 
-                    elif op == "recalculate":
-                        count = recalculate_ended_sessions(
-                                pctx.repo, pctx.course, opportunity.flow_id,
-                                rule_tag)
+                elif op == "regrade":
+                    async_res = regrade_flow_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag, inprog_value=False)
 
-                        messages.add_message(pctx.request, messages.SUCCESS,
-                                _("Grade recalculated for %d session(s).")
-                                % count)
+                    return redirect("relate-monitor_task", async_res.id)
 
-                    else:
-                        raise SuspiciousOperation("invalid operation")
-                except Exception as e:
-                    messages.add_message(pctx.request, messages.ERROR,
-                            string_concat(
-                                pgettext_lazy("Starting of Error message",
-                                    "Error"),
-                                ": %(err_type)s %(err_str)s")
-                            % {
-                                "err_type": type(e).__name__,
-                                "err_str": str(e)})
-                    raise
+                elif op == "recalculate":
+                    async_res = recalculate_ended_sessions.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            rule_tag)
+
+                    return redirect("relate-monitor_task", async_res.id)
+
+                else:
+                    raise SuspiciousOperation("invalid operation")
 
         else:
             batch_session_ops_form = ModifySessionsForm(session_rule_tags)
@@ -620,10 +530,13 @@ def view_grades_by_opportunity(pctx, opp_id):
                     grade_state_machine=state_machine,
                     flow_sessions=flow_sessions))
 
+    def grade_key(entry):
+        (participation, grades) = entry
+        return (participation.user.last_name.lower(),
+                    participation.user.first_name.lower())
+
     grade_table = sorted(zip(participations, grade_table),
-            key=lambda (participation, grades):
-                (participation.user.last_name.lower(),
-                    participation.user.first_name.lower()))
+            key=grade_key)
 
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,
@@ -665,7 +578,7 @@ class ReopenSessionForm(StyledForm):
 
         self.helper.add_input(
                 Submit(
-                    "reopen", _("Reopen"), css_class="col-lg-offset-2"))
+                    "reopen", _("Reopen")))
 
 
 @course_view
@@ -691,7 +604,13 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
         form = ReopenSessionForm(flow_desc, session.access_rules_tag,
             request.POST, request.FILES)
 
-        if form.is_valid():
+        may_reopen = True
+        if session.in_progress:
+            messages.add_message(pctx.request, messages.ERROR,
+                    _("Cannot reopen a session that's already in progress."))
+            may_reopen = False
+
+        if form.is_valid() and may_reopen:
             new_access_rules_tag = form.cleaned_data["set_access_rules_tag"]
             if new_access_rules_tag == NONE_SESSION_TAG:
                 new_access_rules_tag = None
@@ -996,11 +915,8 @@ class ImportGradesForm(StyledForm):
                 # Translators: "Max point" refers to full credit in points.
                 label=_("Max points"))
 
-        self.helper.add_input(
-                Submit("preview", _("Preview"),
-                    css_class="col-lg-offset-2"))
-        self.helper.add_input(
-                Submit("import", _("Import")))
+        self.helper.add_input(Submit("preview", _("Preview")))
+        self.helper.add_input(Submit("import", _("Import")))
 
 
 class ParticipantNotFound(ValueError):

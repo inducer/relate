@@ -15,27 +15,17 @@
 {% block content %}
   {% if course.hidden %}
     <div class="alert alert-info">
+      <i class="fa fa-info-circle"></i>
       {% trans "This course is only visible to course staff at the moment." %}
       <a class="btn btn-default" href="{% url "admin:course_course_change" course.id %}"
-        role="button" target="_blank">{% trans "Change" context "change the visibility of a course" %} &raquo;</a>
+        role="button" target="_blank">{% trans "Change" context "change the visibility of a course" %}&nbsp;&raquo;</a>
     </div>
   {% endif %}
-  {% if not course.valid %}
-    <div class="alert alert-warning">
-      {% blocktrans trimmed %}
-      There may be a problem with the validity of course data, which may lead
-      to students encountering unexpected errors.
-      {% endblocktrans %}
-      <a class="btn btn-primary" href="{% url "relate-update_course" course.identifier %}"
-        role="button">{% trans "Update" %} &raquo;</a>
-    </div>
-  {% endif %}
-
   {% if not user.is_authenticated %}
     <div class="well">
       {% trans "You're not currently signed in." %}
-      <a class="btn btn-primary" href="{% url student_sign_in_view %}"
-        role="button">{% trans "Sign in" %} &raquo;</a>
+      <a class="btn-lg btn-primary" href="{% url student_sign_in_view %}"
+        role="button">{% trans "Sign in" %}&nbsp;&raquo;</a>
     </div>
   {% else %}
 
@@ -43,8 +33,8 @@
       <div class="well">
         <form method="POST" action="{% url "relate-enroll" course.identifier %}">
           {% csrf_token %}
-          <button type="submit" name="enroll" class="btn btn-primary">
-            {% trans "Enroll" %} &raquo;
+          <button type="submit" name="enroll" class="btn-lg btn-primary">
+            {% trans "Enroll" %}&nbsp;&raquo;
           </button>
         </form>
       </div>

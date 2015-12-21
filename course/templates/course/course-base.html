@@ -2,24 +2,31 @@
 {% load i18n %}
 
 {% block title %}
-  {{ course_desc.number}}:
-  {{ course_desc.name}}
+  {{ course.number}}:
+  {{ course.time_period}}
   -
   {% trans "RELATE" %}
 {% endblock %}
 
 {% block brand %}
-  {{ course_desc.number}}
-  {{ course_desc.run}}
+  {{ course.number}}
+  {{ course.time_period}}
 {% endblock %}
-{% block brand_link %}{% url "relate-course_page" course.identifier %}{% endblock %}
+
+{% block brand_link %}
+  {% if not relate_exam_lockdown %}
+    {% url "relate-course_page" course.identifier %}
+  {% else %}
+    #
+  {% endif %}
+{% endblock %}
 
 {% block navbar %}
   {% with participation_role as pr %}
   {% block page_navbar %}
   {% endblock %}
 
-  {% if role != pr.unenrolled %}
+  {% if not relate_exam_lockdown and role != pr.unenrolled %}
   <li class="dropdown">
     {% comment %} Translators: The following are names for menu items in course page {% endcomment %}
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Student" context "menu item" %}<b class="caret"></b></a>
@@ -45,21 +52,33 @@
         <li role="presentation" class="dropdown-header">{% trans "Grades" %}</li>
         <li><a href="{% url "relate-view_participant_list" course.identifier %}">{% trans "List of Participants" %}</a></li>
         <li><a href="{% url "relate-view_grading_opportunity_list" course.identifier %}">{% trans "List of Grading Opportunities" %}</a></li>
+        {% if user.is_staff %}
+        <li><a href="{% url "admin:course_gradingopportunity_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit Grading Opportunities (admin)" %}</a></li>
+        {% endif %}
         <li><a href="{% url "relate-view_gradebook" course.identifier %}">{% trans "Grade book" %}</a></li>
         <li><a href="{% url "relate-export_gradebook_csv" course.identifier %}">{% trans "Grade book (CSV export)" %}</a></li>
       {% endif %}
       {% if role == pr.instructor %}
         <li><a href="{% url "relate-import_grades" course.identifier %}">{% trans "Import Grades" %}</a></li>
       {% endif %}
-      <li><a href="{% url "relate-regrade_not_for_credit_flows_view" course.identifier %}">{% trans "Regrade not-for-credit flow" %}</a></li>
+      <li><a href="{% url "relate-regrade_flows_view" course.identifier %}">{% trans "Regrade flows" %}</a></li>
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">{% trans "Exceptions" %}</li>
         <li><a href="{% url "relate-grant_exception" course.identifier %}">{% trans "Grant exception" %}</a></li>
         {% if user.is_staff %}
-        <li><a href="{% url "admin:course_flowruleexception_changelist" %}" target="_blank">{% trans "Show exceptions" %}</a></li>
+        <li><a href="{% url "admin:course_flowruleexception_changelist" %}?participation__course__id__exact={{ course.id }}" target="_blank">{% trans "Show exceptions" %}</a></li>
         {% endif %}
+      {% endif %}
+
+      {% if role == pr.instructor %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
+        {% if user.is_staff %}
+          <li><a href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
+        {% endif %}
+        <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
       {% endif %}
 
     </ul>
@@ -71,7 +90,10 @@
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Content" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
-      <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Update course" %}</a></li>
+      <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Retrieve/preview new course revisions" %}</a></li>
+      <li role="presentation" class="divider"></li>
+
+      <li><a href="{% url "admin:course_course_change" course.id %}">{% trans "Edit course" %}</a></li>
       <li role="presentation" class="divider"></li>
 
       <li role="presentation" class="dropdown-header">{% trans "Content creation" %}</li>
@@ -84,7 +106,7 @@
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">{% trans "Calendar" %}</li>
       {% if user.is_staff %}
-        <li><a href="{% url "admin:course_event_changelist" %}" target="_blank">{% trans "Edit events" %}</a></li>
+        <li><a href="{% url "admin:course_event_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit events" %}</a></li>
       {% endif %}
       <li><a href="{% url "relate-create_recurring_events" course.identifier %}">{% trans "Create recurring events" %}</a></li>
       <li><a href="{% url "relate-renumber_events" course.identifier %}">{% trans "Renumber events" %}</a></li>
@@ -112,6 +134,7 @@
 {% block version_advice %}
   {% if participation.preview_git_commit_sha %}
     <div class="alert alert-info">
+      <i class='fa fa-info-circle'></i>
       {% trans "You are currently seeing a preview of revision" %}
       '{{participation.preview_git_commit_sha}}'.
       <a class="btn btn-sm btn-primary" href="{% url "relate-update_course" course.identifier %}"
@@ -123,6 +146,7 @@
 {% block nav_recommendations %}
   {% if instant_flow_requests %}
     <div class="alert alert-info">
+      <i class='fa fa-info-circle'></i>
       {% if num_instant_flow_requests == 1 %}
         {% trans "There is an interactive activity going on right now." %}
         {% for i, req in instant_flow_requests %}

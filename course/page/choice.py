@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+from six.moves import range
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
@@ -55,6 +56,13 @@ class MultipleChoiceAnswerForm(StyledForm):
         # Translators: "Choice" in Choice Answer Form in a multiple
         # choice question in which multiple answers can be chosen.
         self.fields["choice"].label = _("Choices")
+
+
+def markup_to_html_plain(page_context, s):
+    s = markup_to_html(page_context, s)
+    if s.startswith("<p>") and s.endswith("</p>"):
+        s = s[3:-4]
+    return s
 
 
 # {{{ choice question
@@ -105,7 +113,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         if not isinstance(s, str):
             s = str(s)
         s = remove_prefix(cls.CORRECT_TAG, s)
-        s = markup_to_html(page_context, s)
+        s = markup_to_html_plain(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 
@@ -162,7 +170,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def make_page_data(self):
         import random
-        perm = range(len(self.page_desc.choices))
+        perm = list(range(len(self.page_desc.choices)))
         if getattr(self.page_desc, "shuffle", False):
             random.shuffle(perm)
 
@@ -191,6 +199,15 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def make_form(self, page_context, page_data,
             answer_data, page_behavior):
+        if (
+                "permutation" not in page_data
+                or (set(page_data["permutation"])
+                    != set(range(len(self.page_desc.choices))))):
+            from course.page import InvalidPageData
+            raise InvalidPageData(ugettext(
+                "existing choice permutation not "
+                "suitable for number of choices in question"))
+
         if answer_data is not None:
             form_data = {"choice": answer_data["choice"]}
             form = self.make_choice_form(
@@ -299,11 +316,34 @@ class MultipleChoiceQuestion(ChoiceQuestion):
         be counted as correct.  If True, answers with subset of correct
         choices will receive credit for each matching check box, irrespective
         of whether it is checked or not.
+
+    .. attribute:: allow_partial_credit_subset_only
+
+        Optional. ``True`` or ``False``. If False (default), only
+        answers in which all check marks match the reference solution will
+        be counted as correct.  If True, partial credits will only be granted
+        to answers which are strict subsets of reference solution.
     """
+
+    def __init__(self, vctx, location, page_desc):
+        super(MultipleChoiceQuestion, self).__init__(vctx, location, page_desc)
+
+        if (
+                getattr(self.page_desc, "allow_partial_credit", False)
+                and
+                getattr(self.page_desc, "allow_partial_credit_subset_only", False)):
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("'allow_partial_credit' and "
+                        "'allow_partial_credit_subset_only' are not allowed to "
+                        "co-exist when both attribute are 'True'"))
+                    % {'location': location})
 
     def allowed_attrs(self):
         return super(MultipleChoiceQuestion, self).allowed_attrs() + (
                 ("allow_partial_credit", bool),
+                ("allow_partial_credit_subset_only", bool),
                 )
 
     def make_choice_form(self, page_context, page_data, page_behavior,
@@ -341,9 +381,7 @@ class MultipleChoiceQuestion(ChoiceQuestion):
         if unpermed_idx_set == correct_idx_set:
             correctness = 1
         else:
-            if not getattr(self.page_desc, "allow_partial_credit", False):
-                correctness = 0
-            else:
+            if getattr(self.page_desc, "allow_partial_credit", False):
                 correctness = (
                         (
                             len(self.page_desc.choices)
@@ -352,6 +390,15 @@ class MultipleChoiceQuestion(ChoiceQuestion):
                                 .symmetric_difference(correct_idx_set)))
                         /
                         len(self.page_desc.choices))
+            elif getattr(self.page_desc, "allow_partial_credit_subset_only",
+                         False):
+                if unpermed_idx_set < correct_idx_set:
+                    correctness = (
+                            len(unpermed_idx_set)/len(correct_idx_set))
+                else:
+                    correctness = 0
+            else:
+                correctness = 0
 
         return AnswerFeedback(correctness=correctness)
 
@@ -374,7 +421,7 @@ class MultipleChoiceQuestion(ChoiceQuestion):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx_list = self.unpermuted_correct_indices()
 
-        return (string_concat(_("The correct answer is"), ": '%s'.")
+        return (string_concat(_("The correct answer is"), ": %s.")
                 % self.get_answer_html(page_context, corr_idx_list))
 
     def normalized_answer(self, page_context, page_data, answer_data):
@@ -388,6 +435,7 @@ class MultipleChoiceQuestion(ChoiceQuestion):
             page_context,
             [permutation[idx] for idx in choice],
             unpermute=True)
+
 # }}}
 
 

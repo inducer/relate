@@ -37,6 +37,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django import forms
+from django.utils import translation
 
 from crispy_forms.layout import Submit
 
@@ -87,7 +88,17 @@ def enroll(request, course_identifier):
                 "Confirm your email to continue."))
         return redirect("relate-course_page", course_identifier)
 
-    if (course.enrollment_required_email_suffix
+    preapproval = None
+    if request.user.email:
+        try:
+            preapproval = ParticipationPreapproval.objects.get(
+                    course=course, email__iexact=request.user.email)
+        except ParticipationPreapproval.DoesNotExist:
+            pass
+
+    if (
+            preapproval is None
+            and course.enrollment_required_email_suffix
             and not user.email.endswith(course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
@@ -113,14 +124,6 @@ def enroll(request, course_identifier):
 
         return participation
 
-    preapproval = None
-    if request.user.email:
-        try:
-            preapproval = ParticipationPreapproval.objects.get(
-                    course=course, email__iexact=request.user.email)
-        except ParticipationPreapproval.DoesNotExist:
-            pass
-
     role = participation_role.student
 
     if preapproval is not None:
@@ -129,20 +132,23 @@ def enroll(request, course_identifier):
     if course.enrollment_approval_required and preapproval is None:
         enroll(participation_status.requested, role)
 
-        from django.template.loader import render_to_string
-        message = render_to_string("course/enrollment-request-email.txt", {
-            "user": user,
-            "course": course,
-            "admin_uri": request.build_absolute_uri(
-                    reverse("admin:course_participation_changelist"))
-            })
-        from django.core.mail import send_mail
-        send_mail(
-                string_concat("[%s] ", _("New enrollment request"))
-                % course_identifier,
-                message,
-                settings.ROBOT_EMAIL_FROM,
-                recipient_list=[course.notify_email])
+        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from django.template.loader import render_to_string
+            message = render_to_string("course/enrollment-request-email.txt", {
+                "user": user,
+                "course": course,
+                "admin_uri": request.build_absolute_uri(
+                        reverse("admin:course_participation_changelist")
+                        + "?status__exact=requested")
+                })
+
+            from django.core.mail import send_mail
+            send_mail(
+                    string_concat("[%s] ", _("New enrollment request"))
+                    % course_identifier,
+                    message,
+                    settings.ROBOT_EMAIL_FROM,
+                    recipient_list=[course.notify_email])
 
         messages.add_message(request, messages.INFO,
                 _("Enrollment request sent. You will receive notifcation "
@@ -173,32 +179,37 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             participation.status = participation_status.denied
         participation.save()
 
-        course = participation.course
-        from django.template.loader import render_to_string
-        message = render_to_string("course/enrollment-decision-email.txt", {
-            "user": participation.user,
-            "approved": approved,
-            "course": course,
-            "course_uri": request.build_absolute_uri(
-                    reverse("relate-course_page",
-                        args=(course.identifier,)))
-            })
-
-        from django.core.mail import EmailMessage
-        msg = EmailMessage(
-                string_concat("[%s] ", _("Your enrollment request"))
-                % course.identifier,
-                message,
-                course.from_email,
-                [participation.user.email])
-        msg.bcc = [course.notify_email]
-        msg.send()
+        send_enrollment_decision(participation, approved, request)
 
         count += 1
 
     messages.add_message(request, messages.INFO,
             # Translators: how many enroll requests have ben processed.
             _("%d requests processed.") % count)
+
+
+def send_enrollment_decision(participation, approved, request):
+        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            course = participation.course
+            from django.template.loader import render_to_string
+            message = render_to_string("course/enrollment-decision-email.txt", {
+                "user": participation.user,
+                "approved": approved,
+                "course": course,
+                "course_uri": request.build_absolute_uri(
+                        reverse("relate-course_page",
+                            args=(course.identifier,)))
+                })
+
+            from django.core.mail import EmailMessage
+            msg = EmailMessage(
+                    string_concat("[%s] ", _("Your enrollment request"))
+                    % course.identifier,
+                    message,
+                    course.from_email,
+                    [participation.user.email])
+            msg.bcc = [course.notify_email]
+            msg.send()
 
 
 def approve_enrollment(modeladmin, request, queryset):
@@ -230,8 +241,7 @@ class BulkPreapprovalsForm(StyledForm):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Preapprove"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit", _("Preapprove")))
 
 
 @login_required
@@ -249,6 +259,7 @@ def create_preapprovals(pctx):
 
             created_count = 0
             exist_count = 0
+            pending_approved_count = 0
 
             role = form.cleaned_data["role"]
             for l in form.cleaned_data["emails"].split("\n"):
@@ -262,7 +273,24 @@ def create_preapprovals(pctx):
                             email__iexact=l,
                             course=pctx.course)
                 except ParticipationPreapproval.DoesNotExist:
-                    pass
+
+                    # approve if l is requesting enrollment
+                    try:
+                        pending_participation = Participation.objects.get(
+                                course=pctx.course,
+                                status=participation_status.requested,
+                                user__email__iexact=l)
+
+                    except Participation.DoesNotExist:
+                        pass
+
+                    else:
+                        pending_participation.status = participation_status.active
+                        pending_participation.save()
+                        send_enrollment_decision(
+                                pending_participation, True, request)
+                        pending_approved_count += 1
+
                 else:
                     exist_count += 1
                     continue
@@ -277,10 +305,15 @@ def create_preapprovals(pctx):
                 created_count += 1
 
             messages.add_message(request, messages.INFO,
-                    _("%(n_created)d preapprovals created, "
-                    "%(n_exist)d already existed.") % {
+                    _(
+                        "%(n_created)d preapprovals created, "
+                        "%(n_exist)d already existed, "
+                        "%(n_requested_approved)d pending requests approved.")
+                    % {
                         'n_created': created_count,
-                        'n_exist': exist_count})
+                        'n_exist': exist_count,
+                        'n_requested_approved': pending_approved_count
+                        })
             return redirect("relate-home")
 
     else:

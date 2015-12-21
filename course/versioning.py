@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -37,6 +39,8 @@ from django.utils.translation import (
         pgettext_lazy,
         string_concat,
         )
+from django_select2.forms import Select2Widget
+from bootstrap3_datetime.widgets import DateTimePicker
 
 from django.db import transaction
 
@@ -50,13 +54,65 @@ from course.models import (
 from course.utils import course_view, render_course_page
 import paramiko
 import paramiko.client
-import cgi
 
 
 class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
     def missing_host_key(self, client, hostname, key):
         # simply accept the key
         return
+
+
+def _remove_prefix(prefix, s):
+    assert s.startswith(prefix)
+
+    return s[len(prefix):]
+
+
+def transfer_remote_refs(repo, remote_refs):
+    valid_refs = []
+    for ref, sha in six.iteritems(remote_refs):
+        if (ref.startswith(b"refs/heads/")
+                and not ref.startswith(b"refs/heads/origin/")):
+            new_ref = "refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
+            valid_refs.append(new_ref)
+            repo[new_ref] = sha
+    for ref in repo.get_refs().keys():
+        if ref.startswith(b"refs/remotes/origin/") and ref not in valid_refs:
+            del repo[ref]
+
+
+# {{{ shell quoting
+
+# Adapted from
+# https://github.com/python/cpython/blob/8cd133c63f156451eb3388b9308734f699f4f1af/Lib/shlex.py#L278
+
+def is_shell_safe(s):
+    import re
+    import sys
+
+    flags = 0
+    if sys.version_info >= (3,):
+        flags = re.ASCII
+
+    unsafe_re = re.compile(br'[^\w@%+=:,./-]', flags)
+
+    return unsafe_re.search(s) is None
+
+
+def shell_quote(s):
+    """Return a shell-escaped version of the byte string *s*."""
+
+    # Unconditionally quotes because that's apparently git's behavior, too,
+    # and some code hosting sites (notably Bitbucket) appear to rely on that.
+
+    if not s:
+        return b"''"
+
+    # use single quotes, and put single quotes into double quotes
+    # the string $'b is then quoted as '$'"'"'b'
+    return b"'" + s.replace(b"'", b"'\"'\"'") + b"'"
+
+# }}}
 
 
 class DulwichParamikoSSHVendor(object):
@@ -76,9 +132,28 @@ class DulwichParamikoSSHVendor(object):
 
         channel = client.get_transport().open_session()
 
-        channel.exec_command(" ".join(command))
+        assert command
+        assert is_shell_safe(command[0])
 
-        from dulwich.client import ParamikoWrapper
+        command = (
+                command[0]
+                + b' '
+                + b' '.join(
+                    shell_quote(c) for c in command[1:]))
+
+        channel.exec_command(command)
+
+        def progress_stderr(s):
+            import sys
+            sys.stderr.write(s.decode("utf-8"))
+            sys.stderr.flush()
+
+        try:
+            from dulwich.client import ParamikoWrapper
+        except ImportError:
+            from dulwich.contrib.paramiko_vendor import (
+                    _ParamikoWrapper as ParamikoWrapper)
+
         return ParamikoWrapper(
             client, channel, progress_stderr=progress_stderr)
 
@@ -86,8 +161,8 @@ class DulwichParamikoSSHVendor(object):
 def get_dulwich_client_and_remote_path_from_course(course):
     ssh_kwargs = {}
     if course.ssh_private_key:
-        from StringIO import StringIO
-        key_file = StringIO(course.ssh_private_key.encode())
+        from six import StringIO
+        key_file = StringIO(course.ssh_private_key)
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
     def get_dulwich_ssh_vendor():
@@ -100,11 +175,22 @@ def get_dulwich_client_and_remote_path_from_course(course):
 
     from dulwich.client import get_transport_and_path
     client, remote_path = get_transport_and_path(
-            course.git_source.encode())
+            course.git_source)
 
-    # Work around
-    # https://bugs.launchpad.net/dulwich/+bug/1025886
-    client._fetch_capabilities.remove('thin-pack')
+    try:
+        # Work around
+        # https://bugs.launchpad.net/dulwich/+bug/1025886
+        client._fetch_capabilities.remove('thin-pack')
+    except KeyError:
+        pass
+    except AttributeError:
+        pass
+
+    from dulwich.client import LocalGitClient
+    if not isinstance(client, LocalGitClient):
+        # LocalGitClient uses Py3 Unicode path names to refer to
+        # paths, so it doesn't want an encoded path.
+        remote_path = remote_path.encode("utf-8")
 
     return client, remote_path
 
@@ -115,7 +201,13 @@ class CourseCreationForm(StyledModelForm):
     class Meta:
         model = Course
         fields = (
-            "identifier", "hidden", "listed",
+            "identifier",
+            "name",
+            "number",
+            "time_period",
+            "start_date",
+            "end_date",
+            "hidden", "listed",
             "accepts_enrollment",
             "git_source", "ssh_private_key", "course_root_path",
             "course_file",
@@ -125,13 +217,16 @@ class CourseCreationForm(StyledModelForm):
             "from_email",
             "notify_email",
             )
+        widgets = {
+                "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                }
 
     def __init__(self, *args, **kwargs):
         super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
-                Submit("submit", _("Validate and create"),
-                    css_class="col-lg-offset-2"))
+                Submit("submit", _("Validate and create")))
 
 
 @login_required
@@ -152,6 +247,8 @@ def set_up_new_course(request):
                 import os
                 os.makedirs(repo_path)
 
+                repo = None
+
                 try:
                     with transaction.atomic():
                         from dulwich.repo import Repo
@@ -162,7 +259,8 @@ def set_up_new_course(request):
                                     new_course)
 
                         remote_refs = client.fetch(remote_path, repo)
-                        new_sha = repo["HEAD"] = remote_refs["HEAD"]
+                        transfer_remote_refs(repo, remote_refs)
+                        new_sha = repo[b"HEAD"] = remote_refs[b"HEAD"]
 
                         vrepo = repo
                         if new_course.course_root_path:
@@ -178,8 +276,7 @@ def set_up_new_course(request):
                         del repo
                         del vrepo
 
-                        new_course.valid = True
-                        new_course.active_git_commit_sha = new_sha
+                        new_course.active_git_commit_sha = new_sha.decode()
                         new_course.save()
 
                         # {{{ set up a participation for the course creator
@@ -208,8 +305,8 @@ def set_up_new_course(request):
                     import shutil
 
                     # Make sure files opened for 'repo' above are actually closed.
-                    import gc
-                    gc.collect()
+                    if repo is not None:  # noqa
+                        repo.close()  # noqa
 
                     def remove_readonly(func, path, _):  # noqa
                         "Clear the readonly bit and reattempt the removal"
@@ -274,9 +371,11 @@ def is_parent_commit(repo, potential_parent, child, max_history_check_size=None)
 
 
 def run_course_update_command(
-        request, repo, content_repo, pctx, command, new_sha, may_update):
-    if command.startswith("fetch_"):
-        command = command[6:]
+        request, repo, content_repo, pctx, command, new_sha, may_update,
+        prevent_discarding_revisions):
+    if command.startswith("fetch"):
+        if command != "fetch":
+            command = command[6:]
 
         if not pctx.course.git_source:
             raise RuntimeError(_("no git source URL specified"))
@@ -285,16 +384,23 @@ def run_course_update_command(
             get_dulwich_client_and_remote_path_from_course(pctx.course)
 
         remote_refs = client.fetch(remote_path, repo)
-        remote_head = remote_refs["HEAD"]
-        if is_parent_commit(repo, repo[remote_head], repo["HEAD"],
-                max_history_check_size=10):
+        transfer_remote_refs(repo, remote_refs)
+        remote_head = remote_refs[b"HEAD"]
+        if (
+                prevent_discarding_revisions
+                and
+                is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
+                    max_history_check_size=20)):
             raise RuntimeError(_("fetch would discard commits, refusing"))
 
-        repo["HEAD"] = remote_head
+        repo[b"HEAD"] = remote_head
 
         messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
-        new_sha = repo.head()
+        new_sha = remote_head
+
+    if command == "fetch":
+        return
 
     if command == "end_preview":
         messages.add_message(request, messages.INFO,
@@ -337,12 +443,11 @@ def run_course_update_command(
         messages.add_message(request, messages.INFO,
                 _("Preview activated."))
 
-        pctx.participation.preview_git_commit_sha = new_sha
+        pctx.participation.preview_git_commit_sha = new_sha.decode()
         pctx.participation.save()
 
     elif command == "update" and may_update:
-        pctx.course.active_git_commit_sha = new_sha
-        pctx.course.valid = True
+        pctx.course.active_git_commit_sha = new_sha.decode()
         pctx.course.save()
 
         messages.add_message(request, messages.SUCCESS,
@@ -353,23 +458,44 @@ def run_course_update_command(
 
 
 class GitUpdateForm(StyledForm):
-    new_sha = forms.CharField(required=True,
-            label=pgettext_lazy(
-                "new git SHA for revision of course contents",
-                "New git SHA"))
 
-    def __init__(self, may_update, previewing, *args, **kwargs):
+    def __init__(self, may_update, previewing, repo, *args, **kwargs):
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
-        first_button = [True]
+        repo_refs = repo.get_refs()
+        commit_iter = repo.get_walker(list(repo_refs.values()))
+
+        def format_commit(commit):
+            return "%s - %s" % (
+                    commit.id[:8],
+                    "".join(commit.message.split("\n")[:1]))
+
+        def format_sha(sha):
+            return format_commit(repo[sha])
+
+        self.fields["new_sha"] = forms.ChoiceField(
+                choices=([
+                    (repo_refs[ref],
+                        "[%s] %s" % (ref, format_sha(repo_refs[ref])))
+                    for ref in repo_refs
+                    ] +
+                    [
+                    (entry.commit.id, format_commit(entry.commit))
+                    for entry in commit_iter
+                    ]),
+                required=True,
+                widget=Select2Widget(),
+                label=pgettext_lazy(
+                    "new git SHA for revision of course contents",
+                    "New git SHA"))
+
+        self.fields["prevent_discarding_revisions"] = forms.BooleanField(
+                label=_("Prevent updating to a git revision "
+                    "prior to the current one"),
+                initial=True, required=False)
 
         def add_button(desc, label):
-            if first_button[0]:
-                self.helper.add_input(
-                        Submit(desc, label, css_class="col-lg-offset-2"))
-                first_button[0] = False
-            else:
-                self.helper.add_input(Submit(desc, label))
+            self.helper.add_input(Submit(desc, label))
 
         if may_update:
             add_button("fetch_update", _("Fetch and update"))
@@ -377,9 +503,11 @@ class GitUpdateForm(StyledForm):
 
         if previewing:
             add_button("end_preview", _("End preview"))
-        else:
-            add_button("fetch_preview", _("Fetch and preview"))
-            add_button("preview", _("Preview"))
+
+        add_button("fetch_preview", _("Fetch and preview"))
+        add_button("preview", _("Preview"))
+
+        add_button("fetch", _("Fetch"))
 
 
 @login_required
@@ -411,8 +539,9 @@ def update_course(pctx):
 
     response_form = None
     if request.method == "POST":
-        form = GitUpdateForm(may_update, previewing, request.POST, request.FILES)
-        commands = ["fetch_update", "update", "fetch_preview",
+        form = GitUpdateForm(may_update, previewing, repo, request.POST,
+            request.FILES)
+        commands = ["fetch", "fetch_update", "update", "fetch_preview",
                 "preview", "end_preview"]
 
         command = None
@@ -430,8 +559,13 @@ def update_course(pctx):
             try:
                 run_course_update_command(
                         request, repo, content_repo, pctx, command, new_sha,
-                        may_update)
+                        may_update,
+                        prevent_discarding_revisions=form.cleaned_data[
+                            "prevent_discarding_revisions"])
             except Exception as e:
+                import traceback
+                traceback.print_exc()
+
                 messages.add_message(pctx.request, messages.ERROR,
                         string_concat(
                             pgettext("Starting of Error message",
@@ -439,52 +573,73 @@ def update_course(pctx):
                             ": %(err_type)s %(err_str)s")
                         % {"err_type": type(e).__name__,
                             "err_str": str(e)})
+        else:
+            response_form = form
 
     if response_form is None:
         previewing = bool(participation is not None
                 and participation.preview_git_commit_sha)
 
-        form = GitUpdateForm(may_update, previewing,
-                {"new_sha": repo.head()})
+        form = GitUpdateForm(may_update, previewing, repo,
+                {
+                    "new_sha": repo.head(),
+                    "prevent_discarding_revisions": True,
+                    })
+
+    if six.PY2:
+        from cgi import escape
+    else:
+        from html import escape
 
     text_lines = [
+            "<table class='table'>",
             string_concat(
-                "<b>",
-                ugettext("Current git HEAD"),
-                ":</b> %(commit)s (%(message)s)")
-            % {
-                'commit': repo.head(),
-                'message': cgi.escape(repo[repo.head()].message.strip())},
+                "<tr><th>",
+                ugettext("Git Source URL"),
+                "</th><td><tt>%(git_source)s</tt></td></tr>")
+            % {'git_source': pctx.course.git_source},
             string_concat(
-                "<b>",
+                "<tr><th>",
                 ugettext("Public active git SHA"),
-                ":</b> %(commit)s (%(message)s)")
+                "</th><td> %(commit)s (%(message)s)</td></tr>")
             % {
                 'commit': course.active_git_commit_sha,
                 'message': (
-                    cgi.escape(repo[course.active_git_commit_sha.encode()]
-                        .message.strip()))
+                    escape(repo[course.active_git_commit_sha.encode()]
+                        .message.strip().decode(errors="replace")))
                 },
+            string_concat(
+                "<tr><th>",
+                ugettext("Current git HEAD"),
+                "</th><td>%(commit)s (%(message)s)</td></tr>")
+            % {
+                'commit': repo.head().decode(),
+                'message': escape(
+                    repo[repo.head()].message.strip().decode(errors="replace"))},
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
                 string_concat(
-                    "<b>",
+                    "<tr><th>",
                     ugettext("Current preview git SHA"),
-                    ":</b> %(commit)s (%(message)s)")
+                    "</th><td>%(commit)s (%(message)s)</td></tr>")
                 % {
                     'commit': participation.preview_git_commit_sha,
                     'message': (
-                        cgi.escape(repo[participation.preview_git_commit_sha
-                            .encode()].message.strip())),
+                        escape(repo[participation.preview_git_commit_sha
+                            .encode()].message.strip().decode(errors="replace"))),
                 })
     else:
         text_lines.append(
                 "".join([
-                    "<b>",
+                    "<tr><th>",
                     ugettext("Current preview git SHA"),
-                    ":</b> ",
-                    ugettext("None")]))
+                    "</th><td>",
+                    ugettext("None"),
+                    "</td></tr>",
+                    ]))
+
+    text_lines.append("</table>")
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
