@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 
 from django.db import models, migrations
 
@@ -23,6 +23,11 @@ def change_foreign_keys(apps, schema_editor, from_app, from_model_name, to_app, 
     # We don't make assumptions about which model is being pointed to by
     # AUTH_USER_MODEL. So include fields from both FromModel and ToModel.
     # Only one of them will actually have FK fields pointing to them.
+
+    import sys
+    if sys.version_info >= (3,):
+        from warnings import warn
+        warn("This migration seems to only work on Py2, as of Django 1.9")
 
     print()
     fields = FromModel._meta.get_fields(include_hidden=True) + ToModel._meta.get_fields(include_hidden=True)
@@ -77,8 +82,9 @@ def change_foreign_keys(apps, schema_editor, from_app, from_model_name, to_app, 
         print("Fixing FK in {0}, col {1} -> {2}, from {3} -> {4}".format(
             show(fk_field.model),
             old_field.column, new_field.column,
-            show(old_field.rel.to), show(new_field.rel.to),
+            show(old_field.remote_field.to), show(new_field.remote_field.to),
         ))
+
         schema_editor.alter_field(fk_field.model, old_field, new_field, strict=True)
 
 
