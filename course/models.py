@@ -448,6 +448,18 @@ class InstantFlowRequest(models.Model):
         verbose_name = _("Instant flow request")
         verbose_name_plural = _("Instant flow requests")
 
+    def __unicode__(self):
+        return _("Instant flow request for "
+                "%(flow_id)s in %(course)s at %(start_time)s") \
+                % {
+                        "flow_id": self.flow_id,
+                        "course": self.course,
+                        "start_time": self.start_time,
+                        }
+
+    if six.PY3:
+        __str__ = __unicode__
+
 
 # {{{ flow session
 
