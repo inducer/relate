@@ -27,7 +27,7 @@ pytz
 pyyaml
 
 # dulwich (git for Py3 support)
-git+https://github.com/jelmer/dulwich
+dulwich>=0.12
 ecdsa
 paramiko
 
