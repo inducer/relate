@@ -30,6 +30,7 @@ from django.utils.translation import ugettext as _
 import re
 import datetime
 import six
+import sys
 
 from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
@@ -123,10 +124,12 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     if isinstance(commit_sha, six.binary_type):
         from six.moves.urllib.parse import quote_plus
-        cache_key = "%%%1".join((
+        cache_key = "%R%1".join((
             quote_plus(repo.controldir()),
             quote_plus(full_name),
-            commit_sha.decode()))
+            commit_sha.decode(),
+            ".".join(str(s) for s in sys.version_info[:2]),
+            ))
     else:
         cache_key = None
 
@@ -136,7 +139,13 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
         cache_key = None
 
     if cache_key is None:
-        return get_repo_blob(repo, full_name, commit_sha).data
+        result = get_repo_blob(repo, full_name, commit_sha).data
+        assert isinstance(result, six.binary_type)
+        return result
+
+    # Byte string is wrapped in a tuple to force pickling because memcache's
+    # python wrapper appears to auto-decode/encode string values, thus trying
+    # to decode our byte strings. Grr.
 
     def_cache = cache.caches["default"]
 
@@ -145,12 +154,16 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     if len(cache_key) < 240:
         result = def_cache.get(cache_key)
     if result is not None:
+        (result,) = result
+        assert isinstance(result, six.binary_type), cache_key
         return result
 
     result = get_repo_blob(repo, full_name, commit_sha).data
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
-        def_cache.add(cache_key, result, None)
+        def_cache.add(cache_key, (result,), None)
+
+    assert isinstance(result, six.binary_type)
 
     return result
 
@@ -324,7 +337,8 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     from six.moves.urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
-        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode()))
+        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode(),
+        ))
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
