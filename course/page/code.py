@@ -93,10 +93,15 @@ def request_python_run(run_req, run_timeout, image=None):
 
     # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
     if 1:
+        docker_url = getattr(settings, "RELATE_DOCKER_URL",
+                "unix://var/run/docker.sock")
+        docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
+                None)
         docker_cnx = docker.Client(
-                base_url=getattr(settings, "RELATE_DOCKER_URL",
-                    "unix://var/run/docker.sock"),
-                version='1.12', timeout=docker_timeout)
+                base_url=docker_url,
+                tls=docker_tls,
+                timeout=docker_timeout,
+                version="1.19")
 
         if image is None:
             image = settings.RELATE_DOCKER_RUNPY_IMAGE
@@ -106,7 +111,12 @@ def request_python_run(run_req, run_timeout, image=None):
                 command=[
                     "/opt/runpy/runpy",
                     "-1"],
-                mem_limit=256*10**6,
+                host_config={
+                    "Memory": 256*10**6,
+                    "MemorySwap": -1,
+                    "PublishAllPorts": True,
+                    "ReadonlyRootfs": True,
+                    },
                 user="runpy")
 
         container_id = dresult["Id"]
@@ -117,9 +127,7 @@ def request_python_run(run_req, run_timeout, image=None):
         # FIXME: Prohibit networking
 
         if container_id is not None:
-            docker_cnx.start(
-                    container_id,
-                    port_bindings={RUNPY_PORT: ('127.0.0.1',)})
+            docker_cnx.start(container_id)
 
             port_info, = docker_cnx.port(container_id, RUNPY_PORT)
             port = int(port_info["HostPort"])
