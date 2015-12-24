@@ -141,35 +141,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
         from traceback import format_exc
 
-        while True:
-            try:
-                connection = http_client.HTTPConnection('localhost', port)
-
-                connection.request('GET', '/ping')
-
-                response = connection.getresponse()
-                response_data = response.read().decode("utf-8")
-
-                if response_data != "OK":
-                    raise InvalidPingResponse()
-
-                break
-
-            except socket.error as e:
-                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
-                    if time() - start_time < docker_timeout:
-                        sleep(0.1)
-                        # and retry
-                    else:
-                        return {
-                                "result": "uncaught_error",
-                                "message": "Timeout waiting for container.",
-                                "traceback": "".join(format_exc()),
-                                }
-                else:
-                    raise
-
-            except (http_client.BadStatusLine, InvalidPingResponse):
+        def check_timeout():
                 if time() - start_time < docker_timeout:
                     sleep(0.1)
                     # and retry
@@ -179,6 +151,35 @@ def request_python_run(run_req, run_timeout, image=None):
                             "message": "Timeout waiting for container.",
                             "traceback": "".join(format_exc()),
                             }
+
+        while True:
+            try:
+                connection = http_client.HTTPConnection('localhost', port)
+
+                connection.request('GET', '/ping')
+
+                response = connection.getresponse()
+                response_data = response.read().decode()
+
+                if response_data != "OK":
+                    raise InvalidPingResponse()
+
+                break
+
+            except (http_client.RemoteDisconnected, http_client.BadStatusLine,
+                    InvalidPingResponse):
+                ct_res = check_timeout()
+                if ct_res is not None:
+                    return ct_res
+
+            except socket.error as e:
+                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
+                    ct_res = check_timeout()
+                    if ct_res is not None:
+                        return ct_res
+
+                else:
+                    raise
 
         # }}}
 
