@@ -123,13 +123,22 @@ def request_python_run(run_req, run_timeout, image=None):
     else:
         container_id = None
 
+    connect_host_ip = 'localhost'
+
     try:
         # FIXME: Prohibit networking
 
         if container_id is not None:
             docker_cnx.start(container_id)
 
-            port_info, = docker_cnx.port(container_id, RUNPY_PORT)
+            container_props = docker_cnx.inspect_container(container_id)
+            (port_info,) = (container_props
+                    ["NetworkSettings"]["Ports"]["%d/tcp" % RUNPY_PORT])
+            port_host_ip = port_info.get("HostIp")
+
+            if port_host_ip != "0.0.0.0":
+                connect_host_ip = port_host_ip
+
             port = int(port_info["HostPort"])
         else:
             port = RUNPY_PORT
@@ -154,7 +163,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
         while True:
             try:
-                connection = http_client.HTTPConnection('localhost', port)
+                connection = http_client.HTTPConnection(connect_host_ip, port)
 
                 connection.request('GET', '/ping')
 
@@ -187,7 +196,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
         try:
             # Add a second to accommodate 'wire' delays
-            connection = http_client.HTTPConnection('localhost', port,
+            connection = http_client.HTTPConnection(connect_host_ip, port,
                     timeout=1 + run_timeout)
 
             headers = {'Content-type': 'application/json'}
