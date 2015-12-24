@@ -175,8 +175,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
                 break
 
-            except (http_client.RemoteDisconnected, http_client.BadStatusLine,
-                    InvalidPingResponse):
+            except (http_client.BadStatusLine, InvalidPingResponse):
                 ct_res = check_timeout()
                 if ct_res is not None:
                     return ct_res
