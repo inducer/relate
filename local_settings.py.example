@@ -91,15 +91,15 @@ RELATE_DOCKER_TLS_CONFIG = None
 # RELATE_DOCKER_URL = "https://relate.cs.illinois.edu:2375"
 #
 # import os.path
-# _base_dir = os.path.dirname(__file__)
+# pki_base_dir = os.path.dirname(__file__)
 #
 # import docker.tls
 # RELATE_DOCKER_TLS_CONFIG = docker.tls.TLSConfig(
 #     client_cert=(
-#         os.path.join(_base_dir, "client-cert.pem"),
-#         os.path.join(_base_dir, "client-key.pem"),
+#         os.path.join(pki_base_dir, "client-cert.pem"),
+#         os.path.join(pki_base_dir, "client-key.pem"),
 #         ),
-#     ca_cert=os.path.join(_base_dir, "ca.pem"),
+#     ca_cert=os.path.join(pki_base_dir, "ca.pem"),
 #     verify=True)
 
 RELATE_MAINTENANCE_MODE = False
