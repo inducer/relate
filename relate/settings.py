@@ -1,11 +1,7 @@
+from __future__ import absolute_import
+
 """
-Django settings for relate project.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/dev/topics/settings/
-
-For the full list of settings and their values, see
-https://docs.djangoproject.com/en/dev/ref/settings/
+Django settings for RELATE.
 """
 
 # Do not change this file. All these settings can be overridden in
@@ -19,10 +15,12 @@ import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-
-local_settings = {}
+_local_settings_file = join(BASE_DIR, "local_settings.py")
+local_settings = {
+        "__file__": _local_settings_file,
+        }
 try:
-    with open(join(BASE_DIR, "local_settings.py")) as inf:
+    with open(_local_settings_file) as inf:
         local_settings_contents = inf.read()
 except IOError:
     pass
@@ -44,6 +42,11 @@ INSTALLED_APPS = (
     "jsonfield",
     "bootstrap3_datetime",
     "djangobower",
+    "django_select2",
+
+    # message queue
+    "djcelery",
+    "kombu.transport.django"
 )
 
 if local_settings["RELATE_ENABLE_SAML2"]:
@@ -59,11 +62,15 @@ MIDDLEWARE_CLASSES = (
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "course.auth.ImpersonateMiddleware",
+    "course.utils.FacilityFindingMiddleware",
+    "course.exam.ExamFacilityMiddleware",
+    "course.exam.ExamLockdownMiddleware",
 )
 
 
 AUTHENTICATION_BACKENDS = (
     "course.auth.TokenBackend",
+    "course.exam.ExamTicketBackend",
     "django.contrib.auth.backends.ModelBackend",
     )
 
@@ -76,24 +83,25 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "relate.utils.settings_context_processor",
             "course.auth.impersonation_context_processor",
             "course.views.fake_time_context_processor",
+            "course.views.pretend_facilities_context_processor",
+            "course.exam.exam_lockdown_context_processor",
             )
 TEMPLATE_CONTEXT_PROCESSORS = (
-        TEMPLATE_CONTEXT_PROCESSORS
+        tuple(TEMPLATE_CONTEXT_PROCESSORS)
         + RELATE_EXTRA_CONTEXT_PROCESSORS
         )
-
 
 # {{{ bower packages
 
 BOWER_COMPONENTS_ROOT = os.path.join(BASE_DIR, "components")
 
-STATICFILES_FINDERS = STATICFILES_FINDERS + (
+STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
     "djangobower.finders.BowerFinder",
     )
 
 BOWER_INSTALLED_APPS = (
     "bootstrap#3.3.4",
-    "fontawesome",
+    "fontawesome#4.4.0",
     "videojs",
     "MathJax",
     "codemirror#5.2.0",
@@ -102,6 +110,7 @@ BOWER_INSTALLED_APPS = (
     "datatables",
     "datatables-fixedcolumns",
     "jstree",
+    "select2-bootstrap-css",
     )
 
 CODEMIRROR_PATH = "codemirror"
@@ -157,9 +166,44 @@ STATIC_ROOT = join(BASE_DIR, "static")
 SESSION_COOKIE_NAME = 'relate_sessionid'
 SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
+RELATE_FACILITIES = {}
+
+RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
+
+RELATE_CACHE_MAX_BYTES = 32768
+
+RELATE_ADMIN_EMAIL_LOCALE = "en_US"
+
 for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
+
+# {{{ celery config
+
+BROKER_URL = 'django://'
+
+CELERY_ACCEPT_CONTENT = ['pickle']
+CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_TRACK_STARTED = True
+
+if "CELERY_RESULT_BACKEND" not in globals():
+    if ("CACHES" in globals()
+            and "LocMem" not in CACHES["default"]["BACKEND"]  # noqa
+            and "Dummy" not in CACHES["default"]["BACKEND"]  # noqa
+            ):
+        # If possible, we would like to use an external cache as a
+        # result backend--because then the progress bars work, because
+        # the writes realizing them arent't stuck inside of an ongoing
+        # transaction. But if we're using the in-memory cache, using
+        # cache as a results backend doesn't make much sense.
+
+        CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
+
+    else:
+        CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
+
+# }}}
 
 TEMPLATES = [
     {
@@ -183,7 +227,7 @@ TEMPLATES = [
 ]
 
 LOCALE_PATHS = (
-    BASE_DIR+ '/locale',
+    BASE_DIR + '/locale',
 )
 
 # This makes SAML2 logins compatible with (and usable at the same time as)

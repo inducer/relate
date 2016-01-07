@@ -8,6 +8,7 @@
 
   {% if "user_pw" not in student_sign_in_view %}
     <div class="alert alert-warning">
+    <i class="fa fa-warning"></i>
     {% url student_sign_in_view as student_sign_in_view %}
     {% blocktrans trimmed %}
       If you have a not been assigned a password, you should use the
@@ -16,6 +17,7 @@
     </div>
   {% else %}
     <div class="alert alert-warning">
+    <i class="fa fa-warning"></i>
     {% url "relate-sign_up" as relate-sign_up %}
     {% blocktrans trimmed %}
       If you do not have an account,

@@ -40,6 +40,7 @@ import course.calendar
 import course.versioning
 import course.flow
 import course.analytics
+import course.exam
 
 urlpatterns = [
     url(r"^login/$",
@@ -73,6 +74,16 @@ urlpatterns = [
         course.auth.user_profile,
         name="relate-user_profile"),
 
+    url(r"^generate-ssh-key/$",
+        course.views.generate_ssh_keypair,
+        name="relate-generate_ssh_keypair"),
+
+    url(r"^monitor-task"
+        "/(?P<task_id>[-0-9a-f]+)"
+        "$",
+        course.views.monitor_task,
+        name="relate-monitor_task"),
+
     # {{{ troubleshooting
 
     url(r'^user/impersonate/$',
@@ -85,6 +96,10 @@ urlpatterns = [
     url(r'^time/set-fake-time/$',
         course.views.set_fake_time,
         name="relate-set_fake_time"),
+
+    url(r'^time/set-pretend-facilities/$',
+        course.views.set_pretend_facilities,
+        name="relate-set_pretend_facilities"),
 
     # }}}
 
@@ -229,10 +244,17 @@ urlpatterns = [
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +
-        "/repo-file/(?P<commit_sha>[a-f0-9]+)"
+        "/file-version/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<path>.*)$",
         course.views.get_repo_file,
         name="relate-get_repo_file"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/f"
+        "/(?P<path>.*)$",
+        course.views.get_current_repo_file,
+        name="relate-get_current_repo_file"),
 
     # }}}
 
@@ -319,10 +341,10 @@ urlpatterns = [
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +
-        "/regrade-not-for-credit-flows"
+        "/regrade-flows"
         "/$",
-        course.flow.regrade_not_for_credit_flows_view,
-        name="relate-regrade_not_for_credit_flows_view"),
+        course.flow.regrade_flows_view,
+        name="relate-regrade_flows_view"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +
@@ -377,6 +399,30 @@ urlpatterns = [
         name="relate-page_analytics"),
 
     # }}}
+
+    # {{{ exams
+
+    url(r"^issue-exam-ticket"
+        "/$",
+        course.exam.issue_exam_ticket,
+        name="relate-issue_exam_ticket"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/batch-issue-exam-tickets"
+        "/$",
+        course.exam.batch_issue_exam_tickets,
+        name="relate-batch_issue_exam_tickets"),
+    url(r"^exam-check-in/$",
+        course.exam.check_in_for_exam,
+        name="relate-check_in_for_exam"),
+
+    # }}}
+
+    # {{{ django-select2
+
+    url(r'^select2/', include('django_select2.urls')),
+
+    #}}}
 
     url(r'^admin/', include(admin.site.urls)),
 ]

@@ -43,6 +43,9 @@ from django.utils.translation import (
         pgettext_lazy,
         )
 from django.utils.functional import lazy
+from django.contrib.auth.decorators import login_required
+
+from django_select2.forms import Select2Widget
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
@@ -66,7 +69,7 @@ from course.models import (
         FlowSession,
         FlowRuleException)
 
-from course.content import (get_course_repo, get_course_desc)
+from course.content import get_course_repo
 from course.utils import course_view, render_course_page
 
 
@@ -76,11 +79,11 @@ NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
 # {{{ home
 
 def home(request):
-    courses_and_descs_and_invalid_flags = []
-    for course in Course.objects.filter(listed=True):
-        repo = get_course_repo(course)
-        desc = get_course_desc(repo, course, course.active_git_commit_sha.encode())
+    now_datetime = get_now_or_fake_time(request)
 
+    current_courses = []
+    past_courses = []
+    for course in Course.objects.filter(listed=True):
         role, participation = get_role_and_participation(request, course)
 
         show = True
@@ -89,22 +92,28 @@ def home(request):
                     participation_role.instructor]:
                 show = False
 
-        if not course.valid:
-            if role != participation_role.instructor:
-                show = False
-
         if show:
-            courses_and_descs_and_invalid_flags.append(
-                    (course, desc, not course.valid))
+            if (course.end_date is None
+                    or now_datetime.date() <= course.end_date):
+                current_courses.append(course)
+            else:
+                past_courses.append(course)
 
-    def course_sort_key(entry):
-        course, desc, invalid_flag = entry
-        return course.identifier
+    def course_sort_key_minor(course):
+        return course.number if course.number is not None else ""
 
-    courses_and_descs_and_invalid_flags.sort(key=course_sort_key)
+    def course_sort_key_major(course):
+        return (course.start_date
+                if course.start_date is not None else now_datetime.date())
+
+    current_courses.sort(key=course_sort_key_minor)
+    past_courses.sort(key=course_sort_key_minor)
+    current_courses.sort(key=course_sort_key_major, reverse=True)
+    past_courses.sort(key=course_sort_key_major, reverse=True)
 
     return render(request, "course/home.html", {
-        "courses_and_descs_and_invalid_flags": courses_and_descs_and_invalid_flags
+        "current_courses": current_courses,
+        "past_courses": past_courses,
         })
 
 # }}}
@@ -121,9 +130,6 @@ def check_course_state(course, role):
         if role not in [participation_role.teaching_assistant,
                 participation_role.instructor]:
             raise PermissionDenied(_("only course staff have access"))
-    elif not course.valid:
-        if role != participation_role.instructor:
-            raise PermissionDenied(_("only the instructor has access"))
 
 
 @course_view
@@ -132,7 +138,7 @@ def course_page(pctx):
     chunks = get_processed_course_chunks(
             pctx.course, pctx.repo, pctx.course_commit_sha, pctx.course_desc,
             pctx.role, get_now_or_fake_time(pctx.request),
-            remote_address=pctx.remote_address)
+            facilities=pctx.request.relate_facilities)
 
     show_enroll_button = (
             pctx.course.accepts_enrollment
@@ -170,18 +176,7 @@ def get_media(request, course_identifier, commit_sha, media_path):
     role, participation = get_role_and_participation(request, course)
 
     repo = get_course_repo(course)
-
-    from course.content import get_repo_blob_data_cached
-    try:
-        data = get_repo_blob_data_cached(
-                repo, "media/"+media_path, commit_sha.encode())
-    except ObjectDoesNotExist:
-        raise http.Http404()
-
-    from mimetypes import guess_type
-    content_type = guess_type(media_path)
-
-    return http.HttpResponse(data, content_type=content_type)
+    return get_repo_file_response(repo, "media/" + media_path, commit_sha)
 
 
 def repo_file_etag_func(request, course_identifier, commit_sha, path):
@@ -195,12 +190,56 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 
     role, participation = get_role_and_participation(request, course)
 
+    return get_repo_file_backend(
+            request, course, role, participation, commit_sha, path)
+
+
+def current_repo_file_etag_func(request, course_identifier, path):
+    course = get_object_or_404(Course, identifier=course_identifier)
+    role, participation = get_role_and_participation(
+            request, course)
+
+    from course.views import check_course_state
+    check_course_state(course, role)
+
+    from course.content import get_course_commit_sha
+    commit_sha = get_course_commit_sha(course, participation)
+
+    return ":".join([course_identifier, commit_sha, path])
+
+
+@cache_control(max_age=3600*24*31)  # cache for a month
+@http_dec.condition(etag_func=current_repo_file_etag_func)
+def get_current_repo_file(request, course_identifier, path):
+    course = get_object_or_404(Course, identifier=course_identifier)
+    role, participation = get_role_and_participation(
+            request, course)
+
+    from course.content import get_course_commit_sha
+    commit_sha = get_course_commit_sha(course, participation)
+
+    return get_repo_file_backend(
+            request, course, role, participation, commit_sha, path)
+
+
+def get_repo_file_backend(request, course, role, participation, commit_sha, path):
+    from course.views import check_course_state
+    check_course_state(course, role)
+
     repo = get_course_repo(course)
 
-    from course.content import is_repo_file_public
-    if not is_repo_file_public(repo, commit_sha, path):
+    access_kind = "public"
+    if request.relate_exam_lockdown:
+        access_kind = "in_exam"
+
+    from course.content import is_repo_file_accessible_as
+    if not is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
         raise PermissionDenied()
 
+    return get_repo_file_response(repo, path, commit_sha)
+
+
+def get_repo_file_response(repo, path, commit_sha):
     from course.content import get_repo_blob_data_cached
 
     try:
@@ -210,7 +249,10 @@ def get_repo_file(request, course_identifier, commit_sha, path):
         raise http.Http404()
 
     from mimetypes import guess_type
-    content_type = guess_type(path)
+    content_type, _ = guess_type(path)
+
+    if content_type is None:
+        content_type = "application/octet-stream"
 
     return http.HttpResponse(data, content_type=content_type)
 
@@ -230,7 +272,7 @@ class FakeTimeForm(StyledForm):
 
         self.helper.add_input(
                 # Translators: "set" fake time.
-                Submit("set", _("Set"), css_class="col-lg-offset-2"))
+                Submit("set", _("Set")))
         self.helper.add_input(
                 # Translators: "unset" fake time.
                 Submit("unset", _("Unset")))
@@ -297,6 +339,82 @@ def fake_time_context_processor(request):
 # }}}
 
 
+# {{{ space travel (i.e. pretend to be in facility)
+
+class FakeFacilityForm(StyledForm):
+    def __init__(self, *args, **kwargs):
+        from django.conf import settings
+
+        super(FakeFacilityForm, self).__init__(*args, **kwargs)
+
+        self.fields["facilities"] = forms.MultipleChoiceField(
+                choices=(
+                    (name, name)
+                    for name in settings.RELATE_FACILITIES),
+                widget=forms.CheckboxSelectMultiple,
+                required=False,
+                label=_("Facilities"),
+                help_text=_("Facilities you wish to pretend to be in"))
+
+        self.fields["custom_facilities"] = forms.CharField(
+                label=_("Custom facilities"),
+                required=False,
+                help_text=_("More (non-predefined) facility names, separated "
+                    "by commas, which would like to pretend to be in"))
+
+        self.helper.add_input(
+                # Translators: "set" fake facility.
+                Submit("set", _("Set")))
+        self.helper.add_input(
+                # Translators: "unset" fake facility.
+                Submit("unset", _("Unset")))
+
+
+def set_pretend_facilities(request):
+    if not request.user.is_staff:
+        raise PermissionDenied(_("only staff may set fake facility"))
+
+    if request.method == "POST":
+        form = FakeFacilityForm(request.POST)
+        do_set = "set" in form.data
+        if form.is_valid():
+            if do_set:
+                pretend_facilities = (
+                        form.cleaned_data["facilities"]
+                        + [s.strip()
+                            for s in (
+                                form.cleaned_data["custom_facilities"].split(","))
+                            if s.strip()])
+
+                request.session["relate_pretend_facilities"] = pretend_facilities
+            else:
+                request.session.pop("relate_pretend_facilities", None)
+
+    else:
+        if "relate_pretend_facilities" in request.session:
+            form = FakeFacilityForm({
+                "facilities": [],
+                "custom_facilities": ",".join(
+                    request.session["relate_pretend_facilities"])
+                })
+        else:
+            form = FakeFacilityForm()
+
+    return render(request, "generic-form.html", {
+        "form": form,
+        "form_description": _("Pretend to be in Facilities"),
+    })
+
+
+def pretend_facilities_context_processor(request):
+    return {
+            "pretend_facilities": request.session.get(
+                "relate_pretend_facilities", []),
+            }
+
+# }}}
+
+
 # {{{ instant flow requests
 
 class InstantFlowRequestForm(StyledForm):
@@ -315,8 +433,7 @@ class InstantFlowRequestForm(StyledForm):
         self.helper.add_input(
                 Submit(
                     "add",
-                    pgettext("Add an instant flow", "Add"),
-                    css_class="col-lg-offset-2"))
+                    pgettext("Add an instant flow", "Add")))
         self.helper.add_input(
                 Submit(
                     "cancel",
@@ -398,7 +515,7 @@ class FlowTestForm(StyledForm):
                         string_concat(
                             pgettext("Start an activity", "Go"),
                             " &raquo;")),
-                    css_class="col-lg-offset-2"))
+                    ))
 
 
 @course_view
@@ -461,7 +578,8 @@ class ExceptionStage1Form(StyledForm):
                 required=True,
                 help_text=_("Select participant for whom exception is to "
                 "be granted."),
-                label=_("Participant"))
+                label=_("Participant"),
+                widget=Select2Widget())
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,
@@ -473,8 +591,7 @@ class ExceptionStage1Form(StyledForm):
                     mark_safe_lazy(
                         string_concat(
                             pgettext("Next step", "Next"),
-                            " &raquo;")),
-                    css_class="col-lg-offset-2"))
+                            " &raquo;"))))
 
 
 @course_view
@@ -535,14 +652,12 @@ class CreateSessionForm(StyledForm):
             self.helper.add_input(
                     Submit(
                         "create_session",
-                        _("Create session (override rules)"),
-                        css_class="btn-danger col-lg-offset-2"))
+                        _("Create session (override rules)")))
         else:
             self.helper.add_input(
                     Submit(
                         "create_session",
-                        _("Create session"),
-                        css_class="col-lg-offset-2"))
+                        _("Create session")))
 
 
 class ExceptionStage2Form(StyledForm):
@@ -564,8 +679,7 @@ class ExceptionStage2Form(StyledForm):
                     mark_safe_lazy(
                         string_concat(
                             pgettext("Next step", "Next"),
-                            " &raquo;")),
-                    css_class="col-lg-offset-2"))
+                            " &raquo;"))))
 
 
 @course_view
@@ -617,10 +731,12 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += ("<div class='alert alert-info'>%s</div>" % 
-                (_("Creating a new session is (technically) not allowed "
+        form_text += ("<div class='alert alert-info'>%s</div>" % (
+            string_concat(
+                "<i class='fa fa-info-circle'></i> ",
+                _("Creating a new session is (technically) not allowed "
                 "by course rules. Clicking 'Create Session' anyway will "
-                "override this rule.")))
+                "override this rule."))))
 
     default_tag = session_start_rule.tag_session
     if default_tag is None:
@@ -657,7 +773,9 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
             if access_rules_tag == NONE_SESSION_TAG:
                 access_rules_tag = None
 
-            start_flow(pctx.repo, pctx.course, participation, flow_id,
+            start_flow(pctx.repo, pctx.course, participation,
+                    user=participation.user,
+                    flow_id=flow_id,
                     flow_desc=flow_desc,
                     access_rules_tag=access_rules_tag,
                     now_datetime=now_datetime)
@@ -765,8 +883,7 @@ class ExceptionStage3Form(StyledForm):
 
         self.helper.add_input(
                 Submit(
-                    "save", _("Save"),
-                    css_class="col-lg-offset-2"))
+                    "save", _("Save")))
 
         self.helper.layout = Layout(*layout)
 
@@ -902,20 +1019,13 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     and session.access_rules_tag is not None):
                 new_grading_rule["if_has_tag"] = session.access_rules_tag
 
-            if (hasattr(grading_rule, "grade_identifier")
-                    and grading_rule.grade_identifier is not None):
-                new_grading_rule["grade_identifier"] = \
-                        grading_rule.grade_identifier
-            else:
-                new_grading_rule["grade_identifier"] = None
-
-            if (hasattr(grading_rule, "grade_aggregation_strategy")
-                    and grading_rule.grade_aggregation_strategy is not None):
-                new_grading_rule["grade_aggregation_strategy"] = \
-                        grading_rule.grade_aggregation_strategy
+            if hasattr(grading_rule, "generates_grade"):
+                new_grading_rule["generates_grade"] = \
+                        grading_rule.generates_grade
 
             validate_session_grading_rule(vctx, ugettext("newly created exception"),
-                    dict_to_struct(new_grading_rule), tags)
+                    dict_to_struct(new_grading_rule), tags,
+                    grading_rule.grade_identifier)
 
             fre_grading = FlowRuleException(
                 flow_id=flow_id,
@@ -964,6 +1074,75 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             'flow_id': flow_id,
             'session': strify_session_for_exception(session)},
     })
+
+# }}}
+
+
+# {{{ ssh keypair
+
+@login_required
+def generate_ssh_keypair(request):
+    if not request.user.is_staff:
+        raise PermissionDenied(_("only staff may use this tool"))
+
+    from paramiko import RSAKey
+    key_class = RSAKey
+    prv = key_class.generate(bits=2048)
+
+    import six
+    prv_bio = six.BytesIO()
+    prv.write_private_key(prv_bio)
+
+    prv_bio_read = six.BytesIO(prv_bio.getvalue())
+
+    pub = key_class.from_private_key(prv_bio_read)
+
+    pub_bio = six.BytesIO()
+    pub_bio.write("%s %s relate-course-key" % (pub.get_name(), pub.get_base64()))
+
+    return render(request, "course/keypair.html", {
+        "public_key": prv_bio.getvalue().decode(),
+        "private_key": pub_bio.getvalue().decode(),
+        })
+
+# }}}
+
+
+# {{{ celery task monitoring
+
+def monitor_task(request, task_id):
+    from celery.result import AsyncResult
+    async_res = AsyncResult(task_id)
+
+    progress_percent = None
+    progress_statement = None
+
+    if async_res.state == "PROGRESS":
+        meta = async_res.info
+        current = meta["current"]
+        total = meta["total"]
+        if total > 0:
+            progress_percent = 100 * (current / total)
+
+        progress_statement = (
+                _("%(current)d out of %(total)d items processed.")
+                % {"current": current, "total": total})
+
+    if async_res.state == "SUCCESS":
+        if (isinstance(async_res.result, dict)
+                and "message" in async_res.result):
+            progress_statement = async_res.result["message"]
+
+    traceback = None
+    if request.user.is_staff and async_res.state == "FAILURE":
+        traceback = async_res.traceback
+
+    return render(request, "course/task-monitor.html", {
+        "state": async_res.state,
+        "progress_percent": progress_percent,
+        "progress_statement": progress_statement,
+        "traceback": traceback,
+        })
 
 # }}}
 

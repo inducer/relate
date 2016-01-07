@@ -15,4 +15,6 @@ build
 *.pyz
 
 # This is guaranteed to be sensitive--never check it in.
-saml-config
+saml_config.py
+
+*.pem

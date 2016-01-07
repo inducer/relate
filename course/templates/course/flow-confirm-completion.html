@@ -10,7 +10,8 @@
   <h1>{% trans "End Session" %} '{{flow_desc.title}}'?</h1>
 
   {% if unanswered_count %}
-    <div class="alert alert-warning">
+    <div class="alert alert-danger">
+      <i class="fa fa-warning"></i>
       {% trans "You have left questions unanswered." %}
     </div>
   {% endif %}
@@ -40,15 +41,34 @@
   </ul>
 
   <div class="well flow-well">
-    <form method="POST">
+    <form method="POST" id="submit-form">
       {% csrf_token %}
 
       <a class="btn btn-default"
         href="{% url "relate-view_flow_page" course.identifier flow_session.id last_page_nr %}"
         role="button">&laquo; {% trans "Go back" %}</a>
 
-      <button type="submit" name="submit" class="btn btn-primary">{% trans "Confirm: Submit answers and end session" %}</button>
+      <button type="submit" id="submit" name="submit" class="btn btn-primary">{% trans "Confirm: Submit answers and end session" %}</button>
     </form>
   </div>
+
+  <script type="text/javascript">
+    $("#submit-form").submit(
+        function()
+        {
+          // We can't simply set "disabled" on the submitting button here.
+          // Otherwise the browser will simply remove that button from the POST
+          // data.
+
+          $("button#submit").each(
+              function()
+              {
+                var clone = $(this).clone();
+                $(clone).attr("disabled", "1");
+                $(this).after(clone);
+                $(this).hide();
+              });
+        });
+  </script>
 
 {% endblock %}

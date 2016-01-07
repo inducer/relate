@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import division, print_function
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -24,12 +24,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 
 from course.validation import ValidationError
 import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext as _, string_concat
+from django.utils import translation
+from django.conf import settings
 
 from relate.utils import StyledForm
 from course.page.base import (
@@ -72,18 +75,16 @@ class InvalidPingResponse(RuntimeError):
 
 def request_python_run(run_req, run_timeout, image=None):
     import json
-    import httplib
-    from django.conf import settings
+    from six.moves import http_client
     import docker
     import socket
     import errno
-    from httplib import BadStatusLine
     from docker.errors import APIError as DockerAPIError
 
     debug = False
     if debug:
         def debug_print(s):
-            print s
+            print(s)
     else:
         def debug_print(s):
             pass
@@ -92,9 +93,15 @@ def request_python_run(run_req, run_timeout, image=None):
 
     # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
     if 1:
+        docker_url = getattr(settings, "RELATE_DOCKER_URL",
+                "unix://var/run/docker.sock")
+        docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
+                None)
         docker_cnx = docker.Client(
-                base_url='unix://var/run/docker.sock',
-                version='1.12', timeout=docker_timeout)
+                base_url=docker_url,
+                tls=docker_tls,
+                timeout=docker_timeout,
+                version="1.19")
 
         if image is None:
             image = settings.RELATE_DOCKER_RUNPY_IMAGE
@@ -104,22 +111,34 @@ def request_python_run(run_req, run_timeout, image=None):
                 command=[
                     "/opt/runpy/runpy",
                     "-1"],
-                mem_limit=256e6,
+                host_config={
+                    "Memory": 256*10**6,
+                    "MemorySwap": -1,
+                    "PublishAllPorts": True,
+                    "ReadonlyRootfs": True,
+                    },
                 user="runpy")
 
         container_id = dresult["Id"]
     else:
         container_id = None
 
+    connect_host_ip = 'localhost'
+
     try:
         # FIXME: Prohibit networking
 
         if container_id is not None:
-            docker_cnx.start(
-                    container_id,
-                    port_bindings={RUNPY_PORT: ('127.0.0.1',)})
+            docker_cnx.start(container_id)
 
-            port_info, = docker_cnx.port(container_id, RUNPY_PORT)
+            container_props = docker_cnx.inspect_container(container_id)
+            (port_info,) = (container_props
+                    ["NetworkSettings"]["Ports"]["%d/tcp" % RUNPY_PORT])
+            port_host_ip = port_info.get("HostIp")
+
+            if port_host_ip != "0.0.0.0":
+                connect_host_ip = port_host_ip
+
             port = int(port_info["HostPort"])
         else:
             port = RUNPY_PORT
@@ -131,35 +150,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
         from traceback import format_exc
 
-        while True:
-            try:
-                connection = httplib.HTTPConnection('localhost', port)
-
-                connection.request('GET', '/ping')
-
-                response = connection.getresponse()
-                response_data = response.read().decode("utf-8")
-
-                if response_data != b"OK":
-                    raise InvalidPingResponse()
-
-                break
-
-            except socket.error as e:
-                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
-                    if time() - start_time < docker_timeout:
-                        sleep(0.1)
-                        # and retry
-                    else:
-                        return {
-                                "result": "uncaught_error",
-                                "message": "Timeout waiting for container.",
-                                "traceback": "".join(format_exc()),
-                                }
-                else:
-                    raise
-
-            except (BadStatusLine, InvalidPingResponse):
+        def check_timeout():
                 if time() - start_time < docker_timeout:
                     sleep(0.1)
                     # and retry
@@ -170,13 +161,41 @@ def request_python_run(run_req, run_timeout, image=None):
                             "traceback": "".join(format_exc()),
                             }
 
+        while True:
+            try:
+                connection = http_client.HTTPConnection(connect_host_ip, port)
+
+                connection.request('GET', '/ping')
+
+                response = connection.getresponse()
+                response_data = response.read().decode()
+
+                if response_data != "OK":
+                    raise InvalidPingResponse()
+
+                break
+
+            except (http_client.BadStatusLine, InvalidPingResponse):
+                ct_res = check_timeout()
+                if ct_res is not None:
+                    return ct_res
+
+            except socket.error as e:
+                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
+                    ct_res = check_timeout()
+                    if ct_res is not None:
+                        return ct_res
+
+                else:
+                    raise
+
         # }}}
 
         debug_print("PING SUCCESSFUL")
 
         try:
             # Add a second to accommodate 'wire' delays
-            connection = httplib.HTTPConnection('localhost', port,
+            connection = http_client.HTTPConnection(connect_host_ip, port,
                     timeout=1 + run_timeout)
 
             headers = {'Content-type': 'application/json'}
@@ -469,28 +488,29 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     })
 
     def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
+            answer_data, page_behavior):
 
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
             form = PythonCodeForm(
-                    answer_is_final,
+                    not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     answer)
         else:
             answer = None
             form = PythonCodeForm(
-                    answer_is_final,
+                    not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
                     )
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def process_form_post(
+            self, page_context, page_data, post_data, files_data, page_behavior):
         return PythonCodeForm(
-                False,
+                not page_behavior.may_change_answer,
                 get_editor_interaction_mode(page_context),
                 self._initial_code(),
                 post_data, files_data)
@@ -508,7 +528,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             correct_code = ""
 
         import re
-        CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")
+        CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
 
         new_test_code_lines = []
         for l in test_code.split("\n"):
@@ -556,7 +576,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         b64encode(
                                 get_repo_blob(
                                     page_context.repo, data_file,
-                                    page_context.commit_sha).data)
+                                    page_context.commit_sha).data).decode()
 
         try:
             response_dict = request_python_run_with_retries(run_req,
@@ -571,6 +591,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
+        feedback_bits = []
+
         # {{{ send email if the grading code broke
 
         if response_dict["result"] in [
@@ -583,7 +605,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             for key, val in sorted(response_dict.items()):
                 if (key not in ["result", "figures"]
                         and val
-                        and isinstance(val, (str, unicode))):
+                        and isinstance(val, six.string_types)):
                     error_msg_parts.append("-------------------------------------")
                     error_msg_parts.append(key)
                     error_msg_parts.append("-------------------------------------")
@@ -596,28 +618,55 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             error_msg = "\n".join(error_msg_parts)
 
-            from django.template.loader import render_to_string
-            message = render_to_string("course/broken-code-question-email.txt", {
-                "page_id": self.page_desc.id,
-                "course": page_context.course,
-                "error_message": error_msg,
-                })
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                message = render_to_string("course/broken-code-question-email.txt", {
+                    "page_id": self.page_desc.id,
+                    "course": page_context.course,
+                    "error_message": error_msg,
+                    })
 
-            if not is_nuisance_failure(response_dict):
-                from django.core.mail import send_mail
-                from django.conf import settings
-                send_mail("".join(["[%s] ", _("code question execution failed")])
-                        % page_context.course.identifier,
-                        message,
-                        settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[page_context.course.notify_email])
+                if (
+                        not page_context.in_sandbox
+                        and
+                        not is_nuisance_failure(response_dict)):
+                    try:
+                        from django.core.mail import send_mail
+                        send_mail("".join(["[%s] ",
+                            _("code question execution failed")])
+                            % page_context.course.identifier,
+                            message,
+                            settings.ROBOT_EMAIL_FROM,
+                            recipient_list=[page_context.course.notify_email])
+
+                    except Exception:
+                        from traceback import format_exc
+                        feedback_bits.append(
+                            six.text_type(string_concat(
+                                "<p>",
+                                _(
+                                    "Both the grading code and the attempt to "
+                                    "notify course staff about the issue failed. "
+                                    "Please contact the course or site staff and "
+                                    "inform them of this issue, mentioning this "
+                                    "entire error message:"),
+                                "</p>",
+                                "<p>",
+                                _(
+                                    "Sending an email to the course staff about the "
+                                    "following failure failed with "
+                                    "the following error message:"),
+                                "<pre>",
+                                "".join(format_exc()),
+                                "</pre>",
+                                _("The original failure message follows:"),
+                                "</p>")))
 
         # }}}
 
         from relate.utils import dict_to_struct
         response = dict_to_struct(response_dict)
 
-        feedback_bits = []
         bulk_feedback_bits = []
         if hasattr(response, "points"):
             correctness = response.points
@@ -636,8 +685,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "test_compile_error",
                 "test_error"]:
             feedback_bits.append("".join([
-                "<p>", 
-                _("The grading code failed. Sorry about that. "
+                "<p>",
+                _(
+                    "The grading code failed. Sorry about that. "
                     "The staff has been informed, and if this problem is "
                     "due to an issue with the grading code, "
                     "it will be fixed as soon as possible. "
@@ -648,7 +698,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         elif response.result == "timeout":
             feedback_bits.append("".join([
                 "<p>",
-                _("Your code took too long to execute. The problem "
+                _(
+                    "Your code took too long to execute. The problem "
                     "specifies that your code may take at most %s seconds "
                     "to run. "
                     "It took longer than that and was aborted."
@@ -681,7 +732,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "<p>",
                 _("Here is some feedback on your code"),
                 ":"
-                "<ul>%s</ul></p>"]) %\
+                "<ul>%s</ul></p>"]) %
                         "".join(
                             "<li>%s</li>" % escape(fb_item)
                             for fb_item in response.feedback))
@@ -691,7 +742,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 _("This is the exception traceback"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.traceback))
-            print repr(response.traceback)
         if hasattr(response, "stdout") and response.stdout:
             bulk_feedback_bits.append("".join([
                 "<p>",
@@ -719,7 +769,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         "<dt>",
                         _("Figure"), "%d<dt>"]) % nr,
                     '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
-                        % (nr, mime_type, b64data)])
+                    % (nr, mime_type, b64data)])
 
             fig_lines.append("</dl>")
             bulk_feedback_bits.extend(fig_lines)

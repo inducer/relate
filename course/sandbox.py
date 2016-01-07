@@ -77,6 +77,12 @@ class SandboxForm(forms.Form):
 
 @course_view
 def view_markup_sandbox(pctx):
+    if pctx.role not in [
+            participation_role.instructor,
+            participation_role.teaching_assistant]:
+        raise PermissionDenied(
+                ugettext("must be instructor or TA to access sandbox"))
+
     request = pctx.request
     preview_text = ""
 
@@ -134,7 +140,8 @@ def view_page_sandbox(pctx):
         raise PermissionDenied(
                 ugettext("must be instructor or TA to access sandbox"))
 
-    from relate.utils import dict_to_struct
+    from course.validation import ValidationError
+    from relate.utils import dict_to_struct, Struct
     import yaml
 
     PAGE_SESSION_KEY = (  # noqa
@@ -146,6 +153,7 @@ def view_page_sandbox(pctx):
     page_source = pctx.request.session.get(PAGE_SESSION_KEY)
 
     page_errors = None
+    page_warnings = None
 
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
@@ -166,12 +174,19 @@ def view_page_sandbox(pctx):
                 new_page_source = edit_form.cleaned_data["content"]
                 page_desc = dict_to_struct(yaml.load(new_page_source))
 
+                if not isinstance(page_desc, Struct):
+                    raise ValidationError("Provided page source code is not "
+                            "a dictionary. Do you need to remove a leading "
+                            "list marker ('-') or some stray indentation?")
+
                 from course.validation import validate_flow_page, ValidationContext
                 vctx = ValidationContext(
                         repo=pctx.repo,
                         commit_sha=pctx.course_commit_sha)
 
                 validate_flow_page(vctx, "sandbox", page_desc)
+
+                page_warnings = vctx.warnings
 
             except:
                 import sys
@@ -199,17 +214,36 @@ def view_page_sandbox(pctx):
         page_desc = dict_to_struct(yaml.load(page_source))
 
         from course.content import instantiate_flow_page
-        page = instantiate_flow_page("sandbox", pctx.repo, page_desc,
-                pctx.course_commit_sha)
+        try:
+            page = instantiate_flow_page("sandbox", pctx.repo, page_desc,
+                    pctx.course_commit_sha)
+        except:
+            import sys
+            tp, e, _ = sys.exc_info()
 
+            page_errors = (
+                    ugettext("Page failed to load/validate")
+                    + ": "
+                    + "%(err_type)s: %(err_str)s" % {
+                        "err_type": tp.__name__, "err_str": e})
+            have_valid_page = False
+
+    if have_valid_page:
         page_data = page.make_page_data()
 
+        from course.models import FlowSession
         from course.page import PageContext
         page_context = PageContext(
                 course=pctx.course,
                 repo=pctx.repo,
                 commit_sha=pctx.course_commit_sha,
-                flow_session=None)
+
+                # This helps code pages retrieve the editor pref.
+                flow_session=FlowSession(
+                    course=pctx.course,
+                    participation=pctx.participation),
+
+                in_sandbox=True)
 
         title = page.title(page_context, page_data)
         body = page.body(page_context, page_data)
@@ -239,9 +273,16 @@ def view_page_sandbox(pctx):
         page_form_html = None
 
         if page.expects_answer():
+            from course.page.base import PageBehavior
+            page_behavior = PageBehavior(
+                    show_correctness=True,
+                    show_answer=True,
+                    may_change_answer=True)
+
             if request.method == "POST" and not is_preview_post:
-                page_form = page.post_form(page_context, page_data,
-                        request.POST, request.FILES)
+                page_form = page.process_form_post(page_context, page_data,
+                        request.POST, request.FILES,
+                        page_behavior)
 
                 if page_form.is_valid():
 
@@ -256,14 +297,13 @@ def view_page_sandbox(pctx):
 
             else:
                 page_form = page.make_form(page_context, page_data,
-                        answer_data, answer_is_final=False)
+                        answer_data, page_behavior)
 
             if page_form is not None:
                 page_form.helper.add_input(
                         Submit("submit",
                             ugettext("Submit answer"),
-                            accesskey="g",
-                            css_class="col-lg-offset-2"))
+                            accesskey="g"))
                 page_form_html = page.form_to_html(
                         pctx.request, page_context, page_form, answer_data)
 
@@ -274,6 +314,7 @@ def view_page_sandbox(pctx):
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
             "page_errors": page_errors,
+            "page_warnings": page_warnings,
             "form": edit_form,  # to placate form.media
             "have_valid_page": True,
             "title": title,
@@ -290,6 +331,7 @@ def view_page_sandbox(pctx):
             "form": edit_form,  # to placate form.media
             "have_valid_page": False,
             "page_errors": page_errors,
+            "page_warnings": page_warnings,
         })
 
 # }}}

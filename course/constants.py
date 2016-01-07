@@ -90,6 +90,13 @@ PARTICIPATION_STATUS_CHOICES = (
         )
 
 
+class flow_session_interaction_kind:  # noqa
+    noninteractive = "noninteractive"
+    ungraded = "ungraded"
+    practice_grade = "practice_grade"
+    permanent_grade = "permanent_grade"
+
+
 class flow_session_expiration_mode:  # noqa
     """
     .. attribute:: end
@@ -113,10 +120,10 @@ class flow_session_expiration_mode:  # noqa
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
         (flow_session_expiration_mode.end,
-            pgettext_lazy("Flow expiration mode", "End session and grade")),
+            pgettext_lazy("Flow expiration mode", "Submit session for grading")),
         (flow_session_expiration_mode.roll_over,
             pgettext_lazy("Flow expiration mode",
-                "Keep session and apply new rules")),
+                "Do not submit session for grading")),
         )
 
 
@@ -136,19 +143,47 @@ def is_expiration_mode_allowed(expmode, permissions):
 class flow_permission:  # noqa
     """
     .. attribute:: view
+
+        If present, the participant may view flow pages.
+
     .. attribute:: submit_answer
+
+        If present, the participant may submit answers to prompts provided on
+        a flow page.
+
     .. attribute:: end_session
+
+        If present, the participant may end their flow session and receive an overall
+        grade.
+
     .. attribute:: change_answer
 
-        Grants permission to change an already-graded answer,
-        which may then be graded again. Useful for
-        :class:`course.page.PythonCodeQuestion` to allow
-        iterative debugging.
+        Grants permission to change an already-graded answer, which may then be
+        graded again. Useful for :class:`course.page.PythonCodeQuestion` to
+        allow iterative debugging. Requires :attr:`submit_answer` to also be
+        present in order to be meaningful. (If a participant may not *submit*
+        answers in the first place, the ability to change answers is moot.)
 
     .. attribute:: see_correctness
 
+        If present, the participant will be shown to what extent their
+        submitted answer is correct. (See :attr:`submit_answer`.)
+
     .. attribute:: see_answer_before_submission
+
+        If present, shows the correct answer to the participant even before they
+        have submitted an answer of their own.
+
     .. attribute:: see_answer_after_submission
+
+        If present, shows the correct answer to the participant after they have
+        submitted an answer of their own.
+
+    .. attribute:: cannot_see_flow_result
+
+        If present, an overall result/grade for the flow will *not* be shown
+        at the end of a flow session.
+
     .. attribute:: set_roll_over_expiration_mode
 
         Grants permission to let a student choose to let a flow
@@ -157,6 +192,10 @@ class flow_permission:  # noqa
 
         See :ref:`flow-life-cycle`.
 
+    .. attribute:: see_session_time
+
+        Allows the participant to see the duration for which the
+        session has been going on.
     """
     view = "view"
     end_session = "end_session"
@@ -165,7 +204,9 @@ class flow_permission:  # noqa
     see_correctness = "see_correctness"
     see_answer_before_submission = "see_answer_before_submission"
     see_answer_after_submission = "see_answer_after_submission"
+    cannot_see_flow_result = "cannot_see_flow_result"
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
+    see_session_time = "see_session_time"
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view,
@@ -185,9 +226,14 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.see_answer_after_submission,
             pgettext_lazy("Flow permission",
                 "See the correct answer after answering")),
+        (flow_permission.cannot_see_flow_result,
+            pgettext_lazy("Flow permission",
+                "Cannot see flow result")),
         (flow_permission.set_roll_over_expiration_mode,
             pgettext_lazy("Flow permission",
                 "Set the session to 'roll over' expiration mode")),
+        (flow_permission.see_session_time,
+            pgettext_lazy("Flow permission", "See session time")),
         )
 
 
@@ -283,3 +329,18 @@ GRADE_STATE_CHANGE_CHOICES = (
             pgettext_lazy("Grade state change", "Exempt")),
         )
 
+
+class exam_ticket_states:  # noqa
+    valid = "valid"
+    used = "used"
+    revoked = "revoked"
+
+
+EXAM_TICKET_STATE_CHOICES = (
+        (exam_ticket_states.valid,
+            pgettext_lazy("Exam ticket state", "Valid")),
+        (exam_ticket_states.used,
+            pgettext_lazy("Exam ticket state", "Used")),
+        (exam_ticket_states.revoked,
+            pgettext_lazy("Exam ticket state", "Revoked")),
+        )

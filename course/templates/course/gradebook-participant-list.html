@@ -32,7 +32,7 @@
         <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}"><span class="sensitive">{{ participation.user.username }}</span></a></td>
         <td class="datacol"><span class="sensitive">{{ participation.user.last_name }}</span></td>
         <td class="datacol"><span class="sensitive">{{ participation.user.first_name }}</span></td>
-        <td class="datacol">{{ participation.role }}</td>
+        <td class="datacol">{{ participation.get_role_desc }}</td>
       </tr>
       {% endfor %}
     </tbody>

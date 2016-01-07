@@ -22,10 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import ugettext_lazy as _, string_concat
+import six
+
+from django.utils.translation import (
+        ugettext_lazy as _, string_concat, pgettext)
 from django.contrib import admin
+
 from course.models import (
-        Facility, FacilityIPRange,
         UserStatus,
         Course, Event,
         ParticipationTag,
@@ -34,10 +37,11 @@ from course.models import (
         FlowSession, FlowPageData,
         FlowPageVisit, FlowPageVisitGrade,
         FlowRuleException,
-        GradingOpportunity, GradeChange, InstantMessage)
+        GradingOpportunity, GradeChange, InstantMessage,
+        Exam, ExamTicket)
 from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
-from course.constants import participation_role
+from course.constants import participation_role, exam_ticket_states
 
 
 # {{{ permission helpers
@@ -69,28 +73,6 @@ def _filter_participation_linked_obj_for_user(queryset, user):
     return queryset.filter(
         participation__course__participations__user=user,
         participation__course__participations__role__in=admin_roles)
-
-# }}}
-
-
-# {{{ facility
-
-class FacilityIPRangeInline(admin.TabularInline):
-    model = FacilityIPRange
-    extra = 2
-
-
-class FacilityAdmin(admin.ModelAdmin):
-    inlines = (FacilityIPRangeInline,)
-
-    list_display = (
-            "identifier",
-            "description",
-            )
-
-    search_fields = list_display
-
-admin.site.register(Facility, FacilityAdmin)
 
 # }}}
 
@@ -129,6 +111,9 @@ class UserStatusAdmin(admin.ModelAdmin):
     def __unicode__(self):
         return u"%s in status %s" % (self.user, self.status)
 
+    if six.PY3:
+        __str__ = __unicode__
+
     # {{{ permissions
 
     def has_add_permission(self, request):
@@ -160,8 +145,30 @@ class CourseAdminForm(forms.ModelForm):
 
 
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("identifier", "hidden", "valid", "listed", "accepts_enrollment")
-    list_filter = ("hidden", "valid", "listed", "accepts_enrollment")
+    list_display = (
+            "identifier",
+            "number",
+            "name",
+            "time_period",
+            "start_date",
+            "end_date",
+            "hidden",
+            "listed",
+            "accepts_enrollment")
+    list_editable = (
+            "number",
+            "name",
+            "time_period",
+            "start_date",
+            "end_date",
+            )
+    list_filter = (
+            "number",
+            "time_period",
+            "hidden",
+            "listed",
+            "accepts_enrollment")
+    date_hierarchy = "start_date"
 
     form = CourseAdminForm
 
@@ -205,6 +212,9 @@ class EventAdmin(admin.ModelAdmin):
 
     def __unicode__(self):
         return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
+
+    if six.PY3:
+        __str__ = __unicode__
 
     list_editable = ("ordinal", "time", "end_time", "shown_in_calendar")
 
@@ -255,12 +265,14 @@ admin.site.register(ParticipationTag, ParticipationTagAdmin)
 
 # {{{ participations
 
-class ParticipationFrom(forms.ModelForm):
+class ParticipationForm(forms.ModelForm):
     class Meta:
         model = Participation
         exclude = ()
 
     def clean(self):
+        super(ParticipationForm, self).clean()
+
         for tag in self.cleaned_data.get("tags", []):
             if tag.course != self.cleaned_data.get("course"):
                 from django.core.exceptions import ValidationError
@@ -270,24 +282,37 @@ class ParticipationFrom(forms.ModelForm):
 
 
 class ParticipationAdmin(admin.ModelAdmin):
-    form = ParticipationFrom
+    form = ParticipationForm
 
-    def get_user_first_name(self, obj):
-        return obj.user.first_name
+    def get_user(self, obj):
+        def verbose_blank(s):
+            if not s:
+                return _("(blank)")
+            else:
+                return s
 
-    get_user_first_name.short_description = _("First name")
-    get_user_first_name.admin_order_field = "user__first_name"
+        from django.core.urlresolvers import reverse
+        from django.conf import settings
 
-    def get_user_last_name(self, obj):
-        return obj.user.last_name
+        return string_concat(
+                "<a href='%(link)s'>", _("%(last_name)s, %(first_name)s"),
+                "</a>"
+                ) % {
+                    "link": reverse(
+                        "admin:%s_change"
+                        % settings.AUTH_USER_MODEL.replace(".", "_")
+                        .lower(),
+                        args=(obj.user.id,)),
+                    "last_name": verbose_blank(obj.user.last_name),
+                    "first_name": verbose_blank(obj.user.first_name)}
 
-    get_user_last_name.short_description = _("Last name")
-    get_user_last_name.admin_order_field = "user__last_name"
+    get_user.short_description = pgettext("real name of a user", "Name")
+    get_user.admin_order_field = "user__last_name"
+    get_user.allow_tags = True
 
     list_display = (
             "user",
-            "get_user_first_name",
-            "get_user_last_name",
+            "get_user",
             "course",
             "role",
             "status",
@@ -365,7 +390,14 @@ admin.site.register(ParticipationPreapproval, ParticipationPreapprovalAdmin)
 
 
 class InstantFlowRequestAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("course", "flow_id", "start_time", "end_time", "cancelled")
+    list_filter = ("course",)
+
+    date_hierarchy = "start_time"
+
+    search_fields = (
+            "email",
+            )
 
 admin.site.register(InstantFlowRequest, InstantFlowRequestAdmin)
 
@@ -394,6 +426,9 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
+            "user__username",
+            "user__first_name",
+            "user__last_name",
             )
 
     list_display = (
@@ -424,7 +459,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
     inlines = (FlowPageDataInline,)
 
-    raw_id_fields = ("participation",)
+    raw_id_fields = ("participation", "user")
 
     save_on_top = True
 
@@ -541,6 +576,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
 
     search_fields = (
             "=id",
+            "=flow_session__id",
             "flow_session__flow_id",
             "page_data__group_id",
             "page_data__page_id",
@@ -730,6 +766,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
     search_fields = (
             "opportunity__name",
             "opportunity__flow_id",
+            "opportunity__identifier",
             "participation__user__username",
             "participation__user__first_name",
             "participation__user__last_name",
@@ -808,6 +845,105 @@ class InstantMessageAdmin(admin.ModelAdmin):
     # }}}
 
 admin.site.register(InstantMessage, InstantMessageAdmin)
+
+# }}}
+
+
+# {{{ exam tickets
+
+class ExamAdmin(admin.ModelAdmin):
+    list_filter = (
+            "course",
+            "active",
+            )
+
+    list_display = (
+            "course",
+            "flow_id",
+            "active",
+            "no_exams_before",
+            )
+
+    search_fields = (
+            "flow_id",
+            )
+
+    date_hierarchy = "no_exams_before"
+
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(ExamAdmin, self).get_queryset(request)
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "course":
+            kwargs["queryset"] = _filter_courses_for_user(
+                    Course.objects, request.user)
+        return super(ExamAdmin, self).formfield_for_foreignkey(
+                db_field, request, **kwargs)
+
+    # }}}
+
+admin.site.register(Exam, ExamAdmin)
+
+
+class ExamTicketAdmin(admin.ModelAdmin):
+    def get_course(self, obj):
+        return obj.participation.course
+
+    get_course.short_description = _("Participant")
+    get_course.admin_order_field = "participation__course"
+
+    list_filter = (
+            "participation__course",
+            "state",
+            )
+
+    list_display = (
+            "get_course",
+            "exam",
+            "participation",
+            "state",
+            "creation_time",
+            "usage_time",
+            )
+
+    date_hierarchy = "usage_time"
+
+    search_fields = (
+            "exam__course__identifier",
+            "exam__flow_id",
+            "exam__description",
+            "participation__user__username",
+            "participation__user__first_name",
+            "participation__user__last_name",
+            )
+
+    # {{{ permissions
+
+    def get_queryset(self, request):
+        qs = super(ExamTicketAdmin, self).get_queryset(request)
+        return _filter_participation_linked_obj_for_user(qs, request.user)
+
+    exclude = ("creator",)
+
+    def save_model(self, request, obj, form, change):
+        obj.creator = request.user
+        obj.save()
+
+    # }}}
+
+    def revoke_exam_tickets(self, request, queryset):  # noqa
+        queryset \
+                .filter(state=exam_ticket_states.valid) \
+                .update(state=exam_ticket_states.revoked)
+
+    revoke_exam_tickets.short_description = _("Revoke Exam Tickets")
+
+    actions = [revoke_exam_tickets]
+
+admin.site.register(ExamTicket, ExamTicketAdmin)
 
 # }}}
 

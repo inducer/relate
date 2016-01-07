@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='facilityiprange',
             name='facility',
-            field=models.ForeignKey(related_name='ip_ranges', to='course.Facility'),
+            field=models.ForeignKey(related_name='ip_ranges', to='course.Facility', on_delete=models.CASCADE),
         ),
     ]

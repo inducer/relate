@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+from six.moves import range
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
@@ -42,8 +43,26 @@ class ChoiceAnswerForm(StyledForm):
         super(ChoiceAnswerForm, self).__init__(*args, **kwargs)
 
         self.fields["choice"] = field
-        # Translators: "choice" in Choice Answer Form in a choice question.
+        # Translators: "choice" in Choice Answer Form in a single-choice question.
         self.fields["choice"].label = _("Choice")
+
+
+class MultipleChoiceAnswerForm(StyledForm):
+    def __init__(self, field, *args, **kwargs):
+        super(MultipleChoiceAnswerForm, self).__init__(*args, **kwargs)
+
+        self.fields["choice"] = field
+
+        # Translators: "Choice" in Choice Answer Form in a multiple
+        # choice question in which multiple answers can be chosen.
+        self.fields["choice"].label = _("Choices")
+
+
+def markup_to_html_plain(page_context, s):
+    s = markup_to_html(page_context, s)
+    if s.startswith("<p>") and s.endswith("</p>"):
+        s = s[3:-4]
+    return s
 
 
 # {{{ choice question
@@ -94,7 +113,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         if not isinstance(s, str):
             s = str(s)
         s = remove_prefix(cls.CORRECT_TAG, s)
-        s = markup_to_html(page_context, s)
+        s = markup_to_html_plain(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 
@@ -126,8 +145,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
             raise ValidationError(
                     string_concat(
                         "%(location)s: ",
-                        "one or more correct answer(s) "
-                        "expected, %(n_correct)d found") 
+                        _("one or more correct answer(s) "
+                        "expected, %(n_correct)d found"))
                     % {
                         'location': location,
                         'n_correct': correct_choice_count})
@@ -151,13 +170,14 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def make_page_data(self):
         import random
-        perm = range(len(self.page_desc.choices))
+        perm = list(range(len(self.page_desc.choices)))
         if getattr(self.page_desc, "shuffle", False):
             random.shuffle(perm)
 
         return {"permutation": perm}
 
-    def make_choice_form(self, page_context, page_data, *args, **kwargs):
+    def make_choice_form(
+            self, page_context, page_data, page_behavior, *args, **kwargs):
         permutation = page_data["permutation"]
 
         choices = tuple(
@@ -165,29 +185,43 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                     page_context, self.page_desc.choices[src_i]))
                 for i, src_i in enumerate(permutation))
 
-        return ChoiceAnswerForm(
+        form = ChoiceAnswerForm(
             forms.TypedChoiceField(
                 choices=tuple(choices),
                 coerce=int,
                 widget=forms.RadioSelect()),
             *args, **kwargs)
 
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        if answer_data is not None:
-            form_data = {"choice": answer_data["choice"]}
-            form = self.make_choice_form(page_context, page_data, form_data)
-        else:
-            form = self.make_choice_form(page_context, page_data)
-
-        if answer_is_final:
+        if not page_behavior.may_change_answer:
             form.fields['choice'].widget.attrs['disabled'] = True
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def make_form(self, page_context, page_data,
+            answer_data, page_behavior):
+        if (
+                "permutation" not in page_data
+                or (set(page_data["permutation"])
+                    != set(range(len(self.page_desc.choices))))):
+            from course.page import InvalidPageData
+            raise InvalidPageData(ugettext(
+                "existing choice permutation not "
+                "suitable for number of choices in question"))
+
+        if answer_data is not None:
+            form_data = {"choice": answer_data["choice"]}
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior, form_data)
+        else:
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior)
+
+        return form
+
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         return self.make_choice_form(
-                    page_context, page_data, post_data, files_data)
+                    page_context, page_data, page_behavior, post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"choice": form.cleaned_data["choice"]}
@@ -217,7 +251,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        return (_("A correct answer is: %s")
+        return (string_concat(_("A correct answer is"), ": '%s'.")
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[corr_idx]).lstrip())
@@ -232,6 +266,175 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         return self.process_choice_string(
                 page_context,
                 self.page_desc.choices[permutation[choice]])
+# }}}
+
+
+# {{{ multiple choice question
+
+class MultipleChoiceQuestion(ChoiceQuestion):
+    """
+    A page asking the participant to choose a few of multiple available answers.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``MultipleChoiceQuestion``
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: choices
+
+        A list of choices, each in :ref:`markup`. Correct
+        choices are indicated by the prefix ``~CORRECT~``.
+
+    .. attribute:: shuffle
+
+        Optional. ``True`` or ``False``. If true, the choices will
+        be presented in random order.
+
+    .. attribute:: allow_partial_credit
+
+        Optional. ``True`` or ``False``. If False (default), only
+        answers in which all check marks match the reference solution will
+        be counted as correct.  If True, answers with subset of correct
+        choices will receive credit for each matching check box, irrespective
+        of whether it is checked or not.
+
+    .. attribute:: allow_partial_credit_subset_only
+
+        Optional. ``True`` or ``False``. If False (default), only
+        answers in which all check marks match the reference solution will
+        be counted as correct.  If True, partial credits will only be granted
+        to answers which are strict subsets of reference solution.
+    """
+
+    def __init__(self, vctx, location, page_desc):
+        super(MultipleChoiceQuestion, self).__init__(vctx, location, page_desc)
+
+        if (
+                getattr(self.page_desc, "allow_partial_credit", False)
+                and
+                getattr(self.page_desc, "allow_partial_credit_subset_only", False)):
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("'allow_partial_credit' and "
+                        "'allow_partial_credit_subset_only' are not allowed to "
+                        "co-exist when both attribute are 'True'"))
+                    % {'location': location})
+
+    def allowed_attrs(self):
+        return super(MultipleChoiceQuestion, self).allowed_attrs() + (
+                ("allow_partial_credit", bool),
+                ("allow_partial_credit_subset_only", bool),
+                )
+
+    def make_choice_form(self, page_context, page_data, page_behavior,
+            *args, **kwargs):
+        permutation = page_data["permutation"]
+
+        choices = tuple(
+                (i,  self.process_choice_string(
+                    page_context, self.page_desc.choices[src_i]))
+                for i, src_i in enumerate(permutation))
+
+        form = MultipleChoiceAnswerForm(
+            forms.TypedMultipleChoiceField(
+                choices=tuple(choices),
+                coerce=int,
+                widget=forms.CheckboxSelectMultiple()),
+            *args, **kwargs)
+
+        if not page_behavior.may_change_answer:
+            form.fields['choice'].widget.attrs['disabled'] = True
+
+        return form
+
+    def grade(self, page_context, page_data, answer_data, grade_data):
+        if answer_data is None:
+            return AnswerFeedback(correctness=0,
+                    feedback=ugettext("No answer provided."))
+
+        permutation = page_data["permutation"]
+        choice = answer_data["choice"]
+
+        unpermed_idx_set = set([permutation[idx] for idx in choice])
+        correct_idx_set = set(self.unpermuted_correct_indices())
+
+        if unpermed_idx_set == correct_idx_set:
+            correctness = 1
+        else:
+            if getattr(self.page_desc, "allow_partial_credit", False):
+                correctness = (
+                        (
+                            len(self.page_desc.choices)
+                            -
+                            len(unpermed_idx_set
+                                .symmetric_difference(correct_idx_set)))
+                        /
+                        len(self.page_desc.choices))
+            elif getattr(self.page_desc, "allow_partial_credit_subset_only",
+                         False):
+                if unpermed_idx_set < correct_idx_set:
+                    correctness = (
+                            len(unpermed_idx_set)/len(correct_idx_set))
+                else:
+                    correctness = 0
+            else:
+                correctness = 0
+
+        return AnswerFeedback(correctness=correctness)
+
+    def get_answer_html(self, page_context, idx_list, unpermute=False):
+        answer_html_list = []
+        if unpermute:
+            idx_list = list(set(idx_list))
+        for idx in idx_list:
+            answer_html_list.append(
+                    "<li>"
+                    + (self.process_choice_string(
+                        page_context,
+                        self.page_desc.choices[idx])
+                        .lstrip())
+                    + "</li>"
+                    )
+        answer_html = "<ul>"+"".join(answer_html_list)+"</ul>"
+        return answer_html
+
+    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+        corr_idx_list = self.unpermuted_correct_indices()
+
+        return (string_concat(_("The correct answer is"), ": %s.")
+                % self.get_answer_html(page_context, corr_idx_list))
+
+    def normalized_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        permutation = page_data["permutation"]
+        choice = answer_data["choice"]
+
+        return self.get_answer_html(
+            page_context,
+            [permutation[idx] for idx in choice],
+            unpermute=True)
 
 # }}}
 
@@ -285,11 +488,11 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
                 choice = str(choice)
             except:
                 raise ValidationError(
-                        string_concat(
-                            "%(location)s, ",
-                            _("choice %(idx)d: unable to convert to string")
-                            )
-                            % {"location": location, "idx": choice_idx+1})
+                    string_concat(
+                        "%(location)s, ",
+                        _("choice %(idx)d: unable to convert to string")
+                        )
+                    % {"location": location, "idx": choice_idx+1})
 
             if vctx is not None:
                 validate_markup(vctx, location, choice)
@@ -317,36 +520,42 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def make_choice_form(self, page_context, page_data, *args, **kwargs):
+    def make_choice_form(self, page_context, page_data, page_behavior,
+            *args, **kwargs):
 
         choices = tuple(
                 (i,  self.process_choice_string(
                     page_context, self.page_desc.choices[i]))
                 for i in range(len(self.page_desc.choices)))
 
-        return ChoiceAnswerForm(
+        form = ChoiceAnswerForm(
             forms.TypedChoiceField(
                 choices=tuple(choices),
                 coerce=int,
                 widget=forms.RadioSelect()),
             *args, **kwargs)
 
-    def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
-        if answer_data is not None:
-            form_data = {"choice": answer_data["choice"]}
-            form = self.make_choice_form(page_context, page_data, form_data)
-        else:
-            form = self.make_choice_form(page_context, page_data)
-
-        if answer_is_final:
+        if not page_behavior.may_change_answer:
             form.fields['choice'].widget.attrs['disabled'] = True
 
         return form
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def make_form(self, page_context, page_data,
+            answer_data, page_behavior):
+        if answer_data is not None:
+            form_data = {"choice": answer_data["choice"]}
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior, form_data)
+        else:
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior)
+
+        return form
+
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         return self.make_choice_form(
-                    page_context, page_data, post_data, files_data)
+                    page_context, page_data, page_behavior, post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"choice": form.cleaned_data["choice"]}

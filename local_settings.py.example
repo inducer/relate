@@ -22,11 +22,15 @@ ALLOWED_HOSTS = [
 
 # Recommended, because dulwich is kind of slow in retrieving stuff.
 #
+# Also, progress bars for long-running operations will only work
+# properly if you enable this. (or a similar out-of-process cache
+# backend)
+#
 # CACHES = {
-#   'default': {
-#     'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-#     'LOCATION': '127.0.0.1:11211',
-#   }
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+#         'LOCATION': '127.0.0.1:11211',
+#     }
 # }
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -52,12 +56,17 @@ EMAIL_PORT = 25
 EMAIL_USE_TLS = False
 
 ROBOT_EMAIL_FROM = "Example Admin <admin@example.com>"
+RELATE_ADMIN_EMAIL_LOCALE = "en_US"
+
+# Cool down time (seconds) required before another new session of a flow
+# is allowed to be started.
+RELATE_SESSION_RESTART_COOLDOWN_SECONDS = 10
 
 SERVER_EMAIL = ROBOT_EMAIL_FROM
 
 ADMINS = (
-  ("Example Admin", "admin@example.com"),
-  )
+    ("Example Admin", "admin@example.com"),
+    )
 
 TIME_ZONE = "America/Chicago"
 
@@ -74,10 +83,51 @@ STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
 # student Python code. Docker should download the image on first run.
 RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 
+# A URL pointing to the Docker command interface which RELATE should use
+# to spawn containers for student code.
+RELATE_DOCKER_URL = "unix://var/run/docker.sock"
+
+RELATE_DOCKER_TLS_CONFIG = None
+
+# Example setup for targeting remote Docker instances
+# with TLS authentication:
+
+# RELATE_DOCKER_URL = "https://relate.cs.illinois.edu:2375"
+#
+# import os.path
+# pki_base_dir = os.path.dirname(__file__)
+#
+# import docker.tls
+# RELATE_DOCKER_TLS_CONFIG = docker.tls.TLSConfig(
+#     client_cert=(
+#         os.path.join(pki_base_dir, "client-cert.pem"),
+#         os.path.join(pki_base_dir, "client-key.pem"),
+#         ),
+#     ca_cert=os.path.join(pki_base_dir, "ca.pem"),
+#     verify=True)
+
 RELATE_MAINTENANCE_MODE = False
+
+# May be set to a string to set a sitewide announcement visible on every page.
+RELATE_SITE_ANNOUNCEMENT = None
 
 # Uncomment this to enable i18n, change 'en-us' to locale name your language.
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language 'en-us'.
 
 #LANGUAGE_CODE='en-us'
+
+RELATE_FACILITIES = {
+    "test_center": {
+        "ip_ranges": [
+            "192.168.192.0/24",
+            ],
+        "exams_only": False,
+    },
+}
+
+# For how many minutes is an exam ticket still usable for login after its first
+# use?
+RELATE_TICKET_MINUTES_VALID_AFTER_USE = 12*60
+
+# vim: filetype=python

@@ -1,0 +1,80 @@
+{% load crispy_forms_tags %}
+{% crispy form %}
+
+<script type="text/javascript">
+
+
+    $('[use-popover="true"]').each(function(){
+
+        // enable popovers
+        $(this).popover({
+                trigger: "focus",
+                placement: "top",
+                html: true,
+                title: $(this).attr("popover-title"),
+                content: $(this).attr("popover-content")
+            })
+
+        // render TeX in popovers
+        .on("shown.bs.popover", function () {
+            $(".popover-content").each(function() {
+                    MathJax.Hub.Queue(["Typeset", MathJax.Hub, this]);
+                });
+            });
+        });
+
+    // {{{ move form error messages into tooltips
+
+    $('span[id^="error_1"]').each(function(){
+
+        var all_error_block = $(this).siblings('.help-block').andSelf();
+        all_error_block.hide();
+
+        if(all_error_block.length > 1){
+            var error_message = "";
+            $(all_error_block).each(function(){
+                error_message += "<li align='left'>" + $(this).html() + "</li>";
+                });
+                error_message = "<ul>" + error_message + "</ul>";
+            }
+            else{
+                error_message = $(all_error_block[0]).html();
+            };
+            $(this).siblings('[use-popover]')
+                    .tooltip({
+                        placement : 'bottom',
+                        title : error_message,
+                        html: true
+                    });
+        });
+
+    $('.form-inline').ready(function(){
+        MathJax.Hub.Register.StartupHook("End", function() {
+
+            $('span[id^="error_1"]').each(function(){
+                $(this).siblings('[use-popover]').tooltip("show");
+
+            $('.tooltip-inner')
+                    .css("background-color", "#a94442");
+            $('.tooltip-arrow')
+                    .css("border-bottom-color", "#a94442");
+            });
+        });
+    });
+
+    // }}}
+
+    $('[correctness="1"]').parent("div")
+            .addClass("has-success")
+            .addClass("has-feedback")
+            .append('<span class="glyphicon glyphicon-ok \
+                    form-control-feedback" aria-hidden="true">\
+                    </span>');
+
+    $('[correctness="0"]').parent("div")
+            .addClass("has-error")
+            .addClass("has-feedback")
+            .append('<span class="glyphicon glyphicon-remove \
+                    form-control-feedback" aria-hidden="true">\
+                    </span>');
+</script>

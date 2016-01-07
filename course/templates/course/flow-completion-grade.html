@@ -8,7 +8,7 @@
 
 {% block content %}
 
-  {% if grade_info.total_count %}
+  {% if grade_info != None and grade_info.total_count %}
   <h1>{% trans "Results" %}: {{flow_desc.title}}</h1>
   <div class="well flow-well">
     <p>

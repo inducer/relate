@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
+
 import django.forms as forms
 
 import re
@@ -32,7 +34,6 @@ from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from relate.utils import StyledForm, Struct
 from django.forms import ValidationError as FormValidationError
-from django.utils import six
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
@@ -40,8 +41,11 @@ from django.utils.translation import (
         ugettext,
         string_concat,
         )
+from django.utils import translation
+from django.conf import settings
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
+
 
 class PageContext(object):
     """
@@ -52,15 +56,40 @@ class PageContext(object):
 
         May be None.
 
+    .. attribute:: page_uri
+
     Note that this is different from :class:`course.utils.FlowPageContext`,
     which is used internally by the flow views.
     """
 
-    def __init__(self, course, repo, commit_sha, flow_session):
+    def __init__(self, course, repo, commit_sha, flow_session,
+            in_sandbox=False, page_uri=None):
         self.course = course
         self.repo = repo
         self.commit_sha = commit_sha
         self.flow_session = flow_session
+        self.in_sandbox = in_sandbox
+        self.page_uri = page_uri
+
+
+class PageBehavior(object):
+    """
+    .. attribute:: show_correctness
+    .. attribute:: show_answer
+    .. attribute:: may_change_answer
+    """
+
+    def __init__(self, show_correctness, show_answer, may_change_answer):
+        self.show_correctness = show_correctness
+        self.show_answer = show_answer
+        self.may_change_answer = may_change_answer
+
+    def __bool__(self):
+        # This is for compatiblity: page_behavior used to be a bool argument
+        # 'answer_is_final'.
+        return not self.may_change_answer
+
+    __nonzero__ = __bool__
 
 
 def markup_to_html(page_context, text):
@@ -77,19 +106,19 @@ def markup_to_html(page_context, text):
 
 def get_auto_feedback(correctness):
     if correctness == 0:
-        return unicode(_("Your answer is not correct."))
+        return six.text_type(_("Your answer is not correct."))
     elif correctness == 1:
-        return unicode(_("Your answer is correct."))
+        return six.text_type(_("Your answer is correct."))
     elif correctness > 0.5:
-        return unicode(
+        return six.text_type(
                 string_concat(
                     _("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness is None:
-        return unicode(_("No information on correctness of answer."))
+        return six.text_type(_("No information on correctness of answer."))
     else:
-        return unicode(
+        return six.text_type(
                 string_concat(
                     _("Your answer is somewhat correct."),
                     "(%.1f %%)")
@@ -167,6 +196,10 @@ class AnswerFeedback(object):
 
 # {{{ abstract page base class
 
+class InvalidPageData(RuntimeError):
+    pass
+
+
 class PageBase(object):
     """The abstract interface of a flow page.
 
@@ -194,7 +227,7 @@ class PageBase(object):
 
     .. automethod:: answer_data
     .. automethod:: make_form
-    .. automethod:: post_form
+    .. automethod:: process_form_post
     .. automethod:: form_to_html
 
     .. rubric:: Grader Input
@@ -245,7 +278,7 @@ class PageBase(object):
                     from course.validation import validate_flow_permission
                     for attr in ["add_permissions", "remove_permissions"]:
                         if hasattr(page_desc.access_rules, attr):
-                            for perm in page_desc.access_rules.add_permissions:
+                            for perm in getattr(page_desc.access_rules, attr):
                                 validate_flow_permission(
                                         vctx,
                                         "%s: %s" % (ar_loc, attr),
@@ -351,32 +384,46 @@ class PageBase(object):
         raise NotImplementedError()
 
     def make_form(self, page_context, page_data,
-            answer_data, answer_is_final):
+            answer_data, page_behavior):
         """
         :arg answer_data: value returned by :meth:`answer_data`.
              May be *None*.
+        :arg page_behavior: an instance of :class:`PageBehavior`
         :return:
             a :class:`django.forms.Form` instance with *answer_data* prepopulated.
-            If *answer_is_final* is *True*, the form should be read-only.
+            If ``page_behavior.may_change_answer`` is *False*, the form should
+            be read-only.
         """
 
         raise NotImplementedError()
 
     def post_form(self, page_context, page_data, post_data, files_data):
+        raise NotImplementedError()
+
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
+        :arg page_behavior: an instance of :class:`PageBehavior`
         :return: a
             :class:`django.forms.Form` instance with *answer_data* prepopulated.
-            If *answer_is_final* is *True*, the form should be read-only.
+            If ``page_behavior.may_change_answer`` is *False*, the form should
+            be read-only.
         """
-        raise NotImplementedError()
+
+        from warnings import warn
+        warn("%s is using the post_form compatiblity hook, which "
+                "is deprecated." % type(self).__name__,
+                DeprecationWarning)
+
+        return self.post_form(page_context, page_data, post_data, files_data)
 
     def form_to_html(self, request, page_context, form, answer_data):
         """Returns an HTML rendering of *form*."""
 
         from django.template import loader, RequestContext
-        from django import VERSION as django_version
+        from django import VERSION as django_version  # noqa
 
         if django_version >= (1, 9):
             return loader.render_to_string(
@@ -466,7 +513,7 @@ class PageBase(object):
 
 # {{{ utility base classes
 
-TITLE_RE = re.compile(ur"^\#\s*(\w.*)", re.UNICODE)
+TITLE_RE = re.compile(r"^\#\s*(\w.*)", re.UNICODE)
 
 
 def extract_title_from_markup(markup_text):
@@ -535,6 +582,9 @@ class PageBaseWithValue(PageBase):
         return getattr(self.page_desc, "value", 1)
 
 
+# }}}
+
+
 # {{{ human text feedback page base
 
 class HumanTextFeedbackForm(StyledForm):
@@ -543,11 +593,6 @@ class HumanTextFeedbackForm(StyledForm):
 
         self.point_value = point_value
 
-        self.fields["released"] = forms.BooleanField(
-                initial=True, required=False,
-                help_text=_("Whether the grade and feedback below are to "
-                "be shown to student"),
-                label=_("Released"))
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
                 max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
@@ -563,8 +608,8 @@ class HumanTextFeedbackForm(StyledForm):
                     min_value=0,
                     max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
                     help_text=_("Grade assigned, as points out of %.1f. "
-                    "Fill out either this or 'grade percent'.")\
-                            % point_value,
+                    "Fill out either this or 'grade percent'.")
+                    % point_value,
                     required=False,
 
                     # avoid unfortunate scroll wheel accidents reported by graders
@@ -586,6 +631,14 @@ class HumanTextFeedbackForm(StyledForm):
                 "will notify the participant "
                 "with a generic message containing the feedback text"),
                 label=_("Notify"))
+        self.fields["released"] = forms.BooleanField(
+                initial=True, required=False,
+                help_text=_("Whether the grade and feedback are to "
+                "be shown to student. (If you would like to release "
+                "all grades at once, do not use this. Instead, use "
+                "the 'shown to students' checkbox for this 'grading "
+                "opportunity' in the grade book admin.)"),
+                label=_("Released"))
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
                 help_text=_("Internal notes, not shown to student"),
@@ -680,26 +733,28 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 grade_data[k] = grading_form.cleaned_data[k]
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
-            from django.template.loader import render_to_string
-            message = render_to_string("course/grade-notify.txt", {
-                "page_title": self.title(page_context, page_data),
-                "course": page_context.course,
-                "participation": page_context.flow_session.participation,
-                "feedback_text": grade_data["feedback_text"],
-                "flow_session": page_context.flow_session,
-                })
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                message = render_to_string("course/grade-notify.txt", {
+                    "page_title": self.title(page_context, page_data),
+                    "course": page_context.course,
+                    "participation": page_context.flow_session.participation,
+                    "feedback_text": grade_data["feedback_text"],
+                    "flow_session": page_context.flow_session,
+                    "review_uri": page_context.page_uri,
+                    })
 
-            from django.core.mail import send_mail
-            from django.conf import settings
-            send_mail(
-                    string_concat("[%(identifier)s:%(flow_id)s] ",
-                        _("New notification"))
-                    % {'identifier': page_context.course.identifier,
-                        'flow_id': page_context.flow_session.flow_id},
-                    message,
-                    settings.ROBOT_EMAIL_FROM,
-                    recipient_list=[
-                        page_context.flow_session.participation.user.email])
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
+                        string_concat("[%(identifier)s:%(flow_id)s] ",
+                            _("New notification"))
+                        % {'identifier': page_context.course.identifier,
+                            'flow_id': page_context.flow_session.flow_id},
+                        message,
+                        page_context.course.from_email,
+                        [page_context.flow_session.participation.user.email])
+                msg.bcc = [page_context.course.notify_email]
+                msg.send()
 
         return grade_data
 
@@ -731,9 +786,15 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if not grade_data["released"]:
             return None
 
-        if grade_data["grade_percent"] is not None:
-            correctness = grade_data["grade_percent"]/100
-            feedback_text = "<p>%s</p>" % get_auto_feedback(correctness)
+        if (grade_data["grade_percent"] is not None
+                or grade_data["feedback_text"]):
+            if grade_data["grade_percent"] is not None:
+                correctness = grade_data["grade_percent"]/100
+                feedback_text = "<p>%s</p>" % get_auto_feedback(correctness)
+
+            else:
+                correctness = None
+                feedback_text = ""
 
             if grade_data["feedback_text"]:
                 feedback_text += (
@@ -762,8 +823,6 @@ class PageBaseWithCorrectAnswer(PageBase):
             return markup_to_html(page_context, self.page_desc.correct_answer)
         else:
             return None
-
-# }}}
 
 # }}}
 

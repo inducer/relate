@@ -61,11 +61,11 @@ Table of Contents
 -----------------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     content.rst
     flow.rst
-    grading.rst
+    faq.rst
     misc.rst
 
 * :ref:`genindex`

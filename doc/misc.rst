@@ -10,7 +10,7 @@ web page.
 
 (Optional) Make a virtualenv to install to::
 
-    virtualenv --system-site-packages my-relate-env
+    virtualenv my-relate-env
     source my-relate-env/bin/activate
 
 To install, clone the repository::
@@ -46,6 +46,18 @@ Run the server::
 Open a browser to http://localhost:8000, sign in (your user name will be the
 same as your system user name, or whatever `whoami` returned above) and select
 "Set up new course".
+
+As you play with the web interface, you may notice that some long-running tasks
+just sit there: That is because RELATE relies on a task queue to process
+those long-running tasks. Start a worker by running::
+
+    celery worker -A relate
+
+Note that, due to limitations of the demo configuration (i.e. due to not having
+out-of-process caches available), long-running tasks can only show
+"PENDING/STARTED/SUCCESS/FAILURE" as their progress, but no more detailed
+information. This will be better as soon as you provide actual caches (the "CACHES"
+option :file:`local_settings.py`).
 
 Additional setup steps for Docker
 ---------------------------------
@@ -125,6 +137,115 @@ language.
 For more instructions, please refer to `Localization: how to create
 language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
 
+Deployment
+----------
+
+The following assumes you are using systemd on your deployment system.
+
+Configuring uwsgi
+^^^^^^^^^^^^^^^^^
+
+The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`::
+
+    [uwsgi]
+    plugins = python
+    socket = /tmp/uwsgi-relate.sock
+    chdir=/home/andreas/relate
+    virtualenv=/home/andreas/my-relate-env
+    module=relate.wsgi:application
+    need-app = 1
+    reload-mercy=8
+    max-requests=300
+    workers=8
+
+Then run::
+
+    # cd /etc/uwsgi/apps-enabled
+    # ln -s ../apps-available/relate.ini
+    # service uwsgi restart
+
+Configuring nginx
+^^^^^^^^^^^^^^^^^
+
+Adapt the following snippet to serve as part of your `nginx
+<http://nginx.org>`_ configuration::
+
+    server {
+      listen *:80;
+      listen [::]:80;
+      server_name relate.cs.illinois.edu;
+
+      rewrite ^ https://$server_name$request_uri? permanent;  # enforce https
+
+      add_header X-Frame-Options SAMEORIGIN;
+    }
+
+    server {
+      listen *:443 ssl;
+      listen [::]:443 ssl;
+
+      ssl_certificate /etc/certs/2015-01/relate-combined.crt;
+      ssl_certificate_key /etc/certs/2015-01/relate.key;
+
+      client_max_body_size 100M;
+
+      location / {
+        include uwsgi_params;
+        uwsgi_read_timeout 300;
+        uwsgi_pass unix:/tmp/uwsgi-relate.sock;
+      }
+      location /static {
+        alias /home/andreas/relate/static;
+      }
+      location /media {
+        alias /home/andreas/relate/media;
+      }
+
+      add_header X-Frame-Options SAMEORIGIN;
+    }
+
+
+Starting the message queue workers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use a variant of this as :file:`/etc/systemd/system/relate-celery.service`::
+
+    [Unit]
+    Description=Celery workers for RELATE
+    After=network.target
+
+    [Service]
+    Type=forking
+    User=www-data
+    Group=www-data
+
+    WorkingDirectory=/home/andreas/relate
+
+    PermissionsStartOnly=true
+    ExecStartPre=/bin/mkdir -p /var/run/celery
+    ExecStartPre=/bin/chown -R www-data:www-data /var/run/celery/
+
+    ExecStart=/home/andreas/my-relate-env/bin/celery multi start worker \
+        -A relate --pidfile=/var/run/celery/celery.pid \
+        --logfile=/var/log/celery/celery.log --loglevel="INFO"
+    ExecStop=/home/andreas/my-relate-env/bin/celery multi stopwait worker \
+        --pidfile=/var/run/celery/celery.pid
+
+    [Install]
+    WantedBy=multi-user.target
+
+Create the directories :file:`/var/run/celery` and :file:`/var/log/celery` and
+give ownership to ``www-data``::
+
+    # mkdir /var/{run,log}/celery
+    # chown www-data.www-data /var/{run,log}/celery
+
+Then run::
+
+    # systemctl daemon-reload
+    # systemctl start relate-celery.service
+    # systemctl status relate-celery.service
+    # systemctl enable relate-celery.service
 
 Tips
 ====

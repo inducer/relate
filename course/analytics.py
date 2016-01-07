@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+import six
 from django.utils.translation import ugettext as _, pgettext, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -95,14 +96,14 @@ class Histogram(object):
         self.num_bin_title_formatter = num_bin_title_formatter
 
     def add_data_point(self, value, weight=1):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             self.string_weights[value] = \
                     self.string_weights.get(value, 0) + weight
         elif value is None:
             self.add_data_point(
                 "".join([
                         "(",
-                        pgettext("No data","None"),
+                        pgettext("No data", "None"),
                         ")"]),
                 weight)
         else:
@@ -128,7 +129,7 @@ class Histogram(object):
     def total_weight(self):
         return (
                 sum(weight for val, weight in self.num_values)
-                + sum(self.string_weights.itervalues()))
+                + sum(six.itervalues(self.string_weights)))
 
     def get_bin_info_list(self):
         min_value = self.num_min_value
@@ -190,7 +191,7 @@ class Histogram(object):
                     title=key,
                     raw_weight=temp_string_weights[key],
                     percentage=100*temp_string_weights[key]/total_weight)
-                for key in sorted(temp_string_weights.iterkeys())]
+                for key in sorted(six.iterkeys(temp_string_weights))]
 
         return num_bin_info + str_bin_info
 
@@ -279,6 +280,7 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
         for page_desc in group_desc.pages:
             points = 0
             graded_count = 0
+            empty_count = 0
 
             answer_count = 0
             total_count = 0
@@ -329,6 +331,9 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
 
                 if visit.answer is not None:
                     answer_count += 1
+                else:
+                    empty_count += 1
+
                 total_count += 1
 
                 if (answer_feedback is not None
@@ -350,7 +355,7 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
                         title=title,
                         average_correctness=safe_div(points, graded_count),
                         average_emptiness=safe_div(
-                            graded_count - answer_count, graded_count),
+                            empty_count, graded_count),
                         answer_count=answer_count,
                         total_count=total_count,
                         url=reverse(
@@ -372,11 +377,11 @@ def make_time_histogram(pctx, flow_id):
 
     hist = Histogram(
             num_log_bins=True,
-            num_bin_title_formatter=lambda minutes: \
-                    string_concat(
-                        "$>$ %.1f ",
-                        pgettext("Minute (time unit)", "min"))
-                    % minutes)
+            num_bin_title_formatter=(
+                lambda minutes: string_concat(
+                    "$>$ %.1f ",
+                    pgettext("Minute (time unit)", "min"))
+                % minutes))
     for session in qset:
         if session.in_progress:
             hist.add_data_point(
@@ -522,7 +527,7 @@ def page_analytics(pctx, flow_id, group_id, page_id):
 
     answer_stats = []
     for (normalized_answer, correctness), count in \
-            normalized_answer_and_correctness_to_count.iteritems():
+            six.iteritems(normalized_answer_and_correctness_to_count):
         answer_stats.append(
                 AnswerStats(
                     normalized_answer=normalized_answer,

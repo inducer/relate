@@ -82,6 +82,22 @@ def validate_role(location, role):
                 % {'location': location, 'role': role})
 
 
+def validate_facility(ctx, location, facility):
+    from django.conf import settings
+    facilities = getattr(settings, "RELATE_FACILITIES", None)
+    if facilities is None:
+        return
+
+    if facility not in facilities:
+        ctx.add_warning(location, _(
+            "Name of facility not recognized: '%(fac_name)s'. "
+            "Known facility names: '%(known_fac_names)s'")
+            % {
+                "fac_name": facility,
+                "known_fac_names": ", ".join(facilities),
+                })
+
+
 def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
     """
     :arg required_attrs: an attribute validation list (see below)
@@ -92,6 +108,10 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
     attribute is not checked, or a tuple *(name, type)*, where type is valid
     as a second argument to :func:`isinstance`.
     """
+
+    if not isinstance(obj, Struct):
+        raise ValidationError(
+                "%s: not a key-value map" % location)
 
     present_attrs = set(name for name in dir(obj) if not name.startswith("_"))
 
@@ -123,7 +143,7 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
 
                 if allowed_types == str:
                     # Love you, too, Python 2.
-                    allowed_types = (str, unicode)
+                    allowed_types = six.string_types
 
                 if not isinstance(val, allowed_types):
                     raise ValidationError(
@@ -242,6 +262,9 @@ def validate_chunk_rule(ctx, location, chunk_rule):
         for role in chunk_rule.if_has_role:
             validate_role(location, role)
 
+    if hasattr(chunk_rule, "if_in_facility"):
+        validate_facility(ctx, location, chunk_rule.if_in_facility)
+
     # {{{ deprecated
 
     if hasattr(chunk_rule, "start"):
@@ -292,15 +315,26 @@ def validate_course_desc_struct(ctx, location, course_desc):
             location,
             course_desc,
             required_attrs=[
-                ("name", str),
-                ("number", str),
-                ("run", str),
                 ("chunks", list),
                 ],
             allowed_attrs=[
                 ("grade_summary_code", str),
+
+                ("name", str),
+                ("number", str),
+                ("run", str),
                 ]
             )
+
+    if hasattr(course_desc, "name"):
+        ctx.add_warning(location, _("'name' is deprecated. "
+            "This information is now kept in the database."))
+    if hasattr(course_desc, "number"):
+        ctx.add_warning(location, _("'number' is deprecated. "
+            "This information is now kept in the database."))
+    if hasattr(course_desc, "run"):
+        ctx.add_warning(location, _("'run' is deprecated. "
+            "This information is now kept in the database."))
 
     for i, chunk in enumerate(course_desc.chunks):
         validate_chunk(ctx,
@@ -430,10 +464,10 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 ("if_has_role", list),
                 ("if_in_facility", str),
                 ("if_has_in_progress_session", bool),
-                ("if_has_session_tagged", (str, unicode, type(None))),
+                ("if_has_session_tagged", (six.string_types, type(None))),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
-                ("tag_session", (str, unicode, type(None))),
+                ("tag_session", (six.string_types, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
                 ]
@@ -448,6 +482,9 @@ def validate_session_start_rule(ctx, location, nrule, tags):
             validate_role(
                     "%s, role %d" % (location, j+1),
                     role)
+
+    if hasattr(nrule, "if_in_facility"):
+        validate_facility(ctx, location, nrule.if_in_facility)
 
     if hasattr(nrule, "if_has_session_tagged"):
         if nrule.if_has_session_tagged is not None:
@@ -464,9 +501,10 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 _("attribute 'may_list_existing_sessions' is not present"))
 
     if hasattr(nrule, "tag_session"):
-        validate_identifier(ctx, "%s: tag_session" % location,
-                nrule.tag_session,
-                warning_only=True)
+        if nrule.tag_session is not None:
+            validate_identifier(ctx, "%s: tag_session" % location,
+                    nrule.tag_session,
+                    warning_only=True)
 
         if not (nrule.tag_session is None or nrule.tag_session in tags):
             raise ValidationError(
@@ -487,10 +525,11 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 ("if_before", datespec_types),
                 ("if_has_role", list),
                 ("if_in_facility", str),
-                ("if_has_tag", (str, unicode, type(None))),
+                ("if_has_tag", (six.string_types, type(None))),
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),
                 ("if_expiration_mode", str),
+                ("if_session_duration_shorter_than_minutes", (int, float)),
                 ("message", datespec_types),
                 ]
             )
@@ -507,6 +546,10 @@ def validate_session_access_rule(ctx, location, arule, tags):
             validate_role(
                     "%s, role %d" % (location, j+1),
                     role)
+
+    if hasattr(arule, "if_in_facility"):
+        validate_facility(ctx, location, arule.if_in_facility)
+
     if hasattr(arule, "if_has_tag"):
         if not (arule.if_has_tag is None or arule.if_has_tag in tags):
             raise ValidationError(
@@ -533,7 +576,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                 perm)
 
 
-def validate_session_grading_rule(ctx, location, grule, tags):
+def validate_session_grading_rule(ctx, location, grule, tags, grade_identifier):
     """
     :returns: whether the rule only applies conditionally
     """
@@ -541,19 +584,41 @@ def validate_session_grading_rule(ctx, location, grule, tags):
     validate_struct(
             ctx, location, grule,
             required_attrs=[
-                ("grade_identifier", (type(None), str)),
                 ],
             allowed_attrs=[
                 ("if_has_role", list),
-                ("if_has_tag", (str, unicode, type(None))),
+                ("if_has_tag", (six.string_types, type(None))),
                 ("if_completed_before", datespec_types),
 
                 ("credit_percent", (int, float)),
+                ("use_last_activity_as_completion_time", bool),
                 ("due", datespec_types),
-                ("grade_aggregation_strategy", str),
+                ("generates_grade", bool),
                 ("description", str),
+
+                # legacy
+                ("grade_identifier", (type(None), str)),
+                ("grade_aggregation_strategy", str),
                 ]
             )
+
+    if hasattr(grule, "grade_identifier"):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'grade_identifier' attribute found. "
+                        "This attribute is no longer allowed here "
+                        "and should be moved upward into the 'rules' "
+                        "block."))
+                % {"location": location})
+
+    if hasattr(grule, "grade_aggregation_strategy"):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'grade_aggregation_strategy' attribute found. "
+                        "This attribute is no longer allowed here "
+                        "and should be moved upward into the 'rules' "
+                        "block."))
+                % {"location": location})
 
     has_conditionals = False
 
@@ -580,26 +645,13 @@ def validate_session_grading_rule(ctx, location, grule, tags):
     if hasattr(grule, "due"):
         ctx.encounter_datespec(location, grule.due)
 
-    if grule.grade_identifier:
-        validate_identifier(ctx, "%s: grade_identifier" % location,
-                grule.grade_identifier)
-        if not hasattr(grule, "grade_aggregation_strategy"):
-            raise ValidationError(
-                    string_concat("%(location)s: ",
-                        _("grading rule that have a grade "
-                            "identifier (%(type)s: %(identifier)s) "
-                            "must have a grade_aggregation_strategy"))
-                    % {
-                        'location': location,
-                        'type': type(grule.grade_identifier),
-                        'identifier': grule.grade_identifier})
-        from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
-        if grule.grade_aggregation_strategy not in \
-                dict(GRADE_AGGREGATION_STRATEGY_CHOICES):
-            raise ValidationError(
-                    string_concat("%s: ",
-                        _("invalid grade aggregation strategy"))
-                    % location)
+    if (getattr(grule, "generates_grade", True)
+            and grade_identifier is None):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'generates_grade' is true, but no 'grade_identifier'"
+                        "is given."))
+                % {"location": location})
 
     return has_conditionals
 
@@ -611,14 +663,26 @@ def validate_flow_rules(ctx, location, rules):
             rules,
             required_attrs=[
                 ("access", list),
-                ("grading", list),
                 ],
             allowed_attrs=[
                 # may not start with an underscore
                 ("start", list),
+                ("grading", list),
                 ("tags", list),
+
+                ("grade_identifier", (type(None), str)),
+                ("grade_aggregation_strategy", str),
                 ]
             )
+
+    if not hasattr(rules, "grade_identifier"):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("'rules' block does not have a grade_identifier "
+                        "attribute. This attribute needs to be moved out of "
+                        "the lower-level 'grading' rules block and into "
+                        "the 'rules' block itself."))
+                % {'location': location})
 
     tags = getattr(rules, "tags", [])
 
@@ -645,23 +709,70 @@ def validate_flow_rules(ctx, location, rules):
 
     # }}}
 
+    # {{{ grade_id
+
+    if rules.grade_identifier:
+        validate_identifier(ctx, "%s: grade_identifier" % location,
+                rules.grade_identifier)
+        if not hasattr(rules, "grade_aggregation_strategy"):
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("grading rule that have a grade "
+                            "identifier (%(type)s: %(identifier)s) "
+                            "must have a grade_aggregation_strategy"))
+                    % {
+                        'location': location,
+                        'type': type(rules.grade_identifier),
+                        'identifier': rules.grade_identifier})
+
+    from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
+    if (
+            hasattr(rules, "grade_aggregation_strategy")
+            and
+            rules.grade_aggregation_strategy not in
+            dict(GRADE_AGGREGATION_STRATEGY_CHOICES)):
+        raise ValidationError(
+                string_concat("%s: ",
+                    _("invalid grade aggregation strategy"))
+                % location)
+
+    # }}}
+
     # {{{ validate grading rules
 
-    has_conditionals = None
+    if not hasattr(rules, "grading"):
+        if rules.grade_identifier is not None:
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("'grading' block is required if grade_identifier "
+                            "is not null/None.")
+                        % {'location': location}))
 
-    for i, grule in enumerate(rules.grading):
-        has_conditionals = validate_session_grading_rule(
-                ctx,
-                location="%s, rules/grading #%d"
-                % (location,  i+1), grule=grule, tags=tags)
+    else:
+        has_conditionals = None
 
-    if has_conditionals:
-        raise ValidationError(
-                string_concat(
-                    "%s, ",
-                    _("rules/grading: "
-                        "last grading rule must be unconditional"))
-                % location)
+        if len(rules.grading) == 0:
+            raise ValidationError(
+                    string_concat(
+                        "%s, ",
+                        _("rules/grading: "
+                            "may not be an empty list"))
+                    % location)
+
+        for i, grule in enumerate(rules.grading):
+            has_conditionals = validate_session_grading_rule(
+                    ctx,
+                    location="%s, rules/grading #%d"
+                    % (location,  i+1), grule=grule, tags=tags,
+                    grade_identifier=rules.grade_identifier)
+
+        if has_conditionals:
+            raise ValidationError(
+                    string_concat(
+                        "%s, ",
+                        _("rules/grading: "
+                            "last grading rule must be unconditional"))
+                    % location)
 
     # }}}
 
@@ -696,16 +807,38 @@ def validate_flow_desc(ctx, location, flow_desc):
             required_attrs=[
                 ("title", str),
                 ("description", "markup"),
-                ("groups", list),
-                ("completion_text", "markup"),
                 ],
             allowed_attrs=[
+                ("completion_text", "markup"),
                 ("rules", Struct),
+                ("groups", list),
+                ("pages", list),
+                ("notify_on_submit", list),
                 ]
             )
 
     if hasattr(flow_desc, "rules"):
         validate_flow_rules(ctx, location, flow_desc.rules)
+
+    # {{{ check for presence of 'groups' or 'pages'
+
+    if (
+            (not hasattr(flow_desc, "groups") and not hasattr(flow_desc, "pages"))
+            or
+            (hasattr(flow_desc, "groups") and hasattr(flow_desc, "pages"))):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("must have either 'groups' or 'pages'"))
+                % {'location': location})
+
+    # }}}
+
+    if hasattr(flow_desc, "pages"):
+        from course.content import normalize_flow_desc
+        flow_desc = normalize_flow_desc(flow_desc)
+
+        assert not hasattr(flow_desc, "pages")
+        assert hasattr(flow_desc, "groups")
 
     # {{{ check for non-emptiness
 
@@ -755,7 +888,15 @@ def validate_flow_desc(ctx, location, flow_desc):
                 grp)
 
     validate_markup(ctx, location, flow_desc.description)
-    validate_markup(ctx, location, flow_desc.completion_text)
+    if hasattr(flow_desc, "completion_text"):
+        validate_markup(ctx, location, flow_desc.completion_text)
+
+    if hasattr(flow_desc, "notify_on_submit"):
+        for i, item in enumerate(flow_desc.notify_on_submit):
+            if not isinstance(item, six.string_types):
+                raise ValidationError(
+                        "%s, notify_on_submit: item %d is not a string"
+                        % (location, i+1))
 
 # }}}
 
@@ -796,7 +937,112 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
                 "%(fullname)s: %(err_type)s: %(err_str)s" % {
                     'fullname': full_name,
                     "err_type": tp.__name__,
-                    "err_str": unicode(e)})
+                    "err_str": six.text_type(e)})
+
+
+def check_attributes_yml(vctx, repo, path, tree):
+    try:
+        _, attr_blob_sha = tree[".attributes.yml"]
+    except KeyError:
+        # no .attributes.yml here
+        pass
+    else:
+        from relate.utils import dict_to_struct
+        from yaml import load as load_yaml
+
+        att_yml = dict_to_struct(load_yaml(repo[attr_blob_sha].data))
+
+        loc = path + "/" + ".attributes.yml"
+        validate_struct(
+                vctx, loc, att_yml,
+                required_attrs=[],
+                allowed_attrs=[
+                    ("public", list),
+                    ("in_exam", list),
+                ])
+
+        for access_kind in ["public", "in_exam"]:
+            if hasattr(att_yml, access_kind):
+                for i, l in enumerate(att_yml.public):
+                    if not isinstance(l, six.string_types):
+                        raise ValidationError(
+                                "%s: entry %d in '%s' is not a string"
+                                % (loc, i+1, access_kind))
+
+    import stat
+    for entry in tree.items():
+        if stat.S_ISDIR(entry.mode):
+            _, blob_sha = tree[entry.path]
+            subtree = repo[blob_sha]
+            check_attributes_yml(
+                    vctx, repo,
+                    path+"/"+entry.path.decode("utf-8"), subtree)
+
+
+# {{{ check whether flow grade identifiers were changed in sketchy ways
+
+def check_grade_identifier_link(
+        vctx, location, course, flow_id, flow_grade_identifier):
+
+    from course.models import GradingOpportunity
+    for bad_gopp in (
+            GradingOpportunity.objects
+            .filter(
+                course=course,
+                identifier=flow_grade_identifier)
+            .exclude(flow_id=flow_id)):
+        # 0 or 1 trips through this loop because of uniqueness
+
+        raise ValidationError(
+                _(
+                    "{location}: existing grading opportunity with identifier "
+                    "'{grade_identifier}' refers to flow '{other_flow_id}', however "
+                    "flow code in this flow ('{new_flow_id}') specifies the same "
+                    "grade identifier. "
+                    "(Have you renamed the flow? If so, edit the grading "
+                    "opportunity to match.)")
+                .format(
+                    location=location,
+                    grade_identifier=flow_grade_identifier,
+                    other_flow_id=bad_gopp.flow_id,
+                    new_flow_id=flow_id,
+                    new_grade_identifier=flow_grade_identifier))
+
+# }}}
+
+
+# {{{ check whether page types were changed
+
+def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
+    from course.content import normalize_flow_desc
+    n_flow_desc = normalize_flow_desc(flow_desc)
+
+    from course.models import FlowPageData
+    for grp in n_flow_desc.groups:
+        for page_desc in grp.pages:
+            fpd_with_mismatched_page_types = list(
+                    FlowPageData.objects
+                    .filter(
+                        flow_session__course=course,
+                        flow_session__flow_id=flow_id,
+                        group_id=grp.id,
+                        page_id=page_desc.id)
+                    .exclude(page_type=None)
+                    .exclude(page_type=page_desc.type)
+                    [0:1])
+
+            if fpd_with_mismatched_page_types:
+                mismatched_fpd, = fpd_with_mismatched_page_types
+                raise ValidationError(
+                        _("%(loc)s, group '%(group)s', page '%(page)s': "
+                            "page type ('%(type_new)s') differs from "
+                            "type used in database ('%(type_old)s')")
+                        % {"loc": location, "group": grp.id,
+                            "page": page_desc.id,
+                            "type_new": page_desc.type,
+                            "type_old": mismatched_fpd.page_type})
+
+# }}}
 
 
 def validate_course_content(repo, course_file, events_file,
@@ -804,22 +1050,44 @@ def validate_course_content(repo, course_file, events_file,
     course_desc = get_yaml_from_repo_safely(repo, course_file,
             commit_sha=validate_sha)
 
-    ctx = ValidationContext(
+    vctx = ValidationContext(
             repo=repo,
             commit_sha=validate_sha,
             course=course)
 
-    validate_course_desc_struct(ctx, course_file, course_desc)
+    validate_course_desc_struct(vctx, course_file, course_desc)
 
     try:
         from course.content import get_yaml_from_repo
         events_desc = get_yaml_from_repo(repo, events_file,
                 commit_sha=validate_sha, cached=False)
     except ObjectDoesNotExist:
-        # That's OK--no calendar info.
+        if events_file != "events.yml":
+            vctx.add_warning(
+                    _("Events file"),
+                    _("Your course repository does not have an events "
+                        "file named '%s'.")
+                    % events_file)
+        else:
+            # That's OK--no calendar info.
+            pass
+    else:
+        validate_calendar_desc_struct(vctx, events_file, events_desc)
+
+    check_attributes_yml(
+            vctx, repo, "", get_repo_blob(repo, "", validate_sha))
+
+    try:
+        flows_tree = get_repo_blob(repo, "media", validate_sha)
+    except ObjectDoesNotExist:
+        # That's great--no media directory.
         pass
     else:
-        validate_calendar_desc_struct(ctx, events_file, events_desc)
+        vctx.add_warning(
+                'media/', _(
+                    "Your course repository has a 'media/' directory. "
+                    "Linking to media files using 'media:' is discouraged. "
+                    "Use the 'repo:' and 'repocur:' linkng schemes instead."))
 
     try:
         flows_tree = get_repo_blob(repo, "flows", validate_sha)
@@ -827,12 +1095,15 @@ def validate_course_content(repo, course_file, events_file,
         # That's OK--no flows yet.
         pass
     else:
+        used_grade_identifiers = set()
+
         for entry in flows_tree.items():
-            if not entry.path.endswith(".yml"):
+            entry_path = entry.path.decode("utf-8")
+            if not entry_path.endswith(".yml"):
                 continue
 
             from course.constants import FLOW_ID_REGEX
-            flow_id = entry.path[:-4]
+            flow_id = entry_path[:-4]
             match = re.match("^"+FLOW_ID_REGEX+"$", flow_id)
             if match is None:
                 raise ValidationError(
@@ -841,15 +1112,45 @@ def validate_course_content(repo, course_file, events_file,
                                 "Flow names may only contain (roman) "
                                 "letters, numbers, "
                                 "dashes and underscores."))
-                        % entry.path)
+                        % entry_path)
 
-            location = "flows/%s" % entry.path
+            location = "flows/%s" % entry_path
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
-            validate_flow_desc(ctx, location, flow_desc)
+            validate_flow_desc(vctx, location, flow_desc)
 
-    return ctx.warnings
+            # {{{ check grade_identifier
+
+            flow_grade_identifier = None
+            if hasattr(flow_desc, "rules"):
+                flow_grade_identifier = getattr(
+                        flow_desc.rules, "grade_identifier", None)
+
+            if (
+                    flow_grade_identifier is not None
+                    and
+                    set([flow_grade_identifier]) & used_grade_identifiers):
+                raise ValidationError(
+                        string_concat("%s: ",
+                                      _("flow uses the same grade_identifier "
+                                        "as another flow"))
+                        % location)
+
+            used_grade_identifiers.add(flow_grade_identifier)
+
+            if (course is not None
+                    and flow_grade_identifier is not None):
+                check_grade_identifier_link(
+                        vctx, location, course, flow_id, flow_grade_identifier)
+
+            # }}}
+
+            if course is not None:
+                check_for_page_type_changes(
+                        vctx, location, course, flow_id, flow_desc)
+
+    return vctx.warnings
 
 
 # {{{ validation script support
@@ -867,14 +1168,18 @@ class FileSystemFakeRepo(object):
     def __str__(self):
         return "<FAKEREPO:%s>" % self.root
 
+    def decode(self):
+        return self
+
     @property
     def tree(self):
         return FileSystemFakeRepoTree(self.root)
 
 
 class FileSystemFakeRepoTreeEntry(object):
-    def __init__(self, path):
+    def __init__(self, path, mode):
         self.path = path
+        self.mode = mode
 
 
 class FileSystemFakeRepoTree(object):
@@ -886,7 +1191,7 @@ class FileSystemFakeRepoTree(object):
         name = join(self.root, name)
 
         if not exists(name):
-            raise ObjectDoesNotExist(name)
+            raise KeyError(name)
 
         # returns mode, "sha"
         if isdir(name):
@@ -896,7 +1201,11 @@ class FileSystemFakeRepoTree(object):
 
     def items(self):
         import os
-        return [FileSystemFakeRepoTreeEntry(n) for n in os.listdir(self.root)]
+        return [
+                FileSystemFakeRepoTreeEntry(
+                    path=n,
+                    mode=os.stat(os.path.join(self.root, n)).st_mode)
+                for n in os.listdir(self.root)]
 
 
 class FileSystemFakeRepoFile(object):

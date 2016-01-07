@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+import six
 import django.forms as forms
 
 
@@ -37,6 +38,16 @@ class StyledForm(forms.Form):
         self.helper.field_class = "col-lg-8"
 
         super(StyledForm, self).__init__(*args, **kwargs)
+
+
+class StyledInlineForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        from crispy_forms.helper import FormHelper
+        self.helper = FormHelper()
+        self.helper.form_class = "form-inline"
+        self.helper.label_class = "sr-only"
+
+        super(StyledInlineForm, self).__init__(*args, **kwargs)
 
 
 class StyledModelForm(forms.ModelForm):
@@ -55,6 +66,7 @@ def settings_context_processor(request):
     return {
         "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
         "maintenance_mode": settings.RELATE_MAINTENANCE_MODE,
+        "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
         }
 
 
@@ -83,20 +95,28 @@ def local_now():
 
 
 def format_datetime_local(datetime, format='medium'):
-    """Format the output of a datetime object to a localized string"""    
+    """Format the output of a datetime object to a localized string"""
     from babel.dates import format_datetime
     from django.conf import settings
-    # See http://babel.pocoo.org/docs/api/dates/#date-and-time-formatting 
+    from django.utils.translation.trans_real import to_locale
+    # See http://babel.pocoo.org/docs/api/dates/#date-and-time-formatting
     # for customizing the output format.
-    return format_datetime(datetime, format, locale=settings.LANGUAGE_CODE)
+    try:
+        locale = to_locale(settings.LANGUAGE_CODE)
+    except ValueError:
+        locale = "en_US"
+
+    result = format_datetime(datetime, format, locale=locale)
+
+    return result
 
 
 # {{{ dict_to_struct
 
 class Struct(object):
     def __init__(self, entries):
-        for name, val in entries.iteritems():
-            self.__dict__[name] = dict_to_struct(val)
+        for name, val in six.iteritems(entries):
+            self.__dict__[name] = val
 
     def __repr__(self):
         return repr(self.__dict__)
@@ -106,7 +126,7 @@ def dict_to_struct(data):
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
     elif isinstance(data, dict):
-        return Struct(data)
+        return Struct({k: dict_to_struct(v) for k, v in six.iteritems(data)})
     else:
         return data
 
@@ -114,8 +134,80 @@ def dict_to_struct(data):
 def struct_to_dict(data):
     return dict(
             (name, val)
-            for name, val in data.__dict__.iteritems()
+            for name, val in six.iteritems(data.__dict__)
             if not name.startswith("_"))
+
+# }}}
+
+
+def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
+    from django.db import transaction
+    from django.db.utils import OperationalError
+
+    if max_tries is None:
+        max_tries = 5
+    if serializable is None:
+        serializable = False
+
+    assert max_tries > 0
+    while True:
+        try:
+            with transaction.atomic():
+                if serializable:
+                    from django.db import connections, DEFAULT_DB_ALIAS
+                    conn = connections[DEFAULT_DB_ALIAS]
+                    if conn.vendor == "postgresql":
+                        cursor = conn.cursor()
+                        cursor.execute(
+                                "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;")
+
+                return f(*args, **kwargs)
+        except OperationalError:
+            max_tries -= 1
+            if not max_tries:
+                raise
+
+
+class retry_transaction_decorator(object):
+    def __init__(self, max_tries=None, serializable=None):
+        self.max_tries = max_tries
+        self.serializable = serializable
+
+    def __call__(self, f):
+        from functools import update_wrapper
+
+        def wrapper(*args, **kwargs):
+            return retry_transaction(f, args, kwargs,
+                    max_tries=self.max_tries,
+                    serializable=self.serializable)
+
+        update_wrapper(wrapper, f)
+        return wrapper
+
+
+# {{{ hang debugging
+
+def dumpstacks(signal, frame):
+    import threading
+    import sys
+    import traceback
+
+    id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
+    code = []
+    for threadId, stack in sys._current_frames().items():
+        code.append("\n# Thread: %s(%d)" % (id2name.get(threadId, ""), threadId))
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
+            if line:
+                code.append("  %s" % (line.strip()))
+    print("\n".join(code))
+
+if 0:
+    import signal
+    import os
+    print("*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 %s' to dump stacks"
+            % os.getpid())
+    signal.signal(signal.SIGUSR1, dumpstacks)
 
 # }}}
 

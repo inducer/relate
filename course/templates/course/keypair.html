@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% trans "SSH Key Pair" %}</h1>
+
+  <p><b>{% trans "Private key:" %}</b></p>
+  <p>{% blocktrans trimmed %}
+    Copy and paste this block of text into the 'private key' field in RELATE.
+  {% endblocktrans %}</p>
+  <pre>{{ public_key }}</pre>
+
+  <p><b>{% trans "Public key:" %}</b></p>
+  <p>{% blocktrans trimmed %}
+    On Bitbucket, GitHub, or an other repository hosting site, add this snippet
+    as an "SSH Key" to your user profile or as a "Deployment key" to your
+    repository.
+  {% endblocktrans %}</p>
+  <pre>{{ private_key }}</pre>
+{% endblock %}
+

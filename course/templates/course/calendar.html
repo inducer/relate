@@ -4,7 +4,7 @@
 {% load static %}
 
 {% block title %}
-  {{ course_desc.number}}
+  {{ course.number}}
   {% trans "Calendar" %} - {% trans "RELATE" %}
 {% endblock %}
 
@@ -18,7 +18,7 @@
 {% endblock %}
 
 {% block content %}
-  <h1>{{ course_desc.number}} {% trans "Calendar" %}</h1>
+  <h1>{{ course.number}} {% trans "Calendar" %}</h1>
 
   <div id="coursecal" style="margin-top:3em"></div>
 
@@ -31,6 +31,7 @@
             center: 'title',
             right: 'month,agendaWeek,agendaDay'
           },
+          defaultDate: '{{ default_date }}',
           timezone: "local",
 
           events: {{ events_json|safe }}

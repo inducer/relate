@@ -1,15 +1,15 @@
-django>=1.7
+django>=1.8,<2.0
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
-django-crispy-forms>=1.4.0
+django-crispy-forms>=1.5.1
 
 # Page data, answer data, ... all represented in JSON. This makes that editable
 # in the Django admin.
-https://github.com/bradjasper/django-jsonfield/archive/postgresql.tar.gz
+jsonfield>=1.0.3,<1.1
 django-yamlfield
 
 # For easy content formatting:
-markdown
+markdown>=2.6.3
 
 # For rendering macros in content:
 jinja2
@@ -26,23 +26,25 @@ pytz
 # Course content is stored in YAML.
 pyyaml
 
-# dulwich does not yet support Python3
-# Using git version for fix to https://github.com/jelmer/dulwich/issues/135
-dulwich
+# dulwich (git for Py3 support)
+dulwich>=0.12
+ecdsa
 paramiko
 
 # A date picker widget
 git+https://github.com/inducer/django-bootstrap3-datetimepicker.git
 
 # For in-class instant messaging
+dnspython  # Py2
+#dnspython3  # Py3
 sleekxmpp
-dnspython
 
 # To manage web dependencies
 django-bower
 
-# For comfortable code entry
-django-codemirror-widget
+# For comfortable code entry (git for py3 fix in git rev 8979538)
+git+https://github.com/lambdalisue/django-codemirror-widget.git
+#django-codemirror-widget
 
 # Optional, used for caching
 python-memcached
@@ -58,7 +60,7 @@ pygments
 unicodecsv
 
 # To support network matching for facility recognition
-ipaddr
+ipaddress
 
 # For localized datetime format
 babel
@@ -66,3 +68,10 @@ babel
 # For interoperation with SAML2/Shibboleth
 pysaml2
 djangosaml2
+
+# A task queue, used to execute long-running tasks
+celery
+django-celery
+
+# For searchable select forms
+django_select2==5.0.3
