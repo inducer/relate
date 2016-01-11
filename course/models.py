@@ -1419,13 +1419,6 @@ class Exam(models.Model):
             null=True, blank=True,
             verbose_name=_('No exams after'))
 
-    lock_down_sessions = models.BooleanField(
-            default=True,
-            verbose_name=_("Lock down sessions"),
-            help_text=_("Only allow access to exam content "
-                "(and no other content in this RELATE instance) "
-                "in sessions logged in through this exam"))
-
     class Meta:
         verbose_name = _("Exam")
         verbose_name_plural = _("Exams")
