@@ -43,7 +43,8 @@ from django.core.urlresolvers import reverse
 from django_select2.forms import Select2Widget
 from crispy_forms.layout import Submit
 
-from course.models import Exam, ExamTicket, Participation, FlowSession
+from course.models import (Exam, ExamTicket, Participation,
+        FlowSession)
 from course.utils import course_view, render_course_page
 from course.constants import (
         exam_ticket_states,
@@ -68,10 +69,10 @@ class UserChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         user = obj
         return (
-                _("%(user_email)s - %(user_lastname)s, "
+                _("%(username)s - %(user_lastname)s, "
                     "%(user_firstname)s")
                 % {
-                    "user_email": user.email,
+                    "username": user.username,
                     "user_lastname": user.last_name,
                     "user_firstname": user.first_name})
 
