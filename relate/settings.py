@@ -15,9 +15,12 @@ import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-local_settings = {}
+_local_settings_file = join(BASE_DIR, "local_settings.py")
+local_settings = {
+        "__file__": _local_settings_file,
+        }
 try:
-    with open(join(BASE_DIR, "local_settings.py")) as inf:
+    with open(_local_settings_file) as inf:
         local_settings_contents = inf.read()
 except IOError:
     pass

@@ -93,10 +93,15 @@ def request_python_run(run_req, run_timeout, image=None):
 
     # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
     if 1:
+        docker_url = getattr(settings, "RELATE_DOCKER_URL",
+                "unix://var/run/docker.sock")
+        docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
+                None)
         docker_cnx = docker.Client(
-                base_url=getattr(settings, "RELATE_DOCKER_URL",
-                    "unix://var/run/docker.sock"),
-                version='1.12', timeout=docker_timeout)
+                base_url=docker_url,
+                tls=docker_tls,
+                timeout=docker_timeout,
+                version="1.19")
 
         if image is None:
             image = settings.RELATE_DOCKER_RUNPY_IMAGE
@@ -106,22 +111,34 @@ def request_python_run(run_req, run_timeout, image=None):
                 command=[
                     "/opt/runpy/runpy",
                     "-1"],
-                mem_limit=256*10**6,
+                host_config={
+                    "Memory": 256*10**6,
+                    "MemorySwap": -1,
+                    "PublishAllPorts": True,
+                    "ReadonlyRootfs": True,
+                    },
                 user="runpy")
 
         container_id = dresult["Id"]
     else:
         container_id = None
 
+    connect_host_ip = 'localhost'
+
     try:
         # FIXME: Prohibit networking
 
         if container_id is not None:
-            docker_cnx.start(
-                    container_id,
-                    port_bindings={RUNPY_PORT: ('127.0.0.1',)})
+            docker_cnx.start(container_id)
 
-            port_info, = docker_cnx.port(container_id, RUNPY_PORT)
+            container_props = docker_cnx.inspect_container(container_id)
+            (port_info,) = (container_props
+                    ["NetworkSettings"]["Ports"]["%d/tcp" % RUNPY_PORT])
+            port_host_ip = port_info.get("HostIp")
+
+            if port_host_ip != "0.0.0.0":
+                connect_host_ip = port_host_ip
+
             port = int(port_info["HostPort"])
         else:
             port = RUNPY_PORT
@@ -133,35 +150,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
         from traceback import format_exc
 
-        while True:
-            try:
-                connection = http_client.HTTPConnection('localhost', port)
-
-                connection.request('GET', '/ping')
-
-                response = connection.getresponse()
-                response_data = response.read().decode("utf-8")
-
-                if response_data != "OK":
-                    raise InvalidPingResponse()
-
-                break
-
-            except socket.error as e:
-                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
-                    if time() - start_time < docker_timeout:
-                        sleep(0.1)
-                        # and retry
-                    else:
-                        return {
-                                "result": "uncaught_error",
-                                "message": "Timeout waiting for container.",
-                                "traceback": "".join(format_exc()),
-                                }
-                else:
-                    raise
-
-            except (http_client.BadStatusLine, InvalidPingResponse):
+        def check_timeout():
                 if time() - start_time < docker_timeout:
                     sleep(0.1)
                     # and retry
@@ -172,13 +161,41 @@ def request_python_run(run_req, run_timeout, image=None):
                             "traceback": "".join(format_exc()),
                             }
 
+        while True:
+            try:
+                connection = http_client.HTTPConnection(connect_host_ip, port)
+
+                connection.request('GET', '/ping')
+
+                response = connection.getresponse()
+                response_data = response.read().decode()
+
+                if response_data != "OK":
+                    raise InvalidPingResponse()
+
+                break
+
+            except (http_client.BadStatusLine, InvalidPingResponse):
+                ct_res = check_timeout()
+                if ct_res is not None:
+                    return ct_res
+
+            except socket.error as e:
+                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
+                    ct_res = check_timeout()
+                    if ct_res is not None:
+                        return ct_res
+
+                else:
+                    raise
+
         # }}}
 
         debug_print("PING SUCCESSFUL")
 
         try:
             # Add a second to accommodate 'wire' delays
-            connection = http_client.HTTPConnection('localhost', port,
+            connection = http_client.HTTPConnection(connect_host_ip, port,
                     timeout=1 + run_timeout)
 
             headers = {'Content-type': 'application/json'}

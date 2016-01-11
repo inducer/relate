@@ -83,6 +83,25 @@ RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 # to spawn containers for student code.
 RELATE_DOCKER_URL = "unix://var/run/docker.sock"
 
+RELATE_DOCKER_TLS_CONFIG = None
+
+# Example setup for targeting remote Docker instances
+# with TLS authentication:
+
+# RELATE_DOCKER_URL = "https://relate.cs.illinois.edu:2375"
+#
+# import os.path
+# pki_base_dir = os.path.dirname(__file__)
+#
+# import docker.tls
+# RELATE_DOCKER_TLS_CONFIG = docker.tls.TLSConfig(
+#     client_cert=(
+#         os.path.join(pki_base_dir, "client-cert.pem"),
+#         os.path.join(pki_base_dir, "client-key.pem"),
+#         ),
+#     ca_cert=os.path.join(pki_base_dir, "ca.pem"),
+#     verify=True)
+
 RELATE_MAINTENANCE_MODE = False
 
 # May be set to a string to set a sitewide announcement visible on every page.
