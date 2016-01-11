@@ -5,7 +5,7 @@
   <h1>{% trans "Available Exams" %}</h1>
 
   {% if exams %}
-    <ul>
+    <ul class="list-unstyled">
       {% for exam in exams %}
         <li>
           <i>{{ exam.course.number }}
