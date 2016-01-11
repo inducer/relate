@@ -95,7 +95,7 @@ class Migration(migrations.Migration):
         ('accounts', '0002_user_populate_migration'),
         ('admin', '0001_initial'),
         ('auth', '0006_require_contenttypes_0002'),
-        ('course', '0064_link_to_keygen_tool'),
+        ('course', '0075_course_metadata'),
     ]
 
     operations = [
