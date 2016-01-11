@@ -295,15 +295,15 @@ class ParticipationAdmin(admin.ModelAdmin):
         from django.conf import settings
 
         return string_concat(
-                "<a href='%(link)s'>", _("%(last_name)s, %(first_name)s"), 
-                "</a>"
-                ) % {
-                        "link": reverse(
-                            "admin:%s_change" % settings.AUTH_USER_MODEL.replace(".", "_")
-                            .lower(),
-                            args=(obj.user.id,)),
-                        "last_name": verbose_blank(obj.user.last_name),
-                        "first_name": verbose_blank(obj.user.first_name)}
+            "<a href='%(link)s'>", _("%(last_name)s, %(first_name)s"),
+            "</a>"
+            ) % {
+                "link": reverse(
+                    "admin:%s_change" % settings.AUTH_USER_MODEL.replace(".", "_")
+                    .lower(),
+                    args=(obj.user.id,)),
+                "last_name": verbose_blank(obj.user.last_name),
+                "first_name": verbose_blank(obj.user.first_name)}
 
     get_user.short_description = pgettext("real name of a user", "Name")
     get_user.admin_order_field = "user__last_name"
