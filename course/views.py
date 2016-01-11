@@ -1090,19 +1090,19 @@ def generate_ssh_keypair(request):
     prv = key_class.generate(bits=2048)
 
     import six
-    prv_bio = six.BytesIO()
+    prv_bio = six.StringIO()
     prv.write_private_key(prv_bio)
 
-    prv_bio_read = six.BytesIO(prv_bio.getvalue())
+    prv_bio_read = six.StringIO(prv_bio.getvalue())
 
     pub = key_class.from_private_key(prv_bio_read)
 
-    pub_bio = six.BytesIO()
+    pub_bio = six.StringIO()
     pub_bio.write("%s %s relate-course-key" % (pub.get_name(), pub.get_base64()))
 
     return render(request, "course/keypair.html", {
-        "public_key": prv_bio.getvalue().decode(),
-        "private_key": pub_bio.getvalue().decode(),
+        "public_key": prv_bio.getvalue(),
+        "private_key": pub_bio.getvalue(),
         })
 
 # }}}
