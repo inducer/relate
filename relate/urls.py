@@ -415,6 +415,9 @@ urlpatterns = [
     url(r"^exam-check-in/$",
         course.exam.check_in_for_exam,
         name="relate-check_in_for_exam"),
+    url(r"^list-available-exams/$",
+        course.exam.list_available_exams,
+        name="relate-list_available_exams"),
 
     # }}}
 

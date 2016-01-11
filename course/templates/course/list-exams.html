@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% trans "Available Exams" %}</h1>
+
+  {% if exams %}
+    <ul>
+      {% for exam in exams %}
+        <li>
+          <i>{{ exam.course.number }}
+            {{ exam.course.time_period }}</i>
+          ({{ exam.course.name }}):
+          <b>{{ exam.description }}</b>
+
+          <a
+            class="btn btn-primary"
+            href="{% url 'course.flow.view_start_flow' exam.course.identifier exam.flow_id %}"
+            role="button"
+            style="margin-left:1em">{% trans "View" %} &raquo;</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

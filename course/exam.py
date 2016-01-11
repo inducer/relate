@@ -494,8 +494,6 @@ def check_in_for_exam(request):
                     ticket.usage_time = now_datetime
                     ticket.save()
 
-                request.session["relate_session_exam_ticket_pk"] = ticket.pk
-
                 if pretend_facilities:
                     # Make pretend-facilities survive exam login.
                     request.session["relate_pretend_facilities"] = pretend_facilities
@@ -539,7 +537,7 @@ class ExamFacilityMiddleware(object):
             return None
 
         if (exams_only and
-                "relate_session_exam_ticket_pk" in request.session):
+                "relate_session_locked_to_exam_flow_session_pk" in request.session):
             # ExamLockdownMiddleware is in control.
             return None
 
@@ -549,6 +547,7 @@ class ExamFacilityMiddleware(object):
         from course.exam import check_in_for_exam, issue_exam_ticket
         from course.auth import (user_profile, sign_in_by_email,
                 sign_in_stage2_with_token, sign_in_by_user_pw)
+        from course.flow import view_start_flow, view_flow_page
         from django.contrib.auth.views import logout
 
         ok = False
@@ -557,45 +556,52 @@ class ExamFacilityMiddleware(object):
                 sign_in_stage2_with_token,
                 sign_in_by_user_pw,
                 check_in_for_exam,
+                list_available_exams,
+                view_start_flow,
                 user_profile,
                 logout]:
             ok = True
 
-        elif request.user.is_staff:
-            ok = True
-
         elif (
-                request.user.has_perm("course.can_issue_exam_tickets")
+                (request.user.is_staff
+                    or
+                    request.user.has_perm("course.can_issue_exam_tickets"))
                 and
                 resolver_match.func == issue_exam_ticket):
             ok = True
 
         if not ok:
-            return redirect("relate-check_in_for_exam")
+            if (request.user.is_authenticated()
+                    and resolver_match.func is view_flow_page):
+                messages.add_message(request, messages.INFO,
+                        _("Access to flows in an exams-only facility "
+                            "is only granted if the flow is locked down. "
+                            "To do so, add 'lock_down_as_exam_session' to "
+                            "your flow's start rules."))
+
+            if request.user.is_authenticated():
+                return redirect("relate-list_available_exams")
+            else:
+                return redirect("relate-check_in_for_exam")
 
 
 class ExamLockdownMiddleware(object):
     def process_request(self, request):
         request.relate_exam_lockdown = False
 
-        if "relate_session_exam_ticket_pk" in request.session:
-            ticket_pk = request.session['relate_session_exam_ticket_pk']
+        if "relate_session_locked_to_exam_flow_session_pk" in request.session:
+            exam_flow_session_pk = request.session[
+                    "relate_session_locked_to_exam_flow_session_pk"]
 
             try:
-                ticket = ExamTicket.objects.get(pk=ticket_pk)
+                exam_flow_session = FlowSession.objects.get(pk=exam_flow_session_pk)
             except ObjectDoesNotExist:
                 messages.add_message(request, messages.ERROR,
-                        _("Error while processing exam lockdown: ticket not found."))
+                        _("Error while processing exam lockdown: "
+                        "flow session not found."))
                 raise SuspiciousOperation()
 
-            if not ticket.exam.lock_down_sessions:
-                return None
-
             request.relate_exam_lockdown = True
-
-            flow_session_ids = [fs.id for fs in FlowSession.objects.filter(
-                    participation=ticket.participation,
-                    flow_id=ticket.exam.flow_id)]
 
             from django.core.urlresolvers import resolve
             resolver_match = resolve(request.path)
@@ -606,26 +612,16 @@ class ExamLockdownMiddleware(object):
             from course.auth import user_profile
             from django.contrib.auth.views import logout
 
-            from course.exam import check_in_for_exam
-
             ok = False
             if resolver_match.func in [
                     get_repo_file,
                     get_current_repo_file,
 
                     check_in_for_exam,
+                    list_available_exams,
 
                     user_profile,
                     logout]:
-                ok = True
-
-            elif (resolver_match.func == view_start_flow
-                    and
-                    resolver_match.kwargs["course_identifier"]
-                    == ticket.exam.course.identifier
-                    and
-                    resolver_match.kwargs["flow_id"]
-                    == ticket.exam.flow_id):
                 ok = True
 
             elif (
@@ -635,11 +631,55 @@ class ExamLockdownMiddleware(object):
                         finish_flow_session_view]
                     and
                     int(resolver_match.kwargs["flow_session_id"])
-                    in flow_session_ids):
+                    == exam_flow_session_pk):
+                ok = True
+
+            elif (
+                    resolver_match.func == view_start_flow
+                    and
+                    resolver_match.kwargs["flow_id"]
+                    == exam_flow_session.flow_id):
                 ok = True
 
             if not ok:
-                raise PermissionDenied("not allowed in exam lock-down")
+                messages.add_message(request, messages.ERROR,
+                        _("Your RELATE session is currently locked down "
+                        "to this exam flow. Navigating to other parts of "
+                        "RELATE is not currently allowed. "
+                        "To abandon this exam, log out."))
+                return redirect("relate-view_start_flow",
+                        exam_flow_session.course.identifier,
+                        exam_flow_session.flow_id)
+
+# }}}
+
+
+# {{{ list available exams
+
+def list_available_exams(request):
+    now_datetime = get_now_or_fake_time(request)
+
+    participations = (
+            Participation.objects.filter(
+                user=request.user,
+                status=participation_status.active))
+
+    from django.db.models import Q
+    exams = (
+            Exam.objects
+            .filter(
+                course__in=[p.course for p in participations],
+                active=True,
+                no_exams_before__lt=now_datetime)
+            .filter(
+                Q(no_exams_after__isnull=True)
+                |
+                Q(no_exams_after__gt=now_datetime))
+            .order_by("no_exams_before", "course__number"))
+
+    return render(request, "course/list-exams.html", {
+        "exams": exams
+        })
 
 # }}}
 
