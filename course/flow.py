@@ -918,7 +918,9 @@ def post_start_flow(pctx, fctx, flow_id):
             settings, "RELATE_SESSION_RESTART_COOLDOWN_SECONDS", 10)
 
         from datetime import timedelta
-        if ((now_datetime - latest_session.start_time)
+        if (
+                timedelta(seconds=0)
+                <= (now_datetime - latest_session.start_time)
                 < timedelta(seconds=cooldown_seconds)):
             return redirect("relate-view_flow_page",
                 pctx.course.identifier, latest_session.id, 0)
