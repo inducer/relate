@@ -302,13 +302,6 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
             user = form.get_user()
 
-            from course.exam import may_sign_in
-            if not may_sign_in(request, user):
-                messages.add_message(request, messages.ERROR,
-                        _("Sign-in not allowed in this facility."))
-                raise PermissionDenied(
-                        _("user not allowed to sign in in facility"))
-
             # Okay, security check complete. Log the user in.
             auth_login(request, user)
 
@@ -655,12 +648,6 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
         messages.add_message(request, messages.ERROR,
                 _("Account disabled."))
         raise PermissionDenied(_("invalid sign-in token"))
-
-    from course.exam import may_sign_in
-    if not may_sign_in(request, user):
-        messages.add_message(request, messages.ERROR,
-                _("Sign-in not allowed in this facility."))
-        raise PermissionDenied(_("user not allowed to sign in in facility"))
 
     login(request, user)
 

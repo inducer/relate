@@ -651,22 +651,4 @@ def exam_lockdown_context_processor(request):
 # }}}
 
 
-# {{{ lockdown sign-in checker
-
-def may_sign_in(request, user):
-    exams_only = is_from_exams_only_facility(request)
-
-    if not exams_only:
-        return True
-    else:
-        if user.is_staff:
-            return True
-        elif user.has_perm("course.can_issue_exam_tickets"):
-            return True
-
-    return False
-
-# }}}
-
-
 # vim: foldmethod=marker
