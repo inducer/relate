@@ -15,3 +15,5 @@ build
 *.pyz
 
 *.pem
+
+git-roots
