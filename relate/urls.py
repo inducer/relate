@@ -44,6 +44,9 @@ import course.exam
 
 urlpatterns = [
     url(r"^login/$",
+        course.auth.sign_in_choice,
+        name="relate-sign_in_choice"),
+    url(r"^login/user-password/$",
         course.auth.sign_in_by_user_pw,
         name="relate-sign_in_by_user_pw"),
     url(r"^login/sign-up/$",

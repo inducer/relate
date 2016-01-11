@@ -64,7 +64,15 @@ class StyledModelForm(forms.ModelForm):
 def settings_context_processor(request):
     from django.conf import settings
     return {
-        "student_sign_in_view": settings.STUDENT_SIGN_IN_VIEW,
+        "student_sign_in_view": "relate-sign_in_choice",
+        "relate_sign_in_by_email_enabled":
+        settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED,
+        "relate_registration_enabled":
+        settings.RELATE_REGISTRATION_ENABLED,
+        "relate_sign_in_by_exam_tickets_enabled":
+        settings.RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED,
+        "relate_sign_in_by_saml2_enabled":
+        settings.RELATE_SIGN_IN_BY_SAML2_ENABLED,
         "maintenance_mode": settings.RELATE_MAINTENANCE_MODE,
         "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
         }

@@ -6,12 +6,13 @@
 {% block content %}
   <h1>{% trans "Check in for Exam" %}</h1>
 
-  <div class="alert alert-warning">
-    {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}
+  <div class="alert alert-info">
+    <i class="fa fa-chevron-left"></i>
+    {% url "relate-sign_in_choice" as relate-sign_in_choice %}
     {% blocktrans trimmed %}
       If you have a not been issued an exam ticket by your instructor,
       please
-      <a href="{{ relate-sign_in_by_user_pw }}">log in</a>
+      <a href="{{ relate-sign_in_choice }}">use a different method to sign in</a>
       instead.
     {% endblocktrans %}
   </div>

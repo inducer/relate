@@ -268,6 +268,14 @@ class TokenBackend(object):
             return None
 
 
+# {{{ choice
+
+def sign_in_choice(request):
+    return render(request, "sign-in-choice.html")
+
+# }}}
+
+
 # {{{ conventional login
 
 class LoginForm(AuthenticationFormBase):
@@ -348,9 +356,9 @@ class SignUpForm(StyledModelForm):
 
 
 def sign_up(request):
-    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
+    if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
-                _("password-based sign-in is not being used"))
+                _("self-registration is not enabled"))
 
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -430,9 +438,9 @@ class ResetPasswordForm(StyledForm):
 
 
 def reset_password(request):
-    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
+    if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
-                _("password-based sign-in is not being used"))
+                _("self-registration is not enabled"))
 
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
@@ -510,8 +518,9 @@ class ResetPasswordStage2Form(StyledForm):
 
 
 def reset_password_stage2(request, user_id, sign_in_key):
-    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_user_pw":
-        raise SuspiciousOperation(_("email-based sign-in is not being used"))
+    if not settings.RELATE_REGISTRATION_ENABLED:
+        raise SuspiciousOperation(
+                _("self-registration is not enabled"))
 
     if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
         messages.add_message(request, messages.ERROR,
@@ -578,7 +587,7 @@ class SignInByEmailForm(StyledForm):
 
 
 def sign_in_by_email(request):
-    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
+    if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         raise SuspiciousOperation(_("email-based sign-in is not being used"))
 
     if request.method == 'POST':
@@ -633,7 +642,7 @@ def sign_in_by_email(request):
 
 
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
-    if settings.STUDENT_SIGN_IN_VIEW != "relate-sign_in_by_email":
+    if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         raise SuspiciousOperation(_("email-based sign-in is not being used"))
 
     from django.contrib.auth import authenticate, login
