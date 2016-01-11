@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h1>{% trans "Check in for Exam" %}</h1>
+
+  <div class="alert alert-warning">
+    {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}
+    {% blocktrans trimmed %}
+      If you have a not been issued an exam ticket by your instructor,
+      please
+      <a href="{{ relate-sign_in_by_user_pw }}">log in</a>
+      instead.
+    {% endblocktrans %}
+  </div>
+  <div class="well">
+    {% crispy form %}
+  </div>
+{% endblock %}

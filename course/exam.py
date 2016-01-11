@@ -444,7 +444,10 @@ class ExamCheckInForm(StyledForm):
             max_length=30,
             help_text=_("This is typically your full email address."))
     code = forms.CharField(required=True, label=_("Code"),
-            widget=forms.PasswordInput())
+            widget=forms.PasswordInput(),
+            help_text=_("This is not your password, but a code that was "
+                "given to you by a staff member. If you do not have one, "
+                "please follow the link above to log in."))
 
     def __init__(self, *args, **kwargs):
         super(ExamCheckInForm, self).__init__(*args, **kwargs)
@@ -503,7 +506,7 @@ def check_in_for_exam(request):
     else:
         form = ExamCheckInForm()
 
-    return render(request, "generic-form.html", {
+    return render(request, "course/exam-check-in.html", {
         "form_description":
             _("Check in for Exam"),
         "form": form
