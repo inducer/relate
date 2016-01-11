@@ -87,8 +87,10 @@ class UserStatus(models.Model):
             verbose_name=_('Key time'))
 
     editor_mode = models.CharField(max_length=20,
-            help_text=_("Your favorite text editor mode for text "
-                        "block or code block."),
+            help_text=_("Which key bindings you prefer when editing "
+                        "larger amounts of text or code. "
+                        "(If you do not understand what this means, "
+                        "leave it as 'Default'.)"),
             choices=(
                 ("default", _("Default")),
                 ("sublime", "Sublime text"),
