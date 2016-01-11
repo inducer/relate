@@ -40,6 +40,10 @@ from django.contrib.auth.decorators import permission_required
 from django.db import transaction
 from django.core.urlresolvers import reverse
 
+from django.views.decorators.debug import sensitive_post_parameters
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
+
 from django_select2.forms import Select2Widget
 from crispy_forms.layout import Submit
 
@@ -457,6 +461,9 @@ class ExamCheckInForm(StyledForm):
                 Submit("submit", _("Check in")))
 
 
+@sensitive_post_parameters()
+@csrf_protect
+@never_cache
 def check_in_for_exam(request):
     now_datetime = get_now_or_fake_time(request)
 
