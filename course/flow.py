@@ -941,6 +941,11 @@ def post_start_flow(pctx, fctx, flow_id):
             access_rules_tag=session_start_rule.tag_session,
             now_datetime=now_datetime)
 
+    if session_start_rule.lock_down_as_exam_session:
+        pctx.request.session[
+                "relate_session_locked_to_exam_flow_session_pk"] = \
+                        session.pk
+
     return redirect("relate-view_flow_page",
             pctx.course.identifier, session.id, 0)
 

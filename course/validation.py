@@ -470,6 +470,7 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                 ("tag_session", (six.string_types, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
+                ("lock_down_as_exam_session", bool),
                 ]
             )
 
