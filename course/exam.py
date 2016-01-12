@@ -292,9 +292,6 @@ class BatchIssueTicketsForm(StyledForm):
 
 @course_view
 def batch_issue_exam_tickets(pctx):
-    from course.models import get_user_status
-    ustatus = get_user_status(pctx.request.user)
-
     if pctx.role not in [
             participation_role.instructor,
             ]:
@@ -305,7 +302,8 @@ def batch_issue_exam_tickets(pctx):
 
     request = pctx.request
     if request.method == "POST":
-        form = BatchIssueTicketsForm(pctx.course, ustatus.editor_mode, request.POST)
+        form = BatchIssueTicketsForm(pctx.course, request.user.editor_mode,
+                request.POST)
 
         if form.is_valid():
             exam = form.cleaned_data["exam"]
@@ -368,7 +366,7 @@ def batch_issue_exam_tickets(pctx):
                         _("%d tickets issued.") % len(tickets))
 
     else:
-        form = BatchIssueTicketsForm(pctx.course, ustatus.editor_mode)
+        form = BatchIssueTicketsForm(pctx.course, request.user.editor_mode)
 
     return render_course_page(pctx, "course/batch-exam-tickets-form.html", {
         "form": form,

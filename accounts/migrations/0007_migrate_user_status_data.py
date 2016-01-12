@@ -5,6 +5,18 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 
 
+def forwards(apps, schema_editor):
+    UserStatus = apps.get_model("course", "UserStatus")
+
+    for ustatus in UserStatus.objects.all().select_related("user"):
+        user = ustatus.user
+        user.editor_mode = ustatus.editor_mode
+        user.key_time = ustatus.key_time
+        user.sign_in_key = ustatus.sign_in_key
+        user.status = ustatus.status
+        user.save()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -30,7 +42,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='key_time',
-            field=models.DateTimeField(default=None, help_text='The time stamp of the sign in token.', verbose_name='Key time'),
+            field=models.DateTimeField(default=None, help_text='The time stamp of the sign in token.', verbose_name='Key time', null=True, blank=True),
         ),
         migrations.AddField(
             model_name='user',
@@ -62,4 +74,5 @@ class Migration(migrations.Migration):
             name='last_name',
             field=models.CharField(blank=True, max_length=100, verbose_name='last name'),
         ),
+        migrations.RunPython(forwards),
     ]

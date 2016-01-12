@@ -55,66 +55,6 @@ from jsonfield import JSONField
 from yamlfield.fields import YAMLField
 
 
-# {{{ user status
-
-def get_user_status(user):
-    try:
-        return user.user_status
-    except AttributeError:
-        ustatus = UserStatus()
-        ustatus.user = user
-        ustatus.status = user_status.unconfirmed
-        ustatus.save()
-
-        return ustatus
-
-
-class UserStatus(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, db_index=True,
-            related_name="user_status",
-            verbose_name=_('User ID'), on_delete=models.CASCADE)
-    status = models.CharField(max_length=50,
-            choices=USER_STATUS_CHOICES,
-            verbose_name=_('User status'))
-    sign_in_key = models.CharField(max_length=50,
-            help_text=_("The sign in token sent out in email."),
-            null=True, unique=True, db_index=True, blank=True,
-            # Translators: the sign in token of the user.
-            verbose_name=_('Sign in key'))
-    key_time = models.DateTimeField(default=now,
-            help_text=_("The time stamp of the sign in token."),
-            # Translators: the time when the token is sent out.
-            verbose_name=_('Key time'))
-
-    editor_mode = models.CharField(max_length=20,
-            help_text=_("Which key bindings you prefer when editing "
-                        "larger amounts of text or code. "
-                        "(If you do not understand what this means, "
-                        "leave it as 'Default'.)"),
-            choices=(
-                ("default", _("Default")),
-                ("sublime", "Sublime text"),
-                ("emacs", "Emacs"),
-                ("vim", "Vim"),
-                ),
-            default="default",
-            # Translators: the text editor used by participants
-            verbose_name=_("Editor mode"))
-
-    class Meta:
-        verbose_name = _("User status")
-        verbose_name_plural = _("User statuses")
-        ordering = ("key_time",)
-
-    def __unicode__(self):
-        return _("User status for %(user)s") % {'user': self.user}
-
-    if six.PY3:
-        __str__ = __unicode__
-
-# }}}
-
-
 # {{{ course
 
 class Course(models.Model):

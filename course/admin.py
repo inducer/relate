@@ -29,7 +29,6 @@ from django.utils.translation import (
 from django.contrib import admin
 
 from course.models import (
-        UserStatus,
         Course, Event,
         ParticipationTag,
         Participation, ParticipationPreapproval,
@@ -73,56 +72,6 @@ def _filter_participation_linked_obj_for_user(queryset, user):
     return queryset.filter(
         participation__course__participations__user=user,
         participation__course__participations__role__in=admin_roles)
-
-# }}}
-
-
-# {{{ user status
-
-class UserStatusAdmin(admin.ModelAdmin):
-    def get_user_first_name(self, obj):
-        return obj.user.first_name
-
-    get_user_first_name.short_description = _("First name")
-    get_user_first_name.admin_order_field = "user__first_name"
-
-    def get_user_last_name(self, obj):
-        return obj.user.last_name
-
-    get_user_last_name.short_description = _("Last name")
-    get_user_last_name.admin_order_field = "user__last_name"
-
-    list_display = (
-            "user",
-            "get_user_first_name",
-            "get_user_last_name",
-            "status",
-            "key_time")
-    list_filter = ("status",)
-
-    date_hierarchy = "key_time"
-
-    search_fields = (
-            "user__username",
-            "user__first_name",
-            "user__last_name",
-            )
-
-    def __unicode__(self):
-        return u"%s in status %s" % (self.user, self.status)
-
-    if six.PY3:
-        __str__ = __unicode__
-
-    # {{{ permissions
-
-    def has_add_permission(self, request):
-        # These are created only through the course creation form.
-        return False
-
-    # }}}
-
-admin.site.register(UserStatus, UserStatusAdmin)
 
 # }}}
 

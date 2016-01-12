@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
+from django.utils.translation import ugettext_lazy as _  # noqa
 from . models import User
 
 
@@ -40,14 +41,34 @@ def _remove_from_fieldsets(fs, field_name):
 
 
 class UserAdmin(UserAdminBase):
-    list_display = tuple(
-            f for f in UserAdminBase.list_display
-            if f != "is_staff")
-    list_filter = tuple(
-            f for f in UserAdminBase.list_filter
-            if f != "is_staff")
-    fieldsets = _remove_from_fieldsets(
-            UserAdminBase.fieldsets, "is_staff")
+    # list_display = tuple(
+    #         f for f in UserAdminBase.list_display
+    #         if f != "is_staff")
+    # list_filter = tuple(
+    #         f for f in UserAdminBase.list_filter
+    #         if f != "is_staff")
+    # fieldsets = _remove_from_fieldsets(
+    #         UserAdminBase.fieldsets, "is_staff")
+
+    list_display = tuple(UserAdminBase.list_display) + (
+            "status", "institutional_id",)
+    list_filter = tuple(UserAdminBase.list_filter) + (
+            "status",)
+    search_fields = tuple(UserAdminBase.search_fields) + (
+            "institutional_id",)
+
+    fieldsets = UserAdminBase.fieldsets[:1] + (
+            (UserAdminBase.fieldsets[1][0], {"fields": (
+                "status",
+                "first_name",
+                "last_name",
+                "name_verified",
+                "email",
+                "institutional_id",
+                "institutional_id_verified",
+                "editor_mode",)
+                }),
+            ) + UserAdminBase.fieldsets[2:]
 
 
 admin.site.register(User, UserAdmin)

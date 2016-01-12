@@ -86,15 +86,12 @@ def view_markup_sandbox(pctx):
     request = pctx.request
     preview_text = ""
 
-    from course.models import get_user_status
-    ustatus = get_user_status(request.user)
-
     def make_form(data=None):
         help_text = (ugettext("Enter <a href=\"http://documen.tician.de/"
                 "relate/content.html#relate-markup\">"
                 "RELATE markup</a>."))
         return SandboxForm(
-                None, "markdown", ustatus.editor_mode,
+                None, "markdown", request.user.editor_mode,
                 help_text,
                 data)
 
@@ -157,12 +154,9 @@ def view_page_sandbox(pctx):
 
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
-    from course.models import get_user_status
-    ustatus = get_user_status(request.user)
-
     def make_form(data=None):
         return SandboxForm(
-                page_source, "yaml", ustatus.editor_mode,
+                page_source, "yaml", request.user.editor_mode,
                 ugettext("Enter YAML markup for a flow page."),
                 data)
 
@@ -258,8 +252,8 @@ def view_page_sandbox(pctx):
         # Session storage uses JSON and may turn tuples into lists.
         if (isinstance(stored_answer_data_tuple, (list, tuple))
                 and len(stored_answer_data_tuple) == 3):
-            stored_answer_data_page_type, stored_answer_data_page_id, stored_answer_data = \
-                    stored_answer_data_tuple
+            stored_answer_data_page_type, stored_answer_data_page_id, \
+                    stored_answer_data = stored_answer_data_tuple
 
             if (
                     stored_answer_data_page_type == page_desc.type

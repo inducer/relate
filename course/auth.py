@@ -51,7 +51,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
 from course.models import (
-        UserStatus, user_status,
+        user_status,
         Participation, participation_role, participation_status,
         )
 
@@ -232,12 +232,11 @@ def make_sign_in_key(user):
 
 
 def check_sign_in_key(user_id, token):
-    user = get_user_model().objects.get(id=user_id)
-    ustatuses = UserStatus.objects.filter(
-            user=user, sign_in_key=token)
+    users = get_user_model().objects.filter(
+            id=user_id, sign_in_key=token)
 
-    assert ustatuses.count() <= 1
-    if ustatuses.count() == 0:
+    assert users.count() <= 1
+    if users.count() == 0:
         return False
 
     return True
@@ -245,21 +244,20 @@ def check_sign_in_key(user_id, token):
 
 class TokenBackend(object):
     def authenticate(self, user_id=None, token=None):
-        user = get_user_model().objects.get(id=user_id)
-        ustatuses = UserStatus.objects.filter(
-                user=user, sign_in_key=token)
+        users = get_user_model().objects.filter(
+                id=user_id, sign_in_key=token)
 
-        assert ustatuses.count() <= 1
-        if ustatuses.count() == 0:
+        assert users.count() <= 1
+        if users.count() == 0:
             return None
 
-        (ustatus,) = ustatuses
+        (user,) = users
 
-        ustatus.status = user_status.active
-        ustatus.sign_in_key = None
-        ustatus.save()
+        user.status = user_status.active
+        user.sign_in_key = None
+        user.save()
 
-        return ustatus.user
+        return user
 
     def get_user(self, user_id):
         try:
@@ -383,14 +381,9 @@ def sign_up(request):
                         username=form.cleaned_data["username"])
 
                 user.set_unusable_password()
+                user.status = user_status.unconfirmed
+                user.sign_in_key = make_sign_in_key(user)
                 user.save()
-
-                ustatus = UserStatus(
-                        user=user,
-                        status=user_status.unconfirmed,
-                        sign_in_key=make_sign_in_key(user))
-
-                ustatus.save()
 
                 from django.template.loader import render_to_string
                 message = render_to_string("course/sign-in-email.txt", {
@@ -398,7 +391,7 @@ def sign_up(request):
                     "sign_in_uri": request.build_absolute_uri(
                         reverse(
                             "relate-reset_password_stage2",
-                            args=(user.id, ustatus.sign_in_key,))
+                            args=(user.id, user.sign_in_key,))
                         + "?to_profile=1"),
                     "home_uri": request.build_absolute_uri(
                         reverse("relate-home"))
@@ -458,10 +451,8 @@ def reset_password(request):
                           "associated user account. Are you "
                           "sure you've registered?"))
             else:
-                from course.models import get_user_status
-                ustatus = get_user_status(user)
-                ustatus.sign_in_key = make_sign_in_key(user)
-                ustatus.save()
+                user.sign_in_key = make_sign_in_key(user)
+                user.save()
 
                 from django.template.loader import render_to_string
                 message = render_to_string("course/sign-in-email.txt", {
@@ -469,7 +460,7 @@ def reset_password(request):
                     "sign_in_uri": request.build_absolute_uri(
                         reverse(
                             "relate-reset_password_stage2",
-                            args=(user.id, ustatus.sign_in_key,))),
+                            args=(user.id, user.sign_in_key,))),
                     "home_uri": request.build_absolute_uri(reverse("relate-home"))
                     })
                 from django.core.mail import send_mail
@@ -600,17 +591,10 @@ def sign_in_by_email(request):
 
             if created:
                 user.set_unusable_password()
-                user.save()
 
-            ustatus, ustatus_created = UserStatus.objects.get_or_create(
-                    user=user,
-                    defaults=dict(
-                        status=user_status.unconfirmed,
-                        sign_in_key=make_sign_in_key(user)))
-
-            if not created:
-                ustatus.sign_in_key = make_sign_in_key(user)
-                ustatus.save()
+            user.status = user_status.unconfirmed,
+            user.sign_in_key = make_sign_in_key(user)
+            user.save()
 
             from django.template.loader import render_to_string
             message = render_to_string("course/sign-in-email.txt", {
@@ -618,7 +602,7 @@ def sign_in_by_email(request):
                 "sign_in_uri": request.build_absolute_uri(
                     reverse(
                         "relate-sign_in_stage2_with_token",
-                        args=(user.id, ustatus.sign_in_key,))),
+                        args=(user.id, user.sign_in_key,))),
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
             from django.core.mail import send_mail
@@ -681,7 +665,7 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 class UserForm(StyledModelForm):
     class Meta:
         model = get_user_model()
-        fields = ("first_name", "last_name")
+        fields = ("first_name", "last_name", "editor_mode")
 
     def __init__(self, *args, **kwargs):
         super(UserForm, self).__init__(*args, **kwargs)
@@ -690,27 +674,11 @@ class UserForm(StyledModelForm):
                 Submit("submit_user", _("Update")))
 
 
-class UserStatusForm(StyledModelForm):
-    class Meta:
-        model = UserStatus
-        fields = ("editor_mode",)
-
-    def __init__(self, *args, **kwargs):
-        super(UserStatusForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(
-                Submit("submit_user_status", _("Update")))
-
-
 def user_profile(request):
     if not request.user.is_authenticated():
         raise PermissionDenied()
 
-    from course.models import get_user_status
-    ustatus = get_user_status(request.user)
-
     user_form = None
-    user_status_form = None
 
     if request.method == "POST":
         if "submit_user" in request.POST:
@@ -723,24 +691,11 @@ def user_profile(request):
                 if request.GET.get("first_login"):
                     return redirect("relate-home")
 
-        if "submit_user_status" in request.POST:
-            user_status_form = UserStatusForm(
-                    request.POST, instance=ustatus)
-            if user_status_form.is_valid():
-                user_status_form.save()
-                messages.add_message(request, messages.INFO,
-                        _("Profile data saved."))
-                if request.GET.get("first_login"):
-                    return redirect("relate-home")
-
     if user_form is None:
         user_form = UserForm(instance=request.user)
-    if user_status_form is None:
-        user_status_form = UserStatusForm(instance=ustatus)
 
     return render(request, "user-profile-form.html", {
         "user_form": user_form,
-        "user_status_form": user_status_form,
         })
 
 # }}}

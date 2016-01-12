@@ -42,7 +42,7 @@ from django.utils import translation
 from crispy_forms.layout import Submit
 
 from course.models import (
-        get_user_status, user_status,
+        user_status,
         Course,
         Participation, ParticipationPreapproval,
         ParticipationTag,
@@ -83,9 +83,8 @@ def enroll(request, course_identifier):
         return redirect("relate-course_page", course_identifier)
 
     user = request.user
-    ustatus = get_user_status(user)
     if (course.enrollment_required_email_suffix
-            and ustatus.status != user_status.active):
+            and user.status != user_status.active):
         messages.add_message(request, messages.ERROR,
                 _("Your email address is not yet confirmed. "
                 "Confirm your email to continue."))
