@@ -325,6 +325,8 @@ class ParticipationTag(models.Model):
             help_text=_("Format is lower-case-with-hyphens. "
             "Do not use spaces."),
             verbose_name=_('Name of participation tag'))
+    shown_to_participant = models.BooleanField(default=False,
+            verbose_name=_('Shown to pariticpant'))
 
     def clean(self):
         super(ParticipationTag, self).clean()

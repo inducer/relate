@@ -42,6 +42,16 @@
           </span>
         </td>
       </tr>
+      <tr>
+        <td>{% trans "Tags" %}</td>
+        <td>
+          {% for ptag in grade_participation.tags.all %}
+            {% if not is_student_viewing or ptag.shown_to_participant %}
+              <span class="label label-default">{{ ptag.name }}</span>
+            {% endif %}
+          {% endfor %}
+        </td>
+      </tr>
     </table>
   {% endif %}
 

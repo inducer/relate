@@ -233,6 +233,12 @@ urlpatterns = [
         "/$",
         course.enrollment.create_preapprovals,
         name="relate-create_preapprovals"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/query-participations"
+        "/$",
+        course.enrollment.query_participations,
+        name="relate-query_participations"),
 
     # }}}
 
