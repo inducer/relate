@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% trans "Sign in to RELATE" %}</h1>
+
+  <ul class="list-sign-in-methods">
+    {% if relate_sign_in_by_saml2_enabled %}
+      <li>
+        <a
+          class="btn btn-primary"
+          href="#"
+          role="button"><i class="fa fa-institution"></i>
+          {% trans "Sign in using your institution's login" %} &raquo;</a>
+      </li>
+    {% endif %}
+    {% if relate_sign_in_by_email_enabled %}
+      <li>
+        <a
+          class="btn btn-primary"
+          href="{% url 'relate-sign_in_by_email' %}"
+          role="button"><i class="fa fa-envelope-o"></i>
+          {% trans "Sign in using your email" %} &raquo;</a>
+      </li>
+    {% endif %}
+    {% if relate_registration_enabled %}
+      <li>
+        <a
+          class="btn btn-primary"
+          href="{% url 'relate-sign_up' %}"
+          role="button"><i class="fa fa-user-plus"></i>
+          {% trans "Sign up for an account" %} &raquo;</a>
+      </li>
+    {% endif %}
+    {% if relate_sign_in_by_exam_tickets_enabled %}
+      <li>
+        <a
+          class="btn btn-primary"
+          href="{% url 'relate-check_in_for_exam' %}"
+          role="button"><i class="fa fa-ticket"></i>
+          {% trans "Sign in using an exam ticket" %} &raquo;</a>
+      </li>
+    {% endif %}
+    <li>
+      <a
+        class="btn btn-primary"
+        href="{% url 'relate-sign_in_by_user_pw' %}"
+        role="button"><i class="fa fa-key"></i>
+        {% trans "Sign in with a RELATE-specific user name and password" %} &raquo;</a>
+    </li>
+  </ul>
+{% endblock %}

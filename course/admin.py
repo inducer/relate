@@ -161,7 +161,9 @@ class CourseAdmin(admin.ModelAdmin):
             "time_period",
             "start_date",
             "end_date",
-            )
+            "hidden",
+            "listed",
+            "accepts_enrollment")
     list_filter = (
             "number",
             "time_period",

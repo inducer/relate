@@ -75,3 +75,6 @@ django_select2==5.0.3
 # Custom user migration created using
 # https://bitbucket.org/spookylukey/django_custom_user_migration
 # (but this package no longer needs to be installed)
+
+# For query lexing
+pytools

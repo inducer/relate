@@ -6,28 +6,37 @@
 {% block content %}
   <h1>{% trans "Sign in" %}</h1>
 
-  {% if "user_pw" not in student_sign_in_view %}
-    <div class="alert alert-warning">
+  <div class="alert alert-info">
+    <i class="fa fa-chevron-left"></i>
+    {% url "relate-sign_in_choice" as relate-sign_in_choice %}
+    {% blocktrans trimmed %}
+      If you cannot or would not like to sign in using a RELATE-specific
+      user name or password,
+      <a href='{{ relate-sign_in_choice }}'>please choose a different method to sign in</a>.
+    {% endblocktrans %}
+  </div>
+  <div class="alert alert-warning">
     <i class="fa fa-warning"></i>
-    {% url student_sign_in_view as student_sign_in_view %}
+    {% url "relate-sign_in_choice" as relate-sign_in_choice %}
     {% blocktrans trimmed %}
-      If you have a not been assigned a password, you should use the
-      <a href='{{ student_sign_in_view }}'> standard sign-in process </a>.
+      Note that the user name and password needed to use this form
+      is <em>not</em> the user name and password you may have been
+      assigned by your institution.
     {% endblocktrans %}
-    </div>
-  {% else %}
-    <div class="alert alert-warning">
-    <i class="fa fa-warning"></i>
-    {% url "relate-sign_up" as relate-sign_up %}
-    {% blocktrans trimmed %}
-      If you do not have an account,
-      <a href='{{ relate-sign_up }}'>sign up</a>.
-    {% endblocktrans %}
-    {% url "relate-reset_password" as relate-reset_password %}
-    {% blocktrans trimmed %}
-      If you do not remember your password,
-      <a href="{{ relate-reset_password }}"> reset your password </a>.
-    {% endblocktrans %}
+  </div>
+  {% if relate_registration_enabled %}
+    <div class="alert alert-info">
+      <i class="fa fa-user-plus"></i>
+      {% url "relate-sign_up" as relate-sign_up %}
+      {% blocktrans trimmed %}
+        If you do not have an account,
+        <a href='{{ relate-sign_up }}'>sign up</a>.
+      {% endblocktrans %}
+      {% url "relate-reset_password" as relate-reset_password %}
+      {% blocktrans trimmed %}
+        If you do not remember your password,
+        <a href="{{ relate-reset_password }}"> reset your password </a>.
+      {% endblocktrans %}
     </div>
   {% endif %}
 

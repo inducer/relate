@@ -87,8 +87,10 @@ class UserStatus(models.Model):
             verbose_name=_('Key time'))
 
     editor_mode = models.CharField(max_length=20,
-            help_text=_("Your favorite text editor mode for text "
-                        "block or code block."),
+            help_text=_("Which key bindings you prefer when editing "
+                        "larger amounts of text or code. "
+                        "(If you do not understand what this means, "
+                        "leave it as 'Default'.)"),
             choices=(
                 ("default", _("Default")),
                 ("sublime", "Sublime text"),
@@ -119,7 +121,9 @@ class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
             help_text=_("A course identifier. Alphanumeric with dashes, "
             "no spaces. This is visible in URLs and determines the location "
-            "on your file system where the course's git repository lives."),
+            "on your file system where the course's git repository lives. "
+            "This should *not* be changed after the course has been created "
+            "without also moving the course's git on the server."),
             verbose_name=_('Course identifier'),
             db_index=True,
             validators=[
@@ -321,6 +325,8 @@ class ParticipationTag(models.Model):
             help_text=_("Format is lower-case-with-hyphens. "
             "Do not use spaces."),
             verbose_name=_('Name of participation tag'))
+    shown_to_participant = models.BooleanField(default=False,
+            verbose_name=_('Shown to pariticpant'))
 
     def clean(self):
         super(ParticipationTag, self).clean()
@@ -1416,13 +1422,6 @@ class Exam(models.Model):
     no_exams_after = models.DateTimeField(
             null=True, blank=True,
             verbose_name=_('No exams after'))
-
-    lock_down_sessions = models.BooleanField(
-            default=True,
-            verbose_name=_("Lock down sessions"),
-            help_text=_("Only allow access to exam content "
-                "(and no other content in this RELATE instance) "
-                "in sessions logged in through this exam"))
 
     class Meta:
         verbose_name = _("Exam")

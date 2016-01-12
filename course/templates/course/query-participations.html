@@ -1,10 +1,10 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
-
 {% load static %}
+{% load crispy_forms_tags %}
 
 {% block title %}
-  {% trans "List of Participants" %} - {% trans "RELATE" %}
+  {% trans "Query Participations" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block header_extra %}
@@ -17,8 +17,16 @@
 {% endblock %}
 
 {% block content %}
-  <h1>{% trans "List of Participants" %}</h1>
+  <h1>{% trans "Query Participations" %}</h1>
 
-  {% include "course/participation-table.html" with participations=participations %}
+  <div class="well">
+    {% crispy form %}
+  </div>
+
+  {% if result %}
+    {% include "course/participation-table.html" with participations=result %}
+  {% elif result != None %}
+    {% trans "No matches" %}
+  {% endif %}
 
 {% endblock %}

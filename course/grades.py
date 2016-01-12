@@ -137,6 +137,7 @@ def view_participant_grades(pctx, participation_id=None):
         "grade_participation": grade_participation,
         "grading_opportunities": grading_opps,
         "grade_state_change_types": grade_state_change_types,
+        "is_student_viewing": is_student_viewing,
         })
 
 # }}}

@@ -70,10 +70,11 @@ ADMINS = (
 
 TIME_ZONE = "America/Chicago"
 
-# Uncomment one of these to choose the default sign-in method for students
-STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
-#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_user_pw"
-#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_sso"  # not yet implemented
+# Choose the allowed ways of signing in to RELATE
+RELATE_SIGN_IN_BY_EMAIL_ENABLED = True
+RELATE_REGISTRATION_ENABLED = False
+RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
+RELATE_SIGN_IN_BY_SAML2_ENABLED = False  # not yet implemented
 
 # A string containing the image ID of the docker image to be used to run
 # student Python code. Docker should download the image on first run.

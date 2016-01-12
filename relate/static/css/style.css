@@ -219,4 +219,16 @@ a .sensitive {
 }
 */
 
+.list-sign-in-methods {
+  list-style: none;
+  padding-start: 0;
+  -webkit-padding-start: 0;
+}
+.list-sign-in-methods li {
+  margin-bottom: 1ex;
+}
+.alert-info a {
+  text-decoration: underline;
+}
+
 /* vim: set foldmethod=marker: */

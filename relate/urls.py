@@ -44,6 +44,9 @@ import course.exam
 
 urlpatterns = [
     url(r"^login/$",
+        course.auth.sign_in_choice,
+        name="relate-sign_in_choice"),
+    url(r"^login/user-password/$",
         course.auth.sign_in_by_user_pw,
         name="relate-sign_in_by_user_pw"),
     url(r"^login/sign-up/$",
@@ -230,6 +233,12 @@ urlpatterns = [
         "/$",
         course.enrollment.create_preapprovals,
         name="relate-create_preapprovals"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/query-participations"
+        "/$",
+        course.enrollment.query_participations,
+        name="relate-query_participations"),
 
     # }}}
 
@@ -415,6 +424,9 @@ urlpatterns = [
     url(r"^exam-check-in/$",
         course.exam.check_in_for_exam,
         name="relate-check_in_for_exam"),
+    url(r"^list-available-exams/$",
+        course.exam.list_available_exams,
+        name="relate-list_available_exams"),
 
     # }}}
 
