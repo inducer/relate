@@ -73,7 +73,7 @@ def transfer_remote_refs(repo, remote_refs):
     for ref, sha in six.iteritems(remote_refs):
         if (ref.startswith(b"refs/heads/")
                 and not ref.startswith(b"refs/heads/origin/")):
-            new_ref = "refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
+            new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
             valid_refs.append(new_ref)
             repo[new_ref] = sha
     for ref in repo.get_refs().keys():
@@ -187,6 +187,13 @@ class CourseCreationForm(StyledModelForm):
 
         self.helper.add_input(
                 Submit("submit", _("Validate and create")))
+
+    def clean_git_source(self):
+        if not self.cleaned_data["git_source"]:
+            from django.forms import ValidationError as FormValidationError
+            raise FormValidationError(_("Git source must be specified"))
+
+        return self.cleaned_data["git_source"]
 
 
 @login_required

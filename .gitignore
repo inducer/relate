@@ -18,3 +18,5 @@ build
 saml_config.py
 
 *.pem
+
+git-roots

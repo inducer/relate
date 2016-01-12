@@ -92,14 +92,14 @@ a customized version of
 This is needed about once every few hundred course update cycles, so relatively
 infrequently.
 
-Setting up SAML2 / Shibboleth
------------------------------
+Setting up SAML2
+----------------
 
 - Install ``xmlsec1``.
 
-- Flip ``RELATE_ENABLE_SAML2`` to ``True``.
+- Flip ``RELATE_SIGN_IN_BY_SAML2_ENABLED`` to ``True``.
 
-- Edit :file:`samle_config.py` using :file:`saml_config.py.example`
+- Edit :file:`saml_config.py` using :file:`saml_config.py.example`
   as a guide.
 
 How to translate RELATE

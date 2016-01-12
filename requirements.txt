@@ -1,4 +1,4 @@
-django>=1.8,<2.0
+django>=1.8.4,<2.0
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms>=1.5.1
@@ -75,3 +75,10 @@ django-celery
 
 # For searchable select forms
 django_select2==5.0.3
+
+# Custom user migration created using
+# https://bitbucket.org/spookylukey/django_custom_user_migration
+# (but this package no longer needs to be installed)
+
+# For query lexing
+pytools

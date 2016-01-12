@@ -1,5 +1,7 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
+# {{{ database and site
+
 SECRET_KEY = '<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>'
 
 ALLOWED_HOSTS = [
@@ -37,6 +39,12 @@ ALLOWED_HOSTS = [
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+TIME_ZONE = "America/Chicago"
+
+# }}}
+
+# {{{ git storage
+
 # Your course git repositories will be stored under this directory.
 # Make sure it's writable by your web user.
 #
@@ -48,6 +56,10 @@ TEMPLATE_DEBUG = DEBUG
 
 #GIT_ROOT = "/some/where"
 GIT_ROOT = ".."
+
+# }}}
+
+# {{{ email
 
 EMAIL_HOST = '127.0.0.1'
 EMAIL_HOST_USER = ''
@@ -68,16 +80,21 @@ ADMINS = (
     ("Example Admin", "admin@example.com"),
     )
 
-TIME_ZONE = "America/Chicago"
+# }}}
 
-RELATE_ENABLE_SAML2 = False
+# {{{ sign-in methods
+
+RELATE_SIGN_IN_BY_EMAIL_ENABLED = True
+RELATE_REGISTRATION_ENABLED = False
+RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
+
 # If you enable this, you must also have saml_config.py in this directory.
 # See saml_config.py.example for help.
+RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 
-# Uncomment one of these to choose the default sign-in method for students
-STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_email"
-#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_user_pw"
-#STUDENT_SIGN_IN_VIEW = "relate-sign_in_by_sso"  # not yet implemented
+# }}}
+
+# {{{ docker
 
 # A string containing the image ID of the docker image to be used to run
 # student Python code. Docker should download the image on first run.
@@ -106,6 +123,10 @@ RELATE_DOCKER_TLS_CONFIG = None
 #     ca_cert=os.path.join(pki_base_dir, "ca.pem"),
 #     verify=True)
 
+# }}}
+
+# {{{ maintenance and announcements
+
 RELATE_MAINTENANCE_MODE = False
 
 # May be set to a string to set a sitewide announcement visible on every page.
@@ -116,6 +137,10 @@ RELATE_SITE_ANNOUNCEMENT = None
 # language. If commented, RELATE will use default language 'en-us'.
 
 #LANGUAGE_CODE='en-us'
+
+# }}}
+
+# {{{ exams and testing
 
 RELATE_FACILITIES = {
     "test_center": {
@@ -130,4 +155,6 @@ RELATE_FACILITIES = {
 # use?
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = 12*60
 
-# vim: filetype=python
+# }}}
+
+# vim: filetype=python:foldmethod=marker

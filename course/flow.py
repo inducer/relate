@@ -259,6 +259,9 @@ def get_interaction_kind(fctx, flow_session, flow_generates_grade):
                 ordinal__isnull=False)
             .order_by("ordinal"))
 
+    if not flow_session.in_progress:
+        return flow_session_interaction_kind
+
     ikind = flow_session_interaction_kind.noninteractive
 
     for i, page_data in enumerate(all_page_data):
@@ -918,7 +921,9 @@ def post_start_flow(pctx, fctx, flow_id):
             settings, "RELATE_SESSION_RESTART_COOLDOWN_SECONDS", 10)
 
         from datetime import timedelta
-        if ((now_datetime - latest_session.start_time)
+        if (
+                timedelta(seconds=0)
+                <= (now_datetime - latest_session.start_time)
                 < timedelta(seconds=cooldown_seconds)):
             return redirect("relate-view_flow_page",
                 pctx.course.identifier, latest_session.id, 0)
@@ -940,6 +945,11 @@ def post_start_flow(pctx, fctx, flow_id):
             flow_id=flow_id, flow_desc=fctx.flow_desc,
             access_rules_tag=session_start_rule.tag_session,
             now_datetime=now_datetime)
+
+    if session_start_rule.lock_down_as_exam_session:
+        pctx.request.session[
+                "relate_session_locked_to_exam_flow_session_pk"] = \
+                        session.pk
 
     return redirect("relate-view_flow_page",
             pctx.course.identifier, session.id, 0)

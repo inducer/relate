@@ -121,6 +121,7 @@
     <ul class="dropdown-menu">
       <li role="presentation" class="dropdown-header">{% trans "Participation" %}</li>
       <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
+      <li><a href="{% url "relate-query_participations" course.identifier %}">{% trans "Query participations" context "menu item" %}</a></li>
 
       <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">{% trans "Instant flow requests" %}</li>

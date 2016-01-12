@@ -1,0 +1,34 @@
+{% load i18n %}
+
+<table class="gradebook-participants">
+  <thead>
+    <th class="datacol">{% trans "User ID" %}</th>
+    <th class="datacol">{% trans "Last Name" %}</th>
+    <th class="datacol">{% trans "First Name" %}</th>
+    <th class="datacol">{% trans "Role" %}</th>
+    <th class="datacol">{% trans "Tags" %}</th>
+  </thead>
+  <tbody>
+    {% for participation in participations %}
+    <tr>
+      <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}"><span class="sensitive">{{ participation.user.username }}</span></a></td>
+      <td class="datacol"><span class="sensitive">{{ participation.user.last_name }}</span></td>
+      <td class="datacol"><span class="sensitive">{{ participation.user.first_name }}</span></td>
+      <td class="datacol">{{ participation.get_role_desc }}</td>
+      <td class="datacol">
+        {% for ptag in participation.tags.all %}
+          <span class="label label-default">{{ ptag.name }}</span>
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script type="text/javascript">
+  var tbl = $("table.gradebook-participants").dataTable({
+      "scrollCollapse": true,
+      "paging": false,
+      "ordering": true,
+  } );
+</script>

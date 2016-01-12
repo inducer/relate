@@ -42,9 +42,10 @@ from django.utils import translation
 from crispy_forms.layout import Submit
 
 from course.models import (
-        get_user_status, user_status,
+        user_status,
         Course,
         Participation, ParticipationPreapproval,
+        ParticipationTag,
         participation_role, participation_status,
         PARTICIPATION_ROLE_CHOICES)
 
@@ -52,6 +53,8 @@ from course.views import get_role_and_participation
 from course.utils import course_view, render_course_page
 
 from relate.utils import StyledForm
+
+from pytools.lex import RE as REBase
 
 
 # {{{ enrollment
@@ -80,9 +83,8 @@ def enroll(request, course_identifier):
         return redirect("relate-course_page", course_identifier)
 
     user = request.user
-    ustatus = get_user_status(user)
     if (course.enrollment_required_email_suffix
-            and ustatus.status != user_status.active):
+            and user.status != user_status.active):
         messages.add_message(request, messages.ERROR,
                 _("Your email address is not yet confirmed. "
                 "Confirm your email to continue."))
@@ -314,7 +316,7 @@ def create_preapprovals(pctx):
                         'n_exist': exist_count,
                         'n_requested_approved': pending_approved_count
                         })
-            return redirect("relate-home")
+            return redirect("relate-course_page", pctx.course.identifier)
 
     else:
         form = BulkPreapprovalsForm()
@@ -326,5 +328,283 @@ def create_preapprovals(pctx):
 
 # }}}
 
+
+# {{{ participation query parsing
+
+# {{{ lexer data
+
+_and = intern("and")
+_or = intern("or")
+_not = intern("not")
+_openpar = intern("openpar")
+_closepar = intern("closepar")
+
+_id = intern("id")
+_email = intern("email")
+_email_contains = intern("email_contains")
+_user = intern("user")
+_user_contains = intern("user_contains")
+_tagged = intern("tagged")
+_whitespace = intern("whitespace")
+
+# }}}
+
+
+class RE(REBase):
+    def __init__(self, s):
+        import re
+        super(RE, self).__init__(s, re.UNICODE)
+
+
+_LEX_TABLE = [
+    (_and, RE(r"and\b")),
+    (_or, RE(r"or\b")),
+    (_not, RE(r"not\b")),
+    (_openpar, RE(r"\(")),
+    (_closepar, RE(r"\)")),
+
+    # TERMINALS
+    (_id, RE(r"id:([0-9]+)")),
+    (_email, RE(r"email:(\S+)")),
+    (_email_contains, RE(r"email-contains:(\S+)")),
+    (_user, RE(r"username:(\S+)")),
+    (_user_contains, RE(r"username-contains:(\S+)")),
+    (_tagged, RE(r"tagged:([-\w]+)")),
+
+    (_whitespace, RE("[ \t]+")),
+    ]
+
+
+_TERMINALS = ([
+    _id, _email, _email_contains, _user, _user_contains, ])
+
+# {{{ operator precedence
+
+_PREC_OR = 10
+_PREC_AND = 20
+_PREC_NOT = 30
+
+# }}}
+
+
+# {{{ parser
+
+def parse_query(course, expr_str):
+    from django.db.models import Q
+
+    def parse_terminal(pstate):
+        next_tag = pstate.next_tag()
+        if next_tag is _id:
+            result = Q(user__id=int(pstate.next_match_obj().group(1)))
+            pstate.advance()
+            return result
+
+        elif next_tag is _email:
+            result = Q(user__email__iexact=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _email_contains:
+            result = Q(user__email__icontains=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _user:
+            result = Q(user__username__exact=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _user_contains:
+            result = Q(user__username__contains=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _tagged:
+            ptag = ParticipationTag.objects.get_or_create(
+                    course=course,
+                    name=pstate.next_match_obj().group(1))
+
+            result = Q(tags__pk=ptag.pk)
+
+            pstate.advance()
+            return result
+
+        else:
+            pstate.expected("terminal")
+
+    def inner_parse(pstate, min_precedence=0):
+        pstate.expect_not_end()
+
+        if pstate.is_next(_not):
+            pstate.advance()
+            left_query = ~inner_parse(pstate, _PREC_NOT)
+        elif pstate.is_next(_openpar):
+            pstate.advance()
+            left_query = inner_parse(pstate)
+            pstate.expect(_closepar)
+            pstate.advance()
+        else:
+            left_query = parse_terminal(pstate)
+
+        did_something = True
+        while did_something:
+            did_something = False
+            if pstate.is_at_end():
+                return left_query
+
+            next_tag = pstate.next_tag()
+
+            if next_tag is _and and _PREC_AND > min_precedence:
+                pstate.advance()
+                left_query = left_query & inner_parse(pstate, _PREC_AND)
+                did_something = True
+            elif next_tag is _or and _PREC_OR > min_precedence:
+                pstate.advance()
+                left_query = left_query | inner_parse(pstate, _PREC_OR)
+                did_something = True
+            elif (next_tag in _TERMINALS + [_not, _openpar]
+                    and _PREC_AND > min_precedence):
+                left_query = left_query & inner_parse(pstate, _PREC_AND)
+                did_something = True
+
+        return left_query
+
+    from pytools.lex import LexIterator, lex
+    pstate = LexIterator(
+        [(tag, s, idx, matchobj)
+         for (tag, s, idx, matchobj) in lex(_LEX_TABLE, expr_str, match_objects=True)
+         if tag is not _whitespace], expr_str)
+
+    if pstate.is_at_end():
+        pstate.raise_parse_error("unexpected end of input")
+
+    result = inner_parse(pstate)
+    if not pstate.is_at_end():
+        pstate.raise_parse_error("leftover input after completed parse")
+
+    return result
+
+# }}}
+
+# }}}
+
+
+# {{{ participation query
+
+class ParticipationQueryForm(StyledForm):
+    queries = forms.CharField(
+            required=True,
+            widget=forms.Textarea,
+            help_text=_(
+                "Enter queries, one per line. "
+                "Allowed: "
+                "<code>and</code>, "
+                "<code>or</code>, "
+                "<code>not</code>, "
+                "<code>id:1234</code>, "
+                "<code>email:a@b.com</code>, "
+                "<code>email-contains:abc</code>, "
+                "<code>username:abc</code>, "
+                "<code>username-contains:abc</code>, "
+                "<code>tagged:abc</code>."
+                ),
+            label=_("Queries"))
+    op = forms.ChoiceField(
+            choices=(
+                ("apply_tag", _("Apply tag")),
+                ("remove_tag", _("Remove tag")),
+                ("drop", _("Drop")),
+                ),
+            label=_("Operation"),
+            required=True)
+    tag = forms.CharField(label=_("Tag"),
+            help_text=_("Tag to apply or remove"),
+            required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(ParticipationQueryForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("list", _("List")))
+        self.helper.add_input(
+                Submit("apply", _("Apply operation")))
+
+
+@login_required
+@transaction.atomic
+@course_view
+def query_participations(pctx):
+    if pctx.role != participation_role.instructor:
+        raise PermissionDenied(_("only instructors may do that"))
+
+    request = pctx.request
+
+    result = None
+
+    if request.method == "POST":
+        form = ParticipationQueryForm(request.POST)
+        if form.is_valid():
+            parsed_query = None
+            try:
+                for lineno, q in enumerate(form.cleaned_data["queries"].split("\n")):
+                    if not q.strip():
+                        continue
+
+                    parsed_subquery = parse_query(pctx.course, q)
+                    if parsed_query is None:
+                        parsed_query = parsed_subquery
+                    else:
+                        parsed_query = parsed_query | parsed_subquery
+
+            except RuntimeError as e:
+                messages.add_message(request, messages.ERROR,
+                        _("Error in line %(lineno)d: %(error)s")
+                        % {
+                            "lineno": lineno+1,
+                            "error": str(e),
+                            })
+
+                parsed_query = None
+
+            if parsed_query is not None:
+                result = list(Participation.objects
+                        .filter(course=pctx.course)
+                        .filter(parsed_query)
+                        .order_by("user__username")
+                        .select_related("user")
+                        .prefetch_related("tags"))
+
+                if "apply" in request.POST:
+
+                    if form.cleaned_data["op"] == "apply_tag":
+                        ptag, __ = ParticipationTag.objects.get_or_create(
+                                course=pctx.course, name=form.cleaned_data["tag"])
+                        for p in result:
+                            p.tags.add(ptag)
+                    elif form.cleaned_data["op"] == "remove_tag":
+                        ptag, __ = ParticipationTag.objects.get_or_create(
+                                course=pctx.course, name=form.cleaned_data["tag"])
+                        for p in result:
+                            p.tags.remove(ptag)
+                    elif form.cleaned_data["op"] == "drop":
+                        for p in result:
+                            p.status = participation_status.dropped
+                            p.save()
+                    else:
+                        raise RuntimeError("unexpected operation")
+
+                    messages.add_message(request, messages.INFO,
+                            "Operation successful on %d participations."
+                            % len(result))
+
+    else:
+        form = ParticipationQueryForm()
+
+    return render_course_page(pctx, "course/query-participations.html", {
+        "form": form,
+        "result": result,
+    })
+
+# }}}
 
 # vim: foldmethod=marker
