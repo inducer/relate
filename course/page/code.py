@@ -159,6 +159,7 @@ def request_python_run(run_req, run_timeout, image=None):
                             "result": "uncaught_error",
                             "message": "Timeout waiting for container.",
                             "traceback": "".join(format_exc()),
+                            "exec_host": connect_host_ip,
                             }
 
         while True:
@@ -222,11 +223,15 @@ def request_python_run(run_req, run_timeout, image=None):
                     + ["Execution time: %.1f s -- Time limit: %.1f s"
                         % (end_time - start_time, run_timeout)])
 
+            result["exec_host"] = connect_host_ip
+
             return result
 
         except socket.timeout:
-            return {"result": "timeout"}
-
+            return {
+                    "result": "timeout",
+                    "exec_host": connect_host_ip,
+                    }
     finally:
         if container_id is not None:
             debug_print("-----------BEGIN DOCKER LOGS for %s" % container_id)
@@ -742,6 +747,19 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 _("This is the exception traceback"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.traceback))
+        if hasattr(response, "exec_host") and response.exec_host != "localhost":
+            import socket
+            try:
+                exec_host_name, dummy, dummy = socket.gethostbyaddr(
+                        response.exec_host)
+            except socket.error:
+                exec_host_name = response.exec_host
+
+            feedback_bits.append("".join([
+                "<p>",
+                _("Your code ran on %s.") % exec_host_name,
+                "</p>"]))
+
         if hasattr(response, "stdout") and response.stdout:
             bulk_feedback_bits.append("".join([
                 "<p>",
