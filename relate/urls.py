@@ -447,12 +447,12 @@ if settings.RELATE_MAINTENANCE_MODE:
 
 if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
     urlpatterns.extend([
-        (r'^saml2/', include('djangosaml2.urls')),
+        url(r'^saml2/', include('djangosaml2.urls')),
         ])
     if settings.DEBUG:
         urlpatterns.extend([
             # Keep commented unless debugging SAML2.
-            (r'^saml2-test/', 'djangosaml2.views.echo_attributes'),
+            url(r'^saml2-test/', 'djangosaml2.views.echo_attributes'),
             ])
 
 # vim: fdm=marker

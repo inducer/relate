@@ -9,9 +9,10 @@
       <li>
         <a
           class="btn btn-primary"
-          href="#"
+          href="{% url "djangosaml2.views.login" %}"
           role="button"><i class="fa fa-institution"></i>
           {% trans "Sign in using your institution's login" %} &raquo;</a>
+          (not yet working, but getting there)
       </li>
     {% endif %}
     {% if relate_sign_in_by_email_enabled %}
