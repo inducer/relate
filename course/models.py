@@ -77,16 +77,19 @@ class Course(models.Model):
     name = models.CharField(
             null=True, blank=False,
             max_length=200,
+            verbose_name=_('Course name'),
             help_text=_("A human-readable name for the course. "
                 "(e.g. 'Numerical Methods')"))
     number = models.CharField(
             null=True, blank=False,
             max_length=200,
+            verbose_name=_('Course number'),
             help_text=_("A human-readable course number/ID "
                 "for the course (e.g. 'CS123')"))
     time_period = models.CharField(
             null=True, blank=False,
             max_length=200,
+            verbose_name=_('Time Period'),
             help_text=_("A human-readable description of the "
                 "time period for the course (e.g. 'Fall 2014')"))
 

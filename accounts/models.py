@@ -27,7 +27,7 @@ THE SOFTWARE.
 
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, pgettext_lazy
 from django.utils import timezone
 from django.contrib.auth.models import UserManager
 from django.core import validators
@@ -69,7 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ),
     )
     is_active = models.BooleanField(
-        _('active'),
+        pgettext_lazy("User status", "active"),
         default=True,
         help_text=_(
             'Designates whether this user should be treated as active. '
