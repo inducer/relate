@@ -570,7 +570,7 @@ class ExamFacilityMiddleware(object):
                 set_pretend_facilities]:
             ok = True
 
-        elif path.startswith("/saml2"):
+        elif request.path.startswith("/saml2"):
             ok = True
 
         elif (
