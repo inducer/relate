@@ -552,6 +552,7 @@ class ExamFacilityMiddleware(object):
         from course.exam import check_in_for_exam, issue_exam_ticket
         from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
                 sign_in_stage2_with_token, sign_in_by_user_pw)
+        from course.views import set_pretend_facilities
         from course.flow import view_start_flow, view_flow_page
         from django.contrib.auth.views import logout
 
@@ -565,7 +566,8 @@ class ExamFacilityMiddleware(object):
                 list_available_exams,
                 view_start_flow,
                 user_profile,
-                logout]:
+                logout,
+                set_pretend_facilities]:
             ok = True
 
         elif path.startswith("/saml2"):
