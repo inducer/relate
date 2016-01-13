@@ -3835,7 +3835,7 @@ msgstr "输入新的反馈项目:"
 
 #: .\course\templates\course\grade-flow-page.html:285
 msgid "Add phrase"
-msgstr "添加阶段"
+msgstr "添加常用评语"
 
 #: .\course\templates\course\grade-flow-page.html:287
 #: .\course\templates\course\grade-flow-page.html:312
