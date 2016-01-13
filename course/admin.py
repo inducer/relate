@@ -121,6 +121,12 @@ class CourseAdmin(admin.ModelAdmin):
             "accepts_enrollment")
     date_hierarchy = "start_date"
 
+    search_fields = (
+            "identifier",
+            "number",
+            "name",
+            "time_period")
+
     form = CourseAdminForm
 
     save_on_top = True
