@@ -132,13 +132,13 @@ RELATE_MAINTENANCE_MODE = False
 # May be set to a string to set a sitewide announcement visible on every page.
 RELATE_SITE_ANNOUNCEMENT = None
 
+# }}}
+
 # Uncomment this to enable i18n, change 'en-us' to locale name your language.
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language 'en-us'.
 
 #LANGUAGE_CODE='en-us'
-
-# }}}
 
 # {{{ exams and testing
 
@@ -154,6 +154,120 @@ RELATE_FACILITIES = {
 # For how many minutes is an exam ticket still usable for login after its first
 # use?
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = 12*60
+
+# }}}
+
+# {{{ saml2 (optional)
+
+if RELATE_SIGN_IN_BY_SAML2_ENABLED:
+    from os import path
+    import saml2.saml
+    _BASEDIR = path.dirname(path.abspath(__file__))
+
+    _BASE_URL = 'https://relate.cs.illinois.edu'
+
+    SAML_CONFIG = {
+        # full path to the xmlsec1 binary programm
+        'xmlsec_binary': '/usr/bin/xmlsec1',
+
+        # your entity id, usually your subdomain plus the url to the metadata view
+        # (usually no need to change)
+        'entityid': _BASE_URL + '/saml2/metadata/',
+
+        # directory with attribute mapping
+        # (already populated with samples from djangosaml2, usually no need to
+        # change)
+        'attribute_map_dir': path.join(_BASEDIR, 'saml-config', 'attribute-maps'),
+
+        # this block states what services we provide
+        'service': {
+            'sp': {
+                'name': 'RELATE SAML2 SP',
+                'name_id_format': saml2.saml.NAMEID_FORMAT_PERSISTENT,
+                'endpoints': {
+                    # url and binding to the assertion consumer service view
+                    # do not change the binding or service name
+                    'assertion_consumer_service': [
+                        (_BASE_URL + '/saml2/acs/',
+                         saml2.BINDING_HTTP_POST),
+                        ],
+                    # url and binding to the single logout service view
+                    # do not change the binding or service name
+                    'single_logout_service': [
+                        (_BASE_URL + '/saml2/ls/',
+                         saml2.BINDING_HTTP_REDIRECT),
+                        (_BASE_URL + '/saml2/ls/post',
+                         saml2.BINDING_HTTP_POST),
+                        ],
+                    },
+
+                # attributes that this project needs to identify a user
+                'required_attributes': ['uid'],
+
+                # attributes that may be useful to have but not required
+                'optional_attributes': ['eduPersonAffiliation'],
+
+                # in this section the list of IdPs we talk to are defined
+                'idp': {
+                    # Find the entity ID of your IdP and make this the key here:
+                    'urn:mace:incommon:uiuc.edu': {
+                        'single_sign_on_service': {
+                            # Add the POST and REDIRECT bindings for the sign on service here:
+                            saml2.BINDING_HTTP_POST:
+                                'https://shibboleth.illinois.edu/idp/profile/SAML2/POST/SSO',
+                            saml2.BINDING_HTTP_REDIRECT:
+                                'https://shibboleth.illinois.edu/idp/profile/SAML2/Redirect/SSO',
+                            },
+                        'single_logout_service': {
+                            # And the REDIRECT binding for the logout service here:
+                            saml2.BINDING_HTTP_REDIRECT:
+                            'https://shibboleth.illinois.edu/idp/logout.jsp',  # noqa
+                            },
+                        },
+                    },
+                },
+            },
+
+        # You will get this XML file from your institution. It has finite validity
+        # and will need to be re-downloaded periodically.
+        #
+        # "itrust" is an example name that's valid for the University of Illinois.
+        # This particular file is public and lives at
+        # https://discovery.itrust.illinois.edu/itrust-metadata/itrust-metadata.xml
+
+        'metadata': {
+            'local': [path.join(_BASEDIR, 'saml-config', 'itrust-metadata.xml')],
+            },
+
+        # set to 1 to output debugging information
+        'debug': 1,
+
+        # certificate
+        # see saml2-keygen.sh in this directory
+        'key_file': path.join(_BASEDIR, 'saml-config', 'sp-key.pem'),  # private part
+        'cert_file': path.join(_BASEDIR, 'saml-config', 'sp-cert.pem'),  # public part
+
+        # own metadata settings
+        'contact_person': [
+            {'given_name': 'Andreas',
+             'sur_name': 'Kloeckner',
+             'company': 'CS - University of Illinois',
+             'email_address': 'andreask@illinois.edu',
+             'contact_type': 'technical'},
+            {'given_name': 'Andreas',
+             'sur_name': 'Kloeckner',
+             'company': 'CS - University of Illinois',
+             'email_address': 'andreask@illinois.edu',
+             'contact_type': 'administrative'},
+            ],
+        # you can set multilanguage information here
+        'organization': {
+            'name': [('RELATE', 'en')],
+            'display_name': [('RELATE', 'en')],
+            'url': [(_BASE_URL, 'en')],
+            },
+        'valid_for': 24,  # how long is our metadata valid
+        }
 
 # }}}
 

@@ -275,8 +275,6 @@ SAML_ATTRIBUTE_MAPPING = {
     'sn': ('last_name', ),
 }
 
-SAML_CONFIG = join(BASE_DIR, "saml_config.py")
-
 # }}}
 
 # vim: foldmethod=marker

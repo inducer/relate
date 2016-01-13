@@ -2,7 +2,7 @@
 
 # nicked and customized from Shibboleth
 # Run as
-# ./saml2-keygen.sh –h your.host.name –e https://your.host.name/saml2/metadata -y 10
+# ./saml-keygen.sh –h your.host.name –e https://your.host.name/saml2/metadata/ -y 10
 
 while getopts h:u:g:o:e:y:bf c
      do
