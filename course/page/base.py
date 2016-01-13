@@ -519,7 +519,7 @@ TITLE_RE = re.compile(r"^\#\s*(\w.*)", re.UNICODE)
 def extract_title_from_markup(markup_text):
     lines = markup_text.split("\n")
 
-    for l in lines[:5]:
+    for l in lines[:10]:
         match = TITLE_RE.match(l)
         if match is not None:
             return match.group(1)
