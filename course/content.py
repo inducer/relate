@@ -281,12 +281,19 @@ class GitTemplateLoader(BaseTemplateLoader):
 
 
 class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
+    # https://github.com/inducer/relate/issues/130
+
     def get_source(self, environment, template):
         source, path, is_up_to_date = \
                 super(YamlBlockEscapingGitTemplateLoader, self).get_source(
                         environment, template)
 
-        source = process_yaml_for_expansion(source)
+        from os.path import splitext
+        _, ext = splitext(template)
+        ext = ext.lower()
+
+        if ext in [".yml", ".yaml"]:
+            source = process_yaml_for_expansion(source)
 
         return source, path, is_up_to_date
 
@@ -297,9 +304,7 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
 
     from jinja2 import Environment, StrictUndefined
     jinja_env = Environment(
-            loader=GitTemplateLoader(repo, commit_sha),
-            # https://github.com/inducer/relate/issues/130
-            # loader=YamlBlockEscapingGitTemplateLoader(repo, commit_sha),
+            loader=YamlBlockEscapingGitTemplateLoader(repo, commit_sha),
             undefined=StrictUndefined)
 
     # {{{ process explicit [JINJA] tags (deprecated)
