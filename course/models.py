@@ -62,7 +62,7 @@ class Course(models.Model):
             help_text=_("A course identifier. Alphanumeric with dashes, "
             "no spaces. This is visible in URLs and determines the location "
             "on your file system where the course's git repository lives. "
-            "This should *not* be changed after the course has been created "
+            "This should <em>not</em> be changed after the course has been created "
             "without also moving the course's git on the server."),
             verbose_name=_('Course identifier'),
             db_index=True,
@@ -126,7 +126,7 @@ class Course(models.Model):
             verbose_name=_('SSH private key'))
     course_root_path = models.CharField(max_length=200, blank=True,
             help_text=_(
-                'Subdirectory *within* the git repository to use as '
+                'Subdirectory <em>within</em> the git repository to use as '
                 'course root directory. Not required, and usually blank. '
                 'Use only if your course content lives in a subdirectory '
                 'of your git repository. '
