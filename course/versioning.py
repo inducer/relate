@@ -434,8 +434,12 @@ class GitUpdateForm(StyledForm):
 
         def format_commit(commit):
             return "%s - %s" % (
-                    commit.id[:8],
-                    "".join(commit.message.split("\n")[:1]))
+                    commit.id[:8].decode(),
+                    "".join(
+                        commit.message
+                        .decode("utf-8", errors="replace")
+                        .split("\n")
+                        [:1]))
 
         def format_sha(sha):
             return format_commit(repo[sha])
@@ -443,7 +447,9 @@ class GitUpdateForm(StyledForm):
         self.fields["new_sha"] = forms.ChoiceField(
                 choices=([
                     (repo_refs[ref],
-                        "[%s] %s" % (ref, format_sha(repo_refs[ref])))
+                        "[%s] %s" % (
+                            ref.decode("utf-8", errors="replace"),
+                            format_sha(repo_refs[ref])))
                     for ref in repo_refs
                     ] +
                     [
