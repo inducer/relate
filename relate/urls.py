@@ -27,7 +27,7 @@ THE SOFTWARE.
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.conf import settings
-from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX
+from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
 
 import django.contrib.auth.views
 import course.auth
@@ -115,6 +115,13 @@ urlpatterns = [
         "/$",
         course.views.course_page,
         name="relate-course_page"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/page"
+        "/" + STATICPAGE_PATH_REGEX +
+        "/$",
+        course.views.static_page,
+        name="relate-content_page"),
     url(r"^course"
         "/" + COURSE_ID_REGEX +
         "/instant-message/$",

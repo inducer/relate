@@ -123,7 +123,7 @@ def maintenance(request):
     return render(request, "maintenance.html")
 
 
-# {{{ course page
+# {{{ pages
 
 def check_course_state(course, role):
     if course.hidden:
@@ -134,9 +134,11 @@ def check_course_state(course, role):
 
 @course_view
 def course_page(pctx):
-    from course.content import get_processed_course_chunks
-    chunks = get_processed_course_chunks(
-            pctx.course, pctx.repo, pctx.course_commit_sha, pctx.course_desc,
+    from course.content import get_processed_page_chunks, get_course_desc
+    page_desc = get_course_desc(pctx.repo, pctx.course, pctx.course_commit_sha)
+
+    chunks = get_processed_page_chunks(
+            pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
             pctx.role, get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities)
 
@@ -157,6 +159,26 @@ def course_page(pctx):
     return render_course_page(pctx, "course/course-page.html", {
         "chunks": chunks,
         "show_enroll_button": show_enroll_button,
+        })
+
+
+@course_view
+def static_page(pctx, page_path):
+    from course.content import get_staticpage_desc, get_processed_page_chunks
+    try:
+        page_desc = get_staticpage_desc(pctx.repo, pctx.course,
+                pctx.course_commit_sha, "staticpages/"+page_path+".yml")
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    chunks = get_processed_page_chunks(
+            pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
+            pctx.role, get_now_or_fake_time(pctx.request),
+            facilities=pctx.request.relate_facilities)
+
+    return render_course_page(pctx, "course/static-page.html", {
+        "chunks": chunks,
+        "show_enroll_button": False,
         })
 
 # }}}

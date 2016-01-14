@@ -36,7 +36,7 @@ from course.views import (
         get_role_and_participation
         )
 from course.content import (
-        get_course_repo, get_course_desc, get_flow_desc,
+        get_course_repo, get_flow_desc,
         parse_date_spec, get_course_commit_sha)
 from course.constants import (
         participation_role,
@@ -369,8 +369,6 @@ class CoursePageContext(object):
                 self.course, self.participation)
 
         self.repo = get_course_repo(self.course)
-        self.course_desc = get_course_desc(self.repo, self.course,
-                self.course_commit_sha)
 
 
 class FlowContext(object):
@@ -514,7 +512,6 @@ def render_course_page(pctx, template_name, args,
 
     args.update({
         "course": pctx.course,
-        "course_desc": pctx.course_desc,
         "participation": pctx.participation,
         "role": pctx.role,
         "participation_role": participation_role,

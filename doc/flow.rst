@@ -609,8 +609,8 @@ The following page types are predefined:
 
 .. |title-page-attr| replace::
 
-    The page's title, a string. No markup allowed. Optional. If not supplied,
-    the first five lines of the page body are searched for a first-level
+    The page's title, a string. No markup allowed. Required. If not supplied,
+    the first ten lines of the page body are searched for a
     Markdown heading (``# My title``) and this heading is used as a title.
 
 .. |access-rules-page-attr| replace::

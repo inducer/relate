@@ -171,6 +171,10 @@ a RELATE site:
 
 * The URL schema ``calendar:`` links to the course calendar page.
 
+* The URL schema ``staticpage:some/where`` links to the page found in
+  ``staticpages/some/where.yml`` in the repository.
+  (Note the added ``staticpages``.)
+
 * The URL schema ``repo:some/file/name.png``
   will be resolved to the file `some/file/name.png` in the
   course's :ref:`git-repo`.
@@ -316,21 +320,35 @@ to embed a YouTube player. (YouTube is a registered trademark.)
 
 .. _course_yml:
 
-The Course Information File
----------------------------
+The Main Course Page File
+-------------------------
 
-The highest-level information about a course is contained in a :ref:`YAML
-file <yaml-files>` that is typically named :file:`course.yml`. Other
-names may be specified, enabling multiple courses to be run from the same
-repository.
+One required part of each course repository is a :ref:`YAML file
+<yaml-files>` that is typically named :file:`course.yml` Other names may be
+specified, enabling multiple courses to be run from the same repository.
+It has the same format as a course page, described next, and it contains
+the information shown on the main course page.
 
-The content of this file allows the following fields:
+"Static" (i.e. non-interactive) pages
+-------------------------------------
 
-.. class:: Course
+A static page looks as follows and is either the main course file
+or a file in the ``staticpages`` subfolder of the course repository.
+
+.. class:: Page
+
+    .. attribute:: content
+
+        :ref:`markup`. If given, this contains the entirety of the page's
+        content.
+        May only specify exactly one of :attr:`content` or :attr:`chunks`.
 
     .. attribute:: chunks
 
-        A list of :ref:`course-chunks`.
+        A list of :ref:`course-chunks`. Chunks allow dynamic reordering
+        and hiding of course information based on time and rules.
+
+        May only specify exactly one of :attr:`content` or :attr:`chunks`.
 
 .. comment:
     .. attribute:: grade_summary_code
@@ -401,7 +419,9 @@ Here's an example:
     .. attribute:: title
 
         A plain text description of the chunk to be used in a table of
-        contents
+        contents. A string. No markup allowed. Optional. If not supplied,
+        the first ten lines of the page body are searched for a
+        Markdown heading (``# My title``) and this heading is used as a title.
 
     .. attribute:: id
 
@@ -413,6 +433,8 @@ Here's an example:
         A list of :class:`CoursePageChunkRules` that will be tried in
         order. The first rule whose conditions match determines whether
         the chunk will be shown and how where on the page it will be.
+        Optional. If not given, the chunk is shown and has a default
+        :attr:`CoursePageChunkRules.weight` of 0.
 
     .. attribute:: content
 

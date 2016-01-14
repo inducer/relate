@@ -203,7 +203,7 @@ class ValidationContext(object):
         self.warnings.append(ValidationWarning(*args, **kwargs))
 
 
-# {{{ course page validation
+# {{{ markup validation
 
 def validate_markup(ctx, location, markup_str):
     def reverse_func(*args, **kwargs):
@@ -230,6 +230,10 @@ def validate_markup(ctx, location, markup_str):
                     "err_type": tp.__name__,
                     "err_str": str(e)})
 
+# }}}
+
+
+# {{{ course page validation
 
 def validate_chunk_rule(ctx, location, chunk_rule):
     validate_struct(
@@ -289,55 +293,74 @@ def validate_chunk_rule(ctx, location, chunk_rule):
     # }}}
 
 
-def validate_chunk(ctx, location, chunk):
+def validate_page_chunk(ctx, location, chunk):
     validate_struct(
             ctx,
             location,
             chunk,
             required_attrs=[
-                ("title", str),
                 ("id", str),
-                ("rules", list),
                 ("content", "markup"),
                 ],
-            allowed_attrs=[]
-            )
-
-    for i, rule in enumerate(chunk.rules):
-        validate_chunk_rule(ctx,
-                "%s, rule %d" % (location, i+1),
-                rule)
-
-
-def validate_course_desc_struct(ctx, location, course_desc):
-    validate_struct(
-            ctx,
-            location,
-            course_desc,
-            required_attrs=[
-                ("chunks", list),
-                ],
             allowed_attrs=[
-                ("grade_summary_code", str),
-
-                ("name", str),
-                ("number", str),
-                ("run", str),
+                ("title", str),
+                ("rules", list),
                 ]
             )
 
-    if hasattr(course_desc, "name"):
-        ctx.add_warning(location, _("'name' is deprecated. "
-            "This information is now kept in the database."))
-    if hasattr(course_desc, "number"):
-        ctx.add_warning(location, _("'number' is deprecated. "
-            "This information is now kept in the database."))
-    if hasattr(course_desc, "run"):
-        ctx.add_warning(location, _("'run' is deprecated. "
-            "This information is now kept in the database."))
+    title = getattr(chunk, "title", None)
+    if title is None:
+        from course.content import extract_title_from_markup
+        title = extract_title_from_markup(chunk.content)
 
-    for i, chunk in enumerate(course_desc.chunks):
-        validate_chunk(ctx,
+    if title is None:
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("no title present"))
+                % {'location': location})
+
+    if hasattr(chunk, "rules"):
+        for i, rule in enumerate(chunk.rules):
+            validate_chunk_rule(ctx,
+                    "%s, rule %d" % (location, i+1),
+                    rule)
+
+
+def validate_staticpage_desc(ctx, location, page_desc):
+    validate_struct(
+            ctx,
+            location,
+            page_desc,
+            required_attrs=[
+                ],
+            allowed_attrs=[
+                ("chunks", list),
+                ("content", str),
+                ]
+            )
+
+    # {{{ check for presence of 'chunks' or 'content'
+
+    if (
+            (not hasattr(page_desc, "chunks") and not hasattr(page_desc, "content"))
+            or
+            (hasattr(page_desc, "chunks") and hasattr(page_desc, "content"))):
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("must have either 'chunks' or 'content'"))
+                % {'location': location})
+
+    # }}}
+
+    if hasattr(page_desc, "content"):
+        from course.content import normalize_page_desc
+        page_desc = normalize_page_desc(page_desc)
+
+        assert not hasattr(page_desc, "content")
+        assert hasattr(page_desc, "chunks")
+
+    for i, chunk in enumerate(page_desc.chunks):
+        validate_page_chunk(ctx,
                 "%s, chunk %d ('%s')"
                 % (location, i+1, getattr(chunk, "id", None)),
                 chunk)
@@ -346,7 +369,7 @@ def validate_course_desc_struct(ctx, location, course_desc):
 
     chunk_ids = set()
 
-    for chunk in course_desc.chunks:
+    for chunk in page_desc.chunks:
         if chunk.id in chunk_ids:
             raise ValidationError(
                     string_concat(
@@ -1048,15 +1071,15 @@ def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
 
 def validate_course_content(repo, course_file, events_file,
         validate_sha, course=None):
-    course_desc = get_yaml_from_repo_safely(repo, course_file,
-            commit_sha=validate_sha)
-
     vctx = ValidationContext(
             repo=repo,
             commit_sha=validate_sha,
             course=course)
 
-    validate_course_desc_struct(vctx, course_file, course_desc)
+    course_desc = get_yaml_from_repo_safely(repo, course_file,
+            commit_sha=validate_sha)
+
+    validate_staticpage_desc(vctx, course_file, course_desc)
 
     try:
         from course.content import get_yaml_from_repo
@@ -1089,6 +1112,8 @@ def validate_course_content(repo, course_file, events_file,
                     "Your course repository has a 'media/' directory. "
                     "Linking to media files using 'media:' is discouraged. "
                     "Use the 'repo:' and 'repocur:' linkng schemes instead."))
+
+    # {{{ flows
 
     try:
         flows_tree = get_repo_blob(repo, "flows", validate_sha)
@@ -1150,6 +1175,43 @@ def validate_course_content(repo, course_file, events_file,
             if course is not None:
                 check_for_page_type_changes(
                         vctx, location, course, flow_id, flow_desc)
+
+    # }}}
+
+    # {{{ static pages
+
+    try:
+        pages_tree = get_repo_blob(repo, "staticpages", validate_sha)
+    except ObjectDoesNotExist:
+        # That's OK--no flows yet.
+        pass
+    else:
+        for entry in pages_tree.items():
+            entry_path = entry.path.decode("utf-8")
+            if not entry_path.endswith(".yml"):
+                continue
+
+            from course.constants import STATICPAGE_PATH_REGEX
+            page_name = entry_path[:-4]
+            match = re.match("^"+STATICPAGE_PATH_REGEX+"$", page_name)
+            if match is None:
+                raise ValidationError(
+                        string_concat("%s: ",
+                            _(
+                                "invalid page name. "
+                                "Page names may only contain "
+                                "alphanumeric characters (any language) "
+                                "and hyphens."
+                                ))
+                        % entry_path)
+
+        location = "staticpages/%s" % entry_path
+        page_desc = get_yaml_from_repo_safely(repo, location,
+                commit_sha=validate_sha)
+
+        validate_staticpage_desc(vctx, location, page_desc)
+
+    # }}}
 
     return vctx.warnings
 
