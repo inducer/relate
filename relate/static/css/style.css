@@ -230,5 +230,8 @@ a .sensitive {
 .alert-info a {
   text-decoration: underline;
 }
+.alert-info btn a {
+  text-decoration: none;
+}
 
 /* vim: set foldmethod=marker: */
