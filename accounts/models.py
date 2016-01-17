@@ -146,6 +146,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         "Returns the short name for the user."
         return self.first_name
 
+    def save(self, *args, **kwargs):
+        self.institutional_id = self.institutional_id or None
+        super(User, self).save(*args, **kwargs)
+
 # }}}
 
 # vim: foldmethod=marker
