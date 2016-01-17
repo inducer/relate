@@ -544,7 +544,7 @@ def get_matcher_class(location, matcher_type, pattern_type):
                         % {
                             'location': location,
                             'matcherclassname': matcher_class.__name__,
-                            'matchertype': pattern_type})
+                            'matchertype': matcher_class.pattern_type})
 
             return matcher_class
 
