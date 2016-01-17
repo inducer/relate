@@ -146,7 +146,7 @@ def regrade_flow_sessions(self, course_id, flow_id, access_rules_tag, inprog_val
                 participation__isnull=False,
                 flow_id=flow_id))
 
-    if access_rules_tag is not None:
+    if access_rules_tag:
         sessions = sessions.filter(access_rules_tag=access_rules_tag)
 
     if inprog_value is not None:
