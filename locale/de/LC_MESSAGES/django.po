@@ -716,7 +716,7 @@ msgstr "Benotet"
 #: course/constants.py:321
 msgctxt "Grade state change"
 msgid "Retrieved"
-msgstr ""
+msgstr "Geholt"
 
 #: course/constants.py:323
 msgctxt "Grade state change"
@@ -726,12 +726,12 @@ msgstr "Nicht verfügbar"
 #: course/constants.py:325
 msgctxt "Grade state change"
 msgid "Extension"
-msgstr ""
+msgstr "Verlängerung"
 
 #: course/constants.py:327
 msgctxt "Grade state change"
 msgid "Report sent"
-msgstr ""
+msgstr "Bericht gesendet"
 
 #: course/constants.py:329
 msgctxt "Grade state change"
@@ -3135,7 +3135,7 @@ msgstr "Inhalte"
 
 #: course/templates/course/course-base.html:93
 msgid "Retrieve/preview new course revisions"
-msgstr ""
+msgstr "Abholen/Vorschau von neuen Kurs-Inhalten"
 
 #: course/templates/course/course-base.html:96
 msgid "Edit course"
@@ -4554,15 +4554,15 @@ msgstr "Neue git SHA"
 
 #: course/versioning.py:466
 msgid "Prevent updating to a git revision prior to the current one"
-msgstr "Aktualisierung auf eine vorherige git Version verhindern"
+msgstr "Aktualisierung auf eine vorherige git-Version verhindern"
 
 #: course/versioning.py:474
 msgid "Fetch and update"
-msgstr "Abholen und Aktualisieren"
+msgstr "Abholen und aktualisieren"
 
 #: course/versioning.py:478
 msgid "End preview"
-msgstr "Vorschau Beenden"
+msgstr "Vorschau beenden"
 
 #: course/versioning.py:480
 msgid "Fetch and preview"
@@ -4598,7 +4598,7 @@ msgstr "Kein"
 
 #: course/versioning.py:623
 msgid "Update Course Revision"
-msgstr "Kurs-Version Aktualisieren"
+msgstr "Kurs-Version aktualisieren"
 
 #: course/views.py:132
 msgid "only course staff have access"
