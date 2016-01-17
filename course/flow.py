@@ -764,7 +764,8 @@ def expire_flow_session_standalone(repo, course, session, now_datetime,
 @transaction.atomic
 def regrade_session(repo, course, session):
     if session.in_progress:
-        fctx = FlowContext(repo, course, session.flow_id, flow_session=session)
+        fctx = FlowContext(repo, course, session.flow_id, flow_session=session,
+                participation=session.participation)
 
         answer_visits = assemble_answer_visits(session)
 
