@@ -147,6 +147,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.first_name
 
     def save(self, *args, **kwargs):
+        # works around https://code.djangoproject.com/ticket/4136#comment:33
         self.institutional_id = self.institutional_id or None
         super(User, self).save(*args, **kwargs)
 
