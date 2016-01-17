@@ -230,7 +230,7 @@ a .sensitive {
 .alert-info a {
   text-decoration: underline;
 }
-.alert-info btn a {
+.alert-info a.btn {
   text-decoration: none;
 }
 
