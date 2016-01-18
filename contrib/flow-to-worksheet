@@ -1,29 +1,10 @@
-#! /usr/bin/env python
-
-from __future__ import print_function
+#! /usr/bin/env python3
 
 import sys
 import pypandoc
 import re
-from jinja2 import Template
-
-
-class Struct(object):
-    def __init__(self, entries):
-        for name, val in entries.iteritems():
-            self.__dict__[name] = dict_to_struct(val)
-
-    def __repr__(self):
-        return repr(self.__dict__)
-
-
-def dict_to_struct(data):
-    if isinstance(data, list):
-        return [dict_to_struct(d) for d in data]
-    elif isinstance(data, dict):
-        return Struct(data)
-    else:
-        return data
+from jinja2 import Template, Environment, StrictUndefined, FileSystemLoader
+from course.content import process_yaml_for_expansion
 
 
 QUESTIONS_ONLY_TEMPLATE = Template(r"""
@@ -41,14 +22,14 @@ TEMPLATE = Template(r"""
 \pagestyle{empty}
 
 \usepackage{titlesec}
+\usepackage{tikz}
 \titleformat{\section}
   {\normalfont\sffamily\large\bfseries}
   {Part \thesection. }{0em}{}
 
 \begin{document}
 
-\akteachheader{Numerical Methods (CS 357)}%
-{Worksheet}
+\akteachheader{ {{- header -}} }{ {{- title -}} }
 
 {% for q in questions %}
     {{ q }}
@@ -72,6 +53,18 @@ def convert_page_inner(page):
         return convert_markup(page.content)
     elif page.type in ["TextQuestion", "SurveyTextQuestion"]:
         prompt = convert_markup(page.prompt) + "\n\\vspace*{2cm}"
+        return (prompt)
+    elif page.type == "InlineMultiQuestion":
+        question, _ = re.subn(
+                r"\{\[\}\{\[\}\w+\{\]\}\{\]\}",
+                r"\\tikz [baseline=0]\\draw (0,-1ex) rectangle +(10em,3.5ex);",
+                convert_markup(page.question))
+
+        prompt = (
+                convert_markup(page.prompt)
+                + "\n\n"
+                + question
+                + "\n\\vspace*{1cm}")
         return (prompt)
     elif page.type == "PythonCodeQuestion":
         prompt = convert_markup(page.prompt)
@@ -111,23 +104,10 @@ def convert_page_inner(page):
                 file=sys.stderr)
 
 
-TITLE_RE = re.compile(ur"^\#\s*(\w.*)", re.UNICODE)
-
-
-def extract_title_from_markup(markup_text):
-    lines = markup_text.split("\n")
-
-    for l in lines[:5]:
-        match = TITLE_RE.match(l)
-        if match is not None:
-            return match.group(1)
-
-    return None
-
-
 def convert_page(page, wrap_in_problem_env):
     title = getattr(page, "title", None)
     if hasattr(page, "prompt") and title is None:
+        from course.content import extract_title_from_markup
         title = extract_title_from_markup(page.prompt)
 
     if title is None:
@@ -146,9 +126,22 @@ def convert_page(page, wrap_in_problem_env):
         return result
 
 
-JINJA_YAML_RE = re.compile(
-    r"^\[JINJA\]\s*$(.*?)^\[\/JINJA\]\s*$",
-    re.MULTILINE | re.DOTALL)
+class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
+    # https://github.com/inducer/relate/issues/130
+
+    def get_source(self, environment, template):
+        source, path, is_up_to_date = \
+                super(YamlBlockEscapingFileSystemLoader, self).get_source(
+                        environment, template)
+
+        from os.path import splitext
+        _, ext = splitext(template)
+        ext = ext.lower()
+
+        if ext in [".yml", ".yaml"]:
+            source = process_yaml_for_expansion(source)
+
+        return source, path, is_up_to_date
 
 
 def main():
@@ -157,36 +150,57 @@ def main():
     parser.add_argument("-1", "--one", action="store_true")
     parser.add_argument("-q", "--questions-only", action="store_true")
     parser.add_argument("-p", "--examtron-problem", action="store_true")
+    parser.add_argument("--header", default="")
+    parser.add_argument("--title", default="Worksheet")
+    parser.add_argument("-r", "--repo-root", default=".")
     parser.add_argument("input", default="-", nargs="?")
     parser.add_argument("output", default="-", nargs="?")
 
     args = parser.parse_args()
 
-    from yaml import load
     if args.input == "-":
         data = sys.stdin.read()
     else:
         with open(args.input, "r") as inf:
             data = inf.read()
 
-    data, _ = JINJA_YAML_RE.subn("\n", data)
+    data = process_yaml_for_expansion(data)
 
+    jinja_env = Environment(
+            loader=YamlBlockEscapingFileSystemLoader(args.repo_root),
+            undefined=StrictUndefined)
+    template = jinja_env.from_string(data)
+    data = template.render()
+
+    from yaml import load
+    from relate.utils import dict_to_struct
     data = dict_to_struct(load(data))
 
     questions = []
 
     if not args.one:
         flow_desc = data
-        for grp in flow_desc.groups:
-            for page in grp.pages:
-                print(page.id)
-                converted = convert_page(page, args.examtron_problem)
-                questions.append(converted)
+        if hasattr(flow_desc, "groups"):
+            pages = [
+                    page
+                    for grp in flow_desc.groups
+                    for page in grp.pages]
+        else:
+            pages = flow_desc.pages
+
+        for page in pages:
+            print(page.id)
+            converted = convert_page(page, args.examtron_problem)
+            questions.append(converted)
+
         template = TEMPLATE
         if args.questions_only:
             template = QUESTIONS_ONLY_TEMPLATE
 
-        data = template.render(questions=questions)
+        data = template.render(
+                questions=questions,
+                title=args.title,
+                header=args.header)
     else:
         data = convert_page(data, args.examtron_problem)
 
