@@ -1161,6 +1161,15 @@ class DownloadAllSubmissionsForm(StyledForm):
                 help_text=_("Only download submissions from non-in-progress "
                     "sessions"),
                 label=_("Non-in-progress only"))
+        self.fields["extra_file"] = forms.FileField(
+                label=_("Additional File"),
+                help_text=_(
+                    "If given, the uploaded file will be included "
+                    "in the zip archive. "
+                    "If the produced archive is to be used for plagiarism "
+                    "detection, then this may be used to include the reference "
+                    "solution."),
+                required=False)
 
         self.helper.add_input(
                 Submit("download", _("Download")))
@@ -1281,12 +1290,17 @@ def download_all_submissions(pctx, flow_id):
                             "-".join(key) + extension,
                             plain_text_answer.encode("utf-8"))
 
+                extra_file = request.FILES.get("extra_file")
+                if extra_file is not None:
+                    subm_zip.writestr(extra_file.name, extra_file.read())
+
             response = http.HttpResponse(
                     bio.getvalue(),
                     content_type="application/zip")
             response['Content-Disposition'] = (
-                    'attachment; filename="submissions-%s-%s.zip"'
-                    % (pctx.course.identifier, flow_id))
+                    'attachment; filename="submissions_%s_%s_%s_%s_%s.zip"'
+                    % (pctx.course.identifier, flow_id, group_id, page_id,
+                        now().date().strftime("%Y-%m-%d")))
             return response
 
     else:
