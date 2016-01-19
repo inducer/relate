@@ -460,6 +460,11 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         self.out_file.write("<![%s]>" % data)
 
 
+class PreserveFragment(object):
+    def __init__(self, s):
+        self.s = s
+
+
 class LinkFixerTreeprocessor(Treeprocessor):
     def __init__(self, md, course, commit_sha, reverse_func):
         Treeprocessor.__init__(self)
@@ -467,6 +472,31 @@ class LinkFixerTreeprocessor(Treeprocessor):
         self.course = course
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
+
+    def reverse(self, viewname, args):
+        frag = None
+
+        new_args = []
+        for arg in args:
+            if isinstance(arg, PreserveFragment):
+                s = arg.s
+                frag_index = s.index("#")
+                if frag_index != -1:
+                    frag = s[frag_index:]
+                    s = s[:frag_index]
+
+                new_args.append(s)
+            else:
+                new_args.append(arg)
+
+        print(frag)
+
+        result = self.reverse_func(viewname, args=new_args)
+
+        if frag is not None:
+            result += frag
+
+        return result
 
     def get_course_identifier(self):
         if self.course is None:
@@ -479,47 +509,49 @@ class LinkFixerTreeprocessor(Treeprocessor):
             if url.startswith("course:"):
                 course_id = url[7:]
                 if course_id:
-                    return self.reverse_func("relate-course_page",
+                    return self.reverse("relate-course_page",
                                 args=(course_id,))
                 else:
-                    return self.reverse_func("relate-course_page",
+                    return self.reverse("relate-course_page",
                                 args=(self.get_course_identifier(),))
 
             elif url.startswith("flow:"):
                 flow_id = url[5:]
-                return self.reverse_func("relate-view_start_flow",
+                return self.reverse("relate-view_start_flow",
                             args=(self.get_course_identifier(), flow_id))
 
             elif url.startswith("staticpage:"):
                 page_path = url[11:]
-                return self.reverse_func("relate-content_page",
-                            args=(self.get_course_identifier(), page_path))
+                return self.reverse("relate-content_page",
+                            args=(
+                                self.get_course_identifier(),
+                                PreserveFragment(page_path)))
 
             elif url.startswith("media:"):
                 media_path = url[6:]
-                return self.reverse_func("relate-get_media",
+                return self.reverse("relate-get_media",
                             args=(
                                 self.get_course_identifier(),
                                 self.commit_sha,
-                                media_path))
+                                PreserveFragment(media_path)))
 
             elif url.startswith("repo:"):
                 path = url[5:]
-                return self.reverse_func("relate-get_repo_file",
+                return self.reverse("relate-get_repo_file",
                             args=(
                                 self.get_course_identifier(),
                                 self.commit_sha,
-                                path))
+                                PreserveFragment(path)))
 
             elif url.startswith("repocur:"):
                 path = url[8:]
-                return self.reverse_func("relate-get_current_repo_file",
+                return self.reverse("relate-get_current_repo_file",
                             args=(
                                 self.get_course_identifier(),
-                                path))
+                                PreserveFragment(path)))
 
             elif url.strip() == "calendar:":
-                return self.reverse_func("relate-view_calendar",
+                return self.reverse("relate-view_calendar",
                             args=(self.get_course_identifier(),))
 
         except NoReverseMatch:
@@ -617,7 +649,7 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v3:%d:%s:%s"
+            cache_key = ("markup:v4:%d:%s:%s"
                     % (course.id, str(commit_sha),
                         hashlib.md5(text.encode("utf-8")).hexdigest()))
 
