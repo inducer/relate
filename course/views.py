@@ -146,19 +146,64 @@ def course_page(pctx):
             pctx.course.accepts_enrollment
             and pctx.role == participation_role.unenrolled)
 
-    if pctx.request.user.is_authenticated() and Participation.objects.filter(
+    show_retry_enroll_button = False
+    may_enroll = False
+
+    user = pctx.request.user
+
+    if user.is_authenticated():
+        if Participation.objects.filter(
             user=pctx.request.user,
             course=pctx.course,
             status=participation_status.requested).count():
-        show_enroll_button = False
 
-        messages.add_message(pctx.request, messages.INFO,
-                _("Your enrollment request is pending. You will be "
-                "notified once it has been acted upon."))
+            show_enroll_button = False
+
+            from course.models import ParticipationPreapproval
+            preapproval = None
+            try:
+                preapproval = ParticipationPreapproval.objects.get(
+                        course=pctx.course, email__iexact=user.email)
+            except ParticipationPreapproval.DoesNotExist:
+                if user.institutional_id:
+                    if not (pctx.course.preapproval_require_verified_inst_id
+                            and not user.institutional_id_verified):
+                        try:
+                            preapproval = ParticipationPreapproval.objects.get(
+                                    course=pctx.course,
+                                    institutional_id__iexact=user.institutional_id)
+                        except ParticipationPreapproval.DoesNotExist:
+                            pass
+                pass
+
+            if preapproval:
+                may_enroll = True
+                show_retry_enroll_button = True
+
+            # {{{ added by zd to show institutional ID fillin.
+
+            if not pctx.request.user.institutional_id:
+                from django.core.urlresolvers import reverse
+                messages.add_message(pctx.request, messages.WARNING,
+                        _("If your fill in the institutional ID in "
+                        "<a href='%s'>user profile</a>, maybe you needn't "
+                        "wait for approvement.") 
+                        % (reverse("relate-user_profile")
+                            + "?referer="
+                            + pctx.request.path
+                            + "&set_inst_id=1"
+                            )
+                        )
+            # }}}
+            if not may_enroll:
+                messages.add_message(pctx.request, messages.INFO,
+                        _("Your enrollment request is pending. You will be "
+                        "notified once it has been acted upon."))
 
     return render_course_page(pctx, "course/course-page.html", {
         "chunks": chunks,
         "show_enroll_button": show_enroll_button,
+        "show_retry_enroll_button": show_retry_enroll_button,
         })
 
 
