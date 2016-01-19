@@ -338,10 +338,10 @@ def create_preapprovals(pctx):
                                 course=pctx.course, institutional_id__iexact=l)
                         # FIXME :
                         """
-                           When an exist preapproval is submit, and if the tutor change the
+                           When an exist preapproval is submit, and if the tutor changed the
                            requirement of preapproval_require_verified_inst_id of the
-                           course from True to False, some pending requests which did not
-                           provided valid inst_id will still be pending.
+                           course from True to False, some pending requests which had not
+                           provided validated inst_id will still be pending.
 
                            BTW, it is also the case when the tutor changed the
                            enrollment_required_email_suffix from "@what.com" to "".
