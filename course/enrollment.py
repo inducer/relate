@@ -107,6 +107,7 @@ def enroll(request, course_identifier):
                                 institutional_id__iexact=user.institutional_id)
                     except ParticipationPreapproval.DoesNotExist:
                         pass
+            pass
 
     if (
             preapproval is None
