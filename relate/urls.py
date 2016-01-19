@@ -225,6 +225,15 @@ urlpatterns = [
         "/$",
         course.grading.show_grading_statistics,
         name="relate-show_grading_statistics"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/grading/download-submissions"
+        "/" + FLOW_ID_REGEX +
+        "/$",
+        course.grades.download_all_submissions,
+        name="relate-download_all_submissions"),
+
     # }}}
 
     # {{{ enrollment

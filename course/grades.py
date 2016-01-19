@@ -49,7 +49,7 @@ from course.models import (
         Participation, participation_role, participation_status,
         GradingOpportunity, GradeChange, GradeStateMachine,
         grade_state_change_types,
-        FlowSession)
+        FlowSession, FlowPageVisit)
 from course.views import get_now_or_fake_time
 
 
@@ -1128,6 +1128,173 @@ def import_grades(pctx):
         "form_description": _("Import Grade Data"),
         "form": form,
         "form_text": form_text,
+        })
+
+# }}}
+
+
+# {{{ download all submissions
+
+class DownloadAllSubmissionsForm(StyledForm):
+    def __init__(self, page_ids, session_tag_choices, *args, **kwargs):
+        super(DownloadAllSubmissionsForm, self).__init__(*args, **kwargs)
+
+        self.fields["page_id"] = forms.ChoiceField(
+                choices=tuple(
+                    (pid, pid)
+                    for pid in page_ids),
+                label=_("Page ID"))
+        self.fields["which_attempt"] = forms.ChoiceField(
+                choices=(
+                    ("first", _("First attempt")),
+                    ("last", _("Last attempt")),
+                    ("all", _("All attempts")),
+                    ),
+                label=_("Attempts to include"))
+        self.fields["restrict_to_rules_tag"] = forms.ChoiceField(
+                choices=session_tag_choices,
+                help_text=_("Only download sessions tagged with this rules tag."),
+                label=_("Restrict to rules tag"))
+        self.fields["non_in_progress_only"] = forms.BooleanField(
+                required=False,
+                initial=True,
+                help_text=_("Only download submissions from non-in-progress "
+                    "sessions"),
+                label=_("Non-in-progress only"))
+
+        self.helper.add_input(
+                Submit("download", _("Download")))
+
+
+@course_view
+def download_all_submissions(pctx, flow_id):
+    if pctx.role not in [
+            participation_role.teaching_assistant,
+            participation_role.instructor,
+            participation_role.observer,
+            ]:
+        raise PermissionDenied(_("must be at least TA to download submissions"))
+
+    from course.content import get_flow_desc
+    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
+            pctx.course_commit_sha)
+
+    # {{{ find access rules tag
+
+    if hasattr(flow_desc, "rules"):
+        access_rules_tags = getattr(flow_desc.rules, "tags", [])
+    else:
+        access_rules_tags = []
+
+    ALL_SESSION_TAG = string_concat("<<<", _("ALL"), ">>>")  # noqa
+    session_tag_choices = [
+            (tag, tag)
+            for tag in access_rules_tags] + [(ALL_SESSION_TAG,
+                    string_concat("(", _("ALL"), ")"))]
+
+    # }}}
+
+    page_ids = [
+            "%s/%s" % (group_desc.id, page_desc.id)
+            for group_desc in flow_desc.groups
+            for page_desc in group_desc.pages]
+
+    request = pctx.request
+    if request.method == "POST":
+        form = DownloadAllSubmissionsForm(page_ids, session_tag_choices,
+                request.POST)
+
+        if form.is_valid():
+            which_attempt = form.cleaned_data["which_attempt"]
+
+            slash_index = form.cleaned_data["page_id"].index("/")
+            group_id = form.cleaned_data["page_id"][:slash_index]
+            page_id = form.cleaned_data["page_id"][slash_index+1:]
+
+            from course.utils import PageInstanceCache
+            page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
+
+            visits = (FlowPageVisit.objects
+                    .filter(
+                        flow_session__course=pctx.course,
+                        flow_session__flow_id=flow_id,
+                        page_data__group_id=group_id,
+                        page_data__page_id=page_id,
+                        is_submitted_answer=True,
+                        )
+                    .select_related("flow_session")
+                    .select_related("flow_session__participation__user")
+                    .select_related("page_data")
+
+                    # We overwrite earlier submissions with later ones
+                    # in a dictionary below.
+                    .order_by("visit_time"))
+
+            if form.cleaned_data["non_in_progress_only"]:
+                visits = visits.filter(flow_session__in_progress=False)
+
+            if form.cleaned_data["restrict_to_rules_tag"] != ALL_SESSION_TAG:
+                visits = visits.filter(
+                        flow_session__access_rules_tag=(
+                            form.cleaned_data["restrict_to_rules_tag"]))
+
+            submissions = {}
+
+            for visit in visits:
+                page = page_cache.get_page(group_id, page_id,
+                        pctx.course_commit_sha)
+
+                from course.page import PageContext
+                grading_page_context = PageContext(
+                        course=pctx.course,
+                        repo=pctx.repo,
+                        commit_sha=pctx.course_commit_sha,
+                        flow_session=visit.flow_session)
+
+                plain_text_answer = page.normalized_plaintext_answer(
+                        grading_page_context, visit.page_data.data,
+                        visit.answer)
+
+                if which_attempt in ["first", "last"]:
+                    key = (visit.flow_session.participation.user.username,)
+                elif which_attempt == "all":
+                    key = (visit.flow_session.participation.user.username,
+                            str(visit.flow_session.id))
+                else:
+                    raise NotImplementedError()
+
+                if plain_text_answer is not None:
+                    if (which_attempt == "first"
+                            and key in submissions):
+                        # Already there, disregard further ones
+                        continue
+
+                    submissions[key] = plain_text_answer
+
+            from six import BytesIO
+            from zipfile import ZipFile
+            bio = BytesIO()
+            with ZipFile(bio, "w") as subm_zip:
+                for key, (extension, plain_text_answer) in \
+                        six.iteritems(submissions):
+                    subm_zip.writestr(
+                            "-".join(key) + extension,
+                            plain_text_answer.encode("utf-8"))
+
+            response = http.HttpResponse(
+                    bio.getvalue(),
+                    content_type="application/zip")
+            response['Content-Disposition'] = (
+                    'attachment; filename="submissions-%s-%s.zip"'
+                    % (pctx.course.identifier, flow_id))
+            return response
+
+    else:
+        form = DownloadAllSubmissionsForm(page_ids, session_tag_choices)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": _("Download All Submissions in Zip file")
         })
 
 # }}}
