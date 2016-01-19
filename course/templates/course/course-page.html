@@ -29,5 +29,14 @@
       </div>
     {% endif %}
 
-  {% endif %}
+    {% if show_retry_enroll_button %}
+          <div class="well">
+            <form method="POST" action="{% url "relate-enroll" course.identifier %}">
+              {% csrf_token %}
+              <button type="submit" name="enroll" class="btn-lg btn-primary">
+                {% trans "Retry Enroll" %}&nbsp;&raquo;
+              </button>
+            </form>
+          </div>
+    {% endif %}
 {% endblock %}
