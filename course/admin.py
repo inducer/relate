@@ -311,11 +311,11 @@ admin.site.register(Participation, ParticipationAdmin)
 
 
 class ParticipationPreapprovalAdmin(admin.ModelAdmin):
-    list_display = ("email", "course", "role", "creation_time", "creator")
+    list_display = ("email", "institutional_id", "course", "role", "creation_time", "creator")
     list_filter = ("course", "role")
 
     search_fields = (
-            "email",
+            "email", "institutional_id",
             )
 
     # {{{ permissions

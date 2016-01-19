@@ -99,7 +99,15 @@ def enroll(request, course_identifier):
             preapproval = ParticipationPreapproval.objects.get(
                     course=course, email__iexact=request.user.email)
         except ParticipationPreapproval.DoesNotExist:
-            pass
+            if user.institutional_id:
+                if not (course.preapproval_require_verified_inst_id
+                        and not user.institutional_id_verified):
+                    try:
+                        preapproval = ParticipationPreapproval.objects.get(
+                                course=course,
+                                institutional_id__iexact=user.institutional_id)
+                    except ParticipationPreapproval.DoesNotExist:
+                        pass
 
     if (
             preapproval is None
@@ -240,9 +248,17 @@ class BulkPreapprovalsForm(StyledForm):
             choices=PARTICIPATION_ROLE_CHOICES,
             initial=participation_role.student,
             label=_("Role"))
-    emails = forms.CharField(required=True, widget=forms.Textarea,
-            help_text=_("Enter fully qualified email addresses, one per line."),
-            label=_("Emails"))
+    preapproval_type = forms.ChoiceField(
+            choices=(
+                ("email", _("Email")),
+                ("institutional_id", _("Institutional ID")),
+                ),
+            initial="email",
+            label=_("Preapproval type"))
+    preapproval_data = forms.CharField(required=True, widget=forms.Textarea,
+            help_text=_("Enter fully qualified data according to \"Preapproval"
+                        "type\" you selected, one per line."),
+            label=_("Preapproval data"))
 
     def __init__(self, *args, **kwargs):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
@@ -269,47 +285,101 @@ def create_preapprovals(pctx):
             pending_approved_count = 0
 
             role = form.cleaned_data["role"]
-            for l in form.cleaned_data["emails"].split("\n"):
+            for l in form.cleaned_data["preapproval_data"].split("\n"):
                 l = l.strip()
+                preapp_type = form.cleaned_data["preapproval_type"]
 
                 if not l:
                     continue
 
-                try:
-                    preapproval = ParticipationPreapproval.objects.get(
-                            email__iexact=l,
-                            course=pctx.course)
-                except ParticipationPreapproval.DoesNotExist:
+                if preapp_type == "email":
 
-                    # approve if l is requesting enrollment
                     try:
-                        pending_participation = Participation.objects.get(
-                                course=pctx.course,
-                                status=participation_status.requested,
-                                user__email__iexact=l)
+                        preapproval = ParticipationPreapproval.objects.get(
+                                email__iexact=l,
+                                course=pctx.course)
+                    except ParticipationPreapproval.DoesNotExist:
 
-                    except Participation.DoesNotExist:
-                        pass
+                        # approve if l is requesting enrollment
+                        try:
+                            pending_participation = Participation.objects.get(
+                                    course=pctx.course,
+                                    status=participation_status.requested,
+                                    user__email__iexact=l)
+
+                        except Participation.DoesNotExist:
+                            pass
+
+                        else:
+                            pending_participation.status = participation_status.active
+                            pending_participation.save()
+                            send_enrollment_decision(
+                                    pending_participation, True, request)
+                            pending_approved_count += 1
 
                     else:
-                        pending_participation.status = participation_status.active
-                        pending_participation.save()
-                        send_enrollment_decision(
-                                pending_participation, True, request)
-                        pending_approved_count += 1
+                        exist_count += 1
+                        continue
 
-                else:
-                    exist_count += 1
-                    continue
+                    preapproval = ParticipationPreapproval()
+                    preapproval.email = l
+                    preapproval.course = pctx.course
+                    preapproval.role = role
+                    preapproval.creator = request.user
+                    preapproval.save()
 
-                preapproval = ParticipationPreapproval()
-                preapproval.email = l
-                preapproval.course = pctx.course
-                preapproval.role = role
-                preapproval.creator = request.user
-                preapproval.save()
+                    created_count += 1
 
-                created_count += 1
+                elif preapp_type == "institutional_id":
+
+                    try:
+                        preapproval = ParticipationPreapproval.objects.get(
+                                course=pctx.course, institutional_id__iexact=l)
+                        """
+                        FIXME:
+                           When an exist preapproval is submit, and if the tutor change the
+                           requirement of preapproval_require_verified_inst_id of the
+                           course from True to False, some pending requests which did not
+                           provided valid inst_id will still be pending.
+
+                           BTW, it is also the case when the tutor changed the
+                           enrollment_required_email_suffix from "@what.com" to "".
+                        """
+                    except ParticipationPreapproval.DoesNotExist:
+
+                        # approve if l is requesting enrollment
+                        try:
+                            pending_participation = Participation.objects.get(
+                                    course=pctx.course,
+                                    status=participation_status.requested,
+                                    user__institutional_id__iexact=l)
+                            if (
+                                    pctx.course.preapproval_require_verified_inst_id
+                                    and not pending_participation.user.institutional_id_verified):
+                                raise Participation.DoesNotExist
+
+                        except Participation.DoesNotExist:
+                            pass
+
+                        else:
+                            pending_participation.status = participation_status.active
+                            pending_participation.save()
+                            send_enrollment_decision(
+                                    pending_participation, True, request)
+                            pending_approved_count += 1
+
+                    else:
+                        exist_count += 1
+                        continue
+
+                    preapproval = ParticipationPreapproval()
+                    preapproval.institutional_id = l
+                    preapproval.course = pctx.course
+                    preapproval.role = role
+                    preapproval.creator = request.user
+                    preapproval.save()
+
+                    created_count += 1
 
             messages.add_message(request, messages.INFO,
                     _(
