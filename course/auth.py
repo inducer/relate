@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _, string_concat, ugettext
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
 from django.contrib import messages
@@ -32,7 +32,7 @@ import django.forms as forms
 from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
+from crispy_forms.layout import Submit, Layout, Div
 from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
@@ -44,7 +44,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
 from django.core import validators
 from django.utils.http import is_safe_url
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
@@ -663,40 +663,114 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 # {{{ user profile
 
 class UserForm(StyledModelForm):
+    confirm_institutional_id = forms.CharField(
+            max_length=100,
+            label=_("Institutional ID Confirmation"),
+            required=False)
+    no_institutional_id = forms.BooleanField(
+            label=_("I have no Institutional ID"),
+            help_text=_("Check the checkbox if you are not a student "
+                        "or you forget your institutional id."),
+            required=False,
+            initial=False)
+
     class Meta:
         model = get_user_model()
-        fields = ("first_name", "last_name", "editor_mode")
+        fields = (
+                "last_name",
+                "first_name",
+                "institutional_id",
+                "editor_mode")
 
     def __init__(self, *args, **kwargs):
         super(UserForm, self).__init__(*args, **kwargs)
 
+        self.helper.form_id = "profile-form"
+        self.helper.form_action = reverse("relate-profile_form_ajax")
+
+        self.helper.layout = Layout(
+                Div("last_name", "first_name", css_class="well"),
+                Div("institutional_id", css_class="well"),
+                Div("editor_mode", css_class="well hidden-xs hidden-sm")
+                )
+
+        self.fields["institutional_id"].help_text=(
+                _("The unique ID your university or school provided, "
+                "which is used by some course to grant enrollment. "
+                "<b>Once sumbitted, it can not be changed</b>."))
+
+        if not self.instance.institutional_id:
+            self.helper.layout[1].insert(1, "confirm_institutional_id")
+            self.helper.layout[1].insert(0, "no_institutional_id")
+
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
+
+    def clean_institutional_id(self):
+        # http://stackoverflow.com/a/325038/3437454
+        if self.instance.institutional_id:
+            return self.instance.institutional_id
+        else:
+            return self.cleaned_data['institutional_id']
+
+    def clean_confirm_institutional_id(self):
+        confirmed = self.cleaned_data.get("confirm_institutional_id")
+
+        if not self.instance.institutional_id:
+            inputed = self.cleaned_data.get("institutional_id")
+            if inputed and not confirmed:
+                raise forms.ValidationError(_("This field is required."))
+            if not inputed == confirmed:
+                raise forms.ValidationError(_("Input not match."))
+        return confirmed
+
+    def clean_no_institutional_id(self):
+        no_id = self.cleaned_data.get("no_institutional_id")
+        if no_id:
+            if self.instance.institutional_id:
+                raise forms.ValidationError(
+                        _("You have set your institutional id."))
+            else:
+                inputed = self.cleaned_data['institutional_id']
+                if inputed:
+                    raise forms.ValidationError(
+                            _("You have conflict in your input."))
+        return no_id
 
 
 def user_profile(request):
     if not request.user.is_authenticated():
         raise PermissionDenied()
 
-    user_form = None
-
-    if request.method == "POST":
-        if "submit_user" in request.POST:
-            user_form = UserForm(request.POST, instance=request.user)
-            if user_form.is_valid():
-                user_form.save()
-
-                messages.add_message(request, messages.INFO,
-                        _("Profile data saved."))
-                if request.GET.get("first_login"):
-                    return redirect("relate-home")
-
-    if user_form is None:
+    if request.method == "GET":
         user_form = UserForm(instance=request.user)
 
     return render(request, "user-profile-form.html", {
         "user_form": user_form,
         })
+
+def user_profile_ajax(request):
+    if not request.user.is_authenticated():
+        raise PermissionDenied()
+
+    user_form = UserForm(request.POST or None, instance=request.user)
+    if user_form.is_valid():
+        user_form.save()
+
+        success_messages = ugettext("Profile data saved.")
+
+        return JsonResponse(
+            {'success': True, 
+             'success_messages': success_messages,
+            })
+
+    from crispy_forms.utils import render_crispy_form
+    from django.core.context_processors import csrf
+
+    ctx = {}
+    ctx.update(csrf(request))
+    form_html = render_crispy_form(user_form, context=ctx)
+    return JsonResponse({'success': False, 'form_html': form_html})
 
 # }}}
 
