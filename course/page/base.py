@@ -505,9 +505,9 @@ class PageBase(object):
         """
         return None
 
-    def normalized_plaintext_answer(self, page_context, page_data, answer_data):
-        """An plain-text-formatted answer to be used for summarization and
-        display in analytics.
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        """An answer to be used for batch download, given as a batch of bytes
+        to be stuffed in a zip file.
 
         :returns: a tuple of ``(file_ext, data)`` where *file_ext* is a suggested
             file extension (inlcuding the leading period, if applicable).

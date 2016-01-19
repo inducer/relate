@@ -822,11 +822,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         from django.utils.html import escape
         return "<pre>%s</pre>" % escape(normalized_answer)
 
-    def normalized_plaintext_answer(self, page_context, page_data, answer_data):
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
             return None
 
-        return (".py", answer_data["answer"])
+        return (".py", answer_data["answer"].encode("utf-8"))
 
 # }}}
 

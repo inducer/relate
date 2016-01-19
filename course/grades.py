@@ -1260,7 +1260,7 @@ def download_all_submissions(pctx, flow_id):
                         commit_sha=pctx.course_commit_sha,
                         flow_session=visit.flow_session)
 
-                plain_text_answer = page.normalized_plaintext_answer(
+                bytes_answer = page.normalized_bytes_answer(
                         grading_page_context, visit.page_data.data,
                         visit.answer)
 
@@ -1272,23 +1272,23 @@ def download_all_submissions(pctx, flow_id):
                 else:
                     raise NotImplementedError()
 
-                if plain_text_answer is not None:
+                if bytes_answer is not None:
                     if (which_attempt == "first"
                             and key in submissions):
                         # Already there, disregard further ones
                         continue
 
-                    submissions[key] = plain_text_answer
+                    submissions[key] = bytes_answer
 
             from six import BytesIO
             from zipfile import ZipFile
             bio = BytesIO()
             with ZipFile(bio, "w") as subm_zip:
-                for key, (extension, plain_text_answer) in \
+                for key, (extension, bytes_answer) in \
                         six.iteritems(submissions):
                     subm_zip.writestr(
                             "-".join(key) + extension,
-                            plain_text_answer.encode("utf-8"))
+                            bytes_answer)
 
                 extra_file = request.FILES.get("extra_file")
                 if extra_file is not None:
