@@ -480,7 +480,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         for arg in args:
             if isinstance(arg, PreserveFragment):
                 s = arg.s
-                frag_index = s.index("#")
+                frag_index = s.find("#")
                 if frag_index != -1:
                     frag = s[frag_index:]
                     s = s[:frag_index]
