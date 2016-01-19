@@ -333,8 +333,8 @@ def create_preapprovals(pctx):
                     try:
                         preapproval = ParticipationPreapproval.objects.get(
                                 course=pctx.course, institutional_id__iexact=l)
+                        # FIXME :
                         """
-                        FIXME:
                            When an exist preapproval is submit, and if the tutor change the
                            requirement of preapproval_require_verified_inst_id of the
                            course from True to False, some pending requests which did not
