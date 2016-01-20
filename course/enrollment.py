@@ -40,6 +40,7 @@ from django.core.urlresolvers import reverse
 from django.db import transaction
 from django import forms
 from django.utils import translation
+from django.utils.safestring import mark_safe
 
 from crispy_forms.layout import Submit
 
@@ -141,9 +142,11 @@ def enroll(request, course_identifier):
             message = render_to_string("course/enrollment-request-email.txt", {
                 "user": user,
                 "course": course,
-                "admin_uri": request.build_absolute_uri(
+                "admin_uri": mark_safe(
+                    request.build_absolute_uri(
                         reverse("admin:course_participation_changelist")
-                        + "?status__exact=requested")
+                        +
+                        "?status__exact=requested&course__id__exact=%d" % course.id))
                 })
 
             from django.core.mail import send_mail
