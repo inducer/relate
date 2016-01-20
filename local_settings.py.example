@@ -8,6 +8,11 @@ ALLOWED_HOSTS = [
         "relate.example.com",
         ]
 
+# If sites framework is not enabled. For returning the 
+# site domain of your relate instance, replace the 
+# string with your own domain for production.
+RELATE_SITE_DOMAIN = "http://example.com"
+
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
 #
