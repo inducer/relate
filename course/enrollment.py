@@ -552,7 +552,9 @@ def query_participations(pctx):
             parsed_query = None
             try:
                 for lineno, q in enumerate(form.cleaned_data["queries"].split("\n")):
-                    if not q.strip():
+                    q = q.strip()
+
+                    if not q:
                         continue
 
                     parsed_subquery = parse_query(pctx.course, q)
@@ -561,11 +563,12 @@ def query_participations(pctx):
                     else:
                         parsed_query = parsed_query | parsed_subquery
 
-            except RuntimeError as e:
+            except Exception as e:
                 messages.add_message(request, messages.ERROR,
-                        _("Error in line %(lineno)d: %(error)s")
+                        _("Error in line %(lineno)d: %(error_type)s: %(error)s")
                         % {
                             "lineno": lineno+1,
+                            "error_type": type(e).__name__,
                             "error": str(e),
                             })
 
