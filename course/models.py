@@ -149,6 +149,14 @@ class Course(models.Model):
             help_text=_("If set, each enrolling student must be "
             "individually approved."),
             verbose_name=_('Enrollment approval required'))
+    preapproval_require_verified_inst_id = models.BooleanField(
+            default=True,
+            help_text=_("If set, students cannot get particiaption "
+                        "preapproval using institutional ID if "
+                        "institutional ID they provided are not "
+                        "verified."),
+            verbose_name=_('None preapproval by institutional ID if not '
+                           'verified?'))
     enrollment_required_email_suffix = models.CharField(
             max_length=200, blank=True, null=True,
             help_text=_("Enrollee's email addresses must end in the "
@@ -350,8 +358,10 @@ class Participation(models.Model):
 
 
 class ParticipationPreapproval(models.Model):
-    email = models.EmailField(max_length=254,
+    email = models.EmailField(max_length=254, null=True, blank=True,
             verbose_name=_('Email'))
+    institutional_id = models.CharField(max_length=254, null=True, blank=True,
+            verbose_name=_('Institutional ID'))
     course = models.ForeignKey(Course,
             verbose_name=_('Course'), on_delete=models.CASCADE)
     role = models.CharField(max_length=50,
@@ -364,10 +374,16 @@ class ParticipationPreapproval(models.Model):
             verbose_name=_('Creation time'))
 
     def __unicode__(self):
+        if self.email:
         # Translators: somebody's email in some course in Participation
         # Preapproval
-        return _("%(email)s in %(course)s") % {
+            return _("Email %(email)s in %(course)s") % {
                 "email": self.email, "course": self.course}
+        elif self.institutional_id:
+            # Translators: somebody's Institutional ID in some course in 
+            # Participation Preapproval
+            return _("Institutional ID %(inst_id)s in %(course)s") % {
+                    "inst_id": self.institutional_id, "course": self.course}
 
     if six.PY3:
         __str__ = __unicode__
