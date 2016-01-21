@@ -8,5 +8,4 @@ class CourseConfig(AppConfig):
     verbose_name = _("Course module")
 
     def ready(self):
-        import course.signals
         import course.receivers
