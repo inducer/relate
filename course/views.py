@@ -156,6 +156,33 @@ def course_page(pctx):
                 _("Your enrollment request is pending. You will be "
                 "notified once it has been acted upon."))
 
+        from course.models import ParticipationPreapproval
+
+        if ParticipationPreapproval.objects.filter(
+                course=pctx.course).exclude(institutional_id=None).count():
+            if not pctx.request.user.institutional_id:
+                from django.core.urlresolvers import reverse
+                messages.add_message(pctx.request, messages.WARNING,
+                        _("This course uses institutional ID for "
+                        "enrollment preapproval, please <a href='%s' "
+                        "role='button' class='btn btn-md btn-primary'>"
+                        "fill in your institutional ID &nbsp;&raquo;"
+                        "</a> in your profile.") 
+                        % (
+                            reverse("relate-user_profile")
+                            + "?referer="
+                            + pctx.request.path
+                            + "&set_inst_id=1"
+                            )
+                        )
+            else:
+                if pctx.course.preapproval_require_verified_inst_id:
+                    messages.add_message(pctx.request, messages.WARNING,
+                            _("Your institutional ID is not verified or "
+                            "preapproved. Please contact your course "
+                            "staff.")
+                            )
+
     return render_course_page(pctx, "course/course-page.html", {
         "chunks": chunks,
         "show_enroll_button": show_enroll_button,

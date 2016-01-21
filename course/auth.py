@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import ugettext_lazy as _, string_concat, ugettext
+from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
 from django.contrib import messages
@@ -44,7 +44,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
 from django.core import validators
 from django.utils.http import is_safe_url
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
@@ -663,6 +663,7 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 # {{{ user profile
 
 class UserForm(StyledModelForm):
+
     confirm_institutional_id = forms.CharField(
             max_length=100,
             label=_("Institutional ID Confirmation"),
@@ -676,17 +677,12 @@ class UserForm(StyledModelForm):
 
     class Meta:
         model = get_user_model()
-        fields = (
-                "last_name",
-                "first_name",
-                "institutional_id",
-                "editor_mode")
+        fields = ("first_name", "last_name", "institutional_id", "editor_mode")
 
     def __init__(self, *args, **kwargs):
+        has_inst_id = kwargs.pop('has_inst_id')
+        enable_inst_input = kwargs.pop('enable_inst_input')
         super(UserForm, self).__init__(*args, **kwargs)
-
-        self.helper.form_id = "profile-form"
-        self.helper.form_action = reverse("relate-profile_form_ajax")
 
         self.helper.layout = Layout(
                 Div("last_name", "first_name", css_class="well"),
@@ -699,9 +695,18 @@ class UserForm(StyledModelForm):
                 "which is used by some course to grant enrollment. "
                 "<b>Once sumbitted, it can not be changed</b>."))
 
-        if not self.instance.institutional_id:
-            self.helper.layout[1].insert(1, "confirm_institutional_id")
-            self.helper.layout[1].insert(0, "no_institutional_id")
+        def toggle_inst_input(has_inst_id, enable_inst_input):
+            if not has_inst_id:
+                self.helper.layout[1].insert(1, "confirm_institutional_id")
+                self.helper.layout[1].insert(0, "no_institutional_id")
+
+                if not enable_inst_input:
+                    self.fields['no_institutional_id'].initial  = True
+                    self.fields["institutional_id"].widget.attrs['disabled'] = True
+            else:
+                self.fields["institutional_id"].widget.attrs['disabled'] = True
+
+        toggle_inst_input(has_inst_id, enable_inst_input)
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
@@ -721,7 +726,7 @@ class UserForm(StyledModelForm):
             if inputed and not confirmed:
                 raise forms.ValidationError(_("This field is required."))
             if not inputed == confirmed:
-                raise forms.ValidationError(_("Input not match."))
+                raise forms.ValidationError(_("Inputs do not match."))
         return confirmed
 
     def clean_no_institutional_id(self):
@@ -742,35 +747,53 @@ def user_profile(request):
     if not request.user.is_authenticated():
         raise PermissionDenied()
 
-    if request.method == "GET":
-        user_form = UserForm(instance=request.user)
+    user_form = None
+
+    def has_inst_id(user):
+        return True and user.institutional_id or False
+
+    def enable_inst_input(request):
+        if (
+            request.GET.get("first_login")
+            or (
+                request.GET.get("set_inst_id")
+                and request.GET["referer"])
+            ):
+            return True
+        else:
+            return False
+
+    if request.method == "POST":
+        if "submit_user" in request.POST:
+            user_form = UserForm(
+                    request.POST,
+                    instance=request.user,
+                    has_inst_id=has_inst_id(request.user),
+                    enable_inst_input=enable_inst_input(request))
+            if user_form.is_valid():
+                user_form.save()
+
+                messages.add_message(request, messages.INFO,
+                        _("Profile data saved."))
+                if request.GET.get("first_login"):
+                    return redirect("relate-home")
+                if request.GET.get("set_inst_id") and request.GET["referer"]:
+                    return redirect(request.GET["referer"])
+
+                user_form = UserForm(
+                        instance=request.user,
+                        has_inst_id=has_inst_id(request.user),
+                        enable_inst_input=enable_inst_input(request))
+
+    if user_form is None:
+            user_form = UserForm(
+                    instance=request.user,
+                    has_inst_id=has_inst_id(request.user),
+                    enable_inst_input=enable_inst_input(request))
 
     return render(request, "user-profile-form.html", {
         "user_form": user_form,
         })
-
-def user_profile_ajax(request):
-    if not request.user.is_authenticated():
-        raise PermissionDenied()
-
-    user_form = UserForm(request.POST or None, instance=request.user)
-    if user_form.is_valid():
-        user_form.save()
-
-        success_messages = ugettext("Profile data saved.")
-
-        return JsonResponse(
-            {'success': True, 
-             'success_messages': success_messages,
-            })
-
-    from crispy_forms.utils import render_crispy_form
-    from django.core.context_processors import csrf
-
-    ctx = {}
-    ctx.update(csrf(request))
-    form_html = render_crispy_form(user_form, context=ctx)
-    return JsonResponse({'success': False, 'form_html': form_html})
 
 # }}}
 
