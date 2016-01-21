@@ -38,8 +38,8 @@
 
     // crispy form cannot hide wrapping div of a field.
     $(document).ready(function(){
-        if ($('#id_institutional_id').disabled == true){
-            $('#div_id_confirm_institutional_id').addClass("hidden");
+        if ($('#id_institutional_id').attr("disabled") == "disabled"){
+            $('#div_id_confirm_institutional_id').hide();
         }
     });
 
