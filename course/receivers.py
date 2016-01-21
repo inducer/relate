@@ -40,14 +40,12 @@ def update_requested_participation_status(sender, created, instance, **kwargs):
         course = instance
         requested_qset = Participation.objects.filter(
                 course=course, status=participation_status.requested)
-        print "i am working as course!"
 
     elif isinstance(instance, User):
         user = instance
         requested_qset = Participation.objects.filter(
                 user=user, status=participation_status.requested)
-        print "i am working as user!"
-    
+
     if not created:
         if requested_qset is None:
             pass
