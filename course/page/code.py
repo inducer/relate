@@ -115,7 +115,8 @@ def request_python_run(run_req, run_timeout, image=None):
                     "Memory": 256*10**6,
                     "MemorySwap": -1,
                     "PublishAllPorts": True,
-                    "ReadonlyRootfs": True,
+                    # Do not enable: matplotlib stops working if enabled.
+                    # "ReadonlyRootfs": True,
                     },
                 user="runpy")
 
