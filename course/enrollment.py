@@ -209,6 +209,8 @@ def send_enrollment_decision(participation, approved, request=None):
                         reverse("relate-course_page",
                             args=(course.identifier,)))
             else:
+                # This will happen when this method is triggered by
+                # a model signal which doesn't contain request object.
                 site_domain = None
                 if "django.contrib.sites" in settings.INSTALLED_APPS:
                     from django.contrib.sites.models import Site
