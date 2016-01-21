@@ -213,14 +213,14 @@ def send_enrollment_decision(participation, approved, request=None):
                             args=(course.identifier,)))
             else:
                 # This will happen when this method is triggered by
-                # a model signal which doesn't contain request object.
+                # a model signal which doesn't contain a request object.
                 site_domain = None
                 if "django.contrib.sites" in settings.INSTALLED_APPS:
                     from django.contrib.sites.models import Site
                     try:
                         site_domain = Site.objects.get_current().domain
                     except:
-                    # sites framework may failed due to unresolved
+                    # sites framework often fail due to unresolved
                     # migrations issue for PostgreSql
                     # http://stackoverflow.com/q/30356963/3437454
                         pass
