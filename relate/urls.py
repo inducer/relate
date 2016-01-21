@@ -76,9 +76,6 @@ urlpatterns = [
     url(r"^profile/$",
         course.auth.user_profile,
         name="relate-user_profile"),
-    url(r"^profile-form-ajax/$",
-        course.auth.user_profile_ajax,
-        name="relate-profile_form_ajax"),
 
     url(r"^generate-ssh-key/$",
         course.views.generate_ssh_keypair,

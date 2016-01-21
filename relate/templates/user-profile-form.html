@@ -4,7 +4,6 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <div id="profile-form-info"> </div>
   <h1>{% trans "User Profile" %}</h1>
   <div class="well">
     {% crispy user_form %}
@@ -16,97 +15,33 @@
 
 <script type="text/javascript">
 
-    // parse url: http://stackoverflow.com/a/12254019/3437454
-    function getParam(name) {
-        var half = location.search.split('&' + name + '=')[1];
-        if (!half) half = location.search.split('?' + name + '=')[1];
-        return half !== undefined ? decodeURIComponent(half.split('&')[0]) : null;
-    }
-
-    function hasParam(name) {
-        return getParam(name) !== null ? true : false;
-    }
-
-    function disable_widget_no_id(){
+    // toggle show/hide/disabled of fields
+    function disable_inst_id_widget(){
         $('#div_id_confirm_institutional_id').hide();
         $('#id_institutional_id').prop('disabled', true);
         $("#id_no_institutional_id").prop('checked', true);
     }
 
-    function enable_widget_no_id(){
+    function enable_inst_id_widget(){
         $('#div_id_confirm_institutional_id').show();
         $('#id_institutional_id').prop('disabled', false);
     }
 
-    
-    var first_login = hasParam("first_login");
-    var set_inst_id = hasParam("set_inst_id");
-    
-    if(!(first_login||set_inst_id)){disable_widget_no_id();}
-    else{
-        if ($("#id_institutional_id").val().length > 0){
-            $('#id_institutional_id').prop('disabled', true);
-        }
-    };
-
-
+    // When no_id is checked, clear input data in inst_id
     $(document).on('click', '#id_no_institutional_id', function(event) {
-        if (this.checked) {
-            disable_widget_no_id();
+        if (this.checked){
+            disable_inst_id_widget();
             $('#id_institutional_id').val("");
             $('#id_confirm_institutional_id').val("")}
-        else {enable_widget_no_id();}
+        else {enable_inst_id_widget();}
     });
 
-    // ajax form submit
-
-    var profile_form = '#profile-form';
-    
-    $(document).on('submit', profile_form, function(event){
-        event.preventDefault();
-        sumbit_ajax();
+    // crispy form cannot hide wrapping div of a field.
+    $(document).ready(function(){
+        if ($('#id_institutional_id').disabled == true){
+            $('#div_id_confirm_institutional_id').addClass("hidden");
+        }
     });
-
-    function sumbit_ajax() {
-        $.ajax({
-            url : "{% url 'relate-profile_form_ajax' %}",
-            type : "POST", // http method
-            data : $(profile_form).serialize(), 
-            success: function(data) {
-                if (!(data['success'])) {
-                    $(profile_form).replaceWith(data['form_html']);
-                }
-                else {
-                    $('#div_id_confirm_institutional_id').hide();
-                    $('#id_institutional_id').prop('disabled', true);
-                    if ($("#id_institutional_id").val().length > 0){
-                        $('#div_id_no_institutional_id').hide();}
-                    else{
-                        $("#id_no_institutional_id").prop('checked', true);
-                    };
-                    if (data['success_messages']) {
-                        $("#profile-form-info")
-                            .addClass("alert alert-info")
-                            .html('<i class="fa fa-info-circle"></i> '
-                                  + data['success_messages']);
-                        window.setTimeout(
-                            function() {
-                                $("#profile-form-info")
-                                    .fadeOut()
-                                    .removeClass("alert alert-info")
-                                    .html("")
-                                    .fadeIn();
-                                if (first_login){
-                                    window.location.replace('{% url "relate-home" %}');}
-                                if (hasParam("referer")){
-                                    window.location.replace(getParam("referer"));}
-                            },
-                            3000);
-                    };
-                };
-            },
-        });
-    }
 
 </script>
 {% endblock %}
