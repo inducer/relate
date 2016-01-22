@@ -234,6 +234,8 @@ RELATE_CACHE_MAX_BYTES = 32768
 
 RELATE_ADMIN_EMAIL_LOCALE = "en_US"
 
+RELATE_EDITABLE_INST_ID_PRE_VRF = True
+
 # }}}
 
 for name, val in local_settings.items():
