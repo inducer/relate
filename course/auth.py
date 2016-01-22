@@ -662,6 +662,8 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 # {{{ user profile
 
+EDITABLE_INST_ID_PRE_VRF = settings.RELATE_EDITABLE_INST_ID_PRE_VRF
+
 class UserForm(StyledModelForm):
 
     confirm_institutional_id = forms.CharField(
@@ -677,13 +679,15 @@ class UserForm(StyledModelForm):
 
     class Meta:
         model = get_user_model()
-        fields = ("first_name", "last_name", "institutional_id", "editor_mode")
+        fields = ("first_name", "last_name", "institutional_id",
+                "editor_mode")
 
     def __init__(self, *args, **kwargs):
-        has_inst_id = kwargs.pop('has_inst_id')
+        self.has_valid_inst_id = has_valid_inst_id =\
+                kwargs.pop('has_valid_inst_id')
         enable_inst_input = kwargs.pop('enable_inst_input')
         super(UserForm, self).__init__(*args, **kwargs)
-
+        
         self.helper.layout = Layout(
                 Div("last_name", "first_name", css_class="well"),
                 Div("institutional_id", css_class="well"),
@@ -692,36 +696,52 @@ class UserForm(StyledModelForm):
 
         self.fields["institutional_id"].help_text=(
                 _("The unique ID your university or school provided, "
-                "which is used by some course to grant enrollment. "
-                "<b>Once sumbitted, it can not be changed</b>."))
+                    "which is used by some course to grant enrollment. "
+                    "<b>Once %(submitted_or_verified)s, it can not be "
+                    "changed</b>.")
+                % {"submitted_or_verified": 
+                    EDITABLE_INST_ID_PRE_VRF 
+                    and _("verified") or _("submitted")})
 
-        def toggle_inst_input(has_inst_id, enable_inst_input):
-            if not has_inst_id:
+        def toggle_inst_input(has_valid_inst_id, enable_inst_input):
+            if not has_valid_inst_id:
                 self.helper.layout[1].insert(1, "confirm_institutional_id")
                 self.helper.layout[1].insert(0, "no_institutional_id")
+                self.fields["confirm_institutional_id"].initial = \
+                        self.instance.institutional_id
 
                 if not enable_inst_input:
                     self.fields['no_institutional_id'].initial  = True
-                    self.fields["institutional_id"].widget.attrs['disabled'] = True
+                    self.fields["institutional_id"].widget.\
+                            attrs['disabled'] = True
             else:
-                self.fields["institutional_id"].widget.attrs['disabled'] = True
+                self.fields["institutional_id"].widget.\
+                        attrs['disabled'] = True
 
-        toggle_inst_input(has_inst_id, enable_inst_input)
+        toggle_inst_input(has_valid_inst_id, enable_inst_input)
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
 
     def clean_institutional_id(self):
-        # http://stackoverflow.com/a/325038/3437454
-        if self.instance.institutional_id:
-            return self.instance.institutional_id
+        if not self.has_valid_inst_id:
+            # without this submission will result in an uneditable
+            # empty inst_id field
+            if self.cleaned_data.get("no_institutional_id"):
+                return None
+            else:
+                return self.cleaned_data['institutional_id'].strip()
         else:
-            return self.cleaned_data['institutional_id']
+            # http://stackoverflow.com/a/325038/3437454
+            if self.instance.institutional_id:
+                return self.instance.institutional_id
+            else:
+                return self.cleaned_data['institutional_id'].strip()
 
     def clean_confirm_institutional_id(self):
         confirmed = self.cleaned_data.get("confirm_institutional_id")
 
-        if not self.instance.institutional_id:
+        if not self.instance.institutional_id or not self.has_valid_inst_id:
             inputed = self.cleaned_data.get("institutional_id")
             if inputed and not confirmed:
                 raise forms.ValidationError(_("This field is required."))
@@ -732,15 +752,20 @@ class UserForm(StyledModelForm):
     def clean_no_institutional_id(self):
         no_id = self.cleaned_data.get("no_institutional_id")
         if no_id:
-            if self.instance.institutional_id:
-                raise forms.ValidationError(
-                        _("You have set your institutional id."))
+            if not self.has_valid_inst_id:
+                # without this submission will result in an uneditable
+                # empty inst_id field
+                return no_id
             else:
-                inputed = self.cleaned_data['institutional_id']
-                if inputed:
+                if self.instance.institutional_id:
                     raise forms.ValidationError(
-                            _("You have conflict in your input."))
-        return no_id
+                            _("You have set your institutional id."))
+                else:
+                    inputed = self.cleaned_data['institutional_id']
+                    if inputed:
+                        raise forms.ValidationError(
+                                _("You have conflict in your input."))
+                return no_id
 
 
 def user_profile(request):
@@ -749,15 +774,23 @@ def user_profile(request):
 
     user_form = None
 
-    def has_inst_id(user):
-        return True and user.institutional_id or False
+    def has_valid_inst_id(user):
+        if not EDITABLE_INST_ID_PRE_VRF:
+            return True and user.institutional_id or False
+        else:
+            if user.institutional_id_verified:
+                return True
+            else:
+                return False
 
     def enable_inst_input(request):
+        # unhide the inst_id input fields
         if (
             request.GET.get("first_login")
             or (
                 request.GET.get("set_inst_id")
                 and request.GET["referer"])
+            or EDITABLE_INST_ID_PRE_VRF
             ):
             return True
         else:
@@ -768,7 +801,7 @@ def user_profile(request):
             user_form = UserForm(
                     request.POST,
                     instance=request.user,
-                    has_inst_id=has_inst_id(request.user),
+                    has_valid_inst_id=has_valid_inst_id(request.user),
                     enable_inst_input=enable_inst_input(request))
             if user_form.is_valid():
                 user_form.save()
@@ -782,16 +815,17 @@ def user_profile(request):
 
                 user_form = UserForm(
                         instance=request.user,
-                        has_inst_id=has_inst_id(request.user),
+                        has_valid_inst_id=has_valid_inst_id(request.user),
                         enable_inst_input=enable_inst_input(request))
 
     if user_form is None:
             user_form = UserForm(
                     instance=request.user,
-                    has_inst_id=has_inst_id(request.user),
+                    has_valid_inst_id=has_valid_inst_id(request.user),
                     enable_inst_input=enable_inst_input(request))
 
     return render(request, "user-profile-form.html", {
+        "enable_inst_input": enable_inst_input(request),
         "user_form": user_form,
         })
 

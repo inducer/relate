@@ -30,7 +30,9 @@
     // When no_id is checked, clear input data in inst_id
     $(document).on('click', '#id_no_institutional_id', function(event) {
         if (this.checked){
-            disable_inst_id_widget();
+            {% if not enable_inst_input %}
+                disable_inst_id_widget();
+            {% endif %}
             $('#id_institutional_id').val("");
             $('#id_confirm_institutional_id').val("")}
         else {enable_inst_id_widget();}
@@ -41,6 +43,11 @@
         if ($('#id_institutional_id').attr("disabled") == "disabled"){
             $('#div_id_confirm_institutional_id').hide();
         }
+        if ($('#id_institutional_id').val().length>0){
+            $("#id_no_institutional_id").prop('checked', false);
+        }
+        else
+            {$("#id_no_institutional_id").prop('checked', true);}
     });
 
 </script>
