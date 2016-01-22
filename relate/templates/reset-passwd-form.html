@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+  {% if form_description %}
+    <h1>{{ form_description }}</h1>
+  {% endif %}
+  <div>
+    <style scoped>
+      .nav-tabs > li.active > a {background-color:#f5f5f5}
+      .well {border-top-width: 0px; box-shadow: none}
+    </style>
+    <ul class="nav nav-tabs">
+      <li class="{% if field == 'email' %}active{% endif %} ">
+        <a href="{% url 'relate-reset_password' %}">{% trans 'Email' %}</a>
+      </li>
+      <li class="{% if field == 'instid' %}active{% endif %} ">
+        <a href="{% url 'relate-reset_password' 'instid'%}">{% trans 'Institutional ID' %}</a>
+      </li>
+    </ul>
+    <div class="well">
+      <br>
+      {{ form_text|safe }}
+      {% crispy form %}
+    </div>
+  </div>
+{% endblock %}
