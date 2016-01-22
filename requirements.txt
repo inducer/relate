@@ -6,7 +6,12 @@ django-crispy-forms>=1.5.1
 # Page data, answer data, ... all represented in JSON. This makes that editable
 # in the Django admin.
 jsonfield>=1.0.3,<1.1
-django-yamlfield
+
+# django-yamlfield
+# but for
+# https://github.com/datadesk/django-yamlfield/pull/12
+# use
+git+https://github.com/piotrpawlaczek/django-yamlfield.git@feature/dj-1.9.x
 
 # For easy content formatting:
 markdown>=2.6.3
