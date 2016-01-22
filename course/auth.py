@@ -734,7 +734,7 @@ class UserForm(StyledModelForm):
                 kwargs.pop('has_valid_inst_id')
         enable_inst_input = kwargs.pop('enable_inst_input')
         super(UserForm, self).__init__(*args, **kwargs)
-        
+
         self.helper.layout = Layout(
                 Div("last_name", "first_name", css_class="well"),
                 Div("institutional_id", css_class="well"),
