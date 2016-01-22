@@ -51,9 +51,17 @@ class UserAdmin(UserAdminBase):
     #         UserAdminBase.fieldsets, "is_staff")
 
     list_display = tuple(UserAdminBase.list_display) + (
-            "status", "institutional_id",)
+            "name_verified",
+            "status",
+            "institutional_id", "institutional_id_verified",
+            )
+    list_editable = ("first_name", "last_name",
+            "name_verified",
+            "status",
+            "institutional_id", "institutional_id_verified",
+            "name_verified",)
     list_filter = tuple(UserAdminBase.list_filter) + (
-            "status",)
+            "status", "participations__course")
     search_fields = tuple(UserAdminBase.search_fields) + (
             "institutional_id",)
 

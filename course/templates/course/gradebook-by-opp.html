@@ -54,13 +54,19 @@
         {% endblocktrans %}
       </td>
     </tr>
+    <tr>
+      <td>{% trans "Operations" %}</td>
+      <td>
+        <a class="btn btn-default" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
+            role="button">{% trans "Download submissions" %}</a>
+      </td>
+    </tr>
     {% endif %}
-
   </table>
 
   {% if batch_session_ops_form %}
     <div class="well" style="margin-top: 20px">
-      <h3 class="start-well-title">{% trans "Batch sessions operations" %}</h3>
+      <h3 class="start-well-title">{% trans "Modify many sessions at once" %}</h3>
       {% crispy batch_session_ops_form %}
 
       <div class="text-muted col-lg-offset-2" style="margin-top:1ex">
