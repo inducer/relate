@@ -683,8 +683,8 @@ class UserForm(StyledModelForm):
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
-        self.has_valid_inst_id = has_valid_inst_id =\
-                kwargs.pop('has_valid_inst_id')
+        self.has_verified_inst_id = has_verified_inst_id =\
+                kwargs.pop('has_verified_inst_id')
         enable_inst_input = kwargs.pop('enable_inst_input')
         super(UserForm, self).__init__(*args, **kwargs)
 
@@ -703,8 +703,8 @@ class UserForm(StyledModelForm):
                     EDITABLE_INST_ID_PRE_VRF 
                     and _("verified") or _("submitted")})
 
-        def toggle_inst_input(has_valid_inst_id, enable_inst_input):
-            if not has_valid_inst_id:
+        def toggle_inst_input(has_verified_inst_id, enable_inst_input):
+            if not has_verified_inst_id:
                 self.helper.layout[1].insert(1, "confirm_institutional_id")
                 self.helper.layout[1].insert(0, "no_institutional_id")
                 self.fields["confirm_institutional_id"].initial = \
@@ -718,13 +718,13 @@ class UserForm(StyledModelForm):
                 self.fields["institutional_id"].widget.\
                         attrs['disabled'] = True
 
-        toggle_inst_input(has_valid_inst_id, enable_inst_input)
+        toggle_inst_input(has_verified_inst_id, enable_inst_input)
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
 
     def clean_institutional_id(self):
-        if not self.has_valid_inst_id:
+        if not self.has_verified_inst_id:
             # without this submission will result in an uneditable
             # empty inst_id field
             if self.cleaned_data.get("no_institutional_id"):
@@ -741,7 +741,7 @@ class UserForm(StyledModelForm):
     def clean_confirm_institutional_id(self):
         confirmed = self.cleaned_data.get("confirm_institutional_id")
 
-        if not self.instance.institutional_id or not self.has_valid_inst_id:
+        if not self.instance.institutional_id or not self.has_verified_inst_id:
             inputed = self.cleaned_data.get("institutional_id")
             if inputed and not confirmed:
                 raise forms.ValidationError(_("This field is required."))
@@ -752,7 +752,7 @@ class UserForm(StyledModelForm):
     def clean_no_institutional_id(self):
         no_id = self.cleaned_data.get("no_institutional_id")
         if no_id:
-            if not self.has_valid_inst_id:
+            if not self.has_verified_inst_id:
                 # without this submission will result in an uneditable
                 # empty inst_id field
                 return no_id
@@ -774,7 +774,7 @@ def user_profile(request):
 
     user_form = None
 
-    def has_valid_inst_id(user):
+    def has_verified_inst_id(user):
         if not EDITABLE_INST_ID_PRE_VRF:
             return True and user.institutional_id or False
         else:
@@ -801,7 +801,7 @@ def user_profile(request):
             user_form = UserForm(
                     request.POST,
                     instance=request.user,
-                    has_valid_inst_id=has_valid_inst_id(request.user),
+                    has_verified_inst_id=has_verified_inst_id(request.user),
                     enable_inst_input=enable_inst_input(request))
             if user_form.is_valid():
                 user_form.save()
@@ -815,13 +815,13 @@ def user_profile(request):
 
                 user_form = UserForm(
                         instance=request.user,
-                        has_valid_inst_id=has_valid_inst_id(request.user),
+                        has_verified_inst_id=has_verified_inst_id(request.user),
                         enable_inst_input=enable_inst_input(request))
 
     if user_form is None:
             user_form = UserForm(
                     instance=request.user,
-                    has_valid_inst_id=has_valid_inst_id(request.user),
+                    has_verified_inst_id=has_verified_inst_id(request.user),
                     enable_inst_input=enable_inst_input(request))
 
     return render(request, "user-profile-form.html", {
