@@ -63,7 +63,7 @@ from pytools.lex import RE as REBase
 
 @login_required
 @transaction.atomic
-def enroll(request, course_identifier):
+def enroll_view(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
 
@@ -125,7 +125,8 @@ def enroll(request, course_identifier):
         role = preapproval.role
 
     if course.enrollment_approval_required and preapproval is None:
-        do_enroll(course, user, participation_status.requested, role)
+        handle_enrollment_request(course, user, participation_status.requested,
+                                  role, request)
 
         with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
             from django.template.loader import render_to_string
@@ -149,7 +150,8 @@ def enroll(request, course_identifier):
                 _("Enrollment request sent. You will receive notifcation "
                 "by email once your request has been acted upon."))
     else:
-        do_enroll(course, user, participation_status.active, role)
+        handle_enrollment_request(course, user, participation_status.active,
+                                  role, request)
 
         messages.add_message(request, messages.SUCCESS,
                 _("Successfully enrolled."))
@@ -157,7 +159,7 @@ def enroll(request, course_identifier):
     return redirect("relate-course_page", course_identifier)
 
 @transaction.atomic
-def do_enroll(course, user, status, role):
+def handle_enrollment_request(course, user, status, role, request=None):
     participations = Participation.objects.filter(course=course, user=user)
 
     assert participations.count() <= 1
@@ -173,7 +175,12 @@ def do_enroll(course, user, status, role):
         participation.status = status
         participation.save()
 
-    return participation
+    if status == participation_status.active:
+        send_enrollment_decision(participation, True, request)
+    elif status == participation_status.denied:
+        send_enrollment_decision(participation, False, request)
+    else:
+        return
 
 # }}}
 

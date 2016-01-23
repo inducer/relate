@@ -68,11 +68,10 @@ def update_requested_participation_status(sender, created, instance,
             may_preapprove, role = may_preapprove_role(course, user)
 
             if may_preapprove:
-                from course.enrollment import (
-                    do_enroll, send_enrollment_decision)
+                from course.enrollment import handle_enrollment_request
 
-                do_enroll(course, user, participation_status.active, role)
-                send_enrollment_decision(requested, True)
+                handle_enrollment_request(
+                    course, user, participation_status.active, role)
 
 
 def may_preapprove_role(course, user):
