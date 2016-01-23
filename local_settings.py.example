@@ -99,7 +99,7 @@ RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 # If set to False, user won't be able to edit institutional ID
 # after submission. Set to False only when you trust your students
 # or you don't want to verfiy insitutional ID they submit.
-RELATE_EDITABLE_INST_ID_PRE_VRF = True
+RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # }}}
 
@@ -221,7 +221,8 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
                     # Find the entity ID of your IdP and make this the key here:
                     'urn:mace:incommon:uiuc.edu': {
                         'single_sign_on_service': {
-                            # Add the POST and REDIRECT bindings for the sign on service here:
+                            # Add the POST and REDIRECT bindings for the sign
+                            # on service here:
                             saml2.BINDING_HTTP_POST:
                                 'https://shibboleth.illinois.edu/idp/profile/SAML2/POST/SSO',
                             saml2.BINDING_HTTP_REDIRECT:

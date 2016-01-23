@@ -662,7 +662,9 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 # {{{ user profile
 
-EDITABLE_INST_ID_PRE_VRF = settings.RELATE_EDITABLE_INST_ID_PRE_VRF
+EDITABLE_INST_ID_BEFORE_VERIFICATION = \
+        settings.RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION
+
 
 class UserForm(StyledModelForm):
 
@@ -694,13 +696,13 @@ class UserForm(StyledModelForm):
                 Div("editor_mode", css_class="well hidden-xs hidden-sm")
                 )
 
-        self.fields["institutional_id"].help_text=(
+        self.fields["institutional_id"].help_text = (
                 _("The unique ID your university or school provided, "
                     "which is used by some course to grant enrollment. "
                     "<b>Once %(submitted_or_verified)s, it can not be "
                     "changed</b>.")
-                % {"submitted_or_verified": 
-                    EDITABLE_INST_ID_PRE_VRF 
+                % {"submitted_or_verified":
+                    EDITABLE_INST_ID_BEFORE_VERIFICATION
                     and _("verified") or _("submitted")})
 
         def toggle_inst_input(has_verified_inst_id, enable_inst_input):
@@ -711,7 +713,7 @@ class UserForm(StyledModelForm):
                         self.instance.institutional_id
 
                 if not enable_inst_input:
-                    self.fields['no_institutional_id'].initial  = True
+                    self.fields['no_institutional_id'].initial = True
                     self.fields["institutional_id"].widget.\
                             attrs['disabled'] = True
             else:
@@ -775,8 +777,11 @@ def user_profile(request):
     user_form = None
 
     def has_verified_inst_id(user):
-        if not EDITABLE_INST_ID_PRE_VRF:
-            return True and user.institutional_id or False
+        if not EDITABLE_INST_ID_BEFORE_VERIFICATION:
+            if user.institutional_id:
+                return True
+            else:
+                return False
         else:
             if user.institutional_id_verified:
                 return True
@@ -786,12 +791,11 @@ def user_profile(request):
     def enable_inst_input(request):
         # unhide the inst_id input fields
         if (
-            request.GET.get("first_login")
-            or (
-                request.GET.get("set_inst_id")
-                and request.GET["referer"])
-            or EDITABLE_INST_ID_PRE_VRF
-            ):
+                request.GET.get("first_login")
+                or (
+                    request.GET.get("set_inst_id")
+                    and request.GET["referer"])
+                or EDITABLE_INST_ID_BEFORE_VERIFICATION):
             return True
         else:
             return False
