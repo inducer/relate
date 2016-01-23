@@ -279,7 +279,5 @@ SAML_ATTRIBUTE_MAPPING = {
 
 # This makes sure the RELATE_BASE_URL is configured.
 assert local_settings["RELATE_BASE_URL"]
-print "The base url of your site will be %s" % (
-    local_settings["RELATE_BASE_URL"])
 
 # vim: foldmethod=marker
