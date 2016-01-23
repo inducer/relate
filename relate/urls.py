@@ -244,7 +244,7 @@ urlpatterns = [
     url(r"^course"
         "/" + COURSE_ID_REGEX +
         "/enroll/$",
-        course.enrollment.enroll,
+        course.enrollment.enroll_view,
         name="relate-enroll"),
     url(r"^course"
         "/" + COURSE_ID_REGEX +
