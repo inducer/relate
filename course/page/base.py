@@ -240,6 +240,7 @@ class PageBase(object):
     .. automethod:: grade
     .. automethod:: correct_answer
     .. automethod:: normalized_answer
+    .. automethod:: normalized_plaintext_answer
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -501,6 +502,19 @@ class PageBase(object):
     def normalized_answer(self, page_context, page_data, answer_data):
         """An HTML-formatted answer to be used for summarization and
         display in analytics.
+        """
+        return None
+
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        """An answer to be used for batch download, given as a batch of bytes
+        to be stuffed in a zip file.
+
+        :returns: a tuple of ``(file_ext, data)`` where *file_ext* is a suggested
+            file extension (inlcuding the leading period, if applicable).
+            May also return *None*.
+
+        One use case of this function is to work as input for a plagiarism
+        checker.
         """
         return None
 

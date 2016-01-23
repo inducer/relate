@@ -305,7 +305,8 @@ class ParticipationTag(models.Model):
 
 class Participation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
-            verbose_name=_('User ID'), on_delete=models.CASCADE)
+            verbose_name=_('User ID'), on_delete=models.CASCADE,
+            related_name="participations")
     course = models.ForeignKey(Course, related_name="participations",
             verbose_name=_('Course'), on_delete=models.CASCADE)
 

@@ -115,7 +115,8 @@ def request_python_run(run_req, run_timeout, image=None):
                     "Memory": 256*10**6,
                     "MemorySwap": -1,
                     "PublishAllPorts": True,
-                    "ReadonlyRootfs": True,
+                    # Do not enable: matplotlib stops working if enabled.
+                    # "ReadonlyRootfs": True,
                     },
                 user="runpy")
 
@@ -821,6 +822,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         from django.utils.html import escape
         return "<pre>%s</pre>" % escape(normalized_answer)
+
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        return (".py", answer_data["answer"].encode("utf-8"))
 
 # }}}
 
