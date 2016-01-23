@@ -15,39 +15,43 @@
 
 <script type="text/javascript">
 
-    // toggle show/hide/disabled of fields
-    function disable_inst_id_widget(){
-        $('#div_id_confirm_institutional_id').hide();
+    {# show/hide/disabled of fields #}
+    function disable_inst_id(){
+        $('#div_id_institutional_id_confirm').hide();
         $('#id_institutional_id').prop('disabled', true);
         $("#id_no_institutional_id").prop('checked', true);
     }
 
-    function enable_inst_id_widget(){
-        $('#div_id_confirm_institutional_id').show();
+    function enable_inst_id(){
+        $('#div_id_institutional_id_confirm').show();
         $('#id_institutional_id').prop('disabled', false);
+        $("#id_no_institutional_id").prop('checked', false);
     }
 
-    // When no_id is checked, clear input data in inst_id
+    {# When no_id is checked, clear input data in inst_id #}
     $(document).on('click', '#id_no_institutional_id', function(event) {
         if (this.checked){
-            {% if not enable_inst_input %}
-                disable_inst_id_widget();
-            {% endif %}
+            disable_inst_id();
             $('#id_institutional_id').val("");
-            $('#id_confirm_institutional_id').val("")}
-        else {enable_inst_id_widget();}
+            $('#id_institutional_id_confirm').val("")}
+        else {enable_inst_id();}
     });
 
-    // crispy form cannot hide wrapping div of a field.
+    {# crispy form layout cannot hide wrapping div of a field. #}
     $(document).ready(function(){
-        if ($('#id_institutional_id').attr("disabled") == "disabled"){
-            $('#div_id_confirm_institutional_id').hide();
-        }
-        if ($('#id_institutional_id').val().length>0){
-            $("#id_no_institutional_id").prop('checked', false);
-        }
-        else
-            {$("#id_no_institutional_id").prop('checked', true);}
+        {% if inst_id_locked %}
+            disable_inst_id();
+        {% elif enable_inst_id_if_not_locked %}
+            enable_inst_id();
+        {% else %}
+            if ($('#id_institutional_id').val().length == 0 &&
+                $('#id_institutional_id_confirm').val().length == 0 &&
+                $('#error_1_id_institutional_id_confirm').length == 0 &&
+                $('#error_1_id_institutional_id').length ==0 )
+                {disable_inst_id();}
+            else 
+                {enable_inst_id();}
+        {% endif %}
     });
 
 </script>

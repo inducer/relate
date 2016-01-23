@@ -713,7 +713,7 @@ EDITABLE_INST_ID_PRE_VRF = settings.RELATE_EDITABLE_INST_ID_PRE_VRF
 
 class UserForm(StyledModelForm):
 
-    confirm_institutional_id = forms.CharField(
+    institutional_id_confirm = forms.CharField(
             max_length=100,
             label=_("Institutional ID Confirmation"),
             required=False)
@@ -730,9 +730,8 @@ class UserForm(StyledModelForm):
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
-        self.has_verified_inst_id = has_verified_inst_id =\
-                kwargs.pop('has_verified_inst_id')
-        enable_inst_input = kwargs.pop('enable_inst_input')
+        self.is_inst_id_locked = is_inst_id_locked =\
+                kwargs.pop('is_inst_id_locked')
         super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.layout = Layout(
@@ -750,70 +749,45 @@ class UserForm(StyledModelForm):
                     EDITABLE_INST_ID_PRE_VRF 
                     and _("verified") or _("submitted")})
 
-        def toggle_inst_input(has_verified_inst_id, enable_inst_input):
-            if not has_verified_inst_id:
-                self.helper.layout[1].insert(1, "confirm_institutional_id")
+        def adjust_layout(is_inst_id_locked):
+            if not is_inst_id_locked:
+                self.helper.layout[1].insert(1, "institutional_id_confirm")
                 self.helper.layout[1].insert(0, "no_institutional_id")
-                self.fields["confirm_institutional_id"].initial = \
+                self.fields["institutional_id_confirm"].initial = \
                         self.instance.institutional_id
-
-                if not enable_inst_input:
-                    self.fields['no_institutional_id'].initial  = True
-                    self.fields["institutional_id"].widget.\
-                            attrs['disabled'] = True
             else:
                 self.fields["institutional_id"].widget.\
                         attrs['disabled'] = True
 
-        toggle_inst_input(has_verified_inst_id, enable_inst_input)
+        adjust_layout(is_inst_id_locked)
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
 
     def clean_institutional_id(self):
-        if not self.has_verified_inst_id:
-            # without this submission will result in an uneditable
-            # empty inst_id field
-            if self.cleaned_data.get("no_institutional_id"):
-                return None
-            else:
-                return self.cleaned_data['institutional_id'].strip()
-        else:
+        inst_id = self.cleaned_data['institutional_id'].strip()
+        if self.is_inst_id_locked:
+            if not  inst_id != self.instance.institutional_id:
+                raise forms.ValidationError(
+                        _("Forbidden to modify institutional ID."))
+
+            # prevent malicious POST hacks
             # http://stackoverflow.com/a/325038/3437454
-            if self.instance.institutional_id:
-                return self.instance.institutional_id
-            else:
-                return self.cleaned_data['institutional_id'].strip()
+            return self.instance.institutional_id
+        else:
+            return inst_id
 
-    def clean_confirm_institutional_id(self):
-        confirmed = self.cleaned_data.get("confirm_institutional_id")
+    def clean_institutional_id_confirm(self):
+        inst_id_confirmed = self.cleaned_data.get(
+                "institutional_id_confirm")
 
-        if not self.instance.institutional_id or not self.has_verified_inst_id:
-            inputed = self.cleaned_data.get("institutional_id")
-            if inputed and not confirmed:
+        if not self.is_inst_id_locked:
+            inst_id = self.cleaned_data.get("institutional_id")
+            if inst_id and not inst_id_confirmed:
                 raise forms.ValidationError(_("This field is required."))
-            if not inputed == confirmed:
+            if not inst_id == inst_id_confirmed:
                 raise forms.ValidationError(_("Inputs do not match."))
-        return confirmed
-
-    def clean_no_institutional_id(self):
-        no_id = self.cleaned_data.get("no_institutional_id")
-        if no_id:
-            if not self.has_verified_inst_id:
-                # without this submission will result in an uneditable
-                # empty inst_id field
-                return no_id
-            else:
-                if self.instance.institutional_id:
-                    raise forms.ValidationError(
-                            _("You have set your institutional id."))
-                else:
-                    inputed = self.cleaned_data['institutional_id']
-                    if inputed:
-                        raise forms.ValidationError(
-                                _("You have conflict in your input."))
-                return no_id
-
+        return inst_id_confirmed
 
 def user_profile(request):
     if not request.user.is_authenticated():
@@ -821,35 +795,20 @@ def user_profile(request):
 
     user_form = None
 
-    def has_verified_inst_id(user):
-        if not EDITABLE_INST_ID_PRE_VRF:
-            return True and user.institutional_id or False
+    def is_inst_id_locked(user):
+        if EDITABLE_INST_ID_PRE_VRF:
+            return True if (user.institutional_id
+                    and user.institutional_id_verified) else False
         else:
-            if user.institutional_id_verified:
-                return True
-            else:
-                return False
-
-    def enable_inst_input(request):
-        # unhide the inst_id input fields
-        if (
-            request.GET.get("first_login")
-            or (
-                request.GET.get("set_inst_id")
-                and request.GET["referer"])
-            or EDITABLE_INST_ID_PRE_VRF
-            ):
-            return True
-        else:
-            return False
+            return True if user.institutional_id else False
 
     if request.method == "POST":
         if "submit_user" in request.POST:
             user_form = UserForm(
                     request.POST,
                     instance=request.user,
-                    has_verified_inst_id=has_verified_inst_id(request.user),
-                    enable_inst_input=enable_inst_input(request))
+                    is_inst_id_locked=is_inst_id_locked(request.user),
+            )
             if user_form.is_valid():
                 user_form.save()
 
@@ -857,22 +816,27 @@ def user_profile(request):
                         _("Profile data saved."))
                 if request.GET.get("first_login"):
                     return redirect("relate-home")
-                if request.GET.get("set_inst_id") and request.GET["referer"]:
+                if (request.GET.get("set_inst_id") 
+                        and request.GET["referer"]):
                     return redirect(request.GET["referer"])
 
                 user_form = UserForm(
                         instance=request.user,
-                        has_verified_inst_id=has_verified_inst_id(request.user),
-                        enable_inst_input=enable_inst_input(request))
+                        is_inst_id_locked=is_inst_id_locked(request.user))
 
     if user_form is None:
             user_form = UserForm(
                     instance=request.user,
-                    has_verified_inst_id=has_verified_inst_id(request.user),
-                    enable_inst_input=enable_inst_input(request))
+                    is_inst_id_locked=is_inst_id_locked(request.user),
+            )
 
     return render(request, "user-profile-form.html", {
-        "enable_inst_input": enable_inst_input(request),
+        "inst_id_locked": is_inst_id_locked(request.user),
+        "enable_inst_id_if_not_locked": (
+            request.GET.get("first_login")
+            or (request.GET.get("set_inst_id")
+                and request.GET["referer"])
+            ),
         "user_form": user_form,
         })
 
