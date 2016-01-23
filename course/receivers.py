@@ -25,40 +25,60 @@ THE SOFTWARE.
 """
 
 from django.db.models.signals import post_save
+from django.db import transaction
 from django.dispatch import receiver
+
 from accounts.models import User
 from course.models import (
-        Course, Participation, participation_status, ParticipationPreapproval,
+        Course, Participation, participation_status, 
+        ParticipationPreapproval,
         )
 
 # {{{ Update enrollment status when a User/Course instance is saved
 @receiver(post_save, sender=User)
 @receiver(post_save, sender=Course)
-def update_requested_participation_status(sender, created, instance, **kwargs):
-    
+@transaction.atomic
+def update_requested_participation_status(sender, created, instance, 
+        **kwargs):
+
+    if created:
+        return
+
     if isinstance(instance, Course):
         course = instance
         requested_qset = Participation.objects.filter(
                 course=course, status=participation_status.requested)
-
     elif isinstance(instance, User):
         user = instance
         requested_qset = Participation.objects.filter(
                 user=user, status=participation_status.requested)
+    else:
+        return
 
-    if not created:
-        if requested_qset is None:
-            pass
+    if requested_qset:
 
         for requested in requested_qset:
             if isinstance(instance, Course):
                 user = requested.user
             elif isinstance(instance, User):
                 course = requested.course
+            else:
+                continue
 
-            update_requested_user_course(user=user, course=course)
-            
-def update_requested_user_course(user, course):
+            may_preapprove, role = may_preapprove_role(course, user)
+
+            if may_preapprove:
+                from course.enrollment import (
+                    do_enroll, send_enrollment_decision)
+
+                do_enroll(course, user, participation_status.active, role)
+                send_enrollment_decision(requested, True)
+
+
+def may_preapprove_role(course, user):
+    if not user.is_active:
+        return False, None
+
     preapproval = None
     if user.email:
         try:
@@ -70,40 +90,17 @@ def update_requested_user_course(user, course):
                         and not user.institutional_id_verified):
                     try:
                         preapproval = (
-                             ParticipationPreapproval.objects.get(
-                                 course=course,
-                                 institutional_id__iexact\
-                                         =user.institutional_id))
+                                ParticipationPreapproval.objects.get(
+                                    course=course,
+                                    institutional_id__iexact=\
+                                            user.institutional_id))
                     except ParticipationPreapproval.DoesNotExist:
                         pass
-        pass
 
-    def enroll(status, role):
-        participations = Participation.objects.filter(
-                course=course, user=user)
-
-        assert participations.count() <= 1
-        if participations.count() == 0:
-            participation = Participation()
-            participation.user = user
-            participation.course = course
-            participation.role = role
-            participation.status = status
-            participation.save()
-        else:
-            (participation,) = participations
-            participation.status = status
-            participation.save()
-
-        return participation
-
-    if preapproval is not None:
-        role = preapproval.role
-        enroll(participation_status.active, role)
-
-        from course.enrollment import send_enrollment_decision
-        send_enrollment_decision(requested, True)
-
+    if preapproval:
+        return True, preapproval.role
+    else:
+        return False, None
 
 # }}}
 # vim: foldmethod=marker

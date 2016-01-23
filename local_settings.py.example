@@ -8,14 +8,8 @@ ALLOWED_HOSTS = [
         "relate.example.com",
         ]
 
-# Comment or leave the following line as is if you can run the
-# following command:
-#        python manage.py migrate sites
-# If that works without problem, edit in admin the "sites" block,
-# update the first/only record to your domain.
-# Otherwise, replace the following string with your own domain.
-
-RELATE_SITE_DOMAIN = "www.example.com"
+# Configure the following as url as above.
+RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
