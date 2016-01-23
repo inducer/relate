@@ -64,7 +64,7 @@ from pytools.lex import RE as REBase
 
 @login_required
 @transaction.atomic
-def enroll(request, course_identifier):
+def enroll_view(request, course_identifier):
     course = get_object_or_404(Course, identifier=course_identifier)
     role, participation = get_role_and_participation(request, course)
 
@@ -120,31 +120,14 @@ def enroll(request, course_identifier):
                 "enroll.") % course.enrollment_required_email_suffix)
         return redirect("relate-course_page", course_identifier)
 
-    def enroll(status, role):
-        participations = Participation.objects.filter(course=course, user=user)
-
-        assert participations.count() <= 1
-        if participations.count() == 0:
-            participation = Participation()
-            participation.user = user
-            participation.course = course
-            participation.role = role
-            participation.status = status
-            participation.save()
-        else:
-            (participation,) = participations
-            participation.status = status
-            participation.save()
-
-        return participation
-
     role = participation_role.student
 
     if preapproval is not None:
         role = preapproval.role
 
     if course.enrollment_approval_required and preapproval is None:
-        enroll(participation_status.requested, role)
+        handle_enrollment_request(course, user, participation_status.requested,
+                                  role, request)
 
         with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
             from django.template.loader import render_to_string
@@ -170,12 +153,37 @@ def enroll(request, course_identifier):
                 _("Enrollment request sent. You will receive notifcation "
                 "by email once your request has been acted upon."))
     else:
-        enroll(participation_status.active, role)
+        handle_enrollment_request(course, user, participation_status.active,
+                                  role, request)
 
         messages.add_message(request, messages.SUCCESS,
                 _("Successfully enrolled."))
 
     return redirect("relate-course_page", course_identifier)
+
+@transaction.atomic
+def handle_enrollment_request(course, user, status, role, request=None):
+    participations = Participation.objects.filter(course=course, user=user)
+
+    assert participations.count() <= 1
+    if participations.count() == 0:
+        participation = Participation()
+        participation.user = user
+        participation.course = course
+        participation.role = role
+        participation.status = status
+        participation.save()
+    else:
+        (participation,) = participations
+        participation.status = status
+        participation.save()
+
+    if status == participation_status.active:
+        send_enrollment_decision(participation, True, request)
+    elif status == participation_status.denied:
+        send_enrollment_decision(participation, False, request)
+    else:
+        return
 
 # }}}
 
@@ -204,17 +212,26 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             _("%d requests processed.") % count)
 
 
-def send_enrollment_decision(participation, approved, request):
+def send_enrollment_decision(participation, approved, request=None):
         with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
             course = participation.course
+            if request:
+                course_uri = request.build_absolute_uri(
+                        reverse("relate-course_page",
+                            args=(course.identifier,)))
+            else:
+                # This will happen when this method is triggered by
+                # a model signal which doesn't contain a request object.
+                from urlparse import urljoin
+                course_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
+                                     course.get_absolute_url())
+
             from django.template.loader import render_to_string
             message = render_to_string("course/enrollment-decision-email.txt", {
                 "user": participation.user,
                 "approved": approved,
                 "course": course,
-                "course_uri": request.build_absolute_uri(
-                        reverse("relate-course_page",
-                            args=(course.identifier,)))
+                "course_uri": course_uri
                 })
 
             from django.core.mail import EmailMessage
@@ -336,16 +353,7 @@ def create_preapprovals(pctx):
                     try:
                         preapproval = ParticipationPreapproval.objects.get(
                                 course=pctx.course, institutional_id__iexact=l)
-                        # FIXME :
-                        """
-                           When an exist preapproval is submit, and if the tutor changed the
-                           requirement of preapproval_require_verified_inst_id of the
-                           course from True to False, some pending requests which had not
-                           provided validated inst_id will still be pending.
 
-                           BTW, it is also the case when the tutor changed the
-                           enrollment_required_email_suffix from "@what.com" to "".
-                        """
                     except ParticipationPreapproval.DoesNotExist:
 
                         # approve if l is requesting enrollment

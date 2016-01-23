@@ -8,6 +8,9 @@ ALLOWED_HOSTS = [
         "relate.example.com",
         ]
 
+# Configure the following as url as above.
+RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
+
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
 #
