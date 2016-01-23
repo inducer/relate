@@ -662,7 +662,8 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 # {{{ user profile
 
-EDITABLE_INST_ID_PRE_VRF = settings.RELATE_EDITABLE_INST_ID_PRE_VRF
+EDITABLE_INST_ID_BEFORE_VERIFICATION = \
+        settings.RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION
 
 class UserForm(StyledModelForm):
 
@@ -693,13 +694,13 @@ class UserForm(StyledModelForm):
                 Div("editor_mode", css_class="well hidden-xs hidden-sm")
                 )
 
-        self.fields["institutional_id"].help_text=(
+        self.fields["institutional_id"].help_text = (
                 _("The unique ID your university or school provided, "
                     "which is used by some course to grant enrollment. "
                     "<b>Once %(submitted_or_verified)s, it can not be "
                     "changed</b>.")
-                % {"submitted_or_verified": 
-                    EDITABLE_INST_ID_PRE_VRF 
+                % {"submitted_or_verified":
+                    EDITABLE_INST_ID_BEFORE_VERIFICATION
                     and _("verified") or _("submitted")})
 
         def adjust_layout(is_inst_id_locked):
@@ -749,7 +750,7 @@ def user_profile(request):
     user_form = None
 
     def is_inst_id_locked(user):
-        if EDITABLE_INST_ID_PRE_VRF:
+        if EDITABLE_INST_ID_BEFORE_VERIFICATION:
             return True if (user.institutional_id
                     and user.institutional_id_verified) else False
         else:
