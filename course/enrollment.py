@@ -425,7 +425,7 @@ def parse_query(course, expr_str):
             return result
 
         elif next_tag is _tagged:
-            ptag = ParticipationTag.objects.get_or_create(
+            ptag, created = ParticipationTag.objects.get_or_create(
                     course=course,
                     name=pstate.next_match_obj().group(1))
 
