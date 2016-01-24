@@ -51,6 +51,9 @@
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">{% trans "Grades" %}</li>
         <li><a href="{% url "relate-view_participant_list" course.identifier %}">{% trans "List of Participants" %}</a></li>
+        {% if user.is_staff %}
+        <li><a href="{% url "admin:course_participation_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit Participations (admin)" %}</a></li>
+        {% endif %}
         <li><a href="{% url "relate-view_grading_opportunity_list" course.identifier %}">{% trans "List of Grading Opportunities" %}</a></li>
         {% if user.is_staff %}
         <li><a href="{% url "admin:course_gradingopportunity_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit Grading Opportunities (admin)" %}</a></li>
