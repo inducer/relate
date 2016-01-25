@@ -430,8 +430,9 @@ def flow_analytics(pctx, flow_id):
                 restrict_to_first_attempt)
     except ObjectDoesNotExist:
         messages.add_message(pctx.request, messages.ERROR,
-                _("Flow '%s' was not in the repository, but it exists in "
-                    "the database--maybe it was deleted?"))
+                _("Flow '%s' was not found in the repository, but it exists in "
+                    "the database--maybe it was deleted?")
+                % flow_id)
         raise http.Http404()
 
     return render_course_page(pctx, "course/analytics-flow.html", {
