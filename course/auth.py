@@ -429,6 +429,7 @@ class ResetPasswordFormByEmail(StyledForm):
         self.helper.add_input(
                 Submit("submit", _("Send email")))
 
+
 class ResetPasswordFormByInstid(StyledForm):
     instid = forms.CharField(max_length=100,
                               required=True,
@@ -480,14 +481,14 @@ def reset_password(request, field="email"):
                 messages.add_message(request, messages.ERROR,
                         _("That %(field)s doesn't have an "
                             "associated user account. Are you "
-                            "sure you've registered?") 
+                            "sure you've registered?")
                         % {"field": FIELD_DICT[field]})
             else:
                 if not user.email:
                     # happens when a user have an inst_id but have no email.
                     messages.add_message(request, messages.ERROR,
                             _("The account with that institution ID "
-                                "doesn't have an associated email." ))
+                                "doesn't have an associated email."))
                 else:
                     email = user.email
                     user.sign_in_key = make_sign_in_key(user)
@@ -514,7 +515,7 @@ def reset_password(request, field="email"):
                     if field == "instid":
                         messages.add_message(request, messages.INFO,
                             _("The email address associated with that "
-                                "account is %s.") 
+                                "account is %s.")
                             % masked_email(email))
 
                     messages.add_message(request, messages.INFO,
@@ -712,8 +713,8 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 EDITABLE_INST_ID_BEFORE_VERIFICATION = \
         settings.RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION
 
-class UserForm(StyledModelForm):
 
+class UserForm(StyledModelForm):
     institutional_id_confirm = forms.CharField(
             max_length=100,
             label=_("Institutional ID Confirmation"),
@@ -731,8 +732,8 @@ class UserForm(StyledModelForm):
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
-        self.is_inst_id_justified = is_inst_id_justified =\
-                kwargs.pop('is_inst_id_justified')
+        self.is_inst_id_locked = is_inst_id_locked =\
+                kwargs.pop('is_inst_id_locked')
         super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.layout = Layout(
@@ -743,15 +744,16 @@ class UserForm(StyledModelForm):
 
         self.fields["institutional_id"].help_text = (
                 _("The unique ID your university or school provided, "
-                    "which is used by some course to grant enrollment. "
-                    "<b>Once %(submitted_or_verified)s, it can not be "
+                    "which may be used by some courses to verify "
+                    "eligibility to enroll. "
+                    "<b>Once %(submitted_or_verified)s, it cannot be "
                     "changed</b>.")
                 % {"submitted_or_verified":
                     EDITABLE_INST_ID_BEFORE_VERIFICATION
                     and _("verified") or _("submitted")})
 
-        def adjust_layout(is_inst_id_justified):
-            if not is_inst_id_justified:
+        def adjust_layout(is_inst_id_locked):
+            if not is_inst_id_locked:
                 self.helper.layout[1].insert(1, "institutional_id_confirm")
                 self.helper.layout[1].insert(0, "no_institutional_id")
                 self.fields["institutional_id_confirm"].initial = \
@@ -760,29 +762,50 @@ class UserForm(StyledModelForm):
                 self.fields["institutional_id"].widget.\
                         attrs['disabled'] = True
 
-        adjust_layout(is_inst_id_justified)
+        if self.instance.name_verified:
+            self.fields["first_name"].widget.attrs['disabled'] = True
+            self.fields["last_name"].widget.attrs['disabled'] = True
+
+        adjust_layout(is_inst_id_locked)
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
 
     def clean_institutional_id(self):
         inst_id = self.cleaned_data['institutional_id'].strip()
-        if self.is_inst_id_justified:
-            if not  inst_id != self.instance.institutional_id:
-                raise forms.ValidationError(
-                        _("Forbidden to modify institutional ID."))
-
-            # prevent malicious POST hacks
-            # http://stackoverflow.com/a/325038/3437454
+        if self.is_inst_id_locked:
+            # Disabled fields are not part of form submit--so simply
+            # assume old value. At the same time, prevent smuggled-in
+            # POST parameters.
             return self.instance.institutional_id
         else:
             return inst_id
+
+    def clean_first_name(self):
+        first_name = self.cleaned_data['first_name']
+        if self.instance.name_verified:
+            # Disabled fields are not part of form submit--so simply
+            # assume old value. At the same time, prevent smuggled-in
+            # POST parameters.
+            return self.instance.first_name
+        else:
+            return first_name
+
+    def clean_last_name(self):
+        last_name = self.cleaned_data['last_name']
+        if self.instance.name_verified:
+            # Disabled fields are not part of form submit--so simply
+            # assume old value. At the same time, prevent smuggled-in
+            # POST parameters.
+            return self.instance.last_name
+        else:
+            return last_name
 
     def clean_institutional_id_confirm(self):
         inst_id_confirmed = self.cleaned_data.get(
                 "institutional_id_confirm")
 
-        if not self.is_inst_id_justified:
+        if not self.is_inst_id_locked:
             inst_id = self.cleaned_data.get("institutional_id")
             if inst_id and not inst_id_confirmed:
                 raise forms.ValidationError(_("This field is required."))
@@ -790,13 +813,14 @@ class UserForm(StyledModelForm):
                 raise forms.ValidationError(_("Inputs do not match."))
         return inst_id_confirmed
 
+
 def user_profile(request):
     if not request.user.is_authenticated():
         raise PermissionDenied()
 
     user_form = None
 
-    def is_inst_id_justified(user):
+    def is_inst_id_locked(user):
         if EDITABLE_INST_ID_BEFORE_VERIFICATION:
             return True if (user.institutional_id
                     and user.institutional_id_verified) else False
@@ -808,7 +832,7 @@ def user_profile(request):
             user_form = UserForm(
                     request.POST,
                     instance=request.user,
-                    is_inst_id_justified=is_inst_id_justified(request.user),
+                    is_inst_id_locked=is_inst_id_locked(request.user),
             )
             if user_form.is_valid():
                 user_form.save()
@@ -817,22 +841,22 @@ def user_profile(request):
                         _("Profile data saved."))
                 if request.GET.get("first_login"):
                     return redirect("relate-home")
-                if (request.GET.get("set_inst_id") 
+                if (request.GET.get("set_inst_id")
                         and request.GET["referer"]):
                     return redirect(request.GET["referer"])
 
                 user_form = UserForm(
                         instance=request.user,
-                        is_inst_id_justified=is_inst_id_justified(request.user))
+                        is_inst_id_locked=is_inst_id_locked(request.user))
 
     if user_form is None:
             user_form = UserForm(
                     instance=request.user,
-                    is_inst_id_justified=is_inst_id_justified(request.user),
+                    is_inst_id_locked=is_inst_id_locked(request.user),
             )
 
     return render(request, "user-profile-form.html", {
-        "inst_id_justified": is_inst_id_justified(request.user),
+        "is_inst_id_locked": is_inst_id_locked(request.user),
         "enable_inst_id_if_not_locked": (
             request.GET.get("first_login")
             or (request.GET.get("set_inst_id")
