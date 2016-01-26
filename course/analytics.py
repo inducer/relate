@@ -33,6 +33,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import connection
 from django.core.urlresolvers import reverse
+from django.core.exceptions import ObjectDoesNotExist
+from django import http
+from django.contrib import messages
 
 from course.utils import course_view, render_course_page, PageInstanceCache
 from course.models import (
@@ -422,11 +425,20 @@ def flow_analytics(pctx, flow_id):
     restrict_to_first_attempt = int(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
 
+    try:
+        stats_list = make_page_answer_stats_list(pctx, flow_id,
+                restrict_to_first_attempt)
+    except ObjectDoesNotExist:
+        messages.add_message(pctx.request, messages.ERROR,
+                _("Flow '%s' was not found in the repository, but it exists in "
+                    "the database--maybe it was deleted?")
+                % flow_id)
+        raise http.Http404()
+
     return render_course_page(pctx, "course/analytics-flow.html", {
         "flow_identifier": flow_id,
         "grade_histogram": make_grade_histogram(pctx, flow_id),
-        "page_answer_stats_list": make_page_answer_stats_list(pctx, flow_id,
-            restrict_to_first_attempt),
+        "page_answer_stats_list": stats_list,
         "time_histogram": make_time_histogram(pctx, flow_id),
         "participant_count": count_participants(pctx, flow_id),
         "restrict_to_first_attempt": restrict_to_first_attempt,

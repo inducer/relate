@@ -224,6 +224,22 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
     def answer_data(self, page_context, page_data, form, files_data):
         return self.files_data_to_answer_data(files_data)
 
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        ext = None
+        if len(self.page_desc.mime_types) == 1:
+            mtype, = self.page_desc.mime_types
+            from mimetypes import guess_extension
+            ext = guess_extension(mtype)
+
+        if ext is None:
+            ext = ".dat"
+
+        from base64 import b64decode
+        return (ext, b64decode(answer_data["base64_data"]))
+
 # }}}
 
 

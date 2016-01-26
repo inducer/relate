@@ -68,7 +68,7 @@ def may_impersonate(user):
 def whom_may_impersonate(impersonator):
     if impersonator.is_superuser:
         return set(get_user_model().objects.filter(
-                participation__status=participation_status.active))
+                participations__status=participation_status.active))
 
     my_privileged_participations = Participation.objects.filter(
             user=impersonator,
@@ -95,9 +95,9 @@ def whom_may_impersonate(impersonator):
             assert False
 
         part_q_object = Q(
-                participation__course=part.course,
-                participation__status=participation_status.active,
-                participation__role__in=impersonable_roles)
+                participations__course=part.course,
+                participations__status=participation_status.active,
+                participations__role__in=impersonable_roles)
 
         if q_object is None:
             q_object = part_q_object
@@ -420,66 +420,113 @@ def sign_up(request):
         })
 
 
-class ResetPasswordForm(StyledForm):
+class ResetPasswordFormByEmail(StyledForm):
     email = forms.EmailField(required=True, label=_("Email"))
 
     def __init__(self, *args, **kwargs):
-        super(ResetPasswordForm, self).__init__(*args, **kwargs)
+        super(ResetPasswordFormByEmail, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", _("Send email")))
+
+class ResetPasswordFormByInstid(StyledForm):
+    instid = forms.CharField(max_length=100,
+                              required=True,
+                              label=_("Institutional ID"))
+
+    def __init__(self, *args, **kwargs):
+        super(ResetPasswordFormByInstid, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", _("Send email")))
 
 
-def reset_password(request):
+def masked_email(email):
+    # return a masked email address
+    at = email.find('@')
+    return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
+
+
+def reset_password(request, field="email"):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
 
+    # return form class by string of class name
+    ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
         if form.is_valid():
+            if field == "instid":
+                inst_id = form.cleaned_data["instid"]
+                try:
+                    user = get_user_model().objects.get(
+                            institutional_id__iexact=inst_id)
+                except ObjectDoesNotExist:
+                    user = None
 
-            email = form.cleaned_data["email"]
-            try:
-                user = get_user_model().objects.get(email__iexact=email)
-            except ObjectDoesNotExist:
-                user = None
+            if field == "email":
+                email = form.cleaned_data["email"]
+                try:
+                    user = get_user_model().objects.get(email__iexact=email)
+                except ObjectDoesNotExist:
+                    user = None
 
             if user is None:
+                FIELD_DICT = {
+                        "email": _("email address"),
+                        "instid": _("institutional ID")
+                        }
                 messages.add_message(request, messages.ERROR,
-                        _("That email address doesn't have an "
-                          "associated user account. Are you "
-                          "sure you've registered?"))
+                        _("That %(field)s doesn't have an "
+                            "associated user account. Are you "
+                            "sure you've registered?") 
+                        % {"field": FIELD_DICT[field]})
             else:
-                user.sign_in_key = make_sign_in_key(user)
-                user.save()
+                if not user.email:
+                    # happens when a user have an inst_id but have no email.
+                    messages.add_message(request, messages.ERROR,
+                            _("The account with that institution ID "
+                                "doesn't have an associated email." ))
+                else:
+                    email = user.email
+                    user.sign_in_key = make_sign_in_key(user)
+                    user.save()
 
-                from django.template.loader import render_to_string
-                message = render_to_string("course/sign-in-email.txt", {
-                    "user": user,
-                    "sign_in_uri": request.build_absolute_uri(
-                        reverse(
-                            "relate-reset_password_stage2",
-                            args=(user.id, user.sign_in_key,))),
-                    "home_uri": request.build_absolute_uri(reverse("relate-home"))
-                    })
-                from django.core.mail import send_mail
-                send_mail(
-                        string_concat("[", _("RELATE"), "] ",
-                                     _("Password reset")),
-                        message,
-                        settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[email])
+                    from django.template.loader import render_to_string
+                    message = render_to_string("course/sign-in-email.txt", {
+                        "user": user,
+                        "sign_in_uri": request.build_absolute_uri(
+                            reverse(
+                                "relate-reset_password_stage2",
+                                args=(user.id, user.sign_in_key,))),
+                        "home_uri": request.build_absolute_uri(
+                            reverse("relate-home"))
+                        })
+                    from django.core.mail import send_mail
+                    send_mail(
+                            string_concat("[", _("RELATE"), "] ",
+                                         _("Password reset")),
+                            message,
+                            settings.ROBOT_EMAIL_FROM,
+                            recipient_list=[email])
 
-                messages.add_message(request, messages.INFO,
-                        _("Email sent. Please check your email and click "
-                        "the link."))
+                    if field == "instid":
+                        messages.add_message(request, messages.INFO,
+                            _("The email address associated with that "
+                                "account is %s.") 
+                            % masked_email(email))
 
-                return redirect("relate-home")
+                    messages.add_message(request, messages.INFO,
+                            _("Email sent. Please check your email and "
+                            "click the link."))
+
+                    return redirect("relate-home")
     else:
         form = ResetPasswordForm()
 
-    return render(request, "generic-form.html", {
+    return render(request, "reset-passwd-form.html", {
+        "field": field,
         "form_description":
             _("Password reset on %(site_name)s")
             % {"site_name": _("RELATE")},

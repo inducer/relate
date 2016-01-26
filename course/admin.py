@@ -480,10 +480,15 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
     get_flow_id.admin_order_field = "flow_session__flow_id"
 
     def get_page_id(self, obj):
-        return "%s/%s (%d)" % (
-                obj.page_data.group_id,
-                obj.page_data.page_id,
-                obj.page_data.ordinal)
+        if obj.page_data.ordinal is None:
+            return _("%s/%s (not in use)") % (
+                    obj.page_data.group_id,
+                    obj.page_data.page_id)
+        else:
+            return "%s/%s (%s)" % (
+                    obj.page_data.group_id,
+                    obj.page_data.page_id,
+                    obj.page_data.ordinal)
 
     get_page_id.short_description = _("Page ID")
     get_page_id.admin_order_field = "page_data__page_id"

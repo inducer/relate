@@ -279,4 +279,7 @@ SAML_ATTRIBUTE_MAPPING = {
 
 # }}}
 
+# This makes sure the RELATE_BASE_URL is configured.
+assert local_settings["RELATE_BASE_URL"]
+
 # vim: foldmethod=marker
