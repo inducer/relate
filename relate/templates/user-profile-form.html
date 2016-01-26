@@ -39,7 +39,7 @@
 
     {# crispy form layout cannot hide wrapping div of a field. #}
     $(document).ready(function(){
-        {% if inst_id_locked %}
+        {% if inst_id_justified %}
             disable_inst_id();
         {% elif enable_inst_id_if_not_locked %}
             enable_inst_id();

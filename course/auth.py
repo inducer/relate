@@ -731,8 +731,8 @@ class UserForm(StyledModelForm):
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
-        self.is_inst_id_locked = is_inst_id_locked =\
-                kwargs.pop('is_inst_id_locked')
+        self.is_inst_id_justified = is_inst_id_justified =\
+                kwargs.pop('is_inst_id_justified')
         super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.layout = Layout(
@@ -750,8 +750,8 @@ class UserForm(StyledModelForm):
                     EDITABLE_INST_ID_BEFORE_VERIFICATION
                     and _("verified") or _("submitted")})
 
-        def adjust_layout(is_inst_id_locked):
-            if not is_inst_id_locked:
+        def adjust_layout(is_inst_id_justified):
+            if not is_inst_id_justified:
                 self.helper.layout[1].insert(1, "institutional_id_confirm")
                 self.helper.layout[1].insert(0, "no_institutional_id")
                 self.fields["institutional_id_confirm"].initial = \
@@ -760,14 +760,14 @@ class UserForm(StyledModelForm):
                 self.fields["institutional_id"].widget.\
                         attrs['disabled'] = True
 
-        adjust_layout(is_inst_id_locked)
+        adjust_layout(is_inst_id_justified)
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
 
     def clean_institutional_id(self):
         inst_id = self.cleaned_data['institutional_id'].strip()
-        if self.is_inst_id_locked:
+        if self.is_inst_id_justified:
             if not  inst_id != self.instance.institutional_id:
                 raise forms.ValidationError(
                         _("Forbidden to modify institutional ID."))
@@ -782,7 +782,7 @@ class UserForm(StyledModelForm):
         inst_id_confirmed = self.cleaned_data.get(
                 "institutional_id_confirm")
 
-        if not self.is_inst_id_locked:
+        if not self.is_inst_id_justified:
             inst_id = self.cleaned_data.get("institutional_id")
             if inst_id and not inst_id_confirmed:
                 raise forms.ValidationError(_("This field is required."))
@@ -796,7 +796,7 @@ def user_profile(request):
 
     user_form = None
 
-    def is_inst_id_locked(user):
+    def is_inst_id_justified(user):
         if EDITABLE_INST_ID_BEFORE_VERIFICATION:
             return True if (user.institutional_id
                     and user.institutional_id_verified) else False
@@ -808,7 +808,7 @@ def user_profile(request):
             user_form = UserForm(
                     request.POST,
                     instance=request.user,
-                    is_inst_id_locked=is_inst_id_locked(request.user),
+                    is_inst_id_justified=is_inst_id_justified(request.user),
             )
             if user_form.is_valid():
                 user_form.save()
@@ -823,16 +823,16 @@ def user_profile(request):
 
                 user_form = UserForm(
                         instance=request.user,
-                        is_inst_id_locked=is_inst_id_locked(request.user))
+                        is_inst_id_justified=is_inst_id_justified(request.user))
 
     if user_form is None:
             user_form = UserForm(
                     instance=request.user,
-                    is_inst_id_locked=is_inst_id_locked(request.user),
+                    is_inst_id_justified=is_inst_id_justified(request.user),
             )
 
     return render(request, "user-profile-form.html", {
-        "inst_id_locked": is_inst_id_locked(request.user),
+        "inst_id_justified": is_inst_id_justified(request.user),
         "enable_inst_id_if_not_locked": (
             request.GET.get("first_login")
             or (request.GET.get("set_inst_id")
