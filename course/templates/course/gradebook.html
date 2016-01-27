@@ -33,9 +33,7 @@
         <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}"><span class="sensitive">{{ participation.user.username }}</span></a></td>
         <td class="datacol">
           <span class="sensitive">
-          {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
-            {{ last_name }}, {{ first_name }}
-          {% endblocktrans %}
+            {{ participation.user.get_full_name }}
           </span>
           {% if participation.role != participation_role.student %}
             ({{ participation.role }})

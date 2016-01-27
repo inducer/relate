@@ -252,7 +252,7 @@ class ParticipationAdmin(admin.ModelAdmin):
         from django.conf import settings
 
         return string_concat(
-                "<a href='%(link)s'>", _("%(last_name)s, %(first_name)s"),
+                "<a href='%(link)s'>", "%(user_fullname)s",
                 "</a>"
                 ) % {
                     "link": reverse(
@@ -260,8 +260,8 @@ class ParticipationAdmin(admin.ModelAdmin):
                         % settings.AUTH_USER_MODEL.replace(".", "_")
                         .lower(),
                         args=(obj.user.id,)),
-                    "last_name": verbose_blank(obj.user.last_name),
-                    "first_name": verbose_blank(obj.user.first_name)}
+                    "user_fullname": verbose_blank(obj.user.get_full_name()),
+                    }
 
     get_user.short_description = pgettext("real name of a user", "Name")
     get_user.admin_order_field = "user__last_name"
@@ -591,8 +591,7 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
     search_fields = (
             "flow_id",
             "participation__user__username",
-            "participation__user__first_name",
-            "participation__user__last_name",
+            "participation__user__full_name",
             "comment",
             )
 
