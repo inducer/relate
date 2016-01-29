@@ -315,7 +315,7 @@ def parse_sympy(s):
             s = s.encode()
 
     from pymbolic import parse
-    from pymbolic.sympy_interface import PymbolicToSympyMapper
+    from pymbolic.interop.sympy import PymbolicToSympyMapper
 
     # use pymbolic because it has a semi-secure parser
     return PymbolicToSympyMapper()(parse(s))
