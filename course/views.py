@@ -126,9 +126,14 @@ def maintenance(request):
 # {{{ pages
 
 def check_course_state(course, role):
+    """
+    Check to see if the course is hidden.
+
+    If hidden, only allow access to 'ta' and 'instructor' roles
+    """
     if course.hidden:
         if role not in [participation_role.teaching_assistant,
-                participation_role.instructor]:
+                        participation_role.instructor]:
             raise PermissionDenied(_("only course staff have access"))
 
 
@@ -155,6 +160,33 @@ def course_page(pctx):
         messages.add_message(pctx.request, messages.INFO,
                 _("Your enrollment request is pending. You will be "
                 "notified once it has been acted upon."))
+
+        from course.models import ParticipationPreapproval
+
+        if ParticipationPreapproval.objects.filter(
+                course=pctx.course).exclude(institutional_id=None).count():
+            if not pctx.request.user.institutional_id:
+                from django.core.urlresolvers import reverse
+                messages.add_message(pctx.request, messages.WARNING,
+                        _("This course uses institutional ID for "
+                        "enrollment preapproval, please <a href='%s' "
+                        "role='button' class='btn btn-md btn-primary'>"
+                        "fill in your institutional ID &nbsp;&raquo;"
+                        "</a> in your profile.") 
+                        % (
+                            reverse("relate-user_profile")
+                            + "?referer="
+                            + pctx.request.path
+                            + "&set_inst_id=1"
+                            )
+                        )
+            else:
+                if pctx.course.preapproval_require_verified_inst_id:
+                    messages.add_message(pctx.request, messages.WARNING,
+                            _("Your institutional ID is not verified or "
+                            "preapproved. Please contact your course "
+                            "staff.")
+                            )
 
     return render_course_page(pctx, "course/course-page.html", {
         "chunks": chunks,
@@ -244,13 +276,26 @@ def get_current_repo_file(request, course_identifier, path):
             request, course, role, participation, commit_sha, path)
 
 
-def get_repo_file_backend(request, course, role, participation, commit_sha, path):
+def get_repo_file_backend(request, course, role, participation,
+                          commit_sha, path):
+    """
+    Check if a file should be accessible.  Then call for it if
+    the permission is not denied.
+
+    Order is important here.  An in-exam request takes precedence.
+
+    Note: an access_role of "public" is equal to "unenrolled"
+    """
+
+    # check to see if the course is hidden
     from course.views import check_course_state
     check_course_state(course, role)
 
+    # retrieve local path for the repo for the course
     repo = get_course_repo(course)
 
-    access_kind = "public"
+    # set access to public (or unenrolled), student, etc
+    access_kind = role
     if request.relate_exam_lockdown:
         access_kind = "in_exam"
 
@@ -265,8 +310,8 @@ def get_repo_file_response(repo, path, commit_sha):
     from course.content import get_repo_blob_data_cached
 
     try:
-        data = get_repo_blob_data_cached(
-                repo, path, commit_sha.encode())
+        data = get_repo_blob_data_cached(repo, path,
+                                         commit_sha.encode())
     except ObjectDoesNotExist:
         raise http.Http404()
 

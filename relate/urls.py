@@ -55,6 +55,9 @@ urlpatterns = [
     url(r"^login/reset-password/$",
         course.auth.reset_password,
         name="relate-reset_password"),
+    url(r"^login/reset-password/(?P<field>instid)/$",
+        course.auth.reset_password,
+        name="relate-reset_password"),
     url(r"^login/reset-password/stage-2"
         "/(?P<user_id>[0-9]+)"
         "/(?P<sign_in_key>[a-zA-Z0-9]+)",
@@ -241,7 +244,7 @@ urlpatterns = [
     url(r"^course"
         "/" + COURSE_ID_REGEX +
         "/enroll/$",
-        course.enrollment.enroll,
+        course.enrollment.enroll_view,
         name="relate-enroll"),
     url(r"^course"
         "/" + COURSE_ID_REGEX +

@@ -8,6 +8,9 @@ ALLOWED_HOSTS = [
         "relate.example.com",
         ]
 
+# Configure the following as url as above.
+RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
+
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
 #
@@ -91,6 +94,15 @@ RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
 # If you enable this, you must also have saml_config.py in this directory.
 # See saml_config.py.example for help.
 RELATE_SIGN_IN_BY_SAML2_ENABLED = False
+
+# }}}
+
+# {{{ editable institutional id before verification?
+
+# If set to False, user won't be able to edit institutional ID
+# after submission. Set to False only when you trust your students
+# or you don't want to verfiy insitutional ID they submit.
+RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # }}}
 

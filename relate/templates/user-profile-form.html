@@ -9,6 +9,50 @@
     {% crispy user_form %}
   </div>
   <div class="well">
-    <a href="{% url "relate-logout" %}" class="btn btn-default col-lg-offset-2">{% trans "Sign out" %}</a>
+    <a href="{% url 'relate-logout' %}" class="btn btn-default col-lg-offset-2">{% trans "Sign out" %}</a>
   </div>
+
+
+<script type="text/javascript">
+
+    {# show/hide/disabled of fields #}
+    function disable_inst_id(){
+        $('#div_id_institutional_id_confirm').hide();
+        $('#id_institutional_id').prop('disabled', true);
+        $("#id_no_institutional_id").prop('checked', true);
+    }
+
+    function enable_inst_id(){
+        $('#div_id_institutional_id_confirm').show();
+        $('#id_institutional_id').prop('disabled', false);
+        $("#id_no_institutional_id").prop('checked', false);
+    }
+
+    {# When no_id is checked, clear input data in inst_id #}
+    $(document).on('click', '#id_no_institutional_id', function(event) {
+        if (this.checked){
+            disable_inst_id();
+            $('#id_institutional_id').val("");
+            $('#id_institutional_id_confirm').val("")}
+        else {enable_inst_id();}
+    });
+
+    {# crispy form layout cannot hide wrapping div of a field. #}
+    $(document).ready(function(){
+        {% if is_inst_id_locked %}
+            disable_inst_id();
+        {% elif enable_inst_id_if_not_locked %}
+            enable_inst_id();
+        {% else %}
+            if ($('#id_institutional_id').val().length == 0 &&
+                $('#id_institutional_id_confirm').val().length == 0 &&
+                $('#error_1_id_institutional_id_confirm').length == 0 &&
+                $('#error_1_id_institutional_id').length ==0 )
+                {disable_inst_id();}
+            else
+                {enable_inst_id();}
+        {% endif %}
+    });
+
+</script>
 {% endblock %}

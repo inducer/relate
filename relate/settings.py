@@ -223,6 +223,8 @@ RELATE_CACHE_MAX_BYTES = 32768
 
 RELATE_ADMIN_EMAIL_LOCALE = "en_US"
 
+RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
+
 # }}}
 
 for name, val in local_settings.items():
@@ -276,5 +278,8 @@ SAML_ATTRIBUTE_MAPPING = {
 }
 
 # }}}
+
+# This makes sure the RELATE_BASE_URL is configured.
+assert local_settings["RELATE_BASE_URL"]
 
 # vim: foldmethod=marker

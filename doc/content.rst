@@ -194,10 +194,14 @@ a RELATE site:
   In addition to "public", the file can also include the following
   sections:
 
-  * ``public``: Allow access to these files from anywhere on the
+  * ``public`` or ``unenrolled``: Allow access to these files from anywhere on the
     Internet, except for locked-down exam sessions.
   * ``in_exam``: Allow access to these files when a locked-down exam
     is ongoing.
+  * ``student``: Allow access to these files for ``student``, ``ta``, and
+    ``instructor`` roles
+  * ``ta``: Allow access to these files for ``ta`` and ``instructor`` roles
+  * ``instructor``: Allow access to these files only for the ``instructor`` role
 
 * The URL schema ``repocur:some/file/name.png``
   generally works the same way as ``repo:``, with these differences:

@@ -50,6 +50,8 @@ class UserAdmin(UserAdminBase):
     # fieldsets = _remove_from_fieldsets(
     #         UserAdminBase.fieldsets, "is_staff")
 
+    save_on_top = True
+
     list_display = tuple(UserAdminBase.list_display) + (
             "name_verified",
             "status",
