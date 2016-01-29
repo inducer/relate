@@ -5,15 +5,26 @@
   <div class="panel panel-default" markdown="block">
     <div class="panel-heading">
       <h4 class="panel-title">
-      <a data-toggle="collapse" href="#grading-code">
+      <a data-toggle="collapse" href="#grading-setup-code">
         {# Translators: "set-up" stands for set-up code for code question #}
         {% trans "Problem set-up code" %}
         <span style="font-size:x-small">{% trans "(click to view)" %}</span>
       </a>
       </h4>
     </div>
-    <div id="grading-code" class="panel-collapse collapse">
+    <div id="grading-setup-code" class="panel-collapse collapse">
      <div class="panel-body">
+       <p>
+         {% blocktrans trimmed %}
+           This is the code that is used to set up the problem and produce
+           test data for your submission. It is reproduced here for your
+           information, or if you would like to run your submission outside
+           of RELATE.
+           You should <em>not</em> copy/paste this code into the
+           code box below. This code is run automatically
+           'behind the scenes' before your submitted code.
+         {% endblocktrans%}
+       </p>
        <pre>{{ setup_code }}</pre>
      </div>
     </div>
@@ -24,14 +35,24 @@
   <div class="panel panel-default" markdown="block">
     <div class="panel-heading">
       <h4 class="panel-title">
-      <a data-toggle="collapse" href="#grading-code">
+      <a data-toggle="collapse" href="#grading-test-code">
         {% trans "Testing code" %}
         <span style="font-size:x-small">{% trans "(click to view)" %}</span>
       </a>
       </h4>
     </div>
-    <div id="grading-code" class="panel-collapse collapse">
+    <div id="grading-test-code" class="panel-collapse collapse">
      <div class="panel-body">
+       <p>
+         {% blocktrans trimmed %}
+           This is the code that is used to generate feedback for your
+           submission. It is reproduced here for your information, or
+           if you would like to run your submission outside of RELATE.
+           You should <em>not</em> copy/paste this code into the
+           code box below. This code is run automatically
+           'behind the scenes' after your submitted code.
+         {% endblocktrans%}
+       </p>
        <pre>{{ test_code }}</pre>
      </div>
     </div>
