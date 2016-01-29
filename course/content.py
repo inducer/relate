@@ -170,22 +170,51 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
 def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
     """
+    Check of a file in a repo directory is accessible.  For example,
+    'instructor' can access anything listed in the attributes.
+    'student' can access 'student' and 'public'.  The 'public' role
+    can only access 'public' (or equivalently 'unenrolled')
+
     :arg commit_sha: A byte string containing the commit hash
     """
 
+    # set the path to .attributes.yml
     from os.path import dirname, basename, join
     attributes_path = join(dirname(path), ".attributes.yml")
 
+    # retrieve the .attributes.yml structure
     from course.content import get_raw_yaml_from_repo
     try:
-        attributes = get_raw_yaml_from_repo(
-                repo, attributes_path, commit_sha.encode())
+        attributes = get_raw_yaml_from_repo(repo, attributes_path,
+                                            commit_sha.encode())
     except ObjectDoesNotExist:
         # no attributes file: not public
         return False
 
     path_basename = basename(path)
-    access_patterns = attributes.get(access_kind, [])
+
+    # [unenrolled | public, student, ta, instructor]
+    # access_kind hierarchy and who should be allowed in sets:
+    # in_exam             : in_exam
+    # instructor          : [public, unenrolled, student, ta, instructor]
+    # ta                  : [public, unenrolled, student, ta]
+    # student             : [public, unenrolled, student]
+    # unenrolled | public : [public, unenrolled]
+
+    if access_kind.encode('utf-8') == 'in_exam':
+        kind_list = ['in_exam']
+    elif access_kind.encode('utf-8') == ('unenrolled' or 'public'):
+        kind_list = ['public', 'unenrolled']
+    elif access_kind.encode('utf-8') == 'student':
+        kind_list = ['public', 'unenrolled', 'student']
+    elif access_kind.encode('utf-8') == 'ta':
+        kind_list = ['public', 'unenrolled', 'student', 'ta']
+    elif access_kind.encode('utf-8') == 'instructor':
+        kind_list = ['public', 'unenrolled', 'student', 'ta', 'instructor']
+
+    access_patterns = []
+    for kind in kind_list:
+        access_patterns += attributes.get(kind, [])
 
     from fnmatch import fnmatch
     if isinstance(access_patterns, list):
