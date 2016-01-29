@@ -203,7 +203,7 @@ def get_media(request, course_identifier, commit_sha, media_path):
     role, participation = get_role_and_participation(request, course)
 
     repo = get_course_repo(course)
-    return get_repo_file_response(repo, "media/" + media_path, commit_sha)
+    return get_repo_file_response(repo, "media/" + media_path, commit_sha.encode())
 
 
 def repo_file_etag_func(request, course_identifier, commit_sha, path):
