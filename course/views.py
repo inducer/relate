@@ -213,6 +213,8 @@ def repo_file_etag_func(request, course_identifier, commit_sha, path):
 @cache_control(max_age=3600*24*31)  # cache for a month
 @http_dec.condition(etag_func=repo_file_etag_func)
 def get_repo_file(request, course_identifier, commit_sha, path):
+    commit_sha = commit_sha.encode()
+
     course = get_object_or_404(Course, identifier=course_identifier)
 
     role, participation = get_role_and_participation(request, course)
@@ -232,7 +234,7 @@ def current_repo_file_etag_func(request, course_identifier, path):
     from course.content import get_course_commit_sha
     commit_sha = get_course_commit_sha(course, participation)
 
-    return ":".join([course_identifier, commit_sha, path])
+    return ":".join([course_identifier, commit_sha.decode(), path])
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
@@ -283,8 +285,7 @@ def get_repo_file_response(repo, path, commit_sha):
     from course.content import get_repo_blob_data_cached
 
     try:
-        data = get_repo_blob_data_cached(repo, path,
-                                         commit_sha.encode())
+        data = get_repo_blob_data_cached(repo, path, commit_sha)
     except ObjectDoesNotExist:
         raise http.Http404()
 

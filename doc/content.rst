@@ -187,14 +187,14 @@ a RELATE site:
   must be present in the same directory as the file which allows public
   access to the file. This file should be valid YAML and look like this::
 
-      public:
+      unenrolled:
       - "*.png"
       - "*.jpeg"
 
-  In addition to "public", the file can also include the following
+  In addition to ``unenrolled``, the file can also include the following
   sections:
 
-  * ``public`` or ``unenrolled``: Allow access to these files from anywhere on the
+  * ``unenrolled``: Allow access to these files from anywhere on the
     Internet, except for locked-down exam sessions.
   * ``in_exam``: Allow access to these files when a locked-down exam
     is ongoing.

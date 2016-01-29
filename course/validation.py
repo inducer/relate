@@ -972,23 +972,23 @@ def check_attributes_yml(vctx, repo, path, tree):
     att_roles : list
          list of acceptable access types
 
-    example
-    -------
-    # this validates
-    public:
-        - test1.pdf
-    student:
-        - test2.pdf
+    Example::
 
-    # this does not validate
-    public:
-        - test1.pdf
-    student:
-        - test2.pdf
-        - 42
+        # this validates
+        unenrolled:
+            - test1.pdf
+        student:
+            - test2.pdf
+
+        # this does not validate
+        unenrolled:
+            - test1.pdf
+        student:
+            - test2.pdf
+            - 42
     """
     try:
-        _, attr_blob_sha = tree[b".attributes.yml"]
+        dummy, attr_blob_sha = tree[b".attributes.yml"]
     except KeyError:
         # no .attributes.yml here
         pass
@@ -1006,6 +1006,17 @@ def check_attributes_yml(vctx, repo, path, tree):
                         required_attrs=[],
                         allowed_attrs=[(role, list) for role in att_roles])
 
+        if hasattr(att_yml, "public"):
+            vctx.add_warning(loc,
+                    _("Access class 'public' is deprecated. Use 'unenrolled' "
+                        "instead."))
+
+        if hasattr(att_yml, "public") and hasattr(att_yml, "unenrolled"):
+            raise ValidationError(
+                _("%s: access classes 'public' and 'unenrolled' may not "
+                    "exist simultaneously.")
+                % (loc))
+
         for access_kind in att_roles:
             if hasattr(att_yml, access_kind):
                 for i, l in enumerate(getattr(att_yml, access_kind)):
@@ -1017,7 +1028,7 @@ def check_attributes_yml(vctx, repo, path, tree):
     import stat
     for entry in tree.items():
         if stat.S_ISDIR(entry.mode):
-            _, blob_sha = tree[entry.path]
+            dummy, blob_sha = tree[entry.path]
             subtree = repo[blob_sha]
             check_attributes_yml(vctx, repo,
                                  path+"/"+entry.path.decode("utf-8"), subtree)

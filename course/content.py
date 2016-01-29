@@ -172,8 +172,8 @@ def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
     """
     Check of a file in a repo directory is accessible.  For example,
     'instructor' can access anything listed in the attributes.
-    'student' can access 'student' and 'public'.  The 'public' role
-    can only access 'public' (or equivalently 'unenrolled')
+    'student' can access 'student' and 'unenrolled'.  The 'unenrolled' role
+    can only access 'unenrolled'.
 
     :arg commit_sha: A byte string containing the commit hash
     """
@@ -186,30 +186,32 @@ def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
     from course.content import get_raw_yaml_from_repo
     try:
         attributes = get_raw_yaml_from_repo(repo, attributes_path,
-                                            commit_sha.encode())
+                                            commit_sha)
     except ObjectDoesNotExist:
-        # no attributes file: not public
+        # no attributes file: not accessible
         return False
 
     path_basename = basename(path)
 
-    # [unenrolled | public, student, ta, instructor]
+    # [unenrolled, student, ta, instructor]
     # access_kind hierarchy and who should be allowed in sets:
     # in_exam             : in_exam
     # instructor          : [public, unenrolled, student, ta, instructor]
     # ta                  : [public, unenrolled, student, ta]
     # student             : [public, unenrolled, student]
-    # unenrolled | public : [public, unenrolled]
+    # unenrolled          : [public, unenrolled]
 
-    if access_kind.encode('utf-8') == 'in_exam':
+    # "public" is a deprecated alias for "unenrolled".
+
+    if access_kind == 'in_exam':
         kind_list = ['in_exam']
-    elif access_kind.encode('utf-8') == ('unenrolled' or 'public'):
+    elif access_kind == ('unenrolled' or 'public'):
         kind_list = ['public', 'unenrolled']
-    elif access_kind.encode('utf-8') == 'student':
+    elif access_kind == 'student':
         kind_list = ['public', 'unenrolled', 'student']
-    elif access_kind.encode('utf-8') == 'ta':
+    elif access_kind == 'ta':
         kind_list = ['public', 'unenrolled', 'student', 'ta']
-    elif access_kind.encode('utf-8') == 'instructor':
+    elif access_kind == 'instructor':
         kind_list = ['public', 'unenrolled', 'student', 'ta', 'instructor']
 
     access_patterns = []
