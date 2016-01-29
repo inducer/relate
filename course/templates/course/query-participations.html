@@ -8,12 +8,7 @@
 {% endblock %}
 
 {% block header_extra %}
-    {# the min.js version contains all dependencies #}
-    <script src="{% static "datatables/media/js/jquery.dataTables.min.js" %}"></script>
-    <link href="{% static "datatables/media/css/jquery.dataTables.min.css" %}" rel="stylesheet">
-
-    <script src="{% static "datatables-fixedcolumns/js/dataTables.fixedColumns.js" %}"></script>
-    <link href="{% static "datatables-fixedcolumns/css/dataTables.fixedColumns.css" %}" rel="stylesheet">
+  {% include "datatables-header.html" %}
 {% endblock %}
 
 {% block content %}

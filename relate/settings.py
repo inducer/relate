@@ -103,13 +103,15 @@ STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
 BOWER_INSTALLED_APPS = (
     "bootstrap#3.3.4",
     "fontawesome#4.4.0",
-    "videojs",
+    "videojs#5.6.0",
     "MathJax",
     "codemirror#5.2.0",
     "fullcalendar#2.3.1",
     "jqueryui",
-    "datatables",
-    "datatables-fixedcolumns",
+    "datatables.net",
+    "datatables.net-bs",
+    "datatables.net-fixedcolumns",
+    "datatables.net-fixedcolumns-bs",
     "jstree",
     "select2-bootstrap-css",
     )
