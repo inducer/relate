@@ -1000,7 +1000,8 @@ def check_attributes_yml(vctx, repo, path, tree):
 
         loc = path + "/" + ".attributes.yml"
 
-        att_roles = ["public", "in_exam", "student"]
+        att_roles = ["public", "in_exam", "student", "ta",
+                     "unenrolled", "instructor"]
         validate_struct(vctx, loc, att_yml,
                         required_attrs=[],
                         allowed_attrs=[(role, list) for role in att_roles])
