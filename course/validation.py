@@ -965,6 +965,28 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
 
 
 def check_attributes_yml(vctx, repo, path, tree):
+    """
+    This function reads the .attributes.yml file and checks
+    that each item for each header is a string
+
+    att_roles : list
+         list of acceptable access types
+
+    example
+    -------
+    # this validates
+    public:
+        - test1.pdf
+    student:
+        - test2.pdf
+
+    # this does not validate
+    public:
+        - test1.pdf
+    student:
+        - test2.pdf
+        - 42
+    """
     try:
         _, attr_blob_sha = tree[b".attributes.yml"]
     except KeyError:
@@ -977,30 +999,27 @@ def check_attributes_yml(vctx, repo, path, tree):
         att_yml = dict_to_struct(load_yaml(repo[attr_blob_sha].data))
 
         loc = path + "/" + ".attributes.yml"
-        validate_struct(
-                vctx, loc, att_yml,
-                required_attrs=[],
-                allowed_attrs=[
-                    ("public", list),
-                    ("in_exam", list),
-                ])
 
-        for access_kind in ["public", "in_exam"]:
+        att_roles = ["public", "in_exam", "student"]
+        validate_struct(vctx, loc, att_yml,
+                        required_attrs=[],
+                        allowed_attrs=[(role, list) for role in att_roles])
+
+        for access_kind in att_roles:
             if hasattr(att_yml, access_kind):
-                for i, l in enumerate(att_yml.public):
+                for i, l in enumerate(getattr(att_yml, access_kind)):
                     if not isinstance(l, six.string_types):
                         raise ValidationError(
-                                "%s: entry %d in '%s' is not a string"
-                                % (loc, i+1, access_kind))
+                            "%s: entry %d in '%s' is not a string"
+                            % (loc, i+1, access_kind))
 
     import stat
     for entry in tree.items():
         if stat.S_ISDIR(entry.mode):
             _, blob_sha = tree[entry.path]
             subtree = repo[blob_sha]
-            check_attributes_yml(
-                    vctx, repo,
-                    path+"/"+entry.path.decode("utf-8"), subtree)
+            check_attributes_yml(vctx, repo,
+                                 path+"/"+entry.path.decode("utf-8"), subtree)
 
 
 # {{{ check whether flow grade identifiers were changed in sketchy ways
