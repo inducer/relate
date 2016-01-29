@@ -126,9 +126,14 @@ def maintenance(request):
 # {{{ pages
 
 def check_course_state(course, role):
+    """
+    Check to see if the course is hidden.
+
+    If hidden, only allow access to 'ta' and 'instructor' roles
+    """
     if course.hidden:
         if role not in [participation_role.teaching_assistant,
-                participation_role.instructor]:
+                        participation_role.instructor]:
             raise PermissionDenied(_("only course staff have access"))
 
 
@@ -235,6 +240,8 @@ def repo_file_etag_func(request, course_identifier, commit_sha, path):
 @cache_control(max_age=3600*24*31)  # cache for a month
 @http_dec.condition(etag_func=repo_file_etag_func)
 def get_repo_file(request, course_identifier, commit_sha, path):
+    commit_sha = commit_sha.encode()
+
     course = get_object_or_404(Course, identifier=course_identifier)
 
     role, participation = get_role_and_participation(request, course)
@@ -254,7 +261,7 @@ def current_repo_file_etag_func(request, course_identifier, path):
     from course.content import get_course_commit_sha
     commit_sha = get_course_commit_sha(course, participation)
 
-    return ":".join([course_identifier, commit_sha, path])
+    return ":".join([course_identifier, commit_sha.decode(), path])
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
@@ -271,13 +278,26 @@ def get_current_repo_file(request, course_identifier, path):
             request, course, role, participation, commit_sha, path)
 
 
-def get_repo_file_backend(request, course, role, participation, commit_sha, path):
+def get_repo_file_backend(request, course, role, participation,
+                          commit_sha, path):
+    """
+    Check if a file should be accessible.  Then call for it if
+    the permission is not denied.
+
+    Order is important here.  An in-exam request takes precedence.
+
+    Note: an access_role of "public" is equal to "unenrolled"
+    """
+
+    # check to see if the course is hidden
     from course.views import check_course_state
     check_course_state(course, role)
 
+    # retrieve local path for the repo for the course
     repo = get_course_repo(course)
 
-    access_kind = "public"
+    # set access to public (or unenrolled), student, etc
+    access_kind = role
     if request.relate_exam_lockdown:
         access_kind = "in_exam"
 
@@ -292,8 +312,7 @@ def get_repo_file_response(repo, path, commit_sha):
     from course.content import get_repo_blob_data_cached
 
     try:
-        data = get_repo_blob_data_cached(
-                repo, path, commit_sha.encode())
+        data = get_repo_blob_data_cached(repo, path, commit_sha)
     except ObjectDoesNotExist:
         raise http.Http404()
 
