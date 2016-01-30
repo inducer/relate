@@ -113,6 +113,7 @@ BOWER_INSTALLED_APPS = (
     "datatables.net-fixedcolumns",
     "datatables.net-fixedcolumns-bs",
     "jstree",
+    "select2",
     "select2-bootstrap-css",
     )
 
@@ -201,6 +202,11 @@ STATICFILES_DIRS = (
 STATIC_URL = '/static/'
 
 STATIC_ROOT = join(BASE_DIR, "static")
+
+# local select2 'static' resources instead of from CDN
+# https://goo.gl/dY6xf7
+SELECT2_JS = 'select2/dist/js/select2.min.js'
+SELECT2_CSS = 'select2/dist/css/select2.css'
 
 # }}}
 
