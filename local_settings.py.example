@@ -40,7 +40,6 @@ RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 TIME_ZONE = "America/Chicago"
 
