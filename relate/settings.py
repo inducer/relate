@@ -7,8 +7,7 @@ Django settings for RELATE.
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import (
-        TEMPLATE_CONTEXT_PROCESSORS, STATICFILES_FINDERS)
+from django.conf.global_settings import STATICFILES_FINDERS
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -135,18 +134,10 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "course.views.pretend_facilities_context_processor",
             "course.exam.exam_lockdown_context_processor",
             )
-TEMPLATE_CONTEXT_PROCESSORS = (
-        tuple(TEMPLATE_CONTEXT_PROCESSORS)
-        + RELATE_EXTRA_CONTEXT_PROCESSORS
-        )
 
 # }}}
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
-
-TEMPLATE_DIRS = (
-        join(BASE_DIR, "relate", "templates"),
-        )
 
 TEMPLATES = [
     {
