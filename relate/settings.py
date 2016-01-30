@@ -108,6 +108,7 @@ BOWER_INSTALLED_APPS = (
     "fullcalendar#2.3.1",
     "jqueryui",
     "datatables.net",
+    "datatables-i18n",
     "datatables.net-bs",
     "datatables.net-fixedcolumns",
     "datatables.net-fixedcolumns-bs",

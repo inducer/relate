@@ -156,11 +156,13 @@
     </tbody>
   </table>
 
+  {% get_current_language as LANGUAGE_CODE %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-by-opportunity").dataTable({
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
     } );
   </script>
 

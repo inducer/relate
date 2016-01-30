@@ -45,12 +45,15 @@
     </tbody>
   </table>
 
+  {% load static %}
+  {% get_current_language as LANGUAGE_CODE %}
   <script type="text/javascript">
     var tbl = $("table.gradebook").dataTable({
         "scrollX": true,
         "scrollCollapse": true,
         "paging": true,
         "ordering": false,
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
     } );
     new $.fn.dataTable.FixedColumns(tbl);
   </script>
