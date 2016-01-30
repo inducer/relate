@@ -1,25 +1,18 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
 
-{% load static %}
-
 {% block title %}
   {% trans "Grade book" %} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block header_extra %}
-    {# the min.js version contains all dependencies #}
-    <script src="{% static "datatables/media/js/jquery.dataTables.min.js" %}"></script>
-    <link href="{% static "datatables/media/css/jquery.dataTables.min.css" %}" rel="stylesheet">
-
-    <script src="{% static "datatables-fixedcolumns/js/dataTables.fixedColumns.js" %}"></script>
-    <link href="{% static "datatables-fixedcolumns/css/dataTables.fixedColumns.css" %}" rel="stylesheet">
+  {% include "datatables-header.html" %}
 {% endblock %}
 
 {% block content %}
   <h1>{% trans "Grade book" %}</h1>
 
-  <table class="gradebook">
+  <table class="table table-striped gradebook ">
     <thead>
       <th class="headcol">{% trans "User ID" %}</th>
       <th class="datacol">{% trans "Name" context "real name of a user" %}</th>

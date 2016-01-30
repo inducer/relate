@@ -230,6 +230,14 @@ class Feedback:
 
 
 def run_code(result, run_req):
+    # {{{ silence matplotlib font cache warnings
+
+    import warnings
+    warnings.filterwarnings(
+            "ignore", message="Matplotlib is building the font cache.*")
+
+    # }}}
+
     # {{{ compile code
 
     if getattr(run_req, "setup_code", None):
