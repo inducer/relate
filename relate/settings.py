@@ -109,6 +109,7 @@ BOWER_INSTALLED_APPS = (
     "fullcalendar#2.3.1",
     "jqueryui",
     "datatables",
+    "datatables-i18n",
     "datatables-fixedcolumns",
     "jstree",
     "select2-bootstrap-css",

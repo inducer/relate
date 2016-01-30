@@ -60,14 +60,13 @@
     </tbody>
   </table>
 
-  {% load datatable_tags %}
-  {% get_datatable_language as datatable_lang %}
+  {% get_current_language as LANGUAGE_CODE %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-opportunities").dataTable({
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
-        "language": {url: '//cdn.datatables.net/plug-ins/1.10.8/i18n/{{datatable_lang}}.json'},
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
     } );
   </script>
 
