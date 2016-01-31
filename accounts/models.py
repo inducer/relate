@@ -162,7 +162,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.first_name
 
     def get_email_appellation(self):
-        "Return the appellation of a user in email."
+        "Return the appellation of the receiver in email."
         from django.conf import settings
 
         # import the user defined priority list

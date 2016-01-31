@@ -129,7 +129,7 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # {{{ system email appelation priority
 
-# RELATE's default email appelation is a ordered list:
+# RELATE's default email appelation of the receiver is a ordered list:
 # ["first_name", "email", "username"], when first_name is not None
 # (e.g, first_name = "Foo"), the email will be opened
 # by "Dear Foo,". If first_name is None, then email will be used
