@@ -121,7 +121,7 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # and then uncomment the following line and enable it with:
 
-#RELATE_USER_FULL_NAME_FORMAT = my_fullname_format
+#RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
 
 # You can also import it from your custom module.
 
@@ -151,7 +151,7 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 # You can set the following configuration to True if you want to
 # display name using full_name format.
 
-# RELATE_DISPLAY_USER_FULLNAME_IN_LIST = True
+#RELATE_DISPLAY_USER_FULLNAME_IN_LIST = True
 
 # }}}
 

@@ -136,6 +136,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = _('users')
 
     def get_full_name(self, allow_blank=True):
+        # Only return full name if neither first_name and last_name is blank
+        if (allow_blank == False
+                and not self.first_name or not self.last_name):
+            return None
 
         def default_fullname(first_name, last_name):
             """
@@ -147,15 +151,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         from django.conf import settings
         format_method = getattr(
                 settings,
-                "RELATE_USER_FULL_NAME_FORMAT",
+                "RELATE_USER_FULL_NAME_FORMAT_METHOD",
                 default_fullname)
 
-        # Only return full name if neither first_name and last_name is blank
-        if (allow_blank == False
-                and not self.first_name or not self.last_name):
-            return None
+        try:
+            full_name = format_method(self.first_name, self.last_name)
+        except:
+            full_name = default_fullname(self.first_name, self.last_name)
 
-        return format_method(self.first_name, self.last_name).strip()
+        return full_name.strip()
 
     def get_short_name(self):
         "Returns the short name for the user."
