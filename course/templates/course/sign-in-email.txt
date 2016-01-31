@@ -1,4 +1,4 @@
-{% load i18n %}{% if user.first_name %}{% blocktrans trimmed with first_name=user.first_name last_name=user.last_name %}Dear {{first_name}},{% endblocktrans %}{% elif user.email %}{% blocktrans trimmed with email=user.email %}Dear {{email}},{% endblocktrans %}{% else %}{% blocktrans trimmed with username=user.username %}Dear {{username}},{% endblocktrans %}{% endif %}
+{% load i18n %}{% blocktrans trimmed with username=user.get_email_appellation %}Dear {{username}},{% endblocktrans %}
 {% trans "RELATE" as RELATE %}{% blocktrans with sign_in_uri=sign_in_uri home_uri=home_uri %}
 Welcome to {{ RELATE }}! Please click this link to sign in:
 {{ sign_in_uri }}

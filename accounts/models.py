@@ -135,13 +135,66 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name = _('user')
         verbose_name_plural = _('users')
 
-    def get_full_name(self):
-        from relate.utils import format_full_name
-        return format_full_name(self.first_name, self.last_name)
+    def get_full_name(self, allow_blank=True):
+
+        def default_fullname(first_name, last_name):
+            """
+            Returns the first_name plus the last_name, with a space in 
+            between.
+            """
+            return '%s %s' % (first_name, last_name)
+
+        from django.conf import settings
+        format_method = getattr(
+                settings,
+                "RELATE_USER_FULL_NAME_FORMAT",
+                default_fullname)
+
+        # Only return full name if neither first_name and last_name is blank
+        if (allow_blank == False
+                and not self.first_name or not self.last_name):
+            return None
+
+        return format_method(self.first_name, self.last_name).strip()
 
     def get_short_name(self):
         "Returns the short name for the user."
         return self.first_name
+
+    def get_email_appellation(self):
+        "Return the appellation of a user in email."
+        from django.conf import settings
+
+        # import the user defined priority list
+        customized_priority_list = getattr(
+                settings,
+                "RELATE_EMAIL_APPELATION_PRIORITY_LIST", [])
+
+        priority_list = []
+
+        # filter out not allowd appellations in customized list
+        for e in customized_priority_list:
+            if e in ["first_name", "email", "username", "full_name"]:
+                priority_list.append(e)
+
+        # make sure the default appellations are included in case
+        # user defined appellations are not available.
+        for e in ["first_name", "email", "username"]:
+            if e not in priority_list:
+                priority_list.append(e)
+
+        for attr in priority_list:
+            if attr == "full_name":
+                appellation = self.get_full_name(allow_blank=True)
+            else:
+                appellation = getattr(self, attr)
+
+            if appellation:
+                return appellation
+            else:
+                continue
+
+        return _("user")
 
     def save(self, *args, **kwargs):
         # works around https://code.djangoproject.com/ticket/4136#comment:33
