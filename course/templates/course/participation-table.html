@@ -1,6 +1,6 @@
 {% load i18n %}
 
-<table class="gradebook-participants">
+<table class="table table-striped gradebook-participants">
   <thead>
     <th class="datacol">{% trans "User ID" %}</th>
     <th class="datacol">{% trans "Last Name" %}</th>
@@ -25,10 +25,13 @@
   </tbody>
 </table>
 
+{% load static %}
+{% get_current_language as LANGUAGE_CODE %}
 <script type="text/javascript">
   var tbl = $("table.gradebook-participants").dataTable({
       "scrollCollapse": true,
       "paging": false,
       "ordering": true,
+      "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
   } );
 </script>

@@ -7,8 +7,7 @@ Django settings for RELATE.
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import (
-        TEMPLATE_CONTEXT_PROCESSORS, STATICFILES_FINDERS)
+from django.conf.global_settings import STATICFILES_FINDERS
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -103,14 +102,18 @@ STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
 BOWER_INSTALLED_APPS = (
     "bootstrap#3.3.4",
     "fontawesome#4.4.0",
-    "videojs",
+    "videojs#5.6.0",
     "MathJax",
     "codemirror#5.2.0",
     "fullcalendar#2.3.1",
     "jqueryui",
-    "datatables",
-    "datatables-fixedcolumns",
+    "datatables.net",
+    "datatables-i18n",
+    "datatables.net-bs",
+    "datatables.net-fixedcolumns",
+    "datatables.net-fixedcolumns-bs",
     "jstree",
+    "select2",
     "select2-bootstrap-css",
     )
 
@@ -133,18 +136,10 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "course.views.pretend_facilities_context_processor",
             "course.exam.exam_lockdown_context_processor",
             )
-TEMPLATE_CONTEXT_PROCESSORS = (
-        tuple(TEMPLATE_CONTEXT_PROCESSORS)
-        + RELATE_EXTRA_CONTEXT_PROCESSORS
-        )
 
 # }}}
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
-
-TEMPLATE_DIRS = (
-        join(BASE_DIR, "relate", "templates"),
-        )
 
 TEMPLATES = [
     {
@@ -207,6 +202,11 @@ STATICFILES_DIRS = (
 STATIC_URL = '/static/'
 
 STATIC_ROOT = join(BASE_DIR, "static")
+
+# local select2 'static' resources instead of from CDN
+# https://goo.gl/dY6xf7
+SELECT2_JS = 'select2/dist/js/select2.min.js'
+SELECT2_CSS = 'select2/dist/css/select2.css'
 
 # }}}
 

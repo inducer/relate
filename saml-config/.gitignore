@@ -1,2 +1,3 @@
 *.pem
 *meta*.xml
+get-metadata.sh

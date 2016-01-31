@@ -203,9 +203,6 @@ div.progress:hover  span.stats-percentage{
   margin-bottom: 3px;
 }
 
-table.gradebook-by-opportunity ul {
-  margin-bottom: 0px;
-}
 
 /* Uncomment to blur out identifiable/grade-related data. Useful for demos on live data. */
 /*

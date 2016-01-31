@@ -9,18 +9,13 @@
 {% endblock %}
 
 {% block header_extra %}
-    {# the min.js version contains all dependencies #}
-    <script src="{% static "datatables/media/js/jquery.dataTables.min.js" %}"></script>
-    <link href="{% static "datatables/media/css/jquery.dataTables.min.css" %}" rel="stylesheet">
-
-    <script src="{% static "datatables-fixedcolumns/js/dataTables.fixedColumns.js" %}"></script>
-    <link href="{% static "datatables-fixedcolumns/css/dataTables.fixedColumns.css" %}" rel="stylesheet">
+  {% include "datatables-header.html" %}
 {% endblock %}
 
 {% block content %}
   <h1>{% trans "List of Grading Opportunities" %}</h1>
 
-  <table class="gradebook-opportunities">
+  <table class="table table-striped gradebook-opportunities">
     <thead>
       <th class="datacol">{% trans "Name of grading opportunity" %}</th>
       <th class="datacol">{% trans "Flow ID" %}</th>
@@ -60,11 +55,13 @@
     </tbody>
   </table>
 
+  {% get_current_language as LANGUAGE_CODE %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-opportunities").dataTable({
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
     } );
   </script>
 
