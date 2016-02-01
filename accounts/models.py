@@ -135,18 +135,28 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name = _('user')
         verbose_name_plural = _('users')
 
-    def get_full_name(self, allow_blank=True):
-        # Only return full name if neither first_name and last_name is blank
+    def get_full_name(self, allow_blank=True, force_verbose_blank=False):
         if (allow_blank == False
                 and not self.first_name or not self.last_name):
             return None
+
+        def verbose_blank(s):
+            if force_verbose_blank:
+                if not s:
+                    return _("(blank)")
+                else:
+                    return s
+            return s
 
         def default_fullname(first_name, last_name):
             """
             Returns the first_name plus the last_name, with a space in 
             between.
             """
-            return '%s %s' % (first_name, last_name)
+            if force_verbose_blank:
+                first_name
+            return '%s %s' % (
+                verbose_blank(first_name), verbose_blank(last_name))
 
         from django.conf import settings
         format_method = getattr(
@@ -155,9 +165,11 @@ class User(AbstractBaseUser, PermissionsMixin):
                 default_fullname)
 
         try:
-            full_name = format_method(self.first_name, self.last_name)
+            full_name = format_method(
+                verbose_blank(self.first_name), verbose_blank(self.last_name))
         except:
-            full_name = default_fullname(self.first_name, self.last_name)
+            full_name = default_fullname(
+                verbose_blank(self.first_name), verbose_blank(self.last_name))
 
         return full_name.strip()
 

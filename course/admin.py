@@ -242,11 +242,6 @@ class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
 
     def get_user(self, obj):
-        def verbose_blank(s):
-            if not s:
-                return _("(blank)")
-            else:
-                return s
 
         from django.core.urlresolvers import reverse
         from django.conf import settings
@@ -260,7 +255,8 @@ class ParticipationAdmin(admin.ModelAdmin):
                         % settings.AUTH_USER_MODEL.replace(".", "_")
                         .lower(),
                         args=(obj.user.id,)),
-                    "user_fullname": verbose_blank(obj.user.get_full_name()),
+                    "user_fullname": obj.user.get_full_name(
+                        force_verbose_blank=True),
                     }
 
     get_user.short_description = pgettext("real name of a user", "Name")
