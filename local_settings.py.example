@@ -105,6 +105,45 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # }}}
 
+
+# {{{ user full_name format
+
+# RELATE's default full_name format is "'%s %s' % (first_name, last_name)",
+# you can override it by supply a customized method/fuction, with 
+# "firstname" and "lastname" as its paramaters, and return a string. 
+
+# For example, you can define it like this:
+
+#<code>
+#   def my_fullname_format(firstname, lastname)
+#         return "%s%s" % (last_name, first_name)
+#</code>
+
+# and then uncomment the following line and enable it with:
+
+#RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
+
+# You can also import it from your custom module.
+
+# }}}
+
+# {{{ system email appelation priority
+
+# RELATE's default email appelation of the receiver is a ordered list:
+# ["first_name", "email", "username"], when first_name is not None
+# (e.g, first_name = "Foo"), the email will be opened
+# by "Dear Foo,". If first_name is None, then email will be used
+# as appelation, so on and so forth.
+
+# you can override the appelation priority by supply a customized list
+# named RELATE_EMAIL_APPELATION_PRIORITY_LIST. The available
+# elements include first_name, last_name, get_full_name, email and
+# username.
+
+#RELATE_EMAIL_APPELATION_PRIORITY_LIST = ["full_name", "first_name", "email", "username"]
+
+# }}}
+
 # {{{ docker
 
 # A string containing the image ID of the docker image to be used to run

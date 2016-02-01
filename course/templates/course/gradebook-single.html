@@ -17,9 +17,7 @@
       <td>{% trans "Participant" %}</td>
       <td>
         <span class="sensitive">
-        {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name username=grade_participation.user.username %}
-          {{ last_name }}, {{ first_name }} ({{ username }})
-        {% endblocktrans %}
+          {{ grade_participation.user.get_full_name }} ({{ grade_participation.user.username }})
         </span>
       </td>
     </tr>

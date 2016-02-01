@@ -282,4 +282,9 @@ SAML_ATTRIBUTE_MAPPING = {
 # This makes sure the RELATE_BASE_URL is configured.
 assert local_settings["RELATE_BASE_URL"]
 
+# This makes sure RELATE_EMAIL_APPELATION_PRIORITY_LIST is a list
+if "RELATE_EMAIL_APPELATION_PRIORITY_LIST" in local_settings:
+    assert isinstance(
+        local_settings["RELATE_EMAIL_APPELATION_PRIORITY_LIST"], list)
+
 # vim: foldmethod=marker

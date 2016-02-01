@@ -242,17 +242,12 @@ class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
 
     def get_user(self, obj):
-        def verbose_blank(s):
-            if not s:
-                return _("(blank)")
-            else:
-                return s
 
         from django.core.urlresolvers import reverse
         from django.conf import settings
 
         return string_concat(
-                "<a href='%(link)s'>", _("%(last_name)s, %(first_name)s"),
+                "<a href='%(link)s'>", "%(user_fullname)s",
                 "</a>"
                 ) % {
                     "link": reverse(
@@ -260,8 +255,9 @@ class ParticipationAdmin(admin.ModelAdmin):
                         % settings.AUTH_USER_MODEL.replace(".", "_")
                         .lower(),
                         args=(obj.user.id,)),
-                    "last_name": verbose_blank(obj.user.last_name),
-                    "first_name": verbose_blank(obj.user.first_name)}
+                    "user_fullname": obj.user.get_full_name(
+                        force_verbose_blank=True),
+                    }
 
     get_user.short_description = pgettext("real name of a user", "Name")
     get_user.admin_order_field = "user__last_name"

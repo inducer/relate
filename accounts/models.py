@@ -135,16 +135,82 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name = _('user')
         verbose_name_plural = _('users')
 
-    def get_full_name(self):
-        """
-        Returns the first_name plus the last_name, with a space in between.
-        """
-        full_name = '%s %s' % (self.first_name, self.last_name)
+    def get_full_name(self, allow_blank=True, force_verbose_blank=False):
+        if (allow_blank == False
+                and not self.first_name or not self.last_name):
+            return None
+
+        def verbose_blank(s):
+            if force_verbose_blank:
+                if not s:
+                    return _("(blank)")
+                else:
+                    return s
+            return s
+
+        def default_fullname(first_name, last_name):
+            """
+            Returns the first_name plus the last_name, with a space in 
+            between.
+            """
+            if force_verbose_blank:
+                first_name
+            return '%s %s' % (
+                verbose_blank(first_name), verbose_blank(last_name))
+
+        from django.conf import settings
+        format_method = getattr(
+                settings,
+                "RELATE_USER_FULL_NAME_FORMAT_METHOD",
+                default_fullname)
+
+        try:
+            full_name = format_method(
+                verbose_blank(self.first_name), verbose_blank(self.last_name))
+        except:
+            full_name = default_fullname(
+                verbose_blank(self.first_name), verbose_blank(self.last_name))
+
         return full_name.strip()
 
     def get_short_name(self):
         "Returns the short name for the user."
         return self.first_name
+
+    def get_email_appellation(self):
+        "Return the appellation of the receiver in email."
+        from django.conf import settings
+
+        # import the user defined priority list
+        customized_priority_list = getattr(
+                settings,
+                "RELATE_EMAIL_APPELATION_PRIORITY_LIST", [])
+
+        priority_list = []
+
+        # filter out not allowd appellations in customized list
+        for e in customized_priority_list:
+            if e in ["first_name", "email", "username", "full_name"]:
+                priority_list.append(e)
+
+        # make sure the default appellations are included in case
+        # user defined appellations are not available.
+        for e in ["first_name", "email", "username"]:
+            if e not in priority_list:
+                priority_list.append(e)
+
+        for attr in priority_list:
+            if attr == "full_name":
+                appellation = self.get_full_name(allow_blank=True)
+            else:
+                appellation = getattr(self, attr)
+
+            if appellation:
+                return appellation
+            else:
+                continue
+
+        return _("user")
 
     def save(self, *args, **kwargs):
         # works around https://code.djangoproject.com/ticket/4136#comment:33

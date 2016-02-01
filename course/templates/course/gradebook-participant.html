@@ -30,10 +30,7 @@
         <td>{% trans "Name" context "real name of a user" %}</td>
         <td>
           <span class="sensitive">
-          {# Translators: how the real name of a user is displayed. #}
-          {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name %}
-                {{ last_name }}, {{ first_name }}
-          {% endblocktrans %}
+                {{ grade_participation.user.get_full_name }}
           </span>
         </td>
       </tr>
