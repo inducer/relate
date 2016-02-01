@@ -690,8 +690,6 @@ def query_participations(pctx):
     return render_course_page(pctx, "course/query-participations.html", {
         "form": form,
         "result": result,
-        "RELATE_DISPLAY_USER_FULLNAME_IN_LIST": getattr(
-                settings, "RELATE_DISPLAY_USER_FULLNAME_IN_LIST", False),
     })
 
 # }}}

@@ -3,12 +3,7 @@
 <table class="table table-striped gradebook-participants">
   <thead>
     <th class="datacol">{% trans "User ID" %}</th>
-    {% if RELATE_DISPLAY_USER_FULLNAME_IN_LIST %}
-    <th class="datacol">{% trans "Full Name" %}</th>
-    {% else %}
-    <th class="datacol">{% trans "Last Name" %}</th>
-    <th class="datacol">{% trans "First Name" %}</th>
-    {% endif %}
+    <th class="datacol">{% trans "Name" %}</th>
     <th class="datacol">{% trans "Role" %}</th>
     <th class="datacol">{% trans "Tags" %}</th>
   </thead>
@@ -16,12 +11,7 @@
     {% for participation in participations %}
     <tr>
       <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}"><span class="sensitive">{{ participation.user.username }}</span></a></td>
-      {% if RELATE_DISPLAY_USER_FULLNAME_IN_LIST %}
       <td class="datacol"><span class="sensitive">{{ participation.user.get_full_name }}</span></td>
-      {% else %}
-      <td class="datacol"><span class="sensitive">{{ participation.user.last_name }}</span></td>
-      <td class="datacol"><span class="sensitive">{{ participation.user.first_name }}</span></td>
-      {% endif %}
       <td class="datacol">{{ participation.get_role_desc }}</td>
       <td class="datacol">
         {% for ptag in participation.tags.all %}

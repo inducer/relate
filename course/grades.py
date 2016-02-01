@@ -159,11 +159,8 @@ def view_participant_list(pctx):
             .order_by("id")
             .select_related("user"))
 
-    from django.conf import settings
     return render_course_page(pctx, "course/gradebook-participant-list.html", {
         "participations": participations,
-        "RELATE_DISPLAY_USER_FULLNAME_IN_LIST": getattr(
-                settings, "RELATE_DISPLAY_USER_FULLNAME_IN_LIST", False),
         })
 
 # }}}

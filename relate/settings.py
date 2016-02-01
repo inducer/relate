@@ -287,9 +287,4 @@ if "RELATE_EMAIL_APPELATION_PRIORITY_LIST" in local_settings:
     assert isinstance(
         local_settings["RELATE_EMAIL_APPELATION_PRIORITY_LIST"], list)
 
-# This makes sure RELATE_DISPLAY_USER_FULLNAME_IN_LIST is a bool
-if "RELATE_DISPLAY_USER_FULLNAME_IN_LIST" in local_settings:
-    assert isinstance(
-        local_settings["RELATE_DISPLAY_USER_FULLNAME_IN_LIST"], bool)
-
 # vim: foldmethod=marker
