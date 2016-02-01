@@ -161,6 +161,7 @@ def enroll_view(request, course_identifier):
 
     return redirect("relate-course_page", course_identifier)
 
+
 @transaction.atomic
 def handle_enrollment_request(course, user, status, role, request=None):
     participations = Participation.objects.filter(course=course, user=user)
@@ -320,7 +321,7 @@ def create_preapprovals(pctx):
 
                         # approve if l is requesting enrollment
                         try:
-                            pending_participation = Participation.objects.get(
+                            pending = Participation.objects.get(
                                     course=pctx.course,
                                     status=participation_status.requested,
                                     user__email__iexact=l)
@@ -329,10 +330,11 @@ def create_preapprovals(pctx):
                             pass
 
                         else:
-                            pending_participation.status = participation_status.active
-                            pending_participation.save()
+                            pending.status = \
+                                    participation_status.active
+                            pending.save()
                             send_enrollment_decision(
-                                    pending_participation, True, request)
+                                    pending, True, request)
                             pending_approved_count += 1
 
                     else:
@@ -358,23 +360,23 @@ def create_preapprovals(pctx):
 
                         # approve if l is requesting enrollment
                         try:
-                            pending_participation = Participation.objects.get(
+                            pending = Participation.objects.get(
                                     course=pctx.course,
                                     status=participation_status.requested,
                                     user__institutional_id__iexact=l)
                             if (
                                     pctx.course.preapproval_require_verified_inst_id
-                                    and not pending_participation.user.institutional_id_verified):
+                                    and not pending.user.institutional_id_verified):
                                 raise Participation.DoesNotExist
 
                         except Participation.DoesNotExist:
                             pass
 
                         else:
-                            pending_participation.status = participation_status.active
-                            pending_participation.save()
+                            pending.status = participation_status.active
+                            pending.save()
                             send_enrollment_decision(
-                                    pending_participation, True, request)
+                                    pending, True, request)
                             pending_approved_count += 1
 
                     else:
