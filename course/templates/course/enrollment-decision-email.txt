@@ -1,4 +1,4 @@
-{% load i18n %}{% if user.first_name %}{% blocktrans trimmed with first_name=user.first_name last_name=user.last_name %}Dear {{first_name}}, {% endblocktrans %}{% elif user.email %}{% blocktrans trimmed with email=user.email %}Dear {{email}}, {% endblocktrans %}{% else %}{% blocktrans trimmed with username=user.username %}Dear {{username}}, {% endblocktrans %}{% endif %}
+{% load i18n %}{% blocktrans trimmed with username=user.get_email_appellation %}Dear {{username}},{% endblocktrans %}
 {% if approved %}
 {% blocktrans with course_identifier=course.identifier course_uri=course_uri %}Welcome! Your request to join the course '{{course_identifier}}' has been approved.
 Find the course web page here:

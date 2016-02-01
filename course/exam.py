@@ -73,12 +73,11 @@ class UserChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         user = obj
         return (
-                _("%(username)s - %(user_lastname)s, "
-                    "%(user_firstname)s")
+                "%(username)s - %(user_fullname)s"
                 % {
                     "username": user.username,
-                    "user_lastname": user.last_name,
-                    "user_firstname": user.first_name})
+                    "user_fullname": user.get_full_name(),
+                    })
 
 
 class IssueTicketForm(StyledForm):
@@ -196,8 +195,7 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
         {{ ticket.participation.user.username }}
       </td>
       <td>
-        {{ ticket.participation.user.last_name }},
-        {{ ticket.participation.user.first_name }}
+        {{ ticket.participation.user.get_full_name }}
       </td>
       <td>
         {{ ticket.code }}
@@ -215,8 +213,7 @@ _("Instructions for "  # noqa
 </h2>
 
 """, _("These are personalized instructions for "
-"{{ ticket.participation.user.last_name }}, "
-"{{ ticket.participation.user.first_name }}."), """
+"{{ ticket.participation.user.get_full_name }}."), """
 
 """, _("If this is not you, please let the proctor know "
 "so that you can get the correct set of instructions."), """

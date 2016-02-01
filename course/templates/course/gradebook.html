@@ -26,9 +26,7 @@
         <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}"><span class="sensitive">{{ participation.user.username }}</span></a></td>
         <td class="datacol">
           <span class="sensitive">
-          {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
-            {{ last_name }}, {{ first_name }}
-          {% endblocktrans %}
+            {{ participation.user.get_full_name }}
           </span>
           {% if participation.role != participation_role.student %}
             ({{ participation.role }})
@@ -45,12 +43,15 @@
     </tbody>
   </table>
 
+  {% load static %}
+  {% get_current_language as LANGUAGE_CODE %}
   <script type="text/javascript">
     var tbl = $("table.gradebook").dataTable({
         "scrollX": true,
         "scrollCollapse": true,
         "paging": true,
         "ordering": false,
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
     } );
     new $.fn.dataTable.FixedColumns(tbl);
   </script>

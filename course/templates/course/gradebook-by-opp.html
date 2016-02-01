@@ -108,10 +108,7 @@
         </td>
         <td class="datacol">
             <span class="sensitive">
-            {# Translators: Username displayed in gradebook by opportunity #}
-            {% blocktrans trimmed with last_name=participation.user.last_name first_name=participation.user.first_name %}
-                {{ last_name }}, {{ first_name }}
-            {% endblocktrans %}
+                {{ participation.user.get_full_name }}
             </span>
           {% if participation.role != participation_role.student %}
             ({{ participation.role }})
@@ -156,11 +153,13 @@
     </tbody>
   </table>
 
+  {% get_current_language as LANGUAGE_CODE %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-by-opportunity").dataTable({
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
     } );
   </script>
 

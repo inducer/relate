@@ -30,10 +30,7 @@
         <td>{% trans "Name" context "real name of a user" %}</td>
         <td>
           <span class="sensitive">
-          {# Translators: how the real name of a user is displayed. #}
-          {% blocktrans trimmed with last_name=grade_participation.user.last_name first_name=grade_participation.user.first_name %}
-                {{ last_name }}, {{ first_name }}
-          {% endblocktrans %}
+                {{ grade_participation.user.get_full_name }}
           </span>
         </td>
       </tr>
@@ -80,10 +77,12 @@
     </tbody>
   </table>
 
+  {% get_current_language as LANGUAGE_CODE %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-single").dataTable({
         "scrollCollapse": true,
         "paging": false,
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
     } );
   </script>
 

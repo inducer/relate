@@ -624,12 +624,11 @@ class ParticipationChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         user = obj.user
         return (
-                _("%(user_email)s - %(user_lastname)s, "
-                    "%(user_firstname)s")
+                _("%(user_email)s - %(user_fullname)s")
                 % {
                     "user_email": user.email,
-                    "user_lastname": user.last_name,
-                    "user_firstname": user.first_name})
+                    "user_fullname": user.get_full_name()
+                })
 
 
 class ExceptionStage1Form(StyledForm):
