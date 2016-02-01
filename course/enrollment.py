@@ -431,6 +431,8 @@ _email_contains = intern("email_contains")
 _user = intern("user")
 _user_contains = intern("user_contains")
 _tagged = intern("tagged")
+_role = intern("role")
+_status = intern("status")
 _whitespace = intern("whitespace")
 
 # }}}
@@ -451,18 +453,20 @@ _LEX_TABLE = [
 
     # TERMINALS
     (_id, RE(r"id:([0-9]+)")),
-    (_email, RE(r"email:(\S+)")),
-    (_email_contains, RE(r"email-contains:(\S+)")),
-    (_user, RE(r"username:(\S+)")),
-    (_user_contains, RE(r"username-contains:(\S+)")),
+    (_email, RE(r"email:([^ \t\n\r\f\v)]+)")),
+    (_email_contains, RE(r"email-contains:([^ \t\n\r\f\v)]+)")),
+    (_user, RE(r"username:([^ \t\n\r\f\v)]+)")),
+    (_user_contains, RE(r"username-contains:([^ \t\n\r\f\v)]+)")),
     (_tagged, RE(r"tagged:([-\w]+)")),
+    (_role, RE(r"role:(\w+)")),
+    (_status, RE(r"status:(\w+)")),
 
     (_whitespace, RE("[ \t]+")),
     ]
 
 
 _TERMINALS = ([
-    _id, _email, _email_contains, _user, _user_contains, ])
+    _id, _email, _email_contains, _user, _user_contains, _tagged, _role, _status])
 
 # {{{ operator precedence
 
@@ -511,6 +515,18 @@ def parse_query(course, expr_str):
                     name=pstate.next_match_obj().group(1))
 
             result = Q(tags__pk=ptag.pk)
+
+            pstate.advance()
+            return result
+
+        elif next_tag is _role:
+            result = Q(role=pstate.next_match_obj().group(1))
+
+            pstate.advance()
+            return result
+
+        elif next_tag is _status:
+            result = Q(status=pstate.next_match_obj().group(1))
 
             pstate.advance()
             return result
@@ -592,7 +608,10 @@ class ParticipationQueryForm(StyledForm):
                 "<code>email-contains:abc</code>, "
                 "<code>username:abc</code>, "
                 "<code>username-contains:abc</code>, "
-                "<code>tagged:abc</code>."
+                "<code>tagged:abc</code>, "
+                "<code>role:instructor|teaching_assistant|"
+                "student|observer|auditor</code>, "
+                "<code>status:requested|active|dropped|denied</code>."
                 ),
             label=_("Queries"))
     op = forms.ChoiceField(
@@ -644,7 +663,7 @@ def query_participations(pctx):
                     else:
                         parsed_query = parsed_query | parsed_subquery
 
-            except Exception as e:
+            except KeyboardInterrupt as e:
                 messages.add_message(request, messages.ERROR,
                         _("Error in line %(lineno)d: %(error_type)s: %(error)s")
                         % {
