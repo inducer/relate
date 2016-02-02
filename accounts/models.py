@@ -136,7 +136,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = _('users')
 
     def get_full_name(self, allow_blank=True, force_verbose_blank=False):
-        if (allow_blank == False
+        if (not allow_blank
                 and not self.first_name or not self.last_name):
             return None
 
@@ -150,7 +150,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         def default_fullname(first_name, last_name):
             """
-            Returns the first_name plus the last_name, with a space in 
+            Returns the first_name plus the last_name, with a space in
             between.
             """
             if force_verbose_blank:
