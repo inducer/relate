@@ -109,8 +109,8 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 # {{{ user full_name format
 
 # RELATE's default full_name format is "'%s %s' % (first_name, last_name)",
-# you can override it by supply a customized method/fuction, with 
-# "firstname" and "lastname" as its paramaters, and return a string. 
+# you can override it by supply a customized method/fuction, with
+# "firstname" and "lastname" as its paramaters, and return a string.
 
 # For example, you can define it like this:
 
@@ -140,7 +140,8 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 # elements include first_name, last_name, get_full_name, email and
 # username.
 
-#RELATE_EMAIL_APPELATION_PRIORITY_LIST = ["full_name", "first_name", "email", "username"]
+# RELATE_EMAIL_APPELATION_PRIORITY_LIST = [
+#         "full_name", "first_name", "email", "username"]
 
 # }}}
 
@@ -294,8 +295,8 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
 
         # certificate
         # see saml2-keygen.sh in this directory
-        'key_file': path.join(_BASEDIR, 'saml-config', 'sp-key.pem'),  # private part
-        'cert_file': path.join(_BASEDIR, 'saml-config', 'sp-cert.pem'),  # public part
+        'key_file': path.join(_BASEDIR, 'saml-config', 'sp-key.pem'),  # private
+        'cert_file': path.join(_BASEDIR, 'saml-config', 'sp-cert.pem'),  # public
 
         # own metadata settings
         'contact_person': [
