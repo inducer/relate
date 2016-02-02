@@ -30,15 +30,17 @@ from django.dispatch import receiver
 
 from accounts.models import User
 from course.models import (
-        Course, Participation, participation_status, 
+        Course, Participation, participation_status,
         ParticipationPreapproval,
         )
 
+
 # {{{ Update enrollment status when a User/Course instance is saved
+
 @receiver(post_save, sender=User)
 @receiver(post_save, sender=Course)
 @transaction.atomic
-def update_requested_participation_status(sender, created, instance, 
+def update_requested_participation_status(sender, created, instance,
         **kwargs):
 
     if created:
@@ -88,11 +90,9 @@ def may_preapprove_role(course, user):
                 if not (course.preapproval_require_verified_inst_id
                         and not user.institutional_id_verified):
                     try:
-                        preapproval = (
-                                ParticipationPreapproval.objects.get(
+                        preapproval = ParticipationPreapproval.objects.get(
                                     course=course,
-                                    institutional_id__iexact=\
-                                            user.institutional_id))
+                                    institutional_id__iexact=user.institutional_id)
                     except ParticipationPreapproval.DoesNotExist:
                         pass
 
@@ -102,4 +102,5 @@ def may_preapprove_role(course, user):
         return False, None
 
 # }}}
+
 # vim: foldmethod=marker
