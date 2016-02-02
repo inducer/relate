@@ -105,10 +105,9 @@
                 by {{ grader_name }}
                 {% endblocktrans %}
               {% endif %}
-              {# Translators: the most recent grade is provided "at" some time. #}
-              {% blocktrans trimmed with grade_time=most_recent_grade.grade_time %}
-              at {{ grade_time }}
-              {% endblocktrans %}
+              {% with time=most_recent_grade.grade_time %}
+              {% trans "at" context "at (what time)" %} {{ time }}
+              {% endwith %}
             {% else %}
               {% trans "(n/a)" %}
             {% endif%}

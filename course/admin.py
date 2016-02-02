@@ -478,7 +478,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
 
     def get_page_id(self, obj):
         if obj.page_data.ordinal is None:
-            return _("%s/%s (not in use)") % (
+            return string_concat("%s/%s (", _("not in use"), ")") % (
                     obj.page_data.group_id,
                     obj.page_data.page_id)
         else:
