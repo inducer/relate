@@ -376,12 +376,12 @@ class ParticipationPreapproval(models.Model):
 
     def __unicode__(self):
         if self.email:
-        # Translators: somebody's email in some course in Participation
-        # Preapproval
+            # Translators: somebody's email in some course in Participation
+            # Preapproval
             return _("Email %(email)s in %(course)s") % {
                 "email": self.email, "course": self.course}
         elif self.institutional_id:
-            # Translators: somebody's Institutional ID in some course in 
+            # Translators: somebody's Institutional ID in some course in
             # Participation Preapproval
             return _("Institutional ID %(inst_id)s in %(course)s") % {
                     "inst_id": self.institutional_id, "course": self.course}
