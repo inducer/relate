@@ -172,7 +172,7 @@ def course_page(pctx):
                         "enrollment preapproval, please <a href='%s' "
                         "role='button' class='btn btn-md btn-primary'>"
                         "fill in your institutional ID &nbsp;&raquo;"
-                        "</a> in your profile.") 
+                        "</a> in your profile.")
                         % (
                             reverse("relate-user_profile")
                             + "?referer="
