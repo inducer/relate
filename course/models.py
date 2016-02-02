@@ -398,6 +398,8 @@ class ParticipationPreapproval(models.Model):
 # }}}
 
 
+# {{{ instant flow request
+
 class InstantFlowRequest(models.Model):
     course = models.ForeignKey(Course,
             verbose_name=_('Course'), on_delete=models.CASCADE)
@@ -425,6 +427,8 @@ class InstantFlowRequest(models.Model):
 
     if six.PY3:
         __str__ = __unicode__
+
+# }}}
 
 
 # {{{ flow session
@@ -455,6 +459,16 @@ class FlowSession(models.Model):
             verbose_name=_('Completion time'))
     page_count = models.IntegerField(null=True, blank=True,
             verbose_name=_('Page count'))
+
+    # This field allows avoiding redundant checks for whether the
+    # page data is in line with the course material.
+    # See course.content.adjust_flow_session_page_data.
+    page_data_at_course_revision = models.CharField(
+            max_length=200, null=True, blank=True,
+            verbose_name=_('Page data at course revision'),
+            help_text=_(
+                "Page set-up data is up-to date for this revision of the "
+                "course material"))
 
     in_progress = models.BooleanField(default=None,
             verbose_name=_('In progress'))
