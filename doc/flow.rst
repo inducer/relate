@@ -357,11 +357,6 @@ Rules for starting new sessions
         (Mandatory) A Boolean (True/False) value indicating whether, if the rule applies,
         the participant may view a list of existing sessions.
 
-    .. attribute:: lock_down_as_exam_session
-
-        (Optional) Once this flow has been started, access to all content
-        except for this session on this RELATE instance will be denied.
-
     .. attribute:: tag_session
 
         (Optional) An identifier that will be applied to a newly-created session as a "tag".

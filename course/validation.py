@@ -523,6 +523,12 @@ def validate_session_start_rule(ctx, location, nrule, tags):
         ctx.add_warning(
                 location+", rules",
                 _("attribute 'may_list_existing_sessions' is not present"))
+    if hasattr(nrule, "lock_down_as_exam_session"):
+        ctx.add_warning(
+                location+", rules",
+                _("Attribute 'lock_down_as_exam_session' is deprecated "
+                "and non-functional. Use the access permission flag "
+                "'lock_down_as_exam_session' instead."))
 
     if hasattr(nrule, "tag_session"):
         if nrule.tag_session is not None:

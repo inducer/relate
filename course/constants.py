@@ -198,6 +198,11 @@ class flow_permission:  # noqa
 
         Allows the participant to see the duration for which the
         session has been going on.
+
+    .. attribute:: lock_down_as_exam_session
+
+        (Optional) Once any page of the flow has been viewed, access to all content
+        except for this session on this RELATE instance will be denied.
     """
     view = "view"
     end_session = "end_session"
@@ -209,6 +214,7 @@ class flow_permission:  # noqa
     cannot_see_flow_result = "cannot_see_flow_result"
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
     see_session_time = "see_session_time"
+    lock_down_as_exam_session = "lock_down_as_exam_session"
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view,
@@ -236,6 +242,8 @@ FLOW_PERMISSION_CHOICES = (
                 "Set the session to 'roll over' expiration mode")),
         (flow_permission.see_session_time,
             pgettext_lazy("Flow permission", "See session time")),
+        (flow_permission.lock_down_as_exam_session,
+            pgettext_lazy("Flow permission", "Lock down as exam session")),
         )
 
 
