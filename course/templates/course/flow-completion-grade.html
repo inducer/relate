@@ -38,14 +38,18 @@
     {% endif %}
     </p>
 
-    <div class="progress">
-      <div class="progress-bar progress-bar-success"
-        style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
-      <div class="progress-bar progress-bar-danger"
-        style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
-      <div class="progress-bar progress-bar-info"
-        style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
-    </div>
+    {% if grade_info.total_points_percent < 100.001 %}
+      {# otherwise we'll have trouble drawing the bar #}
+
+      <div class="progress">
+        <div class="progress-bar progress-bar-success"
+          style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
+        <div class="progress-bar progress-bar-danger"
+          style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
+        <div class="progress-bar progress-bar-info"
+          style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
+      </div>
+    {% endif %}
 
     <p>
     {% blocktrans trimmed with fully_correct_count=grade_info.fully_correct_count partially_correct_count=grade_info.partially_correct_count incorrect_count=grade_info.incorrect_count %}

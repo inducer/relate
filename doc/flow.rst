@@ -135,8 +135,25 @@ When described in YAML, a flow has the following components:
 
     .. attribute:: notify_on_submit
 
-        A list of email addresses which to notify about a flow submission by
+        (Optional) A list of email addresses which to notify about a flow submission by
         a participant.
+
+    .. attribute:: max_points
+
+        (Optional, an integer or floating point number if given)
+        The number of points on the flow which constitute
+        "100% of the achievable points". If not given, this is automatically
+        computed by summing point values from all constituent pages.
+
+        This may be used to 'grade out of N points', where N is a number that
+        is lower than the actually achievable count.
+
+    .. attribute:: max_points_enforced_cap
+
+        (Optional, an integer or floating point number if given)
+        No participant will have a grade higher than this recorded for this flow.
+        This may be used to limit the amount of 'extra credit' achieved beyond
+        :attr:`max_points`.
 
     .. attribute:: rules
 
