@@ -585,7 +585,7 @@ class ExamFacilityMiddleware(object):
                         _("Access to flows in an exams-only facility "
                             "is only granted if the flow is locked down. "
                             "To do so, add 'lock_down_as_exam_session' to "
-                            "your flow's start rules."))
+                            "your flow's access permissions."))
 
             if request.user.is_authenticated():
                 return redirect("relate-list_available_exams")
@@ -617,7 +617,8 @@ class ExamLockdownMiddleware(object):
             from course.views import (get_repo_file, get_current_repo_file)
             from course.flow import (view_start_flow, view_flow_page,
                     update_expiration_mode, finish_flow_session_view)
-            from course.auth import user_profile
+            from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
+                    sign_in_stage2_with_token, sign_in_by_user_pw)
             from django.contrib.auth.views import logout
 
             ok = False
@@ -628,8 +629,15 @@ class ExamLockdownMiddleware(object):
                     check_in_for_exam,
                     list_available_exams,
 
+                    sign_in_choice,
+                    sign_in_by_email,
+                    sign_in_stage2_with_token,
+                    sign_in_by_user_pw,
                     user_profile,
                     logout]:
+                ok = True
+
+            elif request.path.startswith("/saml2"):
                 ok = True
 
             elif (
