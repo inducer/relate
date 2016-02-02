@@ -872,6 +872,17 @@ def validate_flow_desc(ctx, location, flow_desc):
     for i, grp in enumerate(flow_desc.groups):
         group_has_page = False
 
+        if not isinstance(grp.pages, list):
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s, ",
+                        _("group %(group_index)d ('%(group_id)s'): "
+                            "'pages' is not a list"))
+                    % {
+                        'location': location,
+                        'group_index': i+1,
+                        'group_id': grp.id})
+
         for page in grp.pages:
             group_has_page = flow_has_page = True
             break
@@ -880,7 +891,7 @@ def validate_flow_desc(ctx, location, flow_desc):
             raise ValidationError(
                     string_concat(
                         "%(location)s, ",
-                        _("group %(group_index)d ('%(group_id)d'): "
+                        _("group %(group_index)d ('%(group_id)s'): "
                             "no pages found"))
                     % {
                         'location': location,
