@@ -39,11 +39,6 @@
     <script type="text/javascript">
       videojs.options.flash.swf = "{% static "videojs/dist/video-js/video-js.swf" %}"
     </script>
-      {% if select2_i18n %}
-        {% load coursetags %}
-        {% get_current_js_lang_name as LANG %}
-        <script src='{% static "select2/dist/js/i18n/" %}{{LANG}}.js'></script>
-      {% endif %}
   </head>
 
   <body>

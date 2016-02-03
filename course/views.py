@@ -695,7 +695,6 @@ def grant_exception(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": _("Grant Exception"),
-        "select2_i18n": True,
     })
 
 

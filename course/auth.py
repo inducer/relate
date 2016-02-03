@@ -175,10 +175,9 @@ def impersonate(request):
     else:
         form = ImpersonateForm(request.user, language=language)
 
-    return render(request, "generic-form.html", {
+    return render(request, "select2-form.html", {
         "form_description": _("Impersonate user"),
-        "form": form,
-        "select2_i18n": True
+        "form": form
         })
 
 

@@ -618,14 +618,13 @@ def update_course(pctx):
 
     text_lines.append("</table>")
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
+    return render_course_page(pctx, "course/select2-course-form.html", {
         "form": form,
         "form_text": "".join(
             "<p>%s</p>" % line
             for line in text_lines
             ),
         "form_description": ugettext("Update Course Revision"),
-        "select2_i18n": True,
     })
 
 # }}}

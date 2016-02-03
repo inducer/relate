@@ -170,11 +170,10 @@ def issue_exam_ticket(request):
     else:
         form = IssueTicketForm(language=language)
 
-    return render(request, "generic-form.html", {
+    return render(request, "select2-form.html", {
         "form_description":
             _("Issue Exam Ticket"),
         "form": form,
-        "select2_i18n": True,
         })
 
 # }}}
