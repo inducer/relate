@@ -83,6 +83,7 @@ class UserChoiceField(forms.ModelChoiceField):
 class IssueTicketForm(StyledForm):
     def __init__(self, *args, **kwargs):
         initial_exam = kwargs.pop("initial_exam", None)
+        language = kwargs.pop("language", None)
 
         super(IssueTicketForm, self).__init__(*args, **kwargs)
 
@@ -92,7 +93,7 @@ class IssueTicketForm(StyledForm):
                         is_active=True,
                         )
                     .order_by("last_name")),
-                widget=Select2Widget(),
+                widget=Select2Widget(attrs={"data-language": language}),
                 required=True,
                 help_text=_("Select participant for whom ticket is to "
                 "be issued."),
@@ -118,6 +119,9 @@ class IssueTicketForm(StyledForm):
 
 @permission_required("course.can_issue_exam_tickets")
 def issue_exam_ticket(request):
+    from relate.utils import to_js_lang_name
+    language = to_js_lang_name(request.LANGUAGE_CODE)
+
     if request.method == "POST":
         form = IssueTicketForm(request.POST)
 
@@ -161,15 +165,16 @@ def issue_exam_ticket(request):
                             ) % {"participation": participation,
                                  "ticket_code": ticket.code})
 
-                form = IssueTicketForm(initial_exam=exam)
+                form = IssueTicketForm(initial_exam=exam, language=language)
 
     else:
-        form = IssueTicketForm()
+        form = IssueTicketForm(language=language)
 
     return render(request, "generic-form.html", {
         "form_description":
             _("Issue Exam Ticket"),
         "form": form,
+        "select2_i18n": True,
         })
 
 # }}}

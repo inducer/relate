@@ -427,6 +427,7 @@ def run_course_update_command(
 class GitUpdateForm(StyledForm):
 
     def __init__(self, may_update, previewing, repo, *args, **kwargs):
+        language = kwargs.pop("language", None)
         super(GitUpdateForm, self).__init__(*args, **kwargs)
 
         repo_refs = repo.get_refs()
@@ -457,7 +458,7 @@ class GitUpdateForm(StyledForm):
                     for entry in commit_iter
                     ]),
                 required=True,
-                widget=Select2Widget(),
+                widget=Select2Widget(attrs={"data-language": language}),
                 label=pgettext_lazy(
                     "new git SHA for revision of course contents",
                     "New git SHA"))
@@ -510,10 +511,13 @@ def update_course(pctx):
 
     may_update = pctx.role == participation_role.instructor
 
+    from relate.utils import to_js_lang_name
+    language = to_js_lang_name(request.LANGUAGE_CODE)
+
     response_form = None
     if request.method == "POST":
         form = GitUpdateForm(may_update, previewing, repo, request.POST,
-            request.FILES)
+            request.FILES, language=language)
         commands = ["fetch", "fetch_update", "update", "fetch_preview",
                 "preview", "end_preview"]
 
@@ -557,7 +561,7 @@ def update_course(pctx):
                 {
                     "new_sha": repo.head(),
                     "prevent_discarding_revisions": True,
-                    })
+                    }, language=language)
 
     if six.PY2:
         from cgi import escape
@@ -621,6 +625,7 @@ def update_course(pctx):
             for line in text_lines
             ),
         "form_description": ugettext("Update Course Revision"),
+        "select2_i18n": True,
     })
 
 # }}}
