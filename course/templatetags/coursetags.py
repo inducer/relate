@@ -22,10 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.conf import settings
-from django.template import Library, Node, TemplateSyntaxError, Variable
-from django.template.defaulttags import token_kwargs
-from django.utils import six, translation
+from django.template import Library, Node, TemplateSyntaxError
+from django.utils import translation
 
 register = Library()
 
@@ -67,10 +65,12 @@ def do_get_current_js_lang_name(parser, token):
     This will fetch the currently active language name with js tradition and
     put it's value into the ``language`` context variable.
     """
-    # token.split_contents() isn't useful here because this tag doesn't accept variable as arguments
+    # token.split_contents() isn't useful here because this tag doesn't
+    # accept variable as arguments
     args = token.contents.split()
     if len(args) != 3 or args[1] != 'as':
-        raise TemplateSyntaxError("'get_current_js_lang_name' requires 'as variable' (got %r)" % args)
+        raise TemplateSyntaxError("'get_current_js_lang_name' requires "
+                "'as variable' (got %r)" % args)
     return GetCurrentLanguageJsFmtNode(args[2])
 
 # }}}
