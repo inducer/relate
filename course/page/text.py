@@ -383,7 +383,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
 
 
 def float_or_sympy_evalf(s):
-    if isinstance(s, (int, float)):
+    if isinstance(s, six.integer_types + (float,)):
         return s
 
     if not isinstance(s, six.string_types):
@@ -427,11 +427,11 @@ class FloatMatcher(TextAnswerMatcher):
                 matcher_desc,
                 required_attrs=(
                     ("type", str),
-                    ("value", (int, float, str)),
+                    ("value", six.integer_types + (float, str)),
                     ),
                 allowed_attrs=(
-                    ("rtol", (int, float, str)),
-                    ("atol", (int, float, str)),
+                    ("rtol", six.integer_types + (float, str)),
+                    ("atol", six.integer_types + (float, str)),
                     ),
                 )
 
