@@ -153,13 +153,14 @@
     </tbody>
   </table>
 
-  {% get_current_language as LANGUAGE_CODE %}
+  {% load coursetags %}
+  {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-by-opportunity").dataTable({
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
-        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANGUAGE_CODE}}.json'},
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
     } );
   </script>
 
