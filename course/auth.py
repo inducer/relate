@@ -124,6 +124,7 @@ class ImpersonateMiddleware(object):
 
 class ImpersonateForm(StyledForm):
     def __init__(self, impersonator, *args, **kwargs):
+        language = kwargs.pop("language", None)
         super(ImpersonateForm, self).__init__(*args, **kwargs)
 
         impersonees = whom_may_impersonate(impersonator)
@@ -145,7 +146,7 @@ class ImpersonateForm(StyledForm):
                     ],
                 required=True,
                 help_text=_("Select user to impersonate."),
-                widget=Select2Widget(),
+                widget=Select2Widget(attrs={"data-language": language}),
                 label=_("User"))
 
         self.helper.add_input(Submit("submit", _("Impersonate")))
@@ -153,13 +154,17 @@ class ImpersonateForm(StyledForm):
 
 @user_passes_test(may_impersonate)
 def impersonate(request):
+    from relate.utils import to_js_lang_name
+    language = to_js_lang_name(request.LANGUAGE_CODE)
+
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 _("Already impersonating someone."))
         return redirect("relate-stop_impersonating")
 
     if request.method == 'POST':
-        form = ImpersonateForm(request.user, request.POST)
+        form = ImpersonateForm(request.user, request.POST,
+                language=language)
         if form.is_valid():
             user = get_user_model().objects.get(id=form.cleaned_data["user"])
 
@@ -168,9 +173,9 @@ def impersonate(request):
             # Because we'll likely no longer have access to this page.
             return redirect("relate-home")
     else:
-        form = ImpersonateForm(request.user)
+        form = ImpersonateForm(request.user, language=language)
 
-    return render(request, "generic-form.html", {
+    return render(request, "select2-form.html", {
         "form_description": _("Impersonate user"),
         "form": form
         })

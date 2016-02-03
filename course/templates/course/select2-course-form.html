@@ -1,0 +1,8 @@
+{% extends "course/generic-course-form.html" %}
+{% load i18n %}
+
+{% block header_extra %}
+    {% load static coursetags %}
+    {% get_current_js_lang_name as LANG %}
+    <script src='{% static "select2/dist/js/i18n/" %}{{LANG}}.js'></script>
+{% endblock %}
