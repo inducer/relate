@@ -112,21 +112,6 @@ def format_datetime_local(datetime, format='DATETIME_FORMAT'):
     format, it will be overrided by built-in format as l10n
     is enabled.
     """
-
-    # allow user to supply a custom formatting method.
-    custom_format_method = getattr(settings,
-            "RELATE_CUSTOM_DATETIME_FORMAT_METHOD", None)
-    try:
-        result = custom_format_method(datetime, format='DATETIME_FORMAT')
-        if not isinstance(result, six.string_types):
-            result = None
-    except:
-        pass
-
-    if result:
-        return result
-
-    # default method
     from django.utils import formats
     try:
         dt_format = formats.get_format(format)
