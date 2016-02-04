@@ -219,4 +219,20 @@ if 0:
 
 # }}}
 
+
+# {{{ convert django language name to js styled language name
+
+def to_js_lang_name(dj_lang_name):
+    """
+    Turns a django language name (en-us) into a js styled language
+    name (en-US).
+    """
+    p = dj_lang_name.find('-')
+    if p >= 0:
+        return dj_lang_name[:p].lower() + '-' + dj_lang_name[p + 1:].upper()
+    else:
+        return dj_lang_name.lower()
+
+# }}}
+
 # vim: foldmethod=marker
