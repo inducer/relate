@@ -102,21 +102,27 @@ def local_now():
     return tz.localize(datetime.now())
 
 
-def format_datetime_local(datetime, format='medium'):
-    """Format the output of a datetime object to a localized string"""
-    from babel.dates import format_datetime
-    from django.conf import settings
-    from django.utils.translation.trans_real import to_locale
-    # See http://babel.pocoo.org/docs/api/dates/#date-and-time-formatting
-    # for customizing the output format.
+def format_datetime_local(datetime, format='DATETIME_FORMAT'):
+    """
+    Format a datetime object to a localized string via python.
+
+    Note: The datetime rendered in template is itself locale aware.
+    A custom format must be defined in settings.py. 
+    When defined a format with a same name existed in built-in
+    format, it will be overrided by built-in format as l10n
+    is enabled.
+    """
+    from django.utils import formats
     try:
-        locale = to_locale(settings.LANGUAGE_CODE)
-    except ValueError:
-        locale = "en_US"
+        dt_format = formats.get_format(format)
+    except:
+        return formats.date_format(datetime, "DATETIME_FORMAT")
 
-    result = format_datetime(datetime, format, locale=locale)
-
-    return result
+    try:
+        return formats.date_format(datetime, format)
+    except:
+        # seems it will never raise an exception here?
+        return formats.date_format(datetime, "DATETIME_FORMAT")
 
 
 # {{{ dict_to_struct
