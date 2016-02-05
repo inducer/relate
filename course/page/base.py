@@ -240,7 +240,7 @@ class PageBase(object):
     .. automethod:: grade
     .. automethod:: correct_answer
     .. automethod:: normalized_answer
-    .. automethod:: normalized_plaintext_answer
+    .. automethod:: normalized_bytes_answer
     """
 
     def __init__(self, vctx, location, page_desc):
