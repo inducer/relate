@@ -158,6 +158,9 @@ class Feedback:
 
         if not isinstance(data, np.ndarray):
             self.finish(0, "'%s' is not a numpy array" % name)
+        if isinstance(data, np.matrix):
+            self.finish(0, "'%s' is a numpy matrix. Do not use those. "
+                    "bit.ly/array-vs-matrix" % name)
 
         if ref.shape != data.shape:
             self.finish(
