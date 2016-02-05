@@ -152,6 +152,26 @@ class Feedback:
         self.set_points(points)
         raise GradingComplete()
 
+    def check_numpy_array_sanity(self, name, num_axes, data):
+        import numpy as np
+        if not isinstance(data, np.ndarray):
+            self.finish(0, "'%s' is not a numpy array" % name)
+
+        if isinstance(data, np.matrix):
+            self.finish(0, "'%s' is a numpy matrix. Do not use those. "
+                    "bit.ly/array-vs-matrix" % name)
+
+        if len(data.shape) != num_axes:
+            self.finish(
+                    0, "'%s' does not have the correct number of axes--"
+                    "got: %d, expected: %d" % (
+                        name, len(data.shape), num_axes))
+
+        if data.dtype.kind not in "fc":
+            self.finish(
+                    0, "'%s' does not consist of floating point numbers--"
+                    "got: '%s'" % (name, data.dtype))
+
     def check_numpy_array_features(self, name, ref, data):
         import numpy as np
         assert isinstance(ref, np.ndarray)

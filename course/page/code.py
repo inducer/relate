@@ -413,6 +413,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
           # combines the above two and raises GradingComplete
           feedback.finish(0, "This was wrong")
 
+          feedback.check_numpy_array_sanity(self, name, num_axes, data)
+
           feedback.check_numpy_array_features(name, ref, data)
 
           feedback.check_numpy_array_allclose(name, ref, data,
