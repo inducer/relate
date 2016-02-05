@@ -26,6 +26,7 @@ TEMPLATE = Template(r"""
 \titleformat{\section}
   {\normalfont\sffamily\large\bfseries}
   {Part \thesection. }{0em}{}
+\def\tightlist{}
 
 \begin{document}
 
