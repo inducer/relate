@@ -67,9 +67,6 @@ unicodecsv
 # To support network matching for facility recognition
 ipaddress
 
-# For localized datetime format
-babel
-
 # For interoperation with SAML2/Shibboleth
 pysaml2
 djangosaml2
