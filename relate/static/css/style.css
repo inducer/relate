@@ -23,13 +23,22 @@ table.past-flow-session-table {
 
 /* {{{ flow page */
 
+/* bootstrap padding of well is 19px == (13+6)px */
+
 .flow-well {
-  margin-top: 2ex;
+  padding-top: 13px;
 }
 
 .flow-nav {
   float:left;
+  margin-top: 6px;
 }
+
+.relate-flow-submit {
+  float: right;
+  margin-top: 6px;
+}
+
 
 .flow-session-expiration-panel {
   float:right;
@@ -47,20 +56,21 @@ code {
   color: #333;
 }
 
-.relate-flow-page-index {
+.relate-flow-page-toc {
   margin-top: 6px;
-  padding-left: 20px;
-  float: left;
-}
-
-.relate-flow-page-number {
-  margin-right:3px;
-  min-width: 2em;
+  padding-left: 15px;
+  padding-right: 15px;
   float: left;
   text-align: center;
 }
 
-.relate-flow-page-number.relate-current {
+.relate-flow-page-toc-item {
+  min-width: 2em;
+  margin-top: 6px;
+  text-align: center;
+}
+
+.relate-flow-page-toc-item .relate-current {
   background-color: #e8e8ff;
 }
 

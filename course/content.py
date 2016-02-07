@@ -1178,9 +1178,19 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
         course_identifier, flow_desc):
     commit_sha = get_course_commit_sha(
             flow_session.course, flow_session.participation)
+    revision_key = "2:"+commit_sha.decode()
 
-    if flow_session.page_data_at_course_revision == commit_sha:
+    if flow_session.page_data_at_revision_key == revision_key:
         return
+
+    from course.page.base import PageContext
+    pctx = PageContext(
+            course=flow_session.course,
+            repo=repo,
+            commit_sha=commit_sha,
+            flow_session=flow_session,
+            in_sandbox=False,
+            page_uri=None)
 
     from course.models import FlowPageData
 
@@ -1219,28 +1229,42 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
             return new_page_desc
 
-        def create_fpd(new_page_desc):
-            page = instantiate_flow_page(
+        def instantiate_page(page_desc):
+            return instantiate_flow_page(
                     "course '%s', flow '%s', page '%s/%s'"
                     % (course_identifier, flow_session.flow_id,
-                        grp.id, new_page_desc.id),
-                    repo, new_page_desc, commit_sha)
+                        grp.id, page_desc.id),
+                    repo, page_desc, commit_sha)
 
+        def create_fpd(new_page_desc):
+            page = instantiate_page(new_page_desc)
+
+            data = page.make_page_data()
             return FlowPageData(
                     flow_session=flow_session,
                     ordinal=None,
                     page_type=new_page_desc.type,
                     group_id=grp.id,
                     page_id=new_page_desc.id,
-                    data=page.make_page_data())
+                    data=data,
+                    title=page.title(pctx, data))
 
         def add_page(fpd):
             if fpd.ordinal != ordinal[0]:
                 fpd.ordinal = ordinal[0]
                 fpd.save()
 
+            page_desc = find_page_desc(fpd.page_id)
+            page = instantiate_page(page_desc)
+            title = page.title(pctx, fpd.data)
+
+            if fpd.title != title:
+                fpd.title = title
+                fpd.save()
+
             ordinal[0] += 1
             available_page_ids.remove(fpd.page_id)
+
             group_pages.append(fpd)
 
         # }}}
@@ -1323,7 +1347,7 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
     # }}}
 
     flow_session.page_count = ordinal[0]
-    flow_session.page_data_at_course_revision = commit_sha
+    flow_session.page_data_at_revision_key = revision_key
     flow_session.save()
 
 

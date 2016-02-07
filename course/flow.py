@@ -252,15 +252,17 @@ def assemble_answer_visits(flow_session):
     return answer_visits
 
 
-def get_interaction_kind(fctx, flow_session, flow_generates_grade):
-    all_page_data = (FlowPageData.objects
+def get_all_page_data(flow_session):
+    return (FlowPageData.objects
             .filter(
                 flow_session=flow_session,
                 ordinal__isnull=False)
             .order_by("ordinal"))
 
+
+def get_interaction_kind(fctx, flow_session, flow_generates_grade, all_page_data):
     if not flow_session.in_progress:
-        return flow_session_interaction_kind
+        return flow_session_interaction_kind.noninteractive
 
     ikind = flow_session_interaction_kind.noninteractive
 
@@ -281,11 +283,7 @@ def get_interaction_kind(fctx, flow_session, flow_generates_grade):
 
 
 def count_answered_gradable(fctx, flow_session, answer_visits):
-    all_page_data = (FlowPageData.objects
-            .filter(
-                flow_session=flow_session,
-                ordinal__isnull=False)
-            .order_by("ordinal"))
+    all_page_data = get_all_page_data(flow_session)
 
     answered_count = 0
     unanswered_count = 0
@@ -404,11 +402,7 @@ def gather_grade_info(fctx, flow_session, answer_visits):
     :returns: a :class:`GradeInfo`
     """
 
-    all_page_data = (FlowPageData.objects
-            .filter(
-                flow_session=flow_session,
-                ordinal__isnull=False)
-            .order_by("ordinal"))
+    all_page_data = get_all_page_data(flow_session)
 
     points = 0
     provisional_points = 0
@@ -1358,6 +1352,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         if flow_session.participation is not None:
             time_factor = flow_session.participation.time_factor
 
+    all_page_data = get_all_page_data(flow_session)
+
     args = {
         "flow_identifier": fpctx.flow_id,
         "flow_desc": fpctx.flow_desc,
@@ -1365,9 +1361,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "page_data": fpctx.page_data,
         "percentage": int(100*(fpctx.ordinal+1) / flow_session.page_count),
         "flow_session": flow_session,
-        "page_numbers": zip(
-            range(flow_session.page_count),
-            range(1, flow_session.page_count+1)),
+        "all_page_data": all_page_data,
 
         "title": title, "body": body,
         "form": form,
@@ -1394,7 +1388,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
         "flow_session_interaction_kind": flow_session_interaction_kind,
         "interaction_kind": get_interaction_kind(
-            fpctx, flow_session, generates_grade),
+            fpctx, flow_session, generates_grade, all_page_data),
 
         "prev_answer_visits": prev_answer_visits,
         "prev_visit_id": prev_visit_id,

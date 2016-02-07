@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block content %}
+  {# {{{ navigation #}
   <form
     action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
     class="navigation-form"
@@ -18,6 +19,8 @@
     {% csrf_token %}
 
     <div class="well flow-well">
+      {# {{{ prev/next buttons #}
+
       <div class="flow-nav">
         {% if page_data.ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
@@ -39,7 +42,11 @@
         {% endif %}
       </div>
 
-      <div style="float:right">
+      {# }}} #}
+
+      {# {{{ 'finish' button #}
+
+      <div class="relate-flow-submit">
         <button type="submit" name="finish" class="btn btn-default relate-nav-button">
           {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
             {% trans "Go to end" %}
@@ -56,14 +63,18 @@
         </button>
       </div>
 
+      {# }}} #}
+
+      {# {{{ past submissions #}
+
       {% if prev_answer_visits %}
       <div style="float:right; padding-right: 0.4em">
         <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
             {% trans "Past submissions" %}
             <span class="caret"></span>
           </button>
-          <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
             {% for pvisit in prev_answer_visits %}
             <li>
               {% if forloop.first %}
@@ -88,6 +99,10 @@
       </div>
       {% endif %}
 
+      {# }}} #}
+
+      {# {{{ expiration mode #}
+
       {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
         <div class="flow-session-expiration-panel">
           <span id="expiration_mode_change_progress">
@@ -108,24 +123,54 @@
           </select>
         </div>
       {% endif %}
-      <div class="relate-flow-page-index">
-        {% for page_nr, shown_page_nr in page_numbers %}
-          {% if page_nr == page_data.ordinal %}
-            <span class="relate-flow-page-number relate-current btn btn-default btn-xs disabled">{{ shown_page_nr }}</span>
+
+      {# }}} #}
+
+      {# {{{ toc #}
+
+      <div class="relate-flow-page-toc">
+        {% for other_page_data in all_page_data %}
+          {% if other_page_data.ordinal == page_data.ordinal %}
+            <span class="relate-flow-page-toc-item relate-current btn btn-default btn-xs disabled"
+              >{{ other_page_data.human_readable_ordinal }}</span>
           {% else %}
-            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_nr %}">
-            <span class="relate-flow-page-number btn btn-default btn-xs
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}"
+               title="{{ other_page_data.title }}">
+            <span class="relate-flow-page-toc-item btn btn-default btn-xs
               {% if page_nr < page_data.ordinal %}
                 relate-prior
               {% else %}
                 relate-subsequent
               {% endif %}
-              ">{{ shown_page_nr }}
+              ">{{ other_page_data.human_readable_ordinal }}
             </span></a>
           {% endif %}
         {% endfor %}
+
+        {% if flow_session.page_count >= 5 %}
+          <span class="dropdown">
+            <span class="btn btn-default btn-xs dropdown-toggle relate-flow-page-toc-item " id="toc-dropdown" data-toggle="dropdown"
+              aria-haspopup="true" aria-expanded="true">
+              <span class="caret"></span>
+            </span>
+            <ul class="dropdown-menu" aria-labelledby="toc-dropdown">
+              {% for other_page_data in all_page_data %}
+              <li>
+                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}">
+                  {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </span>
+        {% endif %}
       </div>
+
+      {# }}} #}
+
       <div style="clear:both; height:0px"></div>
+
+      {# {{{ session time #}
 
       {% if session_minutes != None %}
         <div class="relate-session-duration">
@@ -138,9 +183,14 @@
           {% endif %}
         </div>
       {% endif %}
+
+      {# }}} #}
     </div>
   </form>
 
+  {# }}} #}
+
+  {# {{{ points #}
 
   {% if max_points %}
     <div style="float:right" class="well">
@@ -152,7 +202,11 @@
     </div>
   {% endif %}
 
+  {# }}} #}
+
   {{ body|safe }}
+
+  {# {{{ form #}
 
   {% if form_html %}
     <div class="well relate-interaction-container">
@@ -169,6 +223,10 @@
       {% endif %}
     </div>
   {% endif %}
+
+  {# }}} #}
+
+  {# {{{ feedback #}
 
   {% if show_correctness and feedback %}
     <div class="alert
@@ -194,6 +252,8 @@
       <p>{{ correct_answer|safe }}</p>
     </div>
   {% endif %}
+
+  {# }}} #}
 
   {# {{{ change listening, navigation confirmation #}
 
