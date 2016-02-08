@@ -64,7 +64,7 @@
               </td>
               <td>
                 {% if session_properties.may_view %}
-                  <a href="{% url "relate-view_flow_page" course.identifier flow_session.id 0 %}" class="btn btn-primary btn-xs">
+                  <a href="{% url "relate-view_resume_flow" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
                     {% if session_properties.may_modify %}
                       {% trans "Resume" %} &raquo;
                     {% else %}

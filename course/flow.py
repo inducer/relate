@@ -843,6 +843,13 @@ def recalculate_session_grade(repo, course, session):
 # }}}
 
 
+def lock_down_if_needed(request, permissions, flow_session):
+    if flow_permission.lock_down_as_exam_session in permissions:
+        request.session[
+                "relate_session_locked_to_exam_flow_session_pk"] = \
+                        flow_session.pk
+
+
 # {{{ view: start flow
 
 @course_view
@@ -974,8 +981,43 @@ def post_start_flow(pctx, fctx, flow_id):
             access_rules_tag=session_start_rule.tag_session,
             now_datetime=now_datetime)
 
+    access_rule = get_session_access_rule(
+            session, pctx.role, fctx.flow_desc, now_datetime,
+            facilities=pctx.request.relate_facilities)
+
+    lock_down_if_needed(pctx.request, access_rule.permissions, session)
+
     return redirect("relate-view_flow_page",
             pctx.course.identifier, session.id, 0)
+
+# }}}
+
+
+# {{{ view: resume flow
+
+# The purpose of this interstitial redirection page is to set the exam
+# lockdown flag upon resumption/review. Without this, the exam lockdown
+# middleware will refuse access to flow pages in a locked-down facility.
+
+@course_view
+def view_resume_flow(pctx, flow_session_id):
+    now_datetime = get_now_or_fake_time(pctx.request)
+
+    flow_session = get_and_check_flow_session(pctx, int(flow_session_id))
+
+    fctx = FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
+            participation=pctx.participation)
+
+    access_rule = get_session_access_rule(
+            flow_session, pctx.role, fctx.flow_desc, now_datetime,
+            facilities=pctx.request.relate_facilities)
+
+    lock_down_if_needed(pctx.request, access_rule.permissions,
+            flow_session)
+
+    return redirect("relate-view_flow_page",
+            pctx.course.identifier, flow_session.id, 0)
+
 
 # }}}
 
@@ -1157,10 +1199,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     if access_rule.message:
         messages.add_message(request, messages.INFO, access_rule.message)
 
-    if flow_permission.lock_down_as_exam_session in permissions:
-        pctx.request.session[
-                "relate_session_locked_to_exam_flow_session_pk"] = \
-                        flow_session.pk
+    lock_down_if_needed(pctx.request, permissions, flow_session)
 
     page_context = fpctx.page_context
     page_data = fpctx.page_data

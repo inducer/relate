@@ -550,7 +550,7 @@ class ExamFacilityMiddleware(object):
         from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
                 sign_in_stage2_with_token, sign_in_by_user_pw)
         from course.views import set_pretend_facilities
-        from course.flow import view_start_flow, view_flow_page
+        from course.flow import view_start_flow, view_resume_flow, view_flow_page
         from django.contrib.auth.views import logout
 
         ok = False
@@ -562,6 +562,7 @@ class ExamFacilityMiddleware(object):
                 check_in_for_exam,
                 list_available_exams,
                 view_start_flow,
+                view_resume_flow,
                 user_profile,
                 logout,
                 set_pretend_facilities]:
@@ -615,7 +616,8 @@ class ExamLockdownMiddleware(object):
             resolver_match = resolve(request.path)
 
             from course.views import (get_repo_file, get_current_repo_file)
-            from course.flow import (view_start_flow, view_flow_page,
+            from course.flow import (
+                    view_start_flow, view_resume_flow, view_flow_page,
                     update_expiration_mode, finish_flow_session_view)
             from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
                     sign_in_stage2_with_token, sign_in_by_user_pw)
@@ -642,6 +644,7 @@ class ExamLockdownMiddleware(object):
 
             elif (
                     resolver_match.func in [
+                        view_resume_flow,
                         view_flow_page,
                         update_expiration_mode,
                         finish_flow_session_view]
