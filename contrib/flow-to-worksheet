@@ -73,7 +73,7 @@ def convert_page_inner(page):
         if hasattr(page, "initial_code"):
             prompt += r"\begin{verbatim}%s\end{verbatim}" % page.initial_code
 
-        prompt += "\n\\vspace*{5cm}"
+        prompt += "\n\\vspace*{3cm}"
         return (prompt)
     elif page.type == "FileUploadQuestion":
         prompt = convert_markup(page.prompt) + "\n\\vspace*{5cm}"
