@@ -328,6 +328,14 @@ urlpatterns = [
          name="relate-view_start_flow"),
     url(r"^course"
         "/" + COURSE_ID_REGEX +
+         "/flow-session"
+         "/(?P<flow_session_id>[-0-9]+)"
+         "/resume"
+         "/$",
+         course.flow.view_resume_flow,
+         name="relate-view_resume_flow"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<ordinal>[0-9]+)"
