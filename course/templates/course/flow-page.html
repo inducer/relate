@@ -327,7 +327,7 @@
 
   {# }}} #}
 
-  {# {{{ codemirror resizing #}
+  {# {{{ codemirror resizing, save #}
 
   <script type="text/javascript">
     $("div.CodeMirror")
@@ -341,7 +341,18 @@
                 cm.refresh();
               });
           }
-      });
+      })
+    .each(
+        function ()
+        {
+          function submit_page_for_feedback()
+          {
+            $(".relate-submit-button").click();
+          }
+
+          var cm = this.CodeMirror;
+          cm.save = submit_page_for_feedback;
+        });
   </script>
 
   {# }}} #}
