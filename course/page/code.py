@@ -413,7 +413,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
           # combines the above two and raises GradingComplete
           feedback.finish(0, "This was wrong")
 
-          feedback.check_numpy_array_sanity(self, name, num_axes, data)
+          feedback.check_numpy_array_sanity(name, num_axes, data)
 
           feedback.check_numpy_array_features(name, ref, data)
 
@@ -424,7 +424,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
           feedback.check_list(name, ref, data, entry_type=None)
 
-          feedback.check_scalar(self, name, ref, data, accuracy_critical=True,
+          feedback.check_scalar(name, ref, data, accuracy_critical=True,
               rtol=1e-5, atol=1e-8, report_success=True)
           # returns True if accurate
 
