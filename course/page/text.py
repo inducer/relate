@@ -68,7 +68,7 @@ class TextAnswerForm(StyledForm):
                 widget.attrs["readonly"] = None
             return widget, None
 
-        elif widget_type in ["editor:markdown", "editor:yaml"]:
+        elif widget_type.startswith("editor:"):
             if check_only:
                 return True
 

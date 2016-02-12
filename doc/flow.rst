@@ -637,8 +637,9 @@ The following page types are predefined:
 .. |text-widget-page-attr| replace::
 
     Optional.
-    One of ``text_input`` (default), ``textarea``, ``editor:yaml``,
-    ``editor:markdown``.
+    One of ``text_input`` (default), ``textarea``, ``editor:MODE``
+    (where ``MODE`` is a valid language mode for the CodeMirror editor,
+    e.g. ``yaml``, or ``python`` or ``markdown``)
 
 Show a Page of Text/HTML (Ungraded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
