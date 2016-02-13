@@ -581,6 +581,11 @@ class FlowPageData(models.Model):
     title = models.CharField(max_length=1000,
             verbose_name=_('Page Title'), null=True, blank=True)
 
+    bookmarked = models.BooleanField(default=False,
+            help_text=_("A user-facing 'marking' feature to allow participants to "
+                "easily return to pages that still need their attention."),
+            verbose_name=_('Bookmarked'))
+
     class Meta:
         verbose_name = _("Flow page data")
         verbose_name_plural = _("Flow page data")
