@@ -26,12 +26,13 @@ THE SOFTWARE.
 
 
 import django.forms as forms
-from django.utils.translation import ugettext as _, ugettext_lazy, string_concat
+from django.utils.translation import (
+    ugettext as _, ugettext_lazy, string_concat)
 
 from course.page.base import (
-        PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
-        PageBaseWithCorrectAnswer,
-        markup_to_html)
+    PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
+    PageBaseWithCorrectAnswer,
+    markup_to_html)
 from course.validation import ValidationError
 
 from relate.utils import StyledForm
@@ -41,7 +42,7 @@ from relate.utils import StyledForm
 
 class FileUploadForm(StyledForm):
     uploaded_file = forms.FileField(required=True,
-            label=ugettext_lazy('Uploaded file'))
+                                    label=ugettext_lazy('Uploaded file'))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
         super(FileUploadForm, self).__init__(*args, **kwargs)
@@ -55,12 +56,13 @@ class FileUploadForm(StyledForm):
 
         if uploaded_file._size > self.max_file_size:
             raise forms.ValidationError(
-                    _("Please keep file size under %(allowedsize)s. "
-                    "Current filesize is %(uploadedsize)s.")
-                    % {'allowedsize': filesizeformat(self.max_file_size),
-                        'uploadedsize': filesizeformat(uploaded_file._size)})
+                _("Please keep file size under %(allowedsize)s. "
+                  "Current filesize is %(uploadedsize)s.")
+                % {'allowedsize': filesizeformat(self.max_file_size),
+                   'uploadedsize': filesizeformat(uploaded_file._size)})
 
-        if self.mime_types is not None and self.mime_types == ["application/pdf"]:
+        if self.mime_types is not None and \
+           self.mime_types == ["application/pdf"]:
             if uploaded_file.read()[:4] != b"%PDF":
                 raise forms.ValidationError(_("Uploaded file is not a PDF."))
 
@@ -68,7 +70,8 @@ class FileUploadForm(StyledForm):
 
 
 class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
-        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
+                         PageBaseWithHumanTextFeedback,
+                         PageBaseWithCorrectAnswer):
     """
     A page allowing the submission of a file upload that will be
     graded with text feedback by a human grader.
@@ -101,9 +104,12 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
     .. attribute:: mime_types
 
         Required.
-        A list of `MIME types <https://en.wikipedia.org/wiki/Internet_media_type>`_
+        A list of `MIME types
+        <http://www.iana.org/assignments/media-types/media-types.xhtml>`_
+        (`see here
+        <https://hg.python.org/cpython/file/2.7/Lib/mimetypes.py#l404>`_)
         that the question will accept.
-        Only ``application/pdf`` is allowed for the moment.
+        Only ``application/pdf`` and ``text/plain`` are allowed for the moment.
 
         The value ``"application/octet-stream"`` will allow any file at all
         to be uploaded.
@@ -134,41 +140,42 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
     """
 
     ALLOWED_MIME_TYPES = [
-            "application/pdf",
-            "application/octet-stream",
-            ]
+        "application/pdf",
+        "application/octet-stream",
+        "text/plain",
+        ]
 
     def __init__(self, vctx, location, page_desc):
         super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
             raise ValidationError(
-                    string_concat(
-                        "%(location)s: ",
-                        _("unrecognized mime types"),
-                        " '%(presenttype)s'")
-                    % {
-                        'location': location,
-                        'presenttype': ", ".join(
-                            set(page_desc.mime_types)
-                            - set(self.ALLOWED_MIME_TYPES))})
+                string_concat(
+                    "%(location)s: ",
+                    _("unrecognized mime types"),
+                    " '%(presenttype)s'")
+                % {
+                    'location': location,
+                    'presenttype': ", ".join(
+                        set(page_desc.mime_types)
+                        - set(self.ALLOWED_MIME_TYPES))})
 
         if vctx is not None:
             if not hasattr(page_desc, "value"):
                 vctx.add_warning(location, _("upload question does not have "
-                        "assigned point value"))
+                                             "assigned point value"))
 
     def required_attrs(self):
         return super(FileUploadQuestion, self).required_attrs() + (
-                ("prompt", "markup"),
-                ("mime_types", list),
-                ("maximum_megabytes", (int, float)),
-                )
+            ("prompt", "markup"),
+            ("mime_types", list),
+            ("maximum_megabytes", (int, float)),
+            )
 
     def allowed_attrs(self):
         return super(FileUploadQuestion, self).allowed_attrs() + (
-                ("correct_answer", "markup"),
-                )
+            ("correct_answer", "markup"),
+            )
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.max_points(page_data)
@@ -189,21 +196,21 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             mime_type = files_data["uploaded_file"].content_type
         from base64 import b64encode
         return {
-                "base64_data": b64encode(buf).decode(),
-                "mime_type": mime_type,
-                }
+            "base64_data": b64encode(buf).decode(),
+            "mime_type": mime_type,
+            }
 
     def make_form(self, page_context, page_data,
-            answer_data, page_behavior):
+                  answer_data, page_behavior):
         form = FileUploadForm(
-                self.page_desc.maximum_megabytes, self.page_desc.mime_types)
+            self.page_desc.maximum_megabytes, self.page_desc.mime_types)
         return form
 
     def process_form_post(self, page_context, page_data, post_data, files_data,
-            page_behavior):
+                          page_behavior):
         form = FileUploadForm(
-                self.page_desc.maximum_megabytes, self.page_desc.mime_types,
-                post_data, files_data)
+            self.page_desc.maximum_megabytes, self.page_desc.mime_types,
+            post_data, files_data)
         return form
 
     def form_to_html(self, request, page_context, form, answer_data):
@@ -217,9 +224,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         from django.template import RequestContext
         from django.template.loader import render_to_string
-        return render_to_string(
-                "course/file-upload-form.html",
-                RequestContext(request, ctx))
+        return render_to_string("course/file-upload-form.html",
+                                RequestContext(request, ctx))
 
     def answer_data(self, page_context, page_data, form, files_data):
         return self.files_data_to_answer_data(files_data)
