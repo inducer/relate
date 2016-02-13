@@ -109,7 +109,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         (`see here
         <https://hg.python.org/cpython/file/2.7/Lib/mimetypes.py#l404>`_)
         that the question will accept.
-        Only ``application/pdf`` is allowed for the moment.
+        Only ``application/pdf`` and ``text/plain`` are allowed for the moment.
 
         The value ``"application/octet-stream"`` will allow any file at all
         to be uploaded.
