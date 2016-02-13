@@ -103,10 +103,12 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         Required.
         A list of `MIME types <https://en.wikipedia.org/wiki/Internet_media_type>`_
         that the question will accept.
-        Only ``application/pdf`` is allowed for the moment.
 
-        The value ``"application/octet-stream"`` will allow any file at all
-        to be uploaded.
+        For now, the following are allowed:
+
+        * ``application/pdf`` (will check for a PDF header)
+        * ``text/plain`` (no check performed)
+        * ``application/octet-stream`` (no check performed)
 
     .. attribute:: maximum_megabytes
 
@@ -135,6 +137,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
     ALLOWED_MIME_TYPES = [
             "application/pdf",
+            "text/plain",
             "application/octet-stream",
             ]
 
