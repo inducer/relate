@@ -105,7 +105,7 @@ def view_participant_grades(pctx, participation_id=None):
     for opp in grading_opps:
         if is_student_viewing:
             if not (opp.shown_in_grade_book
-                    and opp.shown_in_student_grade_book):
+                    and opp.shown_in_participant_grade_book):
                 continue
         else:
             if not opp.shown_in_grade_book:
@@ -713,7 +713,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         if not opportunity.shown_in_grade_book:
             messages.add_message(pctx.request, messages.INFO,
                     _("This grade is not shown in the grade book."))
-        if not opportunity.shown_in_student_grade_book:
+        if not opportunity.shown_in_participant_grade_book:
             messages.add_message(pctx.request, messages.INFO,
                     _("This grade is not shown in the student grade book."))
 
@@ -721,7 +721,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         if participation != pctx.participation:
             raise PermissionDenied(_("may not view other people's grades"))
         if not (opportunity.shown_in_grade_book
-                and opportunity.shown_in_student_grade_book):
+                and opportunity.shown_in_participant_grade_book):
             raise PermissionDenied(_("grade has not been released"))
     else:
         raise PermissionDenied()
