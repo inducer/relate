@@ -1146,11 +1146,14 @@ class DownloadAllSubmissionsForm(StyledForm):
                 label=_("Page ID"))
         self.fields["which_attempt"] = forms.ChoiceField(
                 choices=(
-                    ("first", _("First attempt")),
-                    ("last", _("Last attempt")),
+                    ("first", _("Least recent attempt")),
+                    ("last", _("Most recent attempt")),
                     ("all", _("All attempts")),
                     ),
-                label=_("Attempts to include"))
+                label=_("Attempts to include."),
+                help_text=_(
+                    "Every submission to the page counts as an attempt."),
+                initial="last")
         self.fields["restrict_to_rules_tag"] = forms.ChoiceField(
                 choices=session_tag_choices,
                 help_text=_("Only download sessions tagged with this rules tag."),
