@@ -119,33 +119,6 @@ def home(request):
 # }}}
 
 
-# {{{ maintenance mode
-
-class MaintenanceMiddleware(object):
-    def process_request(self, request):
-        from django.conf import settings
-        maintenance_mode = getattr(settings, "RELATE_MAINTENANCE_MODE", False)
-
-        if maintenance_mode:
-            exceptions = getattr(settings, "RELATE_MAINTENANCE_MODE_EXCEPTIONS", [])
-
-            import ipaddress
-
-            remote_address = ipaddress.ip_address(
-                    six.text_type(request.META['REMOTE_ADDR']))
-
-            for exc in exceptions:
-                print(remote_address, exc)
-                if remote_address in ipaddress.ip_network(six.text_type(exc)):
-                    maintenance_mode = False
-                    break
-
-        if maintenance_mode:
-            return render(request, "maintenance.html")
-
-# }}}
-
-
 # {{{ pages
 
 def check_course_state(course, role):

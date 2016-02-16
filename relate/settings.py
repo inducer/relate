@@ -70,7 +70,7 @@ MIDDLEWARE_CLASSES = (
     "course.utils.FacilityFindingMiddleware",
     "course.exam.ExamFacilityMiddleware",
     "course.exam.ExamLockdownMiddleware",
-    "course.views.MaintenanceMiddleware",
+    "relate.utils.MaintenanceMiddleware",
 )
 
 # }}}
