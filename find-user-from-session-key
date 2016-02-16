@@ -6,7 +6,7 @@ import django
 django.setup()
 
 from django.contrib.sessions.models import Session
-from django.contrib.auth.models import User
+from accounts.models import User
 import sys
 
 session_key = sys.argv[1]
