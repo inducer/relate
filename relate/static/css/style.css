@@ -39,11 +39,16 @@ table.past-flow-session-table {
   margin-top: 6px;
 }
 
+.relate-flow-page-past-submissions {
+  float: right;
+  margin-top: 6px;
+}
 
 .flow-session-expiration-panel {
   float:right;
   white-space: nowrap;
   margin-right: 1em;
+  margin-top: 6px;
 }
 
 .flow-session-expiration-panel .form-control {

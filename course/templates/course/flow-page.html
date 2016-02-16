@@ -68,7 +68,7 @@
       {# {{{ past submissions #}
 
       {% if prev_answer_visits %}
-      <div style="float:right; padding-right: 0.4em">
+      <div class="relate-flow-page-past-submissions" style="padding-right: 0.4em">
         <div class="dropdown">
           <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
             {% trans "Past submissions" %}
@@ -147,7 +147,7 @@
           {% endif %}
         {% endfor %}
 
-        {% if flow_session.page_count >= 5 %}
+        {% if flow_session.page_count >= 4 %}
           <span class="dropdown">
             <span class="btn btn-default btn-xs dropdown-toggle relate-flow-page-toc-item " id="toc-dropdown" data-toggle="dropdown"
               aria-haspopup="true" aria-expanded="true">
