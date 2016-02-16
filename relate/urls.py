@@ -466,12 +466,6 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
 ]
 
-if settings.RELATE_MAINTENANCE_MODE:
-    urlpatterns = [
-        # course
-        url(r'^.*$', 'course.views.maintenance'),
-    ]
-
 if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
     urlpatterns.extend([
         url(r'^saml2/', include('djangosaml2.urls')),

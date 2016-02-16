@@ -180,6 +180,9 @@ RELATE_DOCKER_TLS_CONFIG = None
 
 RELATE_MAINTENANCE_MODE = False
 
+RELATE_MAINTENANCE_MODE_EXCEPTIONS = []
+# RELATE_MAINTENANCE_MODE_EXCEPTIONS = ["192.168.1.0/24"]
+
 # May be set to a string to set a sitewide announcement visible on every page.
 RELATE_SITE_ANNOUNCEMENT = None
 

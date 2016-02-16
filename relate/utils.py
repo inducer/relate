@@ -107,7 +107,7 @@ def format_datetime_local(datetime, format='DATETIME_FORMAT'):
     Format a datetime object to a localized string via python.
 
     Note: The datetime rendered in template is itself locale aware.
-    A custom format must be defined in settings.py. 
+    A custom format must be defined in settings.py.
     When a custom format uses a same name with an existing built-in
     format, it will be overrided by built-in format if l10n
     is enabled.
