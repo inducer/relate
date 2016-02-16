@@ -61,6 +61,37 @@ class StyledModelForm(forms.ModelForm):
         super(StyledModelForm, self).__init__(*args, **kwargs)
 
 
+# {{{ maintenance mode
+
+def is_maintenance_mode(request):
+    from django.conf import settings
+    maintenance_mode = getattr(settings, "RELATE_MAINTENANCE_MODE", False)
+
+    if maintenance_mode:
+        exceptions = getattr(settings, "RELATE_MAINTENANCE_MODE_EXCEPTIONS", [])
+
+        import ipaddress
+
+        remote_address = ipaddress.ip_address(
+                six.text_type(request.META['REMOTE_ADDR']))
+
+        for exc in exceptions:
+            if remote_address in ipaddress.ip_network(six.text_type(exc)):
+                maintenance_mode = False
+                break
+
+    return maintenance_mode
+
+
+class MaintenanceMiddleware(object):
+    def process_request(self, request):
+        if is_maintenance_mode(request):
+            from django.shortcuts import render
+            return render(request, "maintenance.html")
+
+# }}}
+
+
 def settings_context_processor(request):
     from django.conf import settings
     return {
@@ -73,7 +104,7 @@ def settings_context_processor(request):
         settings.RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED,
         "relate_sign_in_by_saml2_enabled":
         settings.RELATE_SIGN_IN_BY_SAML2_ENABLED,
-        "maintenance_mode": settings.RELATE_MAINTENANCE_MODE,
+        "maintenance_mode": is_maintenance_mode(request),
         "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
         }
 
