@@ -293,7 +293,7 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
         # set to 1 to output debugging information
         'debug': 1,
 
-        # certificate
+        # certificate and key
         # see saml2-keygen.sh in this directory
         'key_file': path.join(_BASEDIR, 'saml-config', 'sp-key.pem'),  # private
         'cert_file': path.join(_BASEDIR, 'saml-config', 'sp-cert.pem'),  # public
