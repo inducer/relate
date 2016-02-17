@@ -50,6 +50,8 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
+from djangosaml2.backends import Saml2Backend as Saml2BackendBase
+
 from course.models import (
         user_status,
         Participation, participation_role, participation_status,
@@ -136,10 +138,10 @@ class ImpersonateForm(StyledForm):
                         # shown, but leave email first to retain usability
                         # of form sorted by last name.
                         u.id, "%(user_email)s - %(user_fullname)s"
-                            % {
-                                "user_email": u.email,
-                                "user_fullname": u.get_full_name(),
-                                })
+                        % {
+                            "user_email": u.email,
+                            "user_fullname": u.get_full_name(),
+                            })
                     for u in sorted(impersonees,
                         key=lambda user: user.last_name.lower())
                     ],
@@ -893,6 +895,30 @@ def get_role_and_participation(request, course):
         return participation_role.unenrolled, participation
     else:
         return participation.role, participation
+
+
+# {{{ SAML auth backend
+
+# This ticks the 'verified' boxes once we've receive attribute assertions
+# through SAML2.
+
+class Saml2Backend(Saml2BackendBase):
+    def _set_attribute(self, obj, attr, value):
+        mod = super(Saml2Backend, self)._set_attribute(obj, attr, value)
+
+        if attr == "institutional_id":
+            if not obj.institutional_id_verified:
+                obj.institutional_id_verified = True
+                mod = True
+
+        if attr in ["first_name", "last_name"]:
+            if not obj.name_verified:
+                obj.name_verified = True
+                mod = True
+
+        return mod
+
+# }}}
 
 
 # vim: foldmethod=marker

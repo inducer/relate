@@ -85,7 +85,7 @@ AUTHENTICATION_BACKENDS = (
 
 if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
     AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (
-            'relate.utils.Saml2Backend',
+            'course.auth.Saml2Backend',
             )
 
 AUTH_USER_MODEL = 'accounts.User'
