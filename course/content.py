@@ -520,8 +520,6 @@ class LinkFixerTreeprocessor(Treeprocessor):
             else:
                 new_args.append(arg)
 
-        print(frag)
-
         result = self.reverse_func(viewname, args=new_args)
 
         if frag is not None:
