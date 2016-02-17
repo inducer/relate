@@ -5310,8 +5310,6 @@ msgid "Sign out"
 msgstr "退出登录"
 
 
-#~ msgstr "'name'已经淘汰. 这部分信息现在存在数据库中."
-
 #~ msgid ""
 #~ "'number' is deprecated. This information is now kept in the database."
 #~ msgstr "'number'已经淘汰. 这部分信息现在存在数据库中."
