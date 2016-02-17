@@ -69,7 +69,7 @@ ipaddress
 
 # For interoperation with SAML2/Shibboleth
 pysaml2
-djangosaml2
+hg+https://inducer@bitbucket.org/inducer/djangosaml2
 
 # A task queue, used to execute long-running tasks
 celery

@@ -85,7 +85,7 @@ AUTHENTICATION_BACKENDS = (
 
 if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
     AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (
-            'djangosaml2.backends.Saml2Backend',
+            'relate.utils.Saml2Backend',
             )
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -267,16 +267,9 @@ LOCALE_PATHS = (
 
 # This makes SAML2 logins compatible with (and usable at the same time as)
 # email-based logins.
-SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'email'
+SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
 
 SAML_CREATE_UNKNOWN_USER = True
-
-SAML_ATTRIBUTE_MAPPING = {
-    'uid': ('username', ),
-    'mail': ('email', ),
-    'cn': ('first_name', ),
-    'sn': ('last_name', ),
-}
 
 # }}}
 

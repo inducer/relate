@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 import six
 import django.forms as forms
+from djangosaml2.backends import Saml2Backend as Saml2BackendBase
 
 
 class StyledForm(forms.Form):
@@ -271,6 +272,30 @@ def to_js_lang_name(dj_lang_name):
         return dj_lang_name[:p].lower() + '-' + dj_lang_name[p + 1:].upper()
     else:
         return dj_lang_name.lower()
+
+# }}}
+
+
+# {{{ SAML auth backend
+
+# This ticks the 'verified' boxes once we've receive attribute assertions
+# through SAML2.
+
+class Saml2Backend(Saml2BackendBase):
+    def _set_attribute(self, obj, attr, value):
+        mod = super(Saml2Backend, self)._set_attribute(obj, attr, value)
+
+        if attr == "institutional_id":
+            if not obj.institutional_id_verified:
+                obj.institutional_id_verified = True
+                mod = True
+
+        if attr in ["first_name", "last_name"]:
+            if not obj.name_verified:
+                obj.name_verified = True
+                mod = True
+
+        return mod
 
 # }}}
 
