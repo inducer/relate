@@ -847,6 +847,14 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     avg_grade_percentage, avg_grade_population = average_grade(opportunity)
 
+    show_privileged_info = pctx.role in [
+            participation_role.instructor,
+            participation_role.teaching_assistant
+            ]
+    show_page_grades = (
+            show_privileged_info
+            or opportunity.page_scores_in_participant_gradebook)
+
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
         "avg_grade_percentage": avg_grade_percentage,
@@ -857,10 +865,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         "state_machine": state_machine,
         "flow_sessions_and_session_properties": flow_sessions_and_session_properties,
         "allow_session_actions": allow_session_actions,
-        "show_privileged_info": pctx.role in [
-            participation_role.instructor,
-            participation_role.teaching_assistant
-            ],
+        "show_privileged_info": show_privileged_info,
+        "show_page_grades": show_page_grades,
         })
 
 # }}}

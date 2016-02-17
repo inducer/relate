@@ -139,7 +139,7 @@
             <th>{% trans "State" %}</th>
             <th>{% trans "Due" %}</th>
             <th>{% trans "Result" %}</th>
-            {% if show_privileged_info %}
+            {% if show_page_grades %}
               <th>{% trans "Pages" %}</th>
             {% endif %}
             {% if allow_session_actions %}
@@ -215,36 +215,52 @@
                 </span>
               </td>
 
-              {% if show_privileged_info and flow_session.answer_visits %}
+              {% if show_page_grades %}
                 <td>
-                  <table class="table table-striped table-condensed">
-                    <tr>
-                      <th></th>
-                      <th>{% trans "Page ID" %}</th>
-                      <th>{% trans "Percent" %}</th>
-                      <th>{% trans "Points" %}</th>
-                      <th>{% trans "Grader" %}</th>
-                    </tr>
-                  {% for visit in flow_session.answer_visits %}
-                    {% if visit %}
+                  {% if flow_session.answer_visits %}
+                    <table class="table table-striped table-condensed">
                       <tr>
-                        <td>{{ visit.page_data.ordinal }}</td>
-                        <td>
-                          <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
-                        </td>
-                        {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
-                          <td><span class="sensitive">{{ visit.get_most_recent_grade.percentage|floatformat:1 }}%</span></td>
-                          <td><span class="sensitive">{{ visit.get_most_recent_grade.value|floatformat:1 }}/{{ visit.get_most_recent_grade.max_points }}</span></td>
-                          <td>{{ visit.get_most_recent_grade.grader.username }} </td>
-                        {% else %}
-                          <td><span class="sensitive">{% trans "(no grade)" %}</span></td>
-                          <td></td>
-                          <td></td>
+                        <th></th>
+                        <th>{% trans "Page" %}</th>
+                        <th>{% trans "Percent" %}</th>
+                        <th>{% trans "Points" %}</th>
+                        {% if show_privileged_info %}
+                          <th>{% trans "Grader" %}</th>
                         {% endif %}
                       </tr>
-                    {% endif %}
-                  {% endfor %}
-                  </table>
+                    {% for visit in flow_session.answer_visits %}
+                      {% if visit %}
+                        <tr>
+                          <td>{{ visit.page_data.ordinal }}</td>
+                          <td>
+                            {% if show_privileged_info %}
+                              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
+                            {% else %}
+                              {% if visit.page_data.title %}
+                                {{ visit.page_data.title }}
+                              {% else %}
+                                {{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}
+                              {% endif %}
+                            {% endif %}
+                          </td>
+                          {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
+                            <td><span class="sensitive">{{ visit.get_most_recent_grade.percentage|floatformat:1 }}%</span></td>
+                            <td><span class="sensitive">{{ visit.get_most_recent_grade.value|floatformat:1 }}/{{ visit.get_most_recent_grade.max_points }}</span></td>
+                            {% if show_privileged_info %}
+                              <td>{{ visit.get_most_recent_grade.grader.username }} </td>
+                            {% endif %}
+                          {% else %}
+                            <td><span class="sensitive">{% trans "(no grade)" %}</span></td>
+                            <td></td>
+                            {% if show_privileged_info %}
+                              <td></td>
+                            {% endif %}
+                          {% endif %}
+                        </tr>
+                      {% endif %}
+                    {% endfor %}
+                    </table>
+                  {% endif %}
                 </td>
               {% endif %}
 
