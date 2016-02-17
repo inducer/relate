@@ -916,6 +916,12 @@ class Saml2Backend(Saml2BackendBase):
                 obj.name_verified = True
                 mod = True
 
+        if attr == "email":
+            from course.constants import user_status
+            if obj.status != user_status.active:
+                obj.status = user_status.active
+                mod = True
+
         return mod
 
 # }}}
