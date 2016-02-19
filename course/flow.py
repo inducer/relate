@@ -877,7 +877,8 @@ def view_start_flow(pctx, flow_id):
 
             from collections import namedtuple
             SessionProperties = namedtuple("SessionProperties",  # noqa
-                    ["may_view", "may_modify", "due", "grade_description"])
+                    ["may_view", "may_modify", "due", "grade_description",
+                        "grade_shown"])
 
             past_sessions_and_properties = []
             for session in past_sessions:
@@ -895,7 +896,10 @@ def view_start_flow(pctx, flow_id):
                             flow_permission.end_session in access_rule.permissions
                             ),
                         due=grading_rule.due,
-                        grade_description=grading_rule.description)
+                        grade_description=grading_rule.description,
+                        grade_shown=(
+                            flow_permission.cannot_see_flow_result
+                            not in access_rule.permissions))
                 past_sessions_and_properties.append((session, session_properties))
         else:
             past_sessions_and_properties = []

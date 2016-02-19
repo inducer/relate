@@ -49,16 +49,20 @@
                 {% endif %}
               </td>
               <td>
-                {% if flow_session.points_percentage != None %}
-                  {% blocktrans trimmed with points=flow_session.points|floatformat max_points=flow_session.max_points|floatformat  percentage=flow_session.points_percentage|floatformat %}
-                  <b>{{ points }}</b>
-                  out of
-                  {{ max_points }}
+                {% if session_properties.grade_shown %}
+                  {% if flow_session.points_percentage != None %}
+                    {% blocktrans trimmed with points=flow_session.points|floatformat max_points=flow_session.max_points|floatformat  percentage=flow_session.points_percentage|floatformat %}
+                    <b>{{ points }}</b>
+                    out of
+                    {{ max_points }}
 
-                  (<b>{{ percentage }}%</b>)
-                  {% endblocktrans %}
+                    (<b>{{ percentage }}%</b>)
+                    {% endblocktrans %}
+                  {% else %}
+                    {% trans "(none)" %}
+                  {% endif %}
                 {% else %}
-                  {% trans "(none)" %}
+                  {% trans "(not shown)" %}
                 {% endif %}
 
               </td>
