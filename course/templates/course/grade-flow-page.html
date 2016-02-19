@@ -168,6 +168,20 @@
       {% endif %}
 
       {# }}} #}
+
+      {# {{{ correct answer #}
+
+      {% if correct_answer  %}
+        <div class="panel panel-default">
+          <div class="panel-heading">{% trans "Correct Answer" %}</div>
+          <div class="panel-body">
+            <p>{{ correct_answer|safe }}</p>
+          </div>
+        </div>
+      {% endif %}
+
+      {# }}} #}
+
     </div>
   </div>
 
