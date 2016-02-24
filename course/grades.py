@@ -556,6 +556,8 @@ def view_grades_by_opportunity(pctx, opp_id):
         "grade_state_change_types": grade_state_change_types,
         "grade_table": grade_table,
         "batch_session_ops_form": batch_session_ops_form,
+        "page_numbers": list(range(1, 1+max(
+            fsess.page_count for fsess in flow_sessions))),
 
         "total_sessions": total_sessions,
         "finished_sessions": finished_sessions,

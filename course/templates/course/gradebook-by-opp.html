@@ -104,13 +104,16 @@
       <th class="datacol">{% trans "Overall grade" %}</th>
       <th class="datacol">{% trans "Session state" %}</th>
       <th class="datacol">{% trans "Session grade" %}</th>
+      {% for i in page_numbers %}
+        <th class="datacol">{{ i }}</th>
+      {% endfor %}
     </thead>
     <tbody>
       {% for participation, grade_info in grade_table %}
       <tr>
-        <td class="datacol">
+        <th class="headcol">
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">{{ participation.user.username }}</span></a>
-        </td>
+        </th>
         <td class="datacol">
           <span class="sensitive">
             {{ participation.user.last_name }}
@@ -153,6 +156,17 @@
               {% endif %}
           {% endif %}
         </td>
+        {% for visit in grade_info.flow_session.answer_visits %}
+            {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
+                <td><span class="sensitive">
+                    <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id visit.page_data.ordinal %}">
+                        {{ visit.get_most_recent_grade.percentage|floatformat:1 }}%
+                    </a>
+                </span></td>
+            {% else %}
+                <td>-</td>
+            {% endif %}
+        {% endfor %}
       </tr>
       {% endfor %}
     </tbody>
@@ -162,12 +176,14 @@
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-by-opportunity").dataTable({
+        "scrollX": true,
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
         "columnDefs": [{ type: 'name', targets: 1 }],
         "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
     } );
+    new $.fn.dataTable.FixedColumns(tbl);
   </script>
 
 {% endblock %}
