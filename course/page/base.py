@@ -618,7 +618,7 @@ class TextInputWithButtons(forms.TextInput):
         id = attrs["id"]
 
         make_feedback_func = lambda feedback: \
-                             "'$(\"#{ident}\").val(\"{feedback}\")'".format(
+                             "'$(\"#{id}\").val(\"{feedback}\")'".format(
                                  id=id, feedback=escapejs(feedback))
         buttons = []
         # Add buttons.
