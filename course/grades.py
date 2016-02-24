@@ -531,13 +531,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                     grade_state_machine=state_machine,
                     flow_sessions=flow_sessions))
 
-    def grade_key(entry):
-        (participation, grades) = entry
-        return (participation.user.last_name.lower(),
-                    participation.user.first_name.lower())
-
-    grade_table = sorted(zip(participations, grade_table),
-            key=grade_key)
+    # No need to sort here, datatables resorts anyhow.
 
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,
