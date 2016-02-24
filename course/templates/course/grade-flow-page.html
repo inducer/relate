@@ -307,63 +307,6 @@
 
     function add_grade_ui()
     {
-      // percentages
-
-      $(".grading-page-grade-entry #div_id_grade_percent .controls input").each(
-          function()
-          {
-            var percentages = [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100];
-            var buttons = "";
-            for (var i = 0; i < percentages.length; ++i)
-            {
-              var percentage = percentages[i];
-              buttons += ("<button class='btn btn-xs btn-default' type='button' "
-                  + "onclick='set_grade_percent(" + percentage + ")'>"
-                  + percentage + "</button>");
-            }
-            buttons += ("<button class='btn btn-xs btn-default' type='button' "
-                + "onclick='set_grade_percent(\"\")'>{% trans "Clear" %}</button>");
-            $(this).after("<p>" + buttons + "</p>");
-          });
-
-      // points
-
-      $(".grading-page-grade-entry #div_id_grade_points .controls input").each(
-          function()
-          {
-            {% if max_points != None %}
-              var max_points = {{ max_points }};
-            {% else %}
-              var max_points = null;
-            {% endif %}
-
-            if (max_points == null)
-              return;
-
-            var increment;
-            if (max_points <= 5.1)
-              increment = 0.25;
-            else if (max_points <= 10.1)
-              increment = 0.5;
-            else if (max_points <= 20.1)
-              increment = 1;
-            else
-              increment = 5;
-
-            var buttons = "";
-            for (var pts = 0; pts <= max_points + 0.01; pts += increment)
-            {
-              buttons += ("<button class='btn btn-xs btn-default' type='button' "
-                  + "onclick='set_grade_points(" + pts + ")'>"
-                  + pts + "</button>");
-            }
-            buttons += ("<button class='btn btn-xs btn-default' type='button' "
-                + "onclick='set_grade_points(\"\")'>{% trans "Clear" %}</button>");
-            $(this).after("<p>" + buttons + "</p>");
-          });
-
-      // feedback
-
       $(".grading-page-grade-entry #div_id_feedback_text .controls textarea").each(
           function()
           {
