@@ -100,7 +100,8 @@
       <th class="datacol">{% trans "First name" %}</th>
       <th class="datacol">{% trans "Role" %}</th>
       <th class="datacol">{% trans "Overall grade" %}</th>
-      <th class="datacol">{% trans "Sessions" %}</th>
+      <th class="datacol">{% trans "Session state" %}</th>
+      <th class="datacol">{% trans "Session grade" %}</th>
     </thead>
     <tbody>
       {% for participation, grade_info in grade_table %}
@@ -132,27 +133,22 @@
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
              ><span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
         </td>
-          <td class="datacol" data-order="{{ grade_info.flow_sessions|length }}">
-          {% if grade_info.flow_sessions %}
-            <ul>
-              {% for flow_session in grade_info.flow_sessions %}
-                <li>
-                  {% include "course/flow-session-state.html" %}
-                  {% if not flow_session.in_progress %}
-                    ({{ flow_session.completion_time }})
-                  {% endif %}
-                  {% if flow_session.access_rules_tag %}
-                    ({% trans "Rules tag" %}: <tt>{{ flow_session.access_rules_tag }}</tt>)
-                  {% endif %}
-                  {% if flow_session.points != None %}
-                    {% blocktrans trimmed with points=flow_session.points|floatformat:1 max_points=flow_session.max_points|floatformat:1 %}
-                    {{ points }}/{{ max_points }}
-                    points
-                    {% endblocktrans %}
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
+        <td class="datacol" data-order="{{ grade_info.flow_session.in_progress }}">
+          {% if grade_info.flow_session %}
+              {% include "course/flow-session-state.html" with flow_session=grade_info.flow_session %}
+              {% if grade_info.flow_session.access_rules_tag %}
+                ({% trans "Rules tag" %}: <tt>{{ grade_info.flow_session.access_rules_tag }}</tt>)
+              {% endif %}
+          {% endif %}
+        </td>
+        <td class="datacol" data-order="{{ grade_info.flow_session.points }}">
+          {% if grade_info.flow_session %}
+              {% if grade_info.flow_session.points != None %}
+                {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:1 max_points=grade_info.flow_session.max_points|floatformat:1 %}
+                {{ points }}/{{ max_points }}
+                points
+                {% endblocktrans %}
+              {% endif %}
           {% endif %}
         </td>
       </tr>
