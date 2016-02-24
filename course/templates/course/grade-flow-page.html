@@ -331,27 +331,27 @@
       $(".grading-page-grade-entry #div_id_grade_points .controls input").each(
           function()
           {
-            {% if max_points != None %}
-              var max_points = {{ max_points }};
+            {% if human_feedback_point_value != None %}
+              var human_feedback_point_value = {{ human_feedback_point_value }};
             {% else %}
-              var max_points = null;
+              var human_feedback_point_value = null;
             {% endif %}
 
-            if (max_points == null)
+            if (human_feedback_point_value == null)
               return;
 
             var increment;
-            if (max_points <= 5.1)
+            if (human_feedback_point_value <= 5.1)
               increment = 0.25;
-            else if (max_points <= 10.1)
+            else if (human_feedback_point_value <= 10.1)
               increment = 0.5;
-            else if (max_points <= 20.1)
+            else if (human_feedback_point_value <= 20.1)
               increment = 1;
             else
               increment = 5;
 
             var buttons = "";
-            for (var pts = 0; pts <= max_points + 0.01; pts += increment)
+            for (var pts = 0; pts <= human_feedback_point_value + 0.01; pts += increment)
             {
               buttons += ("<button class='btn btn-xs btn-default' type='button' "
                   + "onclick='set_grade_points(" + pts + ")'>"
