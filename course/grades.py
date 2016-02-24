@@ -524,13 +524,15 @@ def view_grades_by_opportunity(pctx, opp_id):
             my_flow_sessions = [None]
         else:
             while (
-                    fsess_idx < len(flow_sessions) and
-                    flow_sessions[fsess_idx].participation.id < participation.id):
+                    fsess_idx < len(flow_sessions) and (
+                    flow_sessions[fsess_idx].participation is None or
+                    flow_sessions[fsess_idx].participation.id < participation.id)):
                 fsess_idx += 1
 
             my_flow_sessions = []
             while (
                     fsess_idx < len(flow_sessions) and
+                    flow_sessions[fsess_idx].participation is not None and
                     flow_sessions[fsess_idx].participation.pk == participation.pk):
                 my_flow_sessions.append(flow_sessions[fsess_idx])
                 fsess_idx += 1
