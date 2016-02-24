@@ -225,13 +225,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     # {{{ compute points_awarded
 
     max_points = None
-    human_feedback_point_value = None
     points_awarded = None
     if (fpctx.page.expects_answer()
             and fpctx.page.is_answer_gradable()):
         max_points = fpctx.page.max_points(fpctx.page_data)
-        human_feedback_point_value = fpctx.page.human_feedback_point_value(
-                fpctx.page_context, fpctx.page_data)
         if feedback is not None and feedback.correctness is not None:
             points_awarded = max_points * feedback.correctness
 
@@ -263,7 +260,6 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "form": form,
                 "form_html": form_html,
                 "feedback": feedback,
-                "human_feedback_point_value": human_feedback_point_value,
                 "max_points": max_points,
                 "points_awarded": points_awarded,
                 "most_recent_grade": most_recent_grade,
