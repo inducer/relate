@@ -334,10 +334,10 @@ def export_gradebook_csv(pctx):
 
 # {{{ grades by grading opportunity
 
-class OpportunityGradeInfo(object):
-    def __init__(self, grade_state_machine, flow_sessions):
+class OpportunitySessionGradeInfo(object):
+    def __init__(self, grade_state_machine, flow_session):
         self.grade_state_machine = grade_state_machine
-        self.flow_sessions = flow_sessions
+        self.flow_session = flow_session
 
 
 class ModifySessionsForm(StyledForm):
@@ -488,7 +488,20 @@ def view_grades_by_opportunity(pctx, opp_id):
             .select_related("participation__user")
             .select_related("opportunity"))
 
-    idx = 0
+    if opportunity.flow_id:
+        flow_sessions = list(FlowSession.objects
+                .filter(
+                    flow_id=opportunity.flow_id,
+                    )
+                .order_by(
+                    "participation__user__id",
+                    "start_time"
+                    ))
+    else:
+        flow_sessions = None
+
+    gchng_idx = 0
+    fsess_idx = 0
 
     finished_sessions = 0
     total_sessions = 0
@@ -496,40 +509,44 @@ def view_grades_by_opportunity(pctx, opp_id):
     grade_table = []
     for participation in participations:
         while (
-                idx < len(grade_changes)
-                and grade_changes[idx].participation.id < participation.id):
-            idx += 1
+                gchng_idx < len(grade_changes)
+                and grade_changes[gchng_idx].participation.id < participation.id):
+            gchng_idx += 1
 
         my_grade_changes = []
         while (
-                idx < len(grade_changes)
-                and grade_changes[idx].participation.pk == participation.pk):
-            my_grade_changes.append(grade_changes[idx])
-            idx += 1
+                gchng_idx < len(grade_changes)
+                and grade_changes[gchng_idx].participation.pk == participation.pk):
+            my_grade_changes.append(grade_changes[gchng_idx])
+            gchng_idx += 1
+
+        if flow_sessions is None:
+            my_flow_sessions = [None]
+        else:
+            while (
+                    fsess_idx < len(flow_sessions) and
+                    flow_sessions[fsess_idx].participation.id < participation.id):
+                fsess_idx += 1
+
+            my_flow_sessions = []
+            while (
+                    fsess_idx < len(flow_sessions) and
+                    flow_sessions[fsess_idx].participation.pk == participation.pk):
+                my_flow_sessions.append(flow_sessions[fsess_idx])
+                fsess_idx += 1
 
         state_machine = GradeStateMachine()
         state_machine.consume(my_grade_changes)
 
-        if opportunity.flow_id:
-            flow_sessions = (FlowSession.objects
-                    .filter(
-                        participation=participation,
-                        flow_id=opportunity.flow_id,
-                        )
-                    .order_by("start_time"))
+        for fsession in my_flow_sessions:
+            total_sessions += 1
+            if not fsession.in_progress:
+                finished_sessions += 1
 
-            for fsession in flow_sessions:
-                total_sessions += 1
-                if not fsession.in_progress:
-                    finished_sessions += 1
-
-        else:
-            flow_sessions = None
-
-        grade_table.append(
-                OpportunityGradeInfo(
-                    grade_state_machine=state_machine,
-                    flow_sessions=flow_sessions))
+            grade_table.append(
+                    (participation, OpportunitySessionGradeInfo(
+                        grade_state_machine=state_machine,
+                        flow_session=fsession)))
 
     # No need to sort here, datatables resorts anyhow.
 
