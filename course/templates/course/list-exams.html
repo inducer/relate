@@ -17,9 +17,15 @@
             class="btn btn-primary"
             href="{% url 'course.flow.view_start_flow' exam.course.identifier exam.flow_id %}"
             role="button"
-            style="margin-left:1em">{% trans "View" %} &raquo;</a>
+            style="margin-left:1em">{% trans "Take exam" %} &raquo;</a>
         </li>
       {% endfor %}
     </ul>
+  {% else %}
+    {% if user.is_authenticated %}
+        {% trans "(No exams available.)" %}
+    {% else %}
+        {% trans "(No exams available. Please sign in to continue.)" %}
+    {% endif %}
   {% endif %}
 {% endblock %}

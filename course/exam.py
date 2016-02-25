@@ -681,10 +681,13 @@ class ExamLockdownMiddleware(object):
 def list_available_exams(request):
     now_datetime = get_now_or_fake_time(request)
 
-    participations = (
-            Participation.objects.filter(
-                user=request.user,
-                status=participation_status.active))
+    if request.user.is_authenticated():
+        participations = (
+                Participation.objects.filter(
+                    user=request.user,
+                    status=participation_status.active))
+    else:
+        participations = []
 
     from django.db.models import Q
     exams = (
