@@ -521,7 +521,7 @@ def view_grades_by_opportunity(pctx, opp_id):
             gchng_idx += 1
 
         if flow_sessions is None:
-            my_flow_sessions = [None]
+            my_flow_sessions = []
         else:
             while (
                     fsess_idx < len(flow_sessions) and (
@@ -540,9 +540,12 @@ def view_grades_by_opportunity(pctx, opp_id):
         state_machine = GradeStateMachine()
         state_machine.consume(my_grade_changes)
 
+        if not my_flow_sessions:
+            my_flow_sessions = [None]
+
         for fsession in my_flow_sessions:
             total_sessions += 1
-            if not fsession.in_progress:
+            if fsession is not None and not fsession.in_progress:
                 finished_sessions += 1
 
             grade_table.append(
