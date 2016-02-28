@@ -143,8 +143,8 @@ def view_page_sandbox(pctx):
 
     PAGE_SESSION_KEY = (  # noqa
             "cf_validated_sandbox_page:" + pctx.course.identifier)
-    ANSWER_DATA_SESSION_KEY = (  # noqa
-        "cf_page_sandbox_answer_data:" + pctx.course.identifier)
+    ANSWER_AND_PAGE_DATA_SESSION_KEY = (  # noqa
+        "cf_page_sandbox_answer_and_page_data:" + pctx.course.identifier)
 
     request = pctx.request
     page_source = pctx.request.session.get(PAGE_SESSION_KEY)
@@ -223,7 +223,31 @@ def view_page_sandbox(pctx):
             have_valid_page = False
 
     if have_valid_page:
-        page_data = page.make_page_data()
+        # {{{ try to recover page_data, answer_data
+
+        answer_data = None
+        page_data = None
+
+        stored_data_tuple = \
+                pctx.request.session.get(ANSWER_AND_PAGE_DATA_SESSION_KEY)
+
+        # Session storage uses JSON and may turn tuples into lists.
+        if (isinstance(stored_data_tuple, (list, tuple))
+                and len(stored_data_tuple) == 4):
+            stored_data_page_type, stored_data_page_id, stored_answer_data, \
+                    stored_page_data = stored_data_tuple
+
+            if (
+                    stored_data_page_type == page_desc.type
+                    and
+                    stored_data_page_id == page_desc.id):
+                answer_data = stored_answer_data
+                page_data   = stored_page_data
+
+        # }}}
+
+        if not page_data:
+            page_data = page.make_page_data()
 
         from course.models import FlowSession
         from course.page import PageContext
@@ -241,27 +265,6 @@ def view_page_sandbox(pctx):
 
         title = page.title(page_context, page_data)
         body = page.body(page_context, page_data)
-
-        # {{{ try to recover answer_data
-
-        answer_data = None
-
-        stored_answer_data_tuple = \
-                pctx.request.session.get(ANSWER_DATA_SESSION_KEY)
-
-        # Session storage uses JSON and may turn tuples into lists.
-        if (isinstance(stored_answer_data_tuple, (list, tuple))
-                and len(stored_answer_data_tuple) == 3):
-            stored_answer_data_page_type, stored_answer_data_page_id, \
-                    stored_answer_data = stored_answer_data_tuple
-
-            if (
-                    stored_answer_data_page_type == page_desc.type
-                    and
-                    stored_answer_data_page_id == page_desc.id):
-                answer_data = stored_answer_data
-
-        # }}}
 
         feedback = None
         page_form_html = None
@@ -286,8 +289,8 @@ def view_page_sandbox(pctx):
                     feedback = page.grade(page_context, page_data, answer_data,
                             grade_data=None)
 
-                    pctx.request.session[ANSWER_DATA_SESSION_KEY] = (
-                            page_desc.type, page_desc.id, answer_data)
+                    pctx.request.session[ANSWER_AND_PAGE_DATA_SESSION_KEY] = (
+                            page_desc.type, page_desc.id, answer_data, page_data)
 
             else:
                 page_form = page.make_form(page_context, page_data,
