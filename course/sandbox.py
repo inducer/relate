@@ -254,7 +254,7 @@ def view_page_sandbox(pctx):
         answer_data = get_sandbox_data_for_page(
                 pctx, page_desc, ANSWER_DATA_SESSION_KEY)
 
-        if not page_data:
+        if page_data is None:
             page_data = page.make_page_data()
             pctx.request.session[PAGE_DATA_SESSION_KEY] = (
                     page_desc.type, page_desc.id, page_data)
