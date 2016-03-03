@@ -587,7 +587,6 @@ class PageBaseWithValue(PageBase):
 
 # {{{ human text feedback page base
 
-
 def create_default_point_scale(total_points):
     """
     Return a scale that has sensible intervals for assigning points.
@@ -600,7 +599,10 @@ def create_default_point_scale(total_points):
         incr = 1
     else:
         incr = 5
-    as_int = lambda x: int(x) if int(x) == x else x
+
+    def as_int(x):
+        return int(x) if int(x) == x else x
+
     points = [as_int(idx*incr) for idx in range(int(total_points/incr))]
     points.append(as_int(total_points))
     return points
@@ -617,20 +619,23 @@ class TextInputWithButtons(forms.TextInput):
         from django.utils.html import format_html, mark_safe, escapejs
         id = attrs["id"]
 
-        make_feedback_func = lambda feedback: \
-                             "'$(\"#{id}\").val(\"{feedback}\")'".format(
+        def make_feedback_func(feedback):
+            return "'$(\"#{id}\").val(\"{feedback}\")'".format(
                                  id=id, feedback=escapejs(feedback))
+
         buttons = []
         # Add buttons.
         for button_value in self.button_values:
             buttons.append(format_html(
-                "<button class='btn btn-xs btn-default' type='button' onclick={func}>{val}</button>",
+                "<button class='btn btn-xs btn-default' "
+                "type='button' onclick={func}>{val}</button>",
                 func=mark_safe(make_feedback_func(button_value)),
                 val=button_value))
 
         # Add a clear button.
         buttons.append(format_html(
-            "<button class='btn btn-xs btn-default' type='button' onclick={func}>Clear</button>",
+            "<button class='btn btn-xs btn-default' "
+            "type='button' onclick={func}>Clear</button>",
             func=mark_safe(make_feedback_func(""))))
 
         return format_html("{html}<p>{button_row}</p>",
@@ -650,7 +655,8 @@ class HumanTextFeedbackForm(StyledForm):
                 required=False,
 
                 # avoid unfortunate scroll wheel accidents reported by graders
-                widget=TextInputWithButtons([0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100]),
+                widget=TextInputWithButtons(
+                    [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100]),
                 label=_("Grade percent"))
 
         if point_value is not None:
@@ -663,7 +669,8 @@ class HumanTextFeedbackForm(StyledForm):
                     required=False,
 
                     # avoid unfortunate scroll wheel accidents reported by graders
-                    widget=TextInputWithButtons(create_default_point_scale(point_value)),
+                    widget=TextInputWithButtons(
+                        create_default_point_scale(point_value)),
                     label=_("Grade points"))
 
         self.fields["feedback_text"] = forms.CharField(
@@ -728,8 +735,10 @@ class HumanTextFeedbackForm(StyledForm):
             return self.cleaned_data["grade_percent"]
 
         elif self.cleaned_data["grade_points"] is not None:
-            return 100*self.cleaned_data["grade_points"]/self.point_value
-
+            if self.point_value:
+                return 100*self.cleaned_data["grade_points"]/self.point_value
+            else:
+                return None
         else:
             return None
 
