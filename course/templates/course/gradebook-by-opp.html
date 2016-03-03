@@ -35,8 +35,6 @@
       <td>{% trans "Flow" %}</td>
       <td>
         <a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}"><tt>{{ opportunity.flow_id }}</tt> {% trans "(Start page)" %}</a>
-        &middot;
-        <a href="{% url "relate-show_grading_statistics" course.identifier opportunity.flow_id %}">{% trans "Grading statistics" %}</a>
       </td>
     </tr>
     <tr>
@@ -52,6 +50,10 @@
     <tr>
       <td>{% trans "Operations" %}</td>
       <td>
+        <a class="btn btn-default" role="button"
+          href="{% url "relate-flow_analytics" course.identifier opportunity.flow_id %}">{% trans "View analytics" %}</a>
+        <a class="btn btn-default" role="button"
+          href="{% url "relate-show_grader_statistics" course.identifier opportunity.flow_id %}">{% trans "View grader statistics" %}</a>
         <a class="btn btn-default" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
             role="button">{% trans "Download submissions" %}</a>
       </td>

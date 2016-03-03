@@ -279,10 +279,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 # }}}
 
 
-# {{{ grading statistics
+# {{{ grader statistics
 
 @course_view
-def show_grading_statistics(pctx, flow_id):
+def show_grader_statistics(pctx, flow_id):
     if pctx.role not in [
             participation_role.instructor,
             participation_role.teaching_assistant]:
@@ -365,7 +365,7 @@ def show_grading_statistics(pctx, flow_id):
                 "flow_id": flow_id,
                 "pages": pages,
                 "graders": graders,
-                "pages_stats_counts": zip(pages, stats_table, page_counts),
+                "pages_stats_counts": list(zip(pages, stats_table, page_counts)),
                 "grader_counts": grader_counts,
             })
 

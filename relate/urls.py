@@ -226,8 +226,8 @@ urlpatterns = [
         "/grading/statistics"
         "/" + FLOW_ID_REGEX +
         "/$",
-        course.grading.show_grading_statistics,
-        name="relate-show_grading_statistics"),
+        course.grading.show_grader_statistics,
+        name="relate-show_grader_statistics"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +

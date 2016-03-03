@@ -2,46 +2,46 @@
 {% load i18n %}
 
 {% block title %}
-  {% trans "Grading Statistics" %}: {{ flow_id }} - {% trans "RELATE" %}
+  {% trans "Grader Statistics" %}: {{ flow_id }} - {% trans "RELATE" %}
 {% endblock %}
 
 {% block content %}
-  <h1>{% trans "Grading Statistics: " %}<tt>{{flow_id}}</tt></h1>
+  <h1>{% trans "Grader Statistics: " %}<tt>{{flow_id}}</tt></h1>
 
-  <table class="table table-striped">
-    <tr>
-      <th></th>
-      {% for grader in graders %}
-      <th>
-        {% if grader != None %}
-          {{ grader.get_full_name }}
-        {% else %}
-          {% trans "(autograded)" %}
-        {% endif %}
-      </th>
-      {% endfor %}
-      <th>{% trans "Total" %}</th>
-    </tr>
-    {% for page, row, page_count in pages_stats_counts %}
+  {% if not pages_stats_counts %}
+    {% trans "(No information about grading work distribution for human-graded problems available.)" %}
+  {% else %}
+    <table class="table table-striped">
       <tr>
-        <th><tt>{{ page.0 }}: {{ page.1 }}</tt></th>
-        {% for count in row %}
-          <td>{{ count }}</td>
+        <th></th>
+        {% for grader in graders %}
+        <th>
+          {% if grader != None %}
+            {{ grader.get_full_name }}
+          {% else %}
+            {% trans "(autograded)" %}
+          {% endif %}
+        </th>
         {% endfor %}
-        <td><b>{{ page_count }}</b></td>
+        <th>{% trans "Total" %}</th>
       </tr>
-    {% endfor %}
-    <tr>
-      <th>{% trans "Total" %}</th>
-      {% for count in grader_counts %}
-        <td><b>{{ count }}</b></td>
+      {% for page, row, page_count in pages_stats_counts %}
+        <tr>
+          <th><tt>{{ page.0 }}: {{ page.1 }}</tt></th>
+          {% for count in row %}
+            <td>{{ count }}</td>
+          {% endfor %}
+          <td><b>{{ page_count }}</b></td>
+        </tr>
       {% endfor %}
-      <td></td>
-    </tr>
-  </table>
-
-
-
-
+      <tr>
+        <th>{% trans "Total" %}</th>
+        {% for count in grader_counts %}
+          <td><b>{{ count }}</b></td>
+        {% endfor %}
+        <td></td>
+      </tr>
+    </table>
+  {% endif %}
 
 {% endblock %}
