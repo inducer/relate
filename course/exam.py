@@ -594,7 +594,7 @@ class ExamFacilityMiddleware(object):
             if request.user.is_authenticated():
                 return redirect("relate-list_available_exams")
             else:
-                return redirect("relate-check_in_for_exam")
+                return redirect("relate-sign_in_choice")
 
 
 class ExamLockdownMiddleware(object):
