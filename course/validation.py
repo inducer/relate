@@ -1302,6 +1302,9 @@ class FileSystemFakeRepoTree(object):
         assert isinstance(self.root, six.binary_type)
 
     def __getitem__(self, name):
+        if not name:
+            raise KeyError("<empty filename>")
+
         from os.path import join, isdir, exists
         name = join(self.root, name)
 

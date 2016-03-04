@@ -80,10 +80,11 @@ def get_course_repo(course):
         return repo
 
 
-def get_repo_blob(repo, full_name, commit_sha):
+def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
+    :arg allow_tree: Allow the resulting object to be a directory
     """
 
     if isinstance(repo, SubdirRepoWrapper):
@@ -100,7 +101,11 @@ def get_repo_blob(repo, full_name, commit_sha):
     tree = repo[tree_sha]
 
     if not full_name:
-        return tree
+        if allow_tree:
+            return tree
+        else:
+            raise ObjectDoesNotExist(
+                    _("repo root is a directory, not a file"))
 
     try:
         for name in names[:-1]:
@@ -112,9 +117,17 @@ def get_repo_blob(repo, full_name, commit_sha):
             tree = repo[blob_sha]
 
         mode, blob_sha = tree[names[-1].encode()]
-        return repo[blob_sha]
+        result = repo[blob_sha]
+        if not allow_tree and not hasattr(result, "data"):
+            raise ObjectDoesNotExist(
+                    _("resource '%s' is a directory, not a file")
+                    % full_name)
+
+        return result
+
     except KeyError:
-        raise ObjectDoesNotExist(_("resource '%s' not found") % full_name)
+        raise ObjectDoesNotExist(_("resource '%s' not found")
+                % full_name.decode("utf-8"))
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
@@ -139,7 +152,8 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
         cache_key = None
 
     if cache_key is None:
-        result = get_repo_blob(repo, full_name, commit_sha).data
+        result = get_repo_blob(repo, full_name, commit_sha,
+                allow_tree=False).data
         assert isinstance(result, six.binary_type)
         return result
 
@@ -158,7 +172,8 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
         assert isinstance(result, six.binary_type), cache_key
         return result
 
-    result = get_repo_blob(repo, full_name, commit_sha).data
+    result = get_repo_blob(repo, full_name, commit_sha,
+            allow_tree=False).data
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, (result,), None)
@@ -388,7 +403,8 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     result = load_yaml(
             expand_yaml_macros(
                 repo, commit_sha,
-                get_repo_blob(repo, full_name, commit_sha).data))
+                get_repo_blob(repo, full_name, commit_sha,
+                    allow_tree=False).data))
 
     def_cache.add(cache_key, result, None)
 
@@ -420,7 +436,8 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
 
     expanded = expand_yaml_macros(
             repo, commit_sha,
-            get_repo_blob(repo, full_name, commit_sha).data)
+            get_repo_blob(repo, full_name, commit_sha,
+                allow_tree=False).data)
 
     result = dict_to_struct(load_yaml(expanded))
 
@@ -1148,7 +1165,8 @@ def get_flow_page_class(repo, typename, commit_sha):
 
         module, classname = components
         module_name = "code/"+module+".py"
-        module_code = get_repo_blob(repo, module_name, commit_sha).data
+        module_code = get_repo_blob(repo, module_name, commit_sha,
+                allow_tree=False).data
 
         module_dict = {}
 
