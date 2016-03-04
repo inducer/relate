@@ -947,6 +947,7 @@ class ImportGradesForm(StyledForm):
             if not importable:
                 self.add_error('file', err_msg)
 
+
 class ParticipantNotFound(ValueError):
     pass
 
