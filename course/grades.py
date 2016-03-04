@@ -925,6 +925,28 @@ class ImportGradesForm(StyledForm):
         self.helper.add_input(Submit("preview", _("Preview")))
         self.helper.add_input(Submit("import", _("Import")))
 
+    def clean(self):
+        data = super(ImportGradesForm, self).clean()
+        file_contents=data.get("file")
+        if file_contents:
+            column_idx_list = [
+                data["id_column"],
+                data["points_column"],
+                data["feedback_column"]
+            ]
+            has_header=data["format"] == "csvhead"
+            header_count = 1 if has_header else 0
+
+            from course.utils import csv_data_importable
+
+            importable, err_msg = csv_data_importable(
+                    file_contents,
+                    column_idx_list,
+                    header_count)
+
+            if not importable:
+                self.add_error('file', err_msg)
+
 
 class ParticipantNotFound(ValueError):
     pass

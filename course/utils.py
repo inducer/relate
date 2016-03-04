@@ -678,4 +678,27 @@ class FacilityFindingMiddleware(object):
 
 # }}}
 
+
+def csv_data_importable(file_contents, column_idx_list, header_count):
+    import csv
+    spamreader = csv.reader(file_contents)
+    n_header_row = 0
+    for row in spamreader:
+        n_header_row += 1
+        if n_header_row <= header_count:
+            continue
+        try:
+            for column_idx in column_idx_list:
+                if column_idx is not None:
+                    six.text_type(row[column_idx-1])
+        except UnicodeDecodeError:
+            return False, (
+                    _("Error: Columns to be imported contain "
+                        "non-ASCII characters. "
+                        "Please save your CSV file as utf-8 encoded "
+                        "and import again.")
+            )
+
+    return True, ""
+
 # vim: foldmethod=marker
