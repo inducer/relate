@@ -137,10 +137,11 @@ class ImpersonateForm(StyledForm):
                         # userfor impersonating. Customize how the name is
                         # shown, but leave email first to retain usability
                         # of form sorted by last name.
-                        u.id, "%(user_email)s - %(user_fullname)s"
+                        u.id, "%(full_name)s (%(username)s - %(email)s)"
                         % {
-                            "user_email": u.email,
-                            "user_fullname": u.get_full_name(),
+                            "full_name": u.get_full_name(),
+                            "email": u.email,
+                            "username": u.username
                             })
                     for u in sorted(impersonees,
                         key=lambda user: user.last_name.lower())
