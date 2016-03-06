@@ -572,6 +572,7 @@ e.g. in :attr:`course.page.ChoiceQuestion.access_rules`:
         the globally granted ones.
 
     .. attribute:: remove_permissions
+
         A list of :class:`flow_permission` values that are not granted for this page
         even if they are granted by the global flow permissions.
 
