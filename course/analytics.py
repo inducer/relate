@@ -227,6 +227,29 @@ def is_flow_multiple_submit(flow_desc):
     return False
 
 
+def is_page_multiple_submit(flow_desc, page_desc):
+    result = is_flow_multiple_submit(flow_desc)
+
+    page_rules = getattr(page_desc, "access_rules", None)
+    if page_rules is None:
+        return result
+
+    add_permissions = getattr(page_rules, "add_permissions", None)
+    remove_permissions = getattr(page_rules, "remove_permissions", None)
+
+    if result:
+        if remove_permissions is not None:
+            if flow_permission.change_answer in remove_permissions:
+                result = False
+
+    else:
+        if add_permissions is not None:
+            if flow_permission.change_answer in add_permissions:
+                result = True
+
+    return result
+
+
 # {{{ flow analytics
 
 def make_grade_histogram(pctx, flow_id):
@@ -274,8 +297,6 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
 
-    is_multiple_submit = is_flow_multiple_submit(flow_desc)
-
     page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
     page_info_list = []
@@ -303,7 +324,7 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
                             .distinct("flow_session__participation__id")
                             .order_by("flow_session__participation__id",
                                 "visit_time"))
-                elif is_multiple_submit:
+                elif is_page_multiple_submit(flow_desc, page_desc):
                     visits = (visits
                             .distinct("page_data__id")
                             .order_by("page_data__id", "-visit_time"))
