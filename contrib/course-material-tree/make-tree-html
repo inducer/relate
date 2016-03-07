@@ -130,7 +130,7 @@ def main():
 
             if args.ipynb_as_ipynb:
                 sub_nodes.append({
-                    "text": "Download IPython notebook",
+                    "text": "Download Jupyter notebook",
                     "link": link_ipynb,
                     "icon": "fa fa-download",
                     })
