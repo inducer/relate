@@ -1317,7 +1317,7 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
                 if new_page_fpds.count():
                     # We already have FlowPageData for this page, revive it
                     new_page_fpd, = new_page_fpds
-                    assert new_page_fpd.id == new_page_id
+                    assert new_page_fpd.page_id == new_page_id
                 else:
                     # Make a new FlowPageData instance
                     page_desc = find_page_desc(new_page_id)
