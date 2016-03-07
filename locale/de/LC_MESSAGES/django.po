@@ -4768,7 +4768,7 @@ msgstr "Vorschau beendet."
 msgid "Course content did not validate successfully. (%s) Update not applied."
 msgstr ""
 "Kurs-Inhalt nicht erfolgreich validiert. (%s) Aktualisierung nicht "
-"angewended."
+"angewendet."
 
 #: course/versioning.py:396
 msgid "Course content validated successfully."
