@@ -629,7 +629,7 @@ class SignInByEmailForm(StyledForm):
 def sign_in_by_email(request):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
-                _("email-based sign-in is not being used"))
+                _("Email-based sign-in is not being used"))
         return redirect("relate-sign_in_choice")
 
     if request.method == 'POST':
@@ -678,7 +678,7 @@ def sign_in_by_email(request):
 
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
-        raise SuspiciousOperation(_("email-based sign-in is not being used"))
+        raise SuspiciousOperation(_("Email-based sign-in is not being used"))
 
     from django.contrib.auth import authenticate, login
     user = authenticate(user_id=int(user_id), token=sign_in_key)
