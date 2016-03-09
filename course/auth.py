@@ -628,7 +628,9 @@ class SignInByEmailForm(StyledForm):
 
 def sign_in_by_email(request):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
-        raise SuspiciousOperation(_("email-based sign-in is not being used"))
+        messages.add_message(request, messages.ERROR,
+                _("email-based sign-in is not being used"))
+        return redirect("relate-sign_in_choice")
 
     if request.method == 'POST':
         form = SignInByEmailForm(request.POST)
