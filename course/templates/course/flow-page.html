@@ -375,7 +375,7 @@
         })
         .fail(function() {
           $("#expiration_mode_change_progress")
-            .html('Error--not saved.');
+            .html('{% trans "Error--not saved." %}');
           window.setTimeout(
               function() { $("#expiration_mode_change_progress").fadeOut() },
               3000);

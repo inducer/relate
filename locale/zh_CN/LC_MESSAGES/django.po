@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-09 18:33+0800\n"
+"POT-Creation-Date: 2016-03-09 18:44+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -3108,7 +3108,7 @@ msgstr "无法识别的文件类型(mime type)"
 
 #: .\course\page\upload.py:161
 msgid "upload question does not have assigned point value"
-msgstr "上传的问题未设定分值"
+msgstr "上传问题未设定分值"
 
 #: .\course\sandbox.py:63
 msgid "Press Alt/Cmd+(Shift+)P to preview."
@@ -3762,6 +3762,10 @@ msgstr "您在本页还有未保存的修订. "
 #: .\course\templates\course\flow-page.html:371
 msgid "Saved."
 msgstr "已保存"
+
+#: .\course\templates\course\flow-page.html:378
+msgid "Error--not saved."
+msgstr "错误--未保存."
 
 #: .\course\templates\course\flow-session-state.html:3
 msgid "in progress"
