@@ -3,8 +3,9 @@
 import sys
 import pypandoc
 import re
-from jinja2 import Template, Environment, StrictUndefined, FileSystemLoader
-from course.content import process_yaml_for_expansion
+from jinja2 import Template, Environment, StrictUndefined
+from course.content import (
+        process_yaml_for_expansion, YamlBlockEscapingFileSystemLoader)
 
 
 QUESTIONS_ONLY_TEMPLATE = Template(r"""
@@ -70,7 +71,9 @@ def convert_page_inner(page):
                 + question
                 + "\n\\vspace*{1cm}")
         return (prompt)
-    elif page.type == "PythonCodeQuestion":
+    elif page.type in [
+            "PythonCodeQuestion",
+            "PythonCodeQuestionWithHumanTextFeedback"]:
         prompt = convert_markup(page.prompt)
 
         if hasattr(page, "initial_code"):
@@ -128,24 +131,6 @@ def convert_page(page, wrap_in_problem_env):
                 body=result))
     else:
         return result
-
-
-class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
-    # https://github.com/inducer/relate/issues/130
-
-    def get_source(self, environment, template):
-        source, path, is_up_to_date = \
-                super(YamlBlockEscapingFileSystemLoader, self).get_source(
-                        environment, template)
-
-        from os.path import splitext
-        _, ext = splitext(template)
-        ext = ext.lower()
-
-        if ext in [".yml", ".yaml"]:
-            source = process_yaml_for_expansion(source)
-
-        return source, path, is_up_to_date
 
 
 def main():

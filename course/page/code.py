@@ -535,23 +535,10 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if correct_code is None:
             correct_code = ""
 
-        import re
-        CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
-
-        new_test_code_lines = []
-        for l in test_code.split("\n"):
-            match = CORRECT_CODE_TAG.match(l)
-            if match is not None:
-                prefix = match.group(1)
-                for cc_l in correct_code.split("\n"):
-                    new_test_code_lines.append(prefix+cc_l)
-            else:
-                new_test_code_lines.append(l)
-
-        return "\n".join(new_test_code_lines)
+        from .code_runpy_backend import substitute_correct_code_into_test_code
+        return substitute_correct_code_into_test_code(test_code, correct_code)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
-
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=_("No answer provided."))

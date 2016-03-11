@@ -13,7 +13,8 @@ RUN fc-cache
 
 RUN mkdir -p /opt/runpy
 ADD runpy /opt/runpy/
-ADD runpy_backend.py /opt/runpy/
+COPY code_feedback.py /opt/runpy/
+COPY code_runpy_backend.py /opt/runpy/
 
 RUN sed -i s/TkAgg/Agg/ /etc/matplotlibrc
 RUN echo "savefig.dpi : 80" >> /etc/matplotlibrc

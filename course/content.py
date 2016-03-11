@@ -41,7 +41,8 @@ from markdown.treeprocessors import Treeprocessor
 
 from six.moves import html_parser
 
-from jinja2 import BaseLoader as BaseTemplateLoader, TemplateNotFound
+from jinja2 import (
+        BaseLoader as BaseTemplateLoader, TemplateNotFound, FileSystemLoader)
 
 from relate.utils import dict_to_struct
 
@@ -332,6 +333,24 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
     def get_source(self, environment, template):
         source, path, is_up_to_date = \
                 super(YamlBlockEscapingGitTemplateLoader, self).get_source(
+                        environment, template)
+
+        from os.path import splitext
+        _, ext = splitext(template)
+        ext = ext.lower()
+
+        if ext in [".yml", ".yaml"]:
+            source = process_yaml_for_expansion(source)
+
+        return source, path, is_up_to_date
+
+
+class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
+    # https://github.com/inducer/relate/issues/130
+
+    def get_source(self, environment, template):
+        source, path, is_up_to_date = \
+                super(YamlBlockEscapingFileSystemLoader, self).get_source(
                         environment, template)
 
         from os.path import splitext

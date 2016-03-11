@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -24,6 +26,11 @@ THE SOFTWARE.
 
 import sys
 import traceback
+
+try:
+    from .code_feedback import Feedback, GradingComplete
+except SystemError:
+    from code_feedback import Feedback, GradingComplete
 
 
 __doc__ = """
@@ -124,132 +131,29 @@ class Struct(object):
 # }}}
 
 
+def substitute_correct_code_into_test_code(test_code, correct_code):
+    import re
+    CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
+
+    new_test_code_lines = []
+    for l in test_code.split("\n"):
+        match = CORRECT_CODE_TAG.match(l)
+        if match is not None:
+            prefix = match.group(1)
+            for cc_l in correct_code.split("\n"):
+                new_test_code_lines.append(prefix+cc_l)
+        else:
+            new_test_code_lines.append(l)
+
+    return "\n".join(new_test_code_lines)
+
+
 def package_exception(result, what):
     tp, val, tb = sys.exc_info()
     result["result"] = what
     result["message"] = "%s: %s" % (tp.__name__, str(val))
     result["traceback"] = "".join(
             traceback.format_exception(tp, val, tb))
-
-
-class GradingComplete(Exception):
-    pass
-
-
-class Feedback:
-    def __init__(self):
-        self.points = None
-        self.feedback_items = []
-
-    def set_points(self, points):
-        self.points = points
-
-    def add_feedback(self, text):
-        self.feedback_items.append(text)
-
-    def finish(self, points, fb_text):
-        self.add_feedback(fb_text)
-        self.set_points(points)
-        raise GradingComplete()
-
-    def check_numpy_array_sanity(self, name, num_axes, data):
-        import numpy as np
-        if not isinstance(data, np.ndarray):
-            self.finish(0, "'%s' is not a numpy array" % name)
-
-        if isinstance(data, np.matrix):
-            self.finish(0, "'%s' is a numpy matrix. Do not use those. "
-                    "bit.ly/array-vs-matrix" % name)
-
-        if len(data.shape) != num_axes:
-            self.finish(
-                    0, "'%s' does not have the correct number of axes--"
-                    "got: %d, expected: %d" % (
-                        name, len(data.shape), num_axes))
-
-        if data.dtype.kind not in "fc":
-            self.finish(
-                    0, "'%s' does not consist of floating point numbers--"
-                    "got: '%s'" % (name, data.dtype))
-
-    def check_numpy_array_features(self, name, ref, data):
-        import numpy as np
-        assert isinstance(ref, np.ndarray)
-
-        if not isinstance(data, np.ndarray):
-            self.finish(0, "'%s' is not a numpy array" % name)
-        if isinstance(data, np.matrix):
-            self.finish(0, "'%s' is a numpy matrix. Do not use those. "
-                    "bit.ly/array-vs-matrix" % name)
-
-        if ref.shape != data.shape:
-            self.finish(
-                    0, "'%s' does not have correct shape--"
-                    "got: '%s', expected: '%s'" % (
-                        name, data.shape, ref.shape))
-
-        if ref.dtype.kind != data.dtype.kind:
-            self.finish(
-                    0, "'%s' does not have correct data type--"
-                    "got: '%s', expected: '%s'" % (
-                        name, data.dtype.kind, ref.dtype.kind))
-
-    def check_numpy_array_allclose(self, name, ref, data, accuracy_critical=True,
-            rtol=1e-05, atol=1e-08, report_success=True):
-        import numpy as np
-
-        self.check_numpy_array_features(name, ref, data)
-        good = np.allclose(ref, data, rtol=rtol, atol=atol)
-
-        if not good:
-            self.add_feedback("'%s' is inaccurate" % name)
-        elif report_success:
-            self.add_feedback("'%s' looks good" % name)
-
-        if accuracy_critical and not good:
-            self.set_points(0)
-            raise GradingComplete()
-
-        return good
-
-    def check_list(self, name, ref, data, entry_type=None):
-        assert isinstance(ref, list)
-        if not isinstance(data, list):
-            self.finish(0, "'%s' is not a list" % name)
-
-        if len(ref) != len(data):
-            self.finish(0, "'%s' has the wrong length--expected %d, got %d"
-              % (name, len(ref), len(data)))
-
-        if entry_type is not None:
-            for i, entry in enumerate(data):
-                if not isinstance(entry, entry_type):
-                    self.finish(0, "'%s[%d]' has the wrong type" % (name, i))
-
-    def check_scalar(self, name, ref, data, accuracy_critical=True,
-            rtol=1e-5, atol=1e-8, report_success=True):
-        import numpy as np
-
-        if not isinstance(data, (float, int, np.number)):
-            self.finish(0, "'%s' is not a number" % name)
-
-        good = False
-
-        if rtol is not None and abs(ref-data) < abs(data)*rtol:
-            good = True
-        if atol is not None and abs(ref-data) < atol:
-            good = True
-
-        if not good:
-            self.add_feedback("'%s' is inaccurate" % name)
-        elif report_success:
-            self.add_feedback("'%s' looks good" % name)
-
-        if accuracy_critical and not good:
-            self.set_points(0)
-            raise GradingComplete()
-
-        return good
 
 
 def run_code(result, run_req):
