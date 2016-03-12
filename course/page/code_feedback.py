@@ -88,16 +88,18 @@ class Feedback:
                         name, data.dtype.kind, ref.dtype.kind))
 
     def check_numpy_array_allclose(self, name, ref, data, accuracy_critical=True,
-            rtol=1e-05, atol=1e-08, report_success=True):
+            rtol=1e-05, atol=1e-08, report_success=True, report_failure=True):
         import numpy as np
 
         self.check_numpy_array_features(name, ref, data)
         good = np.allclose(ref, data, rtol=rtol, atol=atol)
 
         if not good:
-            self.add_feedback("'%s' is inaccurate" % name)
-        elif report_success:
-            self.add_feedback("'%s' looks good" % name)
+            if report_failure:
+                self.add_feedback("'%s' is inaccurate" % name)
+        else:
+            if report_success:
+                self.add_feedback("'%s' looks good" % name)
 
         if accuracy_critical and not good:
             self.set_points(0)
@@ -120,7 +122,7 @@ class Feedback:
                     self.finish(0, "'%s[%d]' has the wrong type" % (name, i))
 
     def check_scalar(self, name, ref, data, accuracy_critical=True,
-            rtol=1e-5, atol=1e-8, report_success=True):
+            rtol=1e-5, atol=1e-8, report_success=True, report_failure=True):
         import numpy as np
 
         if not isinstance(data, (float, int, np.number)):
@@ -134,9 +136,11 @@ class Feedback:
             good = True
 
         if not good:
-            self.add_feedback("'%s' is inaccurate" % name)
-        elif report_success:
-            self.add_feedback("'%s' looks good" % name)
+            if report_failure:
+                self.add_feedback("'%s' is inaccurate" % name)
+        else:
+            if report_success:
+                self.add_feedback("'%s' looks good" % name)
 
         if accuracy_critical and not good:
             self.set_points(0)
