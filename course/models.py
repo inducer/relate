@@ -1063,6 +1063,17 @@ class GradingOpportunity(models.Model):
     page_scores_in_participant_gradebook = models.BooleanField(default=False,
             verbose_name=_("Scores for individual pages are shown "
                 "in the participants' grade book"))
+    hide_superseded_grade_history_before = models.DateTimeField(
+            verbose_name=_('Hide superseded grade history before'),
+            blank=True, null=True,
+            help_text=_(
+                'Grade changes dated before this date that are '
+                'superseded by later grade changes will not be shown to '
+                'participants. '
+                'This can help avoid discussions about pre-release grading '
+                'adjustments.'
+                'May be blank. In that case, the entire grade history is '
+                'shown.'))
 
     class Meta:
         verbose_name = _("Grading opportunity")
