@@ -86,7 +86,37 @@ Here's an example:
             credit_percent: 0
      ...
 
-TODO: Macro expansion in YAML
+Macros in YAML
+^^^^^^^^^^^^^^
+
+Repetitive text in YAML (such as for example :ref:`flow-rules` that are
+repeated for each instance of a given type of assignment, with very minor
+modifications) can be abbreviated through the use of the
+`Jinja <http://jinja.pocoo.org/docs/dev/templates/>`_ templating language.
+Jinja expansion takes place everywhere in YAML code except for block
+literals::
+
+    # Jinja usable here
+
+    correct_code: |
+
+        # No Jinja here
+
+:ref:`markup` does its own Jinja expansion though, so such block literals
+*can* use Jinja.
+
+.. comment::
+
+    (Let's keep this undocumented for now.)
+
+    Jinja expansion *can* be enabled for a block literal by mentioning a
+    letter "J" immediately after the character introducing the block scalar::
+
+        # Jinja usable here
+
+        correct_code: |J
+
+            # Jinja also usable here
 
 On system lock-in
 -----------------
@@ -294,12 +324,7 @@ Macros
 
 Repetitive text (such as the fairly long video inclusion snippet above)
 can be abbreviated through the use of the `Jinja <http://jinja.pocoo.org/docs/dev/templates/>`_
-templating language. To enable this support, make sure to use the line::
-
-    [JINJA]
-
-as the first line of your bulk text. From that point, you may use all features
-of Jinja. For example, you could have a file :file:`macros.jinja` in the root
+templating language. For example, you could have a file :file:`macros.jinja` in the root
 of your :ref:`git-repo` containing the following text::
 
     {% macro youtube(id) -%}
@@ -309,18 +334,14 @@ of your :ref:`git-repo` containing the following text::
 
 This could then be used from wherever RELATE markup is allowed::
 
-          [JINJA]
-
           Some text... More text...
 
           {% from "macros.jinja" import youtube %}
-
           {{ youtube("QH2-TGUlwu4") }}
 
           Some text... More text...
 
 to embed a YouTube player. (YouTube is a registered trademark.)
-
 
 .. _course_yml:
 
