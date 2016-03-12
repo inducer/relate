@@ -155,6 +155,11 @@ When described in YAML, a flow has the following components:
         This may be used to limit the amount of 'extra credit' achieved beyond
         :attr:`max_points`.
 
+    .. attribute:: bonus_points
+
+        (Optional, an integer or floating point number if given)
+        This number of points will be added to every participant's score.
+
     .. attribute:: rules
 
         (Optional) Some rules governing students' use and grading of the flow.

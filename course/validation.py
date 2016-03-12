@@ -846,6 +846,7 @@ def validate_flow_desc(ctx, location, flow_desc):
                 ("notify_on_submit", list),
                 ("max_points", (int, float)),
                 ("max_points_enforced_cap", (int, float)),
+                ("bonus_points", (int, float)),
                 ]
             )
 

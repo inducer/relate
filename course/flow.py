@@ -404,10 +404,12 @@ def gather_grade_info(fctx, flow_session, answer_visits):
 
     all_page_data = get_all_page_data(flow_session)
 
-    points = 0
-    provisional_points = 0
-    max_points = 0
-    max_reachable_points = 0
+    bonus_points = getattr(fctx.flow_desc, "bonus_points", 0)
+    points = bonus_points
+    provisional_points = bonus_points
+    max_points = bonus_points
+    max_reachable_points = bonus_points
+
     fully_correct_count = 0
     partially_correct_count = 0
     incorrect_count = 0
