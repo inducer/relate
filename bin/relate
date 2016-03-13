@@ -80,7 +80,17 @@ def test_code_question(page_desc, repo_root):
 
     from colorama import Fore, Style
     if response["result"] == "success":
-        print(Fore.GREEN+response["result"].upper()+Style.RESET_ALL)
+        points = response.get("points", 0)
+        if points is None:
+            print(Fore.RED
+                    + "FAIL: no points value recorded"
+                    + Style.RESET_ALL)
+        elif points < 1:
+            print(Fore.RED
+                    + "FAIL: correct_code did not pass test"
+                    + Style.RESET_ALL)
+        else:
+            print(Fore.GREEN+response["result"].upper()+Style.RESET_ALL)
     else:
         print(Style.BRIGHT+Fore.RED
                 + response["result"].upper()+Style.RESET_ALL)
@@ -101,11 +111,11 @@ def test_code_question(page_desc, repo_root):
         indentation = 4*" "
         print(indentation + response_s.replace("\n", "\n"+indentation))
 
+    print_response_aspect("points")
+    print_response_aspect("feedback")
     print_response_aspect("traceback")
     print_response_aspect("stdout")
     print_response_aspect("stderr")
-    print_response_aspect("points")
-    print_response_aspect("feedback")
 
 
 def test_code_yml(yml_file, repo_root):
