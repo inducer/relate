@@ -1110,11 +1110,11 @@ def csv_to_grade_changes(
 
                 updated = []
                 if last_grade.points != gchange.points:
-                    updated.append(_("points"))
+                    updated.append(ugettext("points"))
                 if last_grade.max_points != gchange.max_points:
-                    updated.append(_("max_points"))
+                    updated.append(ugettext("max_points"))
                 if last_grade.comment != gchange.comment:
-                    updated.append(_("comment"))
+                    updated.append(ugettext("comment"))
 
                 if updated:
                     log_lines.append(
