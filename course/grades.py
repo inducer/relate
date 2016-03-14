@@ -1106,18 +1106,20 @@ def csv_to_grade_changes(
 
                 updated = []
                 if last_grade.points != gchange.points:
-                    updated.append("points")
+                    updated.append(_("points"))
                 if last_grade.max_points != gchange.max_points:
-                    updated.append("max_points")
+                    updated.append(_("max_points"))
                 if last_grade.comment != gchange.comment:
-                    updated.append("comment")
+                    updated.append(_("comment"))
 
                 if updated:
                     log_lines.append(
-                            "%(participation)s: %(updated)s "
-                            "updated" % {
-                                'participation': gchange.participation,
-                                'updated': ", ".join(updated)})
+                            string_concat(
+                                "%(participation)s: %(updated)s ",
+                                _("updated")
+                                ) % {
+                                    'participation': gchange.participation,
+                                    'updated': ", ".join(updated)})
 
                     result.append(gchange)
             else:
