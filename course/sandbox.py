@@ -191,6 +191,7 @@ def view_page_sandbox(pctx):
 
     if is_preview_post:
         edit_form = make_form(pctx.request.POST)
+        new_page_source = None
 
         if edit_form.is_valid():
             try:
