@@ -30,7 +30,8 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext as _
+from django.utils.translation import (
+        ugettext as _, string_concat, pgettext_lazy)
 
 from course.views import (
         get_role_and_participation
@@ -698,6 +699,16 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
                         "Please save your CSV file as utf-8 encoded "
                         "and import again.")
             )
+        except Exception as e:
+            return False, (
+                    string_concat(
+                        pgettext_lazy("Starting of Error message",
+                            "Error"),
+                        ": %(err_type)s: %(err_str)s")
+                    % {
+                        "err_type": type(e).__name__,
+                        "err_str": str(e)}
+                    )
 
     return True, ""
 

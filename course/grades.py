@@ -914,13 +914,20 @@ class ImportGradesForm(StyledForm):
                     ),
                 label=_("Format"))
 
-        self.fields["id_column"] = forms.IntegerField(
+        self.fields["attr_type"] = forms.ChoiceField(
+                choices=(
+                    ("email_or_id", _("Email or NetID")),
+                    ("inst_id", _("Institutional ID")),
+                    ),
+                label=_("User attribute"))
+
+        self.fields["attr_column"] = forms.IntegerField(
                 # Translators: the following strings are for the format
                 # informatioin for a CSV file to be imported.
-                help_text=_("1-based column index for the Email or NetID "
-                "used to locate student record"),
+                help_text=_("1-based column index for the user attribute "
+                "selected above to locate student record"),
                 min_value=1,
-                label=_("User ID column"))
+                label=_("User attribute column"))
         self.fields["points_column"] = forms.IntegerField(
                 help_text=_("1-based column index for the (numerical) grade"),
                 min_value=1,
@@ -942,7 +949,7 @@ class ImportGradesForm(StyledForm):
         file_contents = data.get("file")
         if file_contents:
             column_idx_list = [
-                data["id_column"],
+                data["attr_column"],
                 data["points_column"],
                 data["feedback_column"]
             ]
@@ -962,6 +969,31 @@ class ImportGradesForm(StyledForm):
 
 class ParticipantNotFound(ValueError):
     pass
+
+def find_participant_from_inst_id(course, inst_id_str):
+    inst_id_str = inst_id_str.strip()
+
+    matches = (Participation.objects
+            .filter(
+                course=course,
+                status=participation_status.active,
+                user__institutional_id__exact=inst_id_str)
+            .select_related("user"))
+
+    if not matches:
+        raise ParticipantNotFound(
+                # Translators: use institutional_id_string to find user
+                # (participant).
+                _("no participant found with institutional ID "
+                "'%(inst_id_string)s'") % {
+                    "inst_id_string": inst_id_str})
+    if len(matches) > 1:
+        raise ParticipantNotFound(
+                _("more than one participant found with institutional ID "
+                "'%(inst_id_string)s'") % {
+                    "inst_id_string": inst_id_str})
+
+    return matches[0]
 
 
 def find_participant_from_id(course, id_str):
@@ -1017,8 +1049,8 @@ def fix_decimal(s):
 def csv_to_grade_changes(
         log_lines,
         course, grading_opportunity, attempt_id, file_contents,
-        id_column, points_column, feedback_column, max_points,
-        creator, grade_time, has_header):
+        attr_type, attr_column, points_column, feedback_column,
+        max_points, creator, grade_time, has_header):
     result = []
 
     import csv
@@ -1033,8 +1065,16 @@ def csv_to_grade_changes(
         gchange = GradeChange()
         gchange.opportunity = grading_opportunity
         try:
-            gchange.participation = find_participant_from_id(
-                    course, row[id_column-1])
+            if attr_type == "email_or_id":
+                gchange.participation = find_participant_from_id(
+                        course, row[attr_column-1])
+            elif attr_type == "inst_id":
+                gchange.participation = find_participant_from_inst_id(
+                        course, row[attr_column-1])
+            else:
+                raise ParticipantNotFound(
+                    _("Unknown user attribute '%(attr_type)s'") % {
+                        "attr_type": attr_type})
         except ParticipantNotFound as e:
             log_lines.append(e)
             continue
@@ -1070,18 +1110,20 @@ def csv_to_grade_changes(
 
                 updated = []
                 if last_grade.points != gchange.points:
-                    updated.append("points")
+                    updated.append(ugettext("points"))
                 if last_grade.max_points != gchange.max_points:
-                    updated.append("max_points")
+                    updated.append(ugettext("max_points"))
                 if last_grade.comment != gchange.comment:
-                    updated.append("comment")
+                    updated.append(ugettext("comment"))
 
                 if updated:
                     log_lines.append(
-                            "%(participation)s: %(updated)s "
-                            "updated" % {
-                                'participation': gchange.participation,
-                                'updated': ", ".join(updated)})
+                            string_concat(
+                                "%(participation)s: %(updated)s ",
+                                _("updated")
+                                ) % {
+                                    'participation': gchange.participation,
+                                    'updated': ", ".join(updated)})
 
                     result.append(gchange)
             else:
@@ -1119,7 +1161,8 @@ def import_grades(pctx):
                         grading_opportunity=form.cleaned_data["grading_opportunity"],
                         attempt_id=form.cleaned_data["attempt_id"],
                         file_contents=request.FILES["file"],
-                        id_column=form.cleaned_data["id_column"],
+                        attr_type=form.cleaned_data["attr_type"],
+                        attr_column=form.cleaned_data["attr_column"],
                         points_column=form.cleaned_data["points_column"],
                         feedback_column=form.cleaned_data["feedback_column"],
                         max_points=form.cleaned_data["max_points"],
