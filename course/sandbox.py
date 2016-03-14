@@ -65,6 +65,11 @@ class SandboxForm(forms.Form):
                     + cm_help_text),
                 label=_("Content"))
 
+        # 'strip' attribute was added to CharField in Django 1.9
+        # with 'True' as default value.
+        if hasattr(self.fields["content"], "strip"):
+            self.fields["content"].strip = False
+
         self.helper.add_input(
                 Submit(
                     "preview", _("Preview"),
@@ -186,10 +191,14 @@ def view_page_sandbox(pctx):
 
     if is_preview_post:
         edit_form = make_form(pctx.request.POST)
+        new_page_source = None
 
         if edit_form.is_valid():
             try:
-                new_page_source = edit_form.cleaned_data["content"]
+                from pytools.py_codegen import remove_common_indentation
+                new_page_source = remove_common_indentation(
+                        edit_form.cleaned_data["content"],
+                        require_leading_newline=False)
                 page_desc = dict_to_struct(yaml.load(new_page_source))
 
                 if not isinstance(page_desc, Struct):
