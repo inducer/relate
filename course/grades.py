@@ -1068,9 +1068,13 @@ def csv_to_grade_changes(
             if attr_type == "email_or_id":
                 gchange.participation = find_participant_from_id(
                         course, row[attr_column-1])
-            else:
+            elif attr_type == "inst_id":
                 gchange.participation = find_participant_from_inst_id(
                         course, row[attr_column-1])
+            else:
+                raise ParticipantNotFound(
+                    _("Unknown user attribute '%(attr_type)s'") % {
+                        "attr_type": attr_type})
         except ParticipantNotFound as e:
             log_lines.append(e)
             continue
