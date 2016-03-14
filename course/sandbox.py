@@ -65,6 +65,11 @@ class SandboxForm(forms.Form):
                     + cm_help_text),
                 label=_("Content"))
 
+        # 'strip' attribute was added to CharField in Django 1.9
+        # with 'True' as default value.
+        if hasattr(self.fields["content"], "strip"):
+            self.fields["content"].strip = False
+
         self.helper.add_input(
                 Submit(
                     "preview", _("Preview"),
@@ -189,8 +194,10 @@ def view_page_sandbox(pctx):
 
         if edit_form.is_valid():
             try:
-                new_page_source = remove_sb_content_common_indentation(
-                        edit_form.cleaned_data["content"])
+                from pytools.py_codegen import remove_common_indentation
+                new_page_source = remove_common_indentation(
+                        edit_form.cleaned_data["content"],
+                        require_leading_newline=False)
                 page_desc = dict_to_struct(yaml.load(new_page_source))
 
                 if not isinstance(page_desc, Struct):
@@ -344,36 +351,5 @@ def view_page_sandbox(pctx):
 
 # }}}
 
-
-# {{{ remove common indentation of content in SandBox Form
-
-def remove_sb_content_common_indentation(code):
-    if "\n" not in code:
-        return code
-
-    lines = code.split("\n")
-
-    if lines:
-        base_indent = 0
-
-        # form field with textarea widget returns 
-        # cleaned_data with line[0] left stipped,
-        # so here we are starting from line[1].
-        while lines[1][base_indent] in " \t":
-            base_indent += 1
-
-        n = 2
-        for line in lines[2:]:
-            n += 1
-            if line[:base_indent].strip():
-                raise ValueError(
-                        _("inconsistent indentation at line %d.") % n)
-
-    return "\n".join([
-        lines[0],
-        "\n".join(line[base_indent:] for line in lines[1:])
-        ])
-
-# }}}
 
 # vim: foldmethod=marker
