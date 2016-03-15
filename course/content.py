@@ -939,7 +939,7 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
 
     is_end = datespec.startswith(END_PREFIX)
     if is_end:
-        datespec = datespec[END_PREFIX:]
+        datespec = datespec[len(END_PREFIX):]
 
     match = TRAILING_NUMERAL_RE.match(datespec)
     if match:
