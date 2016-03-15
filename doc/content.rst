@@ -542,11 +542,17 @@ Specifying dates in RELATE
 In various places around its :ref:`YAML documents <yaml-files>`, RELATE
 allows dates to be specified. The following formats are supported:
 
-* ``symbolic_name ordinal`` (e.g. ``lecture 13``) to refer to :ref:`calendear
-  events <events>` with an ordinal.
+* ``symbolic_name ordinal`` (e.g. ``lecture 13``) to refer to the start time of
+  :ref:`calendar events <events>` with an ordinal.
 
-* ``symbolic_name`` (e.g. ``final_exam``) to refer to :ref:`calendear events <events>`
-  *without* an ordinal.
+* ``symbolic_name`` (e.g. ``final_exam``) to refer to the start time of
+  :ref:`calendear events <events>` *without* an ordinal.
+
+* ``end:symbolic_name ordinal`` (e.g. ``end:lecture 13``) to refer to the end time
+  of :ref:`calendar events <events>` with an ordinal.
+
+* ``end:symbolic_name`` (e.g. ``end:final_exam``) to refer to the end time of
+  :ref:`calendar events <events>` *without* an ordinal.
 
 * ISO-formatted dates (``2014-10-13``)
 

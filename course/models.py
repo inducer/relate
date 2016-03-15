@@ -1403,7 +1403,7 @@ class InstantMessage(models.Model):
 # }}}
 
 
-# {{{ exam tickets
+# {{{ exams
 
 class Exam(models.Model):
     course = models.ForeignKey(Course,
