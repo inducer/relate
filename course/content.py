@@ -951,8 +951,8 @@ def parse_date_spec(course, datespec, vctx=None, location=None):
     else:
         # event without numeral
 
-        event_kind = match.group(1)
-        ordinal = int(match.group(2))
+        event_kind = datespec
+        ordinal = None
 
     if vctx is not None:
         from course.validation import validate_identifier
