@@ -365,7 +365,11 @@ def get_now_or_fake_time(request):
 
 
 def set_fake_time(request):
-    if not request.user.is_staff:
+    if not (
+            request.user.is_staff
+            or
+            hasattr(request, "relate_impersonate_original_user")
+            ):
         raise PermissionDenied(_("only staff may set fake time"))
 
     if request.method == "POST":
