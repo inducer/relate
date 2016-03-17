@@ -49,21 +49,26 @@
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
         <li role="presentation" class="divider"></li>
-        <li role="presentation" class="dropdown-header">{% trans "Grades" %}</li>
+        <li role="presentation" class="dropdown-header">{% trans "Participations" %}</li>
         <li><a href="{% url "relate-view_participant_list" course.identifier %}">{% trans "List of Participants" %}</a></li>
         {% if user.is_staff %}
         <li><a href="{% url "admin:course_participation_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit Participations (admin)" %}</a></li>
         {% endif %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Grading Opportunities" %}</li>
         <li><a href="{% url "relate-view_grading_opportunity_list" course.identifier %}">{% trans "List of Grading Opportunities" %}</a></li>
         {% if user.is_staff %}
         <li><a href="{% url "admin:course_gradingopportunity_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit Grading Opportunities (admin)" %}</a></li>
         {% endif %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Grade Book" %}</li>
         <li><a href="{% url "relate-view_gradebook" course.identifier %}">{% trans "Grade book" %}</a></li>
         <li><a href="{% url "relate-export_gradebook_csv" course.identifier %}">{% trans "Grade book (CSV export)" %}</a></li>
       {% endif %}
       {% if role == pr.instructor %}
         <li><a href="{% url "relate-import_grades" course.identifier %}">{% trans "Import Grades" %}</a></li>
       {% endif %}
+      <li role="presentation" class="divider"></li>
       <li><a href="{% url "relate-regrade_flows_view" course.identifier %}">{% trans "Regrade flows" %}</a></li>
 
       {% if role == pr.instructor or role == pr.teaching_assistant %}
