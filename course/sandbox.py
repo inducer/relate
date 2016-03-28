@@ -312,8 +312,22 @@ def view_page_sandbox(pctx):
                             page_desc.type, page_desc.id, answer_data)
 
             else:
-                page_form = page.make_form(page_context, page_data,
-                        answer_data, page_behavior)
+                try:
+                    page_form = page.make_form(page_context, page_data,
+                            answer_data, page_behavior)
+
+                except:
+                    import sys
+                    tp, e, _ = sys.exc_info()
+
+                    page_errors = (
+                            ugettext("Page failed to load/validate")
+                            + ": "
+                            + "%(err_type)s: %(err_str)s" % {
+                                "err_type": tp.__name__, "err_str": e})
+                    have_valid_page = False
+
+                    page_form = None
 
             if page_form is not None:
                 page_form.helper.add_input(
