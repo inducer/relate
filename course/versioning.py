@@ -483,6 +483,23 @@ class GitUpdateForm(StyledForm):
         add_button("fetch", _("Fetch"))
 
 
+def _get_commit_message_as_html(repo, commit_sha):
+    if six.PY2:
+        from cgi import escape
+    else:
+        from html import escape
+
+    if isinstance(commit_sha, six.text_type):
+        commit_sha = commit_sha.encode()
+
+    try:
+        commit = repo[commit_sha]
+    except KeyError:
+        return _("- not found -")
+
+    return escape(commit.message.strip().decode(errors="replace"))
+
+
 @login_required
 @course_view
 def update_course(pctx):
@@ -559,11 +576,6 @@ def update_course(pctx):
                     "prevent_discarding_revisions": True,
                     })
 
-    if six.PY2:
-        from cgi import escape
-    else:
-        from html import escape
-
     text_lines = [
             "<table class='table'>",
             string_concat(
@@ -577,9 +589,8 @@ def update_course(pctx):
                 "</th><td> %(commit)s (%(message)s)</td></tr>")
             % {
                 'commit': course.active_git_commit_sha,
-                'message': (
-                    escape(repo[course.active_git_commit_sha.encode()]
-                        .message.strip().decode(errors="replace")))
+                'message': _get_commit_message_as_html(
+                    repo, course.active_git_commit_sha)
                 },
             string_concat(
                 "<tr><th>",
@@ -587,8 +598,7 @@ def update_course(pctx):
                 "</th><td>%(commit)s (%(message)s)</td></tr>")
             % {
                 'commit': repo.head().decode(),
-                'message': escape(
-                    repo[repo.head()].message.strip().decode(errors="replace"))},
+                'message': _get_commit_message_as_html(repo, repo.head())},
             ]
     if participation is not None and participation.preview_git_commit_sha:
         text_lines.append(
@@ -598,9 +608,8 @@ def update_course(pctx):
                     "</th><td>%(commit)s (%(message)s)</td></tr>")
                 % {
                     'commit': participation.preview_git_commit_sha,
-                    'message': (
-                        escape(repo[participation.preview_git_commit_sha
-                            .encode()].message.strip().decode(errors="replace"))),
+                    'message': _get_commit_message_as_html(
+                        repo, participation.preview_git_commit_sha),
                 })
     else:
         text_lines.append(
