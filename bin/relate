@@ -40,13 +40,21 @@ def test_code_question(page_desc, repo_root):
         test_code = substitute_correct_code_into_test_code(test_code, correct_code)
 
     from course.page.code_runpy_backend import run_code, package_exception
-    # FIXME: Add support for data_files
+
+    data_files = {}
+
+    for data_file_name in getattr(page_desc, "data_files", []):
+        from base64 import b64encode
+        with open(data_file_name, "rb") as df:
+            data_files[data_file_name] = b64encode(df.read()).decode()
+
     run_req = {
             "setup_code": getattr(page_desc, "setup_code", ""),
             "names_for_user": getattr(page_desc, "names_for_user", []),
             "user_code": getattr(page_desc, "correct_code", ""),
             "names_from_user": getattr(page_desc, "names_from_user", []),
             "test_code": test_code,
+            "data_files": data_files,
             }
 
     response = {}
@@ -63,8 +71,8 @@ def test_code_question(page_desc, repo_root):
         sys.stdout = stdout
         sys.stderr = stderr
 
-        from relate.utils import dict_to_struct
-        run_code(response, dict_to_struct(run_req))
+        from relate.utils import Struct
+        run_code(response, Struct(run_req))
 
         response["stdout"] = stdout.getvalue()
         response["stderr"] = stderr.getvalue()
