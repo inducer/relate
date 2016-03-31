@@ -1422,10 +1422,21 @@ def adjust_flow_session_page_data(repo, flow_session,
 
 
 def get_course_commit_sha(course, participation):
+    # logic duplicated in course.utils.CoursePageContext
+
     sha = course.active_git_commit_sha
 
     if participation is not None and participation.preview_git_commit_sha:
-        sha = participation.preview_git_commit_sha
+        preview_sha = participation.preview_git_commit_sha
+
+        repo = get_course_repo(course)
+        try:
+            repo[preview_sha.encode()]
+        except KeyError:
+            preview_sha = None
+
+        if preview_sha is not None:
+            sha = preview_sha
 
     return sha.encode()
 

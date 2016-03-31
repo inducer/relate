@@ -119,12 +119,12 @@
 
     {% block root_container %}
     <div class="container">
+      {% block version_advice %}
+      {% endblock %}
+
       {% include "base-page-top.html" %}
 
       {% block nav_recommendations %}
-      {% endblock %}
-
-      {% block version_advice %}
       {% endblock %}
 
       {% block content %}

@@ -368,6 +368,30 @@ class CoursePageContext(object):
 
         self.repo = get_course_repo(self.course)
 
+        # logic duplicated in course.content.get_course_commit_sha
+        sha = self.course.active_git_commit_sha.encode()
+
+        if (self.participation is not None
+                and self.participation.preview_git_commit_sha):
+            preview_sha = self.participation.preview_git_commit_sha.encode()
+
+            repo = get_course_repo(self.course)
+            try:
+                repo[preview_sha]
+            except KeyError:
+                from django.contrib import messages
+                messages.add_message(request, messages.ERROR,
+                        _("Preview revision '%s' does not exist--"
+                        "showing active course content instead.")
+                        % preview_sha.decode())
+
+                preview_sha = None
+
+            if preview_sha is not None:
+                sha = preview_sha
+
+        self.course_commit_sha = sha
+
 
 class FlowContext(object):
     def __init__(self, repo, course, flow_id,
