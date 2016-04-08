@@ -101,6 +101,17 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     tree_sha = repo[commit_sha].tree
     tree = repo[tree_sha]
 
+    def access_directory_content(maybe_tree, name):
+        try:
+            mode_and_blob_sha = tree[name.encode()]
+        except TypeError:
+            raise ObjectDoesNotExist(_("resource '%s' is a file, "
+                "not a directory")
+                % full_name.decode("utf-8"))
+
+        mode, blob_sha = mode_and_blob_sha
+        return mode_and_blob_sha
+
     if not full_name:
         if allow_tree:
             return tree
@@ -114,10 +125,11 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
                 # tolerate empty path components (begrudgingly)
                 continue
 
-            mode, blob_sha = tree[name.encode()]
+            mode, blob_sha = access_directory_content(tree, name)
             tree = repo[blob_sha]
 
-        mode, blob_sha = tree[names[-1].encode()]
+        mode, blob_sha = access_directory_content(tree, names[-1])
+
         result = repo[blob_sha]
         if not allow_tree and not hasattr(result, "data"):
             raise ObjectDoesNotExist(
