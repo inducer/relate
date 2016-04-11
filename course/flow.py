@@ -204,19 +204,25 @@ def start_flow(repo, course, participation, user, flow_id, flow_desc,
 
 # {{{ finish flow
 
-def get_flow_session_graded_answers_qset(flow_session):
+def get_multiple_flow_session_graded_answers_qset(flow_sessions):
     from django.db.models import Q
     qset = (FlowPageVisit.objects
-            .filter(flow_session=flow_session)
-            .filter(Q(answer__isnull=False) | Q(is_synthetic=True)))
+            .filter(flow_session__in=flow_sessions)
+            .filter(Q(answer__isnull=False) | Q(is_synthetic=True))
+            .order_by("flow_session__id"))
 
-    if not flow_session.in_progress:
-        # Ungraded answers *can* show up in non-in-progress flows as a result
-        # of a race between a 'save' and the 'end session'. If this happens,
-        # we'll go ahead and ignore those.
-        qset = qset.filter(is_submitted_answer=True)
+    # Ungraded answers *can* show up in non-in-progress flows as a result
+    # of a race between a 'save' and the 'end session'. If this happens,
+    # we'll go ahead and ignore those.
+    qset = qset.filter(
+        (Q(flow_session__in_progress=False) & Q(is_submitted_answer=True))
+        | Q(flow_session__in_progress=True))
 
     return qset
+
+
+def get_flow_session_graded_answers_qset(flow_session):
+    return get_multiple_flow_session_graded_answers_qset([flow_session])
 
 
 def get_prev_answer_visits_qset(page_data):
@@ -233,6 +239,58 @@ def get_prev_answer_visit(page_data):
         return prev_visit
 
     return None
+
+
+def assemble_page_grades(flow_sessions):
+    """
+    Given a list of flow sessions, return a list of tuples of FlowPageVisitGrade
+    objects corresponding to the most recent page grades for each page of the
+    flow session.  If a page is not graded, the corresponding entry is None.
+
+    Note that, even if the flow sessions belong to the same flow, the length
+    of the tuples may vary since the flow page count may vary per session.
+    """
+    id_to_fsess_idx = {fsess.id: i for i, fsess in enumerate(flow_sessions)}
+    answer_visit_ids = [[None] * fsess.page_count for fsess in flow_sessions]
+
+    # Get all answer visits corresponding to the sessions. The query result is
+    # typically very large.
+    all_answer_visits = (
+        get_multiple_flow_session_graded_answers_qset(flow_sessions)
+        .order_by("visit_time")
+        .values("id", "flow_session_id", "page_data__ordinal",
+                "is_submitted_answer"))
+
+    for answer_visit in all_answer_visits:
+        fsess_idx = id_to_fsess_idx[answer_visit["flow_session_id"]]
+        ordinal = answer_visit["page_data__ordinal"]
+        if ordinal is not None:
+            answer_visit_ids[fsess_idx][ordinal] = answer_visit["id"]
+
+        if not flow_sessions[fsess_idx].in_progress:
+            assert answer_visit["is_submitted_answer"] is True
+
+    flat_answer_visit_ids = []
+    for visit_id_list in answer_visit_ids:
+        for visit_id in visit_id_list:
+            if visit_id is not None:
+                flat_answer_visit_ids.append(visit_id)
+
+    # Get all grade visits associated with the answer visits.
+    grades = (FlowPageVisitGrade.objects
+              .filter(visit__in=flat_answer_visit_ids)
+              .order_by("visit__id")
+              .order_by("grade_time"))
+
+    grades_by_answer_visit = {}
+    for grade in grades:
+        grades_by_answer_visit[grade.visit_id] = grade
+
+    def get_grades_for_visit_group(visit_group):
+        return (grades_by_answer_visit.get(visit_id, None)
+            for visit_id in visit_group)
+
+    return [get_grades_for_visit_group(group) for group in answer_visit_ids]
 
 
 def assemble_answer_visits(flow_session):
