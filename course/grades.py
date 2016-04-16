@@ -559,7 +559,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                         grade_state_machine=state_machine,
                         flow_session=fsession)))
 
-    if view_page_grades:
+    if view_page_grades and len(grade_table) > 0:
         # Query grades for flow pages
         all_flow_sessions = [info.flow_session for _, info in grade_table]
         max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
