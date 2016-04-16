@@ -287,7 +287,7 @@ def assemble_page_grades(flow_sessions):
         grades_by_answer_visit[grade.visit_id] = grade
 
     def get_grades_for_visit_group(visit_group):
-        return (grades_by_answer_visit.get(visit_id, None)
+        return (grades_by_answer_visit.get(visit_id)
             for visit_id in visit_group)
 
     return [get_grades_for_visit_group(group) for group in answer_visit_ids]
