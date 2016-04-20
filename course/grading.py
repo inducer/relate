@@ -87,7 +87,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 participation__isnull=False,
                 in_progress=flow_session.in_progress)
             .order_by(
-                "participation__user__last_name",
+                # Datatables will default to sorting the user list
+                # by the first column, which happens to be the username.
+                # Match that sorting.
+                "participation__user__username",
                 "start_time"))
 
     next_flow_session_id = None

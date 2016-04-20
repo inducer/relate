@@ -54,6 +54,15 @@
           href="{% url "relate-flow_analytics" course.identifier opportunity.flow_id %}">{% trans "View analytics" %}</a>
         <a class="btn btn-default" role="button"
           href="{% url "relate-show_grader_statistics" course.identifier opportunity.flow_id %}">{% trans "View grader statistics" %}</a>
+        {% if not view_page_grades %}
+            <a class="btn btn-default" role="button"
+              href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}?view_page_grades=1">
+              {% trans "View page grades" %}</a>
+        {% else %}
+            <a class="btn btn-default" role="button"
+              href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}">
+              {% trans "Hide page grades" %}</a>
+        {% endif %}
         <a class="btn btn-default" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
             role="button">{% trans "Download submissions" %}</a>
       </td>
@@ -98,23 +107,81 @@
   <table class="table table-striped gradebook-by-opportunity">
     <thead>
       <th class="datacol">{% trans "User ID" %}</th>
-      <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
+      <th class="datacol">{% trans "Last name" %}</th>
+      <th class="datacol">{% trans "First name" %}</th>
+      <th class="datacol">{% trans "Role" %}</th>
+      {% if view_page_grades %}
+        {% for i in page_numbers %}
+          <th class="datacol">{{ i }}</th>
+        {% endfor %}
+      {% endif %}
+      <th class="datacol">{% trans "Session state" %}</th>
+      <th class="datacol">{% trans "Session grade" %}</th>
       <th class="datacol">{% trans "Overall grade" %}</th>
-      <th class="datacol">{% trans "Sessions" %}</th>
     </thead>
     <tbody>
       {% for participation, grade_info in grade_table %}
       <tr>
-        <td class="datacol">
+        <th class="headcol">
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">{{ participation.user.username }}</span></a>
+        </th>
+        <td class="datacol">
+          <span class="sensitive">
+            {{ participation.user.last_name }}
+          </span>
         </td>
         <td class="datacol">
-            <span class="sensitive">
-                {{ participation.user.get_full_name }}
-            </span>
-          {% if participation.role != participation_role.student %}
-            ({{ participation.role }})
+          <span class="sensitive">
+            {{ participation.user.first_name }}
+          </span>
+        </td>
+        <td class="datacol">
+          {{ participation.role }}
+        </td>
+        {% if view_page_grades %}
+        {% for page_idx, grade in grade_info.grades %}
+        <td class="datacol"
+          {% if page_idx == None or grade == None or grade.percentage == None %}
+          data-order="-1"
+          {% else %}
+          data-order="{{ grade.percentage }}"
           {% endif %}
+          ><span class="sensitive">
+          {% if page_idx == None %}
+              &mdash;
+          {% else %}
+              <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id page_idx %}">
+              {% if grade != None and grade.percentage != None %}
+                  {{ grade.percentage|floatformat:1 }}%
+              {% else %}
+                  - &#8709; -
+              {% endif %}
+	      </a>
+          {% endif %}
+          </span>
+        </td>
+        {% endfor %}
+        {% endif %}
+        <td class="datacol" data-order="{{ grade_info.flow_session.in_progress }}">
+          {% if grade_info.flow_session %}
+          {% include "course/flow-session-state.html" with flow_session=grade_info.flow_session %}
+          {% if not flow_session.in_progress %}
+              ({{ grade_info.flow_session.completion_time }})
+          {% endif %}
+          {% if grade_info.flow_session.access_rules_tag %}
+              ({% trans "Rules tag" %}: <tt>{{ grade_info.flow_session.access_rules_tag }}</tt>)
+          {% endif %}
+          {% endif %}
+        </td>
+        <td class="datacol" data-order="{{ grade_info.flow_session.points }}">
+          {% if grade_info.flow_session %}
+              {% if grade_info.flow_session.points != None %}
+                {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:1 max_points=grade_info.flow_session.max_points|floatformat:1 %}
+                {{ points }}/{{ max_points }}
+                points
+                {% endblocktrans %}
+              {% endif %}
+           {% endif %}
         </td>
         <td class="datacol"
           {% if grade_info.grade_state_machine.percentage != None %}
@@ -127,29 +194,6 @@
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
              ><span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
         </td>
-          <td class="datacol" data-order="{{ grade_info.flow_sessions|length }}">
-          {% if grade_info.flow_sessions %}
-            <ul>
-              {% for flow_session in grade_info.flow_sessions %}
-                <li>
-                  {% include "course/flow-session-state.html" %}
-                  {% if not flow_session.in_progress %}
-                    ({{ flow_session.completion_time }})
-                  {% endif %}
-                  {% if flow_session.access_rules_tag %}
-                    ({% trans "Rules tag" %}: <tt>{{ flow_session.access_rules_tag }}</tt>)
-                  {% endif %}
-                  {% if flow_session.points != None %}
-                    {% blocktrans trimmed with points=flow_session.points|floatformat:1 max_points=flow_session.max_points|floatformat:1 %}
-                    {{ points }}/{{ max_points }}
-                    points
-                    {% endblocktrans %}
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -159,12 +203,14 @@
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-by-opportunity").dataTable({
+        "scrollX": true,
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
         "columnDefs": [{ type: 'name', targets: 1 }],
         "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
     } );
+    new $.fn.dataTable.FixedColumns(tbl);
   </script>
 
 {% endblock %}

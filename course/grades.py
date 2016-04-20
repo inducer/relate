@@ -334,10 +334,11 @@ def export_gradebook_csv(pctx):
 
 # {{{ grades by grading opportunity
 
-class OpportunityGradeInfo(object):
-    def __init__(self, grade_state_machine, flow_sessions):
+class OpportunitySessionGradeInfo(object):
+    def __init__(self, grade_state_machine, flow_session, grades=None):
         self.grade_state_machine = grade_state_machine
-        self.flow_sessions = flow_sessions
+        self.flow_session = flow_session
+        self.grades = grades
 
 
 class ModifySessionsForm(StyledForm):
@@ -488,56 +489,95 @@ def view_grades_by_opportunity(pctx, opp_id):
             .select_related("participation__user")
             .select_related("opportunity"))
 
-    idx = 0
+    if opportunity.flow_id:
+        flow_sessions = list(FlowSession.objects
+                .filter(
+                    flow_id=opportunity.flow_id,
+                    )
+                .order_by(
+                    "participation__id",
+                    "start_time"
+                    ))
+    else:
+        flow_sessions = None
+
+    view_page_grades = pctx.request.GET.get("view_page_grades") == "1"
+
+    gchng_idx = 0
+    fsess_idx = 0
 
     finished_sessions = 0
     total_sessions = 0
 
     grade_table = []
-    for participation in participations:
+    for idx, participation in enumerate(participations):
+        # Advance in grade change list
         while (
-                idx < len(grade_changes)
-                and grade_changes[idx].participation.id < participation.id):
-            idx += 1
+                gchng_idx < len(grade_changes)
+                and grade_changes[gchng_idx].participation.pk < participation.pk):
+            gchng_idx += 1
 
         my_grade_changes = []
         while (
-                idx < len(grade_changes)
-                and grade_changes[idx].participation.pk == participation.pk):
-            my_grade_changes.append(grade_changes[idx])
-            idx += 1
+                gchng_idx < len(grade_changes)
+                and grade_changes[gchng_idx].participation.pk == participation.pk):
+            my_grade_changes.append(grade_changes[gchng_idx])
+            gchng_idx += 1
+
+        # Advance in flow session list
+        if flow_sessions is None:
+            my_flow_sessions = []
+        else:
+            while (
+                    fsess_idx < len(flow_sessions) and (
+                    flow_sessions[fsess_idx].participation is None or
+                    flow_sessions[fsess_idx].participation.pk < participation.pk)):
+                fsess_idx += 1
+
+            my_flow_sessions = []
+            while (
+                    fsess_idx < len(flow_sessions) and
+                    flow_sessions[fsess_idx].participation is not None and
+                    flow_sessions[fsess_idx].participation.pk == participation.pk):
+                my_flow_sessions.append(flow_sessions[fsess_idx])
+                fsess_idx += 1
 
         state_machine = GradeStateMachine()
         state_machine.consume(my_grade_changes)
 
-        if opportunity.flow_id:
-            flow_sessions = (FlowSession.objects
-                    .filter(
-                        participation=participation,
-                        flow_id=opportunity.flow_id,
-                        )
-                    .order_by("start_time"))
+        for fsession in my_flow_sessions:
+            total_sessions += 1
 
-            for fsession in flow_sessions:
-                total_sessions += 1
-                if not fsession.in_progress:
-                    finished_sessions += 1
+            if fsession is None:
+                continue
 
-        else:
-            flow_sessions = None
+            if not fsession.in_progress:
+                finished_sessions += 1
 
-        grade_table.append(
-                OpportunityGradeInfo(
-                    grade_state_machine=state_machine,
-                    flow_sessions=flow_sessions))
+            grade_table.append(
+                    (participation, OpportunitySessionGradeInfo(
+                        grade_state_machine=state_machine,
+                        flow_session=fsession)))
 
-    def grade_key(entry):
-        (participation, grades) = entry
-        return (participation.user.last_name.lower(),
-                    participation.user.first_name.lower())
+    if view_page_grades and len(grade_table) > 0:
+        # Query grades for flow pages
+        all_flow_sessions = [info.flow_session for _, info in grade_table]
+        max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
+        page_numbers = list(range(1, 1 + max_page_count))
 
-    grade_table = sorted(zip(participations, grade_table),
-            key=grade_key)
+        from course.flow import assemble_page_grades
+        page_grades = assemble_page_grades(all_flow_sessions)
+
+        for (_, grade_info), grade_list in zip(grade_table, page_grades):
+            # Not all pages exist in all sessions
+            grades = list(enumerate(grade_list))
+            if len(grades) < max_page_count:
+                grades.extend([(None, None)] * (max_page_count - len(grades)))
+            grade_info.grades = grades
+    else:
+        page_numbers = []
+
+    # No need to sort here, datatables resorts anyhow.
 
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,
@@ -545,6 +585,8 @@ def view_grades_by_opportunity(pctx, opp_id):
         "grade_state_change_types": grade_state_change_types,
         "grade_table": grade_table,
         "batch_session_ops_form": batch_session_ops_form,
+        "page_numbers": page_numbers,
+        "view_page_grades": view_page_grades,
 
         "total_sessions": total_sessions,
         "finished_sessions": finished_sessions,
