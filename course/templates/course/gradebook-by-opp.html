@@ -107,9 +107,7 @@
   <table class="table table-striped gradebook-by-opportunity">
     <thead>
       <th class="datacol">{% trans "User ID" %}</th>
-      <th class="datacol">{% trans "Last name" %}</th>
-      <th class="datacol">{% trans "First name" %}</th>
-      <th class="datacol">{% trans "Role" %}</th>
+      <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
       {% if view_page_grades %}
         {% for i in page_numbers %}
           <th class="datacol">{{ i }}</th>
@@ -126,17 +124,12 @@
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">{{ participation.user.username }}</span></a>
         </th>
         <td class="datacol">
-          <span class="sensitive">
-            {{ participation.user.last_name }}
-          </span>
-        </td>
-        <td class="datacol">
-          <span class="sensitive">
-            {{ participation.user.first_name }}
-          </span>
-        </td>
-        <td class="datacol">
-          {{ participation.role }}
+            <span class="sensitive">
+                {{ participation.user.get_full_name }}
+            </span>
+          {% if participation.role != participation_role.student %}
+            ({{ participation.role }})
+          {% endif %}
         </td>
         {% if view_page_grades %}
         {% for page_idx, grade in grade_info.grades %}
