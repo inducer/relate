@@ -11,7 +11,7 @@
   <ul>
     {% if not user.is_authenticated %}
     <li>
-    <a href="{% url student_sign_in_view %}"> {% trans "Sign in" %} </a>.
+    <a href="{% url student_sign_in_view %}?next={{ request.path }}"> {% trans "Sign in" %} </a>.
 
     {% url "relate-home" as relate-home %}
     {% blocktrans trimmed %}
