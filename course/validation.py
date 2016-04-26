@@ -47,7 +47,7 @@ class ValidationError(RuntimeError):
 ID_RE = re.compile(r"^[\w]+$")
 
 
-def validate_identifier(ctx, location, s, warning_only=False):
+def validate_identifier(vctx, location, s, warning_only=False):
     if not ID_RE.match(s):
 
         if warning_only:
@@ -56,7 +56,7 @@ def validate_identifier(ctx, location, s, warning_only=False):
                         " '%(string)s'")
                     % {'location': location, 'string': s})
 
-            ctx.add_warning(location, msg)
+            vctx.add_warning(location, msg)
         else:
             msg = (string_concat(
                         "%(location)s: ",
@@ -82,14 +82,14 @@ def validate_role(location, role):
                 % {'location': location, 'role': role})
 
 
-def validate_facility(ctx, location, facility):
+def validate_facility(vctx, location, facility):
     from django.conf import settings
     facilities = getattr(settings, "RELATE_FACILITIES", None)
     if facilities is None:
         return
 
     if facility not in facilities:
-        ctx.add_warning(location, _(
+        vctx.add_warning(location, _(
             "Name of facility not recognized: '%(fac_name)s'. "
             "Known facility names: '%(known_fac_names)s'")
             % {
@@ -98,7 +98,7 @@ def validate_facility(ctx, location, facility):
                 })
 
 
-def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
+def validate_struct(vctx, location, obj, required_attrs, allowed_attrs):
     """
     :arg required_attrs: an attribute validation list (see below)
     :arg allowed_attrs: an attribute validation list (see below)
@@ -158,7 +158,7 @@ def validate_struct(ctx, location, obj, required_attrs, allowed_attrs):
                                 'allowed': escape(str(allowed_types))})
 
                 if is_markup:
-                    validate_markup(ctx, "%s: attribute %s" % (location, attr), val)
+                    validate_markup(vctx, "%s: attribute %s" % (location, attr), val)
 
     if present_attrs:
         raise ValidationError(
@@ -205,7 +205,7 @@ class ValidationContext(object):
 
 # {{{ markup validation
 
-def validate_markup(ctx, location, markup_str):
+def validate_markup(vctx, location, markup_str):
     def reverse_func(*args, **kwargs):
         pass
 
@@ -213,8 +213,8 @@ def validate_markup(ctx, location, markup_str):
     try:
         markup_to_html(
                 course=None,
-                repo=ctx.repo,
-                commit_sha=ctx.commit_sha,
+                repo=vctx.repo,
+                commit_sha=vctx.commit_sha,
                 text=markup_str,
                 reverse_func=reverse_func,
                 validate_only=True)
@@ -235,9 +235,9 @@ def validate_markup(ctx, location, markup_str):
 
 # {{{ course page validation
 
-def validate_chunk_rule(ctx, location, chunk_rule):
+def validate_chunk_rule(vctx, location, chunk_rule):
     validate_struct(
-            ctx,
+            vctx,
             location,
             chunk_rule,
             required_attrs=[
@@ -257,34 +257,34 @@ def validate_chunk_rule(ctx, location, chunk_rule):
             ])
 
     if hasattr(chunk_rule, "if_after"):
-        ctx.encounter_datespec(location, chunk_rule.if_after)
+        vctx.encounter_datespec(location, chunk_rule.if_after)
 
     if hasattr(chunk_rule, "if_before"):
-        ctx.encounter_datespec(location, chunk_rule.if_before)
+        vctx.encounter_datespec(location, chunk_rule.if_before)
 
     if hasattr(chunk_rule, "if_has_role"):
         for role in chunk_rule.if_has_role:
             validate_role(location, role)
 
     if hasattr(chunk_rule, "if_in_facility"):
-        validate_facility(ctx, location, chunk_rule.if_in_facility)
+        validate_facility(vctx, location, chunk_rule.if_in_facility)
 
     # {{{ deprecated
 
     if hasattr(chunk_rule, "start"):
-        ctx.add_warning(location, _("Uses deprecated 'start' attribute--"
+        vctx.add_warning(location, _("Uses deprecated 'start' attribute--"
                 "use 'if_after' instead"))
 
-        ctx.encounter_datespec(location, chunk_rule.start)
+        vctx.encounter_datespec(location, chunk_rule.start)
 
     if hasattr(chunk_rule, "end"):
-        ctx.add_warning(location, _("Uses deprecated 'end' attribute--"
+        vctx.add_warning(location, _("Uses deprecated 'end' attribute--"
                 "use 'if_before' instead"))
 
-        ctx.encounter_datespec(location, chunk_rule.end)
+        vctx.encounter_datespec(location, chunk_rule.end)
 
     if hasattr(chunk_rule, "roles"):
-        ctx.add_warning(location, _("Uses deprecated 'roles' attribute--"
+        vctx.add_warning(location, _("Uses deprecated 'roles' attribute--"
                 "use 'if_has_role' instead"))
 
         for role in chunk_rule.roles:
@@ -293,9 +293,9 @@ def validate_chunk_rule(ctx, location, chunk_rule):
     # }}}
 
 
-def validate_page_chunk(ctx, location, chunk):
+def validate_page_chunk(vctx, location, chunk):
     validate_struct(
-            ctx,
+            vctx,
             location,
             chunk,
             required_attrs=[
@@ -321,14 +321,14 @@ def validate_page_chunk(ctx, location, chunk):
 
     if hasattr(chunk, "rules"):
         for i, rule in enumerate(chunk.rules):
-            validate_chunk_rule(ctx,
+            validate_chunk_rule(vctx,
                     "%s, rule %d" % (location, i+1),
                     rule)
 
 
-def validate_staticpage_desc(ctx, location, page_desc):
+def validate_staticpage_desc(vctx, location, page_desc):
     validate_struct(
-            ctx,
+            vctx,
             location,
             page_desc,
             required_attrs=[
@@ -360,7 +360,7 @@ def validate_staticpage_desc(ctx, location, page_desc):
         assert hasattr(page_desc, "chunks")
 
     for i, chunk in enumerate(page_desc.chunks):
-        validate_page_chunk(ctx,
+        validate_page_chunk(vctx,
                 "%s, chunk %d ('%s')"
                 % (location, i+1, getattr(chunk, "id", None)),
                 chunk)
@@ -386,7 +386,7 @@ def validate_staticpage_desc(ctx, location, page_desc):
 
 # {{{ flow validation
 
-def validate_flow_page(ctx, location, page_desc):
+def validate_flow_page(vctx, location, page_desc):
     if not hasattr(page_desc, "id"):
         raise ValidationError(
                 string_concat(
@@ -394,12 +394,12 @@ def validate_flow_page(ctx, location, page_desc):
                     ugettext("flow page has no ID"))
                 % location)
 
-    validate_identifier(ctx, location, page_desc.id)
+    validate_identifier(vctx, location, page_desc.id)
 
     from course.content import get_flow_page_class
     try:
-        class_ = get_flow_page_class(ctx.repo, page_desc.type, ctx.commit_sha)
-        class_(ctx, location, page_desc)
+        class_ = get_flow_page_class(vctx.repo, page_desc.type, vctx.commit_sha)
+        class_(vctx, location, page_desc)
     except ValidationError:
         raise
     except:
@@ -419,9 +419,9 @@ def validate_flow_page(ctx, location, page_desc):
                     'format_exc': format_exc()})
 
 
-def validate_flow_group(ctx, location, grp):
+def validate_flow_group(vctx, location, grp):
     validate_struct(
-            ctx,
+            vctx,
             location,
             grp,
             required_attrs=[
@@ -436,7 +436,7 @@ def validate_flow_group(ctx, location, grp):
 
     for i, page_desc in enumerate(grp.pages):
         validate_flow_page(
-                ctx,
+                vctx,
                 "%s, page %d ('%s')"
                 % (location, i+1, getattr(page_desc, "id", None)),
                 page_desc)
@@ -472,14 +472,14 @@ def validate_flow_group(ctx, location, grp):
 
     # }}}
 
-    validate_identifier(ctx, location, grp.id)
+    validate_identifier(vctx, location, grp.id)
 
 
 # {{{ flow access rules
 
-def validate_session_start_rule(ctx, location, nrule, tags):
+def validate_session_start_rule(vctx, location, nrule, tags):
     validate_struct(
-            ctx, location, nrule,
+            vctx, location, nrule,
             required_attrs=[],
             allowed_attrs=[
                 ("if_after", datespec_types),
@@ -498,9 +498,9 @@ def validate_session_start_rule(ctx, location, nrule, tags):
             )
 
     if hasattr(nrule, "if_after"):
-        ctx.encounter_datespec(location, nrule.if_after)
+        vctx.encounter_datespec(location, nrule.if_after)
     if hasattr(nrule, "if_before"):
-        ctx.encounter_datespec(location, nrule.if_before)
+        vctx.encounter_datespec(location, nrule.if_before)
     if hasattr(nrule, "if_has_role"):
         for j, role in enumerate(nrule.if_has_role):
             validate_role(
@@ -508,23 +508,23 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                     role)
 
     if hasattr(nrule, "if_in_facility"):
-        validate_facility(ctx, location, nrule.if_in_facility)
+        validate_facility(vctx, location, nrule.if_in_facility)
 
     if hasattr(nrule, "if_has_session_tagged"):
         if nrule.if_has_session_tagged is not None:
-            validate_identifier(ctx, "%s: if_has_session_tagged" % location,
+            validate_identifier(vctx, "%s: if_has_session_tagged" % location,
                     nrule.if_has_session_tagged)
 
     if not hasattr(nrule, "may_start_new_session"):
-        ctx.add_warning(
+        vctx.add_warning(
                 location+", rules",
                 _("attribute 'may_start_new_session' is not present"))
     if not hasattr(nrule, "may_list_existing_sessions"):
-        ctx.add_warning(
+        vctx.add_warning(
                 location+", rules",
                 _("attribute 'may_list_existing_sessions' is not present"))
     if hasattr(nrule, "lock_down_as_exam_session"):
-        ctx.add_warning(
+        vctx.add_warning(
                 location+", rules",
                 _("Attribute 'lock_down_as_exam_session' is deprecated "
                 "and non-functional. Use the access permission flag "
@@ -532,7 +532,7 @@ def validate_session_start_rule(ctx, location, nrule, tags):
 
     if hasattr(nrule, "tag_session"):
         if nrule.tag_session is not None:
-            validate_identifier(ctx, "%s: tag_session" % location,
+            validate_identifier(vctx, "%s: tag_session" % location,
                     nrule.tag_session,
                     warning_only=True)
 
@@ -544,9 +544,9 @@ def validate_session_start_rule(ctx, location, nrule, tags):
                     % {'location': location, 'tag': nrule.tag_session})
 
 
-def validate_session_access_rule(ctx, location, arule, tags):
+def validate_session_access_rule(vctx, location, arule, tags):
     validate_struct(
-            ctx, location, arule,
+            vctx, location, arule,
             required_attrs=[
                 ("permissions", list),
                 ],
@@ -565,11 +565,11 @@ def validate_session_access_rule(ctx, location, arule, tags):
             )
 
     if hasattr(arule, "if_after"):
-        ctx.encounter_datespec(location, arule.if_after)
+        vctx.encounter_datespec(location, arule.if_after)
     if hasattr(arule, "if_before"):
-        ctx.encounter_datespec(location, arule.if_before)
+        vctx.encounter_datespec(location, arule.if_before)
     if hasattr(arule, "if_completed_before"):
-        ctx.encounter_datespec(location, arule.if_completed_before)
+        vctx.encounter_datespec(location, arule.if_completed_before)
 
     if hasattr(arule, "if_has_role"):
         for j, role in enumerate(arule.if_has_role):
@@ -578,7 +578,7 @@ def validate_session_access_rule(ctx, location, arule, tags):
                     role)
 
     if hasattr(arule, "if_in_facility"):
-        validate_facility(ctx, location, arule.if_in_facility)
+        validate_facility(vctx, location, arule.if_in_facility)
 
     if hasattr(arule, "if_has_tag"):
         if not (arule.if_has_tag is None or arule.if_has_tag in tags):
@@ -601,18 +601,18 @@ def validate_session_access_rule(ctx, location, arule, tags):
 
     for j, perm in enumerate(arule.permissions):
         validate_flow_permission(
-                ctx,
+                vctx,
                 "%s, permission %d" % (location, j+1),
                 perm)
 
 
-def validate_session_grading_rule(ctx, location, grule, tags, grade_identifier):
+def validate_session_grading_rule(vctx, location, grule, tags, grade_identifier):
     """
     :returns: whether the rule only applies conditionally
     """
 
     validate_struct(
-            ctx, location, grule,
+            vctx, location, grule,
             required_attrs=[
                 ],
             allowed_attrs=[
@@ -653,7 +653,7 @@ def validate_session_grading_rule(ctx, location, grule, tags, grade_identifier):
     has_conditionals = False
 
     if hasattr(grule, "if_completed_before"):
-        ctx.encounter_datespec(location, grule.if_completed_before)
+        vctx.encounter_datespec(location, grule.if_completed_before)
         has_conditionals = True
 
     if hasattr(grule, "if_has_role"):
@@ -673,7 +673,7 @@ def validate_session_grading_rule(ctx, location, grule, tags, grade_identifier):
         has_conditionals = True
 
     if hasattr(grule, "due"):
-        ctx.encounter_datespec(location, grule.due)
+        vctx.encounter_datespec(location, grule.due)
 
     if (getattr(grule, "generates_grade", True)
             and grade_identifier is None):
@@ -686,9 +686,9 @@ def validate_session_grading_rule(ctx, location, grule, tags, grade_identifier):
     return has_conditionals
 
 
-def validate_flow_rules(ctx, location, rules):
+def validate_flow_rules(vctx, location, rules):
     validate_struct(
-            ctx,
+            vctx,
             location + ", rules",
             rules,
             required_attrs=[
@@ -717,14 +717,14 @@ def validate_flow_rules(ctx, location, rules):
     tags = getattr(rules, "tags", [])
 
     for i, tag in enumerate(tags):
-        validate_identifier(ctx, "%s: tag %d" % (location, i+1), tag)
+        validate_identifier(vctx, "%s: tag %d" % (location, i+1), tag)
 
     # {{{ validate new-session rules
 
     if hasattr(rules, "start"):
         for i, nrule in enumerate(rules.start):
             validate_session_start_rule(
-                    ctx, "%s, rules/start %d" % (location,  i+1),
+                    vctx, "%s, rules/start %d" % (location,  i+1),
                     nrule, tags)
 
     # }}}
@@ -733,7 +733,7 @@ def validate_flow_rules(ctx, location, rules):
 
     for i, arule in enumerate(rules.access):
         validate_session_access_rule(
-                ctx,
+                vctx,
                 location="%s, rules/access #%d"
                 % (location,  i+1), arule=arule, tags=tags)
 
@@ -742,7 +742,7 @@ def validate_flow_rules(ctx, location, rules):
     # {{{ grade_id
 
     if rules.grade_identifier:
-        validate_identifier(ctx, "%s: grade_identifier" % location,
+        validate_identifier(vctx, "%s: grade_identifier" % location,
                 rules.grade_identifier)
         if not hasattr(rules, "grade_aggregation_strategy"):
             raise ValidationError(
@@ -791,7 +791,7 @@ def validate_flow_rules(ctx, location, rules):
 
         for i, grule in enumerate(rules.grading):
             has_conditionals = validate_session_grading_rule(
-                    ctx,
+                    vctx,
                     location="%s, rules/grading #%d"
                     % (location,  i+1), grule=grule, tags=tags,
                     grade_identifier=rules.grade_identifier)
@@ -807,15 +807,15 @@ def validate_flow_rules(ctx, location, rules):
     # }}}
 
 
-def validate_flow_permission(ctx, location, permission):
+def validate_flow_permission(vctx, location, permission):
     from course.constants import FLOW_PERMISSION_CHOICES
     if permission == "modify":
-        ctx.add_warning(location, _("Uses deprecated 'modify' permission--"
+        vctx.add_warning(location, _("Uses deprecated 'modify' permission--"
                 "replace by 'submit_answer' and 'end_session'"))
         return
 
     if permission == "see_answer":
-        ctx.add_warning(location,
+        vctx.add_warning(location,
                 _("Uses deprecated 'see_answer' permission--"
                 "replace by 'see_answer_after_submission'"))
         return
@@ -829,9 +829,9 @@ def validate_flow_permission(ctx, location, permission):
 # }}}
 
 
-def validate_flow_desc(ctx, location, flow_desc):
+def validate_flow_desc(vctx, location, flow_desc):
     validate_struct(
-            ctx,
+            vctx,
             location,
             flow_desc,
             required_attrs=[
@@ -851,7 +851,7 @@ def validate_flow_desc(ctx, location, flow_desc):
             )
 
     if hasattr(flow_desc, "rules"):
-        validate_flow_rules(ctx, location, flow_desc.rules)
+        validate_flow_rules(vctx, location, flow_desc.rules)
 
     # {{{ check for presence of 'groups' or 'pages'
 
@@ -927,13 +927,13 @@ def validate_flow_desc(ctx, location, flow_desc):
     # }}}
 
     for i, grp in enumerate(flow_desc.groups):
-        validate_flow_group(ctx, "%s, group %d ('%s')"
+        validate_flow_group(vctx, "%s, group %d ('%s')"
                 % (location, i+1, grp.id),
                 grp)
 
-    validate_markup(ctx, location, flow_desc.description)
+    validate_markup(vctx, location, flow_desc.description)
     if hasattr(flow_desc, "completion_text"):
-        validate_markup(ctx, location, flow_desc.completion_text)
+        validate_markup(vctx, location, flow_desc.completion_text)
 
     if hasattr(flow_desc, "notify_on_submit"):
         for i, item in enumerate(flow_desc.notify_on_submit):
@@ -947,9 +947,9 @@ def validate_flow_desc(ctx, location, flow_desc):
 
 # {{{ calendar validation
 
-def validate_calendar_desc_struct(ctx, location, events_desc):
+def validate_calendar_desc_struct(vctx, location, events_desc):
     validate_struct(
-            ctx,
+            vctx,
             location,
             events_desc,
             required_attrs=[
