@@ -55,7 +55,7 @@ class MultipleChoiceAnswerForm(StyledForm):
 
         # Translators: "Choice" in Choice Answer Form in a multiple
         # choice question in which multiple answers can be chosen.
-        self.fields["choice"].label = _("Choices")
+        self.fields["choice"].label = _("Select all that apply:")
 
 
 def markup_to_html_plain(page_context, s):
