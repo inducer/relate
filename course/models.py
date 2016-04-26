@@ -631,6 +631,13 @@ class FlowPageVisit(models.Model):
     remote_address = models.GenericIPAddressField(null=True, blank=True,
             verbose_name=_('Remote address'))
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
+            blank=True, related_name="visitor",
+            verbose_name=_('User'), on_delete=models.CASCADE)
+    impersonated_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+            null=True, blank=True, related_name="impersonator",
+            verbose_name=_('Impersonated by'), on_delete=models.CASCADE)
+
     is_synthetic = models.BooleanField(default=False,
             help_text=_("Synthetic flow page visits are generated for "
             "unvisited pages once a flow is finished. This is needed "
@@ -698,6 +705,12 @@ class FlowPageVisit(models.Model):
             return None
         else:
             return get_feedback_for_grade(grade)
+
+    def is_impersonated(self):
+        if self.impersonated_by:
+            return True
+        else:
+            return False
 
 # }}}
 
