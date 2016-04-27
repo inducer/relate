@@ -9,7 +9,7 @@
       <li>
         <a
           class="btn btn-primary"
-          href="{% url "djangosaml2.views.login" %}"
+          href="{% url 'djangosaml2.views.login' %}{{next_uri}}"
           role="button"><i class="fa fa-institution"></i>
           {% trans "Sign in using your institution's login" %} &raquo;</a>
       </li>
@@ -18,7 +18,7 @@
       <li>
         <a
           class="btn btn-primary"
-          href="{% url 'relate-sign_in_by_email' %}"
+          href="{% url 'relate-sign_in_by_email' %}{{next_uri}}"
           role="button"><i class="fa fa-envelope-o"></i>
           {% trans "Sign in using your email" %} &raquo;</a>
       </li>
@@ -44,7 +44,7 @@
     <li>
       <a
         class="btn btn-primary"
-        href="{% url 'relate-sign_in_by_user_pw' %}"
+        href="{% url 'relate-sign_in_by_user_pw' %}{{next_uri}}"
         role="button"><i class="fa fa-key"></i>
         {% trans "Sign in with a RELATE-specific user name and password" %} &raquo;</a>
     </li>

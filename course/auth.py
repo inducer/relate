@@ -269,8 +269,14 @@ class TokenBackend(object):
 
 # {{{ choice
 
-def sign_in_choice(request):
-    return render(request, "sign-in-choice.html")
+def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
+    redirect_to = request.POST.get(redirect_field_name,
+                                   request.GET.get(redirect_field_name, ''))
+    next_uri=""
+    if redirect_to:
+        next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
+
+    return render(request, "sign-in-choice.html", {"next_uri": next_uri})
 
 # }}}
 
@@ -318,11 +324,16 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
     current_site = get_current_site(request)
 
+    next_uri = ""
+    if redirect_to:
+        next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
+
     context = {
         'form': form,
         redirect_field_name: redirect_to,
         'site': current_site,
         'site_name': current_site.name,
+        'next_uri': next_uri,
     }
 
     return TemplateResponse(request, "course/login.html", context)

@@ -496,7 +496,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
         else:
             return string_concat("(", _("anonymous"), ")")
 
-    get_participant.short_description = _("Participant")
+    get_participant.short_description = _("Owner")
     get_participant.admin_order_field = "flow_session__participation"
 
     def get_answer_is_null(self, obj):
@@ -528,6 +528,8 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             "get_answer_is_null",
             "is_submitted_answer",
             "is_synthetic",
+            "user",
+            "impersonated_by",
             )
     list_display_links = (
             "id",
