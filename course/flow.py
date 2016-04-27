@@ -1404,7 +1404,7 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
 
 
 def create_flow_page_visit(request, flow_session, page_data):
-    visit =FlowPageVisit(
+    visit = FlowPageVisit(
         flow_session=flow_session,
         page_data=page_data,
         remote_address=request.META['REMOTE_ADDR'],
