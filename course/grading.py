@@ -52,8 +52,9 @@ from django.utils import translation
 # {{{ grading driver
 
 @course_view
-@retry_transaction_decorator()
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
+    now_datetime = get_now_or_fake_time(pctx.request)
+
     page_ordinal = int(page_ordinal)
 
     if pctx.role not in [
@@ -187,20 +188,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         correctness=correctness,
                         feedback=feedback_json)
 
-                most_recent_grade.save()
-
-                update_bulk_feedback(
-                        fpctx.prev_answer_visit.page_data,
-                        most_recent_grade,
-                        bulk_feedback_json)
-
-                grading_rule = get_session_grading_rule(
-                        flow_session, flow_session.participation.role,
-                        fpctx.flow_desc, get_now_or_fake_time(request))
-
-                from course.flow import grade_flow_session
-                grade_flow_session(fpctx, flow_session, grading_rule)
-
+                _save_grade(fpctx, flow_session, most_recent_grade,
+                        bulk_feedback_json, now_datetime)
         else:
             grading_form = fpctx.page.make_grading_form(
                     fpctx.page_context, fpctx.page_data, grade_data)
@@ -278,6 +267,24 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                     fpctx.page_context, fpctx.page_data.data,
                     answer_data, grade_data),
             })
+
+
+@retry_transaction_decorator()
+def _save_grade(fpctx, flow_session, most_recent_grade, bulk_feedback_json,
+        now_datetime):
+    most_recent_grade.save()
+
+    update_bulk_feedback(
+            fpctx.prev_answer_visit.page_data,
+            most_recent_grade,
+            bulk_feedback_json)
+
+    grading_rule = get_session_grading_rule(
+            flow_session, flow_session.participation.role,
+            fpctx.flow_desc, now_datetime)
+
+    from course.flow import grade_flow_session
+    grade_flow_session(fpctx, flow_session, grading_rule)
 
 # }}}
 
