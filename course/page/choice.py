@@ -322,8 +322,8 @@ class MultipleChoiceQuestion(ChoiceQuestion):
 
         *   ``proportional_correct``: Correctness is determined
             as the fraction of boxes that are checked in both the participant's
-            answer and the solution. Credit is only awarded if *no*
-            incorrect answer is checked.
+            answer and the solution relative to the total number of correct answers.
+            Credit is only awarded if *no* incorrect answer is checked.
     """
 
     def __init__(self, vctx, location, page_desc):
