@@ -347,12 +347,14 @@ class MultipleChoiceQuestion(ChoiceQuestion):
                         % {'location': location})
 
         else:
-            credit_mode = "exact"
 
             partial = getattr(pd, "allow_partial_credit", False)
-            partial_subset = getattr(pd, "allow_partial_credit", False)
+            partial_subset = getattr(pd, "allow_partial_credit_subset_only", False)
 
-            if partial and not partial_subset:
+            print(partial, partial_subset, pd.__dict__)
+            if not partial and not partial_subset:
+                credit_mode = "exact"
+            elif partial and not partial_subset:
                 credit_mode = "proportional"
             elif not partial and partial_subset:
                 credit_mode = "proportional_correct"
@@ -362,8 +364,10 @@ class MultipleChoiceQuestion(ChoiceQuestion):
                             "%(location)s: ",
                             _("'allow_partial_credit' and "
                             "'allow_partial_credit_subset_only' are not allowed to "
-                            "co-exist when both attribute are 'True'"))
+                            "coexist when both attribute are 'True'"))
                         % {'location': location})
+            else:
+                assert False
 
         if credit_mode not in [
                 "exact",
