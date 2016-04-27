@@ -118,8 +118,8 @@ def get_auto_feedback(correctness):
     else:
         return six.text_type(
                 string_concat(
-                    _("Your answer is somewhat correct."),
-                    "(%.1f %%)")
+                    _("Your answer is somewhat correct. "),
+                    "(%.1f%%)")
                 % (100*correctness))
 
 
