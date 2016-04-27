@@ -351,7 +351,6 @@ class MultipleChoiceQuestion(ChoiceQuestion):
             partial = getattr(pd, "allow_partial_credit", False)
             partial_subset = getattr(pd, "allow_partial_credit_subset_only", False)
 
-            print(partial, partial_subset, pd.__dict__)
             if not partial and not partial_subset:
                 credit_mode = "exact"
             elif partial and not partial_subset:
