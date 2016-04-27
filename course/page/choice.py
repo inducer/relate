@@ -309,41 +309,86 @@ class MultipleChoiceQuestion(ChoiceQuestion):
         Optional. ``True`` or ``False``. If true, the choices will
         be presented in random order.
 
-    .. attribute:: allow_partial_credit
+    .. attribute:: credit_mode
 
-        Optional. ``True`` or ``False``. If False (default), only
-        answers in which all check marks match the reference solution will
-        be counted as correct.  If True, answers with subset of correct
-        choices will receive credit for each matching check box, irrespective
-        of whether it is checked or not.
+        One of the following:
 
-    .. attribute:: allow_partial_credit_subset_only
+        *   ``exact``: The question is scored as correct if and only if all
+            check boxes match the correct solution.
 
-        Optional. ``True`` or ``False``. If False (default), only
-        answers in which all check marks match the reference solution will
-        be counted as correct.  If True, partial credits will only be granted
-        to answers which are strict subsets of reference solution.
+        *   ``proportional``: Correctness is determined as the fraction
+            of (checked or unchecked) boxes that match the value in the
+            solution.
+
+        *   ``proportional_correct``: Correctness is determined
+            as the fraction of boxes that are checked in both the participant's
+            answer and the solution. Credit is only awarded if *no*
+            incorrect answer is checked.
     """
 
     def __init__(self, vctx, location, page_desc):
         super(MultipleChoiceQuestion, self).__init__(vctx, location, page_desc)
 
-        if (
-                getattr(self.page_desc, "allow_partial_credit", False)
-                and
-                getattr(self.page_desc, "allow_partial_credit_subset_only", False)):
+        pd = self.page_desc
+
+        if hasattr(pd, "credit_mode"):
+            credit_mode = pd.credit_mode
+
+            if (
+                    hasattr(pd, "allow_partial_credit")
+                    or
+                    hasattr(pd, "allow_partial_credit_subset_only")):
+                raise ValidationError(
+                        string_concat(
+                            "%(location)s: ",
+                            _("'allow_partial_credit' or "
+                            "'allow_partial_credit_subset_only' may not be specified"
+                            "at the same time as 'credit_mode'"))
+                        % {'location': location})
+
+        else:
+            credit_mode = "exact"
+
+            partial = getattr(pd, "allow_partial_credit", False)
+            partial_subset = getattr(pd, "allow_partial_credit", False)
+
+            if partial and not partial_subset:
+                credit_mode = "proportional"
+            elif not partial and partial_subset:
+                credit_mode = "proportional_correct"
+            elif partial and partial_subset:
+                raise ValidationError(
+                        string_concat(
+                            "%(location)s: ",
+                            _("'allow_partial_credit' and "
+                            "'allow_partial_credit_subset_only' are not allowed to "
+                            "co-exist when both attribute are 'True'"))
+                        % {'location': location})
+
+        if credit_mode not in [
+                "exact",
+                "proportional",
+                "proportional_correct"]:
             raise ValidationError(
                     string_concat(
                         "%(location)s: ",
-                        _("'allow_partial_credit' and "
-                        "'allow_partial_credit_subset_only' are not allowed to "
-                        "co-exist when both attribute are 'True'"))
-                    % {'location': location})
+                        _("unrecognized credit_mode '%(credit_mode)s'"))
+                    % {'location': location, "credit_mode": credit_mode})
+
+        if vctx is not None and not hasattr(pd, "credit_mode"):
+            vctx.add_warning(location,
+                    _("'credit_mode' will be required on multi-select choice "
+                        "questions in a future version. set "
+                        "'credit_mode: {}' to match current behavior.")
+                    .format(credit_mode))
+
+        self.credit_mode = credit_mode
 
     def allowed_attrs(self):
         return super(MultipleChoiceQuestion, self).allowed_attrs() + (
                 ("allow_partial_credit", bool),
                 ("allow_partial_credit_subset_only", bool),
+                ("credit_mode", str),
                 )
 
     def make_choice_form(self, page_context, page_data, page_behavior,
@@ -379,26 +424,28 @@ class MultipleChoiceQuestion(ChoiceQuestion):
         unpermed_idx_set = set([permutation[idx] for idx in choice])
         correct_idx_set = set(self.unpermuted_correct_indices())
 
-        if unpermed_idx_set == correct_idx_set:
-            correctness = 1
-        else:
-            if getattr(self.page_desc, "allow_partial_credit", False):
-                correctness = (
-                        (
-                            len(self.page_desc.choices)
-                            -
-                            len(unpermed_idx_set
-                                .symmetric_difference(correct_idx_set)))
-                        /
-                        len(self.page_desc.choices))
-            elif getattr(self.page_desc, "allow_partial_credit_subset_only",
-                         False):
-                if unpermed_idx_set < correct_idx_set:
-                    correctness = (
-                            len(unpermed_idx_set)/len(correct_idx_set))
-                else:
-                    correctness = 0
+        if self.credit_mode == "exact":
+            if unpermed_idx_set == correct_idx_set:
+                correctness = 1
             else:
+                correctness = 0
+
+        elif self.credit_mode == "proportional":
+
+            correctness = (
+                    (
+                        len(self.page_desc.choices)
+                        -
+                        len(unpermed_idx_set
+                            .symmetric_difference(correct_idx_set)))
+                    /
+                    len(self.page_desc.choices))
+
+        elif self.credit_mode == "proportional_correct":
+
+            correctness = (
+                    len(unpermed_idx_set & correct_idx_set)/len(correct_idx_set))
+            if not (unpermed_idx_set <= correct_idx_set):
                 correctness = 0
 
         return AnswerFeedback(correctness=correctness)
