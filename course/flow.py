@@ -78,6 +78,201 @@ from course.views import get_now_or_fake_time
 from relate.utils import retry_transaction_decorator
 
 
+# {{{ page data wrangling
+
+@retry_transaction_decorator(serializable=True)
+def _adjust_flow_session_page_data_inner(repo, flow_session,
+        course_identifier, flow_desc, commit_sha):
+    from course.page.base import PageContext
+    pctx = PageContext(
+            course=flow_session.course,
+            repo=repo,
+            commit_sha=commit_sha,
+            flow_session=flow_session,
+            in_sandbox=False,
+            page_uri=None)
+
+    from course.models import FlowPageData
+
+    def remove_page(fpd):
+        if fpd.ordinal is not None:
+            fpd.ordinal = None
+            fpd.save()
+
+    desc_group_ids = []
+
+    ordinal = [0]
+    for grp in flow_desc.groups:
+        desc_group_ids.append(grp.id)
+
+        shuffle = getattr(grp, "shuffle", False)
+        max_page_count = getattr(grp, "max_page_count", None)
+
+        available_page_ids = [page_desc.id for page_desc in grp.pages]
+
+        if max_page_count is None:
+            max_page_count = len(available_page_ids)
+
+        group_pages = []
+
+        # {{{ helper functions
+
+        def find_page_desc(page_id):
+            new_page_desc = None
+
+            for page_desc in grp.pages:
+                if page_desc.id == page_id:
+                    new_page_desc = page_desc
+                    break
+
+            assert new_page_desc is not None
+
+            return new_page_desc
+
+        def instantiate_page(page_desc):
+            from course.content import instantiate_flow_page
+            return instantiate_flow_page(
+                    "course '%s', flow '%s', page '%s/%s'"
+                    % (course_identifier, flow_session.flow_id,
+                        grp.id, page_desc.id),
+                    repo, page_desc, commit_sha)
+
+        def create_fpd(new_page_desc):
+            page = instantiate_page(new_page_desc)
+
+            data = page.make_page_data()
+            return FlowPageData(
+                    flow_session=flow_session,
+                    ordinal=None,
+                    page_type=new_page_desc.type,
+                    group_id=grp.id,
+                    page_id=new_page_desc.id,
+                    data=data,
+                    title=page.title(pctx, data))
+
+        def add_page(fpd):
+            if fpd.ordinal != ordinal[0]:
+                fpd.ordinal = ordinal[0]
+                fpd.save()
+
+            page_desc = find_page_desc(fpd.page_id)
+            page = instantiate_page(page_desc)
+            title = page.title(pctx, fpd.data)
+
+            if fpd.title != title:
+                fpd.title = title
+                fpd.save()
+
+            ordinal[0] += 1
+            available_page_ids.remove(fpd.page_id)
+
+            group_pages.append(fpd)
+
+        # }}}
+
+        if shuffle:
+            # maintain order of existing pages as much as possible
+            for fpd in (FlowPageData.objects
+                    .filter(
+                        flow_session=flow_session,
+                        group_id=grp.id,
+                        ordinal__isnull=False)
+                    .order_by("ordinal")):
+
+                if (fpd.page_id in available_page_ids
+                        and len(group_pages) < max_page_count):
+                    add_page(fpd)
+                else:
+                    remove_page(fpd)
+
+            assert len(group_pages) <= max_page_count
+
+            from random import choice
+
+            # then add randomly chosen new pages
+            while len(group_pages) < max_page_count and available_page_ids:
+                new_page_id = choice(available_page_ids)
+
+                new_page_fpds = (FlowPageData.objects
+                        .filter(
+                            flow_session=flow_session,
+                            group_id=grp.id,
+                            page_id=new_page_id))
+
+                if new_page_fpds.count():
+                    # We already have FlowPageData for this page, revive it
+                    new_page_fpd, = new_page_fpds
+                    assert new_page_fpd.page_id == new_page_id
+                else:
+                    # Make a new FlowPageData instance
+                    page_desc = find_page_desc(new_page_id)
+                    assert page_desc.id == new_page_id
+                    new_page_fpd = create_fpd(page_desc)
+                    assert new_page_fpd.page_id == new_page_id
+
+                add_page(new_page_fpd)
+
+        else:
+            # reorder pages to order in flow
+            id_to_fpd = dict(
+                    ((fpd.group_id, fpd.page_id), fpd)
+                    for fpd in FlowPageData.objects.filter(
+                        flow_session=flow_session,
+                        group_id=grp.id))
+
+            for page_desc in grp.pages:
+                key = (grp.id, page_desc.id)
+
+                if key in id_to_fpd:
+                    fpd = id_to_fpd.pop(key)
+                else:
+                    fpd = create_fpd(page_desc)
+
+                if len(group_pages) < max_page_count:
+                    add_page(fpd)
+
+            for fpd in id_to_fpd.values():
+                remove_page(fpd)
+
+    # {{{ remove pages orphaned because of group renames
+
+    for fpd in (
+            FlowPageData.objects
+            .filter(
+                flow_session=flow_session,
+                ordinal__isnull=False)
+            .exclude(group_id__in=desc_group_ids)
+            ):
+        remove_page(fpd)
+
+    # }}}
+
+    return ordinal[0]  # new page count
+
+
+def adjust_flow_session_page_data(repo, flow_session,
+        course_identifier, flow_desc):
+    from course.content import get_course_commit_sha
+    commit_sha = get_course_commit_sha(
+            flow_session.course, flow_session.participation)
+    revision_key = "2:"+commit_sha.decode()
+
+    if flow_session.page_data_at_revision_key == revision_key:
+        return
+
+    new_page_count = _adjust_flow_session_page_data_inner(
+            repo, flow_session, course_identifier, flow_desc,
+            commit_sha)
+
+    # These are idempotent, so they don't need to be guarded by a seqcst
+    # transaction.
+    flow_session.page_count = new_page_count
+    flow_session.page_data_at_revision_key = revision_key
+    flow_session.save()
+
+# }}}
+
+
 # {{{ grade page visit
 
 def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
@@ -193,7 +388,6 @@ def start_flow(repo, course, participation, user, flow_id, flow_desc,
                         ))
 
     # will implicitly modify and save the session if there are changes
-    from course.content import adjust_flow_session_page_data
     adjust_flow_session_page_data(repo, session,
             course.identifier, flow_desc)
 
@@ -594,7 +788,7 @@ def finish_flow_session(fctx, flow_session, grading_rule,
 
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
-    from course.content import adjust_flow_session_page_data
+    # will implicitly modify and save the session if there are changes
     adjust_flow_session_page_data(fctx.repo, flow_session,
             fctx.course.identifier, fctx.flow_desc)
 
@@ -695,7 +889,7 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     grade change with the grade records subsystem.
     """
 
-    from course.content import adjust_flow_session_page_data
+    # will implicitly modify and save the session if there are changes
     adjust_flow_session_page_data(fctx.repo, flow_session,
             fctx.course.identifier, fctx.flow_desc)
 

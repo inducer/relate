@@ -463,7 +463,7 @@ class FlowSession(models.Model):
     # This field allows avoiding redundant checks for whether the
     # page data is in line with the course material and the current
     # version of RELATE.
-    # See course.content.adjust_flow_session_page_data.
+    # See course.flow.adjust_flow_session_page_data.
     page_data_at_revision_key = models.CharField(
             max_length=200, null=True, blank=True,
             verbose_name=_('Page data at course revision'),

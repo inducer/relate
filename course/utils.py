@@ -416,8 +416,10 @@ class FlowContext(object):
             raise http.Http404()
 
         if flow_session is not None:
-            from course.content import adjust_flow_session_page_data
-            adjust_flow_session_page_data(repo, flow_session,
+            from course.flow import adjust_flow_session_page_data
+
+            # will implicitly modify and save the session if there are changes
+            flow_session = adjust_flow_session_page_data(repo, flow_session,
                     course.identifier, self.flow_desc)
 
 
