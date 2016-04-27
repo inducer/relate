@@ -359,7 +359,8 @@ class MultipleChoiceQuestion(ChoiceQuestion):
             forms.TypedMultipleChoiceField(
                 choices=tuple(choices),
                 coerce=int,
-                widget=forms.CheckboxSelectMultiple()),
+                widget=forms.CheckboxSelectMultiple(),
+                required=False),
             *args, **kwargs)
 
         if not page_behavior.may_change_answer:
