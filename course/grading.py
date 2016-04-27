@@ -79,6 +79,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     if fpctx.page_desc is None:
         raise http.Http404()
 
+    from course.flow import adjust_flow_session_page_data
+    adjust_flow_session_page_data(pctx.repo, flow_session,
+            pctx.course.identifier, fpctx.flow_desc)
+
     # {{{ enable flow session zapping
 
     all_flow_sessions = list(FlowSession.objects

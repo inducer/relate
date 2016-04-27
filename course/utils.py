@@ -394,8 +394,7 @@ class CoursePageContext(object):
 
 
 class FlowContext(object):
-    def __init__(self, repo, course, flow_id,
-            participation=None, flow_session=None):
+    def __init__(self, repo, course, flow_id, participation=None):
         """*participation* and *flow_session* are not stored and only used
         to figure out versioning of the flow content.
         """
@@ -415,13 +414,6 @@ class FlowContext(object):
         except ObjectDoesNotExist:
             raise http.Http404()
 
-        if flow_session is not None:
-            from course.flow import adjust_flow_session_page_data
-
-            # will implicitly modify and save the session if there are changes
-            flow_session = adjust_flow_session_page_data(repo, flow_session,
-                    course.identifier, self.flow_desc)
-
 
 class PageOrdinalOutOfRange(http.Http404):
     pass
@@ -437,8 +429,7 @@ class FlowPageContext(FlowContext):
 
     def __init__(self, repo, course, flow_id, ordinal,
              participation, flow_session, request=None):
-        FlowContext.__init__(self, repo, course, flow_id,
-                participation, flow_session=flow_session)
+        super(FlowPageContext, self).__init__(repo, course, flow_id, participation)
 
         if ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()

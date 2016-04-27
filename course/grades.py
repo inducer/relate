@@ -50,6 +50,7 @@ from course.models import (
         GradingOpportunity, GradeChange, GradeStateMachine,
         grade_state_change_types,
         FlowSession, FlowPageVisit)
+from course.flow import adjust_flow_session_page_data
 from course.views import get_now_or_fake_time
 
 
@@ -789,6 +790,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             session = FlowSession.objects.get(id=int(action_match.group(2)))
             op = action_match.group(1)
 
+            adjust_flow_session_page_data(
+                    pctx.repo, session, pctx.course.identifier)
+
             from course.flow import (
                     regrade_session,
                     recalculate_session_grade,
@@ -824,7 +828,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                 else:
                     raise SuspiciousOperation(_("invalid session operation"))
 
-            except Exception as e:
+            except KeyboardInterrupt as e:
                 messages.add_message(pctx.request, messages.ERROR,
                         string_concat(
                             pgettext_lazy("Starting of Error message",
@@ -875,6 +879,10 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         else:
             flow_sessions_and_session_properties = []
             for session in flow_sessions:
+                adjust_flow_session_page_data(
+                        pctx.repo, session, pctx.course.identifier,
+                        flow_desc)
+
                 grading_rule = get_session_grading_rule(
                         session, pctx.role, flow_desc, now_datetime)
 
