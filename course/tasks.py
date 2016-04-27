@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 from celery import shared_task
 
-from django.db import transaction
 from django.utils.translation import ugettext as _
 
 from course.models import (Course, FlowSession)
@@ -34,7 +33,6 @@ from course.content import get_course_repo
 
 
 @shared_task(bind=True)
-@transaction.atomic
 def expire_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime,
         past_due_only):
     course = Course.objects.get(id=course_id)
@@ -69,7 +67,6 @@ def expire_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
 
 
 @shared_task(bind=True)
-@transaction.atomic
 def finish_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime,
         past_due_only):
     course = Course.objects.get(id=course_id)
@@ -89,6 +86,9 @@ def finish_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
 
     from course.flow import finish_flow_session_standalone
     for i, session in enumerate(sessions):
+        from course.flow import adjust_flow_session_page_data
+        adjust_flow_session_page_data(repo, session, course.identifier)
+
         if finish_flow_session_standalone(repo, course, session,
                 now_datetime=now_datetime, past_due_only=past_due_only):
             count += 1
@@ -103,7 +103,6 @@ def finish_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
 
 
 @shared_task(bind=True)
-@transaction.atomic
 def recalculate_ended_sessions(self, course_id, flow_id, rule_tag):
     course = Course.objects.get(id=course_id)
     repo = get_course_repo(course)
@@ -135,7 +134,6 @@ def recalculate_ended_sessions(self, course_id, flow_id, rule_tag):
 
 
 @shared_task(bind=True)
-@transaction.atomic
 def regrade_flow_sessions(self, course_id, flow_id, access_rules_tag, inprog_value):
     course = Course.objects.get(id=course_id)
     repo = get_course_repo(course)

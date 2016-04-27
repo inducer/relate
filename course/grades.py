@@ -50,6 +50,7 @@ from course.models import (
         GradingOpportunity, GradeChange, GradeStateMachine,
         grade_state_change_types,
         FlowSession, FlowPageVisit)
+from course.flow import adjust_flow_session_page_data
 from course.views import get_now_or_fake_time
 
 
@@ -561,14 +562,14 @@ def view_grades_by_opportunity(pctx, opp_id):
 
     if view_page_grades and len(grade_table) > 0:
         # Query grades for flow pages
-        all_flow_sessions = [info.flow_session for _, info in grade_table]
+        all_flow_sessions = [info.flow_session for _dummy, info in grade_table]
         max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
         page_numbers = list(range(1, 1 + max_page_count))
 
         from course.flow import assemble_page_grades
         page_grades = assemble_page_grades(all_flow_sessions)
 
-        for (_, grade_info), grade_list in zip(grade_table, page_grades):
+        for (_dummy, grade_info), grade_list in zip(grade_table, page_grades):
             # Not all pages exist in all sessions
             grades = list(enumerate(grade_list))
             if len(grades) < max_page_count:
@@ -789,6 +790,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             session = FlowSession.objects.get(id=int(action_match.group(2)))
             op = action_match.group(1)
 
+            adjust_flow_session_page_data(
+                    pctx.repo, session, pctx.course.identifier)
+
             from course.flow import (
                     regrade_session,
                     recalculate_session_grade,
@@ -824,7 +828,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                 else:
                     raise SuspiciousOperation(_("invalid session operation"))
 
-            except Exception as e:
+            except KeyboardInterrupt as e:
                 messages.add_message(pctx.request, messages.ERROR,
                         string_concat(
                             pgettext_lazy("Starting of Error message",
@@ -875,6 +879,10 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         else:
             flow_sessions_and_session_properties = []
             for session in flow_sessions:
+                adjust_flow_session_page_data(
+                        pctx.repo, session, pctx.course.identifier,
+                        flow_desc)
+
                 grading_rule = get_session_grading_rule(
                         session, pctx.role, flow_desc, now_datetime)
 
@@ -1011,6 +1019,7 @@ class ImportGradesForm(StyledForm):
 
 class ParticipantNotFound(ValueError):
     pass
+
 
 def find_participant_from_inst_id(course, inst_id_str):
     inst_id_str = inst_id_str.strip()
