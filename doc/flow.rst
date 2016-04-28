@@ -723,6 +723,52 @@ of interaction. Some of what's possible may not be readily apparent
 from the reference documentation above, so the following examples
 serve to illustrate the possibilities.
 
+Simple Single-Submission Assignment with a Due Date
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The rules for this can be written as follows::
+
+    title: "An assignment"
+    description: |
+
+        # An Assignment
+
+    rules:
+        start:
+        -
+            if_before: my_assignment_due
+            if_has_role: [student, ta, instructor]
+            if_has_fewer_sessions_than: 1
+            may_start_new_session: True
+            may_list_existing_sessions: True
+
+        -
+            may_start_new_session: False
+            may_list_existing_sessions: True
+
+        access:
+        -
+            # 'modify'-type permissions are automatically removed at
+            # session end. Add the following if desired:
+            #
+            # see_correctness
+            # change_answer
+            #
+            permissions: [view, submit_answer, end_session]
+
+        grade_identifier: "my_assignment"
+        grade_aggregation_strategy: max_grade
+
+        grading:
+        -
+            credit_percent: 100
+            due: my_assignment_due
+            description: "Full credit"
+
+    pages:
+
+    -   ....
+
 Exam
 ^^^^
 
@@ -740,55 +786,59 @@ The rules for this can be written as follows::
         # Midterm exam 1
 
     rules:
-      grade_identifier: exam_1
-      grade_aggregation_strategy: use_earliest
+        grade_identifier: exam_1
+        grade_aggregation_strategy: use_earliest
 
-      start:
-      -
-          if_has_role: [instructor]
-          may_start_new_session: True
-          may_list_existing_sessions: True
+        start:
+        -
+            if_has_role: [instructor]
+            may_start_new_session: True
+            may_list_existing_sessions: True
 
-      -
-          if_in_facility: "cbtf"
-          if_has_role: [student, instructor]
-          if_has_fewer_sessions_than: 1
-          may_start_new_session: True
-          may_list_existing_sessions: True
+        -
+            if_in_facility: "cbtf"
+            if_has_role: [student, instructor]
+            if_has_fewer_sessions_than: 1
+            may_start_new_session: True
+            may_list_existing_sessions: True
 
-      -
-          if_in_facility: "cbtf"
-          if_has_role: [student, instructor]
-          may_start_new_session: False
-          may_list_existing_sessions: True
+        -
+            if_in_facility: "cbtf"
+            if_has_role: [student, instructor]
+            may_start_new_session: False
+            may_list_existing_sessions: True
 
-      -
-          may_start_new_session: False
-          may_list_existing_sessions: False
+        -
+            may_start_new_session: False
+            may_list_existing_sessions: False
 
-      access:
-      -
-          if_after: end_of_class
-          if_has_role: [unenrolled, student]
-          permissions: []
+        access:
+        -
+            if_after: end_of_class
+            if_has_role: [unenrolled, student]
+            permissions: []
 
-      -
-          if_in_facility: "cbtf"
-          if_has_role: [student, instructor]
-          if_after: exam 1 - 1 week
-          if_before: end:exam 1 + 2 weeks
-          permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+        -
+            if_in_facility: "cbtf"
+            if_has_role: [student, instructor]
+            if_after: exam 1 - 1 week
+            if_before: end:exam 1 + 2 weeks
+            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
 
-      -
-          if_has_role: [instructor]
-          permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+        -
+            if_has_role: [instructor]
+            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
 
-      -
-          permissions: []
+        -
+            permissions: []
 
-      grading:
+        grading:
+        -   generates_grade: true
 
-      -   generates_grade: true
+    pages:
+
+    -   ....
+
 
 Pre-Lecture Quiz with Multiple Attempts and Practice Sessions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -889,6 +939,10 @@ The rules for this can be written as follows::
 
         -
             credit_percent: 0
+
+    pages:
+
+    -   ....
 
 Homework Set with Grace Period
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1039,4 +1093,8 @@ The rules for this can be written as follows::
 
         -
             credit_percent: 0
+
+    pages:
+
+    -   ....
 
