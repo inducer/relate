@@ -389,6 +389,11 @@ Rules about accessing and interacting with a flow
         (Optional) A :ref:`datespec <datespec>` that determines a date/time before which this rule
         applies.
 
+    .. attribute:: if_started_before
+
+        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session was started before
+        this time.
+
     .. attribute:: if_has_role
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
@@ -463,6 +468,11 @@ Determining how final (overall) grades of flows are computed
     .. attribute:: if_has_role
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
+
+    .. attribute:: if_started_before
+
+        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session was started before
+        this time.
 
     .. attribute:: if_has_tag
 

@@ -107,6 +107,19 @@ def _eval_generic_conditions(rule, course, role, now_datetime):
     return True
 
 
+def _eval_generic_session_conditions(rule, session, role, now_datetime):
+    if hasattr(rule, "if_has_tag"):
+        if session.access_rules_tag != rule.if_has_tag:
+            return False
+
+    if hasattr(rule, "if_started_before"):
+        ds = parse_date_spec(session.course, rule.if_started_before)
+        if not session.start_time < ds:
+            return False
+
+    return True
+
+
 def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
         consider_exceptions=True, default_rules_desc=[]):
     if (not hasattr(flow_desc, "rules")
@@ -233,12 +246,11 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
         if not _eval_generic_conditions(rule, session.course, role, now_datetime):
             continue
 
+        if not _eval_generic_session_conditions(rule, session, role, now_datetime):
+            continue
+
         if hasattr(rule, "if_in_facility"):
             if rule.if_in_facility not in facilities:
-                continue
-
-        if hasattr(rule, "if_has_tag"):
-            if session.access_rules_tag != rule.if_has_tag:
                 continue
 
         if hasattr(rule, "if_in_progress"):
@@ -308,9 +320,8 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
             if role not in rule.if_has_role:
                 continue
 
-        if hasattr(rule, "if_has_tag"):
-            if session.access_rules_tag != rule.if_has_tag:
-                continue
+        if not _eval_generic_session_conditions(rule, session, role, now_datetime):
+            continue
 
         if hasattr(rule, "if_completed_before"):
             ds = parse_date_spec(session.course, rule.if_completed_before)

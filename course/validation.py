@@ -553,6 +553,7 @@ def validate_session_access_rule(vctx, location, arule, tags):
             allowed_attrs=[
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
+                ("if_started_before", datespec_types),
                 ("if_has_role", list),
                 ("if_in_facility", str),
                 ("if_has_tag", (six.string_types, type(None))),
@@ -618,6 +619,7 @@ def validate_session_grading_rule(vctx, location, grule, tags, grade_identifier)
             allowed_attrs=[
                 ("if_has_role", list),
                 ("if_has_tag", (six.string_types, type(None))),
+                ("if_started_before", datespec_types),
                 ("if_completed_before", datespec_types),
 
                 ("credit_percent", (int, float)),
