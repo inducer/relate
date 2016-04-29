@@ -65,9 +65,123 @@ def markup_to_html_plain(page_context, s):
     return s
 
 
+# {{{ choice question base
+
+class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
+    CORRECT_TAG = "~CORRECT~"
+    DISREGARD_TAG = "~DISREGARD~"
+
+    @classmethod
+    def process_choice_string(cls, page_context, s):
+        if not isinstance(s, str):
+            s = str(s)
+        s = remove_prefix(cls.CORRECT_TAG, s)
+        s = remove_prefix(cls.DISREGARD_TAG, s)
+        s = markup_to_html_plain(page_context, s)
+        # allow HTML in option
+        s = mark_safe(s)
+
+        return s
+
+    def __init__(self, vctx, location, page_desc):
+        super(ChoiceQuestionBase, self).__init__(vctx, location, page_desc)
+
+        self.correct_choice_count = 0
+        self.disregard_choice_count = 0
+        for choice_idx, choice in enumerate(page_desc.choices):
+            try:
+                choice = str(choice)
+            except:
+                raise ValidationError(
+                        string_concat(
+                            "%(location)s, ",
+                            _("choice %(idx)d: unable to convert to string")
+                            )
+                        % {'location': location, 'idx': choice_idx+1})
+
+            if choice.startswith(self.CORRECT_TAG):
+                self.correct_choice_count += 1
+
+            if choice.startswith(self.DISREGARD_TAG):
+                self.disregard_choice_count += 1
+
+            if vctx is not None:
+                validate_markup(vctx, location,
+                        remove_prefix(self.DISREGARD_TAG,
+                            remove_prefix(self.CORRECT_TAG,
+                                choice)))
+
+    def required_attrs(self):
+        return super(ChoiceQuestionBase, self).required_attrs() + (
+                ("prompt", "markup"),
+                ("choices", list),
+                )
+
+    def allowed_attrs(self):
+        return super(ChoiceQuestionBase, self).allowed_attrs() + (
+                ("shuffle", bool),
+                )
+
+    def markup_body_for_title(self):
+        return self.page_desc.prompt
+
+    def body(self, page_context, page_data):
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def make_page_data(self):
+        import random
+        perm = list(range(len(self.page_desc.choices)))
+        if getattr(self.page_desc, "shuffle", False):
+            random.shuffle(perm)
+
+        return {"permutation": perm}
+
+    def unpermuted_indices_with_tag(self, tag):
+        result = []
+        for i, choice_text in enumerate(self.page_desc.choices):
+            if str(choice_text).startswith(tag):
+                result.append(i)
+
+        return result
+
+    def unpermuted_correct_indices(self):
+        return self.unpermuted_indices_with_tag(self.CORRECT_TAG)
+
+    def unpermuted_disregard_indices(self):
+        return self.unpermuted_indices_with_tag(self.DISREGARD_TAG)
+
+    def make_form(self, page_context, page_data,
+            answer_data, page_behavior):
+        if (
+                "permutation" not in page_data
+                or (set(page_data["permutation"])
+                    != set(range(len(self.page_desc.choices))))):
+            from course.page import InvalidPageData
+            raise InvalidPageData(ugettext(
+                "existing choice permutation not "
+                "suitable for number of choices in question"))
+
+        if answer_data is not None:
+            form_data = {"choice": answer_data["choice"]}
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior, form_data)
+        else:
+            form = self.make_choice_form(
+                    page_context, page_data, page_behavior)
+
+        return form
+
+    def process_form_post(self, page_context, page_data, post_data, files_data,
+            page_behavior):
+        return self.make_choice_form(
+                    page_context, page_data, page_behavior, post_data, files_data)
+
+# }}}
+
+
 # {{{ choice question
 
-class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
+class ChoiceQuestion(ChoiceQuestionBase):
     """
     A page asking the participant to choose one of multiple answers.
 
@@ -106,42 +220,10 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
         be presented in random order.
     """
 
-    CORRECT_TAG = "~CORRECT~"
-
-    @classmethod
-    def process_choice_string(cls, page_context, s):
-        if not isinstance(s, str):
-            s = str(s)
-        s = remove_prefix(cls.CORRECT_TAG, s)
-        s = markup_to_html_plain(page_context, s)
-        # allow HTML in option
-        s = mark_safe(s)
-
-        return s
-
     def __init__(self, vctx, location, page_desc):
         super(ChoiceQuestion, self).__init__(vctx, location, page_desc)
 
-        correct_choice_count = 0
-        for choice_idx, choice in enumerate(page_desc.choices):
-            try:
-                choice = str(choice)
-            except:
-                raise ValidationError(
-                        string_concat(
-                            "%(location)s, ",
-                            _("choice %(idx)d: unable to convert to string")
-                            )
-                        % {'location': location, 'idx': choice_idx+1})
-
-            if choice.startswith(self.CORRECT_TAG):
-                correct_choice_count += 1
-
-            if vctx is not None:
-                validate_markup(vctx, location,
-                        remove_prefix(self.CORRECT_TAG, choice))
-
-        if correct_choice_count < 1:
+        if self.correct_choice_count < 1:
             raise ValidationError(
                     string_concat(
                         "%(location)s: ",
@@ -149,32 +231,15 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
                         "expected, %(n_correct)d found"))
                     % {
                         'location': location,
-                        'n_correct': correct_choice_count})
+                        'n_correct': self.correct_choice_count})
 
-    def required_attrs(self):
-        return super(ChoiceQuestion, self).required_attrs() + (
-                ("prompt", "markup"),
-                ("choices", list),
-                )
-
-    def allowed_attrs(self):
-        return super(ChoiceQuestion, self).allowed_attrs() + (
-                ("shuffle", bool),
-                )
-
-    def markup_body_for_title(self):
-        return self.page_desc.prompt
-
-    def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
-
-    def make_page_data(self):
-        import random
-        perm = list(range(len(self.page_desc.choices)))
-        if getattr(self.page_desc, "shuffle", False):
-            random.shuffle(perm)
-
-        return {"permutation": perm}
+        if self.disregard_choice_count:
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("ChoiceQuestion does not allow any choices "
+                        "marked 'disregard'"))
+                    % {'location': location})
 
     def make_choice_form(
             self, page_context, page_data, page_behavior, *args, **kwargs):
@@ -197,42 +262,8 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         return form
 
-    def make_form(self, page_context, page_data,
-            answer_data, page_behavior):
-        if (
-                "permutation" not in page_data
-                or (set(page_data["permutation"])
-                    != set(range(len(self.page_desc.choices))))):
-            from course.page import InvalidPageData
-            raise InvalidPageData(ugettext(
-                "existing choice permutation not "
-                "suitable for number of choices in question"))
-
-        if answer_data is not None:
-            form_data = {"choice": answer_data["choice"]}
-            form = self.make_choice_form(
-                    page_context, page_data, page_behavior, form_data)
-        else:
-            form = self.make_choice_form(
-                    page_context, page_data, page_behavior)
-
-        return form
-
-    def process_form_post(self, page_context, page_data, post_data, files_data,
-            page_behavior):
-        return self.make_choice_form(
-                    page_context, page_data, page_behavior, post_data, files_data)
-
     def answer_data(self, page_context, page_data, form, files_data):
         return {"choice": form.cleaned_data["choice"]}
-
-    def unpermuted_correct_indices(self):
-        result = []
-        for i, choice_text in enumerate(self.page_desc.choices):
-            if str(choice_text).startswith(self.CORRECT_TAG):
-                result.append(i)
-
-        return result
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
@@ -271,7 +302,7 @@ class ChoiceQuestion(PageBaseWithTitle, PageBaseWithValue):
 
 # {{{ multiple choice question
 
-class MultipleChoiceQuestion(ChoiceQuestion):
+class MultipleChoiceQuestion(ChoiceQuestionBase):
     """
     A page asking the participant to choose a few of multiple available answers.
 
@@ -303,6 +334,8 @@ class MultipleChoiceQuestion(ChoiceQuestion):
 
         A list of choices, each in :ref:`markup`. Correct
         choices are indicated by the prefix ``~CORRECT~``.
+        Choices marked with the prefix ``~DISREGARD~`` are
+        ignored when determining the correctness of an answer.
 
     .. attribute:: shuffle
 
@@ -416,6 +449,9 @@ class MultipleChoiceQuestion(ChoiceQuestion):
 
         return form
 
+    def answer_data(self, page_context, page_data, form, files_data):
+        return {"choice": form.cleaned_data["choice"]}
+
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
@@ -424,8 +460,12 @@ class MultipleChoiceQuestion(ChoiceQuestion):
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
 
-        unpermed_idx_set = set([permutation[idx] for idx in choice])
-        correct_idx_set = set(self.unpermuted_correct_indices())
+        disregard_idx_set = set(self.unpermuted_disregard_indices())
+        unpermed_idx_set = (
+                set([permutation[idx] for idx in choice]) - disregard_idx_set)
+        correct_idx_set = (
+                set(self.unpermuted_correct_indices()) - disregard_idx_set)
+        num_choices = len(self.page_desc.choices) - len(disregard_idx_set)
 
         if self.credit_mode == "exact":
             if unpermed_idx_set == correct_idx_set:
@@ -437,12 +477,12 @@ class MultipleChoiceQuestion(ChoiceQuestion):
 
             correctness = (
                     (
-                        len(self.page_desc.choices)
+                        num_choices
                         -
                         len(unpermed_idx_set
                             .symmetric_difference(correct_idx_set)))
                     /
-                    len(self.page_desc.choices))
+                    num_choices)
 
         elif self.credit_mode == "proportional_correct":
 
