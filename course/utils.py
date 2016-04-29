@@ -49,6 +49,15 @@ from course.models import (
         FlowSession)
 
 
+def getattr_with_fallback(aggregates, attr_name, default=None):
+    for agg in aggregates:
+        result = getattr(agg, attr_name, None)
+        if result is not None:
+            return result
+
+    return default
+
+
 # {{{ flow permissions
 
 class FlowSessionRuleBase(object):
@@ -86,6 +95,10 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
             "description",
             "credit_percent",
             "use_last_activity_as_completion_time",
+
+            "max_points",
+            "max_points_enforced_cap",
+            "bonus_points",
             ]
 
 
@@ -343,6 +356,11 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
             grade_aggregation_strategy = getattr(
                     flow_desc_rules, "grade_aggregation_strategy", None)
 
+        bonus_points = getattr_with_fallback((rule, flow_desc), "bonus_points", 0)
+        max_points = getattr_with_fallback((rule, flow_desc), "max_points", None)
+        max_points_enforced_cap = getattr_with_fallback(
+                (rule, flow_desc), "max_points_enforced_cap", None)
+
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
                 grade_aggregation_strategy=grade_aggregation_strategy,
@@ -352,6 +370,10 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
                 credit_percent=getattr(rule, "credit_percent", 100),
                 use_last_activity_as_completion_time=getattr(
                     rule, "use_last_activity_as_completion_time", False),
+
+                bonus_points=bonus_points,
+                max_points=max_points,
+                max_points_enforced_cap=max_points_enforced_cap,
                 )
 
     raise RuntimeError(_("grading rule determination was unable to find "

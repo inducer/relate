@@ -138,28 +138,6 @@ When described in YAML, a flow has the following components:
         (Optional) A list of email addresses which to notify about a flow submission by
         a participant.
 
-    .. attribute:: max_points
-
-        (Optional, an integer or floating point number if given)
-        The number of points on the flow which constitute
-        "100% of the achievable points". If not given, this is automatically
-        computed by summing point values from all constituent pages.
-
-        This may be used to 'grade out of N points', where N is a number that
-        is lower than the actually achievable count.
-
-    .. attribute:: max_points_enforced_cap
-
-        (Optional, an integer or floating point number if given)
-        No participant will have a grade higher than this recorded for this flow.
-        This may be used to limit the amount of 'extra credit' achieved beyond
-        :attr:`max_points`.
-
-    .. attribute:: bonus_points
-
-        (Optional, an integer or floating point number if given)
-        This number of points will be added to every participant's score.
-
     .. attribute:: rules
 
         (Optional) Some rules governing students' use and grading of the flow.
@@ -516,6 +494,28 @@ Determining how final (overall) grades of flows are computed
 
         (Optional) A description of this set of grading rules being applied to the flow.
         Shown to the participant on the flow start page.
+
+    .. attribute:: max_points
+
+        (Optional, an integer or floating point number if given)
+        The number of points on the flow which constitute
+        "100% of the achievable points". If not given, this is automatically
+        computed by summing point values from all constituent pages.
+
+        This may be used to 'grade out of N points', where N is a number that
+        is lower than the actually achievable count.
+
+    .. attribute:: max_points_enforced_cap
+
+        (Optional, an integer or floating point number if given)
+        No participant will have a grade higher than this recorded for this flow.
+        This may be used to limit the amount of 'extra credit' achieved beyond
+        :attr:`max_points`.
+
+    .. attribute:: bonus_points
+
+        (Optional, an integer or floating point number if given)
+        This number of points will be added to every participant's score.
 
 .. autoclass:: grade_aggregation_strategy
 
