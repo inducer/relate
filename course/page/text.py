@@ -500,12 +500,12 @@ class FloatMatcher(TextAnswerMatcher):
 
         if hasattr(self.matcher_desc, "atol"):
             if (abs(answer_float - self.matcher_desc.value)
-                    >= self.matcher_desc.atol):
+                    > self.matcher_desc.atol):
                 return 0
         if hasattr(self.matcher_desc, "rtol"):
             if (abs(answer_float - self.matcher_desc.value)
                     / abs(self.matcher_desc.value)
-                    >= self.matcher_desc.rtol):
+                    > self.matcher_desc.rtol):
                 return 0
 
         return 1
