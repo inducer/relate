@@ -66,7 +66,7 @@
 
         {% if feedback or correct_answer %}
           <div class="alert
-            {% if feedback.correctness == 1 %}
+            {% if feedback.correctness >= 1 %}
               alert-success
             {% elif feedback.correctness == 0 %}
               alert-danger

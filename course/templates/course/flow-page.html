@@ -230,7 +230,7 @@
 
   {% if show_correctness and feedback %}
     <div class="alert
-      {% if feedback.correctness == 1 %}
+      {% if feedback.correctness >= 1 %}
         alert-success
       {% elif feedback.correctness == 0 %}
         alert-danger
