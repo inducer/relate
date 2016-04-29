@@ -553,6 +553,7 @@ def validate_session_access_rule(vctx, location, arule, tags):
             allowed_attrs=[
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
+                ("if_started_before", datespec_types),
                 ("if_has_role", list),
                 ("if_in_facility", str),
                 ("if_has_tag", (six.string_types, type(None))),
@@ -618,6 +619,7 @@ def validate_session_grading_rule(vctx, location, grule, tags, grade_identifier)
             allowed_attrs=[
                 ("if_has_role", list),
                 ("if_has_tag", (six.string_types, type(None))),
+                ("if_started_before", datespec_types),
                 ("if_completed_before", datespec_types),
 
                 ("credit_percent", (int, float)),
@@ -625,6 +627,10 @@ def validate_session_grading_rule(vctx, location, grule, tags, grade_identifier)
                 ("due", datespec_types),
                 ("generates_grade", bool),
                 ("description", str),
+
+                ("max_points", (int, float)),
+                ("max_points_enforced_cap", (int, float)),
+                ("bonus_points", (int, float)),
 
                 # legacy
                 ("grade_identifier", (type(None), str)),
@@ -844,6 +850,8 @@ def validate_flow_desc(vctx, location, flow_desc):
                 ("groups", list),
                 ("pages", list),
                 ("notify_on_submit", list),
+
+                # deprecated (moved to grading rule)
                 ("max_points", (int, float)),
                 ("max_points_enforced_cap", (int, float)),
                 ("bonus_points", (int, float)),
@@ -939,8 +947,15 @@ def validate_flow_desc(vctx, location, flow_desc):
         for i, item in enumerate(flow_desc.notify_on_submit):
             if not isinstance(item, six.string_types):
                 raise ValidationError(
-                        "%s, notify_on_submit: item %d is not a string"
+                        _("%s, notify_on_submit: item %d is not a string")
                         % (location, i+1))
+
+    for attr in ["max_points", "max_points_enforced_cap", "bonus_points"]:
+        if hasattr(flow_desc, attr):
+            vctx.add_warning(location,
+                    _("Attribute '%s' is deprecated as part of a flow. "
+                    "Specify it as part of a grading rule instead.")
+                    % attr)
 
 # }}}
 

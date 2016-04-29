@@ -49,6 +49,15 @@ from course.models import (
         FlowSession)
 
 
+def getattr_with_fallback(aggregates, attr_name, default=None):
+    for agg in aggregates:
+        result = getattr(agg, attr_name, None)
+        if result is not None:
+            return result
+
+    return default
+
+
 # {{{ flow permissions
 
 class FlowSessionRuleBase(object):
@@ -86,6 +95,10 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
             "description",
             "credit_percent",
             "use_last_activity_as_completion_time",
+
+            "max_points",
+            "max_points_enforced_cap",
+            "bonus_points",
             ]
 
 
@@ -102,6 +115,19 @@ def _eval_generic_conditions(rule, course, role, now_datetime):
 
     if hasattr(rule, "if_has_role"):
         if role not in rule.if_has_role:
+            return False
+
+    return True
+
+
+def _eval_generic_session_conditions(rule, session, role, now_datetime):
+    if hasattr(rule, "if_has_tag"):
+        if session.access_rules_tag != rule.if_has_tag:
+            return False
+
+    if hasattr(rule, "if_started_before"):
+        ds = parse_date_spec(session.course, rule.if_started_before)
+        if not session.start_time < ds:
             return False
 
     return True
@@ -233,12 +259,11 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
         if not _eval_generic_conditions(rule, session.course, role, now_datetime):
             continue
 
+        if not _eval_generic_session_conditions(rule, session, role, now_datetime):
+            continue
+
         if hasattr(rule, "if_in_facility"):
             if rule.if_in_facility not in facilities:
-                continue
-
-        if hasattr(rule, "if_has_tag"):
-            if session.access_rules_tag != rule.if_has_tag:
                 continue
 
         if hasattr(rule, "if_in_progress"):
@@ -308,9 +333,8 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
             if role not in rule.if_has_role:
                 continue
 
-        if hasattr(rule, "if_has_tag"):
-            if session.access_rules_tag != rule.if_has_tag:
-                continue
+        if not _eval_generic_session_conditions(rule, session, role, now_datetime):
+            continue
 
         if hasattr(rule, "if_completed_before"):
             ds = parse_date_spec(session.course, rule.if_completed_before)
@@ -332,6 +356,11 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
             grade_aggregation_strategy = getattr(
                     flow_desc_rules, "grade_aggregation_strategy", None)
 
+        bonus_points = getattr_with_fallback((rule, flow_desc), "bonus_points", 0)
+        max_points = getattr_with_fallback((rule, flow_desc), "max_points", None)
+        max_points_enforced_cap = getattr_with_fallback(
+                (rule, flow_desc), "max_points_enforced_cap", None)
+
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
                 grade_aggregation_strategy=grade_aggregation_strategy,
@@ -341,6 +370,10 @@ def get_session_grading_rule(session, role, flow_desc, now_datetime):
                 credit_percent=getattr(rule, "credit_percent", 100),
                 use_last_activity_as_completion_time=getattr(
                     rule, "use_last_activity_as_completion_time", False),
+
+                bonus_points=bonus_points,
+                max_points=max_points,
+                max_points_enforced_cap=max_points_enforced_cap,
                 )
 
     raise RuntimeError(_("grading rule determination was unable to find "

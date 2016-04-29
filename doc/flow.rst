@@ -138,28 +138,6 @@ When described in YAML, a flow has the following components:
         (Optional) A list of email addresses which to notify about a flow submission by
         a participant.
 
-    .. attribute:: max_points
-
-        (Optional, an integer or floating point number if given)
-        The number of points on the flow which constitute
-        "100% of the achievable points". If not given, this is automatically
-        computed by summing point values from all constituent pages.
-
-        This may be used to 'grade out of N points', where N is a number that
-        is lower than the actually achievable count.
-
-    .. attribute:: max_points_enforced_cap
-
-        (Optional, an integer or floating point number if given)
-        No participant will have a grade higher than this recorded for this flow.
-        This may be used to limit the amount of 'extra credit' achieved beyond
-        :attr:`max_points`.
-
-    .. attribute:: bonus_points
-
-        (Optional, an integer or floating point number if given)
-        This number of points will be added to every participant's score.
-
     .. attribute:: rules
 
         (Optional) Some rules governing students' use and grading of the flow.
@@ -389,6 +367,11 @@ Rules about accessing and interacting with a flow
         (Optional) A :ref:`datespec <datespec>` that determines a date/time before which this rule
         applies.
 
+    .. attribute:: if_started_before
+
+        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session was started before
+        this time.
+
     .. attribute:: if_has_role
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
@@ -464,6 +447,11 @@ Determining how final (overall) grades of flows are computed
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
 
+    .. attribute:: if_started_before
+
+        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session was started before
+        this time.
+
     .. attribute:: if_has_tag
 
         (Optional) Rule applies if session has this tag (see :attr:`FlowStartRules.tag_session`),
@@ -506,6 +494,28 @@ Determining how final (overall) grades of flows are computed
 
         (Optional) A description of this set of grading rules being applied to the flow.
         Shown to the participant on the flow start page.
+
+    .. attribute:: max_points
+
+        (Optional, an integer or floating point number if given)
+        The number of points on the flow which constitute
+        "100% of the achievable points". If not given, this is automatically
+        computed by summing point values from all constituent pages.
+
+        This may be used to 'grade out of N points', where N is a number that
+        is lower than the actually achievable count.
+
+    .. attribute:: max_points_enforced_cap
+
+        (Optional, an integer or floating point number if given)
+        No participant will have a grade higher than this recorded for this flow.
+        This may be used to limit the amount of 'extra credit' achieved beyond
+        :attr:`max_points`.
+
+    .. attribute:: bonus_points
+
+        (Optional, an integer or floating point number if given)
+        This number of points will be added to every participant's score.
 
 .. autoclass:: grade_aggregation_strategy
 
@@ -723,6 +733,52 @@ of interaction. Some of what's possible may not be readily apparent
 from the reference documentation above, so the following examples
 serve to illustrate the possibilities.
 
+Simple Single-Submission Assignment with a Due Date
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The rules for this can be written as follows::
+
+    title: "An assignment"
+    description: |
+
+        # An Assignment
+
+    rules:
+        start:
+        -
+            if_before: my_assignment_due
+            if_has_role: [student, ta, instructor]
+            if_has_fewer_sessions_than: 1
+            may_start_new_session: True
+            may_list_existing_sessions: True
+
+        -
+            may_start_new_session: False
+            may_list_existing_sessions: True
+
+        access:
+        -
+            # 'modify'-type permissions are automatically removed at
+            # session end. Add the following if desired:
+            #
+            # see_correctness
+            # change_answer
+            #
+            permissions: [view, submit_answer, end_session]
+
+        grade_identifier: "my_assignment"
+        grade_aggregation_strategy: max_grade
+
+        grading:
+        -
+            credit_percent: 100
+            due: my_assignment_due
+            description: "Full credit"
+
+    pages:
+
+    -   ....
+
 Exam
 ^^^^
 
@@ -740,55 +796,59 @@ The rules for this can be written as follows::
         # Midterm exam 1
 
     rules:
-      grade_identifier: exam_1
-      grade_aggregation_strategy: use_earliest
+        grade_identifier: exam_1
+        grade_aggregation_strategy: use_earliest
 
-      start:
-      -
-          if_has_role: [instructor]
-          may_start_new_session: True
-          may_list_existing_sessions: True
+        start:
+        -
+            if_has_role: [instructor]
+            may_start_new_session: True
+            may_list_existing_sessions: True
 
-      -
-          if_in_facility: "cbtf"
-          if_has_role: [student, instructor]
-          if_has_fewer_sessions_than: 1
-          may_start_new_session: True
-          may_list_existing_sessions: True
+        -
+            if_in_facility: "cbtf"
+            if_has_role: [student, instructor]
+            if_has_fewer_sessions_than: 1
+            may_start_new_session: True
+            may_list_existing_sessions: True
 
-      -
-          if_in_facility: "cbtf"
-          if_has_role: [student, instructor]
-          may_start_new_session: False
-          may_list_existing_sessions: True
+        -
+            if_in_facility: "cbtf"
+            if_has_role: [student, instructor]
+            may_start_new_session: False
+            may_list_existing_sessions: True
 
-      -
-          may_start_new_session: False
-          may_list_existing_sessions: False
+        -
+            may_start_new_session: False
+            may_list_existing_sessions: False
 
-      access:
-      -
-          if_after: end_of_class
-          if_has_role: [unenrolled, student]
-          permissions: []
+        access:
+        -
+            if_after: end_of_class
+            if_has_role: [unenrolled, student]
+            permissions: []
 
-      -
-          if_in_facility: "cbtf"
-          if_has_role: [student, instructor]
-          if_after: exam 1 - 1 week
-          if_before: end:exam 1 + 2 weeks
-          permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+        -
+            if_in_facility: "cbtf"
+            if_has_role: [student, instructor]
+            if_after: exam 1 - 1 week
+            if_before: end:exam 1 + 2 weeks
+            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
 
-      -
-          if_has_role: [instructor]
-          permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+        -
+            if_has_role: [instructor]
+            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
 
-      -
-          permissions: []
+        -
+            permissions: []
 
-      grading:
+        grading:
+        -   generates_grade: true
 
-      -   generates_grade: true
+    pages:
+
+    -   ....
+
 
 Pre-Lecture Quiz with Multiple Attempts and Practice Sessions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -889,6 +949,10 @@ The rules for this can be written as follows::
 
         -
             credit_percent: 0
+
+    pages:
+
+    -   ....
 
 Homework Set with Grace Period
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1039,4 +1103,8 @@ The rules for this can be written as follows::
 
         -
             credit_percent: 0
+
+    pages:
+
+    -   ....
 

@@ -107,6 +107,12 @@ def get_auto_feedback(correctness):
         return six.text_type(_("Your answer is not correct."))
     elif correctness == 1:
         return six.text_type(_("Your answer is correct."))
+    elif correctness > 1:
+        return six.text_type(
+                string_concat(
+                    _("Your answer is correct and earned bonus points."),
+                    " (%.1f %%)")
+                % (100*correctness))
     elif correctness > 0.5:
         return six.text_type(
                 string_concat(

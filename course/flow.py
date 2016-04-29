@@ -662,14 +662,14 @@ class GradeInfo(object):
     # }}}
 
 
-def gather_grade_info(fctx, flow_session, answer_visits):
+def gather_grade_info(fctx, flow_session, grading_rule, answer_visits):
     """
     :returns: a :class:`GradeInfo`
     """
 
     all_page_data = get_all_page_data(flow_session)
 
-    bonus_points = getattr(fctx.flow_desc, "bonus_points", 0)
+    bonus_points = grading_rule.bonus_points
     points = bonus_points
     provisional_points = bonus_points
     max_points = bonus_points
@@ -727,20 +727,20 @@ def gather_grade_info(fctx, flow_session, answer_visits):
 
     # {{{ adjust max_points if requested
 
-    max_points_desc = getattr(fctx.flow_desc, "max_points", None)
-    if max_points_desc is not None:
-        max_points = max_points_desc
+    if grading_rule.max_points is not None:
+        max_points = grading_rule.max_points
 
     # }}}
 
     # {{{ enforce points cap
 
-    max_points_enforced_cap = getattr(
-            fctx.flow_desc, "max_points_enforced_cap", None)
-    if max_points_enforced_cap is not None:
-        max_reachable_points = min(max_reachable_points, max_points_enforced_cap)
-        points = min(points, max_points_enforced_cap)
-        provisional_points = min(provisional_points, max_points_enforced_cap)
+    if grading_rule.max_points_enforced_cap is not None:
+        max_reachable_points = min(
+                max_reachable_points, grading_rule.max_points_enforced_cap)
+        points = min(
+                points, get_session_grading_rule.max_points_enforced_cap)
+        provisional_points = min(
+                provisional_points, grading_rule.max_points_enforced_cap)
 
     # }}}
 
@@ -917,7 +917,7 @@ def grade_flow_session(fctx, flow_session, grading_rule,
 
     is_graded_flow = bool(answered_count + unanswered_count)
 
-    grade_info = gather_grade_info(fctx, flow_session, answer_visits)
+    grade_info = gather_grade_info(fctx, flow_session, grading_rule, answer_visits)
     assert grade_info is not None
 
     comment = None
@@ -1972,6 +1972,9 @@ def finish_flow_session_view(pctx, flow_session_id):
                 pctx, template, render_args,
                 allow_instant_flow_requests=False)
 
+    grading_rule = get_session_grading_rule(
+            flow_session, pctx.role, fctx.flow_desc, now_datetime)
+
     if request.method == "POST":
         if "submit" not in request.POST:
             raise SuspiciousOperation(_("odd POST parameters"))
@@ -1984,8 +1987,6 @@ def finish_flow_session_view(pctx, flow_session_id):
             raise PermissionDenied(
                     _("not permitted to end session"))
 
-        grading_rule = get_session_grading_rule(
-                flow_session, pctx.role, fctx.flow_desc, now_datetime)
         grade_info = finish_flow_session(
                 fctx, flow_session, grading_rule,
                 now_datetime=now_datetime)
@@ -2064,7 +2065,8 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     elif not flow_session.in_progress:
         # Just reviewing: re-show grades.
-        grade_info = gather_grade_info(fctx, flow_session, answer_visits)
+        grade_info = gather_grade_info(
+                fctx, flow_session, grading_rule, answer_visits)
 
         if flow_permission.cannot_see_flow_result in access_rule.permissions:
             grade_info = None
