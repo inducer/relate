@@ -738,7 +738,7 @@ def gather_grade_info(fctx, flow_session, grading_rule, answer_visits):
         max_reachable_points = min(
                 max_reachable_points, grading_rule.max_points_enforced_cap)
         points = min(
-                points, get_session_grading_rule.max_points_enforced_cap)
+                points, grading_rule.max_points_enforced_cap)
         provisional_points = min(
                 provisional_points, grading_rule.max_points_enforced_cap)
 
