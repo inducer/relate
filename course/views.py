@@ -496,7 +496,8 @@ class InstantFlowRequestForm(StyledForm):
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,
-                label=_("Flow ID"))
+                label=_("Flow ID"),
+                widget=Select2Widget())
         self.fields["duration_in_minutes"] = forms.IntegerField(
                 required=True, initial=20,
                 label=pgettext_lazy("Duration for instant flow",
@@ -578,7 +579,8 @@ class FlowTestForm(StyledForm):
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,
-                label=_("Flow ID"))
+                label=_("Flow ID"),
+                widget=Select2Widget())
 
         self.helper.add_input(
                 Submit(
