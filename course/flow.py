@@ -47,6 +47,7 @@ from relate.utils import (
         StyledForm, local_now, as_local_time,
         format_datetime_local)
 from crispy_forms.layout import Submit
+from django_select2.forms import Select2Widget
 
 from course.constants import (
         flow_permission,
@@ -2099,7 +2100,8 @@ class RegradeFlowForm(StyledForm):
                 choices=[(fid, fid) for fid in flow_ids],
                 initial=participation_role.student,
                 required=True,
-                label=_("Flow ID"))
+                label=_("Flow ID"),
+                widget=Select2Widget())
         self.fields["access_rules_tag"] = forms.CharField(
                 required=False,
                 help_text=_("If non-empty, limit the regrading to sessions "
