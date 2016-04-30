@@ -210,6 +210,14 @@
         replace(/>/g, '&gt;');
     }
 
+    function truncate_text(s, length)
+    {
+      if (s.length > length)
+        return s.slice(0, length) + "...";
+      else
+        return s;
+    }
+
     function set_grade_percent(p)
     {
       $("#id_grade_percent").val(p);
@@ -284,7 +292,7 @@
         var fb = items[i];
         buttons += ("<button class='btn btn-xs btn-default' type='button' "
             + "onclick='add_feedback(" + i + ")'>"
-            + encode_entities(fb)
+            + truncate_text(encode_entities(fb), 25)
             + "</button>"
             + " <a class='remove_fb_button' id='remove_fb_"+i+"' href='#'>"
             +   "<i class='fa fa-times-circle'></i>"
