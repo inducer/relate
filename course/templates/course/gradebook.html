@@ -33,7 +33,13 @@
           {% endif %}
         </td>
         {% for grade_info in grades %}
-          <td class="datacol">
+          <td class="datacol"
+	    {% if grade_info.grade_state_machine.percentage != None %}
+	    data-order="{{ grade_info.grade_state_machine.percentage }}"
+	    {% else %}
+	    data-order="-1"
+	    {% endif %}
+	              >
             <a href="{% url "relate-view_single_grade" course.identifier participation.id grade_info.opportunity.id %}"
                ><span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
           </td>
