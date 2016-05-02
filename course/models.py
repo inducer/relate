@@ -440,7 +440,7 @@ class FlowSession(models.Model):
             verbose_name=_('Course'), on_delete=models.CASCADE)
 
     participation = models.ForeignKey(Participation, null=True, blank=True,
-            db_index=True,
+            db_index=True, related_name="flow_sessions",
             verbose_name=_('Participation'), on_delete=models.CASCADE)
 
     # This looks like it's redundant with participation, above--but it's not.
