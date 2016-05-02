@@ -38,6 +38,7 @@ from django.core.exceptions import (  # noqa
 from django.contrib import messages  # noqa
 from django.contrib.auth.decorators import permission_required
 from django.db import transaction
+from django.db.models import Q
 from django.core.urlresolvers import reverse
 
 from django.views.decorators.debug import sensitive_post_parameters
@@ -81,16 +82,14 @@ class UserChoiceField(forms.ModelChoiceField):
 
 
 class IssueTicketForm(StyledForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, now_datetime, *args, **kwargs):
         initial_exam = kwargs.pop("initial_exam", None)
 
         super(IssueTicketForm, self).__init__(*args, **kwargs)
 
         self.fields["user"] = UserChoiceField(
                 queryset=(get_user_model().objects
-                    .filter(
-                        is_active=True,
-                        )
+                    .filter(is_active=True)
                     .order_by("last_name")),
                 widget=Select2Widget(),
                 required=True,
@@ -99,8 +98,15 @@ class IssueTicketForm(StyledForm):
                 label=_("Participant"))
         self.fields["exam"] = forms.ModelChoiceField(
                 queryset=(
-                    Exam.objects.filter(
-                        active=True)),
+                    Exam.objects
+                    .filter(
+                        Q(active=True)
+                        & (
+                            Q(no_exams_after__isnull=True)
+                            | Q(no_exams_after__lt=now_datetime)
+                            ))
+                    .order_by("no_exams_before")
+                    ),
                 required=True,
                 initial=initial_exam,
                 label=_("Exam"))
@@ -118,8 +124,10 @@ class IssueTicketForm(StyledForm):
 
 @permission_required("course.can_issue_exam_tickets")
 def issue_exam_ticket(request):
+    now_datetime = get_now_or_fake_time(request)
+
     if request.method == "POST":
-        form = IssueTicketForm(request.POST)
+        form = IssueTicketForm(now_datetime, request.POST)
 
         if form.is_valid():
             exam = form.cleaned_data["exam"]
@@ -161,10 +169,10 @@ def issue_exam_ticket(request):
                             ) % {"participation": participation,
                                  "ticket_code": ticket.code})
 
-                form = IssueTicketForm(initial_exam=exam)
+                form = IssueTicketForm(now_datetime, initial_exam=exam)
 
     else:
-        form = IssueTicketForm()
+        form = IssueTicketForm(now_datetime)
 
     return render(request, "generic-form.html", {
         "form_description":
