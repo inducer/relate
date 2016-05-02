@@ -1468,6 +1468,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 pctx.course.identifier,
                 flow_id)
 
+    adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier)
+
     try:
         fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, ordinal,
                 participation=pctx.participation,
@@ -1478,9 +1480,6 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 pctx.course.identifier,
                 flow_session.id,
                 flow_session.page_count-1)
-
-    adjust_flow_session_page_data(pctx.repo, flow_session,
-            pctx.course.identifier, fpctx.flow_desc)
 
     now_datetime = get_now_or_fake_time(request)
     access_rule = get_session_access_rule(
