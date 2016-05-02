@@ -103,7 +103,7 @@ class IssueTicketForm(StyledForm):
                         Q(active=True)
                         & (
                             Q(no_exams_after__isnull=True)
-                            | Q(no_exams_after__lt=now_datetime)
+                            | Q(no_exams_after__gt=now_datetime)
                             ))
                     .order_by("no_exams_before")
                     ),
