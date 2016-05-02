@@ -500,6 +500,8 @@ def check_in_for_exam(request):
                     # Make pretend-facilities survive exam login.
                     request.session["relate_pretend_facilities"] = pretend_facilities
 
+                request.session["relate_exam_ticket_pk_used_for_login"] = ticket.pk
+
                 return redirect("relate-view_start_flow",
                         ticket.exam.course.identifier,
                         ticket.exam.flow_id)
@@ -527,6 +529,15 @@ def is_from_exams_only_facility(request):
             return True
 
     return False
+
+
+def get_login_exam_ticket(request):
+    exam_ticket_pk = request.session.get("relate_exam_ticket_pk_used_for_login")
+
+    if exam_ticket_pk is None:
+        return None
+
+    return ExamTicket.objects.get(pk=exam_ticket_pk)
 
 
 # {{{ lockdown middleware
