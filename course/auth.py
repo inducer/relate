@@ -272,7 +272,7 @@ class TokenBackend(object):
 def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))
-    next_uri=""
+    next_uri = ""
     if redirect_to:
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
 
