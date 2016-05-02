@@ -102,7 +102,8 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
             ]
 
 
-def _eval_generic_conditions(rule, course, role, now_datetime):
+def _eval_generic_conditions(rule, course, role, now_datetime,
+        flow_id, login_exam_ticket):
     if hasattr(rule, "if_before"):
         ds = parse_date_spec(course, rule.if_before)
         if not (now_datetime <= ds):
@@ -115,6 +116,15 @@ def _eval_generic_conditions(rule, course, role, now_datetime):
 
     if hasattr(rule, "if_has_role"):
         if role not in rule.if_has_role:
+            return False
+
+    if (hasattr(rule, "if_signed_in_with_matching_exam_ticket")
+            and rule.if_signed_in_with_matching_exam_ticket):
+        if login_exam_ticket is None:
+            return False
+        if login_exam_ticket is None:
+            return False
+        if login_exam_ticket.exam.flow_id != flow_id:
             return False
 
     return True
@@ -162,7 +172,8 @@ def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
 
 
 def get_session_start_rule(course, participation, role, flow_id, flow_desc,
-        now_datetime, facilities=None, for_rollover=False):
+        now_datetime, facilities=None, for_rollover=False,
+        login_exam_ticket=None):
     """Return a :class:`FlowSessionStartRule` if a new session is
     permitted or *None* if no new session is allowed.
     """
@@ -179,7 +190,9 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
                     may_list_existing_sessions=False))])
 
     for rule in rules:
-        if not _eval_generic_conditions(rule, course, role, now_datetime):
+        if not _eval_generic_conditions(rule, course, role, now_datetime,
+                flow_id=flow_id,
+                login_exam_ticket=login_exam_ticket):
             continue
 
         if not for_rollover and hasattr(rule, "if_in_facility"):
@@ -239,7 +252,7 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
 
 
 def get_session_access_rule(session, role, flow_desc, now_datetime,
-        facilities=None):
+        facilities=None, login_exam_ticket=None):
     """Return a :class:`ExistingFlowSessionRule`` to describe
     how a flow may be accessed.
     """
@@ -256,7 +269,9 @@ def get_session_access_rule(session, role, flow_desc, now_datetime,
                     ))])
 
     for rule in rules:
-        if not _eval_generic_conditions(rule, session.course, role, now_datetime):
+        if not _eval_generic_conditions(rule, session.course, role, now_datetime,
+                flow_id=session.flow_id,
+                login_exam_ticket=login_exam_ticket):
             continue
 
         if not _eval_generic_session_conditions(rule, session, role, now_datetime):

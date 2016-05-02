@@ -74,6 +74,7 @@ from course.utils import (
         get_session_grading_rule,
         FlowSessionGradingRule,
         )
+from course.exam import get_login_exam_ticket
 from course.page import InvalidPageData
 from course.views import get_now_or_fake_time
 from relate.utils import retry_transaction_decorator
@@ -1131,6 +1132,7 @@ def lock_down_if_needed(request, permissions, flow_session):
 def view_start_flow(pctx, flow_id):
     request = pctx.request
 
+    login_exam_ticket = get_login_exam_ticket(pctx.request)
     now_datetime = get_now_or_fake_time(request)
     fctx = FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
@@ -1140,7 +1142,8 @@ def view_start_flow(pctx, flow_id):
     else:
         session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
                 pctx.role, flow_id, fctx.flow_desc, now_datetime,
-                facilities=pctx.request.relate_facilities)
+                facilities=pctx.request.relate_facilities,
+                login_exam_ticket=login_exam_ticket)
 
         if session_start_rule.may_list_existing_sessions:
             past_sessions = (FlowSession.objects
@@ -1159,7 +1162,8 @@ def view_start_flow(pctx, flow_id):
             for session in past_sessions:
                 access_rule = get_session_access_rule(
                         session, pctx.role, fctx.flow_desc, now_datetime,
-                        facilities=pctx.request.relate_facilities)
+                        facilities=pctx.request.relate_facilities,
+                        login_exam_ticket=login_exam_ticket)
                 grading_rule = get_session_grading_rule(
                         session, pctx.role, fctx.flow_desc, now_datetime)
 
@@ -1220,6 +1224,7 @@ def view_start_flow(pctx, flow_id):
 @retry_transaction_decorator(serializable=True)
 def post_start_flow(pctx, fctx, flow_id):
     now_datetime = get_now_or_fake_time(pctx.request)
+    login_exam_ticket = get_login_exam_ticket(pctx.request)
 
     past_sessions = (FlowSession.objects
             .filter(
@@ -1244,7 +1249,8 @@ def post_start_flow(pctx, fctx, flow_id):
 
     session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
             pctx.role, flow_id, fctx.flow_desc, now_datetime,
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
 
     if not session_start_rule.may_start_new_session:
         raise PermissionDenied(_("new session not allowed"))
@@ -1262,7 +1268,8 @@ def post_start_flow(pctx, fctx, flow_id):
 
     access_rule = get_session_access_rule(
             session, pctx.role, fctx.flow_desc, now_datetime,
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
 
     lock_down_if_needed(pctx.request, access_rule.permissions, session)
 
@@ -1287,9 +1294,12 @@ def view_resume_flow(pctx, flow_session_id):
     fctx = FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
             participation=pctx.participation)
 
+    login_exam_ticket = get_login_exam_ticket(pctx.request)
+
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fctx.flow_desc, now_datetime,
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
 
     lock_down_if_needed(pctx.request, access_rule.permissions,
             flow_session)
@@ -1441,6 +1451,7 @@ def create_flow_page_visit(request, flow_session, page_data):
 @course_view
 def view_flow_page(pctx, flow_session_id, ordinal):
     request = pctx.request
+    login_exam_ticket = get_login_exam_ticket(request)
 
     ordinal = int(ordinal)
 
@@ -1474,7 +1485,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     now_datetime = get_now_or_fake_time(request)
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fpctx.flow_desc, now_datetime,
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
 
     grading_rule = get_session_grading_rule(
             flow_session, pctx.role, fpctx.flow_desc, now_datetime)
@@ -1889,6 +1901,8 @@ def update_expiration_mode(pctx, flow_session_id):
     if pctx.request.method != "POST":
         raise SuspiciousOperation(_("only POST allowed"))
 
+    login_exam_ticket = get_login_exam_ticket(pctx.request)
+
     flow_session = get_object_or_404(FlowSession, id=flow_session_id)
 
     if flow_session.participation != pctx.participation:
@@ -1909,7 +1923,8 @@ def update_expiration_mode(pctx, flow_session_id):
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fctx.flow_desc,
             get_now_or_fake_time(pctx.request),
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
 
     if is_expiration_mode_allowed(expmode, access_rule.permissions):
         flow_session.expiration_mode = expmode
@@ -1930,6 +1945,7 @@ def finish_flow_session_view(pctx, flow_session_id):
     # is done in 'finish_flow_session' below.
 
     now_datetime = get_now_or_fake_time(pctx.request)
+    login_exam_ticket = get_login_exam_ticket(pctx.request)
 
     request = pctx.request
 
@@ -1943,7 +1959,8 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     access_rule = get_session_access_rule(
             flow_session, pctx.role, fctx.flow_desc, now_datetime,
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
 
     answer_visits = assemble_answer_visits(flow_session)
 

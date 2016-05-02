@@ -490,6 +490,7 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                 ("if_has_session_tagged", (six.string_types, type(None))),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
+                ("if_signed_in_with_matching_exam_ticket", bool),
                 ("tag_session", (six.string_types, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
@@ -561,6 +562,7 @@ def validate_session_access_rule(vctx, location, arule, tags):
                 ("if_completed_before", datespec_types),
                 ("if_expiration_mode", str),
                 ("if_session_duration_shorter_than_minutes", (int, float)),
+                ("if_signed_in_with_matching_exam_ticket", bool),
                 ("message", datespec_types),
                 ]
             )

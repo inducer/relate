@@ -328,6 +328,11 @@ Rules for starting new sessions
         (Optional) An integer. The rule applies if the participant has fewer than this
         number of sessions with access rule tags.
 
+    .. attribute:: if_signed_in_with_matching_exam_ticket
+
+        (Optional) The rule applies if the participant signed in with an exam
+        ticket matching this flow.
+
     .. rubric:: Rules specified
 
     .. attribute:: may_start_new_session
@@ -408,6 +413,11 @@ Rules about accessing and interacting with a flow
         (Optional) The rule applies if the current session has been going on for
         less than the specified number of minutes. Fractional values (e.g. "0.5")
         are accepted here.
+
+    .. attribute:: if_signed_in_with_matching_exam_ticket
+
+        (Optional) The rule applies if the participant signed in with an exam
+        ticket matching this flow.
 
     .. rubric:: Rules specified
 
