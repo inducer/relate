@@ -40,8 +40,13 @@
             href="#"
             role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
         {% endif %}
-        <button id="btn_bookmark" class="btn btn-default"
-                              title="{% trans "Boomark this page" %}">
+        <button id="btn_bookmark"
+                class="btn btn-default relate-flow-page-bookmark-button
+                {% if page_data.bookmarked %}
+                relate-bookmarked
+                {% endif %}
+                "
+                title="{% trans "Boomark this page" %}">
           <i id="label_bookmark_indicator" class="fa
             {% if page_data.bookmarked %}
               fa-star
@@ -49,6 +54,7 @@
               fa-star-o
             {% endif %}
             " aria-hidden="true"></i>
+          Bookmark
         </button>
       </div>
 
@@ -158,6 +164,9 @@
               {% endif %}
               {% if other_page_data.bookmarked %}
                 relate-bookmarked
+              {% endif %}
+              {% if other_page_data.ordinal in flow_page_ordinals_with_answers %}
+                relate-answered
               {% endif %}
               ">{{ other_page_data.human_readable_ordinal }}
             </span></a>
@@ -412,7 +421,8 @@
   <script type="text/javascript">
     function activate_bookmark_button()
     {
-      $("#btn_bookmark").click(
+      var btn_bookmark = $("#btn_bookmark");
+      btn_bookmark.click(
           function(evt)
           {
             evt.preventDefault();
@@ -425,11 +435,13 @@
             {
               ind.removeClass("fa-star-o");
               ind.addClass("fa-star");
+              btn_bookmark.addClass("relate-bookmarked");
             }
             else
             {
               ind.removeClass("fa-star");
               ind.addClass("fa-star-o");
+              btn_bookmark.removeClass("relate-bookmarked");
             }
 
             var jqxhr = $.ajax(

@@ -1689,6 +1689,20 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     all_page_data = get_all_page_data(flow_session)
 
+    from django.db import connection
+    with connection.cursor() as c:
+        c.execute(
+                "SELECT DISTINCT course_flowpagedata.ordinal "
+                "FROM course_flowpagevisit "
+                "INNER JOIN course_flowpagedata "
+                "ON course_flowpagedata.id = course_flowpagevisit.page_data_id "
+                "WHERE course_flowpagedata.flow_session_id = %s "
+                "AND course_flowpagevisit.answer IS NOT NULL "
+                "ORDER BY course_flowpagedata.ordinal",
+                [flow_session.id])
+
+        flow_page_ordinals_with_answers = set(row[0] for row in c.fetchall())
+
     args = {
         "flow_identifier": fpctx.flow_id,
         "flow_desc": fpctx.flow_desc,
@@ -1697,6 +1711,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "percentage": int(100*(fpctx.ordinal+1) / flow_session.page_count),
         "flow_session": flow_session,
         "all_page_data": all_page_data,
+        "flow_page_ordinals_with_answers": flow_page_ordinals_with_answers,
 
         "title": title, "body": body,
         "form": form,

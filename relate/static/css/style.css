@@ -69,10 +69,24 @@ code {
   text-align: center;
 }
 
+.relate-flow-page-bookmark-button.relate-bookmarked {
+  background-color: #ff8;
+}
+.relate-flow-page-bookmark-button.relate-bookmarked:hover {
+  background-color: #ee7;
+}
+
 .relate-flow-page-toc-item {
   min-width: 2em;
   margin-top: 6px;
   text-align: center;
+}
+
+.relate-flow-page-toc-item.relate-answered {
+  background-color: #ddd;
+}
+.relate-flow-page-toc-item.relate-answered:hover {
+  background-color: #ccc;
 }
 
 .relate-flow-page-toc-item.relate-bookmarked {
@@ -83,7 +97,9 @@ code {
 }
 
 .relate-flow-page-toc-item.relate-current {
-  background-color: #ccc;
+  font-weight: bold;
+  background-color: #57c2f7;
+  color: white;
 }
 
 .relate-session-duration {

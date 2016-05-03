@@ -310,7 +310,7 @@ class CaseSensitiveRegexMatcher(RegexMatcher):
 
 def parse_sympy(s):
     if six.PY2:
-        if isinstance(s, unicode):  # has Py2/3 guard
+        if isinstance(s, unicode):  # noqa -- has Py2/3 guard
             # Sympy is not spectacularly happy with unicode function names
             s = s.encode()
 
