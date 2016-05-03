@@ -936,14 +936,20 @@ class Saml2Backend(Saml2BackendBase):
 
 @never_cache
 def sign_out(request):
-    auth_logout(request)
+
+    response = None
 
     if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
         from djangosaml2.views import _get_subject_id, logout as saml2_logout
         if _get_subject_id(request.session) is not None:
-            return saml2_logout(request)
+            response = saml2_logout(request)
 
-    return redirect("relate-home")
+    auth_logout(request)
+
+    if response is not None:
+        return response
+    else:
+        return redirect("relate-home")
 
 # }}}
 
