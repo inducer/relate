@@ -527,8 +527,8 @@ def check_in_for_exam(request):
 
 
 def is_from_exams_only_facility(request):
-    from django.conf import settings
-    for name, props in six.iteritems(settings.RELATE_FACILITIES):
+    from course.utils import get_facilities_config
+    for name, props in six.iteritems(get_facilities_config(request)):
         if not props.get("exams_only", False):
             continue
 

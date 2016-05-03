@@ -342,7 +342,7 @@ class FakeTimeForm(StyledForm):
 
 
 def get_fake_time(request):
-    if "relate_fake_time" in request.session:
+    if request is not None and "relate_fake_time" in request.session:
         import datetime
 
         from django.conf import settings
@@ -415,14 +415,13 @@ def fake_time_context_processor(request):
 
 class FakeFacilityForm(StyledForm):
     def __init__(self, *args, **kwargs):
-        from django.conf import settings
-
         super(FakeFacilityForm, self).__init__(*args, **kwargs)
 
+        from course.utils import get_facilities_config
         self.fields["facilities"] = forms.MultipleChoiceField(
                 choices=(
                     (name, name)
-                    for name in settings.RELATE_FACILITIES),
+                    for name in get_facilities_config()),
                 widget=forms.CheckboxSelectMultiple,
                 required=False,
                 label=_("Facilities"),
