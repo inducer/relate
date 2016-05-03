@@ -912,17 +912,18 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer = answer_data["answer"]
 
-        correctnesses_and_answers = []
+        correctness = 0
+
         for matcher in self.matchers:
             try:
                 matcher.validate(answer)
             except forms.ValidationError:
                 continue
 
-            correctnesses_and_answers.append(
-                    (matcher.grade(answer), matcher.correct_answer_text()))
-
-        correctness, correct_answer_text = max(correctnesses_and_answers)
+            matcher_correctness = matcher.grade(answer)
+            if (matcher_correctness is not None
+                    and matcher_correctness >= correctness):
+                correctness = matcher_correctness
 
         return AnswerFeedback(correctness=correctness)
 
