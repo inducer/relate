@@ -549,7 +549,7 @@ def get_interaction_kind(fctx, flow_session, flow_generates_grade, all_page_data
     return ikind
 
 
-def count_answered_gradable(fctx, flow_session, answer_visits):
+def count_answered(fctx, flow_session, answer_visits):
     all_page_data = get_all_page_data(flow_session)
 
     answered_count = 0
@@ -563,7 +563,7 @@ def count_answered_gradable(fctx, flow_session, answer_visits):
             answer_data = None
 
         page = instantiate_flow_page_with_ctx(fctx, page_data)
-        if page.expects_answer() and page.is_answer_gradable():
+        if page.expects_answer():
             if answer_data is None:
                 unanswered_count += 1
             else:
@@ -814,14 +814,8 @@ def finish_flow_session(fctx, flow_session, grading_rule,
 
     answer_visits = assemble_answer_visits(flow_session)
 
-    (answered_count, unanswered_count) = count_answered_gradable(
-            fctx, flow_session, answer_visits)
-
-    is_graded_flow = bool(answered_count + unanswered_count)
-
-    if is_graded_flow:
-        grade_page_visits(fctx, flow_session, answer_visits,
-                force_regrade=force_regrade)
+    grade_page_visits(fctx, flow_session, answer_visits,
+            force_regrade=force_regrade)
 
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
@@ -914,11 +908,6 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     if answer_visits is None:
         answer_visits = assemble_answer_visits(flow_session)
 
-    (answered_count, unanswered_count) = count_answered_gradable(
-            fctx, flow_session, answer_visits)
-
-    is_graded_flow = bool(answered_count + unanswered_count)
-
     grade_info = gather_grade_info(fctx, flow_session, grading_rule, answer_visits)
     assert grade_info is not None
 
@@ -946,7 +935,6 @@ def grade_flow_session(fctx, flow_session, grading_rule,
     # for the current one.
     if (grading_rule.grade_identifier
             and grading_rule.generates_grade
-            and is_graded_flow
             and flow_session.participation is not None):
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
@@ -2015,9 +2003,9 @@ def finish_flow_session_view(pctx, flow_session_id):
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             fctx.flow_desc)
 
-    (answered_count, unanswered_count) = count_answered_gradable(
+    (answered_count, unanswered_count) = count_answered(
             fctx, flow_session, answer_visits)
-    is_graded_flow = bool(answered_count + unanswered_count)
+    is_interactive_flow = bool(answered_count + unanswered_count)
 
     if flow_permission.view not in access_rule.permissions:
         raise PermissionDenied()
@@ -2096,7 +2084,7 @@ def finish_flow_session_view(pctx, flow_session_id):
 
         # }}}
 
-        if is_graded_flow:
+        if is_interactive_flow:
             if flow_permission.cannot_see_flow_result in access_rule.permissions:
                 grade_info = None
 
@@ -2112,7 +2100,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                     flow_session=flow_session,
                     completion_text=completion_text)
 
-    if (not is_graded_flow
+    if (not is_interactive_flow
             or
             (flow_session.in_progress
                 and flow_permission.end_session not in access_rule.permissions)):
