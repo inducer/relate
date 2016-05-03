@@ -356,6 +356,15 @@ urlpatterns = [
     url(r"^course"
         "/" + COURSE_ID_REGEX +
         "/flow-session"
+        "/(?P<flow_session_id>[-0-9]+)"
+        "/(?P<ordinal>[0-9]+)"
+        "/update-bookmark-state"
+        "/$",
+        course.flow.update_page_bookmark_state,
+        name="relate-update_page_bookmark_state"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/finish"
         "/$",

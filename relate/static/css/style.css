@@ -75,8 +75,15 @@ code {
   text-align: center;
 }
 
-.relate-flow-page-toc-item .relate-current {
-  background-color: #e8e8ff;
+.relate-flow-page-toc-item.relate-bookmarked {
+  background-color: #ff8;
+}
+.relate-flow-page-toc-item.relate-bookmarked:hover {
+  background-color: #ee7;
+}
+
+.relate-flow-page-toc-item.relate-current {
+  background-color: #ccc;
 }
 
 .relate-session-duration {

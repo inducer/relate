@@ -1888,6 +1888,41 @@ def post_flow_page(flow_session, fpctx, request, permissions, generates_grade):
             answer_data,
             answer_was_graded)
 
+# }}}
+
+
+# {{{ view: update page bookmark state
+
+@course_view
+def update_page_bookmark_state(pctx, flow_session_id, ordinal):
+    if pctx.request.method != "POST":
+        raise SuspiciousOperation(_("only POST allowed"))
+
+    flow_session = get_object_or_404(FlowSession, id=flow_session_id)
+
+    if flow_session.participation != pctx.participation:
+        raise PermissionDenied(
+                _("may only change your own flow sessions"))
+
+    bookmark_state = pctx.request.POST.get("bookmark_state")
+    if bookmark_state not in ["0", "1"]:
+        raise SuspiciousOperation(_("invalid bookmark state"))
+
+    bookmark_state = bookmark_state == "1"
+
+    fpd = get_object_or_404(FlowPageData.objects,
+            flow_session=flow_session,
+            ordinal=ordinal)
+
+    fpd.bookmarked = bookmark_state
+    fpd.save()
+
+    return http.HttpResponse("OK")
+
+# }}}
+
+
+# {{{ view: update expiration mode
 
 @course_view
 def update_expiration_mode(pctx, flow_session_id):
