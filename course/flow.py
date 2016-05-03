@@ -1695,6 +1695,20 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     all_page_data = get_all_page_data(flow_session)
 
+    from django.db import connection
+    with connection.cursor() as c:
+        c.execute(
+                "SELECT DISTINCT course_flowpagedata.ordinal "
+                "FROM course_flowpagevisit "
+                "INNER JOIN course_flowpagedata "
+                "ON course_flowpagedata.id = course_flowpagevisit.page_data_id "
+                "WHERE course_flowpagedata.flow_session_id = %s "
+                "AND course_flowpagevisit.answer IS NOT NULL "
+                "ORDER BY course_flowpagedata.ordinal",
+                [flow_session.id])
+
+        flow_page_ordinals_with_answers = set(row[0] for row in c.fetchall())
+
     args = {
         "flow_identifier": fpctx.flow_id,
         "flow_desc": fpctx.flow_desc,
@@ -1703,6 +1717,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "percentage": int(100*(fpctx.ordinal+1) / flow_session.page_count),
         "flow_session": flow_session,
         "all_page_data": all_page_data,
+        "flow_page_ordinals_with_answers": flow_page_ordinals_with_answers,
 
         "title": title, "body": body,
         "form": form,
@@ -1894,6 +1909,41 @@ def post_flow_page(flow_session, fpctx, request, permissions, generates_grade):
             answer_data,
             answer_was_graded)
 
+# }}}
+
+
+# {{{ view: update page bookmark state
+
+@course_view
+def update_page_bookmark_state(pctx, flow_session_id, ordinal):
+    if pctx.request.method != "POST":
+        raise SuspiciousOperation(_("only POST allowed"))
+
+    flow_session = get_object_or_404(FlowSession, id=flow_session_id)
+
+    if flow_session.participation != pctx.participation:
+        raise PermissionDenied(
+                _("may only change your own flow sessions"))
+
+    bookmark_state = pctx.request.POST.get("bookmark_state")
+    if bookmark_state not in ["0", "1"]:
+        raise SuspiciousOperation(_("invalid bookmark state"))
+
+    bookmark_state = bookmark_state == "1"
+
+    fpd = get_object_or_404(FlowPageData.objects,
+            flow_session=flow_session,
+            ordinal=ordinal)
+
+    fpd.bookmarked = bookmark_state
+    fpd.save()
+
+    return http.HttpResponse("OK")
+
+# }}}
+
+
+# {{{ view: update expiration mode
 
 @course_view
 def update_expiration_mode(pctx, flow_session_id):

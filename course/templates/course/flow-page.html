@@ -40,6 +40,22 @@
             href="#"
             role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
         {% endif %}
+        <button id="btn_bookmark"
+                class="btn btn-default relate-flow-page-bookmark-button
+                {% if page_data.bookmarked %}
+                relate-bookmarked
+                {% endif %}
+                "
+                title="{% trans "Boomark this page" %}">
+          <i id="label_bookmark_indicator" class="fa
+            {% if page_data.bookmarked %}
+              fa-star
+            {% else %}
+              fa-star-o
+            {% endif %}
+            " aria-hidden="true"></i>
+          Bookmark
+        </button>
       </div>
 
       {# }}} #}
@@ -131,8 +147,12 @@
       <div class="relate-flow-page-toc">
         {% for other_page_data in all_page_data %}
           {% if other_page_data.ordinal == page_data.ordinal %}
-            <span class="relate-flow-page-toc-item relate-current btn btn-default btn-xs disabled"
-              >{{ other_page_data.human_readable_ordinal }}</span>
+            <span class="relate-flow-page-toc-item btn btn-default btn-xs disabled
+              relate-current
+              {% if other_page_data.bookmarked %}
+                relate-bookmarked
+              {% endif %}
+              ">{{ other_page_data.human_readable_ordinal }}</span>
           {% else %}
             <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}"
                title="{{ other_page_data.title }}">
@@ -141,6 +161,12 @@
                 relate-prior
               {% else %}
                 relate-subsequent
+              {% endif %}
+              {% if other_page_data.bookmarked %}
+                relate-bookmarked
+              {% endif %}
+              {% if other_page_data.ordinal in flow_page_ordinals_with_answers %}
+                relate-answered
               {% endif %}
               ">{{ other_page_data.human_readable_ordinal }}
             </span></a>
@@ -158,6 +184,9 @@
               <li>
                 <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}">
                   {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title }}
+                  {% if other_page_data.bookmarked %}
+                    <i class="fa fa-star" aria-hidden="true"></i>
+                  {% endif %}
                 </a>
               </li>
               {% endfor %}
@@ -383,6 +412,56 @@
     }
 
     $("#id_expiration_mode").on("change", expiration_mode_changed);
+  </script>
+
+  {# }}} #}
+
+  {# {{{ bookmark button #}
+
+  <script type="text/javascript">
+    function activate_bookmark_button()
+    {
+      var btn_bookmark = $("#btn_bookmark");
+      btn_bookmark.click(
+          function(evt)
+          {
+            evt.preventDefault();
+
+            var ind = $("#label_bookmark_indicator");
+            var prev_bookmarked = ind.hasClass("fa-star");
+            var new_bookmarked = !prev_bookmarked;
+
+            if (new_bookmarked)
+            {
+              ind.removeClass("fa-star-o");
+              ind.addClass("fa-star");
+              btn_bookmark.addClass("relate-bookmarked");
+            }
+            else
+            {
+              ind.removeClass("fa-star");
+              ind.addClass("fa-star-o");
+              btn_bookmark.removeClass("relate-bookmarked");
+            }
+
+            var jqxhr = $.ajax(
+                "{% url "relate-update_page_bookmark_state" course.identifier flow_session.id page_data.ordinal %}",
+                {
+                  type: "POST",
+                  data: {
+                    bookmark_state: new_bookmarked ? "1": "0"
+                  },
+                  beforeSend: function(xhr, settings) {
+                    var csrftoken = get_cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                  }
+                })
+              .fail(function() {
+                alert("Error while bookmarking page.")
+              });
+          });
+    }
+    $(document).ready(activate_bookmark_button);
   </script>
 
   {# }}} #}

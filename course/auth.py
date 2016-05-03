@@ -36,7 +36,7 @@ from crispy_forms.layout import Submit, Layout, Div
 from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
-        login as auth_login,)
+        login as auth_login, logout as auth_logout)
 from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
 from django.contrib.sites.shortcuts import get_current_site
@@ -942,5 +942,19 @@ class Saml2Backend(Saml2BackendBase):
 
 # }}}
 
+
+# {{{ sign-out
+
+@never_cache
+def sign_out(request):
+    if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
+        from djangosaml2.views import _get_subject_id, logout as saml2_logout
+        if _get_subject_id(request.session) is not None:
+            return saml2_logout(request)
+
+    auth_logout(request)
+    return redirect("relate-home")
+
+# }}}
 
 # vim: foldmethod=marker
