@@ -145,6 +145,28 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # }}}
 
+
+# {{{ convert LaTeX to image settings
+
+# To enable tex2img functionality, uncomment the following line.
+#RELATE_LATEX_TO_IMAGE_ENABLED = True
+
+# The bin dir of tex compiler and image converter should be
+# correctly configured or RELATE will failed to start.
+#RELATE_LATEX_BIN_PATH = "/usr/local/texlive/2015/bin/x86_64-linux"
+#RELATE_IMAGEMAGICK_BIN_DIR = "/path/to/imagemagic/convert/bin/"
+
+# The full path of the directory where images converted
+# (from latex source) are saved. If not set, the default
+# path is a subfolder named "latex_image" in MEDIA_ROOT.
+# RELATE_LATEX_IMAGE_SAVING_FOLDER_PATH = ""
+
+# image, especially svg have large file size, files with size
+# exceed the following won't be cached.
+RELATE_IMAGE_CACHE_MAX_BYTES = 65536
+
+# }}}
+
 # {{{ docker
 
 # A string containing the image ID of the docker image to be used to run

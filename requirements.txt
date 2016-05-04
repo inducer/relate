@@ -84,3 +84,6 @@ django_select2>=5.5.0
 
 # For query lexing
 pytools
+
+# For string parse
+ply

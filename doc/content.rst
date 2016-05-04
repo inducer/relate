@@ -343,6 +343,8 @@ This could then be used from wherever RELATE markup is allowed::
 
 to embed a YouTube player. (YouTube is a registered trademark.)
 
+.. include:: tex-macro.rst
+
 .. _course_yml:
 
 The Main Course Page File

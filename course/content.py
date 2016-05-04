@@ -759,8 +759,45 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
     env = Environment(
             loader=GitTemplateLoader(repo, commit_sha),
             undefined=StrictUndefined)
+
+    # {{{ tex2img
+
+    from course.latex import tex_to_img_tag
+
+    def latex_not_enabled_warning(caller, *args, **kwargs):
+        return  "<div class='alert alert-danger'>%s</div>" % _(
+            "RELATE_LATEX_TO_IMAGE_ENABLED is set to False, "
+            "no image will be generated.")
+
+    def jinja_tex_to_img_tag(caller, *args, **kwargs):
+        from os.path import join
+        default_saving_folder = getattr(
+            settings, "RELATE_LATEX_IMAGE_SAVING_FOLDER_PATH",
+            join(settings.MEDIA_ROOT, "latex_image"))
+        kwargs["output_dir"] = default_saving_folder
+        return tex_to_img_tag(caller(), *args, **kwargs)
+
     template = env.from_string(text)
-    text = template.render(**jinja_env)
+    latex2image_enabled = getattr(
+        settings, "RELATE_LATEX_TO_IMAGE_ENABLED", False)
+    if latex2image_enabled:
+        try:
+            env.globals["latex"] = jinja_tex_to_img_tag
+            text = template.render(**jinja_env)
+        except:
+            if validate_only:
+                raise
+            else:
+                # fail silently
+                text = template.render(**jinja_env)
+    else:
+        if not validate_only:
+            env.globals["latex"] = latex_not_enabled_warning
+        else:
+            raise ImproperlyConfigured(_(
+            "RELATE_LATEX_TO_IMAGE_ENABLED is set to False, "
+            "no image will be generated."))
+        text = template.render(**jinja_env)
 
     # }}}
 
