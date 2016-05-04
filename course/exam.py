@@ -567,11 +567,10 @@ class ExamFacilityMiddleware(object):
 
         from course.exam import check_in_for_exam, issue_exam_ticket
         from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
-                sign_in_stage2_with_token, sign_in_by_user_pw, impersonate,
+                sign_in_stage2_with_token, sign_in_by_user_pw, sign_out, impersonate,
                 stop_impersonating)
         from course.views import set_pretend_facilities
         from course.flow import view_start_flow, view_resume_flow, view_flow_page
-        from django.contrib.auth.views import logout
 
         ok = False
         if resolver_match.func in [
@@ -586,7 +585,7 @@ class ExamFacilityMiddleware(object):
                 view_start_flow,
                 view_resume_flow,
                 user_profile,
-                logout,
+                sign_out,
                 set_pretend_facilities]:
             ok = True
 
@@ -642,8 +641,7 @@ class ExamLockdownMiddleware(object):
                     view_start_flow, view_resume_flow, view_flow_page,
                     update_expiration_mode, finish_flow_session_view)
             from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
-                    sign_in_stage2_with_token, sign_in_by_user_pw)
-            from django.contrib.auth.views import logout
+                    sign_in_stage2_with_token, sign_in_by_user_pw, sign_out)
 
             ok = False
             if resolver_match.func in [
@@ -658,7 +656,7 @@ class ExamLockdownMiddleware(object):
                     sign_in_stage2_with_token,
                     sign_in_by_user_pw,
                     user_profile,
-                    logout]:
+                    sign_out]:
                 ok = True
 
             elif request.path.startswith("/saml2"):
