@@ -639,7 +639,8 @@ class ExamLockdownMiddleware(object):
             from course.views import (get_repo_file, get_current_repo_file)
             from course.flow import (
                     view_start_flow, view_resume_flow, view_flow_page,
-                    update_expiration_mode, finish_flow_session_view)
+                    update_expiration_mode, update_page_bookmark_state,
+                    finish_flow_session_view)
             from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
                     sign_in_stage2_with_token, sign_in_by_user_pw, sign_out)
 
@@ -667,6 +668,7 @@ class ExamLockdownMiddleware(object):
                         view_resume_flow,
                         view_flow_page,
                         update_expiration_mode,
+                        update_page_bookmark_state,
                         finish_flow_session_view]
                     and
                     int(resolver_match.kwargs["flow_session_id"])
