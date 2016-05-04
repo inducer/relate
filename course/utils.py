@@ -723,7 +723,10 @@ def get_facilities_config(request=None):
 
     # This is called during offline validation, where Django isn't really set up.
     # The getattr makes this usable.
-    facilities = getattr(settings, "RELATE_FACILITIES", {})
+    facilities = getattr(settings, "RELATE_FACILITIES", None)
+    if facilities is None:
+        # Only happens during offline validation. Suppresses errors there.
+        return None
 
     if callable(facilities):
         from course.views import get_now_or_fake_time
