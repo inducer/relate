@@ -33,20 +33,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import (
         ugettext as _, string_concat, pgettext_lazy)
 
-from course.views import (
-        get_role_and_participation
-        )
 from course.content import (
         get_course_repo, get_flow_desc,
         parse_date_spec, get_course_commit_sha)
 from course.constants import (
         participation_role,
         flow_permission, flow_rule_kind)
-from course.models import (
-        Course,
-        FlowRuleException,
-        InstantFlowRequest,
-        FlowSession)
 
 
 def getattr_with_fallback(aggregates, attr_name, default=None):
@@ -151,6 +143,7 @@ def get_flow_rules(flow_desc, kind, participation, flow_id, now_datetime,
     else:
         rules = getattr(flow_desc.rules, kind)[:]
 
+    from course.models import FlowRuleException
     if consider_exceptions:
         for exc in (
                 FlowRuleException.objects
@@ -189,6 +182,7 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
                     may_start_new_session=True,
                     may_list_existing_sessions=False))])
 
+    from course.models import FlowSession
     for rule in rules:
         if not _eval_generic_conditions(rule, course, role, now_datetime,
                 flow_id=flow_id,
@@ -404,7 +398,10 @@ class CoursePageContext(object):
         self.request = request
         self.course_identifier = course_identifier
 
+        from course.models import Course
         self.course = get_object_or_404(Course, identifier=course_identifier)
+
+        from course.views import get_role_and_participation
         self.role, self.participation = get_role_and_participation(
                 request, self.course)
 
@@ -564,6 +561,7 @@ def render_course_page(pctx, template_name, args,
     now_datetime = get_now_or_fake_time(pctx.request)
 
     if allow_instant_flow_requests:
+        from course.models import InstantFlowRequest
         instant_flow_requests = list((InstantFlowRequest.objects
                 .filter(
                     course=pctx.course,
@@ -722,7 +720,10 @@ def get_codemirror_widget(language_mode, interaction_mode,
 
 def get_facilities_config(request=None):
     from django.conf import settings
-    facilities = settings.RELATE_FACILITIES
+
+    # This is called during offline validation, where Django isn't really set up.
+    # The getattr makes this usable.
+    facilities = getattr(settings, "RELATE_FACILITIES", {})
 
     if callable(facilities):
         from course.views import get_now_or_fake_time
