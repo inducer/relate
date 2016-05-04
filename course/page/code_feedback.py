@@ -65,25 +65,32 @@ class Feedback:
                     0, "'%s' does not consist of floating point numbers--"
                     "got: '%s'" % (name, data.dtype))
 
-    def check_numpy_array_features(self, name, ref, data):
+    def check_numpy_array_features(self, name, ref, data, report_failure=True):
         import numpy as np
         assert isinstance(ref, np.ndarray)
 
+        def bad(msg):
+            if report_failure:
+                self.finish(0, msg)
+            else:
+                return False
+
         if not isinstance(data, np.ndarray):
-            self.finish(0, "'%s' is not a numpy array" % name)
+            return bad("'%s' is not a numpy array" % name)
+
         if isinstance(data, np.matrix):
-            self.finish(0, "'%s' is a numpy matrix. Do not use those. "
+            return bad("'%s' is a numpy matrix. Do not use those. "
                     "bit.ly/array-vs-matrix" % name)
 
         if ref.shape != data.shape:
-            self.finish(
-                    0, "'%s' does not have correct shape--"
+            return bad(
+                    "'%s' does not have correct shape--"
                     "got: '%s', expected: '%s'" % (
                         name, data.shape, ref.shape))
 
         if ref.dtype.kind != data.dtype.kind:
-            self.finish(
-                    0, "'%s' does not have correct data type--"
+            return bad(
+                    "'%s' does not have correct data type--"
                     "got: '%s', expected: '%s'" % (
                         name, data.dtype.kind, ref.dtype.kind))
 
@@ -91,7 +98,9 @@ class Feedback:
             rtol=1e-05, atol=1e-08, report_success=True, report_failure=True):
         import numpy as np
 
-        self.check_numpy_array_features(name, ref, data)
+        if not self.check_numpy_array_features(name, ref, data, report_failure):
+            return False
+
         good = np.allclose(ref, data, rtol=rtol, atol=atol)
 
         if not good:

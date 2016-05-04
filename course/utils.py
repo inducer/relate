@@ -720,6 +720,22 @@ def get_codemirror_widget(language_mode, interaction_mode,
 
 # {{{ facility processing
 
+def get_facilities_config(request=None):
+    from django.conf import settings
+    facilities = settings.RELATE_FACILITIES
+
+    if callable(facilities):
+        from course.views import get_now_or_fake_time
+        now_datetime = get_now_or_fake_time(request)
+
+        result = facilities(now_datetime)
+        if not isinstance(result, dict):
+            raise RuntimeError("RELATE_FACILITIES must return a dictionary")
+        return result
+    else:
+        return facilities
+
+
 class FacilityFindingMiddleware(object):
     def process_request(self, request):
         pretend_facilities = request.session.get("relate_pretend_facilities")
@@ -733,8 +749,7 @@ class FacilityFindingMiddleware(object):
 
             facilities = set()
 
-            from django.conf import settings
-            for name, props in six.iteritems(settings.RELATE_FACILITIES):
+            for name, props in six.iteritems(get_facilities_config(request)):
                 ip_ranges = props.get("ip_ranges", [])
                 for ir in ip_ranges:
                     if remote_address in ipaddress.ip_network(six.text_type(ir)):

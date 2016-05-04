@@ -196,6 +196,30 @@ RELATE_SITE_ANNOUNCEMENT = None
 
 # {{{ exams and testing
 
+# This may also be a callable that receives a local-timezone datetime and returns
+# an equivalent dictionary.
+#
+# def RELATE_FACILITIES(now_datetime):
+#     from relate.utils import localize_datetime
+#     from datetime import datetime
+#
+#     if (now_datetime >= localize_datetime(datetime(2016, 5, 5, 0, 0))
+#             and now_datetime < localize_datetime(datetime(2016, 5, 6, 0, 0))):
+#         ip_ranges = [
+#             "127.0.0.1/32",
+#             "192.168.77.0/24",
+#             ]
+#     else:
+#         ip_ranges = []
+#
+#     return {
+#         "test_center": {
+#             "ip_ranges": ip_ranges,
+#             "exams_only": True,
+#             },
+#     }
+
+
 RELATE_FACILITIES = {
     "test_center": {
         "ip_ranges": [

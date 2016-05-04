@@ -83,8 +83,8 @@ def validate_role(location, role):
 
 
 def validate_facility(vctx, location, facility):
-    from django.conf import settings
-    facilities = getattr(settings, "RELATE_FACILITIES", None)
+    from course.utils import get_facilities_config
+    facilities = get_facilities_config()
     if facilities is None:
         return
 
