@@ -415,12 +415,18 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
           feedback.check_numpy_array_sanity(name, num_axes, data)
 
-          feedback.check_numpy_array_features(name, ref, data)
+          feedback.check_numpy_array_features(name, ref, data, report_failure=True)
 
           feedback.check_numpy_array_allclose(name, ref, data,
-              accuracy_critical=True, rtol=1e-5, atol=1e-8,
-              report_success=True, report_failure=True)
-          # returns True if accurate
+                  accuracy_critical=True, rtol=1e-5, atol=1e-8,
+                  report_success=True, report_failure=True)
+              # If report_failure is True, this function will only return
+              # if *data* passes the tests. It will return *True* in this
+              # case.
+              #
+              # If report_failure is False, this function will always return,
+              # and the return value will indicate whether *data* passed the
+              # accuracy/shape/kind checks.
 
           feedback.check_list(name, ref, data, entry_type=None)
 
