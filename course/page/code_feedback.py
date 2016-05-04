@@ -94,6 +94,8 @@ class Feedback:
                     "got: '%s', expected: '%s'" % (
                         name, data.dtype.kind, ref.dtype.kind))
 
+        return True
+
     def check_numpy_array_allclose(self, name, ref, data, accuracy_critical=True,
             rtol=1e-05, atol=1e-08, report_success=True, report_failure=True):
         import numpy as np
