@@ -1993,8 +1993,6 @@ def finish_flow_session_view(pctx, flow_session_id):
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
 
-    answer_visits = assemble_answer_visits(flow_session)
-
     from course.content import markup_to_html
     completion_text = markup_to_html(
             fctx.course, fctx.repo, pctx.course_commit_sha,
@@ -2002,6 +2000,8 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             fctx.flow_desc)
+
+    answer_visits = assemble_answer_visits(flow_session)
 
     (answered_count, unanswered_count) = count_answered(
             fctx, flow_session, answer_visits)
