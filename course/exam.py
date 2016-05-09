@@ -626,10 +626,10 @@ class ExamLockdownMiddleware(object):
             try:
                 exam_flow_session = FlowSession.objects.get(pk=exam_flow_session_pk)
             except ObjectDoesNotExist:
-                messages.add_message(request, messages.ERROR,
-                        _("Error while processing exam lockdown: "
-                        "flow session not found."))
-                raise SuspiciousOperation()
+                msg = _("Error while processing exam lockdown: "
+                        "flow session not found.")
+                messages.add_message(request, messages.ERROR, msg)
+                raise SuspiciousOperation(msg)
 
             request.relate_exam_lockdown = True
 
