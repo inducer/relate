@@ -1,0 +1,41 @@
+#! /usr/bin/env python
+from __future__ import print_function
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "relate.settings")
+
+import django
+django.setup()
+
+from course.models import FlowPageData
+import sys
+
+course_identifier = sys.argv[1]
+flow_id = sys.argv[2]
+group_id = sys.argv[3]
+page_id = sys.argv[4]
+old_type = sys.argv[5]
+new_type = sys.argv[6]
+
+print("Changing {group_id}/{page_id} in {flow_id} in {course_identifier} "
+        "from {old_type} to {new_type}".format(**locals()))
+
+fpages = FlowPageData.objects.filter(
+        flow_session__course__identifier=course_identifier,
+        flow_session__flow_id=flow_id,
+        group_id=group_id,
+        page_id=page_id)
+
+print(fpages.filter(flow_session__participation__isnull=False).count(),
+        "non-anonymous pages")
+print(fpages.count(), "pages total")
+
+raw_input("[Enter to continue]")
+
+from django.db import transaction
+with transaction.atomic():
+    for fpd in fpages:
+        assert fpd.page_type == old_type
+        print("Changing fpd id %d in %s's session %d" % (
+            fpd.id, fpd.flow_session.participation, fpd.flow_session.id))
+        fpd.page_type = new_type
+        fpd.save()
