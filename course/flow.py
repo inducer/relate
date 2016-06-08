@@ -1423,11 +1423,17 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
 
 
 def create_flow_page_visit(request, flow_session, page_data):
+    if request.user.is_authenticated():
+        # The access to 'is_authenticated' ought to wake up SimpleLazyObject.
+        user = request.user
+    else:
+        user = None
+
     visit = FlowPageVisit(
         flow_session=flow_session,
         page_data=page_data,
         remote_address=request.META['REMOTE_ADDR'],
-        user=request.user,
+        user=user,
         is_submitted_answer=None)
 
     if hasattr(request, "relate_impersonate_original_user"):
