@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 import six
+from six.moves import range
 
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, string_concat)
@@ -85,7 +86,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
 
     import datetime
 
-    for i in xrange(count):
+    for i in range(count):
         evt = Event()
         evt.course = course
         evt.kind = kind
