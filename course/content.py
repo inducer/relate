@@ -527,7 +527,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs.update(self.process_tag_func(tag, attrs))
 
         self.out_file.write("<%s %s/>" % (tag, " ".join(
-            _attr_to_string(k, v) for k, v in attrs.iteritems())))
+            _attr_to_string(k, v) for k, v in six.iteritems(attrs))))
 
     def handle_data(self, data):
         self.out_file.write(data)
