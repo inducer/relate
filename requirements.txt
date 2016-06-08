@@ -40,8 +40,8 @@ paramiko
 git+https://github.com/inducer/django-bootstrap3-datetimepicker.git
 
 # For in-class instant messaging
-dnspython  # Py2
-#dnspython3  # Py3
+#dnspython  # Py2
+dnspython3  # Py3
 sleekxmpp
 
 # To manage web dependencies
@@ -69,7 +69,7 @@ ipaddress
 
 # For interoperation with SAML2/Shibboleth
 pysaml2
-hg+https://inducer@bitbucket.org/inducer/djangosaml2
+git+https://github.com/knaperek/djangosaml2.git
 
 # A task queue, used to execute long-running tasks
 celery
