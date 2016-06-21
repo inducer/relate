@@ -74,6 +74,7 @@ class InvalidPingResponse(RuntimeError):
 
 
 def request_python_run(run_req, run_timeout, image=None):
+    import platform
     import json
     from six.moves import http_client
     import docker
@@ -98,7 +99,6 @@ def request_python_run(run_req, run_timeout, image=None):
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
                 None)
 
-        import platform
         if platform.system().lower().startswith("linux"):
             docker_cnx = docker.Client(
                     base_url=docker_url,
@@ -146,11 +146,11 @@ def request_python_run(run_req, run_timeout, image=None):
                     ["NetworkSettings"]["Ports"]["%d/tcp" % RUNPY_PORT])
             port_host_ip = port_info.get("HostIp")
 
-            if platform.system().lower().startswith("win"):
-                connect_host_ip = getattr(settings, "RELATE_DOCKER_HOST_IP")
-            else:
+            if platform.system().lower().startswith("linux"):
                 if port_host_ip != "0.0.0.0":
                     connect_host_ip = port_host_ip
+            else:
+                connect_host_ip = getattr(settings, "RELATE_DOCKER_HOST_IP")
 
             port = int(port_info["HostPort"])
         else:
