@@ -99,7 +99,7 @@ def request_python_run(run_req, run_timeout, image=None):
                 None)
 
         import platform
-        if not platform.system().lower().startswith("win"):
+        if platform.system().lower().startswith("linux"):
             docker_cnx = docker.Client(
                     base_url=docker_url,
                     tls=docker_tls,

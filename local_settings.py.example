@@ -176,7 +176,7 @@ RELATE_DOCKER_TLS_CONFIG = None
 
 # The following lines are for docker-machine on windows
 import platform
-if platform.system().lower().startswith("win"):
+if not platform.system().lower().startswith("linux"):
     def get_windows_docker_host_ip(machine="default", raise_error=False):
         from subprocess import PIPE, Popen
         cmd = ["docker-machine", "env", machine]
