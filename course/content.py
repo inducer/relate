@@ -89,8 +89,11 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     """
 
     if isinstance(repo, SubdirRepoWrapper):
-        # full_name must be non-empty
-        full_name = repo.subdir + "/" + full_name
+        if full_name:
+            full_name = repo.subdir + "/" + full_name
+        else:
+            full_name = repo.subdir
+
         repo = repo.repo
 
     names = full_name.split("/")
