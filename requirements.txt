@@ -74,8 +74,8 @@ git+https://github.com/knaperek/djangosaml2.git
 # A task queue, used to execute long-running tasks
 celery
 # django-celery (release) is broken: https://github.com/celery/django-celery/issues/411
-# but fixed in git:
-git+https://github.com/celery/django-celery.git@d3656b3919ad38
+# but fixed in Debian.
+git+https://anonscm.debian.org/git/python-modules/packages/django-celery.git
 
 # For searchable select widgets
 django_select2>=5.5.0
