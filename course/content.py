@@ -1252,6 +1252,9 @@ def get_course_commit_sha(course, participation):
         preview_sha = participation.preview_git_commit_sha
 
         repo = get_course_repo(course)
+        if isinstance(repo, SubdirRepoWrapper):
+            repo = repo.repo
+
         try:
             repo[preview_sha.encode()]
         except KeyError:
