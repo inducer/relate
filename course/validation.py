@@ -755,12 +755,12 @@ def validate_flow_rules(vctx, location, rules):
         if not hasattr(rules, "grade_aggregation_strategy"):
             raise ValidationError(
                     string_concat("%(location)s: ",
-                        _("grading rule that have a grade "
-                            "identifier (%(type)s: %(identifier)s) "
-                            "must have a grade_aggregation_strategy"))
+                        _("flows that have a grade "
+                            "identifier ('%(identifier)s') "
+                            "must have grading rules with a "
+                            "grade_aggregation_strategy"))
                     % {
                         'location': location,
-                        'type': type(rules.grade_identifier),
                         'identifier': rules.grade_identifier})
 
     from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
@@ -783,8 +783,8 @@ def validate_flow_rules(vctx, location, rules):
             raise ValidationError(
                     string_concat("%(location)s: ",
                         _("'grading' block is required if grade_identifier "
-                            "is not null/None.")
-                        % {'location': location}))
+                            "is not null/None."))
+                    % {'location': location})
 
     else:
         has_conditionals = None
