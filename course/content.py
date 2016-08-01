@@ -66,6 +66,19 @@ class SubdirRepoWrapper(object):
         self.repo.close()
 
 
+def get_true_repo_and_path(repo, path):
+    if isinstance(repo, SubdirRepoWrapper):
+        if path:
+            path = repo.subdir + "/" + path
+        else:
+            path = repo.subdir
+
+        return repo.repo, path
+
+    else:
+        return repo, path
+
+
 def get_course_repo_path(course):
     from os.path import join
     return join(settings.GIT_ROOT, course.identifier)
@@ -88,13 +101,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     :arg allow_tree: Allow the resulting object to be a directory
     """
 
-    if isinstance(repo, SubdirRepoWrapper):
-        if full_name:
-            full_name = repo.subdir + "/" + full_name
-        else:
-            full_name = repo.subdir
-
-        repo = repo.repo
+    repo, full_name = get_true_repo_and_path(repo, full_name)
 
     names = full_name.split("/")
 

@@ -1024,6 +1024,9 @@ def check_attributes_yml(vctx, repo, path, tree):
             - test2.pdf
             - 42
     """
+    from course.content import get_true_repo_and_path
+    repo, path = get_true_repo_and_path(repo, path)
+
     try:
         dummy, attr_blob_sha = tree[b".attributes.yml"]
     except KeyError:
