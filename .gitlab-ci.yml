@@ -1,0 +1,15 @@
+"Python 2.7":
+  script:
+  - "PY_EXE=python2.7 bash ./run-tests-for-ci.sh"
+  tags:
+  - python2.7
+  except:
+  - tags
+
+Python 3.5:
+  script:
+  - "PY_EXE=python3.5 bash ./run-tests-for-ci.sh"
+  tags:
+  - python3.5
+  except:
+  - tags
