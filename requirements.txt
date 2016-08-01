@@ -51,8 +51,8 @@ django-bower
 git+https://github.com/lambdalisue/django-codemirror-widget.git
 #django-codemirror-widget
 
-# Optional, used for caching
-python-memcached
+# Optional, used for caching, requires 'libmemcached-dev' (Debian package name)
+# pylibmc
 
 # For code isolation in code questions
 docker-py
