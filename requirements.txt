@@ -32,7 +32,7 @@ pytz
 pyyaml
 
 # dulwich (git for Py3 support)
-dulwich>=0.12
+dulwich>=0.14
 ecdsa
 paramiko
 
