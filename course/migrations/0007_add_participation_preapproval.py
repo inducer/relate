@@ -19,18 +19,18 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('email', models.EmailField(max_length=254)),
-                ('role', models.CharField(max_length=50, choices=[(b'instructor', b'Instructor'), (b'ta', b'Teaching Assistant'), (b'student', b'Student')])),
+                ('role', models.CharField(max_length=50, choices=[('instructor', 'Instructor'), ('ta', 'Teaching Assistant'), ('student', 'Student')])),
                 ('creation_time', models.DateTimeField(default=django.utils.timezone.now, db_index=True)),
                 ('course', models.ForeignKey(to='course.Course', on_delete=models.CASCADE)),
                 ('creator', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
             ],
             options={
-                'ordering': (b'course', b'email'),
+                'ordering': ('course', 'email'),
             },
             bases=(models.Model,),
         ),
         migrations.AlterUniqueTogether(
             name='participationpreapproval',
-            unique_together=set([(b'course', b'email')]),
+            unique_together=set([('course', 'email')]),
         ),
     ]
