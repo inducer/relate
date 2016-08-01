@@ -21,7 +21,8 @@ Enter the relate directory::
 
     cd relate
 
-Install the dependencies::
+Edit :file:`requirements.txt` to choose a version of `dnspython`, then install
+the dependencies::
 
     pip install -r requirements.txt
 

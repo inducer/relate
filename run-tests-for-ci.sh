@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -e
+
 echo "-----------------------------------------------"
 echo "Current directory: $(pwd)"
 echo "Python executable: ${PY_EXE}"
@@ -54,7 +56,15 @@ export PATH=`pwd`/.env/local/bin:$PATH
 
 PIP="${PY_EXE} $(which pip)"
 
-$PIP install -r requirements.txt
+grep -v dnspython requirements.txt > req.txt
+if [[ "$PY_EXE" = "python2*" ]]; then
+  $PIP install dnspython
+else
+  $PIP install dnspython3
+fi
+
+$PIP install -r req.txt
+
 cp local_settings.py.example local_settings.py
 
 cd test
