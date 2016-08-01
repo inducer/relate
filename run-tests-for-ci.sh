@@ -57,4 +57,5 @@ PIP="${PY_EXE} $(which pip)"
 $PIP install -r requirements.txt
 cp local_settings.py.example local_settings.py
 
-python manage.py test
+cd test
+python ../manage.py test
