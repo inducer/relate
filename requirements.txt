@@ -67,15 +67,25 @@ unicodecsv
 # To support network matching for facility recognition
 ipaddress
 
-# For interoperation with SAML2/Shibboleth
+# {{{ For interoperation with SAML2/Shibboleth
+
 pysaml2
 git+https://github.com/knaperek/djangosaml2.git
+# Note: djangosaml2 uses a non-Py3 version of python-memcached directly.  #
+# Override that. Also: Don't be tempted to use this for Django caching--it's
+# broken.
+python-memcached==1.58
 
-# A task queue, used to execute long-running tasks
+# }}}
+
+# {{{ A task queue, used to execute long-running tasks
 celery
+
 # django-celery (release) is broken: https://github.com/celery/django-celery/issues/411
 # but fixed in Debian.
 git+https://anonscm.debian.org/git/python-modules/packages/django-celery.git
+
+# }}}
 
 # For searchable select widgets
 django_select2>=5.5.0
@@ -86,3 +96,5 @@ django_select2>=5.5.0
 
 # For query lexing
 pytools
+
+# vim: foldmethod=marker
