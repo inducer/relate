@@ -92,6 +92,9 @@ def home(request):
                     participation_role.instructor]:
                 show = False
 
+        if not course.listed:
+            show = False
+
         if show:
             if (course.end_date is None
                     or now_datetime.date() <= course.end_date):
