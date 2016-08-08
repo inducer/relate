@@ -48,6 +48,11 @@ from relate.utils import dict_to_struct
 
 from yaml import load as load_yaml
 
+if sys.version_info >= (3,):
+    CACHE_KEY_ROOT = "py3"
+else:
+    CACHE_KEY_ROOT = "py2"
+
 
 # {{{ repo blob getting
 
@@ -160,7 +165,8 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     if isinstance(commit_sha, six.binary_type):
         from six.moves.urllib.parse import quote_plus
-        cache_key = "%R%1".join((
+        cache_key = "%s%R%1".join((
+            CACHE_KEY_ROOT,
             quote_plus(repo.controldir()),
             quote_plus(full_name),
             commit_sha.decode(),
@@ -442,6 +448,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     from six.moves.urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
+        CACHE_KEY_ROOT,
         quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode(),
         ))
 
@@ -476,7 +483,8 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     if cached:
         from six.moves.urllib.parse import quote_plus
         cache_key = "%%%2".join(
-                (quote_plus(repo.controldir()), quote_plus(full_name),
+                (CACHE_KEY_ROOT,
+                    quote_plus(repo.controldir()), quote_plus(full_name),
                     commit_sha.decode()))
 
         import django.core.cache as cache
@@ -749,13 +757,14 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v4:%d:%s:%s"
-                    % (course.id, str(commit_sha),
+            cache_key = ("markup:v5:%s:%d:%s:%s"
+                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
                         hashlib.md5(text.encode("utf-8")).hexdigest()))
 
             def_cache = cache.caches["default"]
             result = def_cache.get(cache_key)
             if result is not None:
+                assert isinstance(result, six.text_type)
                 return result
 
         if text.lstrip().startswith(JINJA_PREFIX):
