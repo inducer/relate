@@ -30,7 +30,7 @@ from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-from crispy_forms.layout import Submit
+from crispy_forms.layout import Submit, Button
 
 from course.utils import course_view, render_course_page
 
@@ -71,9 +71,11 @@ class SandboxForm(forms.Form):
             self.fields["content"].strip = False
 
         self.helper.add_input(
-                Submit(
-                    "preview", _("Preview"),
-                    accesskey="p"))
+                Submit("preview", _("Preview"), accesskey="p"),
+                )
+        self.helper.add_input(
+                Button("clear", _("Clear"), css_class="btn-default"),
+                )
 
 # }}}
 
@@ -148,7 +150,7 @@ def get_sandbox_data_for_page(pctx, page_desc, key):
                 and
                 stored_data_page_id == page_desc.id):
             return stored_data
-    # }}}
+
     return None
 
 # }}}

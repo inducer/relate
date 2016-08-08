@@ -121,7 +121,7 @@
 
   {# }}} #}
 
-  {# {{{ codemirror save -> preview #}
+  {# {{{ codemirror save -> preview, clear #}
 
   <script type="text/javascript">
     function do_preview()
@@ -136,6 +136,16 @@
           cm.save = do_preview;
         });
 
+    $("#button-id-clear").click(
+        function()
+        {
+          $("div.CodeMirror").each(
+            function ()
+            {
+              var cm = this.CodeMirror;
+              cm.setValue("");
+            });
+        });
   </script>
 
   {# }}} #}
