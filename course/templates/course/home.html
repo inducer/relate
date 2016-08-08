@@ -18,7 +18,7 @@
           <div class="col-md-4">
             <h3>{{course.number}} {{course.time_period}}</h3>
             <p>{{course.name}}</p>
-            <p><a class="btn btn-default" href="{% url 'course.views.course_page' course.identifier %}" role="button">{% trans "View" %} &raquo;</a></p>
+            <p><a class="btn btn-default" href="{% url 'relate-course_page' course.identifier %}" role="button">{% trans "View" %} &raquo;</a></p>
           </div>
         {% endfor %}
       </div>
@@ -38,8 +38,8 @@
                 class="text-muted"
              {% endif %}
             >
-            <td><a href="{% url 'course.views.course_page' course.identifier %}">{{course.number}}</a>
-            <td><a href="{% url 'course.views.course_page' course.identifier %}">{{course.time_period}}</a>
+            <td><a href="{% url 'relate-course_page' course.identifier %}">{{course.number}}</a>
+            <td><a href="{% url 'relate-course_page' course.identifier %}">{{course.time_period}}</a>
             <td>{{course.name}}</td>
             <td>{{course.start_date}}{% if course.end_date %} - {{course.end_date}}{% endif %}</td>
           </tr>
@@ -58,6 +58,6 @@
   {% endif %}
   {% if user.is_staff %}
     <hr>
-    <a class="btn btn-primary" href="{% url 'course.versioning.set_up_new_course' %}"" role="button">{% trans "Set up new course" %} &raquo;</a></p>
+    <a class="btn btn-primary" href="{% url 'relate-set_up_new_course' %}"" role="button">{% trans "Set up new course" %} &raquo;</a></p>
   {% endif %}
 {% endblock %}
