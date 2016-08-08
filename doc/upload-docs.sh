@@ -1,3 +1,3 @@
 #! /bin/sh
 
-rsync --progress --verbose --archive --delete _build/html/* doc-upload:doc/relate
+rsync --verbose --archive --delete _build/html/* doc-upload:doc/relate

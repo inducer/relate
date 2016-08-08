@@ -13,3 +13,12 @@ Python 3.5:
   - python3.5
   except:
   - tags
+
+Documentation:
+  script:
+  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
+  - ". ./build-docs.sh"
+  tags:
+  - python3.5
+  only:
+  - master
