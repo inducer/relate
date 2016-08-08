@@ -17,6 +17,7 @@ Python 3.5:
 Documentation:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
+  - "cp local_settings.py.example local_settings.py"
   - ". ./build-docs.sh"
   tags:
   - python3.5
