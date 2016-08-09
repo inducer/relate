@@ -31,7 +31,9 @@ from django.contrib import admin
 from course.models import (
         Course, Event,
         ParticipationTag,
-        Participation, ParticipationPreapproval,
+        Participation, ParticipationPermission,
+        ParticipationRole, ParticipationRolePermission,
+        ParticipationPreapproval,
         InstantFlowRequest,
         FlowSession, FlowPageData,
         FlowPageVisit, FlowPageVisitGrade,
@@ -222,6 +224,24 @@ admin.site.register(ParticipationTag, ParticipationTagAdmin)
 
 # {{{ participations
 
+class ParticipationRolePermissionInline(admin.TabularInline):
+    model = ParticipationRolePermission
+    extra = 3
+
+
+class ParticipationRoleAdmin(admin.ModelAdmin):
+    inlines = (ParticipationRolePermissionInline,)
+
+    list_filter = ("course",)
+
+admin.site.register(ParticipationRole, ParticipationRoleAdmin)
+
+
+class ParticipationPermissionInline(admin.TabularInline):
+    model = ParticipationPermission
+    extra = 3
+
+
 class ParticipationForm(forms.ModelForm):
     class Meta:
         model = Participation
@@ -270,11 +290,11 @@ class ParticipationAdmin(admin.ModelAdmin):
             "role",
             "status",
             )
-    list_filter = ("course", "role", "status", "tags")
+    list_filter = ("course", "role", "status", "tags", "roles")
 
     raw_id_fields = ("user",)
 
-    filter_horizontal = ("tags",)
+    filter_horizontal = ("tags", "roles",)
 
     search_fields = (
             "course__identifier",
@@ -284,6 +304,8 @@ class ParticipationAdmin(admin.ModelAdmin):
             )
 
     actions = [approve_enrollment, deny_enrollment]
+
+    inlines = (ParticipationPermissionInline,)
 
     # {{{ permissions
 

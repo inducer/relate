@@ -46,6 +46,7 @@ from course.constants import (  # noqa
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
         flow_rule_kind, FLOW_RULE_KIND_CHOICES,
         exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
+        participation_permission, PARTICIPATION_PERMISSION_CHOICES,
 
         COURSE_ID_REGEX
         )
@@ -303,6 +304,70 @@ class ParticipationTag(models.Model):
         ordering = ("course", "name")
 
 
+class ParticipationRole(models.Model):
+    course = models.ForeignKey(Course,
+            verbose_name=_('Course'), on_delete=models.CASCADE)
+    identifier = models.CharField(
+            max_length=100, blank=False, null=False, unique=True,
+            help_text=_("A symbolic name for this role, used in course code. "
+            "lower_case_with_underscores, no spaces."),
+            verbose_name=_('Role identifier'))
+    name = models.CharField(max_length=200, blank=False, null=False,
+            help_text=_("A human-readable description of this role."),
+            verbose_name=_('Role name'))
+
+    def clean(self):
+        super(ParticipationRole, self).clean()
+
+        import re
+        name_valid_re = re.compile(r"^\w+$")
+
+        if name_valid_re.match(self.identifier) is None:
+            # Translators: "Name" is the name of a ParticipationTag
+            raise ValidationError(
+                    {"name": _("Name contains invalid characters.")})
+
+    def __unicode__(self):
+        return _("%s in %s") % (self.identifier, self.course)
+
+    if six.PY3:
+        __str__ = __unicode__
+
+    class Meta:
+        verbose_name = _("Participation role")
+        verbose_name_plural = _("Participation roles")
+        unique_together = (("course", "identifier"),)
+        ordering = ("course", "identifier")
+
+
+class ParticipationPermissionBase(models.Model):
+    permission = models.CharField(max_length=200, blank=False, null=False,
+            choices=PARTICIPATION_PERMISSION_CHOICES,
+            verbose_name=_('Permission'))
+    argument = models.CharField(max_length=200, blank=True, null=True,
+            verbose_name=_('Argument'))
+
+    class Meta:
+        abstract = True
+
+    def __unicode__(self):
+        if self.argument:
+            return "%s %s" % (self.permission, self.argument)
+
+    if six.PY3:
+        __str__ = __unicode__
+
+
+class ParticipationRolePermission(ParticipationPermissionBase):
+    role = models.ForeignKey(ParticipationRole,
+            verbose_name=_('Role'), on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = _("Participation role permission")
+        verbose_name_plural = _("Participation role permissions")
+        unique_together = (("role", "permission", "argument"),)
+
+
 class Participation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
             verbose_name=_('User ID'), on_delete=models.CASCADE,
@@ -319,6 +384,9 @@ class Participation(models.Model):
             "Observers may access analytics. "
             "Each role includes privileges from subsequent roles."),
             verbose_name=_('Participation role'))
+    roles = models.ManyToManyField(ParticipationRole, blank=True,
+            verbose_name=_("Roles"))
+
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES,
             verbose_name=_('Participation status'))
@@ -358,6 +426,16 @@ class Participation(models.Model):
                 self.role)
 
 
+class ParticipationPermission(ParticipationPermissionBase):
+    participation = models.ForeignKey(Participation,
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = _("Participation permission")
+        verbose_name_plural = _("Participation permissionss")
+        unique_together = (("participation", "permission", "argument"),)
+
+
 class ParticipationPreapproval(models.Model):
     email = models.EmailField(max_length=254, null=True, blank=True,
             verbose_name=_('Email'))
@@ -394,6 +472,7 @@ class ParticipationPreapproval(models.Model):
         verbose_name_plural = _("Participation preapprovals")
         unique_together = (("course", "email"),)
         ordering = ("course", "email")
+
 
 # }}}
 

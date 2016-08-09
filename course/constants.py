@@ -73,6 +73,8 @@ PARTICIPATION_ROLE_CHOICES = (
         )
 
 
+# {{{ particiaption status
+
 class participation_status:  # noqa
     requested = "requested"
     active = "active"
@@ -91,6 +93,105 @@ PARTICIPATION_STATUS_CHOICES = (
             pgettext_lazy("Participation status", "Denied")),
         )
 
+# }}}
+
+
+# {{{ participation permission
+
+class participation_permission:
+    edit_course = "edit_course"
+    impersonate_role = "impersonate_role"
+
+    edit_exam = "edit_exam"
+    issue_exam_ticket = "issue_exam_ticket"
+    batch_issue_exam_ticket = "batch_issue_exam_ticket"
+
+    see_flow_sessions_from_role = "see_flow_sessions_from_role"
+    see_gradebook = "see_gradebook"
+    assign_grade = "assign_grade"
+    see_grader_stats = "see_grader_stats"
+    batch_import_grade = "batch_import_grade"
+    batch_export_grade = "batch_export_grade"
+    impose_deadline = "impose_deadline"
+    regrade_flow = "regrade_flow"
+    add_exception = "add_exception"
+    see_analytics = "see_analytics"
+
+    preview_content = "preview_content"
+    update_content = "update_content"
+    use_markup_sandbox = "use_markup_sandbox"
+    use_page_sandbox = "use_page_sandbox"
+    test_flow = "test_flow"
+
+    edit_events = "edit_events"
+
+    query_participation = "query_participation"
+    preapprove_participation = "preapprove_participation"
+
+    manage_instant_flow_requests = "manage_instant_flow_requests"
+
+
+PARTICIPATION_PERMISSION_CHOICES = (
+        (participation_permission.edit_course,
+            pgettext_lazy("Participation permission", "Edit course")),
+        (participation_permission.impersonate_role,
+            pgettext_lazy("Participation permission", "Impersonate role")),
+
+        (participation_permission.edit_exam,
+            pgettext_lazy("Participation permission", "Edit exam")),
+        (participation_permission.issue_exam_ticket,
+            pgettext_lazy("Participation permission", "Issue exam ticket")),
+        (participation_permission.batch_issue_exam_ticket,
+            pgettext_lazy("Participation permission", "Batch issue exam ticket")),
+
+        (participation_permission.see_flow_sessions_from_role,
+            pgettext_lazy("Participation permission",
+                "See flow sessions from role ")),
+        (participation_permission.see_gradebook,
+            pgettext_lazy("Participation permission", "See gradebook")),
+        (participation_permission.assign_grade,
+            pgettext_lazy("Participation permission", "Assign grade")),
+        (participation_permission.see_grader_stats,
+            pgettext_lazy("Participation permission", "See grader stats")),
+        (participation_permission.batch_import_grade,
+            pgettext_lazy("Participation permission", "Batch import grades")),
+        (participation_permission.batch_export_grade,
+            pgettext_lazy("Participation permission", "Batch export grade")),
+        (participation_permission.impose_deadline,
+            pgettext_lazy("Participation permission", "Impose deadline")),
+        (participation_permission.regrade_flow,
+            pgettext_lazy("Participation permission", "Regrade flow")),
+        (participation_permission.add_exception,
+            pgettext_lazy("Participation permission", "Add exception")),
+        (participation_permission.see_analytics,
+            pgettext_lazy("Participation permission", "See analytics")),
+
+        (participation_permission.preview_content,
+            pgettext_lazy("Participation permission", "Preview content")),
+        (participation_permission.update_content,
+            pgettext_lazy("Participation permission", "Update content")),
+        (participation_permission.use_markup_sandbox,
+            pgettext_lazy("Participation permission", "Use markup sandbox")),
+        (participation_permission.use_page_sandbox,
+            pgettext_lazy("Participation permission", "Use page sandbox")),
+        (participation_permission.test_flow,
+            pgettext_lazy("Participation permission", "Test flow")),
+
+        (participation_permission.edit_events,
+            pgettext_lazy("Participation permission", "Edit events")),
+
+        (participation_permission.query_participation,
+            pgettext_lazy("Participation permission", "Query participation")),
+        (participation_permission.preapprove_participation,
+            pgettext_lazy("Participation permission", "Preapprove participation")),
+
+        (participation_permission.manage_instant_flow_requests,
+            pgettext_lazy("Participation permission",
+                "Manage instant flow requests")),
+        )
+
+
+# }}}
 
 class flow_session_interaction_kind:  # noqa
     noninteractive = "noninteractive"
@@ -141,6 +242,8 @@ def is_expiration_mode_allowed(expmode, permissions):
 
     return False
 
+
+# {{{ flow permission
 
 class flow_permission:  # noqa
     """
@@ -245,6 +348,8 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.lock_down_as_exam_session,
             pgettext_lazy("Flow permission", "Lock down as exam session")),
         )
+
+# }}}
 
 
 class flow_rule_kind:  # noqa
@@ -354,3 +459,5 @@ EXAM_TICKET_STATE_CHOICES = (
         (exam_ticket_states.revoked,
             pgettext_lazy("Exam ticket state", "Revoked")),
         )
+
+# vim: foldmethod=marker
