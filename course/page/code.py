@@ -46,6 +46,9 @@ from course.page.base import (
 # {{{ python code question
 
 class PythonCodeForm(StyledForm):
+    # prevents form submission with codemirror's empty textarea
+    use_required_attribute = False
+
     def __init__(self, read_only, interaction_mode, initial_code, *args, **kwargs):
         super(PythonCodeForm, self).__init__(*args, **kwargs)
 
