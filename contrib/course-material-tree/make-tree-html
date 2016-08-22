@@ -8,15 +8,31 @@ import re
 
 section_nr = [1]
 
-def find_section_nodes(section_dict, node):
-    if "section_nr" in node and node["section_nr"] is not False:
-        section_nr[0] = node["section_nr"]
+def normalize_nodes(nodes, text_icon):
+    for i in range(len(nodes)):
+        node = nodes[i]
+        if isinstance(node, str):
+            node = {"text": node, "icon": text_icon}
 
+        if "section_nr" in node and node["section_nr"] is not False:
+            section_nr[0] = node["section_nr"]
+
+        if "section" in node:
+            if node.get("section_nr") is not False:
+                node["section_nr"] = section_nr[0]
+                section_nr[0] += 1
+
+        nodes[i] = node
+
+        if "nodes" in node:
+            normalize_nodes(node["nodes"], text_icon)
+
+
+def find_section_nodes(section_dict, node):
     if "section" in node:
         section_dict[node["section"]] = node
         if node.get("section_nr") is not False:
             node["section_nr"] = section_nr[0]
-            section_nr[0] += 1
 
     for subnode in node.get("nodes", []):
         find_section_nodes(section_dict, subnode)
@@ -104,6 +120,8 @@ def main():
 
     parser.add_argument("--default-icon", metavar="ICON_STR",
             default="fa fa-file-o")
+    parser.add_argument("--text-icon", metavar="ICON_STR",
+            default="fa fa-file-o")
     parser.add_argument("--number-sections", action="store_true")
 
     parser.add_argument("input_file", metavar="FILE")
@@ -113,6 +131,8 @@ def main():
     from yaml import load
     with open(args.input_file, "rb") as inf:
         root_node = load(inf)
+
+    normalize_nodes([root_node], args.text_icon)
 
     section_dict = {}
     find_section_nodes(section_dict, root_node)
