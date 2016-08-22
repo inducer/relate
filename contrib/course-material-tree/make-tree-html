@@ -31,8 +31,6 @@ def normalize_nodes(nodes, text_icon):
 def find_section_nodes(section_dict, node):
     if "section" in node:
         section_dict[node["section"]] = node
-        if node.get("section_nr") is not False:
-            node["section_nr"] = section_nr[0]
 
     for subnode in node.get("nodes", []):
         find_section_nodes(section_dict, subnode)
