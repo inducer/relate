@@ -94,6 +94,32 @@ def render(settings, outf, node, indent=0, skip=1):
 FN_REGEX = re.compile(r"^([0-9]+)-(.*)(\.[a-z]+)$")
 
 
+def get_section_id_and_display_name(trunk, include_extension):
+    from os.path import splitext
+
+    fn_match = FN_REGEX.match(trunk)
+    if fn_match is not None:
+        section_id = fn_match.group(1)
+        if include_extension:
+            fname = fn_match.group(2) + fn_match.group(3)
+        else:
+            fname = fn_match.group(2)
+        display_name = basename(fname)
+    else:
+        section_id, display_name = trunk.split("/")
+
+        if not include_extension:
+            display_name, _ = splitext(display_name)
+
+    try:
+        section_id = int(section_id)
+    except ValueError:
+        pass
+
+    return section_id, display_name
+
+
+
 def main():
     import argparse
 
@@ -141,17 +167,8 @@ def main():
         for fn in sorted(glob(join(args.ipynb_dir, "*", "*.ipynb"))):
             trunk = fn[len(args.ipynb_dir)+1:]
 
-            fn_match = FN_REGEX.match(trunk)
-            if fn_match is not None:
-                section_id = fn_match.group(1)
-                display_name = basename(fn_match.group(2))
-            else:
-                section_id, display_name = trunk.split("/")
-
-            try:
-                section_id = int(section_id)
-            except ValueError:
-                pass
+            section_id, display_name = get_section_id_and_display_name(
+                    trunk, include_extension=False)
 
             link_ipynb = args.ipynb_urlroot + "/" + trunk
             link_html = link_ipynb.replace(".ipynb", ".html")
@@ -191,39 +208,37 @@ def main():
     # {{{ python source
 
     if args.py_dir is not None:
-        for fn in sorted(glob(join(args.py_dir, "[0-9]*", "*.py"))):
+        for fn in sorted(glob(join(args.py_dir, "*", "*.py"))):
             trunk = fn[len(args.py_dir)+1:]
-            fn_match = FN_REGEX.match(trunk)
-            sec_nr = int(fn_match.group(1))
+            section_id, display_name = get_section_id_and_display_name(
+                    trunk, include_extension=True)
 
             src_node = {
-                "text": "Code: " + basename(
-                    fn_match.group(2)+fn_match.group(3)),
+                "text": "Code: " + display_name,
                 "link": args.py_urlroot + "/" + trunk,
                 "icon": "fa fa-file-text-o",
             }
-            section_dict[sec_nr]["nodes"].append(src_node)
+            section_dict[section_id]["nodes"].append(src_node)
 
     # }}}
 
     # {{{ notes
 
     if args.pdf_dir is not None:
-        for fn in sorted(glob(join(args.pdf_dir, "[0-9]*.pdf"))):
+        for fn in sorted(glob(join(args.pdf_dir, "*.pdf"))):
             if "autosave" in fn:
                 continue
 
             trunk = fn[len(args.pdf_dir)+1:]
-            fn_match = FN_REGEX.match(trunk)
-            sec_nr = int(fn_match.group(1))
+            section_id, display_name = get_section_id_and_display_name(
+                    trunk, include_extension=True)
 
             notes_node = {
-                "text": "PDF: " + basename(
-                    fn_match.group(2)+fn_match.group(3)),
+                "text": "PDF: " + basename(display_name),
                 "link": args.pdf_urlroot + "/" + trunk,
                 "icon": "fa fa-book",
                 }
-            section_dict[sec_nr]["nodes"].insert(0, notes_node)
+            section_dict[section_id]["nodes"].insert(0, notes_node)
 
     # }}}
 
