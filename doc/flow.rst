@@ -691,11 +691,11 @@ Fill-in-Multiple-Blanks (Automatically Graded)
 .. autoclass:: InlineMultiQuestion()
 
 One-out-of-Many Choice (Automatically Graded)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: ChoiceQuestion()
 
 Many-out-of-Many Choice (Automatically Graded)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: MultipleChoiceQuestion()
 
 One-out-of-Many Survey (Ungraded)
