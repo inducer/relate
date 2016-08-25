@@ -690,11 +690,11 @@ Fill-in-Multiple-Blanks (Automatically Graded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: InlineMultiQuestion()
 
-One-out-of-Many Choice (Automaically Graded)
+One-out-of-Many Choice (Automatically Graded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: ChoiceQuestion()
 
-Many-out-of-Many Choice (Automaically Graded)
+Many-out-of-Many Choice (Automatically Graded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: MultipleChoiceQuestion()
 
