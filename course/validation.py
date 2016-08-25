@@ -977,8 +977,38 @@ def validate_calendar_desc_struct(vctx, location, events_desc):
                 ]
             )
 
-    # FIXME could do more here
+    if hasattr(events_desc, "event_kinds"):
+        for event_kind_name in events_desc.event_kinds._field_names:
+            event_kind = getattr(events_desc.event_kinds, event_kind_name)
 
+            validate_struct(
+                    vctx,
+                    "%s, event kind '%s'" % (location, event_kind_name),
+                    event_kind,
+                    required_attrs=[
+                        ],
+                    allowed_attrs=[
+                        ("color", str),
+                        ("title", str),
+                        ]
+                    )
+
+    if hasattr(events_desc, "events"):
+        for event_name in events_desc.events._field_names:
+            event_desc = getattr(events_desc.events, event_name)
+
+            validate_struct(
+                    vctx,
+                    "%s, event '%s'" % (location, event_name),
+                    event_desc,
+                    required_attrs=[
+                        ],
+                    allowed_attrs=[
+                        ("color", str),
+                        ("title", str),
+                        ("description", "markup"),
+                        ]
+                    )
 # }}}
 
 

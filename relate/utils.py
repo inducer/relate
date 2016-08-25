@@ -165,6 +165,8 @@ class Struct(object):
         for name, val in six.iteritems(entries):
             self.__dict__[name] = val
 
+        self._field_names = list(six.iterkeys(entries))
+
     def __repr__(self):
         return repr(self.__dict__)
 
