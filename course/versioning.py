@@ -380,10 +380,11 @@ def run_course_update_command(
         return
 
     if command == "end_preview":
-        messages.add_message(request, messages.INFO,
-                _("Preview ended."))
         pctx.participation.preview_git_commit_sha = None
         pctx.participation.save()
+
+        messages.add_message(request, messages.INFO,
+                _("Preview ended."))
 
         return
 
@@ -426,6 +427,13 @@ def run_course_update_command(
     elif command == "update" and may_update:
         pctx.course.active_git_commit_sha = new_sha.decode()
         pctx.course.save()
+
+        if pctx.participation.preview_git_commit_sha is not None:
+            pctx.participation.preview_git_commit_sha = None
+            pctx.participation.save()
+
+            messages.add_message(request, messages.INFO,
+                    _("Preview ended."))
 
         messages.add_message(request, messages.SUCCESS,
                 _("Update applied. "))
