@@ -261,6 +261,8 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
         'givenName': ('first_name', ),
         'sn': ('last_name', ),
     }
+    SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
+    SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP = '__iexact'
 
     SAML_CONFIG = {
         # full path to the xmlsec1 binary programm

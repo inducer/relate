@@ -70,12 +70,15 @@ def _remove_prefix(prefix, s):
 
 def transfer_remote_refs(repo, remote_refs):
     valid_refs = []
-    for ref, sha in six.iteritems(remote_refs):
-        if (ref.startswith(b"refs/heads/")
-                and not ref.startswith(b"refs/heads/origin/")):
-            new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
-            valid_refs.append(new_ref)
-            repo[new_ref] = sha
+
+    if remote_refs is not None:
+        for ref, sha in six.iteritems(remote_refs):
+            if (ref.startswith(b"refs/heads/")
+                    and not ref.startswith(b"refs/heads/origin/")):
+                new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
+                valid_refs.append(new_ref)
+                repo[new_ref] = sha
+
     for ref in repo.get_refs().keys():
         if ref.startswith(b"refs/remotes/origin/") and ref not in valid_refs:
             del repo[ref]
@@ -226,6 +229,13 @@ def set_up_new_course(request):
                                     new_course)
 
                         remote_refs = client.fetch(remote_path, repo)
+                        if remote_refs is None:
+                            raise RuntimeError(_("No refs found in remote repository"
+                                    " (i.e. no master branch, no HEAD). "
+                                    "This looks very much like a blank repository. "
+                                    "Please create course.yml in the remote "
+                                    "repository before creating your course."))
+
                         transfer_remote_refs(repo, remote_refs)
                         new_sha = repo[b"HEAD"] = remote_refs[b"HEAD"]
 
@@ -370,10 +380,11 @@ def run_course_update_command(
         return
 
     if command == "end_preview":
-        messages.add_message(request, messages.INFO,
-                _("Preview ended."))
         pctx.participation.preview_git_commit_sha = None
         pctx.participation.save()
+
+        messages.add_message(request, messages.INFO,
+                _("Preview ended."))
 
         return
 
@@ -416,6 +427,13 @@ def run_course_update_command(
     elif command == "update" and may_update:
         pctx.course.active_git_commit_sha = new_sha.decode()
         pctx.course.save()
+
+        if pctx.participation.preview_git_commit_sha is not None:
+            pctx.participation.preview_git_commit_sha = None
+            pctx.participation.save()
+
+            messages.add_message(request, messages.INFO,
+                    _("Preview ended."))
 
         messages.add_message(request, messages.SUCCESS,
                 _("Update applied. "))

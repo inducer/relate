@@ -43,6 +43,9 @@ import sys
 
 
 class TextAnswerForm(StyledForm):
+    # prevents form submission with codemirror's empty textarea
+    use_required_attribute = False
+
     @staticmethod
     def get_text_widget(widget_type, read_only=False, check_only=False,
             interaction_mode=None):

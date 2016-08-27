@@ -226,9 +226,9 @@ def make_sign_in_key(user):
     import hashlib
     from time import time
     m = hashlib.sha1()
-    m.update(user.email)
-    m.update(hex(random.getrandbits(128)))
-    m.update(str(time()))
+    m.update(user.email.encode("utf-8"))
+    m.update(hex(random.getrandbits(128)).encode())
+    m.update(str(time()).encode("utf-8"))
     return m.hexdigest()
 
 

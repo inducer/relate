@@ -6,7 +6,7 @@
   <p>{% trans "Please select your Identity Provider from the following list:" %}</p>
   <ul>
     {% for url, name in available_idps %}
-    <li><a href="{% url 'djangosaml2.views.login' %}?idp={{ url }}{% if came_from %}&next={{ came_from }}{% endif %}">{{ name }}</a></li>
+    <li><a href="{% url 'saml2_login' %}?idp={{ url }}{% if came_from %}&next={{ came_from }}{% endif %}">{{ name }}</a></li>
     {% endfor %}
   </ul>
 {% endblock %}

@@ -40,6 +40,9 @@ from course.constants import participation_role
 # {{{ sandbox form
 
 class SandboxForm(forms.Form):
+    # prevents form submission with codemirror's empty textarea
+    use_required_attribute = False
+
     def __init__(self, initial_text,
             language_mode, interaction_mode, help_text, *args, **kwargs):
         super(SandboxForm, self).__init__(*args, **kwargs)

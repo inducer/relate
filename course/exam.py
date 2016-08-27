@@ -249,6 +249,9 @@ _("Instructions for "  # noqa
 
 
 class BatchIssueTicketsForm(StyledForm):
+    # prevents form submission with codemirror's empty textarea
+    use_required_attribute = False
+
     def __init__(self, course, editor_mode, *args, **kwargs):
         super(BatchIssueTicketsForm, self).__init__(*args, **kwargs)
 

@@ -152,11 +152,11 @@ class Course(models.Model):
             verbose_name=_('Enrollment approval required'))
     preapproval_require_verified_inst_id = models.BooleanField(
             default=True,
-            help_text=_("If set, students cannot get particiaption "
+            help_text=_("If set, students cannot get participation "
                         "preapproval using institutional ID if "
-                        "institutional ID they provided are not "
+                        "the institutional ID they provided is not "
                         "verified."),
-            verbose_name=_('None preapproval by institutional ID if not '
+            verbose_name=_('Prevent preapproval by institutional ID if not '
                            'verified?'))
     enrollment_required_email_suffix = models.CharField(
             max_length=200, blank=True, null=True,
