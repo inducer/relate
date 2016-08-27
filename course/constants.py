@@ -163,7 +163,7 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.batch_import_grade,
             pgettext_lazy("Participation permission", "Batch import grades")),
         (participation_permission.batch_export_grade,
-            pgettext_lazy("Participation permission", "Batch export grade")),
+            pgettext_lazy("Participation permission", "Batch export grades")),
         (participation_permission.impose_deadline,
             pgettext_lazy("Participation permission", "Impose deadline")),
         (participation_permission.regrade_flow,
