@@ -101,6 +101,7 @@ PARTICIPATION_STATUS_CHOICES = (
 class participation_permission:
     edit_course = "edit_course"
     impersonate_role = "impersonate_role"
+    edit_course_permissions = "edit_course_permissions"
 
     edit_exam = "edit_exam"
     issue_exam_ticket = "issue_exam_ticket"
@@ -137,6 +138,8 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Edit course")),
         (participation_permission.impersonate_role,
             pgettext_lazy("Participation permission", "Impersonate role")),
+        (participation_permission.edit_course_permissions,
+            pgettext_lazy("Participation permission", "Edit course permissions")),
 
         (participation_permission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),
