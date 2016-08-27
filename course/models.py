@@ -308,7 +308,7 @@ class ParticipationRole(models.Model):
     course = models.ForeignKey(Course,
             verbose_name=_('Course'), on_delete=models.CASCADE)
     identifier = models.CharField(
-            max_length=100, blank=False, null=False, unique=True,
+            max_length=100, blank=False, null=False,
             help_text=_("A symbolic name for this role, used in course code. "
             "lower_case_with_underscores, no spaces."),
             verbose_name=_('Role identifier'))
