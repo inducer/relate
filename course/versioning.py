@@ -30,7 +30,7 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 import django.forms as forms
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.utils.translation import (
         ugettext_lazy as _,
@@ -199,11 +199,8 @@ class CourseCreationForm(StyledModelForm):
         return self.cleaned_data["git_source"]
 
 
-@login_required
+@permission_required("course.add_course")
 def set_up_new_course(request):
-    if not request.user.is_staff:
-        raise PermissionDenied(_("only staff may create courses"))
-
     if request.method == "POST":
         form = CourseCreationForm(request.POST)
 
