@@ -474,6 +474,77 @@ class ParticipationPreapproval(models.Model):
         ordering = ("course", "email")
 
 
+def add_default_roles_and_permissions(course,
+        role_model=ParticipationRole,
+        role_permission_model=ParticipationRolePermission):
+    from course.constants import participation_permission as pp
+
+    rpm = role_permission_model
+
+    def add_teaching_assistant_permissions(role):
+        rpm(role=role, permission=pp.impersonate_role).save()
+        rpm(role=role, permission=pp.issue_exam_ticket).save()
+        rpm(role=role, permission=pp.see_flow_sessions_from_role,
+                argument="student").save()
+        rpm(role=role, permission=pp.see_grades_from_role,
+                argument="student").save()
+        rpm(role=role, permission=pp.see_gradebook).save()
+        rpm(role=role, permission=pp.assign_grade).save()
+        rpm(role=role, permission=pp.see_grader_stats).save()
+        rpm(role=role, permission=pp.impose_deadline).save()
+        rpm(role=role, permission=pp.regrade_flow).save()
+        rpm(role=role, permission=pp.add_exception).save()
+        rpm(role=role, permission=pp.see_analytics).save()
+        rpm(role=role, permission=pp.preview_content).save()
+        rpm(role=role, permission=pp.use_markup_sandbox).save()
+        rpm(role=role, permission=pp.use_page_sandbox).save()
+        rpm(role=role, permission=pp.test_flow).save()
+        rpm(role=role, permission=pp.query_participation).save()
+
+    def add_instructor_permisisons(role):
+        rpm(role=role, permission=pp.edit_course).save()
+        rpm(role=role, permission=pp.edit_exam).save()
+        rpm(role=role, permission=pp.batch_issue_exam_ticket).save()
+        rpm(role=role, permission=pp.see_flow_sessions_from_role,
+                argument="teaching_assistant").save()
+        rpm(role=role, permission=pp.see_grades_from_role,
+                argument="teaching_assistant").save()
+        rpm(role=role, permission=pp.batch_import_grade).save()
+        rpm(role=role, permission=pp.batch_export_grade).save()
+        rpm(role=role, permission=pp.update_content).save()
+        rpm(role=role, permission=pp.edit_events).save()
+        rpm(role=role, permission=pp.manage_instant_flow_requests).save()
+        rpm(role=role, permission=pp.preapprove_participation).save()
+
+        add_teaching_assistant_permissions(role)
+
+    instructor = role_model(
+            course=course, identifier="instructor",
+            name=_("Instructor"))
+    instructor.save()
+    teaching_assistant = role_model(
+            course=course, identifier="teaching_assistant",
+            name=_("Teaching Assistant"))
+    teaching_assistant.save()
+    student = role_model(
+            course=course, identifier="student",
+            name=_("Student"))
+    student.save()
+    unenrolled = role_model(
+            course=course, identifier="unenrolled",
+            name=_("Unenrolled"))
+    unenrolled.save()
+
+    add_teaching_assistant_permissions(teaching_assistant)
+    add_instructor_permisisons(instructor)
+
+
+def _set_up_course_permissions(sender, course, created, raw, using, update_fields):
+    if created:
+        add_default_roles_and_permissions(course)
+
+Course.post_save.connect(_set_up_course_permissions)
+
 # }}}
 
 
