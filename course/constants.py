@@ -107,6 +107,7 @@ class participation_permission:
     batch_issue_exam_ticket = "batch_issue_exam_ticket"
 
     see_flow_sessions_from_role = "see_flow_sessions_from_role"
+    see_grades_from_role = "see_grades_from_role"
     see_gradebook = "see_gradebook"
     assign_grade = "assign_grade"
     see_grader_stats = "see_grader_stats"
@@ -147,6 +148,9 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.see_flow_sessions_from_role,
             pgettext_lazy("Participation permission",
                 "See flow sessions from role ")),
+        (participation_permission.see_grades_from_role,
+            pgettext_lazy("Participation permission",
+                "See grades from role ")),
         (participation_permission.see_gradebook,
             pgettext_lazy("Participation permission", "See gradebook")),
         (participation_permission.assign_grade,
