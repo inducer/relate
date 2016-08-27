@@ -33,6 +33,8 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, string_concat)
 from django.core.validators import RegexValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 from django.conf import settings
 
@@ -539,11 +541,11 @@ def add_default_roles_and_permissions(course,
     add_instructor_permisisons(instructor)
 
 
-def _set_up_course_permissions(sender, course, created, raw, using, update_fields):
+@receiver(post_save, sender=Course, dispatch_uid="add_default_permissions")
+def _set_up_course_permissions(sender, course, created, raw, using, update_fields,
+        **kwargs):
     if created:
         add_default_roles_and_permissions(course)
-
-Course.post_save.connect(_set_up_course_permissions)
 
 # }}}
 
