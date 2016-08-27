@@ -486,7 +486,8 @@ def add_default_roles_and_permissions(course,
     rpm = role_permission_model
 
     def add_teaching_assistant_permissions(role):
-        rpm(role=role, permission=pp.impersonate_role).save()
+        rpm(role=role, permission=pp.impersonate_role,
+                argument="student").save()
         rpm(role=role, permission=pp.issue_exam_ticket).save()
         rpm(role=role, permission=pp.see_flow_sessions_from_role,
                 argument="student").save()
@@ -506,6 +507,9 @@ def add_default_roles_and_permissions(course,
         rpm(role=role, permission=pp.query_participation).save()
 
     def add_instructor_permisisons(role):
+        rpm(role=role, permission=pp.impersonate_role,
+                argument="teaching_assistant").save()
+        rpm(role=role, permission=pp.edit_course_permissions).save()
         rpm(role=role, permission=pp.edit_course).save()
         rpm(role=role, permission=pp.edit_exam).save()
         rpm(role=role, permission=pp.batch_issue_exam_ticket).save()
