@@ -355,6 +355,8 @@ class ParticipationPermissionBase(models.Model):
     def __unicode__(self):
         if self.argument:
             return "%s %s" % (self.permission, self.argument)
+        else:
+            return self.permission
 
     if six.PY3:
         __str__ = __unicode__
