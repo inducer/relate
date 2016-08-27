@@ -194,8 +194,10 @@ PARTICIPATION_PERMISSION_CHOICES = (
                 "Manage instant flow requests")),
         )
 
-
 # }}}
+
+
+# {{{ flow session related
 
 class flow_session_interaction_kind:  # noqa
     noninteractive = "noninteractive"
@@ -245,6 +247,8 @@ def is_expiration_mode_allowed(expmode, permissions):
         raise ValueError(ugettext("unknown expiration mode"))
 
     return False
+
+# }}}
 
 
 # {{{ flow permission
@@ -372,6 +376,8 @@ FLOW_RULE_KIND_CHOICES = (
         )
 
 
+# {{{ grade aggregation strategy
+
 class grade_aggregation_strategy:  # noqa
     """A strategy for aggregating multiple grades into one.
 
@@ -417,6 +423,10 @@ GRADE_AGGREGATION_STRATEGY_CHOICES = (
             pgettext_lazy("Grade aggregation strategy", "Use the latest grade")),
         )
 
+# }}}
+
+
+# {{{ grade state-change type
 
 class grade_state_change_types:  # noqa
     grading_started = "grading_started"
@@ -448,6 +458,10 @@ GRADE_STATE_CHANGE_CHOICES = (
             pgettext_lazy("Grade state change", "Exempt")),
         )
 
+# }}}
+
+
+# {{{ exam ticket state
 
 class exam_ticket_states:  # noqa
     valid = "valid"
@@ -463,5 +477,7 @@ EXAM_TICKET_STATE_CHOICES = (
         (exam_ticket_states.revoked,
             pgettext_lazy("Exam ticket state", "Revoked")),
         )
+
+# }}}
 
 # vim: foldmethod=marker
