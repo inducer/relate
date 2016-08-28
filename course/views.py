@@ -150,7 +150,7 @@ def course_page(pctx):
             pctx.course.accepts_enrollment
             and pctx.role == participation_role.unenrolled)
 
-    if pctx.request.user.is_authenticated() and Participation.objects.filter(
+    if pctx.request.user.is_authenticated and Participation.objects.filter(
             user=pctx.request.user,
             course=pctx.course,
             status=participation_status.requested).count():

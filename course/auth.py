@@ -836,7 +836,7 @@ class UserForm(StyledModelForm):
 
 
 def user_profile(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         raise PermissionDenied()
 
     user_form = None
@@ -896,7 +896,7 @@ def get_role_and_participation(request, course):
             if hasattr(request.user, '_wrapped')
             else request.user)
 
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return participation_role.unenrolled, None
 
     participations = list(Participation.objects.filter(

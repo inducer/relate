@@ -607,7 +607,7 @@ class ExamFacilityMiddleware(object):
             ok = True
 
         if not ok:
-            if (request.user.is_authenticated()
+            if (request.user.is_authenticated
                     and resolver_match.func is view_flow_page):
                 messages.add_message(request, messages.INFO,
                         _("Access to flows in an exams-only facility "
@@ -615,7 +615,7 @@ class ExamFacilityMiddleware(object):
                             "To do so, add 'lock_down_as_exam_session' to "
                             "your flow's access permissions."))
 
-            if request.user.is_authenticated():
+            if request.user.is_authenticated:
                 return redirect("relate-list_available_exams")
             else:
                 return redirect("relate-sign_in_choice")
@@ -713,7 +713,7 @@ class ExamLockdownMiddleware(object):
 def list_available_exams(request):
     now_datetime = get_now_or_fake_time(request)
 
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         participations = (
                 Participation.objects.filter(
                     user=request.user,

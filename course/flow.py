@@ -1244,7 +1244,7 @@ def post_start_flow(pctx, fctx, flow_id):
         raise PermissionDenied(_("new session not allowed"))
 
     flow_user = pctx.request.user
-    if not flow_user.is_authenticated():
+    if not flow_user.is_authenticated:
         flow_user = None
 
     session = start_flow(
@@ -1423,7 +1423,7 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
 
 
 def create_flow_page_visit(request, flow_session, page_data):
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         # The access to 'is_authenticated' ought to wake up SimpleLazyObject.
         user = request.user
     else:
