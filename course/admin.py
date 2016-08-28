@@ -262,8 +262,7 @@ class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
 
     def get_user(self, obj):
-
-        from django.core.urlresolvers import reverse
+        from django.urls import reverse
         from django.conf import settings
 
         return string_concat(

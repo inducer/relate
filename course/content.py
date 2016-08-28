@@ -34,7 +34,7 @@ import sys
 
 from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
-from django.core.urlresolvers import NoReverseMatch
+from django.urls import NoReverseMatch
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -747,7 +747,7 @@ JINJA_PREFIX = "[JINJA]"
 def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
         validate_only=False, jinja_env={}):
     if reverse_func is None:
-        from django.core.urlresolvers import reverse
+        from django.urls import reverse
         reverse_func = reverse
 
     if course is not None and not jinja_env:

@@ -165,7 +165,7 @@ def course_page(pctx):
         if ParticipationPreapproval.objects.filter(
                 course=pctx.course).exclude(institutional_id=None).count():
             if not pctx.request.user.institutional_id:
-                from django.core.urlresolvers import reverse
+                from django.urls import reverse
                 messages.add_message(pctx.request, messages.WARNING,
                         _("This course uses institutional ID for "
                         "enrollment preapproval, please <a href='%s' "

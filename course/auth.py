@@ -41,7 +41,7 @@ from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.decorators import user_passes_test
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core import validators
 from django.utils.http import is_safe_url
 from django.http import HttpResponseRedirect

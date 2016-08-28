@@ -502,7 +502,7 @@ class FlowPageContext(FlowContext):
 
             page_uri = None
             if request is not None:
-                from django.core.urlresolvers import reverse
+                from django.urls import reverse
                 page_uri = request.build_absolute_uri(
                         reverse("relate-view_flow_page",
                             args=(course.identifier, flow_session.id, ordinal)))
@@ -646,7 +646,7 @@ def get_codemirror_widget(language_mode, interaction_mode,
 
     from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
-    from django.core.urlresolvers import reverse
+    from django.urls import reverse
     help_text = (_("Press F9 to toggle full-screen mode. ")
             + _("Set editor mode in <a href='%s'>user profile</a>.")
             % reverse("relate-user_profile"))

@@ -41,7 +41,7 @@ from django import forms
 from django import http
 from django.utils import translation
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from relate.utils import (
         StyledForm, local_now, as_local_time,

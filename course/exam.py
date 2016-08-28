@@ -39,7 +39,7 @@ from django.contrib import messages  # noqa
 from django.contrib.auth.decorators import permission_required
 from django.db import transaction
 from django.db.models import Q
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
@@ -636,7 +636,7 @@ class ExamLockdownMiddleware(object):
 
             request.relate_exam_lockdown = True
 
-            from django.core.urlresolvers import resolve
+            from django.urls import resolve
             resolver_match = resolve(request.path)
 
             from course.views import (get_repo_file, get_current_repo_file)

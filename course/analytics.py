@@ -32,7 +32,7 @@ from django.shortcuts import (  # noqa
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import connection
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django import http
 from django.contrib import messages
