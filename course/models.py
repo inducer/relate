@@ -312,7 +312,9 @@ class ParticipationRole(models.Model):
     identifier = models.CharField(
             max_length=100, blank=False, null=False,
             help_text=_("A symbolic name for this role, used in course code. "
-            "lower_case_with_underscores, no spaces."),
+            "lower_case_with_underscores, no spaces. May be any string. The "
+            "name 'unenrolled' is special and refers to anyone not enrolled "
+            "in the course."),
             verbose_name=_('Role identifier'))
     name = models.CharField(max_length=200, blank=False, null=False,
             help_text=_("A human-readable description of this role."),
@@ -389,7 +391,7 @@ class Participation(models.Model):
             "Each role includes privileges from subsequent roles."),
             verbose_name=_('Participation role'))
     roles = models.ManyToManyField(ParticipationRole, blank=True,
-            verbose_name=_("Roles"))
+            verbose_name=_("Roles"), related_name="participation")
 
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES,
