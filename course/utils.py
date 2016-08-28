@@ -397,6 +397,7 @@ class CoursePageContext(object):
     def __init__(self, request, course_identifier):
         self.request = request
         self.course_identifier = course_identifier
+        self._permissions_cache = None
 
         from course.models import Course
         self.course = get_object_or_404(Course, identifier=course_identifier)
@@ -441,6 +442,47 @@ class CoursePageContext(object):
                 sha = preview_sha
 
         self.course_commit_sha = sha
+
+    # {{{ permissions handling
+
+    def permissions(self):
+        if self._permissions_cache is not None:
+            return self._permissions_cache
+
+        from course.models import (
+                ParticipationRolePermission,
+                ParticipationPermission)
+
+        if self.participation is not None:
+            perm = (
+                    list(
+                        ParticipationRolePermission.objects.filter(
+                            role__course=self.course,
+                            role__participation=self.participation)
+                        .values_list("permission", "argument"))
+                    +
+                    list(
+                        ParticipationPermission.objects.filter(
+                            participation=self.participation)
+                        .values_list("permission", "argument")))
+
+        else:
+            perm = list(
+                    ParticipationRolePermission.objects.filter(
+                        role__identifier="unenrolled")
+                    .values_list("permission", "argument"))
+
+        perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm)
+
+        self._permissions_cache = perm
+        return perm
+
+    def has_permission(self, perm, argument=None):
+        return (perm, argument) in self.permissions()
+
+    # }}}
 
 
 class FlowContext(object):
