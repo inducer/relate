@@ -488,6 +488,7 @@ def add_default_roles_and_permissions(course,
     def add_teaching_assistant_permissions(role):
         rpm(role=role, permission=pp.impersonate_role,
                 argument="student").save()
+        rpm(role=role, permission=pp.see_hidden_course_page).save()
         rpm(role=role, permission=pp.issue_exam_ticket).save()
         rpm(role=role, permission=pp.see_flow_sessions_from_role,
                 argument="student").save()

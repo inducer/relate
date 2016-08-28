@@ -102,6 +102,7 @@ class participation_permission:
     edit_course = "edit_course"
     impersonate_role = "impersonate_role"
     edit_course_permissions = "edit_course_permissions"
+    see_hidden_course_page = "see_hidden_course_page"
 
     edit_exam = "edit_exam"
     issue_exam_ticket = "issue_exam_ticket"
@@ -141,6 +142,8 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Impersonate role")),
         (participation_permission.edit_course_permissions,
             pgettext_lazy("Participation permission", "Edit course permissions")),
+        (participation_permission.see_hidden_course_page,
+            pgettext_lazy("Participation permission", "See hidden course page")),
 
         (participation_permission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),
