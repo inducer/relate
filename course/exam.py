@@ -554,18 +554,21 @@ def get_login_exam_ticket(request):
 # {{{ lockdown middleware
 
 class ExamFacilityMiddleware(object):
-    def process_request(self, request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         exams_only = is_from_exams_only_facility(request)
 
         if not exams_only:
-            return None
+            return self.get_response(request)
 
         if (exams_only and
                 "relate_session_locked_to_exam_flow_session_pk" in request.session):
             # ExamLockdownMiddleware is in control.
-            return None
+            return self.get_response(request)
 
-        from django.core.urlresolvers import resolve
+        from django.urls import resolve
         resolver_match = resolve(request.path)
 
         from course.exam import check_in_for_exam, issue_exam_ticket
@@ -617,9 +620,14 @@ class ExamFacilityMiddleware(object):
             else:
                 return redirect("relate-sign_in_choice")
 
+        return self.get_response(request)
+
 
 class ExamLockdownMiddleware(object):
-    def process_request(self, request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         request.relate_exam_lockdown = False
 
         if "relate_session_locked_to_exam_flow_session_pk" in request.session:
@@ -694,6 +702,8 @@ class ExamLockdownMiddleware(object):
                 return redirect("relate-view_start_flow",
                         exam_flow_session.course.identifier,
                         exam_flow_session.flow_id)
+
+        return self.get_response(request)
 
 # }}}
 

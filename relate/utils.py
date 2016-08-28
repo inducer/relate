@@ -84,10 +84,15 @@ def is_maintenance_mode(request):
 
 
 class MaintenanceMiddleware(object):
-    def process_request(self, request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         if is_maintenance_mode(request):
             from django.shortcuts import render
             return render(request, "maintenance.html")
+        else:
+            return self.get_response(request)
 
 # }}}
 

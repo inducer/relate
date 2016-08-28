@@ -746,7 +746,10 @@ def get_facilities_config(request=None):
 
 
 class FacilityFindingMiddleware(object):
-    def process_request(self, request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         pretend_facilities = request.session.get("relate_pretend_facilities")
 
         if pretend_facilities is not None:
@@ -765,6 +768,8 @@ class FacilityFindingMiddleware(object):
                         facilities.add(name)
 
         request.relate_facilities = frozenset(facilities)
+
+        return self.get_response(request)
 
 # }}}
 

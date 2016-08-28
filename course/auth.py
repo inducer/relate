@@ -110,7 +110,10 @@ def whom_may_impersonate(impersonator):
 
 
 class ImpersonateMiddleware(object):
-    def process_request(self, request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         if request.user.is_staff and 'impersonate_id' in request.session:
             imp_id = request.session['impersonate_id']
 
@@ -122,6 +125,8 @@ class ImpersonateMiddleware(object):
                 else:
                     messages.add_message(request, messages.ERROR,
                             _("Error while impersonating."))
+
+        return self.get_response(request)
 
 
 class ImpersonateForm(StyledForm):
