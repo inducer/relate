@@ -550,10 +550,10 @@ def add_default_roles_and_permissions(course,
 
 
 @receiver(post_save, sender=Course, dispatch_uid="add_default_permissions")
-def _set_up_course_permissions(sender, course, created, raw, using, update_fields,
+def _set_up_course_permissions(sender, instance, created, raw, using, update_fields,
         **kwargs):
     if created:
-        add_default_roles_and_permissions(course)
+        add_default_roles_and_permissions(instance)
 
 # }}}
 
