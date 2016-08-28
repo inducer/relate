@@ -517,6 +517,7 @@ def add_default_roles_and_permissions(course,
                 argument="teaching_assistant").save()
         rpm(role=role, permission=pp.see_grades_from_role,
                 argument="teaching_assistant").save()
+        rpm(role=role, permission=pp.edit_grading_opportunity).save()
         rpm(role=role, permission=pp.batch_import_grade).save()
         rpm(role=role, permission=pp.batch_export_grade).save()
         rpm(role=role, permission=pp.update_content).save()
