@@ -470,7 +470,7 @@ urlpatterns = [
 
     #}}}
 
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
 ]
 
 if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
