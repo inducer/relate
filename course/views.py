@@ -53,11 +53,12 @@ from django.views.decorators.cache import cache_control
 
 from crispy_forms.layout import Submit, Layout, Div
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, StyledModelForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_role_and_participation
 from course.constants import (
+        participation_permission as pperm,
         participation_role,
         participation_status,
         FLOW_PERMISSION_CHOICES,
@@ -1221,5 +1222,49 @@ def monitor_task(request, task_id):
 
 # }}}
 
+
+# {{{ edit course
+
+class EditCourseForm(StyledModelForm):
+    def __init__(self, *args, **kwargs):
+        super(EditCourseForm, self).__init__(*args, **kwargs)
+        self.fields["identifier"].disabled = True
+        self.fields["active_git_commit_sha"].disabled = True
+
+        self.helper.add_input(
+                Submit("submit", _("Update")))
+
+    class Meta:
+        model = Course
+        exclude = (
+                "participants",
+                )
+        widgets = {
+                "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"})
+                }
+
+
+@course_view
+def edit_course(pctx):
+    if not pctx.has_permission(pperm.edit_course):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    if request.method == 'POST':
+        form = EditCourseForm(request.POST, instance=pctx.course)
+        if form.is_valid():
+            form.save()
+
+    else:
+        form = EditCourseForm(instance=pctx.course)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Edit Course"),
+        "form": form
+        })
+
+# }}}
 
 # vim: foldmethod=marker

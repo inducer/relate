@@ -101,7 +101,7 @@
       <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Retrieve/preview new course revisions" %}</a></li>
       <li role="presentation" class="divider"></li>
 
-      <li><a href="{% url "admin:course_course_change" course.id %}">{% trans "Edit course" %}</a></li>
+      <li><a href="{% url "relate-course_edit" course.identifier %}">{% trans "Edit course" %}</a></li>
       <li role="presentation" class="divider"></li>
 
       <li role="presentation" class="dropdown-header">{% trans "Content creation" %}</li>

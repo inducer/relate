@@ -118,6 +118,11 @@ urlpatterns = [
         name="relate-course_page"),
     url(r"^course"
         "/" + COURSE_ID_REGEX +
+        "/edit/$",
+        course.views.edit_course,
+        name="relate-course_edit"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
         "/page"
         "/" + STATICPAGE_PATH_REGEX +
         "/$",
