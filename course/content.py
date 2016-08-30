@@ -757,7 +757,7 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v5:%s:%d:%s:%s"
+            cache_key = ("markup:v6:%s:%d:%s:%s"
                     % (CACHE_KEY_ROOT, course.id, str(commit_sha),
                         hashlib.md5(text.encode("utf-8")).hexdigest()))
 
@@ -771,6 +771,9 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             text = remove_prefix(JINJA_PREFIX, text.lstrip())
     else:
         cache_key = None
+
+    if not isinstance(text, six.text_type):
+        text = six.text_type(text)
 
     # {{{ process through Jinja
 
@@ -797,6 +800,7 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             ],
         output_format="html5")
 
+    assert isinstance(result, six.text_type)
     if cache_key is not None:
         def_cache.add(cache_key, result, None)
 
