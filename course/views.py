@@ -161,7 +161,7 @@ def course_page(pctx):
 
     chunks = get_processed_page_chunks(
             pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
-            pctx.role, get_now_or_fake_time(pctx.request),
+            pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities)
 
     show_enroll_button = (
@@ -296,7 +296,7 @@ def get_current_repo_file(request, course_identifier, path):
 def get_repo_file_backend(
         request,  # type: http.HttpRequest
         course,  # type: Course
-        participation,  # type: Participation
+        participation,  # type: Optional[Participation]
         commit_sha,  # type: bytes
         path,  # type: str
         ):
@@ -1015,10 +1015,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     from course.utils import (
             get_session_access_rule,
             get_session_grading_rule)
-    access_rule = get_session_access_rule(
-            session, participation.role, flow_desc, now_datetime)
-    grading_rule = get_session_grading_rule(
-            session, participation.role, flow_desc, now_datetime)
+    access_rule = get_session_access_rule(session, flow_desc, now_datetime)
+    grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
 
     request = pctx.request
     if request.method == "POST":

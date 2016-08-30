@@ -85,7 +85,7 @@ from relate.utils import retry_transaction_decorator
 
 # {{{ mypy
 
-from typing import Any, Optional, Iterable, Tuple  # noqa
+from typing import Any, Optional, Iterable, Tuple, Text  # noqa
 import datetime  # noqa
 from course.models import (  # noqa
         Course,
@@ -393,7 +393,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 def start_flow(
         repo,  # type: Repo_ish
         course,  # type: Course
-        participation,  # type: Participation
+        participation,  # type: Optional[Participation]
         user,  # type: Any
         flow_id,  # type: Text
         flow_desc,  # type: FlowDesc
@@ -410,7 +410,7 @@ def start_flow(
     from course.content import get_course_commit_sha
     course_commit_sha = get_course_commit_sha(course, participation)
 
-    if participation:
+    if participation is not None:
         assert participation.user == user
 
     session = FlowSession(
@@ -939,8 +939,8 @@ def expire_flow_session(
             flow_session.course.identifier, fctx.flow_desc)
 
     if flow_session.expiration_mode == flow_session_expiration_mode.roll_over:
-        session_start_rule = get_session_start_rule(flow_session.course,
-                flow_session.participation, flow_session.participation.role,
+        session_start_rule = get_session_start_rule(
+                flow_session.course, flow_session.participation,
                 flow_session.flow_id, fctx.flow_desc, now_datetime,
                 for_rollover=True)
 
@@ -954,9 +954,8 @@ def expire_flow_session(
 
             # {{{ FIXME: This is weird and should probably not exist.
 
-            access_rule = get_session_access_rule(flow_session,
-                    flow_session.participation.role,
-                    fctx.flow_desc, now_datetime)
+            access_rule = get_session_access_rule(
+                    flow_session, fctx.flow_desc, now_datetime)
 
             if not is_expiration_mode_allowed(
                     flow_session.expiration_mode, access_rule.permissions):
@@ -1119,9 +1118,7 @@ def finish_flow_session_standalone(
 
     fctx = FlowContext(repo, course, session.flow_id)
 
-    grading_rule = get_session_grading_rule(
-            session, session.participation.role, fctx.flow_desc,
-            now_datetime_filled)
+    grading_rule = get_session_grading_rule(session, fctx.flow_desc, now_datetime_filled)
 
     if grading_rule.due is not None:
         if (
@@ -1148,8 +1145,7 @@ def expire_flow_session_standalone(
 
     fctx = FlowContext(repo, course, session.flow_id)
 
-    grading_rule = get_session_grading_rule(
-            session, session.participation.role, fctx.flow_desc, now_datetime)
+    grading_rule = get_session_grading_rule(session, fctx.flow_desc, now_datetime)
 
     return expire_flow_session(fctx, session, grading_rule, now_datetime,
             past_due_only=past_due_only)
@@ -1248,8 +1244,9 @@ def view_start_flow(pctx, flow_id):
     if request.method == "POST":
         return post_start_flow(pctx, fctx, flow_id)
     else:
-        session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
-                pctx.role, flow_id, fctx.flow_desc, now_datetime,
+        session_start_rule = get_session_start_rule(
+                pctx.course, pctx.participation,
+                flow_id, fctx.flow_desc, now_datetime,
                 facilities=pctx.request.relate_facilities,
                 login_exam_ticket=login_exam_ticket)
 
@@ -1269,11 +1266,11 @@ def view_start_flow(pctx, flow_id):
             past_sessions_and_properties = []
             for session in past_sessions:
                 access_rule = get_session_access_rule(
-                        session, pctx.role, fctx.flow_desc, now_datetime,
+                        session, fctx.flow_desc, now_datetime,
                         facilities=pctx.request.relate_facilities,
                         login_exam_ticket=login_exam_ticket)
                 grading_rule = get_session_grading_rule(
-                        session, pctx.role, fctx.flow_desc, now_datetime)
+                        session, fctx.flow_desc, now_datetime)
 
                 session_properties = SessionProperties(
                         may_view=flow_permission.view in access_rule.permissions,
@@ -1301,7 +1298,7 @@ def view_start_flow(pctx, flow_id):
             access_rules_tag=session_start_rule.tag_session)
 
         new_session_grading_rule = get_session_grading_rule(
-                potential_session, pctx.role, fctx.flow_desc, now_datetime)
+                potential_session, fctx.flow_desc, now_datetime)
 
         start_may_decrease_grade = (
                 bool(past_sessions_and_properties)
@@ -1357,8 +1354,9 @@ def post_start_flow(pctx, fctx, flow_id):
             return redirect("relate-view_flow_page",
                 pctx.course.identifier, latest_session.id, 0)
 
-    session_start_rule = get_session_start_rule(pctx.course, pctx.participation,
-            pctx.role, flow_id, fctx.flow_desc, now_datetime,
+    session_start_rule = get_session_start_rule(
+            pctx.course, pctx.participation,
+            flow_id, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
 
@@ -1377,7 +1375,7 @@ def post_start_flow(pctx, fctx, flow_id):
             now_datetime=now_datetime)
 
     access_rule = get_session_access_rule(
-            session, pctx.role, fctx.flow_desc, now_datetime,
+            session, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
 
@@ -1409,7 +1407,7 @@ def view_resume_flow(pctx, flow_session_id):
     login_exam_ticket = get_login_exam_ticket(pctx.request)
 
     access_rule = get_session_access_rule(
-            flow_session, pctx.role, fctx.flow_desc, now_datetime,
+            flow_session, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
 
@@ -1429,31 +1427,48 @@ def get_and_check_flow_session(pctx, flow_session_id):
     # type: (CoursePageContext, int) -> FlowSession
 
     try:
-        flow_session = FlowSession.objects.get(id=flow_session_id)
+        flow_session = (FlowSession.objects
+                .select_related("participation")
+                .get(id=flow_session_id))
     except ObjectDoesNotExist:
         raise http.Http404()
 
-    if pctx.role in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        pass
-    elif pctx.role in [
-            participation_role.student,
-            participation_role.observer,
-            participation_role.auditor,
-            participation_role.unenrolled]:
-        if (pctx.participation != flow_session.participation
-                and flow_session.participation is not None):
-            raise PermissionDenied(_("may not view other people's sessions"))
-
-        if (flow_session.user is not None
-                and pctx.request.user != flow_session.user):
-            raise PermissionDenied(_("may not view other people's sessions"))
-    else:
-        raise PermissionDenied()
-
     if flow_session.course.pk != pctx.course.pk:
-        raise SuspiciousOperation()
+        raise http.Http404()
+
+    my_session = (
+            pctx.participation == flow_session.participation
+            or
+            (
+                # anonymous by participation
+                flow_session.participation is None
+                and (
+                    # We don't know whose (legacy)
+                    # Truly anonymous sessions belong to everyone.
+                    flow_session.user is None
+                    or pctx.request.user == flow_session.user)))
+
+    if not my_session:
+        my_perms = pctx.participation.permissions()
+
+        from course.enrollment import get_participation_role_identifiers
+        owner_roles = get_participation_role_identifiers(
+                pctx.course, flow_session.participation)
+
+        allowed = False
+        for orole in owner_roles:
+            for perm, arg in my_perms:
+                if (
+                        perm == pperm.view_flow_sessions_from_role
+                        and arg == orole):
+                    allowed = True
+                    break
+
+            if allowed:
+                break
+
+        if not allowed:
+            raise PermissionDenied(_("may not view other people's sessions"))
 
     return flow_session
 
@@ -1624,12 +1639,12 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     now_datetime = get_now_or_fake_time(request)
     access_rule = get_session_access_rule(
-            flow_session, pctx.role, fpctx.flow_desc, now_datetime,
+            flow_session, fpctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
 
     grading_rule = get_session_grading_rule(
-            flow_session, pctx.role, fpctx.flow_desc, now_datetime)
+            flow_session, fpctx.flow_desc, now_datetime)
     generates_grade = (
             grading_rule.grade_identifier is not None
             and
@@ -2113,7 +2128,7 @@ def update_expiration_mode(pctx, flow_session_id):
             participation=pctx.participation)
 
     access_rule = get_session_access_rule(
-            flow_session, pctx.role, fctx.flow_desc,
+            flow_session, fctx.flow_desc,
             get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
@@ -2152,7 +2167,7 @@ def finish_flow_session_view(pctx, flow_session_id):
             participation=pctx.participation)
 
     access_rule = get_session_access_rule(
-            flow_session, pctx.role, fctx.flow_desc, now_datetime,
+            flow_session, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
 
@@ -2186,7 +2201,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                 allow_instant_flow_requests=False)
 
     grading_rule = get_session_grading_rule(
-            flow_session, pctx.role, fctx.flow_desc, now_datetime)
+            flow_session, fctx.flow_desc, now_datetime)
 
     if request.method == "POST":
         if "submit" not in request.POST:

@@ -1160,7 +1160,7 @@ def parse_date_spec(
 def compute_chunk_weight_and_shown(
         course,  # type:  Course
         chunk,  # type: ChunkDesc
-        roles,  # type: List[Text],
+        roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
         facilities,  # type: frozenset[Text]
         ):

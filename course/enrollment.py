@@ -64,6 +64,57 @@ from relate.utils import StyledForm
 
 from pytools.lex import RE as REBase
 
+from typing import Text, Optional  # noqa
+
+
+# {{{ get_participation_for_request
+
+def get_participation_for_request(request, course):
+    # type: (http.HttpRequest, Course) -> Optional[Participation]
+
+    # "wake up" lazy object
+    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
+    user = (request.user._wrapped
+            if hasattr(request.user, '_wrapped')
+            else request.user)
+
+    if not user.is_authenticated:
+        return None
+
+    participations = list(Participation.objects.filter(
+            user=user,
+            course=course,
+            status=participation_status.active
+            ))
+
+    # The uniqueness constraint should have ensured that.
+    assert len(participations) <= 1
+
+    if len(participations) == 0:
+        return None
+
+    return participations[0]
+
+# }}}
+
+
+# {{{ get_participation_role_identifiers
+
+def get_participation_role_identifiers(course, participation):
+    # type: (Course, Optional[Participation]) -> List[Text]
+
+    if participation is None:
+        return (
+                ParticipationRole.objects.filter(
+                    course=course,
+                    is_default_for_unenrolled=True)
+                .value_list("identifier", flat=True))
+
+    else:
+        return [r.identifier for r in participation.roles]
+
+# }}}
+
 
 # {{{ enrollment
 
@@ -73,7 +124,7 @@ def enroll_view(request, course_identifier):
     # type: (http.HttpRequest, str) -> http.HttpResponse
 
     course = get_object_or_404(Course, identifier=course_identifier)
-    _, participation = get_role_and_participation(request, course)
+    participation = get_participation_for_request(request, course)
 
     if participation is not None:
         messages.add_message(request, messages.ERROR,
