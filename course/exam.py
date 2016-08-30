@@ -37,6 +37,7 @@ from django.core.exceptions import (  # noqa
         PermissionDenied, ObjectDoesNotExist, SuspiciousOperation)
 from django.contrib import messages  # noqa
 from django.contrib.auth.decorators import permission_required
+from django import http  # noqa
 from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -54,7 +55,7 @@ from course.utils import course_view, render_course_page
 from course.constants import (
         exam_ticket_states,
         participation_status,
-        participation_role)
+        participation_permission as pperm)
 from course.views import get_now_or_fake_time
 
 from relate.utils import StyledForm
@@ -300,11 +301,8 @@ class BatchIssueTicketsForm(StyledForm):
 
 @course_view
 def batch_issue_exam_tickets(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            ]:
-        raise PermissionDenied(
-                _("must be instructor or TA to batch-issue tickets"))
+    if not pctx.has_permission(pperm.batch_issue_exam_ticket):
+        raise PermissionDenied(_("may not batch-issue tickets"))
 
     form_text = ""
 
@@ -543,6 +541,7 @@ def is_from_exams_only_facility(request):
 
 
 def get_login_exam_ticket(request):
+    # type: (http.HttpRequest) -> ExamTicket
     exam_ticket_pk = request.session.get("relate_exam_ticket_pk_used_for_login")
 
     if exam_ticket_pk is None:

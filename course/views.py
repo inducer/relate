@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import datetime
+
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages  # noqa
@@ -56,10 +58,9 @@ from crispy_forms.layout import Submit, Layout, Div
 from relate.utils import StyledForm, StyledModelForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from course.auth import get_role_and_participation
+from course.auth import get_participation
 from course.constants import (
         participation_permission as pperm,
-        participation_role,
         participation_status,
         FLOW_PERMISSION_CHOICES,
         )
@@ -71,7 +72,21 @@ from course.models import (
         FlowRuleException)
 
 from course.content import get_course_repo
-from course.utils import course_view, render_course_page
+
+from course.utils import (  # noqa
+        course_view,
+        render_course_page,
+        CoursePageContext)
+
+# {{{ for mypy
+
+from typing import Text, Optional, Any  # noqa
+
+from course.content import (  # noqa
+    FlowDesc,
+    )
+
+# }}}
 
 
 NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
@@ -85,12 +100,11 @@ def home(request):
     current_courses = []
     past_courses = []
     for course in Course.objects.filter(listed=True):
-        role, participation = get_role_and_participation(request, course)
+        participation = get_participation(request, course)
 
         show = True
         if course.hidden:
-            if role not in [participation_role.teaching_assistant,
-                    participation_role.instructor]:
+            if not participation.has_permission(pperm.view_hidden_course_page):
                 show = False
 
         if not course.listed:
@@ -125,20 +139,23 @@ def home(request):
 
 # {{{ pages
 
-def check_course_state(course, role):
+def check_course_state(course, participation):
+    # type: (Course, Optional[Participation]) -> None
     """
     Check to see if the course is hidden.
 
     If hidden, only allow access to 'ta' and 'instructor' roles
     """
     if course.hidden:
-        if role not in [participation_role.teaching_assistant,
-                        participation_role.instructor]:
-            raise PermissionDenied(_("only course staff have access"))
+        if participation is None:
+            raise PermissionDenied(_("course page is currently hidden"))
+        if not participation.has_permission(pperm.view_hidden_course_page):
+            raise PermissionDenied(_("course page is currently hidden"))
 
 
 @course_view
 def course_page(pctx):
+    # type: (CoursePageContext) -> http.HttpResponse
     from course.content import get_processed_page_chunks, get_course_desc
     page_desc = get_course_desc(pctx.repo, pctx.course, pctx.course_commit_sha)
 
@@ -149,7 +166,7 @@ def course_page(pctx):
 
     show_enroll_button = (
             pctx.course.accepts_enrollment
-            and pctx.role == participation_role.unenrolled)
+            and pctx.participation is None)
 
     if pctx.request.user.is_authenticated and Participation.objects.filter(
             user=pctx.request.user,
@@ -227,8 +244,6 @@ def media_etag_func(request, course_identifier, commit_sha, media_path):
 def get_media(request, course_identifier, commit_sha, media_path):
     course = get_object_or_404(Course, identifier=course_identifier)
 
-    role, participation = get_role_and_participation(request, course)
-
     repo = get_course_repo(course)
     return get_repo_file_response(repo, "media/" + media_path, commit_sha.encode())
 
@@ -244,19 +259,19 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 
     course = get_object_or_404(Course, identifier=course_identifier)
 
-    role, participation = get_role_and_participation(request, course)
+    participation = get_participation(request, course)
 
     return get_repo_file_backend(
-            request, course, role, participation, commit_sha, path)
+            request, course, participation, commit_sha, path)
 
 
 def current_repo_file_etag_func(request, course_identifier, path):
+    # type: (http.HttpRequest, str, str) -> str
     course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(
-            request, course)
+    participation = get_participation(request, course)
 
     from course.views import check_course_state
-    check_course_state(course, role)
+    check_course_state(course, participation)
 
     from course.content import get_course_commit_sha
     commit_sha = get_course_commit_sha(course, participation)
@@ -266,19 +281,26 @@ def current_repo_file_etag_func(request, course_identifier, path):
 
 @http_dec.condition(etag_func=current_repo_file_etag_func)
 def get_current_repo_file(request, course_identifier, path):
+    # type: (http.HttpRequest, str, str) -> http.HttpResponse
+
     course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(
-            request, course)
+    participation = get_participation(request, course)
 
     from course.content import get_course_commit_sha
     commit_sha = get_course_commit_sha(course, participation)
 
     return get_repo_file_backend(
-            request, course, role, participation, commit_sha, path)
+            request, course, participation, commit_sha, path)
 
 
-def get_repo_file_backend(request, course, role, participation,
-                          commit_sha, path):
+def get_repo_file_backend(
+        request,  # type: http.HttpRequest
+        course,  # type: Course
+        participation,  # type: Participation
+        commit_sha,  # type: bytes
+        path,  # type: str
+        ):
+    # type: (...) -> http.HttpResponse  # noqa
     """
     Check if a file should be accessible.  Then call for it if
     the permission is not denied.
@@ -308,6 +330,8 @@ def get_repo_file_backend(request, course, role, participation,
 
 
 def get_repo_file_response(repo, path, commit_sha):
+    # type: (Any, str, bytes) -> http.HttpResponse
+
     from course.content import get_repo_blob_data_cached
 
     try:
@@ -346,9 +370,9 @@ class FakeTimeForm(StyledForm):
 
 
 def get_fake_time(request):
-    if request is not None and "relate_fake_time" in request.session:
-        import datetime
+    # type: (http.HttpRequest) -> Optional[datetime.datetime]
 
+    if request is not None and "relate_fake_time" in request.session:
         from django.conf import settings
         from pytz import timezone
         tz = timezone(settings.TIME_ZONE)
@@ -360,6 +384,8 @@ def get_fake_time(request):
 
 
 def get_now_or_fake_time(request):
+    # type: (http.HttpRequest) -> datetime.datetime
+
     fake_time = get_fake_time(request)
     if fake_time is None:
         from django.utils.timezone import now
@@ -518,9 +544,8 @@ class InstantFlowRequestForm(StyledForm):
 
 @course_view
 def manage_instant_flow_requests(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied(
-                _("must be instructor to manage instant flow requests"))
+    if not pctx.has_permission(pperm.manage_instant_flow_requests):
+        raise PermissionDenied()
 
     from course.content import list_flow_ids
     flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
@@ -597,10 +622,8 @@ class FlowTestForm(StyledForm):
 
 @course_view
 def test_flow(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to test flows"))
+    if not pctx.has_permission(pperm.test_flow):
+        raise PermissionDenied()
 
     from course.content import list_flow_ids
     flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
@@ -672,11 +695,8 @@ class ExceptionStage1Form(StyledForm):
 
 @course_view
 def grant_exception(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(
-                _("must be instructor or TA to grant exceptions"))
+    if not pctx.has_permission(pperm.grant_exception):
+        raise PermissionDenied(_("may not grant exceptions"))
 
     from course.content import list_flow_ids
     flow_ids = list_flow_ids(pctx.repo, pctx.course_commit_sha)
@@ -701,6 +721,8 @@ def grant_exception(pctx):
 
 
 def strify_session_for_exception(session):
+    # type: (FlowSession) -> str
+
     from relate.utils import as_local_time, format_datetime_local
     # Translators: %s is the string of the start time of a session.
     result = (_("started at %s") % format_datetime_local(
@@ -760,11 +782,8 @@ class ExceptionStage2Form(StyledForm):
 
 @course_view
 def grant_exception_stage_2(pctx, participation_id, flow_id):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(
-                _("must be instructor or TA to grant exceptions"))
+    if not pctx.has_permission(pperm.grant_exception):
+        raise PermissionDenied(_("may not grant exceptions"))
 
     # {{{ get flow data
 
@@ -896,6 +915,7 @@ class ExceptionStage3Form(StyledForm):
             "another exception."))
 
     def __init__(self, default_data, flow_desc, base_session_tag, *args, **kwargs):
+        # type: (Dict, FlowDesc, str, *Any, **Any) -> None
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
 
         rules = getattr(flow_desc, "rules", object())
@@ -975,11 +995,10 @@ class ExceptionStage3Form(StyledForm):
 @course_view
 @transaction.atomic
 def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(
-                ugettext("must be instructor or TA to grant exceptions"))
+    # type: (CoursePageContext, int, Text, int) -> http.HttpResponse
+
+    if not pctx.has_permission(pperm.grant_exception):
+        raise PermissionDenied(_("may not grant exceptions"))
 
     participation = get_object_or_404(Participation, id=participation_id)
 
@@ -1023,7 +1042,6 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     repo=pctx.repo,
                     commit_sha=pctx.course_commit_sha)
 
-            from course.content import get_flow_desc
             flow_desc = get_flow_desc(pctx.repo,
                     pctx.course,
                     flow_id, pctx.course_commit_sha)

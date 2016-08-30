@@ -46,12 +46,15 @@ from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
 from course.models import (
-        Participation, participation_role, participation_status,
+        Participation, participation_status,
         GradingOpportunity, GradeChange, GradeStateMachine,
         grade_state_change_types,
         FlowSession, FlowPageVisit)
 from course.flow import adjust_flow_session_page_data
 from course.views import get_now_or_fake_time
+from course.constants import (
+        participation_permission as pperm,
+        )
 
 
 # {{{ student grade book
@@ -66,17 +69,14 @@ def view_participant_grades(pctx, participation_id=None):
     else:
         grade_participation = pctx.participation
 
-    if pctx.role in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        is_student_viewing = False
-    elif pctx.role == participation_role.student:
-        if grade_participation != pctx.participation:
-            raise PermissionDenied(_("may not view other people's grades"))
+    is_privileged_view = pctx.has_permission(pperm.view_gradebook)
 
-        is_student_viewing = True
-    else:
-        raise PermissionDenied()
+    if grade_participation != pctx.participation:
+        if not (
+                is_privileged_view
+                and pctx.has_permission(pperm.view_grades_from_role,
+                    grade_participation.role)):
+            raise PermissionDenied(_("may not view other people's grades"))
 
     # NOTE: It's important that these two queries are sorted consistently,
     # also consistently with the code below.
@@ -104,7 +104,7 @@ def view_participant_grades(pctx, participation_id=None):
 
     grade_table = []
     for opp in grading_opps:
-        if is_student_viewing:
+        if not is_privileged_view:
             if not (opp.shown_in_grade_book
                     and opp.shown_in_participant_grade_book):
                 continue
@@ -138,7 +138,7 @@ def view_participant_grades(pctx, participation_id=None):
         "grade_participation": grade_participation,
         "grading_opportunities": grading_opps,
         "grade_state_change_types": grade_state_change_types,
-        "is_student_viewing": is_student_viewing,
+        "is_privileged_view": is_privileged_view,
         })
 
 # }}}
@@ -148,10 +148,8 @@ def view_participant_grades(pctx, participation_id=None):
 
 @course_view
 def view_participant_list(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to view grades"))
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
 
     participations = list(Participation.objects
             .filter(
@@ -171,10 +169,8 @@ def view_participant_list(pctx):
 
 @course_view
 def view_grading_opportunity_list(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to view grades"))
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
 
     grading_opps = list((GradingOpportunity.objects
             .filter(
@@ -268,10 +264,8 @@ def get_grade_table(course):
 
 @course_view
 def view_gradebook(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to view grades"))
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
@@ -292,10 +286,8 @@ def view_gradebook(pctx):
 
 @course_view
 def export_gradebook_csv(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to export grades"))
+    if not pctx.has_permission(pperm.batch_export_grade):
+        raise PermissionDenied(_("may not batch-export grades"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
@@ -384,10 +376,8 @@ def view_grades_by_opportunity(pctx, opp_id):
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(pctx.request)
 
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("must be instructor or TA to view grades"))
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opp_id))
 
@@ -396,8 +386,15 @@ def view_grades_by_opportunity(pctx, opp_id):
 
     # {{{ batch sessions form
 
+    batch_ops_allowed = (
+            pctx.has_permission(pperm.batch_impose_deadline)
+            or pctx.has_permission(pperm.batch_end_flow)
+            or pctx.has_permission(pperm.batch_regrade_flow)
+            or pctx.has_permission(pperm.batch_recalculate_grade)
+            )
+
     batch_session_ops_form = None
-    if pctx.role == participation_role.instructor and opportunity.flow_id:
+    if batch_ops_allowed and opportunity.flow_id:
         cursor = connection.cursor()
         cursor.execute("select distinct access_rules_tag from course_flowsession "
                 "where course_id = %s and flow_id = %s "
@@ -411,12 +408,24 @@ def view_grades_by_opportunity(pctx, opp_id):
                     session_rule_tags, request.POST, request.FILES)
             if "expire" in request.POST:
                 op = "expire"
+                if not pctx.has_permission(pperm.batch_impose_deadline):
+                    raise PermissionDenied(_("may not impose deadline"))
+
             elif "end" in request.POST:
                 op = "end"
+                if not pctx.has_permission(pperm.batch_end_flow):
+                    raise PermissionDenied(_("may not batch-end flows"))
+
             elif "regrade" in request.POST:
                 op = "regrade"
+                if not pctx.has_permission(pperm.batch_regrade_flow):
+                    raise PermissionDenied(_("may not batch-regrade flows"))
+
             elif "recalculate" in request.POST:
                 op = "recalculate"
+                if not pctx.has_permission(pperm.batch_recalculate_grade):
+                    raise PermissionDenied(_("may not batch-recalculate grades"))
+
             else:
                 raise SuspiciousOperation(_("invalid operation"))
 
@@ -628,10 +637,8 @@ class ReopenSessionForm(StyledForm):
 @course_view
 @transaction.atomic
 def view_reopen_session(pctx, flow_session_id, opportunity_id):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied()
+    if not pctx.has_permission(pperm.reopen_session):
+        raise PermissionDenied(_("may not reopen session"))
 
     request = pctx.request
 
@@ -897,10 +904,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     avg_grade_percentage, avg_grade_population = average_grade(opportunity)
 
-    show_privileged_info = pctx.role in [
-            participation_role.instructor,
-            participation_role.teaching_assistant
-            ]
+    show_privileged_info = pctx.has_permission(pperm.view_gradebook)
     show_page_grades = (
             show_privileged_info
             or opportunity.page_scores_in_participant_gradebook)
@@ -1191,8 +1195,8 @@ def csv_to_grade_changes(
 @course_view
 @transaction.atomic
 def import_grades(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied()
+    if not pctx.has_permission(pperm.batch_import_grade):
+        raise PermissionDenied(_("may not batch-import grades"))
 
     form_text = ""
 
@@ -1314,12 +1318,8 @@ class DownloadAllSubmissionsForm(StyledForm):
 
 @course_view
 def download_all_submissions(pctx, flow_id):
-    if pctx.role not in [
-            participation_role.teaching_assistant,
-            participation_role.instructor,
-            participation_role.observer,
-            ]:
-        raise PermissionDenied(_("must be at least TA to download submissions"))
+    if not pctx.has_permission(pperm.batch_download_submission):
+        raise PermissionDenied(_("may not batch-download submissions"))
 
     from course.content import get_flow_desc
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,

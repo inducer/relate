@@ -39,7 +39,6 @@ from course.models import (
         get_flow_grading_opportunity,
         get_feedback_for_grade,
         update_bulk_feedback)
-from course.constants import participation_role
 from course.utils import (
         course_view, render_course_page,
         get_session_grading_rule,
@@ -47,6 +46,9 @@ from course.utils import (
 from course.views import get_now_or_fake_time
 from django.conf import settings
 from django.utils import translation
+from course.constants import (
+        participation_permission as pperm,
+        )
 
 
 # {{{ grading driver
@@ -57,11 +59,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     page_ordinal = int(page_ordinal)
 
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(
-                _("must be instructor or TA to view grades"))
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
 
     flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
 
@@ -158,6 +157,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             and not flow_session.in_progress):
         request = pctx.request
         if pctx.request.method == "POST":
+            if not pctx.has_permission(pperm.assign_grade):
+                raise PermissionDenied(_("may not assign grades"))
+
             grading_form = fpctx.page.post_grading_form(
                     fpctx.page_context, fpctx.page_data, grade_data,
                     request.POST, request.FILES)
@@ -297,11 +299,8 @@ def _save_grade(fpctx, flow_session, most_recent_grade, bulk_feedback_json,
 
 @course_view
 def show_grader_statistics(pctx, flow_id):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(
-                _("must be instructor or TA to view grading stats"))
+    if not pctx.has_permission(pperm.view_grader_stats):
+        raise PermissionDenied(_("may not view grader stats"))
 
     grades = (FlowPageVisitGrade.objects
             .filter(

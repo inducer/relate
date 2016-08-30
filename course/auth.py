@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import Optional
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
@@ -49,13 +50,16 @@ from django.template.response import TemplateResponse
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
+from django import http  # noqa
 
 from djangosaml2.backends import Saml2Backend as Saml2BackendBase
 
-from course.models import (
+from course.constants import (
         user_status,
-        Participation, participation_role, participation_status,
+        participation_status,
+        participation_permission as pperm,
         )
+from course.models import Participation, Course  # noqa
 
 from relate.utils import StyledForm, StyledModelForm
 from django_select2.forms import Select2Widget
@@ -72,29 +76,17 @@ def whom_may_impersonate(impersonator):
         return set(get_user_model().objects.filter(
                 participations__status=participation_status.active))
 
-    my_privileged_participations = Participation.objects.filter(
+    my_participations = Participation.objects.filter(
             user=impersonator,
-            status=participation_status.active,
-            role__in=(
-                participation_role.instructor,
-                participation_role.teaching_assistant))
+            status=participation_status.active)
 
     q_object = None
 
-    for part in my_privileged_participations:
-        if part.role == participation_role.instructor:
-            impersonable_roles = (
-                participation_role.teaching_assistant,
-                participation_role.observer,
-                participation_role.auditor,
-                participation_role.student)
-        elif part.role == participation_role.teaching_assistant:
-            impersonable_roles = (
-                participation_role.student,
-                participation_role.auditor,
-                )
-        else:
-            assert False
+    for part in my_participations:
+        impersonable_roles = (
+                argument
+                for perm, argument in part.permissions()
+                if perm == pperm.impersonate_role)
 
         part_q_object = Q(
                 participations__course=part.course,
@@ -889,7 +881,9 @@ def user_profile(request):
 # }}}
 
 
-def get_role_and_participation(request, course):
+def get_participation(request, course):
+    # type: (http.HttpRequest, Course) -> Optional[Participation]
+
     # "wake up" lazy object
     # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
     user = (request.user._wrapped
@@ -897,7 +891,7 @@ def get_role_and_participation(request, course):
             else request.user)
 
     if not user.is_authenticated:
-        return participation_role.unenrolled, None
+        return None
 
     participations = list(Participation.objects.filter(
             user=user,
@@ -909,13 +903,9 @@ def get_role_and_participation(request, course):
     assert len(participations) <= 1
 
     if len(participations) == 0:
-        return participation_role.unenrolled, None
+        return None
 
-    participation = participations[0]
-    if participation.status != participation_status.active:
-        return participation_role.unenrolled, participation
-    else:
-        return participation.role, participation
+    return participations[0]
 
 
 # {{{ SAML auth backend

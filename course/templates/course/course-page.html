@@ -6,7 +6,7 @@
     <div class="alert alert-info">
       <i class="fa fa-info-circle"></i>
       {% trans "This course is only visible to course staff at the moment." %}
-      <a class="btn btn-default" href="{% url "relate-course_edit" course.identifier %}"
+      <a class="btn btn-default" href="{% url "relate-edit_course" course.identifier %}"
         role="button" target="_blank">{% trans "Change" context "change the visibility of a course" %}&nbsp;&raquo;</a>
     </div>
   {% endif %}

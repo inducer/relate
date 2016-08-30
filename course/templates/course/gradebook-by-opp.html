@@ -52,8 +52,10 @@
       <td>
         <a class="btn btn-default" role="button"
           href="{% url "relate-flow_analytics" course.identifier opportunity.flow_id %}">{% trans "View analytics" %}</a>
-        <a class="btn btn-default" role="button"
-          href="{% url "relate-show_grader_statistics" course.identifier opportunity.flow_id %}">{% trans "View grader statistics" %}</a>
+        {% if pperm.view_grader_stats %}
+          <a class="btn btn-default" role="button"
+            href="{% url "relate-show_grader_statistics" course.identifier opportunity.flow_id %}">{% trans "View grader statistics" %}</a>
+        {% endif %}
         {% if not view_page_grades %}
             <a class="btn btn-default" role="button"
               href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}?view_page_grades=1">
@@ -63,8 +65,10 @@
               href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}">
               {% trans "Hide page grades" %}</a>
         {% endif %}
-        <a class="btn btn-default" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
-            role="button">{% trans "Download submissions" %}</a>
+        {% if pperm.batch_download_submission %}
+          <a class="btn btn-default" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
+              role="button">{% trans "Download submissions" %}</a>
+        {% endif %}
       </td>
     </tr>
     {% endif %}

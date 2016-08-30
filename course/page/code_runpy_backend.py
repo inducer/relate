@@ -30,7 +30,7 @@ import traceback
 try:
     from .code_feedback import Feedback, GradingComplete
 except SystemError:
-    from code_feedback import Feedback, GradingComplete
+    from code_feedback import Feedback, GradingComplete  # type: ignore
 
 
 __doc__ = """

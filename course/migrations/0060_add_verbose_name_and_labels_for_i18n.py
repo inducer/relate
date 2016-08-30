@@ -101,7 +101,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='course',
             name='course_file',
-            field=models.CharField(default=b'course.yml', help_text='Name of a YAML file in the git repository that contains the root course descriptor.', max_length=200, verbose_name='Course file'),
+            field=models.CharField(default='course.yml', help_text='Name of a YAML file in the git repository that contains the root course descriptor.', max_length=200, verbose_name='Course file'),
         ),
         migrations.AlterField(
             model_name='course',
@@ -126,7 +126,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='course',
             name='events_file',
-            field=models.CharField(default=b'events.yml', help_text='Name of a YAML file in the git repository that contains calendar information.', max_length=200, verbose_name='Events file'),
+            field=models.CharField(default='events.yml', help_text='Name of a YAML file in the git repository that contains calendar information.', max_length=200, verbose_name='Events file'),
         ),
         migrations.AlterField(
             model_name='course',
@@ -276,7 +276,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowaccessexceptionentry',
             name='permission',
-            field=models.CharField(max_length=50, verbose_name='Permission', choices=[(b'view', 'View the flow'), (b'submit_answer', 'Submit answers'), (b'end_session', 'End session'), (b'change_answer', 'Change already-graded answer'), (b'see_correctness', 'See whether an answer is correct'), (b'see_answer_before_submission', 'See the correct answer before answering'), (b'see_answer_after_submission', 'See the correct answer after answering'), (b'set_roll_over_expiration_mode', "Set the session to 'roll over' expiration mode")]),
+            field=models.CharField(max_length=50, verbose_name='Permission', choices=[('view', 'View the flow'), ('submit_answer', 'Submit answers'), ('end_session', 'End session'), ('change_answer', 'Change already-graded answer'), ('see_correctness', 'See whether an answer is correct'), ('see_answer_before_submission', 'See the correct answer before answering'), ('see_answer_after_submission', 'See the correct answer after answering'), ('set_roll_over_expiration_mode', "Set the session to 'roll over' expiration mode")]),
         ),
         migrations.AlterField(
             model_name='flowpagebulkfeedback',
@@ -426,7 +426,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowruleexception',
             name='kind',
-            field=models.CharField(max_length=50, verbose_name='Kind', choices=[(b'start', 'Session Start'), (b'access', 'Session Access'), (b'grading', 'Grading')]),
+            field=models.CharField(max_length=50, verbose_name='Kind', choices=[('start', 'Session Start'), ('access', 'Session Access'), ('grading', 'Grading')]),
         ),
         migrations.AlterField(
             model_name='flowruleexception',
@@ -461,7 +461,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowsession',
             name='expiration_mode',
-            field=models.CharField(default=b'end', max_length=20, null=True, verbose_name='Expiration mode', choices=[(b'end', 'End session and grade'), (b'roll_over', 'Keep session and apply new rules')]),
+            field=models.CharField(default='end', max_length=20, null=True, verbose_name='Expiration mode', choices=[('end', 'End session and grade'), ('roll_over', 'Keep session and apply new rules')]),
         ),
         migrations.AlterField(
             model_name='flowsession',
@@ -506,7 +506,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='gradechange',
             name='attempt_id',
-            field=models.CharField(default=b'main', max_length=50, blank=True, help_text="Grade changes are grouped by their 'attempt ID' where later grades with the same attempt ID supersede earlier ones.", null=True, verbose_name='Attempt ID'),
+            field=models.CharField(default='main', max_length=50, blank=True, help_text="Grade changes are grouped by their 'attempt ID' where later grades with the same attempt ID supersede earlier ones.", null=True, verbose_name='Attempt ID'),
         ),
         migrations.AlterField(
             model_name='gradechange',
@@ -556,12 +556,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='gradechange',
             name='state',
-            field=models.CharField(max_length=50, verbose_name='State', choices=[(b'grading_started', 'Grading started'), (b'graded', 'Graded'), (b'retrieved', 'Retrieved'), (b'unavailable', 'Unavailable'), (b'extension', 'Extension'), (b'report_sent', 'Report sent'), (b'do_over', 'Do-over'), (b'exempt', 'Exempt')]),
+            field=models.CharField(max_length=50, verbose_name='State', choices=[('grading_started', 'Grading started'), ('graded', 'Graded'), ('retrieved', 'Retrieved'), ('unavailable', 'Unavailable'), ('extension', 'Extension'), ('report_sent', 'Report sent'), ('do_over', 'Do-over'), ('exempt', 'Exempt')]),
         ),
         migrations.AlterField(
             model_name='gradingopportunity',
             name='aggregation_strategy',
-            field=models.CharField(max_length=20, verbose_name='Aggregation strategy', choices=[(b'max_grade', 'Use the max grade'), (b'avg_grade', 'Use the avg grade'), (b'min_grade', 'Use the min grade'), (b'use_earliest', 'Use the earliest grade'), (b'use_latest', 'Use the latest grade')]),
+            field=models.CharField(max_length=20, verbose_name='Aggregation strategy', choices=[('max_grade', 'Use the max grade'), ('avg_grade', 'Use the avg grade'), ('min_grade', 'Use the min grade'), ('use_earliest', 'Use the earliest grade'), ('use_latest', 'Use the latest grade')]),
         ),
         migrations.AlterField(
             model_name='gradingopportunity',
@@ -661,12 +661,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='participation',
             name='role',
-            field=models.CharField(help_text='Instructors may update course content. Teaching assistants may access and change grade data. Observers may access analytics. Each role includes privileges from subsequent roles.', max_length=50, verbose_name='Participation role', choices=[(b'instructor', 'Instructor'), (b'ta', 'Teaching Assistant'), (b'student', 'Student'), (b'observer', 'Observer'), (b'auditor', 'Auditor')]),
+            field=models.CharField(help_text='Instructors may update course content. Teaching assistants may access and change grade data. Observers may access analytics. Each role includes privileges from subsequent roles.', max_length=50, verbose_name='Participation role', choices=[('instructor', 'Instructor'), ('ta', 'Teaching Assistant'), ('student', 'Student'), ('observer', 'Observer'), ('auditor', 'Auditor')]),
         ),
         migrations.AlterField(
             model_name='participation',
             name='status',
-            field=models.CharField(max_length=50, verbose_name='Participation status', choices=[(b'requested', 'Requested'), (b'active', 'Active'), (b'dropped', 'Dropped'), (b'denied', 'Denied')]),
+            field=models.CharField(max_length=50, verbose_name='Participation status', choices=[('requested', 'Requested'), ('active', 'Active'), ('dropped', 'Dropped'), ('denied', 'Denied')]),
         ),
         migrations.AlterField(
             model_name='participation',
@@ -706,7 +706,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='participationpreapproval',
             name='role',
-            field=models.CharField(max_length=50, verbose_name='Role', choices=[(b'instructor', 'Instructor'), (b'ta', 'Teaching Assistant'), (b'student', 'Student'), (b'observer', 'Observer'), (b'auditor', 'Auditor')]),
+            field=models.CharField(max_length=50, verbose_name='Role', choices=[('instructor', 'Instructor'), ('ta', 'Teaching Assistant'), ('student', 'Student'), ('observer', 'Observer'), ('auditor', 'Auditor')]),
         ),
         migrations.AlterField(
             model_name='participationtag',
@@ -721,7 +721,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='userstatus',
             name='editor_mode',
-            field=models.CharField(default=b'default', max_length=20, verbose_name='Editor mode', choices=[(b'default', 'Default'), (b'sublime', b'Sublime text'), (b'emacs', b'Emacs'), (b'vim', b'Vim')]),
+            field=models.CharField(default='default', max_length=20, verbose_name='Editor mode', choices=[('default', 'Default'), ('sublime', 'Sublime text'), ('emacs', 'Emacs'), ('vim', 'Vim')]),
         ),
         migrations.AlterField(
             model_name='userstatus',
@@ -736,7 +736,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='userstatus',
             name='status',
-            field=models.CharField(max_length=50, verbose_name='User status', choices=[(b'unconfirmed', 'Unconfirmed'), (b'active', 'Active')]),
+            field=models.CharField(max_length=50, verbose_name='User status', choices=[('unconfirmed', 'Unconfirmed'), ('active', 'Active')]),
         ),
         migrations.AlterField(
             model_name='userstatus',

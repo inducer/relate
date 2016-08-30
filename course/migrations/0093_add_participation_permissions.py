@@ -13,6 +13,7 @@ def add_default_permissions(apps, schema_editor):
     ParticipationRole = apps.get_model("course", "ParticipationRole")  # noqa
     ParticipationRolePermission = apps.get_model("course", "ParticipationRolePermission")  # noqa
     Participation = apps.get_model("course", "Participation")  # noqa
+    ParticipationPreapproval = apps.get_model("course", "ParticipationPreapproval")  # noqa
 
     for course in Course.objects.all():
         add_default_roles_and_permissions(
@@ -23,10 +24,14 @@ def add_default_permissions(apps, schema_editor):
         roles = dict(
                 (role.identifier, role)
                 for role in ParticipationRole.objects.all())
-        roles["ta"] = roles["teaching_assistant"]
+        roles["auditor"] = roles["student"]
+        roles["observer"] = roles["instructor"]
 
         for participation in Participation.objects.filter(course=course):
             participation.roles.set([roles[participation.role]])
+
+        for preapp in ParticipationPreapproval.objects.filter(course=course):
+            preapp.roles.set([roles[preapp.role]])
 
 
 class Migration(migrations.Migration):
@@ -40,7 +45,7 @@ class Migration(migrations.Migration):
             name='ParticipationPermission',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('permission', models.CharField(choices=[('edit_course', 'Edit course'), ('impersonate_role', 'Impersonate role'), ('edit_exam', 'Edit exam'), ('issue_exam_ticket', 'Issue exam ticket'), ('batch_issue_exam_ticket', 'Batch issue exam ticket'), ('see_flow_sessions_from_role', 'See flow sessions from role '), ('see_grades_from_role', 'See grades from role '), ('see_gradebook', 'See gradebook'), ('assign_grade', 'Assign grade'), ('see_grader_stats', 'See grader stats'), ('batch_import_grade', 'Batch import grades'), ('batch_export_grade', 'Batch export grade'), ('impose_deadline', 'Impose deadline'), ('regrade_flow', 'Regrade flow'), ('add_exception', 'Add exception'), ('see_analytics', 'See analytics'), ('preview_content', 'Preview content'), ('update_content', 'Update content'), ('use_markup_sandbox', 'Use markup sandbox'), ('use_page_sandbox', 'Use page sandbox'), ('test_flow', 'Test flow'), ('edit_events', 'Edit events'), ('query_participation', 'Query participation'), ('preapprove_participation', 'Preapprove participation'), ('manage_instant_flow_requests', 'Manage instant flow requests')], max_length=200, verbose_name='Permission')),
+                ('permission', models.CharField(choices=[('edit_course', 'Edit course'), ('impersonate_role', 'Impersonate role'), ('edit_course_permissions', 'Edit course permissions'), ('see_hidden_course_page', 'See hidden course page'), ('edit_exam', 'Edit exam'), ('issue_exam_ticket', 'Issue exam ticket'), ('batch_issue_exam_ticket', 'Batch issue exam ticket'), ('see_flow_sessions_from_role', 'See flow sessions from role '), ('see_grades_from_role', 'See grades from role '), ('see_gradebook', 'See gradebook'), ('edit_grading_opportunity', 'Edit grading opportunity'), ('assign_grade', 'Assign grade'), ('see_grader_stats', 'See grader stats'), ('batch_import_grade', 'Batch import grades'), ('batch_export_grade', 'Batch export grades'), ('impose_deadline', 'Impose deadline'), ('regrade_flow', 'Regrade flow'), ('add_exception', 'Add exception'), ('see_analytics', 'See analytics'), ('preview_content', 'Preview content'), ('update_content', 'Update content'), ('use_markup_sandbox', 'Use markup sandbox'), ('use_page_sandbox', 'Use page sandbox'), ('test_flow', 'Test flow'), ('edit_events', 'Edit events'), ('query_participation', 'Query participation'), ('preapprove_participation', 'Preapprove participation'), ('manage_instant_flow_requests', 'Manage instant flow requests')], max_length=200, verbose_name='Permission')),
                 ('argument', models.CharField(blank=True, max_length=200, null=True, verbose_name='Argument')),
                 ('participation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='course.Participation', verbose_name='Participation')),
             ],
@@ -53,7 +58,7 @@ class Migration(migrations.Migration):
             name='ParticipationRole',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('identifier', models.CharField(help_text='A symbolic name for this role, used in course code. lower_case_with_underscores, no spaces.', max_length=100, verbose_name='Role identifier')),
+                ('identifier', models.CharField(help_text="A symbolic name for this role, used in course code. lower_case_with_underscores, no spaces. May be any string. The name 'unenrolled' is special and refers to anyone not enrolled in the course.", max_length=100, verbose_name='Role identifier')),
                 ('name', models.CharField(help_text='A human-readable description of this role.', max_length=200, verbose_name='Role name')),
             ],
             options={
@@ -66,7 +71,7 @@ class Migration(migrations.Migration):
             name='ParticipationRolePermission',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('permission', models.CharField(choices=[('edit_course', 'Edit course'), ('impersonate_role', 'Impersonate role'), ('edit_exam', 'Edit exam'), ('issue_exam_ticket', 'Issue exam ticket'), ('batch_issue_exam_ticket', 'Batch issue exam ticket'), ('see_flow_sessions_from_role', 'See flow sessions from role '), ('see_grades_from_role', 'See grades from role '), ('see_gradebook', 'See gradebook'), ('assign_grade', 'Assign grade'), ('see_grader_stats', 'See grader stats'), ('batch_import_grade', 'Batch import grades'), ('batch_export_grade', 'Batch export grade'), ('impose_deadline', 'Impose deadline'), ('regrade_flow', 'Regrade flow'), ('add_exception', 'Add exception'), ('see_analytics', 'See analytics'), ('preview_content', 'Preview content'), ('update_content', 'Update content'), ('use_markup_sandbox', 'Use markup sandbox'), ('use_page_sandbox', 'Use page sandbox'), ('test_flow', 'Test flow'), ('edit_events', 'Edit events'), ('query_participation', 'Query participation'), ('preapprove_participation', 'Preapprove participation'), ('manage_instant_flow_requests', 'Manage instant flow requests')], max_length=200, verbose_name='Permission')),
+                ('permission', models.CharField(choices=[('edit_course', 'Edit course'), ('impersonate_role', 'Impersonate role'), ('edit_course_permissions', 'Edit course permissions'), ('see_hidden_course_page', 'See hidden course page'), ('edit_exam', 'Edit exam'), ('issue_exam_ticket', 'Issue exam ticket'), ('batch_issue_exam_ticket', 'Batch issue exam ticket'), ('see_flow_sessions_from_role', 'See flow sessions from role '), ('see_grades_from_role', 'See grades from role '), ('see_gradebook', 'See gradebook'), ('edit_grading_opportunity', 'Edit grading opportunity'), ('assign_grade', 'Assign grade'), ('see_grader_stats', 'See grader stats'), ('batch_import_grade', 'Batch import grades'), ('batch_export_grade', 'Batch export grades'), ('impose_deadline', 'Impose deadline'), ('regrade_flow', 'Regrade flow'), ('add_exception', 'Add exception'), ('see_analytics', 'See analytics'), ('preview_content', 'Preview content'), ('update_content', 'Update content'), ('use_markup_sandbox', 'Use markup sandbox'), ('use_page_sandbox', 'Use page sandbox'), ('test_flow', 'Test flow'), ('edit_events', 'Edit events'), ('query_participation', 'Query participation'), ('preapprove_participation', 'Preapprove participation'), ('manage_instant_flow_requests', 'Manage instant flow requests')], max_length=200, verbose_name='Permission')),
                 ('argument', models.CharField(blank=True, max_length=200, null=True, verbose_name='Argument')),
                 ('role', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='course.ParticipationRole', verbose_name='Role')),
             ],
@@ -88,7 +93,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='participation',
             name='roles',
-            field=models.ManyToManyField(blank=True, to='course.ParticipationRole', verbose_name='Roles'),
+            field=models.ManyToManyField(blank=True, related_name='participation', to='course.ParticipationRole', verbose_name='Roles'),
         ),
         migrations.AlterUniqueTogether(
             name='participationrolepermission',

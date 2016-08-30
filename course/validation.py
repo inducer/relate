@@ -37,6 +37,15 @@ from django.utils.translation import (
 from course.content import get_repo_blob
 from relate.utils import Struct
 
+# {{{ mypy
+
+from typing import Any, Tuple, Optional, Text  # noqa
+if False:
+    from relate.utils import Repo_ish  # noqa
+    from course.models import Course  # noqa
+
+# }}}
+
 
 # {{{ validation tools
 
@@ -48,6 +57,8 @@ ID_RE = re.compile(r"^[\w]+$")
 
 
 def validate_identifier(vctx, location, s, warning_only=False):
+    # type: (ValidationContext, Text, Text, bool) -> None
+
     if not ID_RE.match(s):
 
         if warning_only:
@@ -67,22 +78,24 @@ def validate_identifier(vctx, location, s, warning_only=False):
             raise ValidationError(msg)
 
 
-def validate_role(location, role):
-    from course.constants import participation_role
+def validate_role(vctx, location, role):
+    # type: (ValidationContext, Text, Text) -> None
 
-    if role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant,
-            participation_role.student,
-            participation_role.unenrolled,
-            ]:
-        raise ValidationError(
-                string_concat("%(location)s: ",
-                    _("invalid role '%(role)s'"))
-                % {'location': location, 'role': role})
+    if vctx.course is not None:
+        from course.models import ParticipationRole
+        roles = ParticipationRole.objects.filter(course=vctx.course).values_list(
+                "identifier", flat=True)
+
+        if role not in roles:
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("invalid role '%(role)s'"))
+                    % {'location': location, 'role': role})
 
 
 def validate_facility(vctx, location, facility):
+    # type: (ValidationContext, Text, Text) -> None
+
     from course.utils import get_facilities_config
     facilities = get_facilities_config()
     if facilities is None:
@@ -98,7 +111,15 @@ def validate_facility(vctx, location, facility):
                 })
 
 
-def validate_struct(vctx, location, obj, required_attrs, allowed_attrs):
+def validate_struct(
+        vctx,  # type: ValidationContext
+        location,  # type: Text
+        obj,  # type: Any
+        required_attrs,  # type: List[Tuple[Text, Any]]
+        allowed_attrs,  # type: List[Tuple[Text, Any]]
+        ):
+    # type: (...) -> None
+
     """
     :arg required_attrs: an attribute validation list (see below)
     :arg allowed_attrs: an attribute validation list (see below)
@@ -174,6 +195,7 @@ datespec_types = (datetime.date, six.string_types, datetime.datetime)
 
 class ValidationWarning(object):
     def __init__(self, location, text):
+        # type: (Optional[Text], Text) -> None
         self.location = location
         self.text = text
 
@@ -189,23 +211,30 @@ class ValidationContext(object):
     """
 
     def __init__(self, repo, commit_sha, course=None):
+        # type: (Repo_ish, bytes, Optional[Course]) -> None
+
         self.repo = repo
         self.commit_sha = commit_sha
         self.course = course
 
-        self.warnings = []
+        self.warnings = []  # type: List[ValidationWarning]
 
     def encounter_datespec(self, location, datespec):
+        # type: (Text, Text) -> None
+
         from course.content import parse_date_spec
         parse_date_spec(self.course, datespec, vctx=self, location=location)
 
-    def add_warning(self, *args, **kwargs):
-        self.warnings.append(ValidationWarning(*args, **kwargs))
+    def add_warning(self, location, text):
+        # type: (Optional[Text], Text) -> None
+        self.warnings.append(ValidationWarning(location, text))
 
 
 # {{{ markup validation
 
 def validate_markup(vctx, location, markup_str):
+    # type: (ValidationContext, Text, Text) -> None
+
     def reverse_func(*args, **kwargs):
         pass
 
@@ -222,7 +251,7 @@ def validate_markup(vctx, location, markup_str):
         from traceback import print_exc
         print_exc()
 
-        tp, e, _ = sys.exc_info()
+        tp, e, _ = sys.exc_info()  # type: Tuple[type, Any, Any]
 
         raise ValidationError(
                 "%(location)s: %(err_type)s: %(err_str)s" % {
@@ -264,7 +293,7 @@ def validate_chunk_rule(vctx, location, chunk_rule):
 
     if hasattr(chunk_rule, "if_has_role"):
         for role in chunk_rule.if_has_role:
-            validate_role(location, role)
+            validate_role(vctx, location, role)
 
     if hasattr(chunk_rule, "if_in_facility"):
         validate_facility(vctx, location, chunk_rule.if_in_facility)
@@ -288,7 +317,7 @@ def validate_chunk_rule(vctx, location, chunk_rule):
                 "use 'if_has_role' instead"))
 
         for role in chunk_rule.roles:
-            validate_role(location, role)
+            validate_role(vctx, location, role)
 
     # }}}
 
@@ -505,6 +534,7 @@ def validate_session_start_rule(vctx, location, nrule, tags):
     if hasattr(nrule, "if_has_role"):
         for j, role in enumerate(nrule.if_has_role):
             validate_role(
+                    vctx,
                     "%s, role %d" % (location, j+1),
                     role)
 
@@ -546,6 +576,7 @@ def validate_session_start_rule(vctx, location, nrule, tags):
 
 
 def validate_session_access_rule(vctx, location, arule, tags):
+    # type: (ValidationContext, Text, Any, List[Text]) -> None
     validate_struct(
             vctx, location, arule,
             required_attrs=[
@@ -577,6 +608,7 @@ def validate_session_access_rule(vctx, location, arule, tags):
     if hasattr(arule, "if_has_role"):
         for j, role in enumerate(arule.if_has_role):
             validate_role(
+                    vctx,
                     "%s, role %d" % (location, j+1),
                     role)
 
@@ -609,7 +641,15 @@ def validate_session_access_rule(vctx, location, arule, tags):
                 perm)
 
 
-def validate_session_grading_rule(vctx, location, grule, tags, grade_identifier):
+def validate_session_grading_rule(
+        vctx,  # type: ValidationContext
+        location,  # type: Text
+        grule,  # type: Any
+        tags,  # type: List[Text]
+        grade_identifier,  # type: Optional[Text]
+        ):
+    # type: (...) -> bool
+
     """
     :returns: whether the rule only applies conditionally
     """
@@ -667,6 +707,7 @@ def validate_session_grading_rule(vctx, location, grule, tags, grade_identifier)
     if hasattr(grule, "if_has_role"):
         for j, role in enumerate(grule.if_has_role):
             validate_role(
+                    vctx,
                     "%s, role %d" % (location, j+1),
                     role)
         has_conditionals = True
@@ -816,6 +857,8 @@ def validate_flow_rules(vctx, location, rules):
 
 
 def validate_flow_permission(vctx, location, permission):
+    # type: (ValidationContext, Text, Text) -> None
+
     from course.constants import FLOW_PERMISSION_CHOICES
     if permission == "modify":
         vctx.add_warning(location, _("Uses deprecated 'modify' permission--"

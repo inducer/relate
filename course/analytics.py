@@ -41,8 +41,11 @@ from course.utils import course_view, render_course_page, PageInstanceCache
 from course.models import (
         FlowSession,
         FlowPageVisit,
-        participation_role,
         flow_permission)
+
+from course.constants import (
+        participation_permission as pperm,
+        )
 
 from course.content import get_flow_desc
 
@@ -52,13 +55,8 @@ from course.content import get_flow_desc
 @login_required
 @course_view
 def flow_list(pctx):
-    if pctx.role not in [
-            participation_role.teaching_assistant,
-            participation_role.instructor,
-            participation_role.observer,
-            ]:
-        # Translators: "TA" is short for Teaching Assistant.
-        raise PermissionDenied(_("must be at least TA to view analytics"))
+    if not pctx.has_permission(pperm.view_analytics):
+        raise PermissionDenied(_("may not view analytics"))
 
     cursor = connection.cursor()
 
@@ -436,12 +434,8 @@ def count_participants(pctx, flow_id):
 @login_required
 @course_view
 def flow_analytics(pctx, flow_id):
-    if pctx.role not in [
-            participation_role.teaching_assistant,
-            participation_role.instructor,
-            participation_role.observer,
-            ]:
-        raise PermissionDenied(_("must be at least TA to view analytics"))
+    if not pctx.has_permission(pperm.view_analytics):
+        raise PermissionDenied(_("may not view analytics"))
 
     restrict_to_first_attempt = int(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
@@ -482,12 +476,8 @@ class AnswerStats(object):
 @login_required
 @course_view
 def page_analytics(pctx, flow_id, group_id, page_id):
-    if pctx.role not in [
-            participation_role.teaching_assistant,
-            participation_role.instructor,
-            participation_role.observer,
-            ]:
-        raise PermissionDenied(_("must be at least TA to view analytics"))
+    if not pctx.has_permission(pperm.view_analytics):
+        raise PermissionDenied(_("may not view analytics"))
 
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)

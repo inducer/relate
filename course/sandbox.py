@@ -34,7 +34,7 @@ from crispy_forms.layout import Submit, Button
 
 from course.utils import course_view, render_course_page
 
-from course.constants import participation_role
+from course.constants import participation_permission as pperm
 
 
 # {{{ sandbox form
@@ -87,11 +87,8 @@ class SandboxForm(forms.Form):
 
 @course_view
 def view_markup_sandbox(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(
-                ugettext("must be instructor or TA to access sandbox"))
+    if not pctx.has_permission(pperm.use_markup_sandbox):
+        raise PermissionDenied()
 
     request = pctx.request
     preview_text = ""
@@ -163,11 +160,8 @@ def get_sandbox_data_for_page(pctx, page_desc, key):
 
 @course_view
 def view_page_sandbox(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(
-                ugettext("must be instructor or TA to access sandbox"))
+    if not pctx.has_permission(pperm.use_page_sandbox):
+        raise PermissionDenied()
 
     from course.validation import ValidationError
     from relate.utils import dict_to_struct, Struct

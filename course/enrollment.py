@@ -39,6 +39,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.db import transaction, IntegrityError
 from django import forms
+from django import http  # noqa
 from django.utils import translation
 from django.utils.safestring import mark_safe
 
@@ -47,12 +48,16 @@ from crispy_forms.layout import Submit
 from course.models import (
         user_status,
         Course,
-        Participation, ParticipationPreapproval,
+        Participation,
+        ParticipationPreapproval,
+        ParticipationRole,
         ParticipationTag,
-        participation_role, participation_status,
-        PARTICIPATION_ROLE_CHOICES)
+        participation_status)
 
-from course.views import get_role_and_participation
+from course.constants import (
+        participation_permission as pperm,
+        )
+
 from course.utils import course_view, render_course_page
 
 from relate.utils import StyledForm
@@ -65,10 +70,12 @@ from pytools.lex import RE as REBase
 @login_required
 @transaction.atomic
 def enroll_view(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
+    # type: (http.HttpRequest, str) -> http.HttpResponse
 
-    if role != participation_role.unenrolled:
+    course = get_object_or_404(Course, identifier=course_identifier)
+    _, participation = get_role_and_participation(request, course)
+
+    if participation is not None:
         messages.add_message(request, messages.ERROR,
                 _("Already enrolled. Cannot re-renroll."))
         return redirect("relate-course_page", course_identifier)
@@ -120,15 +127,17 @@ def enroll_view(request, course_identifier):
                 "enroll.") % course.enrollment_required_email_suffix)
         return redirect("relate-course_page", course_identifier)
 
-    role = participation_role.student
+    roles = ParticipationRole.objects.filter(
+            course=course,
+            is_default_for_new_participants=True)
 
     if preapproval is not None:
-        role = preapproval.role
+        roles = preapproval.roles
 
     try:
         if course.enrollment_approval_required and preapproval is None:
             handle_enrollment_request(course, user, participation_status.requested,
-                                      role, request)
+                                      roles, request)
 
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
@@ -156,7 +165,7 @@ def enroll_view(request, course_identifier):
                     "by email once your request has been acted upon."))
         else:
             handle_enrollment_request(course, user, participation_status.active,
-                                      role, request)
+                                      roles, request)
 
             messages.add_message(request, messages.SUCCESS,
                     _("Successfully enrolled."))
@@ -169,7 +178,7 @@ def enroll_view(request, course_identifier):
 
 
 @transaction.atomic
-def handle_enrollment_request(course, user, status, role, request=None):
+def handle_enrollment_request(course, user, status, roles, request=None):
     participations = Participation.objects.filter(course=course, user=user)
 
     assert participations.count() <= 1
@@ -177,9 +186,11 @@ def handle_enrollment_request(course, user, status, role, request=None):
         participation = Participation()
         participation.user = user
         participation.course = course
-        participation.role = role
         participation.status = status
         participation.save()
+
+        if roles is not None:
+            participation.roles.set(roles)
     else:
         (participation,) = participations
         participation.status = status
@@ -255,13 +266,13 @@ def send_enrollment_decision(participation, approved, request=None):
 def approve_enrollment(modeladmin, request, queryset):
     decide_enrollment(True, modeladmin, request, queryset)
 
-approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")
+approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")  # type:ignore  # noqa
 
 
 def deny_enrollment(modeladmin, request, queryset):
     decide_enrollment(False, modeladmin, request, queryset)
 
-deny_enrollment.short_description = _("Deny enrollment")
+deny_enrollment.short_description = _("Deny enrollment")  # type:ignore  # noqa
 
 # }}}
 
@@ -269,24 +280,27 @@ deny_enrollment.short_description = _("Deny enrollment")
 # {{{ preapprovals
 
 class BulkPreapprovalsForm(StyledForm):
-    role = forms.ChoiceField(
-            choices=PARTICIPATION_ROLE_CHOICES,
-            initial=participation_role.student,
-            label=_("Role"))
-    preapproval_type = forms.ChoiceField(
-            choices=(
-                ("email", _("Email")),
-                ("institutional_id", _("Institutional ID")),
-                ),
-            initial="email",
-            label=_("Preapproval type"))
-    preapproval_data = forms.CharField(required=True, widget=forms.Textarea,
-            help_text=_("Enter fully qualified data according to \"Preapproval"
-                        "type\" you selected, one per line."),
-            label=_("Preapproval data"))
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, course, *args, **kwargs):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
+
+        self.field["roles"] = forms.ModelMultipleChoiceField(
+                queryset=(
+                    ParticipationRole.objects
+                    .filter(course=course)
+                    ),
+                label=_("Role"))
+        self.fields["preapproval_type"] = forms.ChoiceField(
+                choices=(
+                    ("email", _("Email")),
+                    ("institutional_id", _("Institutional ID")),
+                    ),
+                initial="email",
+                label=_("Preapproval type"))
+        self.fields["preapproval_data"] = forms.CharField(
+                required=True, widget=forms.Textarea,
+                help_text=_("Enter fully qualified data according to \"Preapproval"
+                            "type\" you selected, one per line."),
+                label=_("Preapproval data"))
 
         self.helper.add_input(
                 Submit("submit", _("Preapprove")))
@@ -296,20 +310,20 @@ class BulkPreapprovalsForm(StyledForm):
 @transaction.atomic
 @course_view
 def create_preapprovals(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied(_("only instructors may do that"))
+    if not pctx.has_permission(pperm.preapprove_participation):
+        raise PermissionDenied(_("may not preapprove participation"))
 
     request = pctx.request
 
     if request.method == "POST":
-        form = BulkPreapprovalsForm(request.POST)
+        form = BulkPreapprovalsForm(pctx.course, request.POST)
         if form.is_valid():
 
             created_count = 0
             exist_count = 0
             pending_approved_count = 0
 
-            role = form.cleaned_data["role"]
+            roles = form.cleaned_data["roles"]
             for l in form.cleaned_data["preapproval_data"].split("\n"):
                 l = l.strip()
                 preapp_type = form.cleaned_data["preapproval_type"]
@@ -350,9 +364,9 @@ def create_preapprovals(pctx):
                     preapproval = ParticipationPreapproval()
                     preapproval.email = l
                     preapproval.course = pctx.course
-                    preapproval.role = role
                     preapproval.creator = request.user
                     preapproval.save()
+                    preapproval.roles.set(roles)
 
                     created_count += 1
 
@@ -392,9 +406,9 @@ def create_preapprovals(pctx):
                     preapproval = ParticipationPreapproval()
                     preapproval.institutional_id = l
                     preapproval.course = pctx.course
-                    preapproval.role = role
                     preapproval.creator = request.user
                     preapproval.save()
+                    preapproval.roles.set(roles)
 
                     created_count += 1
 
@@ -411,7 +425,7 @@ def create_preapprovals(pctx):
             return redirect("relate-course_page", pctx.course.identifier)
 
     else:
-        form = BulkPreapprovalsForm()
+        form = BulkPreapprovalsForm(pctx.course)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
@@ -448,6 +462,7 @@ _whitespace = intern("whitespace")
 
 class RE(REBase):
     def __init__(self, s):
+        # type: (str) -> None
         import re
         super(RE, self).__init__(s, re.UNICODE)
 
@@ -668,8 +683,8 @@ class ParticipationQueryForm(StyledForm):
 @transaction.atomic
 @course_view
 def query_participations(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied(_("only instructors may do that"))
+    if not pctx.has_permission(pperm.query_participation):
+        raise PermissionDenied(_("may not query participations"))
 
     request = pctx.request
 

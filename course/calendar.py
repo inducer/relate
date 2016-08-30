@@ -41,7 +41,10 @@ from crispy_forms.layout import Submit
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from relate.utils import StyledForm
-from course.models import (participation_role, Event)
+from course.constants import (
+        participation_permission as pperm,
+        )
+from course.models import Event
 
 
 # {{{ creation
@@ -125,10 +128,8 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
 @login_required
 @course_view
 def create_recurring_events(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("only instructors and TAs may do that"))
+    if not pctx.has_permission(pperm.edit_events):
+        raise PermissionDenied(_("may not edit events"))
 
     request = pctx.request
 
@@ -208,10 +209,8 @@ class RenumberEventsForm(StyledForm):
 @login_required
 @course_view
 def renumber_events(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        raise PermissionDenied(_("only instructors and TAs may do that"))
+    if not pctx.has_permission(pperm.edit_events):
+        raise PermissionDenied(_("may not edit events"))
 
     request = pctx.request
 
@@ -273,6 +272,9 @@ class EventInfo(object):
 @course_view
 def view_calendar(pctx):
     from course.content import markup_to_html
+
+    if not pctx.has_permission(pperm.view_calendar):
+        raise PermissionDenied(_("may not view calendar"))
 
     events_json = []
 

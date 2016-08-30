@@ -46,33 +46,6 @@ USER_STATUS_CHOICES = (
         )
 
 
-class participation_role:  # noqa
-    instructor = "instructor"
-    teaching_assistant = "ta"
-    student = "student"
-    auditor = "auditor"
-
-    # can see analytics
-    observer = "observer"
-
-    unenrolled = "unenrolled"
-
-
-PARTICIPATION_ROLE_CHOICES = (
-        (participation_role.instructor,
-            pgettext_lazy("Participation role", "Instructor")),
-        (participation_role.teaching_assistant,
-            pgettext_lazy("Participation role", "Teaching Assistant")),
-        (participation_role.student,
-            pgettext_lazy("Participation role", "Student")),
-        (participation_role.observer,
-            pgettext_lazy("Participation role", "Observer")),
-        (participation_role.auditor,
-            pgettext_lazy("Participation role", "Auditor")),
-        # unenrolled is only used internally
-        )
-
-
 # {{{ particiaption status
 
 class participation_status:  # noqa
@@ -100,26 +73,39 @@ PARTICIPATION_STATUS_CHOICES = (
 
 class participation_permission:
     edit_course = "edit_course"
+    use_admin_interface = "use_admin_interface"
     impersonate_role = "impersonate_role"
     edit_course_permissions = "edit_course_permissions"
-    see_hidden_course_page = "see_hidden_course_page"
+    view_hidden_course_page = "view_hidden_course_page"
+    view_calendar = "view_calendar"
+    send_instant_message = "send_instant_message"
 
     edit_exam = "edit_exam"
     issue_exam_ticket = "issue_exam_ticket"
     batch_issue_exam_ticket = "batch_issue_exam_ticket"
 
-    see_flow_sessions_from_role = "see_flow_sessions_from_role"
-    see_grades_from_role = "see_grades_from_role"
-    see_gradebook = "see_gradebook"
+    view_flow_sessions_from_role = "view_flow_sessions_from_role"
+    view_grades_from_role = "view_grades_from_role"
+    view_gradebook = "view_gradebook"
     edit_grading_opportunity = "edit_grading_opportunity"
     assign_grade = "assign_grade"
-    see_grader_stats = "see_grader_stats"
+    view_grader_stats = "view_grader_stats"
     batch_import_grade = "batch_import_grade"
     batch_export_grade = "batch_export_grade"
+    batch_download_submission = "batch_download_submission"
+
     impose_deadline = "impose_deadline"
+    batch_impose_deadline = "batch_impose_deadline"
+    end_flow = "end_flow"
+    batch_end_flow = "batch_end_flow"
     regrade_flow = "regrade_flow"
-    add_exception = "add_exception"
-    see_analytics = "see_analytics"
+    batch_regrade_flow = "batch_regrade_flow"
+    recalculate_grade = "recalculate_grade"
+    batch_recalculate_grade = "batch_recalculate_grade"
+
+    reopen_session = "reopen_session"
+    grant_exception = "grant_exception"
+    view_analytics = "view_analytics"
 
     preview_content = "preview_content"
     update_content = "update_content"
@@ -138,12 +124,18 @@ class participation_permission:
 PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.edit_course,
             pgettext_lazy("Participation permission", "Edit course")),
+        (participation_permission.use_admin_interface,
+            pgettext_lazy("Participation permission", "Use admin interface")),
         (participation_permission.impersonate_role,
             pgettext_lazy("Participation permission", "Impersonate role")),
         (participation_permission.edit_course_permissions,
             pgettext_lazy("Participation permission", "Edit course permissions")),
-        (participation_permission.see_hidden_course_page,
-            pgettext_lazy("Participation permission", "See hidden course page")),
+        (participation_permission.view_hidden_course_page,
+            pgettext_lazy("Participation permission", "View hidden course page")),
+        (participation_permission.view_calendar,
+            pgettext_lazy("Participation permission", "View calendar")),
+        (participation_permission.send_instant_message,
+            pgettext_lazy("Participation permission", "Send instant message")),
 
         (participation_permission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),
@@ -152,32 +144,50 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.batch_issue_exam_ticket,
             pgettext_lazy("Participation permission", "Batch issue exam ticket")),
 
-        (participation_permission.see_flow_sessions_from_role,
+        (participation_permission.view_flow_sessions_from_role,
             pgettext_lazy("Participation permission",
-                "See flow sessions from role ")),
-        (participation_permission.see_grades_from_role,
+                "View flow sessions from role ")),
+        (participation_permission.view_grades_from_role,
             pgettext_lazy("Participation permission",
-                "See grades from role ")),
-        (participation_permission.see_gradebook,
-            pgettext_lazy("Participation permission", "See gradebook")),
+                "View grades from role ")),
+        (participation_permission.view_gradebook,
+            pgettext_lazy("Participation permission", "View gradebook")),
         (participation_permission.edit_grading_opportunity,
             pgettext_lazy("Participation permission", "Edit grading opportunity")),
         (participation_permission.assign_grade,
             pgettext_lazy("Participation permission", "Assign grade")),
-        (participation_permission.see_grader_stats,
-            pgettext_lazy("Participation permission", "See grader stats")),
+        (participation_permission.view_grader_stats,
+            pgettext_lazy("Participation permission", "View grader stats")),
         (participation_permission.batch_import_grade,
-            pgettext_lazy("Participation permission", "Batch import grades")),
+            pgettext_lazy("Participation permission", "Batch-import grades")),
         (participation_permission.batch_export_grade,
-            pgettext_lazy("Participation permission", "Batch export grades")),
+            pgettext_lazy("Participation permission", "Batch-export grades")),
+        (participation_permission.batch_download_submission,
+            pgettext_lazy("Participation permission", "Batch-download submissions")),
+
         (participation_permission.impose_deadline,
             pgettext_lazy("Participation permission", "Impose deadline")),
+        (participation_permission.batch_impose_deadline,
+            pgettext_lazy("Participation permission", "Batch-impose deadline")),
+        (participation_permission.end_flow,
+            pgettext_lazy("Participation permission", "End flow")),
+        (participation_permission.batch_end_flow,
+            pgettext_lazy("Participation permission", "Batch-end flows")),
         (participation_permission.regrade_flow,
             pgettext_lazy("Participation permission", "Regrade flow")),
-        (participation_permission.add_exception,
-            pgettext_lazy("Participation permission", "Add exception")),
-        (participation_permission.see_analytics,
-            pgettext_lazy("Participation permission", "See analytics")),
+        (participation_permission.batch_regrade_flow,
+            pgettext_lazy("Participation permission", "Batch-regrade flows")),
+        (participation_permission.recalculate_grade,
+            pgettext_lazy("Participation permission", "Recalculate grade")),
+        (participation_permission.batch_recalculate_grade,
+            pgettext_lazy("Participation permission", "Batch-recalculate grades")),
+
+        (participation_permission.reopen_session,
+            pgettext_lazy("Participation permission", "Reopen session")),
+        (participation_permission.grant_exception,
+            pgettext_lazy("Participation permission", "Grant exception")),
+        (participation_permission.view_analytics,
+            pgettext_lazy("Participation permission", "View analytics")),
 
         (participation_permission.preview_content,
             pgettext_lazy("Participation permission", "Preview content")),
@@ -246,6 +256,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(expmode, permissions):
+    # type: (str, frozenset[str]) -> bool
     if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
                 in permissions):
