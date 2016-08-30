@@ -12,7 +12,19 @@
   {% if unanswered_count %}
     <div class="alert alert-danger">
       <i class="fa fa-warning"></i>
-      {% trans "You have left questions unanswered." %}
+      {% trans "You have left the following question(s) unanswered:" %}
+          <ul>
+            {% for page_data in unanswered_page_data_list %}
+              <li>
+                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}">
+                  {{ page_data.human_readable_ordinal }}: {{ page_data.title }}
+                  {% if page_data.bookmarked %}
+                    <i class="fa fa-star" aria-hidden="true"></i>
+                  {% endif %}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
     </div>
   {% endif %}
 
@@ -48,9 +60,44 @@
         href="{% url "relate-view_flow_page" course.identifier flow_session.id last_page_nr %}"
         role="button">&laquo; {% trans "Go back" %}</a>
 
-      <button type="submit" id="submit" name="submit" class="btn btn-primary">{% trans "Confirm: Submit answers and end session" %}</button>
+      {% if unanswered_count %}
+        <a id="pre-submit-button" class="btn btn-primary btn-danger">
+          {% trans "Confirm: Submit answers and end session" %}
+        </a>
+        <button id="submit" type="submit" name="submit" class="btn btn-danger"
+                style="display:none"
+                data-content='<p>{% trans "Are you sure you will submit this session with questions unanswered?" %}</p>
+                        <button id="cancel-button" type="reset" name="cancel" class="btn btn-primary btn-sm" style="float: right;">
+                        {% trans "Cancel" %}</button>'
+                data-html="true"
+                data-container="body"
+                data-placement="right"
+          >
+            {% trans "I am sure" %} &raquo;
+        </button>
+
+      {% else %}
+        <button type="submit" id="submit" name="submit" class="btn btn-primary">{% trans "Confirm: Submit answers and end session" %}</button>
+      {% endif %}
+
     </form>
   </div>
+
+  {% if unanswered_count %}
+      <script type="text/javascript">
+          $("#pre-submit-button").on('click', function(){
+              $("#pre-submit-button").fadeOut("normal", function(){
+                  $("#submit").fadeIn("normal", function(){
+                      $("#submit").popover("show");
+                      $("#cancel-button").on("click", function(){
+                          $("#submit").hide().popover("hide");
+                          $("#pre-submit-button").fadeIn("normal");
+                      });
+                  });
+              });
+          });
+      </script>
+  {% endif %}
 
   <script type="text/javascript">
     $("#submit-form").submit(
