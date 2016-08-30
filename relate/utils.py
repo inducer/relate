@@ -88,7 +88,7 @@ class SubdirRepoWrapper(object):
         self.repo.close()
 
 
-Repo_ish = Union[dulwich.Repo, SubdirRepoWrapper]
+Repo_ish = Union[dulwich.repo.Repo, SubdirRepoWrapper]
 
 # }}}
 
