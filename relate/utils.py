@@ -30,7 +30,7 @@ from typing import Text, Union, List, Dict, Tuple, Optional, Any  # noqa
 import datetime  # noqa
 
 import django.forms as forms
-import dulwich
+import dulwich.repo
 
 
 class StyledForm(forms.Form):
