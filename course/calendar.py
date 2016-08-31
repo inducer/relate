@@ -63,6 +63,7 @@ class RecurringEventForm(StyledForm):
     interval = forms.ChoiceField(required=True,
             choices=(
                 ("weekly", _("Weekly")),
+                ("biweekly", _("Bi-Weekly")),
                 ),
             label=pgettext_lazy("Interval of recurring events", "Interval"))
     starting_ordinal = forms.IntegerField(required=False,
@@ -106,13 +107,11 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
                 _("'%(event_kind)s %(event_ordinal)d' already exists") %
                 {'event_kind': kind, 'event_ordinal': ordinal})
 
+        date = time.date()
         if interval == "weekly":
-            date = time.date()
             date += datetime.timedelta(weeks=1)
-            time = time.tzinfo.localize(
-                    datetime.datetime(date.year, date.month, date.day,
-                        time.hour, time.minute, time.second))
-            del date
+        elif interval == "biweekly":
+            date += datetime.timedelta(weeks=2)
         else:
             raise ValueError(
                     string_concat(
@@ -121,6 +120,11 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
                             "unknown interval"),
                         ": %s")
                     % interval)
+
+        time = time.tzinfo.localize(
+                datetime.datetime(date.year, date.month, date.day,
+                    time.hour, time.minute, time.second))
+        del date
 
         ordinal += 1
 

@@ -604,13 +604,16 @@ def get_interaction_kind(
     return ikind
 
 
-def count_answered(fctx, flow_session, answer_visits):
-    # type: (FlowContext, FlowSession, List[FlowPageVisit]) -> Tuple[int, int]
-
+def get_session_answered_page_data(
+        fctx,  # type: FlowContext
+        flow_session,  # type: FlowSession
+        answer_visits  # type: List[FlowPageVisit]
+        ):
+    # type: (...) -> Tuple[List[FlowPageData], List[FlowPageData]]
     all_page_data = get_all_page_data(flow_session)
 
-    answered_count = 0
-    unanswered_count = 0
+    answered_page_data_list = []
+    unanswered_page_data_list = []
     for i, page_data in enumerate(all_page_data):
         assert i == page_data.ordinal
 
@@ -622,11 +625,11 @@ def count_answered(fctx, flow_session, answer_visits):
         page = instantiate_flow_page_with_ctx(fctx, page_data)
         if page.expects_answer():
             if answer_data is None:
-                unanswered_count += 1
+                unanswered_page_data_list.append(page_data)
             else:
-                answered_count += 1
+                answered_page_data_list.append(page_data)
 
-    return (answered_count, unanswered_count)
+    return (answered_page_data_list, unanswered_page_data_list)
 
 
 class GradeInfo(object):
@@ -2181,8 +2184,13 @@ def finish_flow_session_view(pctx, flow_session_id):
 
     answer_visits = assemble_answer_visits(flow_session)
 
-    (answered_count, unanswered_count) = count_answered(
+    (answered_page_data_list, unanswered_page_data_list) =\
+        get_session_answered_page_data(
             fctx, flow_session, answer_visits)
+
+    answered_count = len(answered_page_data_list)
+    unanswered_count = len(unanswered_page_data_list)
+
     is_interactive_flow = bool(answered_count + unanswered_count)
 
     if flow_permission.view not in access_rule.permissions:
@@ -2312,6 +2320,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                 flow_session=flow_session,
                 answered_count=answered_count,
                 unanswered_count=unanswered_count,
+                unanswered_page_data_list=unanswered_page_data_list,
                 total_count=answered_count+unanswered_count)
 
 # }}}
