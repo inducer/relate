@@ -102,23 +102,47 @@ class CourseDesc(StaticPageDesc):
     pass
 
 
-class StartRuleDesc(Struct):
-    pass
+class FlowSessionStartRuleDesc(Struct):
+    if_after = None  # type: Date_ish
+    if_before = None  # type: Date_ish
+    if_has_role = None  # type: list
+    if_in_facility = None  # type: Text
+    if_has_in_progress_session = None  # type: bool
+    if_has_session_tagged = None  # type: Optional[Text]
+    if_has_fewer_sessions_than = None  # type: int
+    if_has_fewer_tagged_sessions_than = None  # type: int
+    if_signed_in_with_matching_exam_ticket = None  # type: bool
+    tag_session = None  # type: Optional[Text]
+    may_start_new_session = None  # type: bool
+    may_list_existing_sessions = None  # type: bool
+    lock_down_as_exam_session = None  # type: bool
 
 
-class AccessRuleDesc(Struct):
-    pass
+class FlowSessionAccessRuleDesc(Struct):
+    permissions = None  # type: list
+    if_after = None  # type: Date_ish
+    if_before = None  # type: Date_ish
+    if_started_before = None  # type: Date_ish
+    if_has_role = None  # type: List[Text]
+    if_in_facility = None  # type: Text
+    if_has_tag = None  # type: Optional[Text]
+    if_in_progress = None  # type: bool
+    if_completed_before = None  # type: Date_ish
+    if_expiration_mode = None  # type: Text
+    if_session_duration_shorter_than_minutes = None  # type: float
+    if_signed_in_with_matching_exam_ticket = None  # type: bool
+    message = None  # type: Text
 
 
-class GradingRuleDesc(Struct):
+class FlowSessionGradingRuleDesc(Struct):
     grade_identifier = None  # type: Optional[Text]
     grade_aggregation_strategy = None  # type: Optional[Text]
 
 
 class FlowRulesDesc(Struct):
-    start = None  # type: List[StartRuleDesc]
-    access = None  # type: List[AccessRuleDesc]
-    grading = None  # type: List[GradingRuleDesc]
+    start = None  # type: List[FlowSessionStartRuleDesc]
+    access = None  # type: List[FlowSessionAccessRuleDesc]
+    grading = None  # type: List[FlowSessionGradingRuleDesc]
     grade_identifier = None  # type: Optional[Text]
     grade_aggregation_strategy = None  # type: Optional[Text]
 
@@ -294,8 +318,8 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     return result
 
 
-def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
-    # type: (Text, Repo_ish, bytes, Text) -> bool
+def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
+    # type: (List[Text], Repo_ish, bytes, Text) -> bool
     """
     Check of a file in a repo directory is accessible.  For example,
     'instructor' can access anything listed in the attributes.
@@ -319,29 +343,10 @@ def is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
 
     path_basename = basename(path)
 
-    # [unenrolled, student, ta, instructor]
-    # access_kind hierarchy and who should be allowed in sets:
-    # in_exam             : in_exam
-    # instructor          : [public, unenrolled, student, ta, instructor]
-    # ta                  : [public, unenrolled, student, ta]
-    # student             : [public, unenrolled, student]
-    # unenrolled          : [public, unenrolled]
-
     # "public" is a deprecated alias for "unenrolled".
 
-    if access_kind == 'in_exam':
-        kind_list = ['in_exam']
-    elif access_kind == ('unenrolled' or 'public'):
-        kind_list = ['public', 'unenrolled']
-    elif access_kind == 'student':
-        kind_list = ['public', 'unenrolled', 'student']
-    elif access_kind == 'ta':
-        kind_list = ['public', 'unenrolled', 'student', 'ta']
-    elif access_kind == 'instructor':
-        kind_list = ['public', 'unenrolled', 'student', 'ta', 'instructor']
-
     access_patterns = []  # type: List[Text]
-    for kind in kind_list:
+    for kind in access_kinds:
         access_patterns += attributes.get(kind, [])
 
     from fnmatch import fnmatch
@@ -1034,7 +1039,7 @@ DATESPEC_POSTPROCESSORS = [
 
 
 def parse_date_spec(
-        course,  # type: Course
+        course,  # type: Optional[Course]
         datespec,  # type: Union[Text, datetime.date, datetime.datetime]
         vctx=None,  # type: Optional[ValidationContext]
         location=None,  # type: Optional[Text]

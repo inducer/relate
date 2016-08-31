@@ -40,7 +40,16 @@ from course.content import (
         parse_date_spec, get_course_commit_sha)
 from course.constants import (
         flow_permission, flow_rule_kind)
-import dulwich
+import dulwich.repo
+from course.content import (  # noqa
+        FlowDesc,
+        FlowPageDesc,
+        FlowSessionAccessRuleDesc
+        )
+from course.page.base import (  # noqa
+        PageBase,
+        PageContext,
+        )
 
 # {{{ mypy
 
@@ -49,16 +58,7 @@ if False:
     from course.models import (  # noqa
             Course,
             Participation,
-            ExamTicket)
-    from course.content import (  # noqa
-            FlowDesc,
-            FlowPageDesc,
-            )
-    from course.page.base import (  # noqa
-            PageBase,
-            PageContext,
-            )
-    from course.models import (  # noqa
+            ExamTicket,
             FlowSession,
             FlowPageData,
             )
@@ -114,10 +114,10 @@ class FlowSessionAccessRule(FlowSessionRuleBase):
 class FlowSessionGradingRule(FlowSessionRuleBase):
     def __init__(
             self,
-            grade_identifier=None,  # type: Optional[Text]
-            grade_aggregation_strategy=None,  # type: Text
-            due=None,  # type: Optional[datetime.datetime]
-            generates_grade=None,  # type: bool
+            grade_identifier,  # type: Optional[Text]
+            grade_aggregation_strategy,  # type: Text
+            due,  # type: Optional[datetime.datetime]
+            generates_grade,  # type: bool
             description=None,  # type: Optional[Text]
             credit_percent=None,  # type: Optional[float]
             use_last_activity_as_completion_time=None,  # type: Optional[bool]
@@ -262,7 +262,7 @@ def get_session_start_rule(
                     may_start_new_session=True,
                     may_list_existing_sessions=False))])
 
-    from course.models import FlowSession
+    from course.models import FlowSession  # noqa
     for rule in rules:
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
@@ -346,7 +346,7 @@ def get_session_access_rule(
             default_rules_desc=[
                 dict_to_struct(dict(
                     permissions=[flow_permission.view],
-                    ))])
+                    ))])  # type: List[FlowSessionAccessRuleDesc]
 
     for rule in rules:
         if not _eval_generic_conditions(
@@ -498,7 +498,7 @@ class CoursePageContext(object):
         self._permissions_cache = None  # type: Optional[frozenset[Tuple[Text, Optional[Text]]]]  # noqa
         self._role_identifiers_cache = None  # type: Optional[List[Text]]
 
-        from course.models import Course
+        from course.models import Course  # noqa
         self.course = get_object_or_404(Course, identifier=course_identifier)
 
         from course.enrollment import get_participation_for_request
@@ -522,11 +522,11 @@ class CoursePageContext(object):
 
                 repo = get_course_repo(self.course)
 
-                from course.content import SubdirRepoWrapper
+                from relate.utils import SubdirRepoWrapper
                 if isinstance(repo, SubdirRepoWrapper):
                     true_repo = repo.repo
                 else:
-                    true_repo = cast(dulwich.Repo, repo)
+                    true_repo = cast(dulwich.repo.Repo, repo)
 
                 try:
                     true_repo[preview_sha]
@@ -556,25 +556,18 @@ class CoursePageContext(object):
 
     def permissions(self):
         # type: () -> frozenset[Tuple[Text, Optional[Text]]]
-        if self.participation is not None:
-            return self.participation.permissions()
-        else:
+        if self.participation is None:
             if self._permissions_cache is not None:
                 return self._permissions_cache
 
-            from course.models import ParticipationRolePermission
-
-            perm_list = list(
-                    ParticipationRolePermission.objects.filter(
-                        role__is_default_for_unenrolled=True)
-                    .values_list("permission", "argument"))
-
-            perm = frozenset(
-                    (permission, argument) if argument else (permission, None)
-                    for permission, argument in perm_list)
+            from course.enrollment import get_permissions
+            perm = get_permissions(self.course, self.participation)
 
             self._permissions_cache = perm
+
             return perm
+        else:
+            return self.participation.permissions()
 
     def has_permission(self, perm, argument=None):
         # type: (Text, Optional[Text]) -> bool
@@ -633,7 +626,7 @@ class FlowPageContext(FlowContext):
         if ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()
 
-        from course.models import FlowPageData
+        from course.models import FlowPageData  # noqa
         page_data = self.page_data = get_object_or_404(
                 FlowPageData, flow_session=flow_session, ordinal=ordinal)
 
@@ -656,7 +649,6 @@ class FlowPageContext(FlowContext):
                         reverse("relate-view_flow_page",
                             args=(course.identifier, flow_session.id, ordinal)))
 
-            from course.page.base import PageContext
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
                     commit_sha=self.course_commit_sha,

@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any, Optional  # noqa
+from typing import Any, Optional, Text  # noqa
 
 import six
 
@@ -54,7 +54,6 @@ from course.constants import (  # noqa
         COURSE_ID_REGEX
         )
 
-from course.utils import FlowSessionGradingRule
 from course.page.base import AnswerFeedback
 
 
@@ -530,15 +529,31 @@ def add_default_roles_and_permissions(course,
 
     rpm = role_permission_model
 
-    def add_student_permissions(role):
+    def add_unenrolled_permissions(role):
         rpm(role=role, permission=pp.view_calendar).save()
+        rpm(role=role, permission=pp.view_files_for_role,
+                argument="unenrolled").save()
+        rpm(role=role, permission=pp.view_files_for_role,
+                argument="public").save()
+
+    def add_student_permissions(role):
         rpm(role=role, permission=pp.send_instant_message).save()
+        rpm(role=role, permission=pp.view_files_for_role,
+                argument="student").save()
+
+        add_unenrolled_permissions(role)
 
     def add_teaching_assistant_permissions(role):
         rpm(role=role, permission=pp.impersonate_role,
                 argument="student").save()
         rpm(role=role, permission=pp.view_hidden_course_page).save()
+        rpm(role=role, permission=pp.view_files_for_role,
+                argument="ta").save()
+        rpm(role=role, permission=pp.view_files_for_role,
+                argument="in_exam").save()
+
         rpm(role=role, permission=pp.issue_exam_ticket).save()
+
         rpm(role=role, permission=pp.view_flow_sessions_from_role,
                 argument="student").save()
         rpm(role=role, permission=pp.view_grades_from_role,
@@ -570,8 +585,14 @@ def add_default_roles_and_permissions(course,
                 argument="ta").save()
         rpm(role=role, permission=pp.edit_course_permissions).save()
         rpm(role=role, permission=pp.edit_course).save()
+        rpm(role=role, permission=pp.view_files_for_role,
+                argument="instructor").save()
+        rpm(role=role, permission=pp.view_files_for_role,
+                argument="in_exam").save()
+
         rpm(role=role, permission=pp.edit_exam).save()
         rpm(role=role, permission=pp.batch_issue_exam_ticket).save()
+
         rpm(role=role, permission=pp.view_flow_sessions_from_role,
                 argument="ta").save()
         rpm(role=role, permission=pp.view_grades_from_role,
@@ -612,6 +633,7 @@ def add_default_roles_and_permissions(course,
             is_default_for_unenrolled=True)
     unenrolled.save()
 
+    add_unenrolled_permissions(student)
     add_student_permissions(student)
     add_teaching_assistant_permissions(teaching_assistant)
     add_instructor_permisisons(instructor)
@@ -743,7 +765,7 @@ class FlowSession(models.Model):
         __str__ = __unicode__
 
     def append_comment(self, s):
-        # type: (str) -> None
+        # type: (Text) -> None
         if s is None:
             return
 
@@ -1598,10 +1620,9 @@ class GradeStateMachine(object):
 
 # {{{ flow <-> grading integration
 
-def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
-    # type: (Course, str, FlowDesc, FlowSessionGradingRule) -> GradingOpportunity
-
-    assert isinstance(grading_rule, FlowSessionGradingRule)
+def get_flow_grading_opportunity(course, flow_id, flow_desc,
+        grade_identifier, grade_aggregation_strategy):
+    # type: (Course, Text, FlowDesc, Text, Text) -> GradingOpportunity
 
     default_name = (
             # Translators: display the name of a flow
@@ -1610,11 +1631,11 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
 
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
-            identifier=grading_rule.grade_identifier,
+            identifier=grade_identifier,
             defaults=dict(
                 name=default_name,
                 flow_id=flow_id,
-                aggregation_strategy=grading_rule.grade_aggregation_strategy,
+                aggregation_strategy=grade_aggregation_strategy,
                 ))
 
     # update gopp.name when flow_desc.title changed

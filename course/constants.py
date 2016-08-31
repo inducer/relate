@@ -46,7 +46,7 @@ USER_STATUS_CHOICES = (
         )
 
 
-# {{{ particiaption status
+# {{{ participation status
 
 class participation_status:  # noqa
     requested = "requested"
@@ -79,6 +79,7 @@ class participation_permission:
     view_hidden_course_page = "view_hidden_course_page"
     view_calendar = "view_calendar"
     send_instant_message = "send_instant_message"
+    access_files_for = "access_files_for"
 
     edit_exam = "edit_exam"
     issue_exam_ticket = "issue_exam_ticket"
@@ -136,6 +137,8 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "View calendar")),
         (participation_permission.send_instant_message,
             pgettext_lazy("Participation permission", "Send instant message")),
+        (participation_permission.access_files_for,
+            pgettext_lazy("Participation permission", "Access files for")),
 
         (participation_permission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),

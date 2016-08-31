@@ -312,18 +312,24 @@ def get_repo_file_backend(
 
     # check to see if the course is hidden
     from course.views import check_course_state
-    check_course_state(course, role)
+    check_course_state(course, participation)
 
     # retrieve local path for the repo for the course
     repo = get_course_repo(course)
 
     # set access to public (or unenrolled), student, etc
-    access_kind = role
     if request.relate_exam_lockdown:
-        access_kind = "in_exam"
+        access_kinds = ["in_exam"]
+    else:
+        from course.enrollment import get_permissions
+        access_kinds = [
+                arg
+                for perm, arg in get_permissions(course, participation)
+                if perm == pperm.access_files_for
+                and arg is not None]
 
     from course.content import is_repo_file_accessible_as
-    if not is_repo_file_accessible_as(access_kind, repo, commit_sha, path):
+    if not is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
         raise PermissionDenied()
 
     return get_repo_file_response(repo, path, commit_sha)

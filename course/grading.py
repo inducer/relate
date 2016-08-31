@@ -25,6 +25,8 @@ THE SOFTWARE.
 """
 
 
+from typing import Optional  # noqa
+
 from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         get_object_or_404, redirect)
@@ -50,11 +52,21 @@ from course.constants import (
         participation_permission as pperm,
         )
 
+# {{{ for mypy
+
+from course.models import (  # noqa
+        GradingOpportunity)
+from course.utils import (  # noqa
+        CoursePageContext)
+
+# }}}
+
 
 # {{{ grading driver
 
 @course_view
 def grade_flow_page(pctx, flow_session_id, page_ordinal):
+    # type: (CoursePageContext, int, int) -> http.HttpResponse
     now_datetime = get_now_or_fake_time(pctx.request)
 
     page_ordinal = int(page_ordinal)
@@ -77,6 +89,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     if fpctx.page_desc is None:
         raise http.Http404()
+
+    assert fpctx.page is not None
+    assert fpctx.page_context is not None
 
     from course.flow import adjust_flow_session_page_data
     adjust_flow_session_page_data(pctx.repo, flow_session,
@@ -233,13 +248,14 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     # }}}
 
     grading_rule = get_session_grading_rule(
-            flow_session, flow_session.participation.role,
-            fpctx.flow_desc, get_now_or_fake_time(pctx.request))
+            flow_session, fpctx.flow_desc, get_now_or_fake_time(pctx.request))
 
     if grading_rule.grade_identifier is not None:
         grading_opportunity = get_flow_grading_opportunity(
                 pctx.course, flow_session.flow_id, fpctx.flow_desc,
-                grading_rule)
+                grading_rule.grade_identifier,
+                grading_rule.grade_aggregation_strategy
+                )  # type: Optional[GradingOpportunity]
     else:
         grading_opportunity = None
 

@@ -430,7 +430,14 @@ class PageBase(object):
 
     # {{{ student input
 
-    def answer_data(self, page_context, page_data, form, files_data):
+    def answer_data(
+            self,
+            page_context,  # type:  PageContext
+            page_data,  # type: Any
+            form,  # type: forms.Form
+            files_data,  # type: Any
+            ):
+        # type: (...) -> Any
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
         """
@@ -455,11 +462,25 @@ class PageBase(object):
 
         raise NotImplementedError()
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def post_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            post_data,  # type: Any
+            files_data  # type: Any
+            ):
+        # type: (...) -> forms.Form
         raise NotImplementedError()
 
-    def process_form_post(self, page_context, page_data, post_data, files_data,
-            page_behavior):
+    def process_form_post(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            post_data,  # type: Any
+            files_data,  # type: Any
+            page_behavior,  # type: PageBehavior
+            ):
+        # type: (...) -> forms.Form
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -505,7 +526,13 @@ class PageBase(object):
 
     # {{{ grader input
 
-    def make_grading_form(self, page_context, page_data, grade_data):
+    def make_grading_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data  # type: Any
+            ):
+        # type: (...) -> forms.Form
         """
         :arg grade_data: value returned by
             :meth:`update_grade_data_from_grading_form`.  May be *None*.
@@ -514,8 +541,15 @@ class PageBase(object):
         """
         return None
 
-    def post_grading_form(self, page_context, page_data, grade_data,
-            post_data, files_data):
+    def post_grading_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data,  # type: Any
+            post_data,  # type: Any
+            files_data  # type: Any
+            ):
+        # type: (...) -> forms.Form
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -524,8 +558,14 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
-    def update_grade_data_from_grading_form(self, page_context, page_data,
-            grade_data, grading_form, files_data):
+    def update_grade_data_from_grading_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data,  # type: Any
+            grading_form,  # type: Any
+            files_data  # type: Any
+            ):
         """Return an updated version of *grade_data*, which is a
         JSON-persistable object reflecting data on grading of this response.
         This will be passed to other methods as *grade_data*.
@@ -533,7 +573,14 @@ class PageBase(object):
 
         return grade_data
 
-    def grading_form_to_html(self, request, page_context, grading_form, grade_data):
+    def grading_form_to_html(
+            self,
+            request,  # type: http.HttpRequest
+            page_context,  # type: PageContext
+            grading_form,  # type: Any
+            grade_data  # type: Any
+            ):
+        # type: (...) -> Text
         """Returns an HTML rendering of *grading_form*."""
 
         from crispy_forms.utils import render_crispy_form

@@ -64,7 +64,7 @@ from relate.utils import StyledForm
 
 from pytools.lex import RE as REBase
 
-from typing import Text, Optional  # noqa
+from typing import Tuple, Text, Optional  # noqa
 
 
 # {{{ get_participation_for_request
@@ -114,6 +114,31 @@ def get_participation_role_identifiers(course, participation):
         return [r.identifier for r in participation.roles]
 
 # }}}
+
+
+# {{{ get_permissions
+
+def get_permissions(
+        course,  # type: Course
+        participation,  # type: Optional[Participation]
+        ):
+    # type: (...) -> frozenset[Tuple[Text, Optional[Text]]]
+
+    if participation is not None:
+        return participation.permissions()
+    else:
+        from course.models import ParticipationRolePermission
+
+        perm_list = list(
+                ParticipationRolePermission.objects.filter(
+                    role__is_default_for_unenrolled=True)
+                .values_list("permission", "argument"))
+
+        perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm_list)
+
+        return perm
 
 
 # {{{ enrollment

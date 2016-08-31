@@ -33,6 +33,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import (
         ugettext_lazy as _, ugettext, string_concat)
+from course.constants import (
+        FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+        participation_permission as pperm)
 
 from course.content import get_repo_blob
 from relate.utils import Struct
@@ -210,6 +213,8 @@ class ValidationContext(object):
         is currently available.
     """
 
+    course = None  # type: Optional[Course]
+
     def __init__(self, repo, commit_sha, course=None):
         # type: (Repo_ish, bytes, Optional[Course]) -> None
 
@@ -251,7 +256,9 @@ def validate_markup(vctx, location, markup_str):
         from traceback import print_exc
         print_exc()
 
-        tp, e, _ = sys.exc_info()  # type: Tuple[type, Any, Any]
+        tp, e, _ = sys.exc_info()
+
+        assert tp is not None
 
         raise ValidationError(
                 "%(location)s: %(err_type)s: %(err_str)s" % {
@@ -594,7 +601,7 @@ def validate_session_access_rule(vctx, location, arule, tags):
                 ("if_expiration_mode", str),
                 ("if_session_duration_shorter_than_minutes", (int, float)),
                 ("if_signed_in_with_matching_exam_ticket", bool),
-                ("message", datespec_types),
+                ("message", str),
                 ]
             )
 
@@ -624,7 +631,6 @@ def validate_session_access_rule(vctx, location, arule, tags):
                     % {'location': location, 'tag': arule.if_has_tag})
 
     if hasattr(arule, "if_expiration_mode"):
-        from course.constants import FLOW_SESSION_EXPIRATION_MODE_CHOICES
         if arule.if_expiration_mode not in dict(
                 FLOW_SESSION_EXPIRATION_MODE_CHOICES):
             raise ValidationError(
@@ -1074,13 +1080,10 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
                     "err_str": six.text_type(e)})
 
 
-def check_attributes_yml(vctx, repo, path, tree):
+def check_attributes_yml(vctx, repo, path, tree, access_kinds):
     """
     This function reads the .attributes.yml file and checks
     that each item for each header is a string
-
-    att_roles : list
-         list of acceptable access types
 
     Example::
 
@@ -1113,11 +1116,9 @@ def check_attributes_yml(vctx, repo, path, tree):
 
         loc = path + "/" + ".attributes.yml"
 
-        att_roles = ["public", "in_exam", "student", "ta",
-                     "unenrolled", "instructor"]
         validate_struct(vctx, loc, att_yml,
                         required_attrs=[],
-                        allowed_attrs=[(role, list) for role in att_roles])
+                        allowed_attrs=[(role, list) for role in access_kinds])
 
         if hasattr(att_yml, "public"):
             vctx.add_warning(loc,
@@ -1130,7 +1131,7 @@ def check_attributes_yml(vctx, repo, path, tree):
                     "exist simultaneously.")
                 % (loc))
 
-        for access_kind in att_roles:
+        for access_kind in access_kinds:
             if hasattr(att_yml, access_kind):
                 for i, l in enumerate(getattr(att_yml, access_kind)):
                     if not isinstance(l, six.string_types):
@@ -1143,8 +1144,10 @@ def check_attributes_yml(vctx, repo, path, tree):
         if stat.S_ISDIR(entry.mode):
             dummy, blob_sha = tree[entry.path]
             subtree = repo[blob_sha]
-            check_attributes_yml(vctx, repo,
-                                 path+"/"+entry.path.decode("utf-8"), subtree)
+            check_attributes_yml(
+                    vctx, repo,
+                    path+"/"+entry.path.decode("utf-8"), subtree,
+                    access_kinds)
 
 
 # {{{ check whether flow grade identifiers were changed in sketchy ways
@@ -1242,8 +1245,31 @@ def validate_course_content(repo, course_file, events_file,
     else:
         validate_calendar_desc_struct(vctx, events_file, events_desc)
 
+    if vctx.course is not None:
+        from course.models import (
+                ParticipationPermission,
+                ParticipationRolePermission)
+        access_kinds = frozenset(
+                ParticipationPermission.objects
+                .filter(
+                    participation__course=vctx.course,
+                    permission=pperm.access_files_for,
+                    )
+                .values_list("argument", flat=True)) | frozenset(
+                        ParticipationRolePermission.objects
+                        .filter(
+                            course=vctx.course,
+                            permission=pperm.access_files_for,
+                            )
+                        .values_list("argument", flat=True))
+    else:
+        access_kinds = ["public", "in_exam", "student", "ta",
+                     "unenrolled", "instructor"]
+
     check_attributes_yml(
-            vctx, repo, "", get_repo_blob(repo, "", validate_sha))
+            vctx, repo, "",
+            get_repo_blob(repo, "", validate_sha),
+            access_kinds)
 
     try:
         flows_tree = get_repo_blob(repo, "media", validate_sha)
