@@ -234,7 +234,7 @@ class ParticipationRolePermissionInline(admin.TabularInline):
 class ParticipationRoleAdmin(admin.ModelAdmin):
     inlines = (ParticipationRolePermissionInline,)
 
-    list_filter = ("course",)
+    list_filter = ("course", "identifier")
 
 admin.site.register(ParticipationRole, ParticipationRoleAdmin)
 
@@ -247,7 +247,7 @@ class ParticipationPermissionInline(admin.TabularInline):
 class ParticipationForm(forms.ModelForm):
     class Meta:
         model = Participation
-        exclude = ()
+        exclude = ("role",)
 
     def clean(self):
         super(ParticipationForm, self).clean()
@@ -259,9 +259,21 @@ class ParticipationForm(forms.ModelForm):
                     {"tags": _("Tags must belong to same course as "
                                "participation.")})
 
+        for role in self.cleaned_data.get("roles", []):
+            if role.course != self.cleaned_data.get("course"):
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    {"roles": _("Role must belong to same course as "
+                               "participation.")})
+
 
 class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
+
+    def get_roles(self, obj):
+        return ", ".join(six.text_type(role.name) for role in obj.roles.all())
+
+    get_roles.short_description = _("Roles")  # type: ignore
 
     def get_user(self, obj):
         from django.urls import reverse
@@ -288,10 +300,10 @@ class ParticipationAdmin(admin.ModelAdmin):
             "user",
             "get_user",
             "course",
-            "role",
+            "get_roles",
             "status",
             )
-    list_filter = ("course", "role", "status", "tags", "roles")
+    list_filter = ("course", "roles__name", "status", "tags")
 
     raw_id_fields = ("user",)
 
@@ -307,6 +319,8 @@ class ParticipationAdmin(admin.ModelAdmin):
     actions = [approve_enrollment, deny_enrollment]
 
     inlines = (ParticipationPermissionInline,)
+
+    save_on_top = True
 
     # {{{ permissions
 
@@ -330,9 +344,14 @@ admin.site.register(Participation, ParticipationAdmin)
 
 
 class ParticipationPreapprovalAdmin(admin.ModelAdmin):
-    list_display = ("email", "institutional_id", "course", "role",
+    def get_roles(self, obj):
+        return ", ".join(six.text_type(role.name) for role in obj.roles.all())
+
+    get_roles.short_description = _("Roles")  # type: ignore
+
+    list_display = ("email", "institutional_id", "course", "get_roles",
             "creation_time", "creator")
-    list_filter = ("course", "role")
+    list_filter = ("course", "roles")
 
     search_fields = (
             "email", "institutional_id",
@@ -346,7 +365,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
             return qs
         return _filter_course_linked_obj_for_user(qs, request.user)
 
-    exclude = ("creator", "creation_time")
+    exclude = ("creator", "creation_time", "role")
 
     def save_model(self, request, obj, form, change):
         obj.creator = request.user

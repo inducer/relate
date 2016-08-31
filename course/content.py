@@ -45,7 +45,7 @@ from six.moves import html_parser
 from jinja2 import (
         BaseLoader as BaseTemplateLoader, TemplateNotFound, FileSystemLoader)
 
-from relate.utils import dict_to_struct, SubdirRepoWrapper
+from relate.utils import dict_to_struct, Struct, SubdirRepoWrapper
 
 from yaml import load as load_yaml
 
@@ -53,6 +53,7 @@ if sys.version_info >= (3,):
     CACHE_KEY_ROOT = "py3"
 else:
     CACHE_KEY_ROOT = "py2"
+
 
 # {{{ mypy
 
@@ -65,7 +66,7 @@ if False:
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa
     from course.page.base import PageBase  # noqa
-    from relate.utils import Struct, Repo_ish  # noqa
+    from relate.utils import Repo_ish  # noqa
 
     Date_ish = Union[datetime.datetime, datetime.date]
     Datespec = Union[datetime.datetime, datetime.date, Text]

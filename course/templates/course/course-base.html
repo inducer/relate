@@ -25,7 +25,7 @@
   {% block page_navbar %}
   {% endblock %}
 
-  {% if not relate_exam_lockdown and role != pr.unenrolled %}
+  {% if not relate_exam_lockdown and pperm.view_calendar %}
   <li class="dropdown">
     {% comment %} Translators: The following are names for menu items in course page {% endcomment %}
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Student" context "menu item" %}<b class="caret"></b></a>
@@ -42,7 +42,7 @@
   </li>
   {% endif %}
 
-  {% if role == pr.instructor or role == pr.teaching_assistant or role == pr.observer %}
+  {% if pperm.view_gradebook %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Grading" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
@@ -87,33 +87,31 @@
         {% endif %}
       {% endif %}
 
-      {% if role == pr.instructor %}
-        <li role="presentation" class="divider"></li>
-        <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
-        {% if user.is_staff %}
-          <li><a href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
-        {% endif %}
-        {% if pperm.batch_issue_exam_tickets %}
-          <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
-        {% endif %}
+      <li role="presentation" class="divider"></li>
+      <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
+      {% if user.is_staff %}
+        <li><a href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
+      {% endif %}
+      {% if pperm.batch_issue_exam_tickets %}
+        <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
       {% endif %}
 
     </ul>
   </li>
   {% endif %}
 
-  {% if role == pr.instructor or role == pr.teaching_assistant %}
+  {% if pperm.preview_content or pperm.use_markup_sandbox or pperm.use_page_sandbox %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Content" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
 
       {% if pperm.preview_content or pperm.update_content %}
         <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Retrieve/preview new course revisions" %}</a></li>
-        <li role="presentation" class="divider"></li>
-      {% endif
+      {% endif %}
 
       {% if pperm.edit_course %}
         <li><a href="{% url "relate-edit_course" course.identifier %}">{% trans "Edit course" %}</a></li>
+        <li role="presentation" class="divider"></li>
       {% endif %}
 
       <li role="presentation" class="dropdown-header">{% trans "Content creation" %}</li>
@@ -143,17 +141,23 @@
   </li>
   {% endif %}
 
-  {% if role == pr.instructor %}
+  {% if pperm.query_participations or pperm.manage_instant_flow_requests or pperm.preapprove_participation %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Instructor" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
       <li role="presentation" class="dropdown-header">{% trans "Participation" %}</li>
-      <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
-      <li><a href="{% url "relate-query_participations" course.identifier %}">{% trans "Query participations" context "menu item" %}</a></li>
+      {% if pperm.preapprove_participation %}
+        <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
+      {% endif %}
+      {% if pperm.query_participations %}
+        <li><a href="{% url "relate-query_participations" course.identifier %}">{% trans "Query participations" context "menu item" %}</a></li>
+      {% endif %}
 
-      <li role="presentation" class="divider"></li>
-      <li role="presentation" class="dropdown-header">{% trans "Instant flow requests" %}</li>
-      <li><a href="{% url "relate-manage_instant_flow_requests" course.identifier %}">{% trans "Manage instant flow requests" %}</a></li>
+      {% if pperm.manage_instant_flow_requests %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Instant flow requests" %}</li>
+        <li><a href="{% url "relate-manage_instant_flow_requests" course.identifier %}">{% trans "Manage instant flow requests" %}</a></li>
+      {% endif %}
     </ul>
   </li>
   {% endif %}

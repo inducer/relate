@@ -399,6 +399,8 @@ class Participation(models.Model):
 
     enroll_time = models.DateTimeField(default=now,
             verbose_name=_('Enroll time'))
+    role = models.CharField(max_length=50,
+            verbose_name=_("Role (unused)"),)
     roles = models.ManyToManyField(ParticipationRole, blank=True,
             verbose_name=_("Roles"), related_name="participation")
 
@@ -427,7 +429,7 @@ class Participation(models.Model):
                 "user": self.user, "course": self.course,
                 "role": "/".join(
                     role.identifier
-                    for role in self.roles)
+                    for role in self.roles.all())
                 }
 
     if six.PY3:
@@ -440,7 +442,7 @@ class Participation(models.Model):
         ordering = ("course", "user")
 
     def get_role_desc(self):
-        return ", ".join(role.name for role in self.roles)
+        return ", ".join(role.name for role in self.roles.all())
 
     # {{{ permissions handling
 
@@ -492,6 +494,8 @@ class ParticipationPreapproval(models.Model):
             verbose_name=_('Institutional ID'))
     course = models.ForeignKey(Course,
             verbose_name=_('Course'), on_delete=models.CASCADE)
+    role = models.CharField(max_length=50,
+            verbose_name=_("Role (unused)"),)
     roles = models.ManyToManyField(ParticipationRole, blank=True,
             verbose_name=_("Roles"), related_name="+")
 
@@ -531,14 +535,14 @@ def add_default_roles_and_permissions(course,
 
     def add_unenrolled_permissions(role):
         rpm(role=role, permission=pp.view_calendar).save()
-        rpm(role=role, permission=pp.view_files_for_role,
+        rpm(role=role, permission=pp.access_files_for,
                 argument="unenrolled").save()
-        rpm(role=role, permission=pp.view_files_for_role,
+        rpm(role=role, permission=pp.access_files_for,
                 argument="public").save()
 
     def add_student_permissions(role):
         rpm(role=role, permission=pp.send_instant_message).save()
-        rpm(role=role, permission=pp.view_files_for_role,
+        rpm(role=role, permission=pp.access_files_for,
                 argument="student").save()
 
         add_unenrolled_permissions(role)
@@ -546,10 +550,12 @@ def add_default_roles_and_permissions(course,
     def add_teaching_assistant_permissions(role):
         rpm(role=role, permission=pp.impersonate_role,
                 argument="student").save()
+        rpm(role=role, permission=pp.set_fake_time).save()
+        rpm(role=role, permission=pp.set_pretend_facility).save()
         rpm(role=role, permission=pp.view_hidden_course_page).save()
-        rpm(role=role, permission=pp.view_files_for_role,
+        rpm(role=role, permission=pp.access_files_for,
                 argument="ta").save()
-        rpm(role=role, permission=pp.view_files_for_role,
+        rpm(role=role, permission=pp.access_files_for,
                 argument="in_exam").save()
 
         rpm(role=role, permission=pp.issue_exam_ticket).save()
@@ -585,10 +591,8 @@ def add_default_roles_and_permissions(course,
                 argument="ta").save()
         rpm(role=role, permission=pp.edit_course_permissions).save()
         rpm(role=role, permission=pp.edit_course).save()
-        rpm(role=role, permission=pp.view_files_for_role,
+        rpm(role=role, permission=pp.access_files_for,
                 argument="instructor").save()
-        rpm(role=role, permission=pp.view_files_for_role,
-                argument="in_exam").save()
 
         rpm(role=role, permission=pp.edit_exam).save()
         rpm(role=role, permission=pp.batch_issue_exam_ticket).save()
@@ -633,7 +637,7 @@ def add_default_roles_and_permissions(course,
             is_default_for_unenrolled=True)
     unenrolled.save()
 
-    add_unenrolled_permissions(student)
+    add_unenrolled_permissions(unenrolled)
     add_student_permissions(student)
     add_teaching_assistant_permissions(teaching_assistant)
     add_instructor_permisisons(instructor)

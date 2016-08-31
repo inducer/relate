@@ -50,7 +50,6 @@ from relate.utils import (
 from crispy_forms.layout import Submit
 from django_select2.forms import Select2Widget
 
-from course.content import Repo_ish  # noqa
 from course.constants import (
         flow_permission,
         participation_permission as pperm,
@@ -102,6 +101,7 @@ from course.page.base import (  # noqa
         PageBehavior,
         AnswerFeedback
         )
+from relate.utils import Repo_ish  # noqa
 
 # }}}
 

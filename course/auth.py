@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Optional
+from typing import Optional  # noqa
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
@@ -879,33 +879,6 @@ def user_profile(request):
         })
 
 # }}}
-
-
-def get_participation(request, course):
-    # type: (http.HttpRequest, Course) -> Optional[Participation]
-
-    # "wake up" lazy object
-    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
-    user = (request.user._wrapped
-            if hasattr(request.user, '_wrapped')
-            else request.user)
-
-    if not user.is_authenticated:
-        return None
-
-    participations = list(Participation.objects.filter(
-            user=user,
-            course=course,
-            status=participation_status.active
-            ))
-
-    # The uniqueness constraint should have ensured that.
-    assert len(participations) <= 1
-
-    if len(participations) == 0:
-        return None
-
-    return participations[0]
 
 
 # {{{ SAML auth backend

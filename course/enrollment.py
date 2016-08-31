@@ -108,17 +108,17 @@ def get_participation_role_identifiers(course, participation):
                 ParticipationRole.objects.filter(
                     course=course,
                     is_default_for_unenrolled=True)
-                .value_list("identifier", flat=True))
+                .values_list("identifier", flat=True))
 
     else:
-        return [r.identifier for r in participation.roles]
+        return [r.identifier for r in participation.roles.all()]
 
 # }}}
 
 
 # {{{ get_permissions
 
-def get_permissions(
+def get_participation_permissions(
         course,  # type: Course
         participation,  # type: Optional[Participation]
         ):
@@ -359,12 +359,12 @@ class BulkPreapprovalsForm(StyledForm):
     def __init__(self, course, *args, **kwargs):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
 
-        self.field["roles"] = forms.ModelMultipleChoiceField(
+        self.fields["roles"] = forms.ModelMultipleChoiceField(
                 queryset=(
                     ParticipationRole.objects
                     .filter(course=course)
                     ),
-                label=_("Role"))
+                label=_("Roles"))
         self.fields["preapproval_type"] = forms.ChoiceField(
                 choices=(
                     ("email", _("Email")),
@@ -374,8 +374,8 @@ class BulkPreapprovalsForm(StyledForm):
                 label=_("Preapproval type"))
         self.fields["preapproval_data"] = forms.CharField(
                 required=True, widget=forms.Textarea,
-                help_text=_("Enter fully qualified data according to \"Preapproval"
-                            "type\" you selected, one per line."),
+                help_text=_("Enter fully qualified data according to the "
+                            "\"Preapproval type\" you selected, one per line."),
                 label=_("Preapproval data"))
 
         self.helper.add_input(

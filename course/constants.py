@@ -74,7 +74,13 @@ PARTICIPATION_STATUS_CHOICES = (
 class participation_permission:
     edit_course = "edit_course"
     use_admin_interface = "use_admin_interface"
+
     impersonate_role = "impersonate_role"
+    # FIXME: Not yet used
+    set_fake_time = "set_fake_time"
+    # FIXME: Not yet used
+    set_pretend_facility = "set_pretend_facility"
+
     edit_course_permissions = "edit_course_permissions"
     view_hidden_course_page = "view_hidden_course_page"
     view_calendar = "view_calendar"
@@ -129,6 +135,10 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Use admin interface")),
         (participation_permission.impersonate_role,
             pgettext_lazy("Participation permission", "Impersonate role")),
+        (participation_permission.set_fake_time,
+            pgettext_lazy("Participation permission", "Set fake time")),
+        (participation_permission.set_pretend_facility,
+            pgettext_lazy("Participation permission", "Pretend to be in facility")),
         (participation_permission.edit_course_permissions,
             pgettext_lazy("Participation permission", "Edit course permissions")),
         (participation_permission.view_hidden_course_page,

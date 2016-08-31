@@ -58,7 +58,9 @@ from crispy_forms.layout import Submit, Layout, Div
 from relate.utils import StyledForm, StyledModelForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from course.auth import get_participation
+from course.enrollment import (
+        get_participation_for_request,
+        get_participation_permissions)
 from course.constants import (
         participation_permission as pperm,
         participation_status,
@@ -95,16 +97,18 @@ NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
 # {{{ home
 
 def home(request):
+    # type: (http.HttpRequest) -> http.HttpResponse
     now_datetime = get_now_or_fake_time(request)
 
     current_courses = []
     past_courses = []
     for course in Course.objects.filter(listed=True):
-        participation = get_participation(request, course)
+        participation = get_participation_for_request(request, course)
 
         show = True
         if course.hidden:
-            if not participation.has_permission(pperm.view_hidden_course_page):
+            perms = get_participation_permissions(course, participation)
+            if (pperm.view_hidden_course_page, None) not in perms:
                 show = False
 
         if not course.listed:
@@ -259,7 +263,7 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 
     course = get_object_or_404(Course, identifier=course_identifier)
 
-    participation = get_participation(request, course)
+    participation = get_participation_for_request(request, course)
 
     return get_repo_file_backend(
             request, course, participation, commit_sha, path)
@@ -268,7 +272,7 @@ def get_repo_file(request, course_identifier, commit_sha, path):
 def current_repo_file_etag_func(request, course_identifier, path):
     # type: (http.HttpRequest, str, str) -> str
     course = get_object_or_404(Course, identifier=course_identifier)
-    participation = get_participation(request, course)
+    participation = get_participation_for_request(request, course)
 
     from course.views import check_course_state
     check_course_state(course, participation)
@@ -284,7 +288,7 @@ def get_current_repo_file(request, course_identifier, path):
     # type: (http.HttpRequest, str, str) -> http.HttpResponse
 
     course = get_object_or_404(Course, identifier=course_identifier)
-    participation = get_participation(request, course)
+    participation = get_participation_for_request(request, course)
 
     from course.content import get_course_commit_sha
     commit_sha = get_course_commit_sha(course, participation)
@@ -321,10 +325,10 @@ def get_repo_file_backend(
     if request.relate_exam_lockdown:
         access_kinds = ["in_exam"]
     else:
-        from course.enrollment import get_permissions
+        from course.enrollment import get_participation_permissions
         access_kinds = [
                 arg
-                for perm, arg in get_permissions(course, participation)
+                for perm, arg in get_participation_permissions(course, participation)
                 if perm == pperm.access_files_for
                 and arg is not None]
 

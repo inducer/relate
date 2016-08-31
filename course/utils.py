@@ -560,8 +560,8 @@ class CoursePageContext(object):
             if self._permissions_cache is not None:
                 return self._permissions_cache
 
-            from course.enrollment import get_permissions
-            perm = get_permissions(self.course, self.participation)
+            from course.enrollment import get_participation_permissions
+            perm = get_participation_permissions(self.course, self.participation)
 
             self._permissions_cache = perm
 
