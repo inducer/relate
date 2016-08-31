@@ -320,7 +320,8 @@ def view_page_sandbox(pctx):
                     tp, e, _ = sys.exc_info()
 
                     page_errors = (
-                            ugettext("Page failed to load/validate")
+                            ugettext("Page failed to load/validate "
+                                "(change page ID to clear faults)")
                             + ": "
                             + "%(err_type)s: %(err_str)s" % {
                                 "err_type": tp.__name__, "err_str": e})
