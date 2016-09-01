@@ -23,3 +23,13 @@ Documentation:
   - python3.5
   only:
   - master
+
+Mypy:
+  script:
+  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
+  - "cp local_settings.py.example local_settings.py"
+  - ". ./prepare-and-run-mypy.sh"
+  tags:
+  - python3.5
+  only:
+  - master
