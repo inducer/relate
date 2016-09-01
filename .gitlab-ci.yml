@@ -31,5 +31,5 @@ Mypy:
   - ". ./prepare-and-run-mypy.sh"
   tags:
   - python3.5
-  only:
-  - master
+  except:
+  - tags
