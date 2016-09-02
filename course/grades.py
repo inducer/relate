@@ -56,6 +56,15 @@ from course.constants import (
         participation_permission as pperm,
         )
 
+# {{{ for mypy
+
+from typing import Tuple, Text, Optional, Any, Iterable  # noqa
+from course.utils import CoursePageContext  # noqa
+from course.content import FlowDesc  # noqa
+from course.models import Course, FlowPageVisitGrade  # noqa
+
+# }}}
+
 
 # {{{ student grade book
 
@@ -72,10 +81,7 @@ def view_participant_grades(pctx, participation_id=None):
     is_privileged_view = pctx.has_permission(pperm.view_gradebook)
 
     if grade_participation != pctx.participation:
-        if not (
-                is_privileged_view
-                and pctx.has_permission(pperm.view_grades_from_role,
-                    grade_participation.role)):
+        if not is_privileged_view:
             raise PermissionDenied(_("may not view other people's grades"))
 
     # NOTE: It's important that these two queries are sorted consistently,
@@ -190,11 +196,14 @@ def view_grading_opportunity_list(pctx):
 
 class GradeInfo:
     def __init__(self, opportunity, grade_state_machine):
+        # type: (GradingOpportunity, GradeStateMachine) -> None
         self.opportunity = opportunity
         self.grade_state_machine = grade_state_machine
 
 
 def get_grade_table(course):
+    # type: (Course) -> Tuple[List[Participation], List[GradingOpportunity], List[List[GradeInfo]]]  # noqa
+
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
     grading_opps = list((GradingOpportunity.objects
@@ -329,6 +338,8 @@ def export_gradebook_csv(pctx):
 
 class OpportunitySessionGradeInfo(object):
     def __init__(self, grade_state_machine, flow_session, grades=None):
+        # type: (GradeStateMachine, FlowSession, Optional[Any]) ->  None
+
         self.grade_state_machine = grade_state_machine
         self.flow_session = flow_session
         self.grades = grades
@@ -336,6 +347,8 @@ class OpportunitySessionGradeInfo(object):
 
 class ModifySessionsForm(StyledForm):
     def __init__(self, session_rule_tags, *args, **kwargs):
+        # type: (List[Text], *Any, **Any) -> None
+
         super(ModifySessionsForm, self).__init__(*args, **kwargs)
 
         self.fields["rule_tag"] = forms.ChoiceField(
@@ -365,6 +378,7 @@ RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 
 def mangle_session_access_rule_tag(rule_tag):
+    # type: (Optional[Text]) -> Text
     if rule_tag is None:
         return RULE_TAG_NONE_STRING
     else:
@@ -373,6 +387,8 @@ def mangle_session_access_rule_tag(rule_tag):
 
 @course_view
 def view_grades_by_opportunity(pctx, opp_id):
+    # type: (CoursePageContext, Text) -> http.HttpResponse
+
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(pctx.request)
 
@@ -387,13 +403,13 @@ def view_grades_by_opportunity(pctx, opp_id):
     # {{{ batch sessions form
 
     batch_ops_allowed = (
-            pctx.has_permission(pperm.batch_impose_deadline)
-            or pctx.has_permission(pperm.batch_end_flow)
-            or pctx.has_permission(pperm.batch_regrade_flow)
-            or pctx.has_permission(pperm.batch_recalculate_grade)
+            pctx.has_permission(pperm.batch_impose_flow_session_deadline)
+            or pctx.has_permission(pperm.batch_end_flow_session)
+            or pctx.has_permission(pperm.batch_regrade_flow_session)
+            or pctx.has_permission(pperm.batch_recalculate_flow_session_grade)
             )
 
-    batch_session_ops_form = None
+    batch_session_ops_form = None  # type: Optional[ModifySessionsForm]
     if batch_ops_allowed and opportunity.flow_id:
         cursor = connection.cursor()
         cursor.execute("select distinct access_rules_tag from course_flowsession "
@@ -404,34 +420,38 @@ def view_grades_by_opportunity(pctx, opp_id):
 
         request = pctx.request
         if request.method == "POST":
-            batch_session_ops_form = ModifySessionsForm(
+            bsf = batch_session_ops_form = ModifySessionsForm(
                     session_rule_tags, request.POST, request.FILES)
+
+            assert batch_session_ops_form is not None
+
             if "expire" in request.POST:
                 op = "expire"
-                if not pctx.has_permission(pperm.batch_impose_deadline):
+                if not pctx.has_permission(pperm.batch_impose_flow_session_deadline):
                     raise PermissionDenied(_("may not impose deadline"))
 
             elif "end" in request.POST:
                 op = "end"
-                if not pctx.has_permission(pperm.batch_end_flow):
+                if not pctx.has_permission(pperm.batch_end_flow_session):
                     raise PermissionDenied(_("may not batch-end flows"))
 
             elif "regrade" in request.POST:
                 op = "regrade"
-                if not pctx.has_permission(pperm.batch_regrade_flow):
+                if not pctx.has_permission(pperm.batch_regrade_flow_session):
                     raise PermissionDenied(_("may not batch-regrade flows"))
 
             elif "recalculate" in request.POST:
                 op = "recalculate"
-                if not pctx.has_permission(pperm.batch_recalculate_grade):
+                if not pctx.has_permission(
+                        pperm.batch_recalculate_flow_session_grade):
                     raise PermissionDenied(_("may not batch-recalculate grades"))
 
             else:
                 raise SuspiciousOperation(_("invalid operation"))
 
-            if batch_session_ops_form.is_valid():
-                rule_tag = batch_session_ops_form.cleaned_data["rule_tag"]
-                past_due_only = batch_session_ops_form.cleaned_data["past_due_only"]
+            if bsf.is_valid():
+                rule_tag = bsf.cleaned_data["rule_tag"]
+                past_due_only = bsf.cleaned_data["past_due_only"]
 
                 if rule_tag == RULE_TAG_NONE_STRING:
                     rule_tag = None
@@ -507,7 +527,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                 .order_by(
                     "participation__id",
                     "start_time"
-                    ))
+                    ))  # type: Optional[List[FlowSession]]
     else:
         flow_sessions = None
 
@@ -519,7 +539,7 @@ def view_grades_by_opportunity(pctx, opp_id):
     finished_sessions = 0
     total_sessions = 0
 
-    grade_table = []
+    grade_table = []  # type: List[Tuple[Participation, OpportunitySessionGradeInfo]]
     for idx, participation in enumerate(participations):
         # Advance in grade change list
         while (
@@ -536,7 +556,7 @@ def view_grades_by_opportunity(pctx, opp_id):
 
         # Advance in flow session list
         if flow_sessions is None:
-            my_flow_sessions = []
+            my_flow_sessions = []  # type: List[FlowSession]
         else:
             while (
                     fsess_idx < len(flow_sessions) and (
@@ -571,16 +591,16 @@ def view_grades_by_opportunity(pctx, opp_id):
 
     if view_page_grades and len(grade_table) > 0:
         # Query grades for flow pages
-        all_flow_sessions = [info.flow_session for _dummy, info in grade_table]
+        all_flow_sessions = [info.flow_session for _dummy1, info in grade_table]
         max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
         page_numbers = list(range(1, 1 + max_page_count))
 
         from course.flow import assemble_page_grades
-        page_grades = assemble_page_grades(all_flow_sessions)
+        page_grades = assemble_page_grades(all_flow_sessions)  # type: List[List[Optional[FlowPageVisitGrade]]]  # noqa
 
-        for (_dummy, grade_info), grade_list in zip(grade_table, page_grades):
+        for (_dummy2, grade_info), grade_list in zip(grade_table, page_grades):  # type: ignore  # noqa
             # Not all pages exist in all sessions
-            grades = list(enumerate(grade_list))
+            grades = list(enumerate(grade_list))  # type: List[Tuple[Optional[int], Optional[FlowPageVisitGrade]]]  # noqa
             if len(grades) < max_page_count:
                 grades.extend([(None, None)] * (max_page_count - len(grades)))
             grade_info.grades = grades
@@ -612,6 +632,8 @@ NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
 
 class ReopenSessionForm(StyledForm):
     def __init__(self, flow_desc, current_tag, *args, **kwargs):
+        # type: (FlowDesc, Text, *Any, **Any) -> None
+
         super(ReopenSessionForm, self).__init__(*args, **kwargs)
 
         rules = getattr(flow_desc, "rules", object())
@@ -637,7 +659,9 @@ class ReopenSessionForm(StyledForm):
 @course_view
 @transaction.atomic
 def view_reopen_session(pctx, flow_session_id, opportunity_id):
-    if not pctx.has_permission(pperm.reopen_session):
+    # type: (CoursePageContext, Text, Text) -> http.HttpResponse
+
+    if not pctx.has_permission(pperm.reopen_flow_session):
         raise PermissionDenied(_("may not reopen session"))
 
     request = pctx.request
@@ -705,6 +729,8 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
 # {{{ view single grade
 
 def average_grade(opportunity):
+    # type: (GradingOpportunity) -> Tuple[Optional[float], int]
+
     grade_changes = (GradeChange.objects
             .filter(opportunity=opportunity)
             .order_by(
@@ -714,9 +740,11 @@ def average_grade(opportunity):
             .select_related("opportunity"))
 
     grades = []
-    my_grade_changes = []
+    my_grade_changes = []  # type: List[GradeChange]
 
     def finalize():
+        # type: () -> None
+
         if not my_grade_changes:
             return
 
@@ -747,6 +775,8 @@ def average_grade(opportunity):
 
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
+    # type: (CoursePageContext, Text, Text) -> http.HttpResponse
+
     now_datetime = get_now_or_fake_time(pctx.request)
 
     participation = get_object_or_404(Participation,
@@ -757,9 +787,10 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
-    if pctx.role in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
+    my_grade = participation == pctx.participation
+    is_privileged_view = pctx.has_permission(pperm.view_gradebook)
+
+    if is_privileged_view:
         if not opportunity.shown_in_grade_book:
             messages.add_message(pctx.request, messages.INFO,
                     _("This grade is not shown in the grade book."))
@@ -767,85 +798,91 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             messages.add_message(pctx.request, messages.INFO,
                     _("This grade is not shown in the student grade book."))
 
-    elif pctx.role == participation_role.student:
-        if participation != pctx.participation:
+    else:
+        # unprivileged
+
+        if not my_grade:
             raise PermissionDenied(_("may not view other people's grades"))
+
         if not (opportunity.shown_in_grade_book
                 and opportunity.shown_in_participant_grade_book):
             raise PermissionDenied(_("grade has not been released"))
-    else:
-        raise PermissionDenied()
 
     # {{{ modify sessions buttons
 
-    if pctx.role in [
-            participation_role.instructor,
-            participation_role.teaching_assistant]:
-        allow_session_actions = True
+    request = pctx.request
+    if pctx.request.method == "POST":
+        action_re = re.compile("^([a-z]+)_([0-9]+)$")
+        for key in request.POST.keys():
+            action_match = action_re.match(key)
+            if action_match:
+                break
 
-        request = pctx.request
-        if pctx.request.method == "POST":
-            action_re = re.compile("^([a-z]+)_([0-9]+)$")
-            for key in request.POST.keys():
-                action_match = action_re.match(key)
-                if action_match:
-                    break
+        if not action_match:
+            raise SuspiciousOperation(_("unknown action"))
 
-            if not action_match:
-                raise SuspiciousOperation(_("unknown action"))
+        session = FlowSession.objects.get(id=int(action_match.group(2)))
+        op = action_match.group(1)
 
-            session = FlowSession.objects.get(id=int(action_match.group(2)))
-            op = action_match.group(1)
+        adjust_flow_session_page_data(
+                pctx.repo, session, pctx.course.identifier)
 
-            adjust_flow_session_page_data(
-                    pctx.repo, session, pctx.course.identifier)
+        from course.flow import (
+                regrade_session,
+                recalculate_session_grade,
+                expire_flow_session_standalone,
+                finish_flow_session_standalone)
 
-            from course.flow import (
-                    regrade_session,
-                    recalculate_session_grade,
-                    expire_flow_session_standalone,
-                    finish_flow_session_standalone)
+        try:
+            if op == "imposedl":
+                if not pctx.has_permission(pperm.impose_flow_session_deadline):
+                    raise PermissionDenied()
 
-            try:
-                if op == "expire":
-                    expire_flow_session_standalone(
-                            pctx.repo, pctx.course, session, now_datetime)
-                    messages.add_message(pctx.request, messages.SUCCESS,
-                            _("Session expired."))
+                expire_flow_session_standalone(
+                        pctx.repo, pctx.course, session, now_datetime)
+                messages.add_message(pctx.request, messages.SUCCESS,
+                        _("Session deadline imposed."))
 
-                elif op == "end":
-                    finish_flow_session_standalone(
-                            pctx.repo, pctx.course, session,
-                            now_datetime=now_datetime)
-                    messages.add_message(pctx.request, messages.SUCCESS,
-                            _("Session ended."))
+            elif op == "end":
+                if not pctx.has_permission(pperm.end_flow_session):
+                    raise PermissionDenied()
 
-                elif op == "regrade":
-                    regrade_session(
-                            pctx.repo, pctx.course, session)
-                    messages.add_message(pctx.request, messages.SUCCESS,
-                            _("Session regraded."))
+                finish_flow_session_standalone(
+                        pctx.repo, pctx.course, session,
+                        now_datetime=now_datetime)
+                messages.add_message(pctx.request, messages.SUCCESS,
+                        _("Session ended."))
 
-                elif op == "recalculate":
-                    recalculate_session_grade(
-                            pctx.repo, pctx.course, session)
-                    messages.add_message(pctx.request, messages.SUCCESS,
-                            _("Session grade recalculated."))
+            elif op == "regrade":
+                if not pctx.has_permission(pperm.regrade_flow_session):
+                    raise PermissionDenied()
 
-                else:
-                    raise SuspiciousOperation(_("invalid session operation"))
+                regrade_session(
+                        pctx.repo, pctx.course, session)
+                messages.add_message(pctx.request, messages.SUCCESS,
+                        _("Session regraded."))
 
-            except KeyboardInterrupt as e:
-                messages.add_message(pctx.request, messages.ERROR,
-                        string_concat(
-                            pgettext_lazy("Starting of Error message",
-                                "Error"),
-                            ": %(err_type)s %(err_str)s")
-                        % {
-                            "err_type": type(e).__name__,
-                            "err_str": str(e)})
-    else:
-        allow_session_actions = False
+            elif op == "recalculate":
+                if not pctx.has_permission(pperm.recalculate_flow_session_grade):
+                    raise PermissionDenied()
+
+                recalculate_session_grade(
+                        pctx.repo, pctx.course, session)
+                messages.add_message(pctx.request, messages.SUCCESS,
+                        _("Session grade recalculated."))
+
+            else:
+                raise SuspiciousOperation(_("invalid session operation"))
+
+        except KeyboardInterrupt as e:
+            messages.add_message(pctx.request, messages.ERROR,
+                    string_concat(
+                        pgettext_lazy("Starting of Error message",
+                            "Error"),
+                        ": %(err_type)s %(err_str)s")
+                    % {
+                        "err_type": type(e).__name__,
+                        "err_str": str(e)})
 
     # }}}
 
@@ -891,7 +928,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
                         flow_desc)
 
                 grading_rule = get_session_grading_rule(
-                        session, pctx.role, flow_desc, now_datetime)
+                        session, flow_desc, now_datetime)
 
                 session_properties = SessionProperties(
                         due=grading_rule.due,
@@ -930,7 +967,6 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         "grade_changes": grade_changes,
         "state_machine": state_machine,
         "flow_sessions_and_session_properties": flow_sessions_and_session_properties,
-        "allow_session_actions": allow_session_actions,
         "show_privileged_info": show_privileged_info,
         "show_page_grades": show_page_grades,
         })

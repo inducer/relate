@@ -92,7 +92,6 @@ class participation_permission:
     batch_issue_exam_ticket = "batch_issue_exam_ticket"
 
     view_flow_sessions_from_role = "view_flow_sessions_from_role"
-    view_grades_from_role = "view_grades_from_role"
     view_gradebook = "view_gradebook"
     edit_grading_opportunity = "edit_grading_opportunity"
     assign_grade = "assign_grade"
@@ -101,16 +100,16 @@ class participation_permission:
     batch_export_grade = "batch_export_grade"
     batch_download_submission = "batch_download_submission"
 
-    impose_deadline = "impose_deadline"
-    batch_impose_deadline = "batch_impose_deadline"
-    end_flow = "end_flow"
-    batch_end_flow = "batch_end_flow"
-    regrade_flow = "regrade_flow"
-    batch_regrade_flow = "batch_regrade_flow"
-    recalculate_grade = "recalculate_grade"
-    batch_recalculate_grade = "batch_recalculate_grade"
+    impose_flow_session_deadline = "impose_flow_session_deadline"
+    batch_impose_flow_session_deadline = "batch_impose_flow_session_deadline"
+    end_flow_session = "end_flow_session"
+    batch_end_flow_session = "batch_end_flow_session"
+    regrade_flow_session = "regrade_flow_session"
+    batch_regrade_flow_session = "batch_regrade_flow_session"
+    recalculate_flow_session_grade = "recalculate_flow_session_grade"
+    batch_recalculate_flow_session_grade = "batch_recalculate_flow_session_grade"
 
-    reopen_session = "reopen_session"
+    reopen_flow_session = "reopen_flow_session"
     grant_exception = "grant_exception"
     view_analytics = "view_analytics"
 
@@ -160,9 +159,6 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.view_flow_sessions_from_role,
             pgettext_lazy("Participation permission",
                 "View flow sessions from role ")),
-        (participation_permission.view_grades_from_role,
-            pgettext_lazy("Participation permission",
-                "View grades from role ")),
         (participation_permission.view_gradebook,
             pgettext_lazy("Participation permission", "View gradebook")),
         (participation_permission.edit_grading_opportunity,
@@ -178,25 +174,30 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.batch_download_submission,
             pgettext_lazy("Participation permission", "Batch-download submissions")),
 
-        (participation_permission.impose_deadline,
-            pgettext_lazy("Participation permission", "Impose deadline")),
-        (participation_permission.batch_impose_deadline,
-            pgettext_lazy("Participation permission", "Batch-impose deadline")),
-        (participation_permission.end_flow,
-            pgettext_lazy("Participation permission", "End flow")),
-        (participation_permission.batch_end_flow,
-            pgettext_lazy("Participation permission", "Batch-end flows")),
-        (participation_permission.regrade_flow,
-            pgettext_lazy("Participation permission", "Regrade flow")),
-        (participation_permission.batch_regrade_flow,
-            pgettext_lazy("Participation permission", "Batch-regrade flows")),
-        (participation_permission.recalculate_grade,
-            pgettext_lazy("Participation permission", "Recalculate grade")),
-        (participation_permission.batch_recalculate_grade,
-            pgettext_lazy("Participation permission", "Batch-recalculate grades")),
+        (participation_permission.impose_flow_session_deadline,
+            pgettext_lazy("Participation permission",
+                "Impose flow session deadline")),
+        (participation_permission.batch_impose_flow_session_deadline,
+            pgettext_lazy("Participation permission",
+                "Batch-impose flow session deadline")),
+        (participation_permission.end_flow_session,
+            pgettext_lazy("Participation permission", "End flow session")),
+        (participation_permission.batch_end_flow_session,
+            pgettext_lazy("Participation permission", "Batch-end flow sessions")),
+        (participation_permission.regrade_flow_session,
+            pgettext_lazy("Participation permission", "Regrade flow session")),
+        (participation_permission.batch_regrade_flow_session,
+            pgettext_lazy("Participation permission",
+                "Batch-regrade flow sessions")),
+        (participation_permission.recalculate_flow_session_grade,
+            pgettext_lazy("Participation permission",
+                "Recalculate flow session grade")),
+        (participation_permission.batch_recalculate_flow_session_grade,
+            pgettext_lazy("Participation permission",
+                "Batch-recalculate flow sesssion grades")),
 
-        (participation_permission.reopen_session,
-            pgettext_lazy("Participation permission", "Reopen session")),
+        (participation_permission.reopen_flow_session,
+            pgettext_lazy("Participation permission", "Reopen flow session")),
         (participation_permission.grant_exception,
             pgettext_lazy("Participation permission", "Grant exception")),
         (participation_permission.view_analytics,

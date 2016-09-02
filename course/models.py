@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any, Optional, Text  # noqa
+from typing import cast, Any, Optional, Text, Iterable  # noqa
 
 import six
 
@@ -562,18 +562,16 @@ def add_default_roles_and_permissions(course,
 
         rpm(role=role, permission=pp.view_flow_sessions_from_role,
                 argument="student").save()
-        rpm(role=role, permission=pp.view_grades_from_role,
-                argument="student").save()
         rpm(role=role, permission=pp.view_gradebook).save()
         rpm(role=role, permission=pp.assign_grade).save()
         rpm(role=role, permission=pp.view_grader_stats).save()
 
-        rpm(role=role, permission=pp.impose_deadline).save()
-        rpm(role=role, permission=pp.end_flow).save()
-        rpm(role=role, permission=pp.regrade_flow).save()
-        rpm(role=role, permission=pp.recalculate_grade).save()
+        rpm(role=role, permission=pp.impose_flow_session_deadline).save()
+        rpm(role=role, permission=pp.end_flow_session).save()
+        rpm(role=role, permission=pp.regrade_flow_session).save()
+        rpm(role=role, permission=pp.recalculate_flow_session_grade).save()
 
-        rpm(role=role, permission=pp.reopen_session).save()
+        rpm(role=role, permission=pp.reopen_flow_session).save()
         rpm(role=role, permission=pp.grant_exception).save()
         rpm(role=role, permission=pp.view_analytics).save()
 
@@ -599,17 +597,15 @@ def add_default_roles_and_permissions(course,
 
         rpm(role=role, permission=pp.view_flow_sessions_from_role,
                 argument="ta").save()
-        rpm(role=role, permission=pp.view_grades_from_role,
-                argument="ta").save()
         rpm(role=role, permission=pp.edit_grading_opportunity).save()
         rpm(role=role, permission=pp.batch_import_grade).save()
         rpm(role=role, permission=pp.batch_export_grade).save()
         rpm(role=role, permission=pp.batch_download_submission).save()
 
-        rpm(role=role, permission=pp.batch_impose_deadline).save()
-        rpm(role=role, permission=pp.batch_end_flow).save()
-        rpm(role=role, permission=pp.batch_regrade_flow).save()
-        rpm(role=role, permission=pp.batch_recalculate_grade).save()
+        rpm(role=role, permission=pp.batch_impose_flow_session_deadline).save()
+        rpm(role=role, permission=pp.batch_end_flow_session).save()
+        rpm(role=role, permission=pp.batch_regrade_flow_session).save()
+        rpm(role=role, permission=pp.batch_recalculate_flow_session_grade).save()
 
         rpm(role=role, permission=pp.update_content).save()
         rpm(role=role, permission=pp.edit_events).save()
@@ -1441,6 +1437,8 @@ class GradeChange(models.Model):
                     "in the same course"))
 
     def percentage(self):
+        # type: () -> Optional[float]
+
         if (self.max_points is not None
                 and self.points is not None
                 and self.max_points != 0):
@@ -1459,6 +1457,7 @@ class GradeChange(models.Model):
 
 class GradeStateMachine(object):
     def __init__(self):
+        # type: () -> None
         self.opportunity = None
 
         self.state = None
@@ -1471,17 +1470,24 @@ class GradeStateMachine(object):
         self._last_grade_change_time = None
 
     def _clear_grades(self):
+        # type: () -> None
+
         self.state = None
         self.last_grade_time = None
-        self.valid_percentages = []
-        self.attempt_id_to_gchange = {}
+        self.valid_percentages = []  # type: List[GradeChange]
+        self.attempt_id_to_gchange = {}  # type: Dict[Text, GradeChange]
 
     def _consume_grade_change(self, gchange, set_is_superseded):
+        # type: (GradeChange, bool) -> None
+
         if self.opportunity is None:
-            self.opportunity = gchange.opportunity
-            self.due_time = self.opportunity.due_time
+            opp = self.opportunity = gchange.opportunity
+            assert opp is not None
+            self.due_time = opp.due_time
         else:
             assert self.opportunity.pk == gchange.opportunity.pk
+
+        assert self.opportunity is not None
 
         # check that times are increasing
         if self._last_grade_change_time is not None:
@@ -1541,6 +1547,8 @@ class GradeStateMachine(object):
                     _("invalid grade change state '%s'") % gchange.state)
 
     def consume(self, iterable, set_is_superseded=False):
+        # type: (Iterable[GradeChange], bool) -> GradeStateMachine
+
         for gchange in iterable:
             gchange.is_superseded = False
             self._consume_grade_change(gchange, set_is_superseded)
@@ -1552,7 +1560,7 @@ class GradeStateMachine(object):
                 key=lambda gchange: gchange.grade_time)
 
         self.valid_percentages.extend(
-                gchange.percentage()
+                cast(GradeChange, gchange.percentage())
                 for gchange in valid_grade_changes)
 
         del self.attempt_id_to_gchange
@@ -1560,6 +1568,8 @@ class GradeStateMachine(object):
         return self
 
     def percentage(self):
+        # type: () -> Optional[float]
+
         """
         :return: a percentage of achieved points, or *None*
         """

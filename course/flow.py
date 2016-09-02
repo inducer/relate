@@ -494,16 +494,19 @@ def get_prev_answer_visit(page_data):
 
 
 def assemble_page_grades(flow_sessions):
+    # type: (List[FlowSession]) -> List[List[Optional[FlowPageVisitGrade]]]
     """
-    Given a list of flow sessions, return a list of tuples of FlowPageVisitGrade
+    Given a list of flow sessions, return a list of lists of FlowPageVisitGrade
     objects corresponding to the most recent page grades for each page of the
     flow session.  If a page is not graded, the corresponding entry is None.
 
     Note that, even if the flow sessions belong to the same flow, the length
-    of the tuples may vary since the flow page count may vary per session.
+    of the lists may vary since the flow page count may vary per session.
     """
     id_to_fsess_idx = {fsess.id: i for i, fsess in enumerate(flow_sessions)}
-    answer_visit_ids = [[None] * fsess.page_count for fsess in flow_sessions]
+    answer_visit_ids = [
+            [None] * fsess.page_count for fsess in flow_sessions
+            ]  # type: List[List[Optional[int]]]
 
     # Get all answer visits corresponding to the sessions. The query result is
     # typically very large.
@@ -539,8 +542,10 @@ def assemble_page_grades(flow_sessions):
         grades_by_answer_visit[grade.visit_id] = grade
 
     def get_grades_for_visit_group(visit_group):
-        return (grades_by_answer_visit.get(visit_id)
-            for visit_id in visit_group)
+        # type: (List[Optional[int]]) -> List[Optional[FlowPageVisit]]
+
+        return [grades_by_answer_visit.get(visit_id)
+            for visit_id in visit_group]
 
     return [get_grades_for_visit_group(group) for group in answer_visit_ids]
 
@@ -2381,7 +2386,7 @@ class RegradeFlowForm(StyledForm):
 @course_view
 def regrade_flows_view(pctx):
     # type: (CoursePageContext) -> http.HttpResponse
-    if not pctx.has_permission(pperm.batch_regrade_flow):
+    if not pctx.has_permission(pperm.batch_regrade_flow_session):
         raise PermissionDenied(_("may not batch-regrade flows"))
 
     from course.content import list_flow_ids
