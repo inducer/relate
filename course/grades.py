@@ -159,8 +159,7 @@ def view_participant_list(pctx):
 
     participations = list(Participation.objects
             .filter(
-                course=pctx.course,
-                status=participation_status.active)
+                course=pctx.course)
             .order_by("id")
             .select_related("user"))
 

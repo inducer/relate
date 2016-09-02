@@ -261,6 +261,13 @@ urlpatterns = [
         "/$",
         course.enrollment.query_participations,
         name="relate-query_participations"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/edit-participation"
+         "/(?P<participation_id>[-0-9]+)"
+        "/$",
+        course.enrollment.edit_participation,
+        name="relate-edit_participation"),
 
     # }}}
 

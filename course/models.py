@@ -580,6 +580,7 @@ def add_default_roles_and_permissions(course,
         rpm(role=role, permission=pp.use_page_sandbox).save()
         rpm(role=role, permission=pp.test_flow).save()
         rpm(role=role, permission=pp.query_participation).save()
+        rpm(role=role, permission=pp.edit_participation).save()
 
         add_student_permissions(role)
 

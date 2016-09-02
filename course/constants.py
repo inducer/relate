@@ -122,6 +122,7 @@ class participation_permission:
     edit_events = "edit_events"
 
     query_participation = "query_participation"
+    edit_participation = "edit_participation"
     preapprove_participation = "preapprove_participation"
 
     manage_instant_flow_requests = "manage_instant_flow_requests"
@@ -219,6 +220,8 @@ PARTICIPATION_PERMISSION_CHOICES = (
 
         (participation_permission.query_participation,
             pgettext_lazy("Participation permission", "Query participation")),
+        (participation_permission.edit_participation,
+            pgettext_lazy("Participation permission", "Edit participation")),
         (participation_permission.preapprove_participation,
             pgettext_lazy("Participation permission", "Preapprove participation")),
 

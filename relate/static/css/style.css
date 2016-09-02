@@ -214,6 +214,20 @@ div.progress:hover  span.stats-percentage{
   padding-right:50px;
 }
 
+.relate-participation-active {
+}
+.relate-participation-requested {
+  color: blue;
+}
+.relate-participation-dropped {
+  text-decoration: line-through;
+  color: #bbb;
+}
+.relate-participation-denied {
+  text-decoration: line-through;
+  color: red;
+}
+
 /* {{{ codemirror */
 
 .sandbox-page-editor .CodeMirror {
