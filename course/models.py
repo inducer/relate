@@ -1329,6 +1329,9 @@ class GradingOpportunity(models.Model):
             verbose_name=_('Shown in grade book'))
     shown_in_participant_grade_book = models.BooleanField(default=True,
             verbose_name=_("Shown in student grade book"))
+    result_shown_in_participant_grade_book = models.BooleanField(default=True,
+            verbose_name=_("Result shown in student grade book"))
+
     page_scores_in_participant_gradebook = models.BooleanField(default=False,
             verbose_name=_("Scores for individual pages are shown "
                 "in the participants' grade book"))
