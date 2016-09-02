@@ -234,7 +234,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 answer_data["base64_data"],
                 )
 
-        from django.template import RequestContext
         from django.template.loader import render_to_string
         return render_to_string(
                 "course/file-upload-form.html", ctx, request)

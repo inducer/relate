@@ -829,11 +829,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 "rubric": markup_to_html(page_context, self.page_desc.rubric)
                 }
 
-        from django.template import RequestContext
         from django.template.loader import render_to_string
         return render_to_string(
-                "course/human-feedback-form.html",
-                RequestContext(request, ctx))
+                "course/human-feedback-form.html", ctx, request)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         """This method is appropriate if the grade consists *only* of the
