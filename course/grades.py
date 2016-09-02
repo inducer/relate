@@ -969,6 +969,11 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         "flow_sessions_and_session_properties": flow_sessions_and_session_properties,
         "show_privileged_info": show_privileged_info,
         "show_page_grades": show_page_grades,
+        "allow_session_actions": (
+            pperm.impose_flow_session_deadline
+            or pperm.end_flow_session
+            or pperm.regrade_flow_session
+            or pperm.recalculate_flow_session_grade),
         })
 
 # }}}

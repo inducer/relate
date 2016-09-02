@@ -130,9 +130,6 @@
   {% if flow_sessions_and_session_properties %}
     <h2>{% trans "Flow sessions" %}</h2>
 
-    {% with allow_session_actions=pperm.impose_flow_session_deadline
-      or pperm.end_flow_session or pperm.regrade_flow_session
-      or pperm.recalculate_flow_session_grade %}
     <form method="POST">
       {% csrf_token %}
       <table class="table table-condensed table-striped">
@@ -315,7 +312,6 @@
         </tbody>
       </table>
     </form>
-    {% endwith %}
   {% endif %}
 
   {% if show_privileged_info and opportunity.flow_id %}

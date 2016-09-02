@@ -74,7 +74,7 @@
         <li><a href="{% url "relate-import_grades" course.identifier %}">{% trans "Import Grades" %}</a></li>
       {% endif %}
       <li role="presentation" class="divider"></li>
-      {% if pperm.batch_regrade_flow %}
+      {% if pperm.batch_regrade_flow_session %}
         <li><a href="{% url "relate-regrade_flows_view" course.identifier %}">{% trans "Regrade flows" %}</a></li>
       {% endif %}
 
