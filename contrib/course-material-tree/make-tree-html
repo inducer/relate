@@ -6,6 +6,28 @@ from glob import glob
 import re
 
 
+section_nr = [1]
+
+def normalize_nodes(nodes, text_icon):
+    for i in range(len(nodes)):
+        node = nodes[i]
+        if isinstance(node, str):
+            node = {"text": node, "icon": text_icon}
+
+        if "section_nr" in node and node["section_nr"] is not False:
+            section_nr[0] = node["section_nr"]
+
+        if "section" in node:
+            if node.get("section_nr") is not False:
+                node["section_nr"] = section_nr[0]
+                section_nr[0] += 1
+
+        nodes[i] = node
+
+        if "nodes" in node:
+            normalize_nodes(node["nodes"], text_icon)
+
+
 def find_section_nodes(section_dict, node):
     if "section" in node:
         section_dict[node["section"]] = node
@@ -15,8 +37,9 @@ def find_section_nodes(section_dict, node):
 
 
 class RenderSettings:
-    def __init__(self, default_icon):
+    def __init__(self, default_icon, number_sections):
         self.default_icon = default_icon
+        self.number_sections = number_sections
 
 
 def render(settings, outf, node, indent=0, skip=1):
@@ -31,6 +54,10 @@ def render(settings, outf, node, indent=0, skip=1):
         attrs["opened"] = True
 
     text = node["text"]
+    if (settings.number_sections
+            and "section_nr" in node
+            and node["section_nr"] is not False):
+        text = "%d. %s" % (node["section_nr"], text)
     if "section" in node:
         text = "<b>%s</b>" % text
 
@@ -64,7 +91,33 @@ def render(settings, outf, node, indent=0, skip=1):
         indent -= 2
         print(indent * " ", "</li>", file=outf, sep="")
 
-FN_REGEX = re.compile(r"^([0-9][0-9])-(.*)(\.[a-z]+)$")
+FN_REGEX = re.compile(r"^([0-9]+)-(.*)(\.[a-z]+)$")
+
+
+def get_section_id_and_display_name(trunk, include_extension):
+    from os.path import splitext
+
+    fn_match = FN_REGEX.match(trunk)
+    if fn_match is not None:
+        section_id = fn_match.group(1)
+        if include_extension:
+            fname = fn_match.group(2) + fn_match.group(3)
+        else:
+            fname = fn_match.group(2)
+        display_name = basename(fname)
+    else:
+        section_id, display_name = trunk.split("/")
+
+        if not include_extension:
+            display_name, _ = splitext(display_name)
+
+    try:
+        section_id = int(section_id)
+    except ValueError:
+        pass
+
+    return section_id, display_name
+
 
 
 def main():
@@ -91,6 +144,9 @@ def main():
 
     parser.add_argument("--default-icon", metavar="ICON_STR",
             default="fa fa-file-o")
+    parser.add_argument("--text-icon", metavar="ICON_STR",
+            default="fa fa-file-o")
+    parser.add_argument("--number-sections", action="store_true")
 
     parser.add_argument("input_file", metavar="FILE")
 
@@ -100,16 +156,19 @@ def main():
     with open(args.input_file, "rb") as inf:
         root_node = load(inf)
 
+    normalize_nodes([root_node], args.text_icon)
+
     section_dict = {}
     find_section_nodes(section_dict, root_node)
 
     # {{{ demos
 
     if args.ipynb_dir is not None:
-        for fn in sorted(glob(join(args.ipynb_dir, "[0-9]*", "*.ipynb"))):
+        for fn in sorted(glob(join(args.ipynb_dir, "*", "*.ipynb"))):
             trunk = fn[len(args.ipynb_dir)+1:]
-            fn_match = FN_REGEX.match(trunk)
-            sec_nr = int(fn_match.group(1))
+
+            section_id, display_name = get_section_id_and_display_name(
+                    trunk, include_extension=False)
 
             link_ipynb = args.ipynb_urlroot + "/" + trunk
             link_html = link_ipynb.replace(".ipynb", ".html")
@@ -136,56 +195,59 @@ def main():
                     })
 
             demo_node = {
-                "text": "Demo: " + basename(fn_match.group(2)),
+                "text": "Demo: " + display_name,
                 "link": link_html,
                 "icon": "fa fa-keyboard-o",
                 "nodes": sub_nodes,
                 }
-            section_dict[sec_nr]["nodes"].append(demo_node)
+
+            section_dict[section_id]["nodes"].append(demo_node)
 
     # }}}
 
     # {{{ python source
 
     if args.py_dir is not None:
-        for fn in sorted(glob(join(args.py_dir, "[0-9]*", "*.py"))):
+        for fn in sorted(glob(join(args.py_dir, "*", "*.py"))):
             trunk = fn[len(args.py_dir)+1:]
-            fn_match = FN_REGEX.match(trunk)
-            sec_nr = int(fn_match.group(1))
+            section_id, display_name = get_section_id_and_display_name(
+                    trunk, include_extension=True)
 
             src_node = {
-                "text": "Code: " + basename(
-                    fn_match.group(2)+fn_match.group(3)),
+                "text": "Code: " + display_name,
                 "link": args.py_urlroot + "/" + trunk,
                 "icon": "fa fa-file-text-o",
             }
-            section_dict[sec_nr]["nodes"].append(src_node)
+            section_dict[section_id]["nodes"].append(src_node)
 
     # }}}
 
     # {{{ notes
 
     if args.pdf_dir is not None:
-        for fn in sorted(glob(join(args.pdf_dir, "[0-9]*.pdf"))):
+        for fn in sorted(glob(join(args.pdf_dir, "*.pdf"))):
             if "autosave" in fn:
                 continue
 
             trunk = fn[len(args.pdf_dir)+1:]
-            fn_match = FN_REGEX.match(trunk)
-            sec_nr = int(fn_match.group(1))
+            section_id, display_name = get_section_id_and_display_name(
+                    trunk, include_extension=True)
 
             notes_node = {
-                "text": "PDF: " + basename(
-                    fn_match.group(2)+fn_match.group(3)),
+                "text": "PDF: " + basename(display_name),
                 "link": args.pdf_urlroot + "/" + trunk,
                 "icon": "fa fa-book",
                 }
-            section_dict[sec_nr]["nodes"].insert(0, notes_node)
+            section_dict[section_id]["nodes"].insert(0, notes_node)
 
     # }}}
 
     with open(args.output_file, "wt") as outf:
-        render(RenderSettings(default_icon=args.default_icon), outf, root_node)
+        render(
+                RenderSettings(
+                    default_icon=args.default_icon,
+                    number_sections=args.number_sections),
+                outf, root_node)
 
 
 if __name__ == "__main__":

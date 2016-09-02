@@ -53,7 +53,7 @@ An Example
 
         start:
         -
-            if_before: 2015-03-06 23:59:00
+            if_after: 2015-03-06 23:59:00
             if_has_role: [student, ta, instructor]
             if_has_fewer_sessions_than: 2
             may_start_new_session: True
@@ -69,8 +69,8 @@ An Example
 
         access:
         -
-            if_before: 2015-03-06 23:59:00
-            permissions: [view, modify, see_correctness]
+            if_after: 2015-03-06 23:59:02
+            permissions: [view, submit_answer, end_session, see_correctness]
 
         -
             permissions: [view, see_correctness, see_answer_after_submission]
@@ -80,6 +80,9 @@ An Example
 
         grade_identifier: test_quiz
         grade_aggregation_strategy: max_grade
+
+        grading:
+        -   credit_percent: 100
 
     pages:
 
@@ -228,7 +231,7 @@ Overall structure
 
 .. class:: FlowRules
 
-    Found in the ``rules`` attribute of a flow.
+    Found in the ``rules`` attribute of a :class:`Flow`.
 
     .. attribute:: start
 
@@ -687,12 +690,12 @@ Fill-in-Multiple-Blanks (Automatically Graded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: InlineMultiQuestion()
 
-One-out-of-Many Choice (Automaically Graded)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+One-out-of-Many Choice (Automatically Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: ChoiceQuestion()
 
-Many-out-of-Many Choice (Automaically Graded)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Many-out-of-Many Choice (Automatically Graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: MultipleChoiceQuestion()
 
 One-out-of-Many Survey (Ungraded)

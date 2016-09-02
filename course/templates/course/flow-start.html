@@ -135,7 +135,10 @@
         </a>
         <button id="start-button" type="submit" name="start" class="btn btn-danger"
           style="display:none"
-          data-content='{% trans "I understand that starting a new session could lower my overall grade." %}'
+          data-content='<p>{% trans "I understand that starting a new session could lower my overall grade." %}</p>
+                        <button id="cancel-button" type="reset" name="cancel" class="btn btn-primary btn-sm" style="float: right;">
+                        {% trans "Cancel" %}</button>'
+          data-html="true"
           data-container="body"
           data-placement="right"
           >
@@ -154,6 +157,14 @@
                             function()
                             {
                                 $("#start-button").popover("show");
+                                $("#cancel-button").on("click",
+                                    function()
+                                    {
+                                        $("#start-button").hide().popover("hide");
+                                        $("#pre-start-button").fadeIn("normal");
+
+                                    }
+                                );
                             }
                         );
                     }

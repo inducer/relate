@@ -1,0 +1,25 @@
+"Python 2.7":
+  script:
+  - "PY_EXE=python2.7 bash ./run-tests-for-ci.sh"
+  tags:
+  - python2.7
+  except:
+  - tags
+
+Python 3.5:
+  script:
+  - "PY_EXE=python3.5 bash ./run-tests-for-ci.sh"
+  tags:
+  - python3.5
+  except:
+  - tags
+
+Documentation:
+  script:
+  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
+  - "cp local_settings.py.example local_settings.py"
+  - ". ./build-docs.sh"
+  tags:
+  - python3.5
+  only:
+  - master

@@ -103,7 +103,9 @@ def markup_to_html(page_context, text):
 # {{{ answer feedback type
 
 def get_auto_feedback(correctness):
-    if correctness == 0:
+    if correctness is None:
+        return six.text_type(_("No information on correctness of answer."))
+    elif correctness == 0:
         return six.text_type(_("Your answer is not correct."))
     elif correctness == 1:
         return six.text_type(_("Your answer is correct."))
@@ -119,8 +121,6 @@ def get_auto_feedback(correctness):
                     _("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
-    elif correctness is None:
-        return six.text_type(_("No information on correctness of answer."))
     else:
         return six.text_type(
                 string_concat(

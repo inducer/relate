@@ -37,7 +37,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django import forms
 from django.utils import translation
 from django.utils.safestring import mark_safe
@@ -125,39 +125,45 @@ def enroll_view(request, course_identifier):
     if preapproval is not None:
         role = preapproval.role
 
-    if course.enrollment_approval_required and preapproval is None:
-        handle_enrollment_request(course, user, participation_status.requested,
-                                  role, request)
+    try:
+        if course.enrollment_approval_required and preapproval is None:
+            handle_enrollment_request(course, user, participation_status.requested,
+                                      role, request)
 
-        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-            from django.template.loader import render_to_string
-            message = render_to_string("course/enrollment-request-email.txt", {
-                "user": user,
-                "course": course,
-                "admin_uri": mark_safe(
-                    request.build_absolute_uri(
-                        reverse("admin:course_participation_changelist")
-                        +
-                        "?status__exact=requested&course__id__exact=%d" % course.id))
-                })
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                message = render_to_string("course/enrollment-request-email.txt", {
+                    "user": user,
+                    "course": course,
+                    "admin_uri": mark_safe(
+                        request.build_absolute_uri(
+                            reverse("admin:course_participation_changelist")
+                            +
+                            "?status__exact=requested&course__id__exact=%d"
+                            % course.id))
+                    })
 
-            from django.core.mail import send_mail
-            send_mail(
-                    string_concat("[%s] ", _("New enrollment request"))
-                    % course_identifier,
-                    message,
-                    settings.ROBOT_EMAIL_FROM,
-                    recipient_list=[course.notify_email])
+                from django.core.mail import send_mail
+                send_mail(
+                        string_concat("[%s] ", _("New enrollment request"))
+                        % course_identifier,
+                        message,
+                        settings.ROBOT_EMAIL_FROM,
+                        recipient_list=[course.notify_email])
 
-        messages.add_message(request, messages.INFO,
-                _("Enrollment request sent. You will receive notifcation "
-                "by email once your request has been acted upon."))
-    else:
-        handle_enrollment_request(course, user, participation_status.active,
-                                  role, request)
+            messages.add_message(request, messages.INFO,
+                    _("Enrollment request sent. You will receive notifcation "
+                    "by email once your request has been acted upon."))
+        else:
+            handle_enrollment_request(course, user, participation_status.active,
+                                      role, request)
 
-        messages.add_message(request, messages.SUCCESS,
-                _("Successfully enrolled."))
+            messages.add_message(request, messages.SUCCESS,
+                    _("Successfully enrolled."))
+
+    except IntegrityError:
+        messages.add_message(request, messages.ERROR,
+                _("A participation already exists. Enrollment attempt aborted."))
 
     return redirect("relate-course_page", course_identifier)
 

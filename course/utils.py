@@ -421,6 +421,11 @@ class CoursePageContext(object):
             preview_sha = self.participation.preview_git_commit_sha.encode()
 
             repo = get_course_repo(self.course)
+
+            from course.content import SubdirRepoWrapper
+            if isinstance(repo, SubdirRepoWrapper):
+                repo = repo.repo
+
             try:
                 repo[preview_sha]
             except KeyError:

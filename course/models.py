@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import division, unicode_literals
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -151,11 +151,11 @@ class Course(models.Model):
             verbose_name=_('Enrollment approval required'))
     preapproval_require_verified_inst_id = models.BooleanField(
             default=True,
-            help_text=_("If set, students cannot get particiaption "
+            help_text=_("If set, students cannot get participation "
                         "preapproval using institutional ID if "
-                        "institutional ID they provided are not "
+                        "the institutional ID they provided is not "
                         "verified."),
-            verbose_name=_('None preapproval by institutional ID if not '
+            verbose_name=_('Prevent preapproval by institutional ID if not '
                            'verified?'))
     enrollment_required_email_suffix = models.CharField(
             max_length=200, blank=True, null=True,
@@ -370,7 +370,7 @@ class ParticipationPreapproval(models.Model):
             verbose_name=_('Role'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'), on_delete=models.CASCADE)
+            verbose_name=_('Creator'), on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -447,7 +447,7 @@ class FlowSession(models.Model):
     # Again--'participation' is nullable, and it is useful to be able to
     # remember what user a session belongs to, even if they're not enrolled.
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-            verbose_name=_('User'), on_delete=models.CASCADE)
+            verbose_name=_('User'), on_delete=models.SET_NULL)
 
     active_git_commit_sha = models.CharField(max_length=200,
             verbose_name=_('Active git commit SHA'))
@@ -633,10 +633,10 @@ class FlowPageVisit(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
             blank=True, related_name="visitor",
-            verbose_name=_('User'), on_delete=models.CASCADE)
+            verbose_name=_('User'), on_delete=models.SET_NULL)
     impersonated_by = models.ForeignKey(settings.AUTH_USER_MODEL,
             null=True, blank=True, related_name="impersonator",
-            verbose_name=_('Impersonated by'), on_delete=models.CASCADE)
+            verbose_name=_('Impersonated by'), on_delete=models.SET_NULL)
 
     is_synthetic = models.BooleanField(default=False,
             help_text=_("Synthetic flow page visits are generated for "
@@ -723,7 +723,7 @@ class FlowPageVisitGrade(models.Model):
 
     # NULL means 'autograded'
     grader = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-            verbose_name=_('Grader'), on_delete=models.CASCADE)
+            verbose_name=_('Grader'), on_delete=models.SET_NULL)
     grade_time = models.DateTimeField(db_index=True, default=now,
             verbose_name=_('Grade time'))
 
@@ -884,7 +884,7 @@ class FlowAccessException(models.Model):
             verbose_name=_('Stipulations'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'), on_delete=models.CASCADE)
+            verbose_name=_('Creator'), on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -947,7 +947,7 @@ class FlowRuleException(models.Model):
             verbose_name=_('Expiration'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'), on_delete=models.CASCADE)
+            verbose_name=_('Creator'), on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Creation time'))
 
@@ -1151,13 +1151,13 @@ class GradeChange(models.Model):
             verbose_name=_('Due time'))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'), on_delete=models.CASCADE)
+            verbose_name=_('Creator'), on_delete=models.SET_NULL)
     grade_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_('Grade time'))
 
     flow_session = models.ForeignKey(FlowSession, null=True, blank=True,
             related_name="grade_changes",
-            verbose_name=_('Flow session'), on_delete=models.CASCADE)
+            verbose_name=_('Flow session'), on_delete=models.SET_NULL)
 
     class Meta:
         verbose_name = _("Grade change")
@@ -1460,7 +1460,7 @@ class ExamTicket(models.Model):
             verbose_name=_('Participation'), on_delete=models.CASCADE)
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_('Creator'), on_delete=models.CASCADE)
+            verbose_name=_('Creator'), on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(default=now,
             verbose_name=_('Creation time'))
     usage_time = models.DateTimeField(

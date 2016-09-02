@@ -48,6 +48,11 @@ from relate.utils import dict_to_struct
 
 from yaml import load as load_yaml
 
+if sys.version_info >= (3,):
+    CACHE_KEY_ROOT = "py3"
+else:
+    CACHE_KEY_ROOT = "py2"
+
 
 # {{{ repo blob getting
 
@@ -64,6 +69,19 @@ class SubdirRepoWrapper(object):
 
     def close(self):
         self.repo.close()
+
+
+def get_true_repo_and_path(repo, path):
+    if isinstance(repo, SubdirRepoWrapper):
+        if path:
+            path = repo.subdir + "/" + path
+        else:
+            path = repo.subdir
+
+        return repo.repo, path
+
+    else:
+        return repo, path
 
 
 def get_course_repo_path(course):
@@ -88,10 +106,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     :arg allow_tree: Allow the resulting object to be a directory
     """
 
-    if isinstance(repo, SubdirRepoWrapper):
-        # full_name must be non-empty
-        full_name = repo.subdir + "/" + full_name
-        repo = repo.repo
+    repo, full_name = get_true_repo_and_path(repo, full_name)
 
     names = full_name.split("/")
 
@@ -150,7 +165,8 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     if isinstance(commit_sha, six.binary_type):
         from six.moves.urllib.parse import quote_plus
-        cache_key = "%R%1".join((
+        cache_key = "%s%R%1".join((
+            CACHE_KEY_ROOT,
             quote_plus(repo.controldir()),
             quote_plus(full_name),
             commit_sha.decode(),
@@ -432,6 +448,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     from six.moves.urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
+        CACHE_KEY_ROOT,
         quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode(),
         ))
 
@@ -466,7 +483,8 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     if cached:
         from six.moves.urllib.parse import quote_plus
         cache_key = "%%%2".join(
-                (quote_plus(repo.controldir()), quote_plus(full_name),
+                (CACHE_KEY_ROOT,
+                    quote_plus(repo.controldir()), quote_plus(full_name),
                     commit_sha.decode()))
 
         import django.core.cache as cache
@@ -527,7 +545,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs.update(self.process_tag_func(tag, attrs))
 
         self.out_file.write("<%s %s/>" % (tag, " ".join(
-            _attr_to_string(k, v) for k, v in attrs.iteritems())))
+            _attr_to_string(k, v) for k, v in six.iteritems(attrs))))
 
     def handle_data(self, data):
         self.out_file.write(data)
@@ -739,19 +757,23 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v4:%d:%s:%s"
-                    % (course.id, str(commit_sha),
+            cache_key = ("markup:v6:%s:%d:%s:%s"
+                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
                         hashlib.md5(text.encode("utf-8")).hexdigest()))
 
             def_cache = cache.caches["default"]
             result = def_cache.get(cache_key)
             if result is not None:
+                assert isinstance(result, six.text_type)
                 return result
 
         if text.lstrip().startswith(JINJA_PREFIX):
             text = remove_prefix(JINJA_PREFIX, text.lstrip())
     else:
         cache_key = None
+
+    if not isinstance(text, six.text_type):
+        text = six.text_type(text)
 
     # {{{ process through Jinja
 
@@ -815,6 +837,7 @@ def markup_to_html(course, repo, commit_sha, text, reverse_func=None,
             ],
         output_format="html5")
 
+    assert isinstance(result, six.text_type)
     if cache_key is not None:
         def_cache.add(cache_key, result, None)
 
@@ -1286,6 +1309,9 @@ def get_course_commit_sha(course, participation):
         preview_sha = participation.preview_git_commit_sha
 
         repo = get_course_repo(course)
+        if isinstance(repo, SubdirRepoWrapper):
+            repo = repo.repo
+
         try:
             repo[preview_sha.encode()]
         except KeyError:

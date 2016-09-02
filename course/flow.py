@@ -549,11 +549,11 @@ def get_interaction_kind(fctx, flow_session, flow_generates_grade, all_page_data
     return ikind
 
 
-def count_answered(fctx, flow_session, answer_visits):
+def get_session_answered_page_data(fctx, flow_session, answer_visits):
     all_page_data = get_all_page_data(flow_session)
 
-    answered_count = 0
-    unanswered_count = 0
+    answered_page_data_list= []
+    unanswered_page_data_list = []
     for i, page_data in enumerate(all_page_data):
         assert i == page_data.ordinal
 
@@ -565,11 +565,11 @@ def count_answered(fctx, flow_session, answer_visits):
         page = instantiate_flow_page_with_ctx(fctx, page_data)
         if page.expects_answer():
             if answer_data is None:
-                unanswered_count += 1
+                unanswered_page_data_list.append(page_data)
             else:
-                answered_count += 1
+                answered_page_data_list.append(page_data)
 
-    return (answered_count, unanswered_count)
+    return (answered_page_data_list, unanswered_page_data_list)
 
 
 class GradeInfo(object):
@@ -1423,11 +1423,17 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
 
 
 def create_flow_page_visit(request, flow_session, page_data):
+    if request.user.is_authenticated():
+        # The access to 'is_authenticated' ought to wake up SimpleLazyObject.
+        user = request.user
+    else:
+        user = None
+
     visit = FlowPageVisit(
         flow_session=flow_session,
         page_data=page_data,
         remote_address=request.META['REMOTE_ADDR'],
-        user=request.user,
+        user=user,
         is_submitted_answer=None)
 
     if hasattr(request, "relate_impersonate_original_user"):
@@ -1999,8 +2005,6 @@ def finish_flow_session_view(pctx, flow_session_id):
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket)
 
-    answer_visits = assemble_answer_visits(flow_session)
-
     from course.content import markup_to_html
     completion_text = markup_to_html(
             fctx.course, fctx.repo, pctx.course_commit_sha,
@@ -2009,8 +2013,15 @@ def finish_flow_session_view(pctx, flow_session_id):
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             fctx.flow_desc)
 
-    (answered_count, unanswered_count) = count_answered(
+    answer_visits = assemble_answer_visits(flow_session)
+
+    (answered_page_data_list, unanswered_page_data_list) =\
+        get_session_answered_page_data(
             fctx, flow_session, answer_visits)
+
+    answered_count = len(answered_page_data_list)
+    unanswered_count = len(unanswered_page_data_list)
+
     is_interactive_flow = bool(answered_count + unanswered_count)
 
     if flow_permission.view not in access_rule.permissions:
@@ -2139,6 +2150,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                 flow_session=flow_session,
                 answered_count=answered_count,
                 unanswered_count=unanswered_count,
+                unanswered_page_data_list=unanswered_page_data_list,
                 total_count=answered_count+unanswered_count)
 
 # }}}

@@ -478,9 +478,10 @@ if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
         url(r'^saml2/', include('djangosaml2.urls')),
         ])
     if settings.DEBUG:
+        import djangosaml2.views
         urlpatterns.extend([
             # Keep commented unless debugging SAML2.
-            url(r'^saml2-test/', 'djangosaml2.views.echo_attributes'),
+            url(r'^saml2-test/', djangosaml2.views.echo_attributes),
             ])
 
 # vim: fdm=marker

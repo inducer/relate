@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='flowsession',
-            options={'ordering': (b'course', b'participation', b'-start_time')},
+            options={'ordering': ('course', 'participation', '-start_time')},
         ),
         migrations.AddField(
             model_name='flowsession',

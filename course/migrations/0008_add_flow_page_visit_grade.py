@@ -58,7 +58,7 @@ class Migration(migrations.Migration):
                 ('visit', models.ForeignKey(to='course.FlowPageVisit', on_delete=models.CASCADE)),
             ],
             options={
-                'ordering': (b'visit', b'grade_time'),
+                'ordering': ('visit', 'grade_time'),
             },
             bases=(models.Model,),
         ),
@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='flowpagevisitgrade',
-            unique_together=set([(b'visit', b'grade_time')]),
+            unique_together=set([('visit', 'grade_time')]),
         ),
         migrations.RunPython(store_grading_results),
         migrations.RemoveField(
