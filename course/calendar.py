@@ -324,6 +324,7 @@ def view_calendar(pctx):
                     human_title = kind_desc["title"]
 
         description = None
+        show_description = True
         event_desc = event_info_desc.get(six.text_type(event))
         if event_desc is not None:
             if "description" in event_desc:
@@ -337,18 +338,19 @@ def view_calendar(pctx):
             if "color" in event_desc:
                 event_json["color"] = event_desc["color"]
 
+            if "show_description_from" in event_desc:
+                ds = parse_date_spec(
+                        pctx.course, event_desc["show_description_from"])
+                if now < ds:
+                    show_description = False
+
+            if "show_description_until" in event_desc:
+                ds = parse_date_spec(
+                        pctx.course, event_desc["show_description_until"])
+                if now > ds:
+                    show_description = False
+
         event_json["title"] = human_title
-
-        show_description = True
-        if hasattr(event_desc, "show_description_from"):
-            ds = parse_date_spec(event_desc.show_description_from)
-            if now < ds:
-                show_description = False
-
-        if hasattr(event_desc, "show_description_until"):
-            ds = parse_date_spec(event_desc.show_description_until)
-            if now > ds:
-                show_description = False
 
         if show_description and description:
             event_json["url"] = "#event-%d" % event.id
