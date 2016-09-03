@@ -30,7 +30,7 @@ from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-from crispy_forms.layout import Submit, Button
+from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
 
@@ -77,7 +77,7 @@ class SandboxForm(forms.Form):
                 Submit("preview", _("Preview"), accesskey="p"),
                 )
         self.helper.add_input(
-                Button("clear", _("Clear"), css_class="btn-default"),
+                Submit("clear", _("Clear"), css_class="btn-default"),
                 )
 
 # }}}
@@ -102,7 +102,7 @@ def view_markup_sandbox(pctx):
                 help_text,
                 data)
 
-    if request.method == "POST":
+    if request.method == "POST" and "preview" in request.POST:
         form = make_form(request.POST)
 
         if form.is_valid():
@@ -180,6 +180,7 @@ def view_page_sandbox(pctx):
     page_errors = None
     page_warnings = None
 
+    is_clear_post = (request.method == "POST" and "clear" in request.POST)
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
     def make_form(data=None):
@@ -231,6 +232,14 @@ def view_page_sandbox(pctx):
             del new_page_source
 
         edit_form = make_form(pctx.request.POST)
+
+    elif is_clear_post:
+        page_source = None
+        pctx.request.session[PAGE_DATA_SESSION_KEY] = None
+        pctx.request.session[ANSWER_DATA_SESSION_KEY] = None
+        del pctx.request.session[PAGE_DATA_SESSION_KEY]
+        del pctx.request.session[ANSWER_DATA_SESSION_KEY]
+        edit_form = make_form()
 
     else:
         edit_form = make_form()

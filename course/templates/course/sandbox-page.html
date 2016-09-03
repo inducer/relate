@@ -20,12 +20,6 @@
 {% block root_container %}
   <div class="sandbox-page-editor">
     <div class="row">
-      <div class="alert alert-warning" style="float:right" id="save-warning">
-        <i class="fa fa-warning"></i>
-        {% blocktrans  trimmed %}  What you type into this page is not saved once you navigate away.
-        Please make sure to retain a copy.{% endblocktrans %}
-      </div>
-
       <h1>{% trans "Page Sandbox" %}</h1>
 
       {% if page_errors %}
@@ -91,16 +85,6 @@
     </div>
   </div>
 
-  {# {{{ save warning #}
-
-  <script type="text/javascript">
-    window.setTimeout(
-        function() { $("#save-warning").fadeOut() },
-        5000);
-  </script>
-
-  {# }}} #}
-
   {# {{{ codemirror resizing #}
 
   <script type="text/javascript">
@@ -121,7 +105,7 @@
 
   {# }}} #}
 
-  {# {{{ codemirror save -> preview, clear #}
+  {# {{{ codemirror save -> preview#}
 
   <script type="text/javascript">
     function do_preview()
@@ -136,16 +120,6 @@
           cm.save = do_preview;
         });
 
-    $("#button-id-clear").click(
-        function()
-        {
-          $("div.CodeMirror").each(
-            function ()
-            {
-              var cm = this.CodeMirror;
-              cm.setValue("");
-            });
-        });
   </script>
 
   {# }}} #}
