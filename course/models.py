@@ -421,6 +421,8 @@ class Participation(models.Model):
 
     tags = models.ManyToManyField(ParticipationTag, blank=True,
             verbose_name=_('Tags'))
+    notes = models.TextField(blank=True, null=True,
+            verbose_name=_('Notes'))
 
     def __unicode__(self):
         # Translators: displayed format of Participation: some user in some
