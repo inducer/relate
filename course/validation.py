@@ -1007,8 +1007,17 @@ def validate_calendar_desc_struct(vctx, location, events_desc):
                         ("color", str),
                         ("title", str),
                         ("description", "markup"),
+                        ("show_description_from", datespec_types),
+                        ("show_description_until", datespec_types),
                         ]
                     )
+
+            if hasattr(event_desc, "show_description_from"):
+                vctx.encounter_datespec(location, event_desc.show_description_from)
+
+            if hasattr(event_desc, "show_description_until"):
+                vctx.encounter_datespec(location, event_desc.show_description_until)
+
 # }}}
 
 

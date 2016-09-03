@@ -276,7 +276,10 @@ class EventInfo(object):
 
 @course_view
 def view_calendar(pctx):
-    from course.content import markup_to_html
+    from course.content import markup_to_html, parse_date_spec
+
+    from course.views import get_now_or_fake_time
+    now = get_now_or_fake_time(pctx.request)
 
     events_json = []
 
@@ -334,7 +337,18 @@ def view_calendar(pctx):
 
         event_json["title"] = human_title
 
-        if description:
+        show_description = True
+        if hasattr(event_desc, "show_description_from"):
+            ds = parse_date_spec(event_desc.show_description_from)
+            if now < ds:
+                show_description = False
+
+        if hasattr(event_desc, "show_description_until"):
+            ds = parse_date_spec(event_desc.show_description_until)
+            if now > ds:
+                show_description = False
+
+        if show_description and description:
             event_json["url"] = "#event-%d" % event.id
 
             start_time = event.time
@@ -355,8 +369,7 @@ def view_calendar(pctx):
 
         events_json.append(event_json)
 
-    from course.views import get_now_or_fake_time
-    default_date = get_now_or_fake_time(pctx.request).date()
+    default_date = now.date()
     if pctx.course.end_date is not None and default_date > pctx.course.end_date:
         default_date = pctx.course.end_date
 
