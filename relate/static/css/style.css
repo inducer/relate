@@ -228,6 +228,13 @@ div.progress:hover  span.stats-percentage{
   color: red;
 }
 
+.relate-invisible-grading-opportunity {
+  color: #bbb;
+}
+.relate-invisible-grading-opportunity a {
+  color: #7cf;
+}
+
 /* {{{ codemirror */
 
 .sandbox-page-editor .CodeMirror {

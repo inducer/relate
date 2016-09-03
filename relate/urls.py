@@ -240,6 +240,14 @@ urlpatterns = [
         course.grades.download_all_submissions,
         name="relate-download_all_submissions"),
 
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/edit-grading-opportunity"
+         "/(?P<opportunity_id>[-0-9]+)"
+        "/$",
+        course.grades.edit_grading_opportunity,
+        name="relate-edit_grading_opportunity"),
+
     # }}}
 
     # {{{ enrollment

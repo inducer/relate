@@ -41,8 +41,9 @@ from django.utils.timezone import now
 from django import http
 
 from django.urls import reverse
-from relate.utils import StyledForm
+from relate.utils import StyledForm, StyledModelForm
 from crispy_forms.layout import Submit
+from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.utils import course_view, render_course_page
 from course.models import (
@@ -180,7 +181,6 @@ def view_grading_opportunity_list(pctx):
     grading_opps = list((GradingOpportunity.objects
             .filter(
                 course=pctx.course,
-                shown_in_grade_book=True,
                 )
             .order_by("identifier")))
 
@@ -804,7 +804,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             raise PermissionDenied(_("may not view other people's grades"))
 
         if not (opportunity.shown_in_grade_book
-                and opportunity.shown_in_participant_grade_book):
+                and opportunity.shown_in_participant_grade_book
+                and opportunity.result_shown_in_participant_grade_book
+                ):
             raise PermissionDenied(_("grade has not been released"))
 
     # {{{ modify sessions buttons
@@ -1486,6 +1488,65 @@ def download_all_submissions(pctx, flow_id):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": _("Download All Submissions in Zip file")
+        })
+
+# }}}
+
+
+# {{{ edit_grading_opportunity
+
+class EditGradingOpportunityForm(StyledModelForm):
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        super(EditGradingOpportunityForm, self).__init__(*args, **kwargs)
+
+        self.fields["identifier"].disabled = True
+        self.fields["flow_id"].disabled = True
+        self.fields["creation_time"].disabled = True
+
+        self.helper.add_input(
+                Submit("submit", _("Update")))
+
+    class Meta:
+        model = GradingOpportunity
+        exclude = (
+                "course",
+                # not used
+                "due_time",
+                )
+        widgets = {
+                "hide_superseded_grade_history_before":
+                DateTimePicker(
+                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                }
+
+
+@course_view
+def edit_grading_opportunity(pctx, opportunity_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+    if not pctx.has_permission(pperm.edit_grading_opportunity):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    gopp = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
+
+    if gopp.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+                "may not edit grading opportunity in different course")
+
+    if request.method == 'POST':
+        form = EditGradingOpportunityForm(request.POST, instance=gopp)
+
+        if form.is_valid():
+            form.save()
+
+    else:
+        form = EditGradingOpportunityForm(instance=gopp)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Edit Grading Opportunity"),
+        "form": form
         })
 
 # }}}

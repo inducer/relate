@@ -3,7 +3,9 @@
 <table class="table table-striped gradebook-participants">
   <thead>
     <th class="datacol">{% trans "User ID" %}</th>
-    <th class="datacol">{% trans "Actions" %}</th>
+    {% if pperm.edit_participation %}
+      <th class="datacol">{% trans "Actions" %}</th>
+    {% endif %}
     <th class="datacol">{% trans "Status" %}</th>
     <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
     <th class="datacol">{% trans "Role" %}</th>
@@ -17,9 +19,11 @@
           <span class="sensitive">{{ participation.user.username }}</span>
         </a>
       </td>
-      <td class="datacol">
-        <a href="{% url "relate-edit_participation" course.identifier participation.id %}" class="btn btn-default btn-xs">{% trans "Edit" %}</a>
-      </td>
+      {% if pperm.edit_participation %}
+        <td class="datacol">
+          <a href="{% url "relate-edit_participation" course.identifier participation.id %}" class="btn btn-default btn-xs">{% trans "Edit" %}</a>
+        </td>
+      {% endif %}
       <td class="datacol">{% trans participation.status %}</td>
       <td class="datacol"><span class="sensitive">{{ participation.user.get_full_name }}</span></td>
       <td class="datacol">{{ participation.get_role_desc }}</td>

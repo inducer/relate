@@ -69,6 +69,10 @@
           <a class="btn btn-default" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
               role="button">{% trans "Download submissions" %}</a>
         {% endif %}
+        {% if pperm.edit_grading_opportunity %}
+          <a class="btn btn-default" href="{% url "relate-edit_grading_opportunity" course.identifier opportunity.id %}"
+              role="button">{% trans "Edit" %}</a>
+        {% endif %}
       </td>
     </tr>
     {% endif %}

@@ -1343,7 +1343,7 @@ class GradingOpportunity(models.Model):
                 'superseded by later grade changes will not be shown to '
                 'participants. '
                 'This can help avoid discussions about pre-release grading '
-                'adjustments.'
+                'adjustments. '
                 'May be blank. In that case, the entire grade history is '
                 'shown.'))
 
