@@ -215,12 +215,13 @@ def enroll_view(request, course_identifier):
             is_default_for_new_participants=True)
 
     if preapproval is not None:
-        roles = preapproval.roles
+        roles = list(preapproval.roles.all())
 
     try:
         if course.enrollment_approval_required and preapproval is None:
-            handle_enrollment_request(course, user, participation_status.requested,
-                                      roles, request)
+            participation = handle_enrollment_request(
+                    course, user, participation_status.requested,
+                    roles, request)
 
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
@@ -229,10 +230,8 @@ def enroll_view(request, course_identifier):
                     "course": course,
                     "admin_uri": mark_safe(
                         request.build_absolute_uri(
-                            reverse("admin:course_participation_changelist")
-                            +
-                            "?status__exact=requested&course__id__exact=%d"
-                            % course.id))
+                            reverse("relate-edit_participation",
+                                args=(course.identifier, participation.id))))
                     })
 
                 from django.core.mail import send_mail
@@ -262,7 +261,7 @@ def enroll_view(request, course_identifier):
 
 @transaction.atomic
 def handle_enrollment_request(course, user, status, roles, request=None):
-    # type: (Course, Any, Text, List[Text], Optional[http.HttpRequest]) -> None
+    # type: (Course, Any, Text, List[Text], Optional[http.HttpRequest]) -> Participation  # noqa
     participations = Participation.objects.filter(course=course, user=user)
 
     assert participations.count() <= 1
@@ -284,8 +283,8 @@ def handle_enrollment_request(course, user, status, roles, request=None):
         send_enrollment_decision(participation, True, request)
     elif status == participation_status.denied:
         send_enrollment_decision(participation, False, request)
-    else:
-        return
+
+    return participation
 
 # }}}
 
