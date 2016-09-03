@@ -50,11 +50,13 @@ from course.models import (
         Course,
         Participation,
         ParticipationPreapproval,
+        ParticipationPermission,
         ParticipationRole,
         ParticipationTag,
         participation_status)
 
 from course.constants import (
+        PARTICIPATION_PERMISSION_CHOICES,
         participation_permission as pperm,
         )
 
@@ -848,8 +850,8 @@ def query_participations(pctx):
 # {{{ edit_participation
 
 class EditParticipationForm(StyledModelForm):
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+    def __init__(self, pctx, *args, **kwargs):
+        # type: (CoursePageContext, *Any, **Any) -> None
         super(EditParticipationForm, self).__init__(*args, **kwargs)
 
         participation = self.instance
@@ -858,12 +860,28 @@ class EditParticipationForm(StyledModelForm):
         self.fields["preview_git_commit_sha"].disabled = True
         self.fields["enroll_time"].disabled = True
         self.fields["user"].disabled = True
+
+        may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
+        if not may_edit_permissions:
+            self.fields["roles"].disabled = True
+            # FIXME Add individual permissions
+
         self.fields["roles"].queryset = (
                 ParticipationRole.objects.filter(
                     course=participation.course))
         self.fields["tags"].queryset = (
                 ParticipationTag.objects.filter(
                     course=participation.course))
+
+        self.fields["individual_permissions"] = forms.MultipleChoiceField(
+                choices=PARTICIPATION_PERMISSION_CHOICES,
+                disabled=not may_edit_permissions,
+                #widget=forms.CheckboxSelectMultiple,
+                help_text=_("Permissions for this participant in addition to those "
+                    "granted by their role"),
+                initial=self.instance.individual_permissions.values_list(
+                    "permission", flat=True),
+                required=False)
 
         self.helper.add_input(
                 Submit("submit", _("Update")))
@@ -876,6 +894,24 @@ class EditParticipationForm(StyledModelForm):
         elif participation.status == participation_status.active:
             self.helper.add_input(
                     Submit("drop", _("Drop"), css_class="btn-danger"))
+
+    def save(self):
+        # type: () -> None
+
+        super(EditParticipationForm, self).save()
+
+        (ParticipationPermission.objects
+                .filter(participation=self.instance)
+                .delete())
+
+        pps = []
+        for perm in self.cleaned_data["individual_permissions"]:
+            pp = ParticipationPermission(
+                        participation=self.instance,
+                        permission=perm)
+            pp.save()
+            pps.append(pp)
+        self.instance.individual_permissions.set(pps)
 
     class Meta:
         model = Participation
@@ -902,7 +938,7 @@ def edit_participation(pctx, participation_id):
         form = None  # type: Optional[EditParticipationForm]
 
         if "submit" in request.POST:
-            form = EditParticipationForm(request.POST, instance=participation)
+            form = EditParticipationForm(pctx, request.POST, instance=participation)
 
             if form.is_valid():  # type: ignore
                 form.save()  # type: ignore
@@ -933,10 +969,10 @@ def edit_participation(pctx, participation_id):
                     _("Successfully dropped."))
 
         if form is None:
-            form = EditParticipationForm(instance=participation)
+            form = EditParticipationForm(pctx, instance=participation)
 
     else:
-        form = EditParticipationForm(instance=participation)
+        form = EditParticipationForm(pctx, instance=participation)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form_description": _("Edit Participation"),

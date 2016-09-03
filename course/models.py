@@ -479,7 +479,8 @@ class Participation(models.Model):
 
 class ParticipationPermission(ParticipationPermissionBase):
     participation = models.ForeignKey(Participation,
-            verbose_name=_('Participation'), on_delete=models.CASCADE)
+            verbose_name=_('Participation'), on_delete=models.CASCADE,
+            related_name="individual_permissions")
 
     class Meta:
         verbose_name = _("Participation permission")
