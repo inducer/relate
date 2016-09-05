@@ -41,6 +41,7 @@ from course.page.base import (
         AnswerFeedback, get_auto_feedback,
 
         get_editor_interaction_mode)
+from course.constants import flow_permission
 
 
 # {{{ python code question
@@ -403,6 +404,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         available to :attr:`setup_code` and :attr:`test_code` through the
         ``data_files`` dictionary. (see below)
 
+    .. attribute:: single_submission
+
+        Optional, a Boolean. If the question does not allow multiple submissions
+        based on its :attr:`access_rules` (not the ones of the flow), a warning
+        is shown. Setting this attribute to True will silence the warning.
+
     The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
 
     * ``GradingComplete``: An exception class that can be raised to indicated
@@ -458,6 +465,22 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     raise ValidationError("%s: data file '%s' not found"
                             % (location, data_file))
 
+        if not getattr(page_desc, "single_submission", False) and vctx is not None:
+            is_multi_submit = False
+
+            if hasattr(page_desc, "access_rules"):
+                if hasattr(page_desc.access_rules, "add_permissions"):
+                    if (flow_permission.change_answer
+                            in page_desc.access_rules.add_permissions):
+                        is_multi_submit = True
+
+            if not is_multi_submit:
+                vctx.add_warning(location, _("code question does not explicitly "
+                    "allow multiple submission. Either add "
+                    "access_rules/add_permssion/change_answer "
+                    "or add 'single_submission: True' to confirm that you intend "
+                    "for only a single submission to be allowed."))
+
     def required_attrs(self):
         return super(PythonCodeQuestion, self).required_attrs() + (
                 ("prompt", "markup"),
@@ -476,6 +499,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("correct_code", str),
                 ("initial_code", str),
                 ("data_files", list),
+                ("single_submission", bool),
                 )
 
     def _initial_code(self):
