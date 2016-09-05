@@ -159,6 +159,23 @@ def get_sandbox_data_for_page(pctx, page_desc, key):
 # }}}
 
 
+# {{{ page sandbox form
+
+class PageSandboxForm(SandboxForm):
+    def __init__(self, initial_text,
+            language_mode, interaction_mode, help_text, *args, **kwargs):
+        super(PageSandboxForm, self).__init__(
+                initial_text, language_mode, interaction_mode, help_text,
+                *args, **kwargs)
+
+        self.helper.add_input(
+                Submit("clear_response", _("Clear Response Data"),
+                    css_class="btn-default"),
+                )
+
+# }}}
+
+
 # {{{ page sandbox
 
 @course_view
@@ -187,10 +204,12 @@ def view_page_sandbox(pctx):
     page_warnings = None
 
     is_clear_post = (request.method == "POST" and "clear" in request.POST)
+    is_clear_response_post = (request.method == "POST"
+            and "clear_response" in request.POST)
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
     def make_form(data=None):
-        return SandboxForm(
+        return PageSandboxForm(
                 page_source, "yaml", request.user.editor_mode,
                 ugettext("Enter YAML markup for a flow page."),
                 data)
@@ -246,6 +265,14 @@ def view_page_sandbox(pctx):
         del pctx.request.session[PAGE_DATA_SESSION_KEY]
         del pctx.request.session[ANSWER_DATA_SESSION_KEY]
         edit_form = make_form()
+
+    elif is_clear_response_post:
+        page_source = None
+        pctx.request.session[PAGE_DATA_SESSION_KEY] = None
+        pctx.request.session[ANSWER_DATA_SESSION_KEY] = None
+        del pctx.request.session[PAGE_DATA_SESSION_KEY]
+        del pctx.request.session[ANSWER_DATA_SESSION_KEY]
+        edit_form = make_form(pctx.request.POST)
 
     else:
         edit_form = make_form()
