@@ -35,6 +35,7 @@ from django.utils.translation import (
         ugettext_lazy as _, ugettext, string_concat)
 from course.constants import (
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+        ATTRIBUTES_FILENAME,
         participation_permission as pperm)
 
 from course.content import get_repo_blob
@@ -1090,6 +1091,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
 
 
 def check_attributes_yml(vctx, repo, path, tree, access_kinds):
+    # type: (ValidationContext, Repo_ish, Text, Any, List[Text]) -> None
     """
     This function reads the .attributes.yml file and checks
     that each item for each header is a string
@@ -1110,10 +1112,12 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
             - 42
     """
     from course.content import get_true_repo_and_path
-    repo, path = get_true_repo_and_path(repo, path)
+    true_repo, path = get_true_repo_and_path(repo, path)
+
+    # {{{ analyze attributes file
 
     try:
-        dummy, attr_blob_sha = tree[b".attributes.yml"]
+        dummy, attr_blob_sha = tree[ATTRIBUTES_FILENAME.encode()]
     except KeyError:
         # no .attributes.yml here
         pass
@@ -1121,9 +1125,12 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
         from relate.utils import dict_to_struct
         from yaml import load as load_yaml
 
-        att_yml = dict_to_struct(load_yaml(repo[attr_blob_sha].data))
+        att_yml = dict_to_struct(load_yaml(true_repo[attr_blob_sha].data))
 
-        loc = path + "/" + ".attributes.yml"
+        if path:
+            loc = path + "/" + ATTRIBUTES_FILENAME
+        else:
+            loc = ATTRIBUTES_FILENAME
 
         validate_struct(vctx, loc, att_yml,
                         required_attrs=[],
@@ -1148,15 +1155,39 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
                             "%s: entry %d in '%s' is not a string"
                             % (loc, i+1, access_kind))
 
+    # }}}
+
+    # {{{ analyze gitignore
+
+    gitignore_lines = []  # type: List[Text]
+
+    try:
+        dummy, gitignore_sha = tree[b".gitignore"]
+    except KeyError:
+        # no .attributes.yml here
+        pass
+    else:
+        gitignore_lines = true_repo[gitignore_sha].data.decode("utf-8").split("\n")
+
+    # }}}
+
     import stat
+    from fnmatch import fnmatchcase
+
     for entry in tree.items():
+        entry_name = entry.path.decode("utf-8")
+        if any(fnmatchcase(entry_name, line) for line in gitignore_lines):
+            continue
+
+        if path:
+            subpath = path+"/"+entry_name
+        else:
+            subpath = entry_name
+
         if stat.S_ISDIR(entry.mode):
             dummy, blob_sha = tree[entry.path]
-            subtree = repo[blob_sha]
-            check_attributes_yml(
-                    vctx, repo,
-                    path+"/"+entry.path.decode("utf-8"), subtree,
-                    access_kinds)
+            subtree = true_repo[blob_sha]
+            check_attributes_yml(vctx, true_repo, subpath, subtree, access_kinds)
 
 
 # {{{ check whether flow grade identifiers were changed in sketchy ways

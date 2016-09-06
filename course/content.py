@@ -46,6 +46,7 @@ from jinja2 import (
         BaseLoader as BaseTemplateLoader, TemplateNotFound, FileSystemLoader)
 
 from relate.utils import dict_to_struct, Struct, SubdirRepoWrapper
+from course.constants import ATTRIBUTES_FILENAME
 
 from yaml import load as load_yaml
 
@@ -332,7 +333,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
 
     # set the path to .attributes.yml
     from os.path import dirname, basename, join
-    attributes_path = join(dirname(path), ".attributes.yml")
+    attributes_path = join(dirname(path), ATTRIBUTES_FILENAME)
 
     # retrieve the .attributes.yml structure
     try:

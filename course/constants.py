@@ -517,4 +517,7 @@ EXAM_TICKET_STATE_CHOICES = (
 
 # }}}
 
+
+ATTRIBUTES_FILENAME = ".attributes.yml"
+
 # vim: foldmethod=marker
