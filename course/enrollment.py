@@ -853,7 +853,7 @@ def query_participations(pctx):
 
 class EditParticipationForm(StyledModelForm):
     def __init__(self, add_new, pctx, *args, **kwargs):
-        # type: (CoursePageContext, *Any, **Any) -> None
+        # type: (bool, CoursePageContext, *Any, **Any) -> None
         super(EditParticipationForm, self).__init__(*args, **kwargs)
 
         participation = self.instance
