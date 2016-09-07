@@ -12,9 +12,14 @@ def validate(args):
     django.setup()
 
     from course.validation import validate_course_on_filesystem
-    validate_course_on_filesystem(args.REPO_ROOT,
+    has_warnings = validate_course_on_filesystem(args.REPO_ROOT,
             course_file=args.course_file,
             events_file=args.events_file)
+
+    if has_warnings:
+        return 1
+    else:
+        return 0
 
 
 # {{{ code test
@@ -181,6 +186,8 @@ def test_code(args):
         print("EXAMINING", yml_file)
         test_code_yml(yml_file, repo_root=args.repo_root)
 
+    return 0
+
 # }}}
 
 
@@ -210,7 +217,8 @@ def main():
         import sys
         sys.exit(1)
 
-    args.func(args)
+    import sys
+    sys.exit(args.func(args))
 
 
 if __name__ == "__main__":

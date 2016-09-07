@@ -477,9 +477,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             if not is_multi_submit:
                 vctx.add_warning(location, _("code question does not explicitly "
                     "allow multiple submission. Either add "
-                    "access_rules/add_permssion/change_answer "
+                    "access_rules/add_permssions/change_answer "
                     "or add 'single_submission: True' to confirm that you intend "
-                    "for only a single submission to be allowed."))
+                    "for only a single submission to be allowed. "
+                    "While you're at it, consider adding "
+                    "access_rules/add_permssions/see_correctness."))
 
     def required_attrs(self):
         return super(PythonCodeQuestion, self).required_attrs() + (

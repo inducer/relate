@@ -1509,6 +1509,8 @@ def validate_course_on_filesystem(
         for w in warnings:
             print("***", w.location, w.text)
 
+    return bool(warnings)
+
 # }}}
 
 # vim: foldmethod=marker
