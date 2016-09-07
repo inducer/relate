@@ -60,6 +60,8 @@ from course.constants import (
         participation_permission as pperm,
         )
 
+from course.auth import UserSearchWidget
+
 from course.utils import course_view, render_course_page
 
 from relate.utils import StyledForm, StyledModelForm
@@ -850,7 +852,7 @@ def query_participations(pctx):
 # {{{ edit_participation
 
 class EditParticipationForm(StyledModelForm):
-    def __init__(self, pctx, *args, **kwargs):
+    def __init__(self, add_new, pctx, *args, **kwargs):
         # type: (CoursePageContext, *Any, **Any) -> None
         super(EditParticipationForm, self).__init__(*args, **kwargs)
 
@@ -859,7 +861,9 @@ class EditParticipationForm(StyledModelForm):
         self.fields["status"].disabled = True
         self.fields["preview_git_commit_sha"].disabled = True
         self.fields["enroll_time"].disabled = True
-        self.fields["user"].disabled = True
+
+        if not add_new:
+            self.fields["user"].disabled = True
 
         may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
         if not may_edit_permissions:
@@ -920,6 +924,10 @@ class EditParticipationForm(StyledModelForm):
                 "course",
                 )
 
+        widgets = {
+                "user": UserSearchWidget,
+                }
+
 
 @course_view
 def edit_participation(pctx, participation_id):
@@ -929,7 +937,16 @@ def edit_participation(pctx, participation_id):
 
     request = pctx.request
 
-    participation = get_object_or_404(Participation, id=int(participation_id))
+    num_participation_id = int(participation_id)
+
+    if num_participation_id == -1:
+        participation = Participation(
+                course=pctx.course,
+                status=participation_status.active)
+        add_new = True
+    else:
+        participation = get_object_or_404(Participation, id=num_participation_id)
+        add_new = False
 
     if participation.course.id != pctx.course.id:
         raise SuspiciousOperation("may not edit participation in different course")
@@ -938,7 +955,8 @@ def edit_participation(pctx, participation_id):
         form = None  # type: Optional[EditParticipationForm]
 
         if "submit" in request.POST:
-            form = EditParticipationForm(pctx, request.POST, instance=participation)
+            form = EditParticipationForm(
+                    add_new, pctx, request.POST, instance=participation)
 
             if form.is_valid():  # type: ignore
                 form.save()  # type: ignore
@@ -969,10 +987,10 @@ def edit_participation(pctx, participation_id):
                     _("Successfully dropped."))
 
         if form is None:
-            form = EditParticipationForm(pctx, instance=participation)
+            form = EditParticipationForm(add_new, pctx, instance=participation)
 
     else:
-        form = EditParticipationForm(pctx, instance=participation)
+        form = EditParticipationForm(add_new, pctx, instance=participation)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form_description": _("Edit Participation"),
