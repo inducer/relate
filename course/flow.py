@@ -362,7 +362,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 # {{{ start flow
 
 def start_flow(repo, course, participation, user, flow_id, flow_desc,
-        access_rules_tag, now_datetime):
+        session_start_rule, now_datetime):
     # This function does not need to be transactionally atomic.
     # The only essential part is the creation of the session.
     # The remainder of the function (opportunity creation and
@@ -374,6 +374,10 @@ def start_flow(repo, course, participation, user, flow_id, flow_desc,
     if participation:
         assert participation.user == user
 
+    exp_mode = flow_session_expiration_mode.end
+    if session_start_rule.default_expiration_mode is not None:
+        exp_mode = session_start_rule.default_expiration_mode
+
     session = FlowSession(
         course=course,
         participation=participation,
@@ -381,8 +385,8 @@ def start_flow(repo, course, participation, user, flow_id, flow_desc,
         active_git_commit_sha=course_commit_sha.decode(),
         flow_id=flow_id,
         in_progress=True,
-        expiration_mode=flow_session_expiration_mode.end,
-        access_rules_tag=access_rules_tag)
+        expiration_mode=exp_mode,
+        access_rules_tag=session_start_rule.tag_session)
 
     session.save()
 
@@ -1177,16 +1181,15 @@ def view_start_flow(pctx, flow_id):
 
         may_start = session_start_rule.may_start_new_session
 
-        exp_mode = flow_session_expiration_mode.end
-        if session_start_rule.default_expiration_mode is not None:
-            exp_mode = session_start_rule.default_expiration_mode
-
         potential_session = FlowSession(
             course=pctx.course,
             participation=pctx.participation,
             flow_id=flow_id,
             in_progress=True,
-            expiration_mode=exp_mode,
+
+            # default_expiration_mode ignored
+            expiration_mode=flow_session_expiration_mode.end,
+
             access_rules_tag=session_start_rule.tag_session)
 
         new_session_grading_rule = get_session_grading_rule(
@@ -1260,7 +1263,7 @@ def post_start_flow(pctx, fctx, flow_id):
             pctx.repo, pctx.course, pctx.participation,
             user=flow_user,
             flow_id=flow_id, flow_desc=fctx.flow_desc,
-            access_rules_tag=session_start_rule.tag_session,
+            session_start_rule=session_start_rule,
             now_datetime=now_datetime)
 
     access_rule = get_session_access_rule(

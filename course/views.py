@@ -852,7 +852,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                     user=participation.user,
                     flow_id=flow_id,
                     flow_desc=flow_desc,
-                    access_rules_tag=access_rules_tag,
+                    session_start_rule=session_start_rule,
                     now_datetime=now_datetime)
 
             exception_form = None
