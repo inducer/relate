@@ -475,7 +475,7 @@ def validate_flow_group(vctx, location, grp):
     validate_identifier(vctx, location, grp.id)
 
 
-# {{{ flow access rules
+# {{{ flow rules
 
 def validate_session_start_rule(vctx, location, nrule, tags):
     validate_struct(
@@ -495,6 +495,7 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
                 ("lock_down_as_exam_session", bool),
+                ("default_expiration_mode", str),
                 ]
             )
 
@@ -543,6 +544,17 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                         "%(location)s: ",
                         _("invalid tag '%(tag)s'"))
                     % {'location': location, 'tag': nrule.tag_session})
+
+    if hasattr(nrule, "default_expiration_mode"):
+        from course.constants import FLOW_SESSION_EXPIRATION_MODE_CHOICES
+        if nrule.default_expiration_mode not in dict(
+                FLOW_SESSION_EXPIRATION_MODE_CHOICES):
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("invalid default expiration mode '%(expiremode)s'"))
+                    % {
+                        'location': location,
+                        'expiremode': nrule.default_expiration_mode})
 
 
 def validate_session_access_rule(vctx, location, arule, tags):
