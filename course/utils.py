@@ -88,11 +88,13 @@ class FlowSessionStartRule(FlowSessionRuleBase):
             tag_session=None,  # type: Optional[Text]
             may_start_new_session=None,  # type: Optional[bool]
             may_list_existing_sessions=None,  # type: Optional[bool]
+            default_expiration_mode=None,  # type: Optional[Text]
             ):
         # type: (...) -> None
         self.tag_session = tag_session
         self.may_start_new_session = may_start_new_session
         self.may_list_existing_sessions = may_list_existing_sessions
+        self.default_expiration_mode = default_expiration_mode
 
 
 class FlowSessionAccessRule(FlowSessionRuleBase):
@@ -318,6 +320,8 @@ def get_session_start_rule(
                     rule, "may_start_new_session", True),
                 may_list_existing_sessions=getattr(
                     rule, "may_list_existing_sessions", True),
+                default_expiration_mode=getattr(
+                    rule, "default_expiration_mode", None),
                 )
 
     return FlowSessionStartRule(
