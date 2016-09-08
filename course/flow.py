@@ -1178,7 +1178,7 @@ def view_start_flow(pctx, flow_id):
         may_start = session_start_rule.may_start_new_session
 
         exp_mode = flow_session_expiration_mode.end
-        if hasattr(session_start_rule, "default_expiration_mode"):
+        if session_start_rule.default_expiration_mode is not None:
             exp_mode = session_start_rule.default_expiration_mode
 
         potential_session = FlowSession(

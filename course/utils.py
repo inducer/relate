@@ -63,6 +63,7 @@ class FlowSessionStartRule(FlowSessionRuleBase):
             "tag_session",
             "may_start_new_session",
             "may_list_existing_sessions",
+            "default_expiration_mode",
             ]
 
 
@@ -238,6 +239,8 @@ def get_session_start_rule(course, participation, role, flow_id, flow_desc,
                     rule, "may_start_new_session", True),
                 may_list_existing_sessions=getattr(
                     rule, "may_list_existing_sessions", True),
+                default_expiration_mode=getattr(
+                    rule, "default_expiration_mode", None),
                 )
 
     return FlowSessionStartRule(
