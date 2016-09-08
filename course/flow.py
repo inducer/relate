@@ -966,7 +966,11 @@ def expire_flow_session(
             access_rule = get_session_access_rule(
                     flow_session, fctx.flow_desc, now_datetime)
 
-            if not is_expiration_mode_allowed(
+            if hasattr(session_start_rule, "default_expiration_mode"):
+                flow_session.expiration_mode = \
+                        session_start_rule.default_expiration_mode
+
+            elif not is_expiration_mode_allowed(
                     flow_session.expiration_mode, access_rule.permissions):
                 flow_session.expiration_mode = flow_session_expiration_mode.end
 
@@ -1303,12 +1307,17 @@ def view_start_flow(pctx, flow_id):
             past_sessions_and_properties = []
 
         may_start = session_start_rule.may_start_new_session
+
+        exp_mode = flow_session_expiration_mode.end
+        if hasattr(session_start_rule, "default_expiration_mode"):
+            exp_mode = session_start_rule.default_expiration_mode
+
         potential_session = FlowSession(
             course=pctx.course,
             participation=pctx.participation,
             flow_id=flow_id,
             in_progress=True,
-            expiration_mode=flow_session_expiration_mode.end,
+            expiration_mode=exp_mode,
             access_rules_tag=session_start_rule.tag_session)
 
         new_session_grading_rule = get_session_grading_rule(

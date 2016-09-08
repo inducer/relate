@@ -118,6 +118,7 @@ class FlowSessionStartRuleDesc(Struct):
     may_start_new_session = None  # type: bool
     may_list_existing_sessions = None  # type: bool
     lock_down_as_exam_session = None  # type: bool
+    default_expiration_mode = None  # type: Text
 
 
 class FlowSessionAccessRuleDesc(Struct):

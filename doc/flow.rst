@@ -354,6 +354,11 @@ Rules for starting new sessions
         This can be used by :attr:`FlowAccessRules.if_has_tag` and
         :attr:`FlowGradingRules.if_has_tag`.
 
+    .. attribute:: default_expiration_mode
+
+        (Optional) One of :class:`flow_session_expiration_mode`. The expiration mode applied
+        when a session is first created or rolled over.
+
 Rules about accessing and interacting with a flow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
