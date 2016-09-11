@@ -755,7 +755,7 @@ class UserForm(StyledModelForm):
         self.helper.layout = Layout(
                 Div("last_name", "first_name", css_class="well"),
                 Div("institutional_id", css_class="well"),
-                Div("editor_mode", css_class="well hidden-xs hidden-sm")
+                Div("editor_mode", css_class="well")
                 )
 
         self.fields["institutional_id"].help_text = (
