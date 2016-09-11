@@ -253,7 +253,7 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
 
 def adjust_flow_session_page_data(repo, flow_session,
-        course_identifier, flow_desc=None):
+        course_identifier, flow_desc=None, respect_preview=True):
     """
     The caller may *not* be in a transaction that has a weaker isolation
     level than *serializable*.
@@ -261,7 +261,8 @@ def adjust_flow_session_page_data(repo, flow_session,
 
     from course.content import get_course_commit_sha, get_flow_desc
     commit_sha = get_course_commit_sha(
-            flow_session.course, flow_session.participation)
+            flow_session.course,
+            flow_session.participation if respect_preview else None)
     revision_key = "2:"+commit_sha.decode()
 
     if flow_desc is None:
@@ -408,7 +409,7 @@ def start_flow(repo, course, participation, user, flow_id, flow_desc,
 
     # will implicitly modify and save the session if there are changes
     adjust_flow_session_page_data(repo, session,
-            course.identifier, flow_desc)
+            course.identifier, flow_desc, respect_preview=True)
 
     return session
 
@@ -861,7 +862,8 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         return False
 
     adjust_flow_session_page_data(fctx.repo, flow_session,
-            flow_session.course.identifier, fctx.flow_desc)
+            flow_session.course.identifier, fctx.flow_desc,
+            respect_preview=False)
 
     if flow_session.expiration_mode == flow_session_expiration_mode.roll_over:
         session_start_rule = get_session_start_rule(flow_session.course,
@@ -1058,7 +1060,8 @@ def expire_flow_session_standalone(repo, course, session, now_datetime,
 
 
 def regrade_session(repo, course, session):
-    adjust_flow_session_page_data(repo, session, course.identifier)
+    adjust_flow_session_page_data(repo, session, course.identifier,
+            respect_preview=False)
 
     if session.in_progress:
         with transaction.atomic():
@@ -1097,7 +1100,8 @@ def recalculate_session_grade(repo, course, session):
 
     prev_completion_time = session.completion_time
 
-    adjust_flow_session_page_data(repo, session, course.identifier)
+    adjust_flow_session_page_data(repo, session, course.identifier,
+            respect_preview=False)
 
     with transaction.atomic():
         session.append_comment(
@@ -1474,7 +1478,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 pctx.course.identifier,
                 flow_id)
 
-    adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier)
+    adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
+            respect_preview=True)
 
     try:
         fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, ordinal,
@@ -2023,7 +2028,7 @@ def finish_flow_session_view(pctx, flow_session_id):
             getattr(fctx.flow_desc, "completion_text", ""))
 
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
-            fctx.flow_desc)
+            fctx.flow_desc, respect_preview=True)
 
     answer_visits = assemble_answer_visits(flow_session)
 

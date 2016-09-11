@@ -791,7 +791,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             op = action_match.group(1)
 
             adjust_flow_session_page_data(
-                    pctx.repo, session, pctx.course.identifier)
+                    pctx.repo, session, pctx.course.identifier,
+                    respect_preview=False)
 
             from course.flow import (
                     regrade_session,
@@ -881,7 +882,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             for session in flow_sessions:
                 adjust_flow_session_page_data(
                         pctx.repo, session, pctx.course.identifier,
-                        flow_desc)
+                        flow_desc, respect_preview=False)
 
                 grading_rule = get_session_grading_rule(
                         session, pctx.role, flow_desc, now_datetime)

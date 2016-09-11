@@ -81,7 +81,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     from course.flow import adjust_flow_session_page_data
     adjust_flow_session_page_data(pctx.repo, flow_session,
-            pctx.course.identifier, fpctx.flow_desc)
+            pctx.course.identifier, fpctx.flow_desc,
+            respect_preview=True)
 
     # {{{ enable flow session zapping
 
