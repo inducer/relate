@@ -807,15 +807,71 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ]
 
             for nr, mime_type, b64data in response.figures:
-                fig_lines.extend([
-                    "".join([
-                        "<dt>",
-                        _("Figure"), "%d<dt>"]) % nr,
-                    '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
-                    % (nr, mime_type, b64data)])
+                if mime_type in ["image/jpeg", "image/png"]:
+                    fig_lines.extend([
+                        "".join([
+                            "<dt>",
+                            _("Figure"), "%d<dt>"]) % nr,
+                        '<dd><img alt="Figure %d" src="data:%s;base64,%s"></dd>'
+                        % (nr, mime_type, b64data)])
 
             fig_lines.append("</dl>")
             bulk_feedback_bits.extend(fig_lines)
+
+        # {{{ html output / santization
+
+        if hasattr(response, "html") and response.html:
+            def is_allowed_data_uri(allowed_mimetypes, uri):
+                import re
+                m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
+                if not m:
+                    return False
+
+                mimetype = m.group(1)
+                return mimetype in allowed_mimetypes
+
+            def sanitize(s):
+                import bleach
+
+                def filter_audio_attributes(name, value):
+                    if name in ["controls"]:
+                        return True
+                    else:
+                        return False
+
+                def filter_source_attributes(name, value):
+                    if name in ["type"]:
+                        return True
+                    elif name == "src":
+                        return is_allowed_data_uri([
+                            "audio/wav",
+                            ], value)
+                    else:
+                        return False
+
+                def filter_img_attributes(name, value):
+                    if name in ["alt", "title"]:
+                        return True
+                    elif name == "src":
+                        return is_allowed_data_uri([
+                            "image/png",
+                            "image/jpeg",
+                            ], value)
+                    else:
+                        return False
+
+                return bleach.clean(s,
+                        tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
+                        attributes={
+                            "audio": filter_audio_attributes,
+                            "source": filter_source_attributes,
+                            "img": filter_img_attributes,
+                            })
+
+            bulk_feedback_bits.extend(
+                    sanitize(snippet) for snippet in response.html)
+
+        # }}}
 
         return AnswerFeedback(
                 correctness=correctness,
