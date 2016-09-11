@@ -287,7 +287,7 @@ def adjust_flow_session_page_data(repo, flow_session,
 # {{{ grade page visit
 
 def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
-        grade_data=None, graded_at_git_commit_sha=None):
+        grade_data=None, respect_preview=True):
     if not visit.is_submitted_answer:
         raise RuntimeError(_("cannot grade ungraded answer"))
 
@@ -309,7 +309,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     repo = get_course_repo(course)
 
     course_commit_sha = get_course_commit_sha(
-            course, flow_session.participation)
+            course, flow_session.participation if respect_preview else None)
 
     flow_desc = get_flow_desc(repo, course,
             flow_session.flow_id, course_commit_sha)
@@ -345,7 +345,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     grade.visit = visit
     grade.grade_data = grade_data
     grade.max_points = page.max_points(visit.page_data)
-    grade.graded_at_git_commit_sha = graded_at_git_commit_sha
+    grade.graded_at_git_commit_sha = course_commit_sha.decode()
 
     bulk_feedback_json = None
     if answer_feedback is not None:
@@ -763,7 +763,8 @@ def gather_grade_info(fctx, flow_session, grading_rule, answer_visits):
 
 
 @transaction.atomic
-def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
+def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False,
+        respect_preview=True):
     for i in range(len(answer_visits)):
         answer_visit = answer_visits[i]
 
@@ -794,13 +795,12 @@ def grade_page_visits(fctx, flow_session, answer_visits, force_regrade=False):
 
         if (answer_visit is not None
                 and (not answer_visit.grades.count() or force_regrade)):
-            grade_page_visit(answer_visit,
-                    graded_at_git_commit_sha=fctx.course_commit_sha)
+            grade_page_visit(answer_visit, respect_preview=respect_preview)
 
 
 @retry_transaction_decorator()
 def finish_flow_session(fctx, flow_session, grading_rule,
-        force_regrade=False, now_datetime=None):
+        force_regrade=False, now_datetime=None, respect_preview=True):
     """
     :returns: :class:`GradeInfo`
     """
@@ -819,7 +819,8 @@ def finish_flow_session(fctx, flow_session, grading_rule,
     answer_visits = assemble_answer_visits(flow_session)
 
     grade_page_visits(fctx, flow_session, answer_visits,
-            force_regrade=force_regrade)
+            force_regrade=force_regrade,
+            respect_preview=respect_preview)
 
     # ORDERING RESTRICTION: Must grade pages before gathering grade info
 
@@ -871,7 +872,7 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
         if not session_start_rule.may_start_new_session:
             # No new session allowed: finish.
             return finish_flow_session(fctx, flow_session, grading_rule,
-                    now_datetime=now_datetime)
+                    now_datetime=now_datetime, respect_preview=False)
         else:
 
             flow_session.access_rules_tag = session_start_rule.tag_session
@@ -898,7 +899,7 @@ def expire_flow_session(fctx, flow_session, grading_rule, now_datetime,
 
     elif flow_session.expiration_mode == flow_session_expiration_mode.end:
         return finish_flow_session(fctx, flow_session, grading_rule,
-                now_datetime=now_datetime)
+                now_datetime=now_datetime, respect_preview=False)
     else:
         raise ValueError(
                 _("invalid expiration mode '%(mode)s' on flow session ID "
@@ -1016,7 +1017,7 @@ def reopen_session(session, force=False, suppress_log=False):
 
 
 def finish_flow_session_standalone(repo, course, session, force_regrade=False,
-        now_datetime=None, past_due_only=False):
+        now_datetime=None, past_due_only=False, respect_preview=True):
     # Do not be tempted to call adjust_flow_session_page_data in here.
     # This function may be called from within a transaction.
 
@@ -1037,7 +1038,8 @@ def finish_flow_session_standalone(repo, course, session, force_regrade=False,
         return False
 
     finish_flow_session(fctx, session, grading_rule,
-            force_regrade=force_regrade, now_datetime=now_datetime)
+            force_regrade=force_regrade, now_datetime=now_datetime,
+            respect_preview=respect_preview)
 
     return True
 
@@ -1059,9 +1061,6 @@ def regrade_session(repo, course, session):
     adjust_flow_session_page_data(repo, session, course.identifier)
 
     if session.in_progress:
-        fctx = FlowContext(repo, course, session.flow_id,
-                participation=session.participation)
-
         with transaction.atomic():
             answer_visits = assemble_answer_visits(session)
 
@@ -1070,8 +1069,7 @@ def regrade_session(repo, course, session):
 
                 if answer_visit is not None and answer_visit.get_most_recent_grade():
                     # Only make a new grade if there already is one.
-                    grade_page_visit(answer_visit,
-                            graded_at_git_commit_sha=fctx.course_commit_sha)
+                    grade_page_visit(answer_visit, respect_preview=False)
     else:
         prev_completion_time = session.completion_time
 
@@ -1085,7 +1083,8 @@ def regrade_session(repo, course, session):
             reopen_session(session, force=True, suppress_log=True)
             finish_flow_session_standalone(
                     repo, course, session, force_regrade=True,
-                    now_datetime=prev_completion_time)
+                    now_datetime=prev_completion_time,
+                    respect_preview=False)
 
 
 def recalculate_session_grade(repo, course, session):
@@ -1110,7 +1109,8 @@ def recalculate_session_grade(repo, course, session):
         reopen_session(session, force=True, suppress_log=True)
         finish_flow_session_standalone(
                 repo, course, session, force_regrade=False,
-                now_datetime=prev_completion_time)
+                now_datetime=prev_completion_time,
+                respect_preview=False)
 
 # }}}
 
