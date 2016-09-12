@@ -34,7 +34,6 @@ from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Div
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
         login as auth_login, logout as auth_logout)
@@ -83,13 +82,11 @@ def may_impersonate(impersonator, impersonee):
                 for perm, argument in part.permissions()
                 if perm == pperm.impersonate_role)
 
-        part_q_object = Q(
+        if Participation.objects.filter(
                 participations__course=part.course,
                 participations__status=participation_status.active,
                 participations__role__in=impersonable_roles,
-                participations__user=impersonee)
-
-        if part_q_object.count():
+                participations__user=impersonee).count():
             return True
 
     return False
