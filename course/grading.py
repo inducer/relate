@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 
-from typing import Optional  # noqa
+from typing import Any, Optional  # noqa
 
 from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
@@ -58,6 +58,7 @@ from course.models import (  # noqa
         GradingOpportunity)
 from course.utils import (  # noqa
         CoursePageContext)
+import datetime  # noqa
 
 # }}}
 
@@ -293,8 +294,14 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
 
 @retry_transaction_decorator()
-def _save_grade(fpctx, flow_session, most_recent_grade, bulk_feedback_json,
-        now_datetime):
+def _save_grade(
+        fpctx,  # type: FlowPageContext
+        flow_session,  # type: FlowSession
+        most_recent_grade,  # type: FlowPageVisitGrade
+        bulk_feedback_json,  # type: Any
+        now_datetime,  # type: datetime.datetime
+        ):
+    # type: (...) -> None
     most_recent_grade.save()
 
     update_bulk_feedback(
@@ -303,8 +310,7 @@ def _save_grade(fpctx, flow_session, most_recent_grade, bulk_feedback_json,
             bulk_feedback_json)
 
     grading_rule = get_session_grading_rule(
-            flow_session, flow_session.participation.role,
-            fpctx.flow_desc, now_datetime)
+            flow_session, fpctx.flow_desc, now_datetime)
 
     from course.flow import grade_flow_session
     grade_flow_session(fpctx, flow_session, grading_rule)
