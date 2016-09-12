@@ -65,7 +65,7 @@ def render(settings, outf, node, indent=0, skip=1):
         from json import dumps
         print(
             indent * " ",
-            "<li data-jstree='%s'>" % dumps(attrs).replace("'", '"'),
+            "<li data-jstree='%s'>" % dumps(attrs, sort_keys=True).replace("'", '"'),
             file=outf, sep="")
         indent += 2
         if "link" in node:
