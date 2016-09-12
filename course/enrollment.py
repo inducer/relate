@@ -34,6 +34,7 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.conf import settings
 from django.urls import reverse
@@ -83,9 +84,14 @@ def get_participation_for_request(request, course):
 
     # "wake up" lazy object
     # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
-    user = (request.user._wrapped
-            if hasattr(request.user, '_wrapped')
-            else request.user)
+    user = request.user
+    try:
+        possible_user = user._wrapped
+    except AttributeError:
+        pass
+    else:
+        if isinstance(possible_user, get_user_model()):
+            user = possible_user
 
     if not user.is_authenticated:
         return None
