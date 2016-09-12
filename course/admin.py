@@ -55,9 +55,11 @@ from course.constants import (
 def _filter_courses_for_user(queryset, user):
     if user.is_superuser:
         return queryset
-    return queryset.filter(
+    z = queryset.filter(
             participations__user=user,
-            participations__roles__permissions__identifier=pperm.use_admin_interface)
+            participations__roles__permissions__permission=pperm.use_admin_interface)
+    print(z.query)
+    return z
 
 
 def _filter_course_linked_obj_for_user(queryset, user):
@@ -65,8 +67,9 @@ def _filter_course_linked_obj_for_user(queryset, user):
         return queryset
     return queryset.filter(
             course__participations__user=user,
-            course__participations__roles__permissions__identifier  # noqa
-            =pperm.use_admin_interface)
+            course__participations__roles__permissions__permission  # noqa
+            =pperm.use_admin_interface
+            )
 
 
 def _filter_participation_linked_obj_for_user(queryset, user):
@@ -74,7 +77,7 @@ def _filter_participation_linked_obj_for_user(queryset, user):
         return queryset
     return queryset.filter(
         participation__course__participations__user=user,
-        participation__course__participations__roles__permissions_identifier  # noqa
+        participation__course__participations__roles__permissions__permission  # noqa
         =pperm.use_admin_interface)
 
 # }}}

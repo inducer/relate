@@ -383,7 +383,8 @@ class ParticipationPermissionBase(models.Model):
 
 class ParticipationRolePermission(ParticipationPermissionBase):
     role = models.ForeignKey(ParticipationRole,
-            verbose_name=_('Role'), on_delete=models.CASCADE)
+            verbose_name=_('Role'), on_delete=models.CASCADE,
+            related_name="permissions")
 
     class Meta:
         verbose_name = _("Participation role permission")
