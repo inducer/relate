@@ -376,7 +376,7 @@ class PageBase(object):
                     if perm in rw_permissions:
                         rw_permissions.remove(perm)
 
-        return frozenset(permissions)
+        return frozenset(rw_permissions)
 
     def make_page_data(self):
         """Return (possibly randomly generated) data that is used to generate
