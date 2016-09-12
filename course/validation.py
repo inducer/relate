@@ -1310,7 +1310,7 @@ def validate_course_content(repo, course_file, events_file,
                 .values_list("argument", flat=True)) | frozenset(
                         ParticipationRolePermission.objects
                         .filter(
-                            course=vctx.course,
+                            role__course=vctx.course,
                             permission=pperm.access_files_for,
                             )
                         .values_list("argument", flat=True))
