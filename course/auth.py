@@ -83,10 +83,10 @@ def may_impersonate(impersonator, impersonee):
                 if perm == pperm.impersonate_role)
 
         if Participation.objects.filter(
-                participations__course=part.course,
-                participations__status=participation_status.active,
-                participations__role__in=impersonable_roles,
-                participations__user=impersonee).count():
+                course=part.course,
+                status=participation_status.active,
+                role__in=impersonable_roles,
+                user=impersonee).count():
             return True
 
     return False
