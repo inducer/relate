@@ -217,6 +217,7 @@ def course_page(pctx):
 
 @course_view
 def static_page(pctx, page_path):
+    # type: (CoursePageContext, Text) -> http.HttpResponse
     from course.content import get_staticpage_desc, get_processed_page_chunks
     try:
         page_desc = get_staticpage_desc(pctx.repo, pctx.course,
@@ -226,7 +227,7 @@ def static_page(pctx, page_path):
 
     chunks = get_processed_page_chunks(
             pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
-            pctx.role, get_now_or_fake_time(pctx.request),
+            pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities)
 
     return render_course_page(pctx, "course/static-page.html", {
