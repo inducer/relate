@@ -71,6 +71,9 @@ def test_code_question(page_desc, repo_root):
     stdout = io.StringIO()
     stderr = io.StringIO()
 
+    from time import time
+    start = time()
+
     try:
         sys.stdin = None
         sys.stdout = stdout
@@ -90,6 +93,12 @@ def test_code_question(page_desc, repo_root):
         sys.stdin = prev_stdin
         sys.stdout = prev_stdout
         sys.stderr = prev_stderr
+
+    stop = time()
+    response["timeout"] = (
+            "Execution took %.1f seconds. "
+            "(Timeout is %.1f seconds.)"
+            % (stop-start, page_desc.timeout))
 
     from colorama import Fore, Style
     if response["result"] == "success":
@@ -129,6 +138,7 @@ def test_code_question(page_desc, repo_root):
     print_response_aspect("traceback")
     print_response_aspect("stdout")
     print_response_aspect("stderr")
+    print_response_aspect("timeout")
 
 
 def test_code_yml(yml_file, repo_root):
