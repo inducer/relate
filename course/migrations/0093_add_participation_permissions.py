@@ -23,7 +23,7 @@ def add_default_permissions(apps, schema_editor):
 
         roles = dict(
                 (role.identifier, role)
-                for role in ParticipationRole.objects.all())
+                for role in ParticipationRole.objects.filter(course=course))
         roles["auditor"] = roles["student"]
         roles["observer"] = roles["instructor"]
 
