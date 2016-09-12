@@ -97,7 +97,7 @@ class ImpersonateMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.user.is_staff and 'impersonate_id' in request.session:
+        if 'impersonate_id' in request.session:
             imp_id = request.session['impersonate_id']
             impersonee = None
 
