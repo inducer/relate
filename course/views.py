@@ -879,28 +879,14 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
 
 class ExceptionStage3Form(StyledForm):
-    access_expires = forms.DateTimeField(
-            widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
-                    "showClear": True}),
-            required=False,
-            label=pgettext_lazy("Time when access expires", "Access expires"),
-            help_text=_("At the specified time, the special access granted below "
-            "will expire "
-            "and revert to being the same as for the rest of the class. "
-            "This field may "
-            "be empty, in which case this access does not expire. Note also that "
-            "the grading-related entries (such as 'due date' and 'credit percent') "
-            "do not expire and remain valid indefinitely, unless overridden by "
-            "another exception."))
-
     def __init__(self, default_data, flow_desc, base_session_tag, *args, **kwargs):
         super(ExceptionStage3Form, self).__init__(*args, **kwargs)
 
         rules = getattr(flow_desc, "rules", object())
         tags = getattr(rules, "tags", [])
 
-        layout = [Div("access_expires", css_class="well")]
+        layout = []
+
         if tags:
             tags = [NONE_SESSION_TAG] + tags
             self.fields["set_access_rules_tag"] = forms.ChoiceField(
@@ -919,15 +905,40 @@ class ExceptionStage3Form(StyledForm):
                     Div("set_access_rules_tag", "restrict_to_same_tag",
                         css_class="well"))
 
-        permission_ids = []
+        access_fields = ["create_access_exception", "access_expires"]
+
+        self.fields["create_access_exception"] = forms.BooleanField(
+            required=False, help_text=_("If set, an exception for the "
+            "access rules will be created."), initial=True,
+            label=_("Create access rule exception"))
+
+        self.fields["access_expires"] = forms.DateTimeField(
+            widget=DateTimePicker(
+                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
+                    "showClear": True}),
+            required=False,
+            label=pgettext_lazy("Time when access expires", "Access expires"),
+            help_text=_("At the specified time, the special access granted below "
+            "will expire "
+            "and revert to being the same as for the rest of the class. "
+            "This field may "
+            "be empty, in which case this access does not expire. Note also that "
+            "the grading-related entries (such as 'due date' and 'credit percent') "
+            "do not expire and remain valid indefinitely, unless overridden by "
+            "another exception."))
+
         for key, name in FLOW_PERMISSION_CHOICES:
             self.fields[key] = forms.BooleanField(label=name, required=False,
                     initial=default_data.get(key) or False)
 
-            permission_ids.append(key)
+            access_fields.append(key)
 
-        layout.append(Div(*permission_ids, css_class="well"))
+        layout.append(Div(*access_fields, css_class="well"))
 
+        self.fields["create_grading_exception"] = forms.BooleanField(
+                required=False, help_text=_("If set, an exception for the "
+                "grading rules will be created."), initial=True,
+                label=_("Create grading rule exception"))
         self.fields["due_same_as_access_expiration"] = forms.BooleanField(
                 required=False, help_text=_("If set, the 'Due' field will be "
                 "disregarded."),
@@ -943,10 +954,22 @@ class ExceptionStage3Form(StyledForm):
                 initial=default_data.get("due"),
                 label=_("Due time"))
 
-        self.fields["credit_percent"] = forms.IntegerField(required=False,
+        self.fields["credit_percent"] = forms.FloatField(required=False,
                 initial=default_data.get("credit_percent"),
                 label=_("Credit percent"))
-        layout.append(Div("due_same_as_access_expiration", "due", "credit_percent",
+        self.fields["bonus_points"] = forms.FloatField(required=False,
+                initial=default_data.get("bonus_points"),
+                label=_("Bonus points"))
+        self.fields["max_points"] = forms.FloatField(required=False,
+                initial=default_data.get("max_points"),
+                label=_("Maximum number of points (for percentage)"))
+        self.fields["max_points_enforced_cap"] = forms.FloatField(required=False,
+                initial=default_data.get("max_points_enforced_cap"),
+                label=_("Maximum number of points (enforced cap)"))
+
+        layout.append(Div("create_grading_exception", "due_same_as_access_expiration",
+            "due",
+            "credit_percent", "bonus_points", "max_points", "max_points_enforced_cap",
             css_class="well"))
 
         self.fields["comment"] = forms.CharField(
@@ -1032,25 +1055,26 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             # {{{ put together access rule
 
-            new_access_rule = {"permissions": permissions}
+            if form.cleaned_data["create_access_exception"]:
+                new_access_rule = {"permissions": permissions}
 
-            if (form.cleaned_data.get("restrict_to_same_tag")
-                    and session.access_rules_tag is not None):
-                new_access_rule["if_has_tag"] = session.access_rules_tag
+                if (form.cleaned_data.get("restrict_to_same_tag")
+                        and session.access_rules_tag is not None):
+                    new_access_rule["if_has_tag"] = session.access_rules_tag
 
-            validate_session_access_rule(
-                    vctx, ugettext("newly created exception"),
-                    dict_to_struct(new_access_rule), tags)
+                validate_session_access_rule(
+                        vctx, ugettext("newly created exception"),
+                        dict_to_struct(new_access_rule), tags)
 
-            fre_access = FlowRuleException(
-                flow_id=flow_id,
-                participation=participation,
-                expiration=form.cleaned_data["access_expires"],
-                creator=pctx.request.user,
-                comment=form.cleaned_data["comment"],
-                kind=flow_rule_kind.access,
-                rule=new_access_rule)
-            fre_access.save()
+                fre_access = FlowRuleException(
+                    flow_id=flow_id,
+                    participation=participation,
+                    expiration=form.cleaned_data["access_expires"],
+                    creator=pctx.request.user,
+                    comment=form.cleaned_data["comment"],
+                    kind=flow_rule_kind.access,
+                    rule=new_access_rule)
+                fre_access.save()
 
             # }}}
 
@@ -1064,52 +1088,54 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             # {{{ put together grading rule
 
-            due = form.cleaned_data["due"]
-            if form.cleaned_data["due_same_as_access_expiration"]:
-                due = form.cleaned_data["access_expires"]
+            if form.cleaned_data["create_grading_exception"]:
+                due = form.cleaned_data["due"]
+                if form.cleaned_data["due_same_as_access_expiration"]:
+                    due = form.cleaned_data["access_expires"]
 
-            descr = ugettext("Granted excecption")
-            if form.cleaned_data["credit_percent"] is not None:
-                descr += string_concat(" (%.1f%% ", ugettext('credit'), ")") \
-                        % form.cleaned_data["credit_percent"]
+                descr = ugettext("Granted excecption")
+                if form.cleaned_data["credit_percent"] is not None:
+                    descr += string_concat(" (%.1f%% ", ugettext('credit'), ")") \
+                            % form.cleaned_data["credit_percent"]
 
-            due_local_naive = due
-            if due_local_naive is not None:
-                from relate.utils import as_local_time
-                due_local_naive = as_local_time(due_local_naive).replace(tzinfo=None)
+                due_local_naive = due
+                if due_local_naive is not None:
+                    from relate.utils import as_local_time
+                    due_local_naive = as_local_time(due_local_naive).replace(tzinfo=None)
 
-            new_grading_rule = {
-                "description": descr,
-                }
+                new_grading_rule = {
+                    "description": descr,
+                    }
 
-            if due_local_naive is not None:
-                new_grading_rule["due"] = due_local_naive
-                new_grading_rule["if_completed_before"] = due_local_naive
+                if due_local_naive is not None:
+                    new_grading_rule["due"] = due_local_naive
+                    new_grading_rule["if_completed_before"] = due_local_naive
 
-            if form.cleaned_data["credit_percent"] is not None:
-                new_grading_rule["credit_percent"] = \
-                        form.cleaned_data["credit_percent"]
+                for attr_name in ["credit_percent", "bonus_points",
+                        "max_points", "max_points_enforced_cap"]:
+                    if form.cleaned_data[attr_name] is not None:
+                        new_grading_rule[attr_name] = form.cleaned_data[attr_name]
 
-            if (form.cleaned_data.get("restrict_to_same_tag")
-                    and session.access_rules_tag is not None):
-                new_grading_rule["if_has_tag"] = session.access_rules_tag
+                if (form.cleaned_data.get("restrict_to_same_tag")
+                        and session.access_rules_tag is not None):
+                    new_grading_rule["if_has_tag"] = session.access_rules_tag
 
-            if hasattr(grading_rule, "generates_grade"):
-                new_grading_rule["generates_grade"] = \
-                        grading_rule.generates_grade
+                if hasattr(grading_rule, "generates_grade"):
+                    new_grading_rule["generates_grade"] = \
+                            grading_rule.generates_grade
 
-            validate_session_grading_rule(vctx, ugettext("newly created exception"),
-                    dict_to_struct(new_grading_rule), tags,
-                    grading_rule.grade_identifier)
+                validate_session_grading_rule(vctx, ugettext("newly created exception"),
+                        dict_to_struct(new_grading_rule), tags,
+                        grading_rule.grade_identifier)
 
-            fre_grading = FlowRuleException(
-                flow_id=flow_id,
-                participation=participation,
-                creator=pctx.request.user,
-                comment=form.cleaned_data["comment"],
-                kind=flow_rule_kind.grading,
-                rule=new_grading_rule)
-            fre_grading.save()
+                fre_grading = FlowRuleException(
+                    flow_id=flow_id,
+                    participation=participation,
+                    creator=pctx.request.user,
+                    comment=form.cleaned_data["comment"],
+                    kind=flow_rule_kind.grading,
+                    rule=new_grading_rule)
+                fre_grading.save()
 
             # }}}
 
