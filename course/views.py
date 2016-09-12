@@ -998,9 +998,10 @@ class ExceptionStage3Form(StyledForm):
                 initial=default_data.get("max_points_enforced_cap"),
                 label=_("Maximum number of points (enforced cap)"))
 
-        layout.append(Div("create_grading_exception", "due_same_as_access_expiration",
-            "due",
-            "credit_percent", "bonus_points", "max_points", "max_points_enforced_cap",
+        layout.append(Div("create_grading_exception",
+            "due_same_as_access_expiration", "due",
+            "credit_percent", "bonus_points", "max_points",
+            "max_points_enforced_cap",
             css_class="well"))
 
         self.fields["comment"] = forms.CharField(
@@ -1128,7 +1129,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 due_local_naive = due
                 if due_local_naive is not None:
                     from relate.utils import as_local_time
-                    due_local_naive = as_local_time(due_local_naive).replace(tzinfo=None)
+                    due_local_naive = (
+                            as_local_time(due_local_naive)
+                            .replace(tzinfo=None))
 
                 new_grading_rule = {
                     "description": descr,
@@ -1151,7 +1154,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     new_grading_rule["generates_grade"] = \
                             grading_rule.generates_grade
 
-                validate_session_grading_rule(vctx, ugettext("newly created exception"),
+                validate_session_grading_rule(
+                        vctx, ugettext("newly created exception"),
                         dict_to_struct(new_grading_rule), tags,
                         grading_rule.grade_identifier)
 
