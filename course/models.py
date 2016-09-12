@@ -363,7 +363,8 @@ class ParticipationRole(models.Model):
 class ParticipationPermissionBase(models.Model):
     permission = models.CharField(max_length=200, blank=False, null=False,
             choices=PARTICIPATION_PERMISSION_CHOICES,
-            verbose_name=_('Permission'))
+            verbose_name=_('Permission'),
+            db_index=True)
     argument = models.CharField(max_length=200, blank=True, null=True,
             verbose_name=_('Argument'))
 
@@ -636,6 +637,8 @@ def add_default_roles_and_permissions(course,
             name=_("Unenrolled"),
             is_default_for_unenrolled=True)
     unenrolled.save()
+
+    rpm(role=student, permission=pp.included_in_grade_statistics).save()
 
     add_unenrolled_permissions(unenrolled)
     add_student_permissions(student)

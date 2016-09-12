@@ -86,6 +86,8 @@ class participation_permission:
     view_calendar = "view_calendar"
     send_instant_message = "send_instant_message"
     access_files_for = "access_files_for"
+    # FIXME: Not yet used
+    included_in_grade_statistics = "included_in_grade_statistics"
 
     edit_exam = "edit_exam"
     issue_exam_ticket = "issue_exam_ticket"
@@ -149,6 +151,9 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Send instant message")),
         (participation_permission.access_files_for,
             pgettext_lazy("Participation permission", "Access files for")),
+        (participation_permission.included_in_grade_statistics,
+            pgettext_lazy("Participation permission",
+                "Included in grade statistics")),
 
         (participation_permission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),
