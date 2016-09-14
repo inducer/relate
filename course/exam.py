@@ -597,6 +597,9 @@ class ExamFacilityMiddleware(object):
         elif request.path.startswith("/saml2"):
             ok = True
 
+        elif request.path.startswith("/select2"):
+            ok = True
+
         elif (
                 (request.user.is_staff
                     or
@@ -671,6 +674,9 @@ class ExamLockdownMiddleware(object):
                 ok = True
 
             elif request.path.startswith("/saml2"):
+                ok = True
+
+            elif request.path.startswith("/select2"):
                 ok = True
 
             elif (
