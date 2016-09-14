@@ -159,6 +159,14 @@ class ImpersonateForm(StyledForm):
                 widget=UserSearchWidget(),
                 label=_("User"))
 
+        self.fields["add_impersonation_header"] = forms.BooleanField(
+                required=False,
+                initial=True,
+                label=_("Add impersonation header"),
+                help_text=_("Add impersonation header to every page rendered "
+                    "while impersonating, as a reminder that impersonation "
+                    "is in progress."))
+
         self.helper.add_input(Submit("submit", _("Impersonate")))
 
 
@@ -177,6 +185,8 @@ def impersonate(request):
 
             if may_impersonate(cast(User, request.user), cast(User, impersonee)):
                 request.session['impersonate_id'] = impersonee.id
+                request.session['relate_impersonation_header'] = form.cleaned_data[
+                        "add_impersonation_header"]
 
                 # Because we'll likely no longer have access to this page.
                 return redirect("relate-home")
@@ -229,6 +239,8 @@ def impersonation_context_processor(request):
     return {
             "currently_impersonating":
             hasattr(request, "relate_impersonate_original_user"),
+            "add_impersonation_header":
+            request.session.get("relate_impersonation_header", True),
             }
 
 # }}}

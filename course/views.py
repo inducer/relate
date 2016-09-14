@@ -474,6 +474,14 @@ class FakeFacilityForm(StyledForm):
                 help_text=_("More (non-predefined) facility names, separated "
                     "by commas, which would like to pretend to be in"))
 
+        self.fields["add_pretend_facilities_header"] = forms.BooleanField(
+                required=False,
+                initial=True,
+                label=_("Add fake facililities header"),
+                help_text=_("Add a page header to every page rendered "
+                    "while pretending to be in a facility, as a reminder "
+                    "that this pretending is in progress."))
+
         self.helper.add_input(
                 # Translators: "set" fake facility.
                 Submit("set", _("Set")))
@@ -499,6 +507,8 @@ def set_pretend_facilities(request):
                             if s.strip()])
 
                 request.session["relate_pretend_facilities"] = pretend_facilities
+                request.session["relate_pretend_facilities_header"] = \
+                        form.cleaned_data["add_pretend_facilities_header"]
             else:
                 request.session.pop("relate_pretend_facilities", None)
 
@@ -507,7 +517,9 @@ def set_pretend_facilities(request):
             form = FakeFacilityForm({
                 "facilities": [],
                 "custom_facilities": ",".join(
-                    request.session["relate_pretend_facilities"])
+                    request.session["relate_pretend_facilities"]),
+                "add_pretend_facilities_header":
+                request.session["relate_pretend_facilities_header"],
                 })
         else:
             form = FakeFacilityForm()
@@ -522,6 +534,8 @@ def pretend_facilities_context_processor(request):
     return {
             "pretend_facilities": request.session.get(
                 "relate_pretend_facilities", []),
+            "add_pretend_facilities_header":
+            request.session.get("relate_pretend_facilities_header", True),
             }
 
 # }}}
