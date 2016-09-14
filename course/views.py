@@ -82,7 +82,7 @@ from course.utils import (  # noqa
 
 # {{{ for mypy
 
-from typing import Text, Optional, Any  # noqa
+from typing import Tuple, List, Text, Optional, Any, Iterable  # noqa
 
 from course.content import (  # noqa
     FlowDesc,
@@ -762,6 +762,8 @@ def strify_session_for_exception(session):
 class CreateSessionForm(StyledForm):
     def __init__(self, session_tag_choices, default_tag, create_session_is_override,
             *args, **kwargs):
+        # type: (List[Tuple[Text, Text]], Optional[Text], bool, *Any, **Any) -> None
+
         super(CreateSessionForm, self).__init__(*args, **kwargs)
 
         self.fields["access_rules_tag_for_new_session"] = forms.ChoiceField(
@@ -785,6 +787,8 @@ class CreateSessionForm(StyledForm):
 
 class ExceptionStage2Form(StyledForm):
     def __init__(self, sessions, *args, **kwargs):
+        # type: (List[FlowSession], *Any, **Any) -> None
+
         super(ExceptionStage2Form, self).__init__(*args, **kwargs)
 
         self.fields["session"] = forms.ChoiceField(
@@ -807,6 +811,8 @@ class ExceptionStage2Form(StyledForm):
 
 @course_view
 def grant_exception_stage_2(pctx, participation_id, flow_id):
+    # type: (CoursePageContext, Text, Text) -> http.HttpResponse
+
     if not pctx.has_permission(pperm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
@@ -846,7 +852,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     from course.utils import get_session_start_rule
     session_start_rule = get_session_start_rule(pctx.course, participation,
-            participation.role, flow_id, flow_desc, now_datetime)
+            flow_id, flow_desc, now_datetime)
 
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
@@ -865,7 +871,9 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     # }}}
 
     def find_sessions():
-        return (FlowSession.objects
+        # type: () -> List[FlowSession]
+
+        return list(FlowSession.objects
                 .filter(
                     participation=participation,
                     flow_id=flow_id)
@@ -902,13 +910,13 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
             exception_form = None
 
-        elif exception_form.is_valid() and "next" in request.POST:
+        elif exception_form.is_valid() and "next" in request.POST:  # type: ignore
             return redirect(
                     "relate-grant_exception_stage_3",
                     pctx.course.identifier,
                     participation.id,
                     flow_id,
-                    exception_form.cleaned_data["session"])
+                    exception_form.cleaned_data["session"])  # type: ignore
     else:
         create_session_form = CreateSessionForm(
                 session_tag_choices, default_tag, create_session_is_override)
