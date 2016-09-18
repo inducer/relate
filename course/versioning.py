@@ -264,12 +264,13 @@ def set_up_new_course(request):
                         part = Participation()
                         part.user = request.user
                         part.course = new_course
+                        part.status = participation_status.active
+                        part.save()
+
                         part.roles.set([
                             # created by signal handler for course creation
                             ParticipationRole.objects.get(identifier="instructor")
                             ])
-                        part.status = participation_status.active
-                        part.save()
 
                         # }}}
 
