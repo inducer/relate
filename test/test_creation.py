@@ -30,19 +30,26 @@ class CourseCreationTest(TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         # Set up data for the whole TestCase
-        cls.admin = User.objects.create(
+        cls.admin = User.objects.create_superuser(
                 username="testadmin",
                 password="test",
                 email="test@example.com",
                 first_name="Test",
                 last_name="Admin")
+        cls.admin.save()
 
     def test_course_creation(self):
         c = Client()
-        c.login(username="testadmin", password="test")
+
+        self.assertTrue(c.login(
+            username="testadmin",
+            password="test"))
 
         resp = c.post("/new-course/", dict(
             identifier="test-course",
+            name="Test Course",
+            number="CS123",
+            time_period="Fall 2016",
             hidden=True,
             listed=True,
             accepts_enrollment=True,
@@ -54,4 +61,5 @@ class CourseCreationTest(TestCase):
             from_email="inform@tiker.net",
             notify_email="inform@tiker.net"))
 
-        self.assert_(resp.status_code == 302)
+        self.assertTrue(resp.status_code == 302)
+        self.assertTrue("/course" in resp.url)
