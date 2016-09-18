@@ -56,10 +56,21 @@ from course.utils import course_view, render_course_page
 import paramiko
 import paramiko.client
 
+from dulwich.repo import Repo
+import dulwich.client  # noqa
+
 from course.constants import (
         participation_status,
         participation_permission as pperm,
         )
+
+# {{{ for mypy
+
+from django import http  # noqa
+from typing import Tuple, List, Text, Any  # noqa
+from dulwich.client import GitClient  # noqa
+
+# }}}
 
 
 class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
@@ -69,12 +80,16 @@ class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
 
 
 def _remove_prefix(prefix, s):
+    # type: (bytes, bytes) -> bytes
+
     assert s.startswith(prefix)
 
     return s[len(prefix):]
 
 
 def transfer_remote_refs(repo, remote_refs):
+    # type: (Repo, Dict[bytes, Text]) -> None
+
     valid_refs = []
 
     if remote_refs is not None:
@@ -128,6 +143,7 @@ class DulwichParamikoSSHVendor(object):
 
 
 def get_dulwich_client_and_remote_path_from_course(course):
+    # type: (Course) -> Tuple[dulwich.client.GitClient, bytes]
     ssh_kwargs = {}
     if course.ssh_private_key:
         from six import StringIO
@@ -139,7 +155,6 @@ def get_dulwich_client_and_remote_path_from_course(course):
         return vendor
 
     # writing to another module's global variable: gross!
-    import dulwich.client
     dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor
 
     from dulwich.client import get_transport_and_path
@@ -155,8 +170,7 @@ def get_dulwich_client_and_remote_path_from_course(course):
     except AttributeError:
         pass
 
-    from dulwich.client import LocalGitClient
-    if not isinstance(client, LocalGitClient):
+    if not isinstance(client, dulwich.client.LocalGitClient):
         # LocalGitClient uses Py3 Unicode path names to refer to
         # paths, so it doesn't want an encoded path.
         remote_path = remote_path.encode("utf-8")
@@ -192,6 +206,8 @@ class CourseCreationForm(StyledModelForm):
                 }
 
     def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+
         super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
@@ -207,6 +223,7 @@ class CourseCreationForm(StyledModelForm):
 
 @permission_required("course.add_course")
 def set_up_new_course(request):
+    # type: (http.HttpRequest) -> http.HttpResponse
     if request.method == "POST":
         form = CourseCreationForm(request.POST)
 
@@ -224,7 +241,6 @@ def set_up_new_course(request):
 
                 try:
                     with transaction.atomic():
-                        from dulwich.repo import Repo
                         repo = Repo.init(repo_path)
 
                         client, remote_path = \
@@ -249,7 +265,7 @@ def set_up_new_course(request):
                                     vrepo, new_course.course_root_path)
 
                         from course.validation import validate_course_content
-                        validate_course_content(
+                        validate_course_content(  # type: ignore
                                 vrepo, new_course.course_file,
                                 new_course.events_file, new_sha)
 
