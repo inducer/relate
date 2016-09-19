@@ -169,7 +169,7 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
         def create_fpd(new_page_desc):
             page = instantiate_page(new_page_desc)
 
-            data = page.make_page_data()
+            data = page.initialize_page_data(pctx)
             return FlowPageData(
                     flow_session=flow_session,
                     ordinal=None,

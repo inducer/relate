@@ -128,7 +128,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def make_page_data(self):
+    def initialize_page_data(self, page_context):
         import random
         perm = list(range(len(self.page_desc.choices)))
         if getattr(self.page_desc, "shuffle", False):
