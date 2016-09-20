@@ -75,12 +75,12 @@
                       {% trans "Review" %} &raquo;
                     {% endif %}
                   </a>
-                {% endif %}
 
-                {% if not flow_session.in_progress %}
-                  <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
-                      {% trans "Results" %}
-                  </a>
+                  {% if not flow_session.in_progress %}
+                    <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
+                        {% trans "Results" %}
+                    </a>
+                  {% endif %}
                 {% endif %}
               </td>
             </tr>
