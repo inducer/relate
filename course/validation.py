@@ -659,6 +659,16 @@ def validate_session_access_rule(vctx, location, arule, tags):
                 "%s, permission %d" % (location, j+1),
                 perm)
 
+    if hasattr(arule, "if_in_progress") and not arule.if_in_progress:
+        from course.constants import flow_permission
+        if (
+                flow_permission.submit_answer in arule.permissions
+                or flow_permission.end_session in arule.permissions):
+            vctx.add_warning(location,
+                    _("Rule specifies 'submit_answer' or 'end_session' "
+                        "permissions for non-in-progress flow. These "
+                        "permissions will be ignored."))
+
 
 def validate_session_grading_rule(
         vctx,  # type: ValidationContext
