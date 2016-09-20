@@ -662,9 +662,13 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         not is_nuisance_failure(response_dict)):
                     try:
                         from django.core.mail import send_mail
-                        send_mail("".join(["[%s] ",
+                        send_mail("".join(["[%s:%s] ",
                             _("code question execution failed")])
-                            % page_context.course.identifier,
+                            % (
+                                page_context.course.identifier,
+                                page_context.flow_session.flow_id
+                                if page_context.flow_session is not None
+                                else _("<unknown flow>")),
                             message,
                             settings.ROBOT_EMAIL_FROM,
                             recipient_list=[page_context.course.notify_email])
