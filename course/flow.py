@@ -2032,6 +2032,9 @@ def post_flow_page(
                 page_context, fpctx.page_data.data,
                 form, request.FILES)
         answer_visit.is_submitted_answer = pressed_button == "submit"
+        if hasattr(request, "relate_impersonate_original_user"):
+            answer_visit.impersonated_by = \
+                request.relate_impersonate_original_user
         answer_visit.save()
 
         prev_answer_visits.insert(0, answer_visit)
