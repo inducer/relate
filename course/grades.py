@@ -1345,6 +1345,11 @@ class DownloadAllSubmissionsForm(StyledForm):
                 help_text=_("Only download submissions from non-in-progress "
                     "sessions"),
                 label=_("Non-in-progress only"))
+        self.fields["include_feedback"] = forms.BooleanField(
+                required=False,
+                initial=True,
+                help_text=_("Include provided feedback as text file in zip"),
+                label=_("Include feedback"))
         self.fields["extra_file"] = forms.FileField(
                 label=_("Additional File"),
                 help_text=_(
@@ -1388,6 +1393,8 @@ def download_all_submissions(pctx, flow_id):
             for group_desc in flow_desc.groups
             for page_desc in group_desc.pages]
 
+    from course.page.base import AnswerFeedback
+
     request = pctx.request
     if request.method == "POST":
         form = DownloadAllSubmissionsForm(page_ids, session_tag_choices,
@@ -1423,9 +1430,11 @@ def download_all_submissions(pctx, flow_id):
                 visits = visits.filter(flow_session__in_progress=False)
 
             if form.cleaned_data["restrict_to_rules_tag"] != ALL_SESSION_TAG:
-                visits = visits.filter(
-                        flow_session__access_rules_tag=(
-                            form.cleaned_data["restrict_to_rules_tag"]))
+                visits = (visits
+                        .filter(
+                            flow_session__access_rules_tag=(
+                                form.cleaned_data["restrict_to_rules_tag"]))
+                        .select_related("grades"))
 
             submissions = {}
 
@@ -1458,17 +1467,40 @@ def download_all_submissions(pctx, flow_id):
                         # Already there, disregard further ones
                         continue
 
-                    submissions[key] = bytes_answer
+                    submissions[key] = (
+                            bytes_answer, list(visit.grades.all()))
 
             from six import BytesIO
             from zipfile import ZipFile
             bio = BytesIO()
             with ZipFile(bio, "w") as subm_zip:
-                for key, (extension, bytes_answer) in \
+                for key, ((extension, bytes_answer), visit_grades) in \
                         six.iteritems(submissions):
+                    basename = "-".join(key)
                     subm_zip.writestr(
-                            "-".join(key) + extension,
+                            basename + extension,
                             bytes_answer)
+
+                    if form.cleaned_data["include_feedback"]:
+                        feedback_lines = []
+
+                        feedback_lines.append(
+                            "scores: %s" % (
+                                ", ".join(
+                                    str(g.correctness)
+                                    for g in visit_grades)))
+
+                        for i, grade in enumerate(visit_grades):
+                            feedback_lines.append(75*"-")
+                            feedback_lines.append(
+                                "grade %i: score: %s" % (i+1, grade.correctness))
+                            feedback_lines.append(
+                                AnswerFeedback.from_json(
+                                    grade.feedback, None).feedback)
+
+                        subm_zip.writestr(
+                                basename + "-feedback.txt",
+                                "\n".join(feedback_lines))
 
                 extra_file = request.FILES.get("extra_file")
                 if extra_file is not None:
