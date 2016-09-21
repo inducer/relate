@@ -1612,9 +1612,7 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
     return form
 
 
-@retry_transaction_decorator()
-def create_flow_page_visit(request, flow_session, page_data,
-        answer_data, is_submitted_answer):
+def create_flow_page_visit(request, flow_session, page_data):
     # type: (http.HttpRequest, FlowSession, FlowPageData) -> None
 
     if request.user.is_authenticated:
@@ -1628,14 +1626,12 @@ def create_flow_page_visit(request, flow_session, page_data,
         page_data=page_data,
         remote_address=request.META['REMOTE_ADDR'],
         user=user,
-        answer=answer_data,
-        is_submitted_answer=is_submitted_answer)
+        is_submitted_answer=None)
 
     if hasattr(request, "relate_impersonate_original_user"):
         visit.impersonated_by = request.relate_impersonate_original_user
 
     visit.save()
-    return visit
 
 
 @course_view
@@ -1736,8 +1732,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             # continue at common flow page generation below
 
     else:
-        create_flow_page_visit(request, flow_session,
-                fpctx.page_data, None, False)
+        create_flow_page_visit(request, flow_session, fpctx.page_data)
 
         prev_answer_visits = list(
                 get_prev_answer_visits_qset(fpctx.page_data))
@@ -2028,15 +2023,19 @@ def post_flow_page(
         messages.add_message(request, messages.SUCCESS,
                 _("Answer saved."))
 
-        answer_data = fpctx.page.answer_data(
+        answer_visit = FlowPageVisit()
+        answer_visit.flow_session = flow_session
+        answer_visit.page_data = fpctx.page_data
+        answer_visit.remote_address = request.META['REMOTE_ADDR']
+
+        answer_data = answer_visit.answer = fpctx.page.answer_data(
                 page_context, fpctx.page_data.data,
                 form, request.FILES)
-
-        is_submitted_answer = pressed_button == "submit"
-
-        answer_visit = create_flow_page_visit(
-                request, flow_session, fpctx.page_data,
-                answer_data, is_submitted_answer)
+        answer_visit.is_submitted_answer = pressed_button == "submit"
+        if hasattr(request, "relate_impersonate_original_user"):
+            answer_visit.impersonated_by = \
+                request.relate_impersonate_original_user
+        answer_visit.save()
 
         prev_answer_visits.insert(0, answer_visit)
 
@@ -2101,8 +2100,7 @@ def post_flow_page(
 
     else:
         # form did not validate
-        create_flow_page_visit(request, flow_session,
-                fpctx.page_data, None, False)
+        create_flow_page_visit(request, flow_session, fpctx.page_data)
 
         answer_data = None
         answer_was_graded = False
