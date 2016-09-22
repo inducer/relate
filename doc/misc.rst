@@ -37,7 +37,7 @@ Initialize the database::
 
 Retrieve static (JS/CSS) dependencies::
 
-    python manage.py bower install
+    python manage.py bower_install
 
 Run the server::
 
