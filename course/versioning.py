@@ -269,7 +269,6 @@ def set_up_new_course(request):
                                 vrepo, new_course.course_file,
                                 new_course.events_file, new_sha)
 
-                        del repo
                         del vrepo
 
                         new_course.active_git_commit_sha = new_sha.decode()
