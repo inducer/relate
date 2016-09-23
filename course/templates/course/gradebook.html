@@ -17,7 +17,7 @@
       <th class="headcol">{% trans "User ID" %}</th>
       <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
       {% for opp in grading_opportunities %}
-      <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</th>
+      <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</tt></th>
       {% endfor %}
     </thead>
     <tbody>
