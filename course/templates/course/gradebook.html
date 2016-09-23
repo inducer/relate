@@ -16,7 +16,7 @@
     <thead>
       <th class="headcol">{% trans "User ID" %}</th>
       <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
-      {% for opp in grading_opportunities %}
+      {% for opp in grading_opportunities reversed %}
       <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</tt></th>
       {% endfor %}
     </thead>
@@ -30,7 +30,7 @@
           </span>
           ({{ participation.get_role_desc }})
         </td>
-        {% for grade_info in grades %}
+        {% for grade_info in grades reversed %}
           <td class="datacol"
             {% if grade_info.grade_state_machine.percentage != None %}
             data-order="{{ grade_info.grade_state_machine.percentage }}"
