@@ -284,7 +284,9 @@ def set_up_new_course(request):
 
                         part.roles.set([
                             # created by signal handler for course creation
-                            ParticipationRole.objects.get(identifier="instructor")
+                            ParticipationRole.objects.get(
+                                course=new_course,
+                                identifier="instructor")
                             ])
 
                         # }}}
