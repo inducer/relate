@@ -323,4 +323,28 @@ def to_js_lang_name(dj_lang_name):
 # }}}
 
 
+#{{{ Allow multiple email connections
+# https://gist.github.com/niran/840999
+
+def get_connection(label=None, **kwargs):
+    from django.conf import settings
+    if label is None:
+        label = getattr(settings, 'EMAIL_CONNECTION_DEFAULT', None)
+
+    try:
+        connections = getattr(settings, 'EMAIL_CONNECTIONS')
+        options = connections[label]
+    except (KeyError, AttributeError):
+        # Neither EMAIL_CONNECTIONS nor EMAIL_CONNECTION_DEFAULT in settings
+        # fail silently and fall back to django's built-in get_connection
+        options = {}
+
+    options.update(kwargs)
+
+    from django.core import mail
+    return mail.get_connection(**options)
+
+#}}}
+
+
 # vim: foldmethod=marker

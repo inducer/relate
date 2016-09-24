@@ -244,13 +244,17 @@ def enroll_view(request, course_identifier):
                                 args=(course.identifier, participation.id))))
                     })
 
-                from django.core.mail import send_mail
-                send_mail(
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
                         string_concat("[%s] ", _("New enrollment request"))
                         % course_identifier,
                         message,
                         settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[course.notify_email])
+                        [course.notify_email])
+
+                from relate.utils import get_connection
+                msg.connection = get_connection("robot")
+                msg.send()
 
             messages.add_message(request, messages.INFO,
                     _("Enrollment request sent. You will receive notifcation "
