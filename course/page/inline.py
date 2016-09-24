@@ -618,6 +618,14 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         invalid_answer_name = []
         invalid_embedded_name = []
 
+        if not answer_instance_list:
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("InlineMultiQuestion requires at least one "
+                        "answer field to be defined."))
+                    % {'location': location})
+
         for answers_name in answers_name_list:
             if NAME_VALIDATE_RE.match(answers_name) is None:
                 invalid_answer_name.append(answers_name)
