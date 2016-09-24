@@ -435,13 +435,21 @@ def sign_up(request):
                         reverse("relate-home"))
                     })
 
-                from django.core.mail import send_mail
-                send_mail(
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
                         string_concat("[", _("RELATE"), "] ",
                                      _("Verify your email")),
                         message,
-                        settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[email])
+                        getattr(settings, "NO_REPLY_EMAIL_FROM",
+                                "ROBOT_EMAIL_FROM"),
+                        [email])
+
+                from relate.utils import get_connection
+                msg.connection = (
+                        get_connection("no_reply")
+                        if hasattr(settings, "NO_REPLY_EMAIL_FROM")
+                        else get_connection("robot"))
+                msg.send()
 
                 messages.add_message(request, messages.INFO,
                         _("Email sent. Please check your email and click "
@@ -542,13 +550,21 @@ def reset_password(request, field="email"):
                         "home_uri": request.build_absolute_uri(
                             reverse("relate-home"))
                         })
-                    from django.core.mail import send_mail
-                    send_mail(
+                    from django.core.mail import EmailMessage
+                    msg = EmailMessage(
                             string_concat("[", _("RELATE"), "] ",
                                          _("Password reset")),
                             message,
-                            settings.ROBOT_EMAIL_FROM,
-                            recipient_list=[email])
+                            getattr(settings, "NO_REPLY_EMAIL_FROM",
+                                    "ROBOT_EMAIL_FROM"),
+                            [email])
+
+                    from relate.utils import get_connection
+                    msg.connection = (
+                            get_connection("no_reply")
+                            if hasattr(settings, "NO_REPLY_EMAIL_FROM")
+                            else get_connection("robot"))
+                    msg.send()
 
                     if field == "instid":
                         messages.add_message(request, messages.INFO,
@@ -693,12 +709,20 @@ def sign_in_by_email(request):
                         args=(user.id, user.sign_in_key,))),
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
-            from django.core.mail import send_mail
-            send_mail(
+            from django.core.mail import EmailMessage
+            msg = EmailMessage(
                     _("Your %(RELATE)s sign-in link") % {"RELATE": _("RELATE")},
                     message,
-                    settings.ROBOT_EMAIL_FROM,
-                    recipient_list=[email])
+                    getattr(settings, "NO_REPLY_EMAIL_FROM",
+                            "ROBOT_EMAIL_FROM"),
+                    [email])
+
+            from relate.utils import get_connection
+            msg.connection = (
+                get_connection("no_reply")
+                if hasattr(settings, "NO_REPLY_EMAIL_FROM")
+                else get_connection("robot"))
+            msg.send()
 
             messages.add_message(request, messages.INFO,
                     _("Email sent. Please check your email and click the link."))
