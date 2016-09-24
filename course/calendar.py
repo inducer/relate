@@ -41,7 +41,7 @@ from crispy_forms.layout import Submit
 import datetime
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, as_local_time
 from course.constants import (
         participation_permission as pperm,
         )
@@ -361,8 +361,9 @@ def view_calendar(pctx):
 
             if event.all_day:
                 start_time = start_time.date()
-                end_midnight = datetime.time(tzinfo=end_time.tzinfo)
-                if end_time.time() == end_midnight:
+                local_end_time = as_local_time(end_time)
+                end_midnight = datetime.time(tzinfo=local_end_time.tzinfo)
+                if local_end_time.time() == end_midnight:
                     end_time = (end_time - datetime.timedelta(days=1)).date()
                 else:
                     end_time = end_time.date()
