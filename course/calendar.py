@@ -38,6 +38,7 @@ import django.forms as forms
 
 from crispy_forms.layout import Submit
 
+import datetime
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from relate.utils import StyledForm
@@ -360,7 +361,11 @@ def view_calendar(pctx):
 
             if event.all_day:
                 start_time = start_time.date()
-                end_time = end_time.date()
+                end_midnight = datetime.time(tzinfo=end_time.tzinfo)
+                if end_time.time() == end_midnight:
+                    end_time = (end_time - datetime.timedelta(days=1)).date()
+                else:
+                    end_time = end_time.date()
 
             event_info_list.append(
                     EventInfo(
