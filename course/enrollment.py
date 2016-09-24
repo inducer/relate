@@ -734,9 +734,9 @@ class ParticipationQueryForm(StyledForm):
     queries = forms.CharField(
             required=True,
             widget=forms.Textarea,
-            help_text=_(
-                "Enter queries, one per line. "
-                "Allowed: "
+            help_text=string_concat(
+                _("Enter queries, one per line."), " ",
+                _("Allowed"), ": ",
                 "<code>and</code>, "
                 "<code>or</code>, "
                 "<code>not</code>, "

@@ -348,7 +348,9 @@ class ParticipationRole(models.Model):
                     {"name": _("Name contains invalid characters.")})
 
     def __unicode__(self):
-        return _("%s in %s") % (self.identifier, self.course)
+        return _("%(identifier)s in %(course)s") % {
+            "identifier": self.identifier,
+            "course": self.course}
 
     if six.PY3:
         __str__ = __unicode__
