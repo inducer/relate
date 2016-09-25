@@ -419,6 +419,8 @@ def start_flow(
     if session_start_rule.default_expiration_mode is not None:
         exp_mode = session_start_rule.default_expiration_mode
 
+    assert exp_mode in dict(FLOW_SESSION_EXPIRATION_MODE_CHOICES)
+
     session = FlowSession(
         course=course,
         participation=participation,
