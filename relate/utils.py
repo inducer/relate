@@ -346,7 +346,7 @@ def get_outbound_mail_connection(label=None, **kwargs):
     options.update(kwargs)
 
     from django.core import mail
-    return mail.get_outbound_mail_connection(**options)
+    return mail.get_connection(**options)
 
 #}}}
 
