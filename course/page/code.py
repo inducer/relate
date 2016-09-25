@@ -78,6 +78,7 @@ class InvalidPingResponse(RuntimeError):
 
 
 def request_python_run(run_req, run_timeout, image=None):
+    import platform
     import json
     from six.moves import http_client
     import docker
@@ -101,11 +102,19 @@ def request_python_run(run_req, run_timeout, image=None):
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
                 None)
-        docker_cnx = docker.Client(
-                base_url=docker_url,
-                tls=docker_tls,
+
+        if platform.system().lower().startswith("linux"):
+            docker_cnx = docker.Client(
+                    base_url=docker_url,
+                    tls=docker_tls,
+                    timeout=docker_timeout,
+                    version="1.19")
+        else:
+            from docker.utils import kwargs_from_env
+            docker_cnx = docker.Client(
                 timeout=docker_timeout,
-                version="1.19")
+                **kwargs_from_env(assert_hostname=False)
+            )
 
         if image is None:
             image = settings.RELATE_DOCKER_RUNPY_IMAGE
@@ -141,8 +150,11 @@ def request_python_run(run_req, run_timeout, image=None):
                     ["NetworkSettings"]["Ports"]["%d/tcp" % RUNPY_PORT])
             port_host_ip = port_info.get("HostIp")
 
-            if port_host_ip != "0.0.0.0":
-                connect_host_ip = port_host_ip
+            if platform.system().lower().startswith("linux"):
+                if port_host_ip != "0.0.0.0":
+                    connect_host_ip = port_host_ip
+            else:
+                connect_host_ip = getattr(settings, "RELATE_DOCKER_HOST_IP")
 
             port = int(port_info["HostPort"])
         else:

@@ -256,6 +256,32 @@ RELATE_DOCKER_TLS_CONFIG = None
 #     ca_cert=os.path.join(pki_base_dir, "ca.pem"),
 #     verify=True)
 
+# The following lines are for docker-machine on windows
+import platform
+if not platform.system().lower().startswith("linux"):
+    def get_windows_docker_host_ip(machine="default", raise_error=False):
+        from subprocess import PIPE, Popen
+        cmd = ["docker-machine", "env", machine]
+        p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+        error_code = p.returncode
+        if error_code:
+            if raise_error:
+                raise RuntimeError(
+                    "error %s: %s" % (
+                            error_code, stderr.decode('utf-8').strip()))
+            else:
+                # fail silently
+                return 'localhost'
+        out = stdout.decode('utf-8')
+
+        import re
+        ip_re_pattern = "DOCKER_HOST=tcp://([\d.]+):"
+        s = re.search(ip_re_pattern, out)
+        return s.groups()[0]
+
+    RELATE_DOCKER_HOST_IP = get_windows_docker_host_ip()
+
 # }}}
 
 # {{{ maintenance and announcements
