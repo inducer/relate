@@ -982,7 +982,7 @@ def expire_flow_session(
             access_rule = get_session_access_rule(
                     flow_session, fctx.flow_desc, now_datetime)
 
-            if hasattr(session_start_rule, "default_expiration_mode"):
+            if session_start_rule.default_expiration_mode is not None:
                 flow_session.expiration_mode = \
                         session_start_rule.default_expiration_mode
 
