@@ -136,7 +136,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'password': 'password',
             'port': 587,
             'use_tls': True,
-        }
+        },
 
         # For student to sending email to course staff.
         # Not implement yet
@@ -146,16 +146,16 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'password': 'password',
             'port': 587,
             'use_tls': True,
-        }
+        },
     }
 
     # This will be used as default connection when other keys are not set.
     EMAIL_CONNECTION_DEFAULT = "robot"
 
-    NO_REPLY_EMAIL_FROM = "Example Noreply <noreply_example@example.com>"
-    NOTIFICATION_EMAIL_FROM = "Example Notification <notification_example@example.com>"
-    GRADER_FEEDBACK_EMAIL_FROM = "Example Feedback <feedback_example@example.com>"
-    STUDENT_INTERACT_EMAIL_FROM = "Example interaction <feedback_example@example.com>"
+    NO_REPLY_EMAIL_FROM = "Noreply <noreply_example@example.com>"
+    NOTIFICATION_EMAIL_FROM = "Notification <notification_example@example.com>"
+    GRADER_FEEDBACK_EMAIL_FROM = "Feedback <feedback_example@example.com>"
+    STUDENT_INTERACT_EMAIL_FROM = "interaction <feedback_example@example.com>"
 
 
 # }}}
