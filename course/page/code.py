@@ -673,8 +673,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                             settings.ROBOT_EMAIL_FROM,
                             [page_context.course.notify_email])
 
-                        from relate.utils import get_connection
-                        msg.connection = get_connection("robot")
+                        from relate.utils import get_outbound_mail_connection
+                        msg.connection = get_outbound_mail_connection("robot")
                         msg.send()
 
                     except Exception:

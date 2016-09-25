@@ -444,11 +444,11 @@ def sign_up(request):
                                 "ROBOT_EMAIL_FROM"),
                         [email])
 
-                from relate.utils import get_connection
+                from relate.utils import get_outbound_mail_connection
                 msg.connection = (
-                        get_connection("no_reply")
+                        get_outbound_mail_connection("no_reply")
                         if hasattr(settings, "NO_REPLY_EMAIL_FROM")
-                        else get_connection("robot"))
+                        else get_outbound_mail_connection("robot"))
                 msg.send()
 
                 messages.add_message(request, messages.INFO,
@@ -559,11 +559,11 @@ def reset_password(request, field="email"):
                                     "ROBOT_EMAIL_FROM"),
                             [email])
 
-                    from relate.utils import get_connection
+                    from relate.utils import get_outbound_mail_connection
                     msg.connection = (
-                            get_connection("no_reply")
+                            get_outbound_mail_connection("no_reply")
                             if hasattr(settings, "NO_REPLY_EMAIL_FROM")
-                            else get_connection("robot"))
+                            else get_outbound_mail_connection("robot"))
                     msg.send()
 
                     if field == "instid":
@@ -717,11 +717,11 @@ def sign_in_by_email(request):
                             "ROBOT_EMAIL_FROM"),
                     [email])
 
-            from relate.utils import get_connection
+            from relate.utils import get_outbound_mail_connection
             msg.connection = (
-                get_connection("no_reply")
+                get_outbound_mail_connection("no_reply")
                 if hasattr(settings, "NO_REPLY_EMAIL_FROM")
-                else get_connection("robot"))
+                else get_outbound_mail_connection("robot"))
             msg.send()
 
             messages.add_message(request, messages.INFO,

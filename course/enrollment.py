@@ -252,8 +252,8 @@ def enroll_view(request, course_identifier):
                         settings.ROBOT_EMAIL_FROM,
                         [course.notify_email])
 
-                from relate.utils import get_connection
-                msg.connection = get_connection("robot")
+                from relate.utils import get_outbound_mail_connection
+                msg.connection = get_outbound_mail_connection("robot")
                 msg.send()
 
             messages.add_message(request, messages.INFO,

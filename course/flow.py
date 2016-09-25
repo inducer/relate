@@ -2322,11 +2322,11 @@ def finish_flow_session_view(pctx, flow_session_id):
                         fctx.flow_desc.notify_on_submit)
                 msg.bcc = [fctx.course.notify_email]
 
-                from relate.utils import get_connection
+                from relate.utils import get_outbound_mail_connection
                 msg.connection = (
-                    get_connection("notification")
+                    get_outbound_mail_connection("notification")
                     if hasattr(settings, "NOTIFICATION_EMAIL_FROM")
-                    else get_connection("robot"))
+                    else get_outbound_mail_connection("robot"))
                 msg.send()
 
         # }}}

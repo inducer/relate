@@ -326,7 +326,7 @@ def to_js_lang_name(dj_lang_name):
 #{{{ Allow multiple email connections
 # https://gist.github.com/niran/840999
 
-def get_connection(label=None, **kwargs):
+def get_outbound_mail_connection(label=None, **kwargs):
     # type: (Optional[Text], **Any) -> Any
     from django.conf import settings
     if label is None:
@@ -337,13 +337,13 @@ def get_connection(label=None, **kwargs):
         options = connections[label]
     except (KeyError, AttributeError):
         # Neither EMAIL_CONNECTIONS nor EMAIL_CONNECTION_DEFAULT in settings
-        # fail silently and fall back to django's built-in get_connection
+        # fail silently and fall back to django's built-in get_outbound_mail_connection
         options = {}
 
     options.update(kwargs)
 
     from django.core import mail
-    return mail.get_connection(**options)
+    return mail.get_outbound_mail_connection(**options)
 
 #}}}
 

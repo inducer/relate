@@ -957,8 +957,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 msg.reply_to = [page_context.course.get_reply_to_email()]
 
                 if hasattr(settings, "GRADER_FEEDBACK_EMAIL_FROM"):
-                    from relate.utils import get_connection
-                    msg.connection = get_connection("grader_feedback")
+                    from relate.utils import get_outbound_mail_connection
+                    msg.connection = get_outbound_mail_connection("grader_feedback")
                 msg.send()
 
         return grade_data
