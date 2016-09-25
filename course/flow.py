@@ -2320,7 +2320,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                             'flow_id': flow_session.flow_id},
                         message,
                         getattr(settings, "NOTIFICATION_EMAIL_FROM",
-                            "ROBOT_EMAIL_FROM"),
+                            settings.ROBOT_EMAIL_FROM),
                         fctx.flow_desc.notify_on_submit)
                 msg.bcc = [fctx.course.notify_email]
 

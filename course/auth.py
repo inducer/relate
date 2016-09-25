@@ -451,7 +451,7 @@ def sign_up(request):
                                      _("Verify your email")),
                         message,
                         getattr(settings, "NO_REPLY_EMAIL_FROM",
-                                "ROBOT_EMAIL_FROM"),
+                                setttings.ROBOT_EMAIL_FROM),
                         [email])
 
                 from relate.utils import get_outbound_mail_connection
@@ -569,7 +569,7 @@ def reset_password(request, field="email"):
                                          _("Password reset")),
                             message,
                             getattr(settings, "NO_REPLY_EMAIL_FROM",
-                                    "ROBOT_EMAIL_FROM"),
+                                    settings.ROBOT_EMAIL_FROM),
                             [email])
 
                     from relate.utils import get_outbound_mail_connection
@@ -733,7 +733,7 @@ def sign_in_by_email(request):
                     _("Your %(RELATE)s sign-in link") % {"RELATE": _("RELATE")},
                     message,
                     getattr(settings, "NO_REPLY_EMAIL_FROM",
-                            "ROBOT_EMAIL_FROM"),
+                            settings.ROBOT_EMAIL_FROM),
                     [email])
 
             from relate.utils import get_outbound_mail_connection
