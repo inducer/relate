@@ -40,6 +40,7 @@ from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
 from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
 from django.contrib.sites.shortcuts import get_current_site
+from django.contrib.auth.decorators import user_passes_test
 from django.urls import reverse
 from django.core import validators
 from django.utils.http import is_safe_url
@@ -295,6 +296,9 @@ class TokenBackend(object):
 
 # {{{ choice
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))
@@ -324,6 +328,9 @@ class LoginForm(AuthenticationFormBase):
 @sensitive_post_parameters()
 @csrf_protect
 @never_cache
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
     """
     Displays the login form and handles the login action.
@@ -391,6 +398,9 @@ class SignUpForm(StyledModelForm):
                 Submit("submit", _("Send email")))
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_up(request):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
@@ -494,6 +504,9 @@ def masked_email(email):
     return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def reset_password(request, field="email"):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
@@ -610,6 +623,9 @@ class ResetPasswordStage2Form(StyledForm):
                     _("The two password fields didn't match."))
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def reset_password_stage2(request, user_id, sign_in_key):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
@@ -679,6 +695,9 @@ class SignInByEmailForm(StyledForm):
                 Submit("submit", _("Send sign-in email")))
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_by_email(request):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
@@ -737,6 +756,9 @@ def sign_in_by_email(request):
         })
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
@@ -966,9 +988,23 @@ class Saml2Backend(Saml2BackendBase):
 
 # {{{ sign-out
 
-@never_cache
-def sign_out(request):
+def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
+    redirect_to = request.POST.get(redirect_field_name,
+                                   request.GET.get(redirect_field_name, ''))
 
+    next_uri = ""
+    if redirect_to:
+        next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
+
+    return render(request, "sign-out-confirmation.html",
+                  {"next_uri": next_uri})
+
+
+@never_cache
+def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
+
+    redirect_to = request.POST.get(redirect_field_name,
+                                   request.GET.get(redirect_field_name, ''))
     response = None
 
     if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
@@ -980,6 +1016,8 @@ def sign_out(request):
 
     if response is not None:
         return response
+    elif redirect_to:
+        return redirect(redirect_to)
     else:
         return redirect("relate-home")
 
