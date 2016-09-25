@@ -327,6 +327,7 @@ def to_js_lang_name(dj_lang_name):
 # https://gist.github.com/niran/840999
 
 def get_connection(label=None, **kwargs):
+    # type: (Optional[Text], **Any) -> Any
     from django.conf import settings
     if label is None:
         label = getattr(settings, 'EMAIL_CONNECTION_DEFAULT', None)
