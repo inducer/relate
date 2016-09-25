@@ -116,7 +116,7 @@ def request_python_run(run_req, run_timeout, image=None):
                     "/opt/runpy/runpy",
                     "-1"],
                 host_config={
-                    "Memory": 256*10**6,
+                    "Memory": 384*10**6,
                     "MemorySwap": -1,
                     "PublishAllPorts": True,
                     # Do not enable: matplotlib stops working if enabled.
