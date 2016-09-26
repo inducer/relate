@@ -640,6 +640,7 @@ def add_default_roles_and_permissions(course,
     unenrolled.save()
 
     rpm(role=student, permission=pp.included_in_grade_statistics).save()
+    rpm(role=unenrolled, permission=pp.included_in_grade_statistics).save()
 
     add_unenrolled_permissions(unenrolled)
     add_student_permissions(student)
