@@ -68,6 +68,9 @@ if False:
 from jsonfield import JSONField
 from yamlfield.fields import YAMLField
 
+ALLOW_NONAUTHORIZED_SENDER = getattr(
+    settings,
+    "RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER", False)
 
 # {{{ course
 
@@ -228,6 +231,20 @@ class Course(models.Model):
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
+    def get_from_email(self):
+        if ALLOW_NONAUTHORIZED_SENDER:
+            return self.from_email
+        else:
+            return settings.DEFAULT_FROM_EMAIL
+
+    def get_reply_to_email(self):
+        # this functionality need more fields in Course model,
+        # about the preference of the course.
+        if ALLOW_NONAUTHORIZED_SENDER:
+            return self.from_email
+        else:
+            return self.notify_email
+
 # }}}
 
 
@@ -348,7 +365,9 @@ class ParticipationRole(models.Model):
                     {"name": _("Name contains invalid characters.")})
 
     def __unicode__(self):
-        return _("%s in %s") % (self.identifier, self.course)
+        return _("%(identifier)s in %(course)s") % {
+            "identifier": self.identifier,
+            "course": self.course}
 
     if six.PY3:
         __str__ = __unicode__

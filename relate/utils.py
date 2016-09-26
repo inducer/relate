@@ -323,4 +323,69 @@ def to_js_lang_name(dj_lang_name):
 # }}}
 
 
+#{{{ Allow multiple email connections
+# https://gist.github.com/niran/840999
+
+def get_outbound_mail_connection(label=None, **kwargs):
+    # type: (Optional[Text], **Any) -> Any
+    from django.conf import settings
+    if label is None:
+        label = getattr(settings, 'EMAIL_CONNECTION_DEFAULT', None)
+
+    try:
+        connections = getattr(settings, 'EMAIL_CONNECTIONS')
+        options = connections[label]
+    except (KeyError, AttributeError):
+        # Neither EMAIL_CONNECTIONS nor
+        # EMAIL_CONNECTION_DEFAULT in
+        # settings fail silently and fall
+        # back to django's built-in
+        # get_connection.
+        options = {}
+
+    options.update(kwargs)
+
+    from django.core import mail
+    return mail.get_connection(**options)
+
+#}}}
+
+
+def ignore_no_such_table(f, *args):
+    from django.db import connections, DEFAULT_DB_ALIAS
+    conn = connections[DEFAULT_DB_ALIAS]
+
+    if conn.vendor == "postgresql":
+        cursor = conn.cursor()
+        cursor.execute("SAVEPOINT sp;")
+
+    def local_rollback():
+        if conn.vendor == "postgresql":
+            cursor = conn.cursor()
+            cursor.execute("ROLLBACK TO SAVEPOINT sp;")
+
+    from django.db.utils import OperationalError, ProgrammingError
+    try:
+        return f(*args)
+
+    # django.auth actually will not create auth_* if we're starting
+    # with an empty database and a custom user model.
+
+    except OperationalError as e:
+        if "no such table" in str(e):
+            local_rollback()
+        else:
+            raise
+
+    except ProgrammingError as e:
+        cause = getattr(e, "__cause__", None)
+        pgcode = getattr(cause, "pgcode", None)
+        if pgcode == "42P01":
+            local_rollback()
+        elif "no such table" in str(e):
+            local_rollback()
+        else:
+            raise
+
+
 # vim: foldmethod=marker

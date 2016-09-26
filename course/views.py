@@ -275,7 +275,6 @@ def current_repo_file_etag_func(request, course_identifier, path):
     course = get_object_or_404(Course, identifier=course_identifier)
     participation = get_participation_for_request(request, course)
 
-    from course.views import check_course_state
     check_course_state(course, participation)
 
     from course.content import get_course_commit_sha
@@ -316,7 +315,6 @@ def get_repo_file_backend(
     """
 
     # check to see if the course is hidden
-    from course.views import check_course_state
     check_course_state(course, participation)
 
     # retrieve local path for the repo for the course

@@ -116,7 +116,7 @@ def request_python_run(run_req, run_timeout, image=None):
                     "/opt/runpy/runpy",
                     "-1"],
                 host_config={
-                    "Memory": 256*10**6,
+                    "Memory": 384*10**6,
                     "MemorySwap": -1,
                     "PublishAllPorts": True,
                     # Do not enable: matplotlib stops working if enabled.
@@ -661,8 +661,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         and
                         not is_nuisance_failure(response_dict)):
                     try:
-                        from django.core.mail import send_mail
-                        send_mail("".join(["[%s:%s] ",
+                        from django.core.mail import EmailMessage
+                        msg = EmailMessage("".join(["[%s:%s] ",
                             _("code question execution failed")])
                             % (
                                 page_context.course.identifier,
@@ -671,7 +671,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                                 else _("<unknown flow>")),
                             message,
                             settings.ROBOT_EMAIL_FROM,
-                            recipient_list=[page_context.course.notify_email])
+                            [page_context.course.notify_email])
+
+                        from relate.utils import get_outbound_mail_connection
+                        msg.connection = get_outbound_mail_connection("robot")
+                        msg.send()
 
                     except Exception:
                         from traceback import format_exc

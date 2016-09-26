@@ -419,6 +419,8 @@ def start_flow(
     if session_start_rule.default_expiration_mode is not None:
         exp_mode = session_start_rule.default_expiration_mode
 
+    assert exp_mode in dict(FLOW_SESSION_EXPIRATION_MODE_CHOICES)
+
     session = FlowSession(
         course=course,
         participation=participation,
@@ -980,7 +982,7 @@ def expire_flow_session(
             access_rule = get_session_access_rule(
                     flow_session, fctx.flow_desc, now_datetime)
 
-            if hasattr(session_start_rule, "default_expiration_mode"):
+            if session_start_rule.default_expiration_mode is not None:
                 flow_session.expiration_mode = \
                         session_start_rule.default_expiration_mode
 
@@ -2317,9 +2319,16 @@ def finish_flow_session_view(pctx, flow_session_id):
                             'identifier': fctx.course.identifier,
                             'flow_id': flow_session.flow_id},
                         message,
-                        fctx.course.from_email,
+                        getattr(settings, "NOTIFICATION_EMAIL_FROM",
+                            settings.ROBOT_EMAIL_FROM),
                         fctx.flow_desc.notify_on_submit)
                 msg.bcc = [fctx.course.notify_email]
+
+                from relate.utils import get_outbound_mail_connection
+                msg.connection = (
+                    get_outbound_mail_connection("notification")
+                    if hasattr(settings, "NOTIFICATION_EMAIL_FROM")
+                    else get_outbound_mail_connection("robot"))
                 msg.send()
 
         # }}}

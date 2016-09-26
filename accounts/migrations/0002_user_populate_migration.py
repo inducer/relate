@@ -1,35 +1,22 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 
 from django.db import models, migrations
-from django.db.utils import OperationalError
-
-
-def _ignore_no_such_table(f, *args):
-    try:
-        return f(*args)
-
-    except OperationalError as e:
-        if "no such table" in str(e):
-            # django.auth actually will not create auth_* if we're starting
-            # with an empty database and a custom user model.
-            pass
-        else:
-            raise
+from relate.utils import ignore_no_such_table
 
 
 def forwards(apps, schema_editor):
-    _ignore_no_such_table(populate_table,
+    ignore_no_such_table(populate_table,
             apps, schema_editor,
             "auth", "User",
             "accounts", "User")
 
-    _ignore_no_such_table(populate_table,
+    ignore_no_such_table(populate_table,
             apps, schema_editor,
             "auth", "User_groups",
             "accounts", "User_groups")
 
-    _ignore_no_such_table(populate_table,
+    ignore_no_such_table(populate_table,
             apps, schema_editor,
             "auth", "User_user_permissions",
             "accounts", "User_user_permissions")

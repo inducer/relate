@@ -244,13 +244,17 @@ def enroll_view(request, course_identifier):
                                 args=(course.identifier, participation.id))))
                     })
 
-                from django.core.mail import send_mail
-                send_mail(
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
                         string_concat("[%s] ", _("New enrollment request"))
                         % course_identifier,
                         message,
                         settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[course.notify_email])
+                        [course.notify_email])
+
+                from relate.utils import get_outbound_mail_connection
+                msg.connection = get_outbound_mail_connection("robot")
+                msg.send()
 
             messages.add_message(request, messages.INFO,
                     _("Enrollment request sent. You will receive notifcation "
@@ -734,9 +738,9 @@ class ParticipationQueryForm(StyledForm):
     queries = forms.CharField(
             required=True,
             widget=forms.Textarea,
-            help_text=_(
-                "Enter queries, one per line. "
-                "Allowed: "
+            help_text=string_concat(
+                _("Enter queries, one per line."), " ",
+                _("Allowed"), ": ",
                 "<code>and</code>, "
                 "<code>or</code>, "
                 "<code>not</code>, "
