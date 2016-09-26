@@ -166,7 +166,7 @@ class Histogram(object):
 
         temp_string_weights = self.string_weights.copy()
 
-        oob = "<out of bounds>"
+        oob = pgettext("Value in histogram", "<out of bounds>")
 
         from bisect import bisect
         for value, weight in self.num_values:
