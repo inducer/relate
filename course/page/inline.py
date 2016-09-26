@@ -607,7 +607,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             answers_desc = getattr(self.page_desc.answers, name)
 
             parsed_answer = parse_question(
-                    None, None, name, answers_desc)
+                    vctx, location, name, answers_desc)
             answer_instance_list.append(parsed_answer)
 
         self.answer_instance_list = answer_instance_list
