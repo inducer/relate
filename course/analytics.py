@@ -253,7 +253,9 @@ def is_page_multiple_submit(flow_desc, page_desc):
 def make_grade_histogram(pctx, flow_id):
     qset = FlowSession.objects.filter(
             course=pctx.course,
-            flow_id=flow_id)
+            flow_id=flow_id,
+            participation__roles__permissions__permission=(
+                pperm.included_in_grade_statistics))
 
     hist = Histogram(
         num_min_value=0,
