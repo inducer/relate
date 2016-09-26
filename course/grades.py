@@ -1533,7 +1533,7 @@ def download_all_submissions(pctx, flow_id):
 
 class EditGradingOpportunityForm(StyledModelForm):
     def __init__(self, add_new, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+        # type: (bool, *Any, **Any) -> None
         super(EditGradingOpportunityForm, self).__init__(*args, **kwargs)
 
         if not add_new:
