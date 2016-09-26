@@ -1532,11 +1532,13 @@ def download_all_submissions(pctx, flow_id):
 # {{{ edit_grading_opportunity
 
 class EditGradingOpportunityForm(StyledModelForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, add_new, *args, **kwargs):
         # type: (*Any, **Any) -> None
         super(EditGradingOpportunityForm, self).__init__(*args, **kwargs)
 
-        self.fields["identifier"].disabled = True
+        if not add_new:
+            self.fields["identifier"].disabled = True
+
         self.fields["flow_id"].disabled = True
         self.fields["creation_time"].disabled = True
 
@@ -1565,20 +1567,28 @@ def edit_grading_opportunity(pctx, opportunity_id):
 
     request = pctx.request
 
-    gopp = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
+    num_opportunity_id = int(opportunity_id)
+    if num_opportunity_id == -1:
+        gopp = GradingOpportunity(course=pctx.course)
+        add_new = True
+    else:
+        gopp = get_object_or_404(GradingOpportunity, id=num_opportunity_id)
+        add_new = False
 
     if gopp.course.id != pctx.course.id:
         raise SuspiciousOperation(
                 "may not edit grading opportunity in different course")
 
     if request.method == 'POST':
-        form = EditGradingOpportunityForm(request.POST, instance=gopp)
+        form = EditGradingOpportunityForm(add_new, request.POST, instance=gopp)
 
         if form.is_valid():
             form.save()
+            return redirect("relate-edit_grading_opportunity",
+                    pctx.course.identifier, form.instance.id)
 
     else:
-        form = EditGradingOpportunityForm(instance=gopp)
+        form = EditGradingOpportunityForm(add_new, instance=gopp)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form_description": _("Edit Grading Opportunity"),

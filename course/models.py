@@ -51,7 +51,7 @@ from course.constants import (  # noqa
         exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
         participation_permission, PARTICIPATION_PERMISSION_CHOICES,
 
-        COURSE_ID_REGEX
+        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX
         )
 
 from course.page.base import AnswerFeedback
@@ -1331,7 +1331,14 @@ class GradingOpportunity(models.Model):
             # Translators: format of identifier for GradingOpportunity
             help_text=_("A symbolic name for this grade. "
             "lower_case_with_underscores, no spaces."),
-            verbose_name=_('Grading opportunity ID'))
+            verbose_name=_('Grading opportunity ID'),
+            validators=[
+                RegexValidator(
+                    "^"+GRADING_OPP_ID_REGEX+"$",
+                    message=_(
+                        "Identifier may only contain letters, "
+                        "numbers, and hypens ('-').")),
+                    ])
     name = models.CharField(max_length=200, blank=False, null=False,
             # Translators: name for GradingOpportunity
             help_text=_("A human-readable identifier for the grade."),
