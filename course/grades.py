@@ -1059,7 +1059,7 @@ class ImportGradesForm(StyledForm):
             from course.utils import csv_data_importable
 
             importable, err_msg = csv_data_importable(
-                    file_contents,
+                    file_contents.decode("utf-8", errors="replace"),
                     column_idx_list,
                     header_count)
 
@@ -1261,7 +1261,7 @@ def import_grades(pctx):
                         course=pctx.course,
                         grading_opportunity=form.cleaned_data["grading_opportunity"],
                         attempt_id=form.cleaned_data["attempt_id"],
-                        file_contents=request.FILES["file"],
+                        file_contents=request.FILES["file"].decode("utf-8", errors="replace"),
                         attr_type=form.cleaned_data["attr_type"],
                         attr_column=form.cleaned_data["attr_column"],
                         points_column=form.cleaned_data["points_column"],
