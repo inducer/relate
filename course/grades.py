@@ -731,7 +731,10 @@ def average_grade(opportunity):
     # type: (GradingOpportunity) -> Tuple[Optional[float], int]
 
     grade_changes = (GradeChange.objects
-            .filter(opportunity=opportunity)
+            .filter(
+                opportunity=opportunity,
+                participation__roles__permissions__permission=(
+                    pperm.included_in_grade_statistics))
             .order_by(
                 "participation__id",
                 "grade_time")

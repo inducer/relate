@@ -311,6 +311,8 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
                     .filter(
                         flow_session__course=pctx.course,
                         flow_session__flow_id=flow_id,
+                        flow_session__participation__roles__permissions__permission=(
+                            pperm.included_in_grade_statistics),
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
                         is_submitted_answer=True,
@@ -493,6 +495,8 @@ def page_analytics(pctx, flow_id, group_id, page_id):
             .filter(
                 flow_session__course=pctx.course,
                 flow_session__flow_id=flow_id,
+                flow_session__participation__roles__permissions__permission=(
+                    pperm.included_in_grade_statistics),
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
                 is_submitted_answer=True,

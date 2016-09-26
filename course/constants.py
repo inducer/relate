@@ -86,7 +86,6 @@ class participation_permission:
     view_calendar = "view_calendar"
     send_instant_message = "send_instant_message"
     access_files_for = "access_files_for"
-    # FIXME: Not yet used
     included_in_grade_statistics = "included_in_grade_statistics"
 
     edit_exam = "edit_exam"
