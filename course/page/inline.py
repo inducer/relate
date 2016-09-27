@@ -103,7 +103,7 @@ class InlineMultiQuestionForm(StyledInlineForm):
         answer_name_list = [answer_instance.name
                 for answer_instance in self.answer_instance_list]
 
-        for answer in cleaned_data.keys():
+        for answer in list(cleaned_data.keys()):
             idx = answer_name_list.index(answer)
             instance_idx = self.answer_instance_list[idx]
             field_name_idx = instance_idx.name

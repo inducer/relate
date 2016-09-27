@@ -852,6 +852,7 @@ def markup_to_html(
         text,  # type: Text
         reverse_func=None,  # type: Callable
         validate_only=False,  # type: bool
+        use_jinja=True,  # type: bool
         jinja_env={},  # type: Dict
         ):
     # type: (...) -> Text
@@ -887,12 +888,13 @@ def markup_to_html(
 
     # {{{ process through Jinja
 
-    from jinja2 import Environment, StrictUndefined
-    env = Environment(
-            loader=GitTemplateLoader(repo, commit_sha),
-            undefined=StrictUndefined)
-    template = env.from_string(text)
-    text = template.render(**jinja_env)
+    if use_jinja:
+        from jinja2 import Environment, StrictUndefined
+        env = Environment(
+                loader=GitTemplateLoader(repo, commit_sha),
+                undefined=StrictUndefined)
+        template = env.from_string(text)
+        text = template.render(**jinja_env)
 
     # }}}
 

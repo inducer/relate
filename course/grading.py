@@ -25,8 +25,6 @@ THE SOFTWARE.
 """
 
 
-from typing import Any, Optional  # noqa
-
 from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         get_object_or_404, redirect)
@@ -54,6 +52,7 @@ from course.constants import (
 
 # {{{ for mypy
 
+from typing import Text, Any, Optional  # noqa
 from course.models import (  # noqa
         GradingOpportunity)
 from course.utils import (  # noqa
@@ -223,6 +222,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                     correctness = feedback.correctness
                 else:
                     correctness = None
+
+                feedback_json = None  # type: Optional[Dict[Text, Any]]
+                bulk_feedback_json = None  # type: Optional[Dict[Text, Any]]
 
                 if feedback is not None:
                     feedback_json, bulk_feedback_json = feedback.as_json()
