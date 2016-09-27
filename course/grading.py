@@ -171,6 +171,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
             feedback = get_feedback_for_grade(shown_grade)
             grade_data = shown_grade.grade_data
+            answer_data = shown_grade.visit.answer
 
         else:
             feedback = None
