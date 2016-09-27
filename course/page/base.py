@@ -121,14 +121,20 @@ class PageBehavior(object):
     __nonzero__ = __bool__
 
 
-def markup_to_html(page_context, text):
-    from course.content import markup_to_html
+def markup_to_html(
+        page_context,  # type: PageContext
+        text,  # type: Text
+        use_jinja=True,  # type: bool
+        ):
+    # type: (...) -> Text
+    from course.content import markup_to_html as mth
 
-    return markup_to_html(
+    return mth(
             page_context.course,
             page_context.repo,
             page_context.commit_sha,
-            text)
+            text,
+            use_jinja=use_jinja)
 
 
 # {{{ answer feedback type
@@ -609,7 +615,7 @@ class PageBase(object):
             answer_data,  # type: Any
             grade_data,  # type: Any
             ):
-        # type: (...) -> AnswerFeedback
+        # type: (...) -> Optional[AnswerFeedback]
         """Grade the answer contained in *answer_data*.
 
         :arg answer_data: value returned by :meth:`answer_data`,
@@ -973,7 +979,14 @@ class PageBaseWithHumanTextFeedback(PageBase):
         return render_to_string(
                 "course/human-feedback-form.html", ctx, request)
 
-    def grade(self, page_context, page_data, answer_data, grade_data):
+    def grade(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            grade_data,  # type: Any
+            ):
+        # type: (...) -> Optional[AnswerFeedback]
         """This method is appropriate if the grade consists *only* of the
         feedback provided by humans. If more complicated/combined feedback
         is desired, a subclass would likely override this.
@@ -1006,7 +1019,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                             _("The following feedback was provided"),
                             ":<p>")
                         + markup_to_html(
-                            page_context, grade_data["feedback_text"]))
+                            page_context, grade_data["feedback_text"],
+                            use_jinja=False))
 
             return AnswerFeedback(
                     correctness=correctness,
