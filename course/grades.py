@@ -59,7 +59,7 @@ from course.constants import (
 
 # {{{ for mypy
 
-from typing import Tuple, Text, Optional, Any, Iterable  # noqa
+from typing import cast, Tuple, Text, Optional, Any, Iterable  # noqa
 from course.utils import CoursePageContext  # noqa
 from course.content import FlowDesc  # noqa
 from course.models import Course, FlowPageVisitGrade  # noqa
@@ -337,7 +337,7 @@ def export_gradebook_csv(pctx):
 
 class OpportunitySessionGradeInfo(object):
     def __init__(self, grade_state_machine, flow_session, grades=None):
-        # type: (GradeStateMachine, FlowSession, Optional[Any]) ->  None
+        # type: (GradeStateMachine, Optional[FlowSession], Optional[Any]) ->  None
 
         self.grade_state_machine = grade_state_machine
         self.flow_session = flow_session
@@ -591,9 +591,12 @@ def view_grades_by_opportunity(pctx, opp_id):
                             grade_state_machine=state_machine,
                             flow_session=fsession)))
 
-    if view_page_grades and len(grade_table) > 0:
+    if view_page_grades and len(grade_table) > 0 and all(
+            info.flow_session is not None for _dummy1, info in grade_table):
         # Query grades for flow pages
-        all_flow_sessions = [info.flow_session for _dummy1, info in grade_table]
+        all_flow_sessions = [
+                cast(FlowSession, info.flow_session)
+                for _dummy1, info in grade_table]
         max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
         page_numbers = list(range(1, 1 + max_page_count))
 
