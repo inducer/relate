@@ -72,6 +72,7 @@ ALLOW_NONAUTHORIZED_SENDER = getattr(
     settings,
     "RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER", False)
 
+
 # {{{ course
 
 class Course(models.Model):

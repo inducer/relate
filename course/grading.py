@@ -72,6 +72,15 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     page_ordinal = int(page_ordinal)
 
+    viewing_prev_grade = False
+    prev_grade_id = pctx.request.GET.get("grade_id")
+    if prev_grade_id is not None:
+        try:
+            prev_grade_id = int(prev_grade_id)
+            viewing_prev_grade = True
+        except ValueError:
+            raise SuspiciousOperation("non-integer passed for 'grade_id'")
+
     if not pctx.has_permission(pperm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
@@ -125,25 +134,44 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # }}}
 
+    prev_grades = (FlowPageVisitGrade.objects
+            .filter(
+                visit__flow_session=flow_session,
+                visit__page_data__ordinal=page_ordinal,
+                visit__is_submitted_answer=True)
+            .order_by("-visit__visit_time", "-grade_time")
+            .select_related("visit"))
+
     # {{{ reproduce student view
 
     form = None
     feedback = None
     answer_data = None
     grade_data = None
-    most_recent_grade = None
+    shown_grade = None
 
     if fpctx.page.expects_answer():
-        if fpctx.prev_answer_visit is not None:
+        if fpctx.prev_answer_visit is not None and prev_grade_id is None:
             answer_data = fpctx.prev_answer_visit.answer
 
-            most_recent_grade = fpctx.prev_answer_visit.get_most_recent_grade()
-            if most_recent_grade is not None:
-                feedback = get_feedback_for_grade(most_recent_grade)
-                grade_data = most_recent_grade.grade_data
+            shown_grade = fpctx.prev_answer_visit.get_most_recent_grade()
+            if shown_grade is not None:
+                feedback = get_feedback_for_grade(shown_grade)
+                grade_data = shown_grade.grade_data
             else:
                 feedback = None
                 grade_data = None
+
+            prev_grade_id = shown_grade.id
+
+        elif prev_grade_id is not None:
+            try:
+                shown_grade = prev_grades.filter(id=prev_grade_id).get()
+            except ObjectDoesNotExist:
+                raise http.Http404()
+
+            feedback = get_feedback_for_grade(shown_grade)
+            grade_data = shown_grade.grade_data
 
         else:
             feedback = None
@@ -171,7 +199,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     if (fpctx.page.expects_answer()
             and fpctx.page.is_answer_gradable()
             and fpctx.prev_answer_visit is not None
-            and not flow_session.in_progress):
+            and not flow_session.in_progress
+            and not viewing_prev_grade):
         request = pctx.request
         if pctx.request.method == "POST":
             if not pctx.has_permission(pperm.assign_grade):
@@ -278,7 +307,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "feedback": feedback,
                 "max_points": max_points,
                 "points_awarded": points_awarded,
-                "most_recent_grade": most_recent_grade,
+                "shown_grade": shown_grade,
+                "prev_grades": prev_grades,
+                "prev_grade_id": prev_grade_id,
 
                 "grading_opportunity": grading_opportunity,
 
