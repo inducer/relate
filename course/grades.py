@@ -553,9 +553,15 @@ def view_grades_by_opportunity(pctx, opp_id):
             my_grade_changes.append(grade_changes[gchng_idx])
             gchng_idx += 1
 
+        state_machine = GradeStateMachine()
+        state_machine.consume(my_grade_changes)
+
         # Advance in flow session list
         if flow_sessions is None:
-            my_flow_sessions = []  # type: List[FlowSession]
+            grade_table.append(
+                    (participation, OpportunitySessionGradeInfo(
+                        grade_state_machine=state_machine,
+                        flow_session=None)))
         else:
             while (
                     fsess_idx < len(flow_sessions) and (
@@ -571,22 +577,19 @@ def view_grades_by_opportunity(pctx, opp_id):
                 my_flow_sessions.append(flow_sessions[fsess_idx])
                 fsess_idx += 1
 
-        state_machine = GradeStateMachine()
-        state_machine.consume(my_grade_changes)
+            for fsession in my_flow_sessions:
+                total_sessions += 1
 
-        for fsession in my_flow_sessions:
-            total_sessions += 1
+                if fsession is None:
+                    continue
 
-            if fsession is None:
-                continue
+                if not fsession.in_progress:
+                    finished_sessions += 1
 
-            if not fsession.in_progress:
-                finished_sessions += 1
-
-            grade_table.append(
-                    (participation, OpportunitySessionGradeInfo(
-                        grade_state_machine=state_machine,
-                        flow_session=fsession)))
+                grade_table.append(
+                        (participation, OpportunitySessionGradeInfo(
+                            grade_state_machine=state_machine,
+                            flow_session=fsession)))
 
     if view_page_grades and len(grade_table) > 0:
         # Query grades for flow pages
