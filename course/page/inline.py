@@ -535,6 +535,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         cloze question require an answer struct. The question now
         support cloze question of TextAnswer and ChoiceAnswer type.
 
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
+
     Here is an example of :class:`InlineMultiQuestion`::
 
         type: InlineMultiQuestion
@@ -731,6 +735,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     def allowed_attrs(self):
         return super(InlineMultiQuestion, self).allowed_attrs() + (
                 ("answer_comment", "markup"),
+                ("answer_explanation", "markup"),
                 )
 
     def body(self, page_context, page_data):
@@ -816,7 +821,12 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         CA_PATTERN = string_concat(_("A correct answer is"), ": <br/> %s")  # noqa
 
-        return CA_PATTERN % cor_answer_output
+        result = CA_PATTERN % cor_answer_output
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data}
