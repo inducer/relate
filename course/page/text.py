@@ -476,8 +476,15 @@ class FloatMatcher(TextAnswerMatcher):
                             "%s: 'atol' ",
                             _("does not provide a valid float literal"))
                         % location)
+        else:
+            if matcher_desc.value == 0:
+                vctx.add_warning(location,
+                         _("Float match for 'value' zero should have atol--"
+                           "otherwise it will match any number"))
 
         if (
+                not matcher_desc.value == 0
+                and
                 not hasattr(matcher_desc, "atol")
                 and
                 not hasattr(matcher_desc, "rtol")
