@@ -161,7 +161,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 feedback = None
                 grade_data = None
 
-            prev_grade_id = shown_grade.id
+            if shown_grade is not None:
+                prev_grade_id = shown_grade.id
 
         elif prev_grade_id is not None:
             try:
