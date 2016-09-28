@@ -218,6 +218,10 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
         Optional. ``True`` or ``False``. If true, the choices will
         be presented in random order.
+
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -240,6 +244,11 @@ class ChoiceQuestion(ChoiceQuestionBase):
                         _("ChoiceQuestion does not allow any choices "
                         "marked 'disregard'"))
                     % {'location': location})
+
+    def allowed_attrs(self):
+        return super(ChoiceQuestion, self).allowed_attrs() + (
+                ("answer_explanation", "markup"),
+                )
 
     def make_choice_form(
             self, page_context, page_data, page_behavior, *args, **kwargs):
@@ -282,10 +291,15 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        return (string_concat(_("A correct answer is"), ": '%s'.")
+        result = (string_concat(_("A correct answer is"), ": '%s'.")
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[corr_idx]).lstrip())
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def normalized_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
@@ -357,6 +371,10 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
             as the fraction of boxes that are checked in both the participant's
             answer and the solution relative to the total number of correct answers.
             Credit is only awarded if *no* incorrect answer is checked.
+
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -425,6 +443,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                 ("allow_partial_credit", bool),
                 ("allow_partial_credit_subset_only", bool),
                 ("credit_mode", str),
+                ("answer_explanation", "markup"),
                 )
 
     def make_choice_form(self, page_context, page_data, page_behavior,
@@ -512,8 +531,13 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx_list = self.unpermuted_correct_indices()
 
-        return (string_concat(_("The correct answer is"), ": %s.")
+        result = (string_concat(_("The correct answer is"), ": %s.")
                 % self.get_answer_html(page_context, corr_idx_list))
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def normalized_answer(self, page_context, page_data, answer_data):
         if answer_data is None:

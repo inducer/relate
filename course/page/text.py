@@ -879,6 +879,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                   atol: 0.2  # absolute tolerance
 
           One of ``rtol`` or ``atol`` must be given.
+
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -910,6 +914,11 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def required_attrs(self):
         return super(TextQuestion, self).required_attrs() + (
                 ("answers", list),
+                )
+
+    def allowed_attrs(self):
+        return super(TextQuestion, self).allowed_attrs() + (
+                ("answer_explanation", "markup"),
                 )
 
     def get_validators(self):
@@ -949,7 +958,12 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         assert unspec_correct_answer_text
 
-        return CA_PATTERN % unspec_correct_answer_text
+        result = CA_PATTERN % unspec_correct_answer_text
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def is_case_sensitive(self):
         return any(matcher.is_case_sensitive for matcher in self.matchers)
