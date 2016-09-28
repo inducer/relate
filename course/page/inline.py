@@ -734,7 +734,6 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
     def allowed_attrs(self):
         return super(InlineMultiQuestion, self).allowed_attrs() + (
-                ("answer_comment", "markup"),
                 ("answer_explanation", "markup"),
                 )
 
