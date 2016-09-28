@@ -153,15 +153,12 @@
   {% endif %}
 {% endblock %}
 
-{% block version_advice %}
+{% block preview_status %}
   {% if participation.preview_git_commit_sha %}
-    <div class="alert alert-info">
-      <i class='fa fa-info-circle'></i>
-      {% trans "You are currently seeing a preview of revision" %}
-      '{{participation.preview_git_commit_sha}}'.
-      <a class="btn btn-sm btn-primary" href="{% url "relate-update_course" course.identifier %}"
-        role="button">{% trans "View revisions" %}</a>
-    </div>
+    <li>
+      <a style="font-weight: bold" href="{% url "relate-update_course" course.identifier %}"
+        role="button">[{% trans "Preview" %}]</a>
+    </li>
   {% endif %}
 {% endblock %}
 

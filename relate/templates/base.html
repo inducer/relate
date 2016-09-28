@@ -90,6 +90,9 @@
             {% endif %}
           </ul>
           <ul class="nav navbar-nav navbar-right">
+            {% block preview_status %}
+            {% endblock %}
+
             {% if user.is_authenticated %}
               <li>
                 <a href="{% url "relate-user_profile" %}">
@@ -119,9 +122,6 @@
 
     {% block root_container %}
     <div class="container">
-      {% block version_advice %}
-      {% endblock %}
-
       {% include "base-page-top.html" %}
 
       {% block nav_recommendations %}
