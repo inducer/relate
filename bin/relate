@@ -22,8 +22,32 @@ def validate(args):
         return 0
 
 
-# {{{ code test
+# {{{ expand YAML
 
+def expand_yaml(yml_file, repo_root):
+    if yml_file == "-":
+        data = sys.stdin.read()
+    else:
+        with open(yml_file, "r") as inf:
+            data = inf.read()
+
+    from course.content import (
+            process_yaml_for_expansion, YamlBlockEscapingFileSystemLoader)
+    data = process_yaml_for_expansion(data)
+
+    from jinja2 import Environment, StrictUndefined
+    jinja_env = Environment(
+            loader=YamlBlockEscapingFileSystemLoader(repo_root),
+            undefined=StrictUndefined)
+    template = jinja_env.from_string(data)
+    data = template.render()
+
+    return data
+
+# }}}
+
+
+# {{{ code test
 
 def test_code_question(page_desc, repo_root):
     if page_desc.type not in [
@@ -142,30 +166,11 @@ def test_code_question(page_desc, repo_root):
 
 
 def test_code_yml(yml_file, repo_root):
-    if yml_file == "-":
-        data = sys.stdin.read()
-    else:
-        with open(yml_file, "r") as inf:
-            data = inf.read()
-
-    # {{{ read yaml
-
-    from course.content import (
-            process_yaml_for_expansion, YamlBlockEscapingFileSystemLoader)
-    data = process_yaml_for_expansion(data)
-
-    from jinja2 import Environment, StrictUndefined
-    jinja_env = Environment(
-            loader=YamlBlockEscapingFileSystemLoader(repo_root),
-            undefined=StrictUndefined)
-    template = jinja_env.from_string(data)
-    data = template.render()
+    data = expand_yaml(yml_file, repo_root)
 
     from yaml import load
     from relate.utils import dict_to_struct
     data = dict_to_struct(load(data))
-
-    # }}}
 
     if hasattr(data, "id") and hasattr(data, "type"):
         test_code_question(data, repo_root)
@@ -201,6 +206,10 @@ def test_code(args):
 # }}}
 
 
+def expand_yaml_ui(args):
+    print(expand_yaml(args.YAML_FILE, args.repo_root))
+
+
 def main():
     pass
     import os
@@ -219,6 +228,11 @@ def main():
     parser_test_code.add_argument('--repo-root', default=os.getcwd())
     parser_test_code.add_argument('FLOW_OR_PROBLEM_YMLS', nargs="+")
     parser_test_code.set_defaults(func=test_code)
+
+    parser_expand_yaml = subp.add_parser("expand-yaml")
+    parser_expand_yaml.add_argument('--repo-root', default=os.getcwd())
+    parser_expand_yaml.add_argument('YAML_FILE')
+    parser_expand_yaml.set_defaults(func=expand_yaml_ui)
 
     args = parser.parse_args()
 
