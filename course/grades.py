@@ -1360,7 +1360,7 @@ class DownloadAllSubmissionsForm(StyledForm):
                 label=_("Non-in-progress only"))
         self.fields["include_feedback"] = forms.BooleanField(
                 required=False,
-                initial=True,
+                initial=False,
                 help_text=_("Include provided feedback as text file in zip"),
                 label=_("Include feedback"))
         self.fields["extra_file"] = forms.FileField(
@@ -1507,9 +1507,9 @@ def download_all_submissions(pctx, flow_id):
                             feedback_lines.append(75*"-")
                             feedback_lines.append(
                                 "grade %i: score: %s" % (i+1, grade.correctness))
-                            feedback_lines.append(
-                                AnswerFeedback.from_json(
-                                    grade.feedback, None).feedback)
+                            afb = AnswerFeedback.from_json(grade.feedback, None)
+                            if afb is not None:
+                                feedback_lines.append(afb.feedback)
 
                         subm_zip.writestr(
                                 basename + "-feedback.txt",
