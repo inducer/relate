@@ -391,6 +391,15 @@ urlpatterns = [
         "/$",
         course.flow.finish_flow_session_view,
         name="relate-finish_flow_session_view"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/flow-session"
+        "/(?P<flow_session_id>[0-9]+)"
+        "/(?P<ordinal>[0-9]+)"
+        "/flow-page-interaction-email"
+        "/$",
+        course.flow.send_email_about_flow_page,
+        name="relate-flow_page_interaction_email"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +
