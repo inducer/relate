@@ -1957,8 +1957,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
         args["max_points"] = fpctx.page.max_points(fpctx.page_data)
-        if pctx.has_permission(pperm.assign_grade):
-            args["show_privileged_shortcut"] = True
+        args["page_expect_answer_and_gradable"] = True
 
     return render_course_page(
             pctx, "course/flow-page.html", args,
