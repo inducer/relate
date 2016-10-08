@@ -260,6 +260,10 @@ def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
             if not max_tries:
                 raise
 
+        from random import uniform
+        from time import sleep
+        sleep(uniform(0.05, 0.2))
+
 
 class retry_transaction_decorator(object):
     def __init__(self, max_tries=None, serializable=None):
