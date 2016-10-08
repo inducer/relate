@@ -1521,6 +1521,12 @@ def will_receive_feedback(permissions):
             or flow_permission.see_answer_after_submission in permissions)
 
 
+def may_send_email_about_flow_page(permissions):
+    # type: (frozenset[Text]) -> bool
+
+    return flow_permission.send_email_about_flow_page in permissions
+
+
 def get_page_behavior(
         page,  # type: PageBase
         permissions,  # type: frozenset[Text]
@@ -1931,6 +1937,8 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             (flow_permission.change_answer in permissions)),
         "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": page_behavior.show_answer,
+        "may_send_email_about_flow_page":
+            may_send_email_about_flow_page(permissions),
 
         "session_minutes": session_minutes,
         "time_factor": time_factor,
@@ -1949,6 +1957,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
         args["max_points"] = fpctx.page.max_points(fpctx.page_data)
+        args["page_expect_answer_and_gradable"] = True
 
     return render_course_page(
             pctx, "course/flow-page.html", args,
@@ -2121,6 +2130,173 @@ def post_flow_page(
             feedback,
             answer_data,
             answer_was_graded)
+
+# }}}
+
+
+# {{{ view: send interaction email to course staffs in flow pages
+
+@course_view
+def send_email_about_flow_page(pctx, flow_session_id, ordinal):
+
+    # {{{ check if interaction email is allowed for this page.
+
+    ordinal = int(ordinal)
+    flow_session_id = int(flow_session_id)
+    flow_session = get_and_check_flow_session(pctx, flow_session_id)
+    flow_id = flow_session.flow_id
+
+    fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, ordinal,
+                            participation=pctx.participation,
+                            flow_session=flow_session,
+                            request=pctx.request)
+
+    if fpctx.page is None:
+        raise http.Http404()
+
+    request = pctx.request
+    now_datetime = get_now_or_fake_time(request)
+    login_exam_ticket = get_login_exam_ticket(request)
+    access_rule = get_session_access_rule(
+            flow_session, fpctx.flow_desc, now_datetime,
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
+
+    permissions = fpctx.page.get_modified_permissions_for_page(
+            access_rule.permissions)
+
+    if not may_send_email_about_flow_page(permissions):
+        raise http.Http404()
+
+    # }}}
+
+    if request.method == "POST":
+        form = FlowPageInteractionEmailForm(request.POST)
+
+        if form.is_valid():
+            from django.utils import translation
+            from django.conf import settings
+            from course.models import Participation
+            from course.models import FlowSession
+
+            flow_session = get_object_or_404(
+                FlowSession, id=int(flow_session_id))
+            from course.models import FlowPageData
+            page_id = FlowPageData.objects.get(
+                flow_session=flow_session_id, ordinal=ordinal).page_id
+
+            from django.core.urlresolvers import reverse
+            review_url = reverse(
+                "relate-view_flow_page",
+                kwargs={'course_identifier': pctx.course.identifier,
+                        'flow_session_id': flow_session_id,
+                        'ordinal': ordinal
+                        }
+            )
+
+            from six.moves.urllib.parse import urljoin
+
+            review_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
+                                 review_url)
+
+            from_email = getattr(
+                    settings,
+                    "STUDENT_INTERACT_EMAIL_FROM",
+                    settings.ROBOT_EMAIL_FROM)
+            student_email = flow_session.participation.user.email
+
+            from course.constants import (
+                    participation_permission as pperm)
+
+            ta_email_list = Participation.objects.filter(
+                    course=pctx.course,
+                    roles__permissions__permission=pperm.assign_grade,
+                    roles__identifier="ta",
+            ).values_list("user__email", flat=True)
+
+            instructor_email_list = Participation.objects.filter(
+                    course=pctx.course,
+                    roles__permissions__permission=pperm.assign_grade,
+                    roles__identifier="instructor"
+            ).values_list("user__email", flat=True)
+
+            recipient_list = ta_email_list
+            if not recipient_list:
+                recipient_list = instructor_email_list
+
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                message = render_to_string(
+                    "course/flow-page-interaction-email.txt", {
+                        "page_id": page_id,
+                        "flow_session_id": flow_session_id,
+                        "course": pctx.course,
+                        "question_text": form.cleaned_data["message"],
+                        "review_uri": review_uri,
+                        "username": pctx.participation.user.get_full_name()
+                    })
+
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
+                    subject=string_concat(
+                            "[%(identifier)s:%(flow_id)s--%(page_id)s] ",
+                            _("Interaction request from %(username)s"))
+                            % {'identifier': pctx.course_identifier,
+                               'flow_id': flow_session_id,
+                               'page_id': page_id,
+                               'username': pctx.participation.user.get_full_name()
+                               },
+                    body=message,
+                    from_email=from_email,
+                    to=recipient_list,
+                )
+                # TODO: add instructors to msg.bcc according to
+                # settings in Course model.
+                msg.bcc = [student_email]
+                msg.reply_to = [student_email]
+
+                from relate.utils import get_outbound_mail_connection
+                msg.connection = get_outbound_mail_connection("student_interact")
+                msg.send()
+
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    _("Email sent, and notice that you will "
+                      "also receive a copy of the email."))
+
+            return redirect("relate-view_flow_page",
+                            pctx.course.identifier,flow_session_id, ordinal)
+
+    else:
+        form = FlowPageInteractionEmailForm()
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+         "form": form,
+         "form_description": _("Send interaction email"),
+     })
+
+
+class FlowPageInteractionEmailForm(StyledForm):
+    def __init__(self, *args, **kwargs):
+        super(FlowPageInteractionEmailForm, self).__init__(*args, **kwargs)
+        self.fields["message"] = forms.CharField(
+                required=True,
+                widget=forms.Textarea,
+                help_text=_("Your question about the page. "
+                            ),
+                label=_("Message"))
+        self.helper.add_input(
+            Submit(
+                "submit", _("Send Email"),
+                css_class="relate-submit-button"))
+
+    def clean_message(self):
+        cleaned_data = super(FlowPageInteractionEmailForm, self).clean()
+        message = cleaned_data.get("message")
+        if len(message) < 20:
+            raise forms.ValidationError(
+                _("At least 20 characters are required for submission."))
+        return message
 
 # }}}
 
