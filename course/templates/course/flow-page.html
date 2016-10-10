@@ -162,17 +162,17 @@
         style="padding-right: 0.4em;">
         <button type="submit" name="finish" class="btn btn-default relate-nav-button btn-success"
         title='
-          {%- if interaction_kind == flow_session_interaction_kind.noninteractive -%}
+          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
             {% trans "Go to end" %}
-          {%- elif interaction_kind == flow_session_interaction_kind.ungraded -%}
+          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
             {% trans "Submit" %}
-          {%- elif interaction_kind == flow_session_interaction_kind.practice_grade -%}
+          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
             {% trans "Finish" %}
-          {%- elif interaction_kind == flow_session_interaction_kind.permanent_grade -%}
+          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
             {% trans "Submit assignment" %}
-          {%- else -%}
+          {% else %}
             {% trans "Finish" %}
-          {%- endif -%}
+          {% endif %}
         '>
         <i class="fa fa-check"></i>
         </button>
