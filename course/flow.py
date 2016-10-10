@@ -2176,7 +2176,6 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
         if form.is_valid():
             from django.utils import translation
             from django.conf import settings
-            from course.models import Participation
             from course.models import FlowSession
 
             flow_session = get_object_or_404(
@@ -2239,13 +2238,14 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(
                     subject=string_concat(
-                            "[%(identifier)s:%(flow_id)s--%(page_id)s] ",
-                            _("Interaction request from %(username)s"))
-                            % {'identifier': pctx.course_identifier,
-                               'flow_id': flow_session_id,
-                               'page_id': page_id,
-                               'username': pctx.participation.user.get_full_name()
-                               },
+                        "[%(identifier)s:%(flow_id)s--%(page_id)s] ",
+                        _("Interaction request from %(username)s"))
+                    % {
+                            'identifier': pctx.course_identifier,
+                            'flow_id': flow_session_id,
+                            'page_id': page_id,
+                            'username': pctx.participation.user.get_full_name()
+                            },
                     body=message,
                     from_email=from_email,
                     to=recipient_list,
@@ -2265,15 +2265,16 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
                       "also receive a copy of the email."))
 
             return redirect("relate-view_flow_page",
-                            pctx.course.identifier,flow_session_id, ordinal)
+                    pctx.course.identifier, flow_session_id, ordinal)
 
     else:
         form = FlowPageInteractionEmailForm()
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
-         "form": form,
-         "form_description": _("Send interaction email"),
-     })
+    return render_course_page(
+            pctx, "course/generic-course-form.html", {
+                "form": form,
+                "form_description": _("Send interaction email"),
+                })
 
 
 class FlowPageInteractionEmailForm(StyledForm):
