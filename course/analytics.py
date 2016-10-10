@@ -180,11 +180,15 @@ class Histogram(object):
                 bins[bin_nr] += weight
 
         total_weight = self.total_weight()
+
         num_bin_info = [
                 BinInfo(
                     title=self.num_bin_title_formatter(start),
                     raw_weight=weight,
-                    percentage=100*weight/total_weight)
+                    percentage=(
+                        100*weight/total_weight
+                        if total_weight
+                        else None))
                 for start, weight in zip(num_bin_starts, bins)]
 
         str_bin_info = [

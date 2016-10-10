@@ -12,11 +12,13 @@
         ({{ bin.raw_weight }})
       </span>
       <div class="progress">
-        <div class="progress-bar progress-bar-info" role="progressbar"
-          aria-valuenow="{{ bin.percentage }}" aria-valuemin="0" aria-valuemax="100"
-          style="width: {{ bin.percentage|stringformat:".1f" }}%">
-          <span class="stats-percentage">{{ bin.percentage|floatformat:1 }}%</span>
-        </div>
+        {% if bin.percentage != None %}
+          <div class="progress-bar progress-bar-info" role="progressbar"
+            aria-valuenow="{{ bin.percentage }}" aria-valuemin="0" aria-valuemax="100"
+            style="width: {{ bin.percentage|stringformat:".1f" }}%">
+            <span class="stats-percentage">{{ bin.percentage|floatformat:1 }}%</span>
+          </div>
+        {% endif %}
       </div>
     </div>
   {% endfor %}
