@@ -87,7 +87,7 @@
               </a></li>
             {% endif %}
             {% if page_expect_answer_and_gradable %}
-              {% if pperm.reopen_flow_session and not flow_session.in_progress %}
+              {% if pperm.reopen_flow_session and not flow_session.in_progress and opportunity.id != None %}
                 <li>
                   <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
                      target="_blank">
