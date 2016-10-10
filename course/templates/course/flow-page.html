@@ -156,6 +156,30 @@
 
       {# }}} #}
 
+      {# {{{ 'finish' button #}
+
+      <div class="navbar-right relate-flow-submit"
+        style="padding-right: 0.4em;">
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button btn-success"
+        title='
+          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
+            {% trans "Go to end" %}
+          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
+            {% trans "Submit" %}
+          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
+            {% trans "Finish" %}
+          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
+            {% trans "Submit assignment" %}
+          {% else %}
+            {% trans "Finish" %}
+          {% endif %}
+        '>
+        <i class="fa fa-check"></i>
+        </button>
+      </div>
+
+      {# }}} #}
+
       {# {{{ expiration mode #}
 
       {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
@@ -178,30 +202,6 @@
           </select>
         </div>
       {% endif %}
-
-      {# }}} #}
-
-      {# {{{ 'finish' button #}
-
-      <div class="navbar-right relate-flow-submit"
-        style="padding-right: 0.4em;">
-        <button type="submit" name="finish" class="btn btn-default relate-nav-button btn-success"
-        title='
-          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
-            {% trans "Go to end" %}
-          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
-            {% trans "Submit" %}
-          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
-            {% trans "Finish" %}
-          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
-            {% trans "Submit assignment" %}
-          {% else %}
-            {% trans "Finish" %}
-          {% endif %}
-        '>
-        <i class="fa fa-check"></i>
-        </button>
-      </div>
 
       {# }}} #}
 
