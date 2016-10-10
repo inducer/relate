@@ -25,20 +25,24 @@
         {% if page_data.ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-            role="button">&laquo; {% trans "Previous" context "Previous page/item in a flow" %}</a>
+            title='{% trans "Previous page" context "Previous page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-left"></i></a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
             href="#"
-            role="button">&laquo; {% trans "Previous" context "Previous page/item in a flow" %}</a>
+            title='{% trans "Previous page" context "Previous page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-left"></i></a>
         {% endif %}
         {% if page_data.next_ordinal < flow_session.page_count %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-            role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
+            title='{% trans "Next page" context "Next page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-right"></i></a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
             href="#"
-            role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
+            title='{% trans "Next page" context "Next page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-right"></i></a>
         {% endif %}
         <button id="btn_bookmark"
                 class="btn btn-default relate-flow-page-bookmark-button
@@ -54,29 +58,62 @@
               fa-star-o
             {% endif %}
             " aria-hidden="true"></i>
-          Bookmark
         </button>
       </div>
 
       {# }}} #}
 
-      {# {{{ 'finish' button #}
+      {# {{{ menu #}
 
-      <div class="relate-flow-submit">
-        <button type="submit" name="finish" class="btn btn-default relate-nav-button">
-          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
-            {% trans "Go to end" %}
-          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
-            {% trans "Submit" %}
-          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
-            {% trans "Finish" %}
-          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
-            {% trans "Submit assignment" %}
-          {% else %}
-            {% trans "Finish" %}
-          {% endif %}
-          &raquo;
-        </button>
+      <div class="navbar-right relate-flow-page-past-submissions"
+        style="padding-right: 0.4em;">
+        <div class="dropdown">
+          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+            title='{% trans "Page Menu" %}'>
+            <i class="fa fa-bars"></i>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
+            <li>
+              <a href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
+                >{% trans "Return to flow start page" %}</a>
+            </li>
+            {% if may_send_email_about_flow_page %}
+              <li>
+                <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id ordinal %}"
+                target="_blank">
+                     {% trans 'Send an interaction email to course staff about this page' %}
+                  >{% trans "Send email" %}
+                </a>
+              </a></li>
+            {% endif %}
+            {% if page_expect_answer_and_gradable %}
+              {% if pperm.reopen_flow_session and not flow_session.in_progress %}
+                <li>
+                  <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
+                     target="_blank">
+                    {% trans "Reopen" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                  </a>
+                </li>
+              {% endif %}
+              {% if page_expect_answer_and_gradable and pperm.grant_exception %}
+                <li>
+                  <a href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
+                    target="_blank">
+                      {% trans "Grant exception" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                  </a>
+                </li>
+              {% endif %}
+              {% if pperm.view_gradebook %}
+                <li>
+                  <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id ordinal %}"
+                     target="_blank">
+                      {% trans "View in grading page" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                  </a>
+                </li>
+              {% endif %}
+            {% endif %}
+          </ul>
+        </div>
       </div>
 
       {# }}} #}
@@ -84,10 +121,12 @@
       {# {{{ past submissions #}
 
       {% if prev_answer_visits %}
-      <div class="relate-flow-page-past-submissions" style="padding-right: 0.4em">
+      <div class="navbar-right relate-flow-page-past-submissions"
+        style="padding-right: 0.4em; margin-right:0;">
         <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-            {% trans "Past submissions" %}
+          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+            title='{% trans "Submission history for this page" %}'>
+            <i class="fa fa-history"></i>
             <span class="caret"></span>
           </button>
           <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
@@ -139,6 +178,30 @@
           </select>
         </div>
       {% endif %}
+
+      {# }}} #}
+
+      {# {{{ 'finish' button #}
+
+      <div class="navbar-right relate-flow-submit"
+        style="padding-right: 0.4em;">
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button btn-success"
+        title='
+          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
+            {% trans "Go to end" %}
+          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
+            {% trans "Submit" %}
+          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
+            {% trans "Finish" %}
+          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
+            {% trans "Submit assignment" %}
+          {% else %}
+            {% trans "Finish" %}
+          {% endif %}
+        '>
+        <i class="fa fa-check"></i>
+        </button>
+      </div>
 
       {# }}} #}
 
@@ -279,58 +342,6 @@
     {# show only correct answer, without indication of correctness #}
     <div class="well">
       <p>{{ correct_answer|safe }}</p>
-    </div>
-  {% endif %}
-
-  {# }}} #}
-
-
-  {# {{{ flow page interaction email #}
-
-  {% if may_send_email_about_flow_page %}
-      <div class="row" align="right">
-          <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id ordinal %}"
-             class="btn btn-primary btn-xs relate-btn-xs-vert-spaced"
-             title="{% trans 'Send an interaction email to course staff about this page' %}"
-             target="_blank"
-          >
-          {% trans "Send email" %}
-      </a>
-      </div>
-  {% endif %}
-
-  {# }}} #}
-
-
-  {# {{{ show single grade link #}
-
-  {% if page_expect_answer_and_gradable %}
-    <div class="row" align="right">
-        {% if pperm.reopen_flow_session and not flow_session.in_progress %}
-            <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
-               class="btn btn-primary btn-xs relate-btn-xs-vert-spaced"
-               target="_blank"
-            >
-                {% trans "Reopen" %}
-            </a>
-        {% endif %}
-        {% if pperm.grant_exception %}
-            <a href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
-               class="btn btn-primary btn-xs relate-btn-xs-vert-spaced"
-                target="_blank"
-            >
-                {% trans "Grant exception" %}
-            </a>
-        {% endif %}
-        {% if pperm.view_gradebook %}
-            <a class="btn btn-primary btn-xs relate-btn-xs-vert-spaced"
-               href="{% url 'relate-grade_flow_page' course.identifier flow_session.id ordinal %}"
-               role="button"
-               target="_blank"
-            >
-                {% trans "View in grading page" %}
-            </a>
-        {% endif %}
     </div>
   {% endif %}
 
