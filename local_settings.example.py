@@ -84,10 +84,10 @@ ADMINS = (
     ("Example Admin", "admin@example.com"),
     )
 
-# If your email service do not allow nonauthorized sender, set the following
-# to False and change the configurations above accordingly, noticing that
-# Django will sent all emails using the EMAIL_ above.
-RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = True
+# If your email service do not allow nonauthorized sender, uncomment the following
+# statement and change the configurations above accordingly, noticing that all 
+# emails will be sent using the EMAIL_ settings above.
+#RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
 
 # Advanced email settings if you want to configure multiple SMTPs for different
 # purpose/type of emails. It is also very useful when
@@ -101,7 +101,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
 
         # For automatic email sent by site.
         "robot": {
-            # You can use email backend your liked.
+            # You can use your preferred email backend.
             'backend': 'djcelery_email.backends.CeleryEmailBackend',
             'host': 'smtp.gmail.com',
             'username': 'blah@blah.com',
@@ -110,7 +110,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'use_tls': True,
         },
 
-        # For emails that expect no reply for recipients, e.g., registeration,
+        # For emails that expect no reply for recipients, e.g., registration,
         # reset password, etc.
         "no_reply": {
             'host': 'smtp.gmail.com',
@@ -129,7 +129,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'use_tls': True,
         },
 
-        # For sending feedback email to students in grading pages.
+        # For sending feedback email to students in grading interface.
         "grader_feedback": {
             'host': 'smtp.gmail.com',
             'username': 'blah@blah.com',
@@ -138,8 +138,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'use_tls': True,
         },
 
-        # For student to sending email to course staff.
-        # Not implement yet
+        # For student to send email to course staff in flow pages
         "student_interact": {
             'host': 'smtp.gmail.com',
             'username': 'blah@blah.com',

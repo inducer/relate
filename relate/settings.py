@@ -18,6 +18,8 @@ import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = True
+
 _local_settings_file = join(BASE_DIR, "local_settings.py")
 local_settings = {
         "__file__": _local_settings_file,
