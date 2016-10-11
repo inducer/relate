@@ -94,7 +94,7 @@
                   </a>
                 </li>
               {% endif %}
-              {% if page_expect_answer_and_gradable and pperm.grant_exception %}
+              {% if page_expect_answer_and_gradable and pperm.grant_exception and flow_session.participation.id != None %}
                 <li>
                   <a href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                     target="_blank">
