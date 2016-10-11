@@ -65,14 +65,14 @@
 
       {# {{{ menu #}
 
-      <div class="navbar-right relate-flow-page-past-submissions"
+      <div class="navbar-right relate-flow-page-menu"
         style="padding-right: 0.4em;">
         <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+          <button class="btn btn-default dropdown-toggle" type="button" id="menu_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
             title='{% trans "Page Menu" %}'>
             <i class="fa fa-bars"></i>
           </button>
-          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
+          <ul class="dropdown-menu" aria-labelledby="menu_dropdown">
             <li>
               <a href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
                 >{% trans "Return to flow start page" %}</a>
@@ -81,10 +81,9 @@
               <li>
                 <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id ordinal %}"
                 target="_blank">
-                     {% trans 'Send an interaction email to course staff about this page' %}
-                  >{% trans "Send email" %}
+                   {% trans 'Send an email about this page to course staff' %}
                 </a>
-              </a></li>
+              </li>
             {% endif %}
             {% if page_expect_answer_and_gradable %}
               {% if pperm.reopen_flow_session and not flow_session.in_progress and opportunity.id != None %}
