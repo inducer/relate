@@ -341,7 +341,7 @@ class ShortAnswer(AnswerBase):
 
     def get_correctness(self, answer):
 
-        correctnesses_and_answers = [(0, "")]
+        correctnesses = [0]
         # If empty an list, sometime it will cause ValueError:
         # max() arg is an empty sequence, observed in SandBox
 
@@ -351,12 +351,9 @@ class ShortAnswer(AnswerBase):
             except forms.ValidationError:
                 continue
 
-            correctnesses_and_answers.append(
-                    (matcher.grade(answer), matcher.correct_answer_text()))
+            correctnesses.append(matcher.grade(answer))
 
-        correctness, correct_answer_text = max(correctnesses_and_answers)
-
-        return correctness
+        return max(correctnesses)
 
     def get_form_field(self, page_context, force_required=False):
         return (self.form_field_class)(
