@@ -594,9 +594,6 @@ def get_interaction_kind(
         ):
     # type: (...) -> Text
 
-    if not flow_session.in_progress:
-        return flow_session_interaction_kind.noninteractive
-
     ikind = flow_session_interaction_kind.noninteractive
 
     for i, page_data in enumerate(all_page_data):
