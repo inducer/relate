@@ -1446,8 +1446,7 @@ def download_all_submissions(pctx, flow_id):
                 visits = (visits
                         .filter(
                             flow_session__access_rules_tag=(
-                                form.cleaned_data["restrict_to_rules_tag"]))
-                        .select_related("grades"))
+                                form.cleaned_data["restrict_to_rules_tag"])))
 
             submissions = {}
 
