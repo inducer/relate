@@ -283,7 +283,7 @@ class PageBase(object):
 
     .. automethod:: make_grading_form
     .. automethod:: post_grading_form
-    .. automethod:: update_grade_data_from_grading_form
+    .. automethod:: update_grade_data_from_grading_form_v2
     .. automethod:: grading_form_to_html
 
     .. rubric:: Grading/Feedback
@@ -551,7 +551,7 @@ class PageBase(object):
         # type: (...) -> forms.Form
         """
         :arg grade_data: value returned by
-            :meth:`update_grade_data_from_grading_form`.  May be *None*.
+            :meth:`update_grade_data_from_grading_form_v2`.  May be *None*.
         :return:
             a :class:`django.forms.Form` instance with *grade_data* prepopulated.
         """
@@ -574,8 +574,9 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
-    def update_grade_data_from_grading_form(
+    def update_grade_data_from_grading_form_v2(
             self,
+            request,  # type: http.HttpRequest
             page_context,  # type: PageContext
             page_data,  # type: Any
             grade_data,  # type: Any
@@ -586,6 +587,24 @@ class PageBase(object):
         JSON-persistable object reflecting data on grading of this response.
         This will be passed to other methods as *grade_data*.
         """
+
+        from warnings import warn
+        warn(_("%s is using the update_grade_data_from_grading_form "
+               "compatiblity hook, which "
+                "is deprecated.") % type(self).__name__,
+                DeprecationWarning)
+
+        return self.update_grade_data_from_grading_form(
+                page_context, page_data, grade_data, grading_form, files_data)
+
+    def update_grade_data_from_grading_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data,  # type: Any
+            grading_form,  # type: Any
+            files_data  # type: Any
+            ):
 
         return grade_data
 
@@ -621,7 +640,7 @@ class PageBase(object):
         :arg answer_data: value returned by :meth:`answer_data`,
             or *None*, which means that no answer was supplied.
         :arg grade_data: value updated by
-            :meth:`update_grade_data_from_grading_form`
+            :meth:`update_grade_data_from_grading_form_v2`
         :return: a :class:`AnswerFeedback` instanstance, or *None* if the
             grade is not yet available.
         """
@@ -830,6 +849,10 @@ class HumanTextFeedbackForm(StyledForm):
                 "will notify the participant "
                 "with a generic message containing the feedback text"),
                 label=_("Notify"))
+        self.fields["may_reply"] = forms.BooleanField(
+                initial=False, required=False,
+                help_text=_("Allow recipient to reply to this email?"),
+                label=_("May reply email to me"))
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
                 help_text=_("Whether the grade and feedback are to "
@@ -843,6 +866,12 @@ class HumanTextFeedbackForm(StyledForm):
                 help_text=_("Internal notes, not shown to student"),
                 required=False,
                 label=_("Notes"))
+        self.fields["notify_instructor"] = forms.BooleanField(
+                initial=False, required=False,
+                help_text=_("Checking this box and submitting the form "
+                "will notify the instructor "
+                "with a generic message containing the notes"),
+                label=_("Notify instructor"))
 
     def clean(self):
         grade_percent = self.cleaned_data.get("grade_percent")
@@ -922,8 +951,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
         return HumanTextFeedbackForm(
                 human_feedback_point_value, post_data, files_data)
 
-    def update_grade_data_from_grading_form(self, page_context, page_data,
-            grade_data, grading_form, files_data):
+    def update_grade_data_from_grading_form_v2(self, request, page_context,
+            page_data, grade_data, grading_form, files_data):
 
         if grade_data is None:
             grade_data = {}
@@ -957,10 +986,44 @@ class PageBaseWithHumanTextFeedback(PageBase):
                         [page_context.flow_session.participation.user.email])
                 msg.bcc = [page_context.course.notify_email]
 
-                # This will allow user to reply to email to sender, currently,
-                # emails sent (even by TAs) will be reply to instructors.
-                # need more fields in course models
-                msg.reply_to = [page_context.course.get_reply_to_email()]
+                if grading_form.cleaned_data["may_reply"]:
+                    msg.reply_to = [request.user.email]
+
+                if hasattr(settings, "GRADER_FEEDBACK_EMAIL_FROM"):
+                    from relate.utils import get_outbound_mail_connection
+                    msg.connection = get_outbound_mail_connection("grader_feedback")
+                msg.send()
+
+        if (grading_form.cleaned_data["notes"]
+            and grading_form.cleaned_data["notify_instructor"]
+            and page_context.flow_session):
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                from django.urls import reverse
+                message = render_to_string("course/grade-internal-notes-notify.txt", {
+                    "page_title": self.title(page_context, page_data),
+                    "course": page_context.course,
+                    "participation": page_context.flow_session.participation,
+                    "notes_text": grade_data["notes"],
+                    "flow_session": page_context.flow_session,
+                    "review_uri": page_context.page_uri,
+                    "sender": request.user
+                    })
+
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
+                        string_concat("[%(identifier)s:%(flow_id)s] ",
+                            _("Grading notes from %(ta)s"))
+                        % {'identifier': page_context.course.identifier,
+                           'flow_id': page_context.flow_session.flow_id,
+                           'ta': request.user.get_full_name()
+                           },
+                        message,
+                        getattr(settings, "GRADER_FEEDBACK_EMAIL_FROM",
+                                page_context.course.get_from_email()),
+                        [page_context.course.notify_email])
+                msg.bcc = [request.user.email]
+                msg.reply_to = [request.user.email]
 
                 if hasattr(settings, "GRADER_FEEDBACK_EMAIL_FROM"):
                     from relate.utils import get_outbound_mail_connection
