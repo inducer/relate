@@ -72,7 +72,7 @@
                title="{% trans 'Send an email about this page to course staff' %}"
                target="_blank"
             >
-                <i class="fa fa-envelope-o"></i>
+                <i class="fa fa-envelope-o" aria-hidden="true"></i>
             </a>
         </div>
       {% endif %}
@@ -166,21 +166,40 @@
 
       <div class="navbar-right relate-flow-submit"
         style="padding-right: 0.4em;">
-        <button type="submit" name="finish" class="btn btn-default relate-nav-button btn-success"
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button
+        {% if flow_session.in_progress %}
+          {% if not interaction_kind == flow_session_interaction_kind.noninteractive %}
+            btn-success
+          {% endif %}
+        {% endif %}"
         title='
-          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
+        {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
             {% trans "Go to end" %}
-          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
+        {% elif flow_session.in_progress %}
+          {% if interaction_kind == flow_session_interaction_kind.ungraded %}
             {% trans "Submit" %}
-          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
-            {% trans "Finish" %}
           {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
             {% trans "Submit assignment" %}
           {% else %}
             {% trans "Finish" %}
           {% endif %}
+        {% elif not flow_session.in_progress %}
+          {% if interaction_kind == flow_session_interaction_kind.ungraded or interaction_kind == flow_session_interaction_kind.permanent_grade %}
+            {% trans "Result" %}
+          {% else %}
+            {% trans "Finish" %}
+          {% endif %}
+        {% endif %}
         '>
-        <i class="fa fa-check"></i>
+        {% if interaction_kind == flow_session_interaction_kind.permanent_grade or interaction_kind == flow_session_interaction_kind.ungraded %}
+          {% if flow_session.in_progress %}
+            <i class="fa fa-check" aria-hidden="true"></i>
+          {% else %}
+            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+          {% endif %}
+        {% else %}
+            <i class="fa fa-sign-out" aria-hidden="true"></i>
+        {% endif %}
         </button>
       </div>
 
