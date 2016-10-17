@@ -2167,33 +2167,33 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
 
     # }}}
 
+    from django.conf import settings
+    from course.models import FlowSession
+
+    flow_session = get_object_or_404(
+        FlowSession, id=int(flow_session_id))
+    from course.models import FlowPageData
+    page_id = FlowPageData.objects.get(
+        flow_session=flow_session_id, ordinal=ordinal).page_id
+
+    from django.core.urlresolvers import reverse
+    review_url = reverse(
+        "relate-view_flow_page",
+        kwargs={'course_identifier': pctx.course.identifier,
+                'flow_session_id': flow_session_id,
+                'ordinal': ordinal
+                }
+    )
+
+    from six.moves.urllib.parse import urljoin
+
+    review_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
+                         review_url)
+
     if request.method == "POST":
-        form = FlowPageInteractionEmailForm(request.POST)
+        form = FlowPageInteractionEmailForm(request.POST, review_uri)
 
         if form.is_valid():
-            from django.utils import translation
-            from django.conf import settings
-            from course.models import FlowSession
-
-            flow_session = get_object_or_404(
-                FlowSession, id=int(flow_session_id))
-            from course.models import FlowPageData
-            page_id = FlowPageData.objects.get(
-                flow_session=flow_session_id, ordinal=ordinal).page_id
-
-            from django.core.urlresolvers import reverse
-            review_url = reverse(
-                "relate-view_flow_page",
-                kwargs={'course_identifier': pctx.course.identifier,
-                        'flow_session_id': flow_session_id,
-                        'ordinal': ordinal
-                        }
-            )
-
-            from six.moves.urllib.parse import urljoin
-
-            review_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
-                                 review_url)
 
             from_email = getattr(
                     settings,
@@ -2220,6 +2220,7 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
             if not recipient_list:
                 recipient_list = instructor_email_list
 
+            from django.utils import translation
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
                 message = render_to_string(
@@ -2265,7 +2266,7 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
                     pctx.course.identifier, flow_session_id, ordinal)
 
     else:
-        form = FlowPageInteractionEmailForm()
+        form = FlowPageInteractionEmailForm(review_uri)
 
     return render_course_page(
             pctx, "course/generic-course-form.html", {
@@ -2275,13 +2276,16 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
 
 
 class FlowPageInteractionEmailForm(StyledForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, review_uri, *args, **kwargs):
         super(FlowPageInteractionEmailForm, self).__init__(*args, **kwargs)
         self.fields["message"] = forms.CharField(
                 required=True,
                 widget=forms.Textarea,
-                help_text=_("Your question about the page. "
-                            ),
+                help_text= string_concat(
+                    _("Your questions about page %s . ") % review_uri,
+                    _("Notice that <strong>only</strong> questions "
+                      "for that page will be answered."),
+                ),
                 label=_("Message"))
         self.helper.add_input(
             Submit(
