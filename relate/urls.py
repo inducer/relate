@@ -80,6 +80,9 @@ urlpatterns = [
     url(r"^profile/$",
         course.auth.user_profile,
         name="relate-user_profile"),
+    url(r"^profile/auth-token/$",
+        course.auth.manage_authentication_token,
+        name="relate-manage_authentication_token"),
 
     url(r"^generate-ssh-key/$",
         course.views.generate_ssh_keypair,

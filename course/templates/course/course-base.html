@@ -97,6 +97,7 @@
 
       {% if pperm.preview_content or pperm.update_content %}
         <li><a href="{% url "relate-update_course" course.identifier %}">{% trans "Retrieve/preview new course revisions" %}</a></li>
+        <li><a href="{% url "relate-manage_authentication_token" %}">{% trans "Manage Git Authentication Token" %}</a></li>
       {% endif %}
 
       {% if pperm.edit_course %}

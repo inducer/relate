@@ -172,7 +172,7 @@ class ImpersonateForm(StyledForm):
 
 
 def impersonate(request):
-    # type: (http.HttpRquest) -> http.HttpResponse
+    # type: (http.HttpRequest) -> http.HttpResponse
 
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
@@ -951,6 +951,51 @@ def user_profile(request):
                 and request.GET["referer"])
             ),
         "user_form": user_form,
+        })
+
+# }}}
+
+
+# {{{ manage auth token
+
+class AuthenticationTokenForm(StyledForm):
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(Submit("reset", _("Reset")))
+
+
+def manage_authentication_token(request):
+    # type: (http.HttpRequest) -> http.HttpResponse
+    if not request.user.is_authenticated:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = AuthenticationTokenForm(request.POST)
+        if form.is_valid():
+            token = make_sign_in_key(request.user)
+            from django.contrib.auth.hashers import make_password
+            request.user.git_auth_token_hash = make_password(token)
+            request.user.save()
+
+            messages.add_message(request, messages.SUCCESS,
+                    _("A new authentication token has been set: %s.")
+                    % token)
+
+    else:
+        if request.user.git_auth_token_hash is not None:
+            messages.add_message(request, messages.INFO,
+                    _("An authentication token has previously been set."))
+        else:
+            messages.add_message(request, messages.INFO,
+                    _("No authentication token has previously been set."))
+
+        form = AuthenticationTokenForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": _("Manage Git Authentication Token"),
+        "form": form
         })
 
 # }}}
