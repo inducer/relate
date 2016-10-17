@@ -70,21 +70,26 @@ from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 
+<<<<<<< HEAD
 if False:
     from typing import Any, Tuple, Text, Optional, List, FrozenSet  # noqa
     from course.utils import CoursePageContext  # noqa
+=======
+from typing import Any, Tuple, Text, Optional  # noqa
+from course.utils import CoursePageContext  # noqa
+import accounts.models  # noqa
+>>>>>>> 016ef1d1... Add a functioning git end point (with authentication), needs preview/update integration
 
 # }}}
 
 
-# {{{ get_participation_for_request
+# {{{ get_participation_for_{user,request}
 
-def get_participation_for_request(request, course):
-    # type: (http.HttpRequest, Course) -> Optional[Participation]
+def get_participation_for_user(user, course):
+    # type: (accounts.models.User, Course) -> Optional[Participation]
 
     # "wake up" lazy object
     # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
-    user = request.user
     try:
         possible_user = user._wrapped
     except AttributeError:
@@ -109,6 +114,12 @@ def get_participation_for_request(request, course):
         return None
 
     return participations[0]
+
+
+def get_participation_for_request(request, course):
+    # type: (http.HttpRequest, Course) -> Optional[Participation]
+
+    return get_participation_for_user(request.user, course)
 
 # }}}
 
