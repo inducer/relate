@@ -737,7 +737,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def get_question(self, page_context):
+    def get_question(self, page_context, page_data):
         # for correct render of question with more than one
         # paragraph, remove heading <p> tags and change </p>
         # to line break.
@@ -746,8 +746,8 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 self.page_desc.question,
                 ).replace("<p>", "").replace("</p>", "<br/>")
 
-    def get_dict_for_form(self, page_context):
-        remainder_html = self.get_question(page_context)
+    def get_dict_for_form(self, page_context, page_data):
+        remainder_html = self.get_question(page_context, page_data)
 
         html_list = []
         for wrapped_name in self.embedded_wrapped_name_list:
@@ -766,7 +766,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         read_only = not page_behavior.may_change_answer
 
         if answer_data is not None:
-            dict_feedback_form = self.get_dict_for_form(page_context)
+            dict_feedback_form = self.get_dict_for_form(page_context, page_data)
 
             answer = answer_data["answer"]
             if page_behavior.show_correctness:
@@ -788,7 +788,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             answer = None
             form = InlineMultiQuestionForm(
                     read_only,
-                    self.get_dict_for_form(page_context),
+                    self.get_dict_for_form(page_context, page_data),
                     page_context)
 
         return form
@@ -799,14 +799,14 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         return InlineMultiQuestionForm(
                 read_only,
-                self.get_dict_for_form(page_context),
+                self.get_dict_for_form(page_context, page_data),
                 page_context,
                 post_data, files_data)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
-        cor_answer_output = self.get_question(page_context)
+        cor_answer_output = self.get_question(page_context, page_data)
 
         for idx, wrapped in enumerate(self.embedded_wrapped_name_list):
             correct_answer_i = self.answer_instance_list[idx] \
@@ -882,7 +882,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer_dict = answer_data["answer"]
 
-        nml_answer_output = self.get_question(page_context)
+        nml_answer_output = self.get_question(page_context, page_data)
 
         for idx, wrapped_name in enumerate(self.embedded_wrapped_name_list):
             nml_answer_output = nml_answer_output.replace(
