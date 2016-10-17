@@ -2,7 +2,10 @@
 
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+__copyright__ = """
+Copyright (C) 2014 Andreas Kloeckner
+Copyright (c) 2016 Polyconseil SAS. (the WSGI wrapping bits)
+"""
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,7 +34,8 @@ from django.shortcuts import (  # noqa
 from django.contrib import messages
 import django.forms as forms
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
+        ObjectDoesNotExist)
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
@@ -39,8 +43,12 @@ from django.utils.translation import (
         pgettext_lazy,
         string_concat,
         )
+from django.views.decorators.csrf import csrf_exempt
+
 from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
+from django.urls import reverse
+from django.contrib.auth import get_user_model
 
 from django.db import transaction
 
@@ -67,7 +75,7 @@ from course.constants import (
 # {{{ for mypy
 
 from django import http  # noqa
-from typing import Tuple, List, Text, Any  # noqa
+from typing import cast, Tuple, List, Text, Any  # noqa
 from dulwich.client import GitClient  # noqa
 
 # }}}
@@ -662,6 +670,25 @@ def update_course(pctx):
                     "</td></tr>",
                     ]))
 
+    text_lines.append(
+            string_concat(
+                "<tr><th>",
+                ugettext("Direct git endpoint"),
+                "</th><td>"
+                "%(git_url)s",
+                " ",
+                '(<a href="%(token_url)s">',
+                ugettext("Manage access token"),
+                '</a>)',
+                "</td></tr>"
+                )
+            % {
+                "git_url": request.build_absolute_uri(
+                    reverse("relate-git_endpoint",
+                        args=(pctx.course.identifier,))),
+                "token_url": reverse("relate-manage_authentication_token"),
+                })
+
     text_lines.append("</table>")
 
     return render_course_page(pctx, "course/generic-course-form.html", {
@@ -672,6 +699,149 @@ def update_course(pctx):
             ),
         "form_description": ugettext("Update Course Revision"),
     })
+
+# }}}
+
+
+# {{{ git endpoint
+
+
+# {{{ wsgi wrapping
+
+# Nabbed from
+# https://github.com/Polyconseil/django-viewsgi/blob/master/viewsgi.py
+# (BSD-licensed)
+
+def shift_path(environ, prefix):
+    assert environ['PATH_INFO'].startswith(prefix)
+    environ['SCRIPT_NAME'] += prefix
+    environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
+
+
+def call_wsgi_app(application, request):
+    response = http.HttpResponse()
+
+    # request.environ and request.META are the same object, so changes
+    # to the headers by middlewares will be seen here.
+    environ = request.environ.copy()
+    #if len(args) > 0:
+    #    shift_path(environ, '/' + args[0])
+
+    if six.PY2:
+        # Django converts SCRIPT_NAME and PATH_INFO to unicode in WSGIRequest.
+        environ['SCRIPT_NAME'] = environ['SCRIPT_NAME'].encode('iso-8859-1')
+        environ['PATH_INFO'] = environ['PATH_INFO'].encode('iso-8859-1')
+
+    headers_set = []
+    headers_sent = []
+
+    def write(data):
+        if not headers_set:
+            raise AssertionError("write() called before start_response()")
+        if not headers_sent:
+            # Send headers before the first output.
+            for k, v in headers_set:
+                response[k] = v
+            headers_sent[:] = [True]
+        response.write(data)
+        # We could call response.flush() here, but is actually a no-op.
+
+    def start_response(status, headers, exc_info=None):
+        # Let Django handle all errors.
+        if exc_info:
+            raise exc_info[1].with_traceback(exc_info[2])
+        if headers_set:
+            raise AssertionError("start_response() called again "
+                                 "without exc_info")
+        response.status_code = int(status.split(' ', 1)[0])
+        headers_set[:] = headers
+        # Django provides no way to set the reason phrase (#12747).
+        return write
+
+    result = application(environ, start_response)
+    try:
+        for data in result:
+            if data:
+                write(data)
+        if not headers_sent:
+            write('')
+    finally:
+        if hasattr(result, 'close'):
+            result.close()
+
+    return response
+
+# }}}
+
+
+@csrf_exempt
+def git_endpoint(request, course_identifier, git_path):
+    # type: (http.HttpRequest, Text) -> http.HttpResponse
+
+    auth_value = request.META.get("HTTP_AUTHORIZATION")
+
+    user = None
+    if auth_value is not None:
+        auth_values = auth_value.split(" ")
+        if len(auth_values) == 2:
+            auth_method, auth_data = auth_values
+            if auth_method == "Basic":
+                from base64 import b64decode
+                auth_data = b64decode(auth_data.strip()).decode(
+                        "utf-8", errors="replace")
+                auth_data_values = auth_data.split(':', 1)
+                if len(auth_data_values) == 2:
+                    username, token = auth_data_values
+                    try:
+                        possible_user = get_user_model().objects.get(
+                                username=username)
+                    except ObjectDoesNotExist:
+                        pass
+                    else:
+                        from django.contrib.auth.hashers import check_password
+                        if check_password(
+                                token, possible_user.git_auth_token_hash):
+                            user = possible_user
+
+    if user is None:
+        realm = _("Relate direct git access")
+        response = http.HttpResponse(
+                _('Authorization Required'), content_type="text/plain")
+        response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
+        response.status_code = 401
+        return response
+
+    course = get_object_or_404(Course, identifier=course_identifier)
+
+    from course.enrollment import get_participation_for_user
+    participation = get_participation_for_user(user, course)
+    if participation is None:
+        raise PermissionDenied()
+
+    if not (
+            participation.has_permission(pperm.update_content)
+            or
+            participation.has_permission(pperm.preview_content)):
+        raise PermissionDenied()
+
+    from course.content import get_course_repo
+    repo = get_course_repo(course)
+
+    from course.content import SubdirRepoWrapper
+    if isinstance(repo, SubdirRepoWrapper):
+        true_repo = repo.repo
+    else:
+        true_repo = cast(dulwich.repo.Repo, repo)
+
+    base_path = reverse(git_endpoint, args=(course_identifier, ""))
+    assert base_path.endswith("/")
+    base_path = base_path[:-1]
+
+    import dulwich.web as dweb
+    backend = dweb.DictBackend({base_path: true_repo})
+    app = dweb.make_wsgi_chain(backend)
+
+    return call_wsgi_app(app, request)
 
 # }}}
 

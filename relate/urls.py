@@ -340,6 +340,13 @@ urlpatterns = [
         "/update/$",
         course.versioning.update_course,
         name="relate-update_course"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/git"
+        "/(?P<git_path>.*)"
+        "$",
+        course.versioning.git_endpoint,
+        name="relate-git_endpoint"),
 
     # }}}
 
