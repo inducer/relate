@@ -776,7 +776,7 @@ def call_wsgi_app(application, request):
 
 @csrf_exempt
 def git_endpoint(request, course_identifier, git_path):
-    # type: (http.HttpRequest, Text) -> http.HttpResponse
+    # type: (http.HttpRequest, Text, Text) -> http.HttpResponse
 
     auth_value = request.META.get("HTTP_AUTHORIZATION")
 
