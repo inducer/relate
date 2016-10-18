@@ -223,7 +223,12 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     # Allow non-ASCII file name
     full_name_bytes = full_name.encode('utf-8')
 
-    tree_sha = dul_repo[commit_sha].tree
+    try:
+        tree_sha = dul_repo[commit_sha].tree
+    except KeyError:
+        raise ObjectDoesNotExist(
+                _("commit sha '%s' not found") % commit_sha.decode())
+
     tree = dul_repo[tree_sha]
 
     def access_directory_content(maybe_tree, name):
