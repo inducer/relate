@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Any, Optional  # noqa
+from typing import cast, Any, Optional, Text  # noqa
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
@@ -248,6 +248,7 @@ def impersonation_context_processor(request):
 
 
 def make_sign_in_key(user):
+    # type: (User) -> Text
     # Try to ensure these hashes aren't guessable.
     import random
     import hashlib
