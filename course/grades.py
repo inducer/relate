@@ -45,7 +45,9 @@ from relate.utils import StyledForm, StyledModelForm
 from crispy_forms.layout import Submit
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from course.utils import course_view, render_course_page
+from course.utils import (
+        course_view, render_course_page,
+        get_session_access_rule)
 from course.models import (
         Participation, participation_status,
         GradingOpportunity, GradeChange, GradeStateMachine,
@@ -55,7 +57,9 @@ from course.flow import adjust_flow_session_page_data
 from course.views import get_now_or_fake_time
 from course.constants import (
         participation_permission as pperm,
+        flow_permission
         )
+from course.content import get_flow_desc, get_course_commit_sha
 
 # {{{ for mypy
 
@@ -68,6 +72,48 @@ from course.models import Course, FlowPageVisitGrade  # noqa
 
 
 # {{{ student grade book
+
+def get_session_access_rule_by_opp(pctx, opp):
+    # type: (...) -> FlowSessionAccessRule
+    """Return a :class:`FlowSessionAccessRule`
+    """
+    flow_desc = get_flow_desc(pctx.repo, pctx.course, opp.flow_id,
+                              pctx.course_commit_sha)
+    flow_session_qs = FlowSession.objects.filter(
+            course=opp.course, flow_id=opp.flow_id,
+            participation=pctx.participation)
+    now_datetime = get_now_or_fake_time(pctx.request)
+
+    if flow_session_qs.exists():
+        test_flow_session = flow_session_qs[0]
+    else:
+        # There's no session with that participation
+        # so we instantiate a temp session.
+        test_flow_session = FlowSession(
+                course=pctx.course,
+                participation=pctx.participation,
+                user=pctx.request.user,
+                active_git_commit_sha=get_course_commit_sha(
+                        pctx.course, pctx.participation),
+                flow_id=opp.flow_id)
+
+    return get_session_access_rule(
+            test_flow_session, flow_desc, now_datetime)
+
+
+def may_view_opp_by_access_rule(access_rule):
+    if flow_permission.cannot_see_in_participant_grade_book \
+            in access_rule.permissions:
+        return False
+    return True
+
+
+def may_view_opp_result_by_access_rule(access_rule):
+    if flow_permission.cannot_see_result_in_participant_grade_book \
+            in access_rule.permissions:
+        return False
+    return True
+
 
 @course_view
 def view_participant_grades(pctx, participation_id=None):
@@ -110,6 +156,7 @@ def view_participant_grades(pctx, participation_id=None):
     idx = 0
 
     grade_table = []
+    may_view_result = []
     for opp in grading_opps:
         if not is_privileged_view:
             if not (opp.shown_in_grade_book
@@ -118,6 +165,10 @@ def view_participant_grades(pctx, participation_id=None):
         else:
             if not opp.shown_in_grade_book:
                 continue
+
+        access_rule = get_session_access_rule_by_opp(pctx, opp)
+        if not may_view_opp_by_access_rule(access_rule):
+            continue
 
         while (
                 idx < len(grade_changes)
@@ -139,9 +190,14 @@ def view_participant_grades(pctx, participation_id=None):
                 GradeInfo(
                     opportunity=opp,
                     grade_state_machine=state_machine))
+        may_view_result.append(
+                may_view_opp_result_by_access_rule(access_rule)
+        )
+
+        zipped_grade_info = zip(grade_table, may_view_result)
 
     return render_course_page(pctx, "course/gradebook-participant.html", {
-        "grade_table": grade_table,
+        "zipped_grade_info": zipped_grade_info,
         "grade_participation": grade_participation,
         "grading_opportunities": grading_opps,
         "grade_state_change_types": grade_state_change_types,
@@ -812,9 +868,12 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         if not my_grade:
             raise PermissionDenied(_("may not view other people's grades"))
 
+        access_rule = get_session_access_rule_by_opp(pctx, opportunity)
         if not (opportunity.shown_in_grade_book
                 and opportunity.shown_in_participant_grade_book
                 and opportunity.result_shown_in_participant_grade_book
+                and may_view_opp_by_access_rule(access_rule)
+                and may_view_opp_result_by_access_rule(access_rule)
                 ):
             raise PermissionDenied(_("grade has not been released"))
 
