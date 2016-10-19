@@ -14,13 +14,21 @@ def normalize_nodes(nodes, text_icon):
         if isinstance(node, str):
             node = {"text": node, "icon": text_icon}
 
+        assign_section_number = False
+
         if "section_nr" in node and node["section_nr"] is not False:
-            section_nr[0] = node["section_nr"]
+            if node["section_nr"] is True:
+                assign_section_number = True
+            else:
+                section_nr[0] = node["section_nr"]
 
         if "section" in node:
             if node.get("section_nr") is not False:
-                node["section_nr"] = section_nr[0]
-                section_nr[0] += 1
+                assign_section_number = True
+
+        if assign_section_number:
+            node["section_nr"] = section_nr[0]
+            section_nr[0] += 1
 
         nodes[i] = node
 
