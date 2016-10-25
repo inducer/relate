@@ -141,7 +141,7 @@ class Feedback:
 
         good = False
 
-        if rtol is not None and abs(ref-data) < abs(data)*rtol:
+        if rtol is not None and abs(ref-data) < abs(ref)*rtol:
             good = True
         if atol is not None and abs(ref-data) < atol:
             good = True
