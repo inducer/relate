@@ -126,7 +126,7 @@
 
       {# {{{ past submissions #}
 
-      {% if prev_answer_visits %}
+      {% if prev_answer_visits|length > 1 %}
       <div class="navbar-right relate-flow-page-past-submissions"
         style="padding-right: 0.4em; margin-right:0;">
         <div class="dropdown">
