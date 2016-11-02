@@ -48,7 +48,8 @@ git+https://github.com/fritzy/SleekXMPP.git@6e27f28c854ce4ae1d9f0cc8ee407bda8de9
 # To manage web dependencies
 #django-bower
 # pending https://github.com/nvbn/django-bower/issues/68
-git+https://github.com/inducer/django-bower
+https://github.com/nvbn/django-bower.git
+
 
 # For comfortable code entry (git for py3 fix in git rev 8979538)
 git+https://github.com/lambdalisue/django-codemirror-widget.git
