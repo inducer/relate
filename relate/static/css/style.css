@@ -35,6 +35,7 @@ table.past-flow-session-table {
 }
 
 .relate-flow-submit {
+  float: right;
   margin-top: 6px;
 }
 
