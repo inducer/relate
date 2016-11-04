@@ -2191,7 +2191,7 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
                          review_url)
 
     if request.method == "POST":
-        form = FlowPageInteractionEmailForm(request.POST, review_uri)
+        form = FlowPageInteractionEmailForm(review_uri, request.POST)
 
         if form.is_valid():
 
