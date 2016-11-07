@@ -83,10 +83,9 @@ python-memcached==1.58
 # }}}
 
 # {{{ A task queue, used to execute long-running tasks
-celery
+celery<4
 # kombu 4 removes the Django ORM transport
 kombu<4
-vine
 
 # Package index release 3.1.17 (current as of Nov 6, 2015)
 # still affected by https://github.com/celery/django-celery/issues/411
