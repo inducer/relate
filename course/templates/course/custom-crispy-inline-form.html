@@ -3,6 +3,11 @@
 
 <script type="text/javascript">
 
+    {#  responsive for small screen #}
+    if (window.matchMedia("(max-width: 768px)").matches) {
+        var input_element = $(".relate-interaction-container").find(".form-control");
+        input_element.removeAttr("style");
+    }
 
     $('[use-popover="true"]').each(function(){
 
@@ -77,4 +82,17 @@
             .append('<span class="glyphicon glyphicon-remove \
                     form-control-feedback" aria-hidden="true">\
                     </span>');
+
+    {# https://github.com/twbs/bootstrap/issues/15325 #}
+    $(".relate-interaction-container> * .has-feedback > input + .input-group-addon")
+            .parent("div")
+            .children(".form-control-feedback")
+            .attr("style", "right:34px;");
+
+    {# Remove feedback icons/styles when answer is edited #}
+    $(".relate-interaction-container> * .has-feedback > :input").on("change paste", function () {
+            $(this).parent("div").removeClass("has-feedback has-success has-error");
+            $(this).siblings(".form-control-feedback").remove();
+        });
+
 </script>
