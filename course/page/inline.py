@@ -44,6 +44,7 @@ import re
 # {{{ multiple text question
 
 from crispy_forms.layout import Layout, Field, HTML
+from crispy_forms.bootstrap import PrependedAppendedText
 
 
 class InlineMultiQuestionForm(StyledInlineForm):
@@ -174,23 +175,19 @@ class AnswerBase(object):
             return 0
 
     def get_field_layout(self, correctness=None):
+        kwargs = {}
+        kwargs["prepended_text"] = getattr(self.answers_desc, "prepended_text", "")
+        kwargs["appended_text"] = getattr(self.answers_desc, "appended_text", "")
+        kwargs["use_popover"] = "true"
+        kwargs["popover_title"] = getattr(self.answers_desc, "hint_title", "")
+        kwargs["popover_content"] = getattr(self.answers_desc, "hint", "")
         if correctness is None:
-            return Field(
-                    self.name,
-                    use_popover="true",
-                    popover_title=getattr(self.answers_desc, "hint_title", ""),
-                    popover_content=getattr(self.answers_desc, "hint", ""),
-                    style=self.get_width_str()
-                    )
+            kwargs["style"] = self.get_width_str()
         else:
-            return Field(
-                    self.name,
-                    use_popover="true",
-                    popover_title=getattr(self.answers_desc, "hint_title", ""),
-                    popover_content=getattr(self.answers_desc, "hint", ""),
-                    style=self.get_width_str(self.width + 2),
-                    correctness=correctness
-                    )
+            kwargs["style"] = self.get_width_str(self.width + 2)
+            kwargs["correctness"] = correctness
+
+        return PrependedAppendedText(self.name, **kwargs)
 
     def get_form_field(self, page_context):
         raise NotImplementedError()
@@ -277,6 +274,8 @@ class ShortAnswer(AnswerBase):
                 ),
             allowed_attrs=(
                 ("weight", (int, float)),
+                ("prepended_text", str),
+                ("appended_text", str),
                 ("hint", str),
                 ("hint_title", str),
                 ("width", (str, int, float)),
@@ -337,7 +336,11 @@ class ShortAnswer(AnswerBase):
                 break
 
         assert unspec_correct_answer_text
-        return unspec_correct_answer_text
+        return ("%s%s%s"
+                % (getattr(self.answers_desc, "prepended_text", "").strip(),
+                   unspec_correct_answer_text,
+                   getattr(self.answers_desc, "appended_text", "").strip())
+                )
 
     def get_correctness(self, answer):
 
@@ -455,8 +458,12 @@ class ChoicesAnswer(AnswerBase):
 
     def get_correct_answer_text(self, page_context):
         corr_idx = self.correct_indices()[0]
-        return self.process_choice_string(
-                page_context, self.answers_desc.choices[corr_idx]).lstrip()
+        return ("%s%s%s"
+                % (getattr(self.answers_desc, "prepended_text", "").strip(),
+                   self.process_choice_string(
+                       page_context, self.answers_desc.choices[corr_idx]).lstrip(),
+                   getattr(self.answers_desc, "appended_text", "").strip())
+                   )
 
     def get_max_correct_answer_len(self, page_context):
         return max([len(answer) for answer in
@@ -543,17 +550,20 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         value: 10
         prompt: |
 
-            # An example
+            # An InlineMultiQuestion example
 
             Complete the following paragraph.
 
         question: |
 
             Foo and [[blank1]] are often used in code examples, or
-            tutorials. The float value of $\frac{1}{5}$ is [[blank_2]].
+            tutorials. $\frac{1}{5}$ is equivalent to [[blank_2]].
 
             The correct answer for this choice question is [[choice_a]].
-            The Upper case of "foo" is [[choice2]]
+            The Upper case of "foo" is [[choice2]].
+
+            One dollar is [[blank3]], and five percent is [[blank4]], and "Bar"
+            wrapped by a pair of parentheses is [[blank5]].
 
         answers:
 
@@ -591,6 +601,39 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 - ~CORRECT~ FOO
                 - BAR
                 - fOO
+
+            blank3:
+                type: ShortAnswer
+                width: 3em
+                prepended_text: "$"
+                hint: Blank with prepended text
+                correct_answer:
+                - type: float
+                  value: 1
+                  rtol: 0.00001
+                - <plain> "1"
+
+            blank4:
+                type: ShortAnswer
+                width: 3em
+                appended_text: "%"
+                hint: Blank with appended text
+                correct_answer:
+                - type: float
+                  value: 5
+                  rtol: 0.00001
+                - <plain> "5"
+
+            blank5:
+                type: ShortAnswer
+                width: 6em
+                prepended_text: "("
+                appended_text: ")"
+                required: True
+                hint: Blank with both prepended and appended text
+                correct_answer:
+                - <plain> BAR
+                - <plain>bar
 
     """
 
@@ -773,9 +816,15 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 correctness_list = []
 
                 for answer_instance in self.answer_instance_list:
-                    if answer[answer_instance.name] is not None:
-                        correctness_list.append(answer_instance.get_correctness(
-                                answer[answer_instance.name]))
+                    try:
+                        if answer[answer_instance.name] is not None:
+                            correctness_list.append(answer_instance.get_correctness(
+                                    answer[answer_instance.name]))
+
+                    # The answer doesn't exist for newly added question 
+                    # for pages which have been submitted.
+                    except KeyError:
+                        correctness_list.append(1)
 
                     dict_feedback_form["correctness_list"] = correctness_list
 
