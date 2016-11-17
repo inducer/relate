@@ -22,6 +22,7 @@ TEMPLATE = Template(r"""
 \usepackage{examtron}
 \pagestyle{empty}
 
+\usepackage{longtable}
 \usepackage{titlesec}
 \usepackage{tikz}
 \titleformat{\section}
