@@ -89,6 +89,9 @@ def convert_page_inner(page):
             "SurveyChoiceQuestion"]:
         prompt = convert_markup(page.prompt)
 
+        if page.type == "MultipleChoiceQuestion":
+            prompt += "\n\n(Select all that apply.)"
+
         choices = [
             "\item "
             +
