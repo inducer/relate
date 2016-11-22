@@ -1733,7 +1733,14 @@ class Exam(models.Model):
             verbose_name=_('Flow ID'))
     active = models.BooleanField(
             default=True,
-            verbose_name=_('Currently active'))
+            verbose_name=_("Active"),
+            help_text=_(
+                'Currently active, i.e. may be used to log in '
+                'via an exam ticket'))
+    listed = models.BooleanField(
+            verbose_name=_("Listed"),
+            default=True,
+            help_text=_('Shown in the list of current exams'))
 
     no_exams_before = models.DateTimeField(
             verbose_name=_('No exams before'))

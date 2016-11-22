@@ -417,6 +417,9 @@ def check_exam_ticket(username, code, now_datetime):
             and now_datetime >= ticket.usage_time + validity_period):
         return (False, _("Ticket has exceeded its validity period."))
 
+    if not ticket.exam.active:
+        return (False, _("Exam is not active."))
+
     if ticket.exam.no_exams_before >= now_datetime:
         return (False, _("Exam has not started yet."))
     if (
@@ -732,6 +735,7 @@ def list_available_exams(request):
             .filter(
                 course__in=[p.course for p in participations],
                 active=True,
+                listed=True,
                 no_exams_before__lt=now_datetime)
             .filter(
                 Q(no_exams_after__isnull=True)

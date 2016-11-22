@@ -860,12 +860,14 @@ class ExamAdmin(admin.ModelAdmin):
     list_filter = (
             "course",
             "active",
+            "listed",
             )
 
     list_display = (
             "course",
             "flow_id",
             "active",
+            "listed",
             "no_exams_before",
             )
 
