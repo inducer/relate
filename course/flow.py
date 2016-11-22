@@ -1551,6 +1551,12 @@ def get_page_behavior(
                 or
                 flow_permission.see_answer_after_submission in permissions)
 
+    if session_in_progress:
+        show_answer = (
+            show_answer
+            and
+            flow_permission.cannot_see_answer_for_sessions_in_progress not in permissions)
+
     may_change_answer = (
             not viewing_prior_version
 

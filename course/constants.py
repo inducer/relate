@@ -361,6 +361,12 @@ class flow_permission:  # noqa
 
         (Optional) If present, the participant can send interaction emails to
         course staffs for questions for each page with that permission.
+
+    .. attribute:: cannot_see_answer_for_sessions_in_progress
+
+        (Optional) If present, shows the correct answer to the participant if only
+        the sessions are finished, if :attr:`see_answer_before_submission` or
+        :attr:`see_answer_after_submission` present.
     """
     view = "view"
     end_session = "end_session"
@@ -374,6 +380,8 @@ class flow_permission:  # noqa
     see_session_time = "see_session_time"
     lock_down_as_exam_session = "lock_down_as_exam_session"
     send_email_about_flow_page = "send_email_about_flow_page"
+    cannot_see_answer_for_sessions_in_progress = (
+        "cannot_see_answer_for_sessions_in_progress")
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view,
@@ -406,6 +414,9 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.send_email_about_flow_page,
          pgettext_lazy("Flow permission",
                        "Send emails about the flow page to course staff")),
+        (flow_permission.cannot_see_answer_for_sessions_in_progress,
+         pgettext_lazy("Flow permission",
+                       "Cannot see answer for sessions in progress")),
         )
 
 # }}}
