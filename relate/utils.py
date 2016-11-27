@@ -157,7 +157,9 @@ def as_local_time(dtm):
 
 
 def localize_datetime(dtm):
+    # type: (datetime.datetime) -> datetime.datetime
     """Takes an timezone-naive datetime and applies the server timezone."""
+
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
@@ -300,6 +302,7 @@ def dumpstacks(signal, frame):
             if line:
                 code.append("  %s" % (line.strip()))
     print("\n".join(code))
+
 
 if 0:
     import signal

@@ -930,7 +930,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             flow_desc = get_flow_desc(pctx.repo, pctx.course,
                     opportunity.flow_id, pctx.course_commit_sha)
         except ObjectDoesNotExist:
-            flow_sessions_and_session_properties = None
+            flow_sessions_and_session_properties = None  # type: Optional[List[Tuple[Any, SessionProperties]]]  # noqa
         else:
             flow_sessions_and_session_properties = []
             for session in flow_sessions:
