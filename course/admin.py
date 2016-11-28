@@ -912,13 +912,15 @@ class ExamTicketAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
 
-    get_course.short_description = _("Participant")  # type: ignore
+    get_course.short_description = _("Course")  # type: ignore
     get_course.admin_order_field = "participation__course"  # type: ignore
 
     list_filter = (
             "participation__course",
             "state",
             )
+
+    raw_id_fields = ("participation",)
 
     list_display = (
             "get_course",
