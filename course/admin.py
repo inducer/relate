@@ -150,6 +150,7 @@ class CourseAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(Course, CourseAdmin)
 
 # }}}
@@ -197,6 +198,7 @@ class EventAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(Event, EventAdmin)
 
 # }}}
@@ -222,6 +224,7 @@ class ParticipationTagAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(ParticipationTag, ParticipationTagAdmin)
 
 # }}}
@@ -238,6 +241,7 @@ class ParticipationRoleAdmin(admin.ModelAdmin):
     inlines = (ParticipationRolePermissionInline,)
 
     list_filter = ("course", "identifier")
+
 
 admin.site.register(ParticipationRole, ParticipationRoleAdmin)
 
@@ -343,6 +347,7 @@ class ParticipationAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(Participation, ParticipationAdmin)
 
 
@@ -383,6 +388,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(ParticipationPreapproval, ParticipationPreapprovalAdmin)
 
 # }}}
@@ -397,6 +403,7 @@ class InstantFlowRequestAdmin(admin.ModelAdmin):
     search_fields = (
             "email",
             )
+
 
 admin.site.register(InstantFlowRequest, InstantFlowRequestAdmin)
 
@@ -480,6 +487,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
                 db_field, request, **kwargs)
 
     # }}}
+
 
 admin.site.register(FlowSession, FlowSessionAdmin)
 
@@ -614,6 +622,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 
 # }}}
@@ -724,6 +733,7 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(GradingOpportunity, GradingOpportunityAdmin)
 
 
@@ -800,6 +810,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(GradeChange, GradeChangeAdmin)
 
 # }}}
@@ -849,6 +860,7 @@ class InstantMessageAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(InstantMessage, InstantMessageAdmin)
 
 # }}}
@@ -891,6 +903,7 @@ class ExamAdmin(admin.ModelAdmin):
                 db_field, request, **kwargs)
 
     # }}}
+
 
 admin.site.register(Exam, ExamAdmin)
 
@@ -949,6 +962,7 @@ class ExamTicketAdmin(admin.ModelAdmin):
     revoke_exam_tickets.short_description = _("Revoke Exam Tickets")  # type: ignore
 
     actions = [revoke_exam_tickets]
+
 
 admin.site.register(ExamTicket, ExamTicketAdmin)
 
