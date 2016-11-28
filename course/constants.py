@@ -41,6 +41,7 @@ class user_status:  # noqa
     unconfirmed = "unconfirmed"
     active = "active"
 
+
 USER_STATUS_CHOICES = (
         (user_status.unconfirmed, pgettext_lazy("User status", "Unconfirmed")),
         (user_status.active, pgettext_lazy("User status", "Active")),
@@ -268,6 +269,7 @@ class flow_session_expiration_mode:  # noqa
     # allowed by special permission below
     roll_over = "roll_over"
 
+
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
         (flow_session_expiration_mode.end,
             pgettext_lazy("Flow expiration mode", "Submit session for grading")),
@@ -374,6 +376,7 @@ class flow_permission:  # noqa
     see_session_time = "see_session_time"
     lock_down_as_exam_session = "lock_down_as_exam_session"
     send_email_about_flow_page = "send_email_about_flow_page"
+
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view,
