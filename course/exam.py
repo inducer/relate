@@ -787,7 +787,7 @@ class ExamLockdownMiddleware(object):
                         _("Your RELATE session is currently locked down "
                         "to this exam flow. Navigating to other parts of "
                         "RELATE is not currently allowed. "
-                        "To abandon this exam, log out."))
+                        "To exit this exam, log out."))
                 return redirect("relate-view_start_flow",
                         exam_flow_session.course.identifier,
                         exam_flow_session.flow_id)
