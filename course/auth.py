@@ -514,7 +514,7 @@ def reset_password(request, field="email"):
                 _("self-registration is not enabled"))
 
     # return form class by string of class name
-    ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]
+    ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]  # noqa
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
         if form.is_valid():
@@ -534,7 +534,7 @@ def reset_password(request, field="email"):
                     user = None
 
             if user is None:
-                FIELD_DICT = {
+                FIELD_DICT = {  # noqa
                         "email": _("email address"),
                         "instid": _("institutional ID")
                         }

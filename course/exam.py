@@ -46,7 +46,6 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
-from django_select2.forms import Select2Widget
 from crispy_forms.layout import Submit
 from bootstrap3_datetime.widgets import DateTimePicker
 
@@ -80,28 +79,19 @@ def gen_ticket_code():
 
 # {{{ issue ticket
 
-class UserChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        user = obj
-        return (
-                "%(username)s - %(user_fullname)s"
-                % {
-                    "username": user.username,
-                    "user_fullname": user.get_full_name(),
-                    })
-
-
 class IssueTicketForm(StyledForm):
     def __init__(self, now_datetime, *args, **kwargs):
         initial_exam = kwargs.pop("initial_exam", None)
 
         super(IssueTicketForm, self).__init__(*args, **kwargs)
 
-        self.fields["user"] = UserChoiceField(
+        from course.atuh import UserSearchWidget
+
+        self.fields["user"] = forms.ModelChoiceField(
                 queryset=(get_user_model().objects
                     .filter(is_active=True)
                     .order_by("last_name")),
-                widget=Select2Widget(),
+                widget=UserSearchWidget(),
                 required=True,
                 help_text=_("Select participant for whom ticket is to "
                 "be issued."),
