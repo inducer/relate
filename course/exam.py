@@ -85,7 +85,7 @@ class IssueTicketForm(StyledForm):
 
         super(IssueTicketForm, self).__init__(*args, **kwargs)
 
-        from course.atuh import UserSearchWidget
+        from course.auth import UserSearchWidget
 
         self.fields["user"] = forms.ModelChoiceField(
                 queryset=(get_user_model().objects
