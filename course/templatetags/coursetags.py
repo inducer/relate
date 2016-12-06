@@ -30,6 +30,7 @@ register = Library()
 
 # {{{ get language_code in JS traditional naming format
 
+
 class GetCurrentLanguageJsFmtNode(Node):
     def __init__(self, variable):
         self.variable = variable
@@ -38,6 +39,7 @@ class GetCurrentLanguageJsFmtNode(Node):
         js_lang_name = to_js_lang_name(translation.get_language())
         context[self.variable] = js_lang_name
         return ''
+
 
 @register.tag("get_current_js_lang_name")
 def do_get_current_js_lang_name(parser, token):

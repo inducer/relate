@@ -2281,7 +2281,7 @@ class FlowPageInteractionEmailForm(StyledForm):
         self.fields["message"] = forms.CharField(
                 required=True,
                 widget=forms.Textarea,
-                help_text= string_concat(
+                help_text=string_concat(
                     _("Your questions about page %s . ") % review_uri,
                     _("Notice that <strong>only</strong> questions "
                       "for that page will be answered."),

@@ -267,7 +267,7 @@ def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
         sleep(uniform(0.05, 0.2))
 
 
-class retry_transaction_decorator(object):
+class retry_transaction_decorator(object):  # noqa
     def __init__(self, max_tries=None, serializable=None):
         # type: (Optional[int], Optional[bool]) -> None
         self.max_tries = max_tries
