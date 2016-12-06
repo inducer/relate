@@ -43,7 +43,7 @@ import re
 
 # {{{ multiple text question
 
-from crispy_forms.layout import Layout, Field, HTML
+from crispy_forms.layout import Layout, HTML
 from crispy_forms.bootstrap import PrependedAppendedText
 
 
@@ -459,11 +459,12 @@ class ChoicesAnswer(AnswerBase):
     def get_correct_answer_text(self, page_context):
         corr_idx = self.correct_indices()[0]
         return ("%s%s%s"
-                % (getattr(self.answers_desc, "prepended_text", "").strip(),
-                   self.process_choice_string(
-                       page_context, self.answers_desc.choices[corr_idx]).lstrip(),
-                   getattr(self.answers_desc, "appended_text", "").strip())
-                   )
+                % (
+                    getattr(self.answers_desc, "prepended_text", "").strip(),
+                    self.process_choice_string(
+                        page_context, self.answers_desc.choices[corr_idx]).lstrip(),
+                    getattr(self.answers_desc, "appended_text", "").strip())
+                )
 
     def get_max_correct_answer_len(self, page_context):
         return max([len(answer) for answer in
@@ -821,7 +822,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                             correctness_list.append(answer_instance.get_correctness(
                                     answer[answer_instance.name]))
 
-                    # The answer doesn't exist for newly added question 
+                    # The answer doesn't exist for newly added question
                     # for pages which have been submitted.
                     except KeyError:
                         correctness_list.append(1)

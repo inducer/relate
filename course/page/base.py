@@ -995,20 +995,20 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 msg.send()
 
         if (grading_form.cleaned_data["notes"]
-            and grading_form.cleaned_data["notify_instructor"]
-            and page_context.flow_session):
+                and grading_form.cleaned_data["notify_instructor"]
+                and page_context.flow_session):
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
-                from django.urls import reverse
-                message = render_to_string("course/grade-internal-notes-notify.txt", {
-                    "page_title": self.title(page_context, page_data),
-                    "course": page_context.course,
-                    "participation": page_context.flow_session.participation,
-                    "notes_text": grade_data["notes"],
-                    "flow_session": page_context.flow_session,
-                    "review_uri": page_context.page_uri,
-                    "sender": request.user
-                    })
+                message = render_to_string("course/grade-internal-notes-notify.txt",
+                        {
+                            "page_title": self.title(page_context, page_data),
+                            "course": page_context.course,
+                            "participation": page_context.flow_session.participation,
+                            "notes_text": grade_data["notes"],
+                            "flow_session": page_context.flow_session,
+                            "review_uri": page_context.page_uri,
+                            "sender": request.user
+                            })
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(

@@ -8,4 +8,4 @@ class CourseConfig(AppConfig):
     verbose_name = _("Course module")
 
     def ready(self):
-        import course.receivers
+        import course.receivers  # noqa

@@ -73,7 +73,7 @@ PARTICIPATION_STATUS_CHOICES = (
 
 # {{{ participation permission
 
-class participation_permission:
+class participation_permission:  # noqa
     edit_course = "edit_course"
     use_admin_interface = "use_admin_interface"
 
