@@ -1827,7 +1827,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                             "changed in an incompatible way (say, by adding "
                             "an option to a choice question) without changing "
                             "the question ID. The precise error encountered "
-                            "was the following: "+str(e)))
+                            "was the following: ")+str(e))
 
                 return render_course_page(pctx, "course/course-base.html", {})
 

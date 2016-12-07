@@ -29,6 +29,7 @@ from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         get_object_or_404, redirect)
 from relate.utils import retry_transaction_decorator
+from django.contrib import messages
 from django.core.exceptions import (  # noqa
         PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
@@ -44,6 +45,8 @@ from course.utils import (
         get_session_grading_rule,
         FlowPageContext)
 from course.views import get_now_or_fake_time
+from course.page import InvalidPageData
+
 from django.conf import settings
 from django.utils import translation
 from course.constants import (
@@ -183,9 +186,22 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 show_answer=False,
                 may_change_answer=False)
 
-        form = fpctx.page.make_form(
-                fpctx.page_context, fpctx.page_data.data,
-                answer_data, page_behavior)
+        try:
+            form = fpctx.page.make_form(
+                    fpctx.page_context, fpctx.page_data.data,
+                    answer_data, page_behavior)
+        except InvalidPageData as e:
+            messages.add_message(pctx.request, messages.ERROR,
+                    _(
+                        "The page data stored in the database was found "
+                        "to be invalid for the page as given in the "
+                        "course content. Likely the course content was "
+                        "changed in an incompatible way (say, by adding "
+                        "an option to a choice question) without changing "
+                        "the question ID. The precise error encountered "
+                        "was the following: ")+str(e))
+
+            return render_course_page(pctx, "course/course-base.html", {})
 
     if form is not None:
         form_html = fpctx.page.form_to_html(
