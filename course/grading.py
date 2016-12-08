@@ -95,6 +95,10 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         raise SuspiciousOperation(
                 _("Cannot grade anonymous session"))
 
+    from course.flow import adjust_flow_session_page_data
+    adjust_flow_session_page_data(pctx.repo, flow_session,
+            pctx.course.identifier, respect_preview=False)
+
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
             page_ordinal, participation=flow_session.participation,
             flow_session=flow_session, request=pctx.request)
@@ -104,11 +108,6 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     assert fpctx.page is not None
     assert fpctx.page_context is not None
-
-    from course.flow import adjust_flow_session_page_data
-    adjust_flow_session_page_data(pctx.repo, flow_session,
-            pctx.course.identifier, fpctx.flow_desc,
-            respect_preview=True)
 
     # {{{ enable flow session zapping
 
