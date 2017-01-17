@@ -8,6 +8,7 @@ import re
 
 section_nr = [1]
 
+
 def normalize_nodes(nodes, text_icon):
     for i in range(len(nodes)):
         node = nodes[i]
@@ -99,6 +100,7 @@ def render(settings, outf, node, indent=0, skip=1):
         indent -= 2
         print(indent * " ", "</li>", file=outf, sep="")
 
+
 FN_REGEX = re.compile(r"^([0-9]+)-(.*)(\.[a-z]+)$")
 
 
@@ -125,7 +127,6 @@ def get_section_id_and_display_name(trunk, include_extension):
         pass
 
     return section_id, display_name
-
 
 
 def main():
@@ -250,7 +251,7 @@ def main():
 
     # }}}
 
-    with open(args.output_file, "wt") as outf:
+    with open(args.output_file, "wt", encoding="utf-8") as outf:
         render(
                 RenderSettings(
                     default_icon=args.default_icon,
