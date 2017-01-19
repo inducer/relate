@@ -77,13 +77,15 @@
         {% endif %}
       {% endif %}
 
-      <li role="presentation" class="divider"></li>
-      <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
-      {% if user.is_staff %}
-        <li><a href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
-      {% endif %}
-      {% if pperm.batch_issue_exam_ticket %}
-        <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
+      {% if user.is_staff or pperm.batch_issue_exam_ticket %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
+        {% if user.is_staff %}
+          <li><a href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
+        {% endif %}
+        {% if pperm.batch_issue_exam_ticket %}
+          <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
+        {% endif %}
       {% endif %}
 
     </ul>
