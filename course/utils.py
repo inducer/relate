@@ -493,6 +493,10 @@ def get_session_grading_rule(
 
 # {{{ contexts
 
+class ANY_ARGUMENT:  # noqa
+    pass
+
+
 class CoursePageContext(object):
     def __init__(self, request, course_identifier):
         # type: (http.HttpRequest, Text) -> None
@@ -575,7 +579,11 @@ class CoursePageContext(object):
 
     def has_permission(self, perm, argument=None):
         # type: (Text, Optional[Text]) -> bool
-        return (perm, argument) in self.permissions()
+        if argument is ANY_ARGUMENT:
+            return any(perm == p
+                    for p, arg in self.permissions())
+        else:
+            return (perm, argument) in self.permissions()
 
 
 class FlowContext(object):
@@ -720,7 +728,7 @@ class ParticipationPermissionWrapper(object):
         except AttributeError:
             raise ValueError("permission name '%s' not valid" % perm)
 
-        return self.pctx.has_permission(perm)
+        return self.pctx.has_permission(perm, ANY_ARGUMENT)
 
     def __iter__(self):
         raise TypeError("ParticipationPermissionWrapper is not iterable.")
