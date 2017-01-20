@@ -63,8 +63,8 @@
       {% if pperm.batch_import_grade %}
         <li><a href="{% url "relate-import_grades" course.identifier %}">{% trans "Import Grades" %}</a></li>
       {% endif %}
-      <li role="presentation" class="divider"></li>
       {% if pperm.batch_regrade_flow_session %}
+        <li role="presentation" class="divider"></li>
         <li><a href="{% url "relate-regrade_flows_view" course.identifier %}">{% trans "Regrade flows" %}</a></li>
       {% endif %}
 
@@ -77,13 +77,15 @@
         {% endif %}
       {% endif %}
 
-      <li role="presentation" class="divider"></li>
-      <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
-      {% if user.is_staff %}
-        <li><a href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
-      {% endif %}
-      {% if pperm.batch_issue_exam_ticket %}
-        <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
+      {% if user.is_staff or pperm.batch_issue_exam_ticket %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
+        {% if user.is_staff %}
+          <li><a href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
+        {% endif %}
+        {% if pperm.batch_issue_exam_ticket %}
+          <li><a href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
+        {% endif %}
       {% endif %}
 
     </ul>
@@ -102,9 +104,9 @@
 
       {% if pperm.edit_course %}
         <li><a href="{% url "relate-edit_course" course.identifier %}">{% trans "Edit course" %}</a></li>
-        <li role="presentation" class="divider"></li>
       {% endif %}
 
+      <li role="presentation" class="divider"></li>
       <li role="presentation" class="dropdown-header">{% trans "Content creation" %}</li>
       {% if pperm.use_page_sandbox %}
         <li><a href="{% url "relate-view_page_sandbox" course.identifier %}">{% trans "Page sandbox" %}</a></li>
@@ -113,17 +115,17 @@
         <li><a href="{% url "relate-view_markup_sandbox" course.identifier %}">{% trans "Markup sandbox" %}</a></li>
       {% endif %}
 
-      <li role="presentation" class="divider"></li>
       {% if pperm.test_flow %}
+        <li role="presentation" class="divider"></li>
         <li><a href="{% url "relate-test_flow" course.identifier %}">{% trans "Test flow" %}</a></li>
       {% endif %}
 
-      <li role="presentation" class="divider"></li>
-      <li role="presentation" class="dropdown-header">{% trans "Calendar" %}</li>
-      {% if user.is_staff %}
-        <li><a href="{% url "admin:course_event_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit events" %}</a></li>
-      {% endif %}
       {% if pperm.edit_events %}
+        <li role="presentation" class="divider"></li>
+        <li role="presentation" class="dropdown-header">{% trans "Calendar" %}</li>
+        {% if user.is_staff %}
+          <li><a href="{% url "admin:course_event_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit events" %}</a></li>
+        {% endif %}
         <li><a href="{% url "relate-create_recurring_events" course.identifier %}">{% trans "Create recurring events" %}</a></li>
         <li><a href="{% url "relate-renumber_events" course.identifier %}">{% trans "Renumber events" %}</a></li>
       {% endif %}
