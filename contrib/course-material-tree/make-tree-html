@@ -210,7 +210,8 @@ def main():
                 "nodes": sub_nodes,
                 }
 
-            section_dict[section_id]["nodes"].append(demo_node)
+            if section_id in section_dict:
+                section_dict[section_id]["nodes"].append(demo_node)
 
     # }}}
 
@@ -227,7 +228,8 @@ def main():
                 "link": args.py_urlroot + "/" + trunk,
                 "icon": "fa fa-file-text-o",
             }
-            section_dict[section_id]["nodes"].append(src_node)
+            if section_id in section_dict:
+                section_dict[section_id]["nodes"].append(src_node)
 
     # }}}
 
@@ -247,7 +249,9 @@ def main():
                 "link": args.pdf_urlroot + "/" + trunk,
                 "icon": "fa fa-book",
                 }
-            section_dict[section_id]["nodes"].insert(0, notes_node)
+
+            if section_id in section_dict:
+                section_dict[section_id]["nodes"].insert(0, notes_node)
 
     # }}}
 
