@@ -770,13 +770,21 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             raise RuntimeError("invalid runpy result: %s" % response.result)
 
         if hasattr(response, "feedback") and response.feedback:
+            def sanitize(s):
+                import bleach
+                return (
+                    bleach.clean(s, tags=["p", "pre"])
+                        # html5lib will turn <user code> to <user code="">
+                        # https://github.com/html5lib/html5lib-python/issues/194
+                        .replace("=\"\"&gt;", "&gt;")
+                )
             feedback_bits.append("".join([
                 "<p>",
                 _("Here is some feedback on your code"),
                 ":"
                 "<ul>%s</ul></p>"]) %
                         "".join(
-                            "<li>%s</li>" % escape(fb_item)
+                            "<li>%s</li>" % sanitize(fb_item)
                             for fb_item in response.feedback))
         if hasattr(response, "traceback") and response.traceback:
             feedback_bits.append("".join([
