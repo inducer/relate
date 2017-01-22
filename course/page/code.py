@@ -772,12 +772,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if hasattr(response, "feedback") and response.feedback:
             def sanitize(s):
                 import bleach
-                return (
-                    bleach.clean(s, tags=["p", "pre"])
-                        # html5lib will turn <user code> to <user code="">
-                        # https://github.com/html5lib/html5lib-python/issues/194
-                        .replace("=\"\"&gt;", "&gt;")
-                )
+                return bleach.clean(s, tags=["p", "pre"])
             feedback_bits.append("".join([
                 "<p>",
                 _("Here is some feedback on your code"),
