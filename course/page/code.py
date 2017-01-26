@@ -790,13 +790,16 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             raise RuntimeError("invalid runpy result: %s" % response.result)
 
         if hasattr(response, "feedback") and response.feedback:
+            def sanitize(s):
+                import bleach
+                return bleach.clean(s, tags=["p", "pre"])
             feedback_bits.append("".join([
                 "<p>",
                 _("Here is some feedback on your code"),
                 ":"
                 "<ul>%s</ul></p>"]) %
                         "".join(
-                            "<li>%s</li>" % escape(fb_item)
+                            "<li>%s</li>" % sanitize(fb_item)
                             for fb_item in response.feedback))
         if hasattr(response, "traceback") and response.traceback:
             feedback_bits.append("".join([

@@ -27,6 +27,8 @@ THE SOFTWARE.
 import six
 import datetime  # noqa
 
+from typing import cast
+
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
@@ -53,7 +55,7 @@ from course.page.base import (  # noqa
 # {{{ mypy
 
 if False:
-    from typing import cast, Tuple, List, Text, Iterable, Any, Optional, Union  # noqa
+    from typing import Tuple, List, Text, Iterable, Any, Optional, Union  # noqa
     from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,
