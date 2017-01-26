@@ -163,7 +163,7 @@ def localize_datetime(dtm):
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    return tz.localize(dtm)
+    return tz.localize(dtm)  # type: ignore
 
 
 def local_now():
@@ -172,7 +172,7 @@ def local_now():
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    return tz.localize(datetime.datetime.now())
+    return tz.localize(datetime.datetime.now())  # type: ignore
 
 
 def format_datetime_local(datetime, format='DATETIME_FORMAT'):
