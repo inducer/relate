@@ -61,6 +61,16 @@ class RecurringEventForm(StyledForm):
             label=pgettext_lazy("Starting time of event", "Starting time"))
     duration_in_minutes = forms.FloatField(required=False,
             label=_("Duration in minutes"))
+    all_day = forms.BooleanField(
+                required=False,
+                initial=False,
+                label=_("All-day event"),
+                help_text=_("Only affects the rendering in the class calendar, "
+                "in that a start time is not shown"))
+    shown_in_calendar = forms.BooleanField(
+            required=False,
+            initial=True,
+            label=_('Shown in calendar'))
     interval = forms.ChoiceField(required=True,
             choices=(
                 ("weekly", _("Weekly")),
@@ -86,7 +96,7 @@ class EventAlreadyExists(Exception):
 
 @transaction.atomic
 def _create_recurring_events_backend(course, time, kind, starting_ordinal, interval,
-        count, duration_in_minutes):
+        count, duration_in_minutes, all_day, shown_in_calendar):
     ordinal = starting_ordinal
 
     import datetime
@@ -97,6 +107,8 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         evt.kind = kind
         evt.ordinal = ordinal
         evt.time = time
+        evt.all_day = all_day
+        evt.shown_in_calendar = shown_in_calendar
 
         if duration_in_minutes:
             evt.end_time = evt.time + datetime.timedelta(
@@ -158,7 +170,11 @@ def create_recurring_events(pctx):
                             interval=form.cleaned_data["interval"],
                             count=form.cleaned_data["count"],
                             duration_in_minutes=(
-                                form.cleaned_data["duration_in_minutes"]))
+                                form.cleaned_data["duration_in_minutes"]),
+                            all_day=form.cleaned_data["all_day"],
+                            shown_in_calendar=(
+                                form.cleaned_data["shown_in_calendar"])
+                            )
                 except EventAlreadyExists as e:
                     if starting_ordinal_specified:
                         messages.add_message(request, messages.ERROR,
