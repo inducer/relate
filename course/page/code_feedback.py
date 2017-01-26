@@ -166,7 +166,7 @@ class Feedback:
             from traceback import format_exc
             self.add_feedback(
                     "<p>"
-                    "The function '%s' supplied in your code failed with "
+                    "The callable '%s' supplied in your code failed with "
                     "an exception while it was being called by the grading "
                     "code:"
                     "</p>"
