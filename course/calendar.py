@@ -361,14 +361,13 @@ def view_calendar(pctx):
 
             if event.all_day:
                 start_time = start_time.date()
-                local_end_time = (
-                            as_local_time(end_time)
-                            if end_time is not None else None)
-                end_midnight = datetime.time(tzinfo=local_end_time.tzinfo)
-                if local_end_time.time() == end_midnight:
-                    end_time = (end_time - datetime.timedelta(days=1)).date()
-                else:
-                    end_time = end_time.date()
+                if end_time is not None:
+                    local_end_time = as_local_time(end_time)
+                    end_midnight = datetime.time(tzinfo=local_end_time.tzinfo)
+                    if local_end_time.time() == end_midnight:
+                        end_time = (end_time - datetime.timedelta(days=1)).date()
+                    else:
+                        end_time = end_time.date()
 
             event_info_list.append(
                     EventInfo(
