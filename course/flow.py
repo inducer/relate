@@ -1765,7 +1765,6 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
             if viewing_prior_version:
                 from django.template import defaultfilters
-                from relate.utils import as_local_time
                 messages.add_message(request, messages.INFO,
                     _("Viewing prior submission dated %(date)s.")
                     % {
@@ -1888,8 +1887,12 @@ def view_flow_page(pctx, flow_session_id, ordinal):
     session_minutes = None
     time_factor = 1
     if flow_permission.see_session_time in permissions:
+        if not flow_session.in_progress:
+            end_time = as_local_time(flow_session.completion_time)
+        else:
+            end_time = now_datetime
         session_minutes = (
-                now_datetime - flow_session.start_time).total_seconds() / 60
+                end_time - flow_session.start_time).total_seconds() / 60
         if flow_session.participation is not None:
             time_factor = flow_session.participation.time_factor
 
