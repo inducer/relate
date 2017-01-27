@@ -652,12 +652,32 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             error_msg = "\n".join(error_msg_parts)
 
+            review_url = ""
+            if not page_context.in_sandbox:
+
+                from django.core.urlresolvers import reverse
+                review_url = reverse(
+                    "relate-view_flow_page",
+                    kwargs={'course_identifier': page_context.course.identifier,
+                            'flow_session_id': page_context.flow_session.id,
+                            'ordinal': page_context.ordinal
+                            }
+                )
+
+            from six.moves.urllib.parse import urljoin
+            review_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
+                                 review_url)
+
+            from relate.utils import local_now, format_datetime_local
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
                 message = render_to_string("course/broken-code-question-email.txt", {
+                    "site": getattr(settings, "RELATE_BASE_URL"),
                     "page_id": self.page_desc.id,
                     "course": page_context.course,
                     "error_message": error_msg,
+                    "review_uri": review_uri,
+                    "time": format_datetime_local(local_now())
                     })
 
                 if (
