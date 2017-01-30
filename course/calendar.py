@@ -320,7 +320,7 @@ def view_calendar(pctx):
                 course=pctx.course,
                 shown_in_calendar=True),
             key=lambda evt: (
-                -evt.year, -evt.time.month, -evt.time.day,
+                -evt.time.year, -evt.time.month, -evt.time.day,
                 evt.time.hour, evt.time.minute, evt.time.second))
 
     for event in events:
