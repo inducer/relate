@@ -661,7 +661,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     kwargs={
                         'course_identifier': page_context.course.identifier,
                         'flow_session_id': page_context.flow_session.id,
-                        'ordinal': 0, #page_context.ordinal
+                        'ordinal': 0,  # page_context.ordinal
                         }
                 )
 
