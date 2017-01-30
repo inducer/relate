@@ -314,11 +314,16 @@ def view_calendar(pctx):
 
     event_info_list = []
 
-    for event in (Event.objects
+    events = sorted(
+            Event.objects
             .filter(
                 course=pctx.course,
-                shown_in_calendar=True)
-            .order_by("-time")):
+                shown_in_calendar=True),
+            key=lambda evt: (
+                -evt.year, -evt.month, -evt.day,
+                evt.hour, evt.minute, evt.second))
+
+    for event in events:
         kind_desc = event_kinds_desc.get(event.kind)
 
         human_title = six.text_type(event)
