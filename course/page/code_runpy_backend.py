@@ -175,7 +175,7 @@ def run_code(result, run_req):
     if getattr(run_req, "setup_code", None):
         try:
             setup_code = compile(
-                    run_req.setup_code, "<setup code>", 'exec')
+                    run_req.setup_code, "[setup code]", 'exec')
         except:
             package_exception(result, "setup_compile_error")
             return
@@ -184,7 +184,7 @@ def run_code(result, run_req):
 
     try:
         user_code = compile(
-                run_req.user_code, "<user code>", 'exec')
+                run_req.user_code, "[user code]", 'exec')
     except:
         package_exception(result, "user_compile_error")
         return
@@ -192,7 +192,7 @@ def run_code(result, run_req):
     if getattr(run_req, "test_code", None):
         try:
             test_code = compile(
-                    run_req.test_code, "<test code>", 'exec')
+                    run_req.test_code, "[test code]", 'exec')
         except:
             package_exception(result, "test_compile_error")
             return

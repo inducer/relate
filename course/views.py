@@ -385,7 +385,7 @@ def get_fake_time(request):
         from django.conf import settings
         from pytz import timezone
         tz = timezone(settings.TIME_ZONE)
-        return tz.localize(
+        return tz.localize(  # type: ignore
                 datetime.datetime.fromtimestamp(
                     request.session["relate_fake_time"]))
     else:

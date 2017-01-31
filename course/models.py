@@ -1733,7 +1733,14 @@ class Exam(models.Model):
             verbose_name=_('Flow ID'))
     active = models.BooleanField(
             default=True,
-            verbose_name=_('Currently active'))
+            verbose_name=_("Active"),
+            help_text=_(
+                'Currently active, i.e. may be used to log in '
+                'via an exam ticket'))
+    listed = models.BooleanField(
+            verbose_name=_("Listed"),
+            default=True,
+            help_text=_('Shown in the list of current exams'))
 
     no_exams_before = models.DateTimeField(
             verbose_name=_('No exams before'))
@@ -1768,7 +1775,8 @@ class ExamTicket(models.Model):
     creation_time = models.DateTimeField(default=now,
             verbose_name=_('Creation time'))
     usage_time = models.DateTimeField(
-            verbose_name=_('Date and time of first usage of ticket'),
+            verbose_name=_("Usage time"),
+            help_text=_('Date and time of first usage of ticket'),
             null=True, blank=True)
 
     state = models.CharField(max_length=50,
@@ -1776,6 +1784,21 @@ class ExamTicket(models.Model):
             verbose_name=_('Exam ticket state'))
 
     code = models.CharField(max_length=50, db_index=True, unique=True)
+
+    valid_start_time = models.DateTimeField(
+            verbose_name=_("End valid period"),
+            help_text=_('If not blank, date and time at which this exam ticket '
+                'starts being valid/usable'),
+            null=True, blank=True)
+    valid_end_time = models.DateTimeField(
+            verbose_name=_("End valid period"),
+            help_text=_('If not blank, date and time at which this exam ticket '
+                'stops being valid/usable'),
+            null=True, blank=True)
+    restrict_to_facility = models.CharField(max_length=200, blank=True, null=True,
+            verbose_name=_("Restrict to facility"),
+            help_text=_("If not blank, this exam ticket may only be used in the "
+                "given facility"))
 
     class Meta:
         verbose_name = _("Exam ticket")

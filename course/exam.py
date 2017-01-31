@@ -46,8 +46,8 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
-from django_select2.forms import Select2Widget
 from crispy_forms.layout import Submit
+from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.models import (Exam, ExamTicket, Participation,
         FlowSession)
@@ -61,6 +61,14 @@ from course.views import get_now_or_fake_time
 from relate.utils import StyledForm
 
 
+# {{{ mypy
+
+import datetime  # noqa
+from typing import Optional, Text, Tuple, FrozenSet  # noqa
+
+# }}}
+
+
 ticket_alphabet = "ABCDEFGHJKLPQRSTUVWXYZabcdefghjkpqrstuvwxyz23456789"
 
 
@@ -71,28 +79,19 @@ def gen_ticket_code():
 
 # {{{ issue ticket
 
-class UserChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        user = obj
-        return (
-                "%(username)s - %(user_fullname)s"
-                % {
-                    "username": user.username,
-                    "user_fullname": user.get_full_name(),
-                    })
-
-
 class IssueTicketForm(StyledForm):
     def __init__(self, now_datetime, *args, **kwargs):
         initial_exam = kwargs.pop("initial_exam", None)
 
         super(IssueTicketForm, self).__init__(*args, **kwargs)
 
-        self.fields["user"] = UserChoiceField(
+        from course.auth import UserSearchWidget
+
+        self.fields["user"] = forms.ModelChoiceField(
                 queryset=(get_user_model().objects
                     .filter(is_active=True)
                     .order_by("last_name")),
-                widget=Select2Widget(),
+                widget=UserSearchWidget(),
                 required=True,
                 help_text=_("Select participant for whom ticket is to "
                 "be issued."),
@@ -111,6 +110,22 @@ class IssueTicketForm(StyledForm):
                 required=True,
                 initial=initial_exam,
                 label=_("Exam"))
+
+        self.fields["valid_start_time"] = forms.DateTimeField(
+                label=_("Start validity"),
+                widget=DateTimePicker(
+                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                required=False)
+        self.fields["valid_end_time"] = forms.DateTimeField(
+                label=_("End validity"),
+                widget=DateTimePicker(
+                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                required=False)
+        self.fields["restrict_to_facility"] = forms.CharField(
+                label=_("Restrict to facility"),
+                help_text=_("If not blank, the exam ticket may only be used in the "
+                    "given facility"),
+                required=False)
 
         self.fields["revoke_prior"] = forms.BooleanField(
                 label=_("Revoke prior exam tickets for this user"),
@@ -161,6 +176,10 @@ def issue_exam_ticket(request):
                 ticket.creator = request.user
                 ticket.state = exam_ticket_states.valid
                 ticket.code = gen_ticket_code()
+                ticket.valid_start_time = form.cleaned_data["valid_start_time"]
+                ticket.valid_end_time = form.cleaned_data["valid_end_time"]
+                ticket.restrict_to_facility = \
+                        form.cleaned_data["restrict_to_facility"]
                 ticket.save()
 
                 messages.add_message(request, messages.SUCCESS,
@@ -282,6 +301,23 @@ class BatchIssueTicketsForm(StyledForm):
                         )),
                 required=True,
                 label=_("Exam"))
+
+        self.fields["valid_start_time"] = forms.DateTimeField(
+                label=_("Start validity"),
+                widget=DateTimePicker(
+                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                required=False)
+        self.fields["valid_end_time"] = forms.DateTimeField(
+                label=_("End validity"),
+                widget=DateTimePicker(
+                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                required=False)
+        self.fields["restrict_to_facility"] = forms.CharField(
+                label=_("Restrict to facility"),
+                help_text=_("If not blank, the exam ticket may only be used in the "
+                    "given facility"),
+                required=False)
+
         self.fields["format"] = forms.CharField(
                 label=_("Ticket Format"),
                 help_text=help_text,
@@ -340,6 +376,11 @@ def batch_issue_exam_tickets(pctx):
                         ticket.creator = request.user
                         ticket.state = exam_ticket_states.valid
                         ticket.code = gen_ticket_code()
+                        ticket.valid_start_time = \
+                                form.cleaned_data["valid_start_time"]
+                        ticket.valid_end_time = form.cleaned_data["valid_end_time"]
+                        ticket.restrict_to_facility = \
+                                form.cleaned_data["restrict_to_facility"]
                         ticket.save()
 
                         tickets.append(ticket)
@@ -385,7 +426,13 @@ def batch_issue_exam_tickets(pctx):
 
 # {{{ check in
 
-def check_exam_ticket(username, code, now_datetime):
+def check_exam_ticket(
+        username,  # type: Optional[Text]
+        code,  # type: Optional[Text]
+        now_datetime,  # type: datetime.datetime
+        facilities  # type: Optional[FrozenSet[Text]]
+        ):
+    # type: (...) -> Tuple[bool, Text]
     """
     :returns: (is_valid, msg)
     """
@@ -417,7 +464,10 @@ def check_exam_ticket(username, code, now_datetime):
             and now_datetime >= ticket.usage_time + validity_period):
         return (False, _("Ticket has exceeded its validity period."))
 
-    if ticket.exam.no_exams_before >= now_datetime:
+    if not ticket.exam.active:
+        return (False, _("Exam is not active."))
+
+    if now_datetime < ticket.exam.no_exams_before:
         return (False, _("Exam has not started yet."))
     if (
             ticket.exam.no_exams_after is not None
@@ -425,12 +475,31 @@ def check_exam_ticket(username, code, now_datetime):
             ticket.exam.no_exams_after <= now_datetime):
         return (False, _("Exam has ended."))
 
+    if (ticket.restrict_to_facility
+            and (
+                facilities is None
+                or ticket.restrict_to_facility not in facilities)):
+        return (False,
+                _("Exam ticket requires presence in facility '%s'.")
+                % ticket.restrict_to_facility)
+    if (
+            ticket.valid_start_time is not None
+            and
+            now_datetime < ticket.valid_start_time):
+        return (False, _("Exam ticket is not yet valid."))
+    if (
+            ticket.valid_end_time is not None
+            and
+            ticket.valid_end_time < now_datetime):
+        return (False, _("Exam ticket has expired."))
+
     return True, _("Ticket is valid.")
 
 
 class ExamTicketBackend(object):
-    def authenticate(self, username=None, code=None, now_datetime=None):
-        is_valid, msg = check_exam_ticket(username, code, now_datetime)
+    def authenticate(self, username=None, code=None, now_datetime=None,
+            facilities=None):
+        is_valid, msg = check_exam_ticket(username, code, now_datetime, facilities)
 
         if not is_valid:
             return None
@@ -480,13 +549,18 @@ def check_in_for_exam(request):
             pretend_facilities = request.session.get(
                     "relate_pretend_facilities", None)
 
-            is_valid, msg = check_exam_ticket(username, code, now_datetime)
+            is_valid, msg = check_exam_ticket(
+                    username, code, now_datetime,
+                    request.relate_facilities)
             if not is_valid:
                 messages.add_message(request, messages.ERROR, msg)
             else:
                 from django.contrib.auth import authenticate, login
-                user = authenticate(username=username, code=code,
-                        now_datetime=now_datetime)
+                user = authenticate(
+                        username=username,
+                        code=code,
+                        now_datetime=now_datetime,
+                        facilities=request.relate_facilities)
 
                 assert user is not None
 
@@ -703,7 +777,7 @@ class ExamLockdownMiddleware(object):
                         _("Your RELATE session is currently locked down "
                         "to this exam flow. Navigating to other parts of "
                         "RELATE is not currently allowed. "
-                        "To abandon this exam, log out."))
+                        "To exit this exam, log out."))
                 return redirect("relate-view_start_flow",
                         exam_flow_session.course.identifier,
                         exam_flow_session.flow_id)
@@ -732,6 +806,7 @@ def list_available_exams(request):
             .filter(
                 course__in=[p.course for p in participations],
                 active=True,
+                listed=True,
                 no_exams_before__lt=now_datetime)
             .filter(
                 Q(no_exams_after__isnull=True)

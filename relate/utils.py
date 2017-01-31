@@ -157,11 +157,13 @@ def as_local_time(dtm):
 
 
 def localize_datetime(dtm):
+    # type: (datetime.datetime) -> datetime.datetime
     """Takes an timezone-naive datetime and applies the server timezone."""
+
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    return tz.localize(dtm)
+    return tz.localize(dtm)  # type: ignore
 
 
 def local_now():
@@ -170,7 +172,7 @@ def local_now():
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    return tz.localize(datetime.datetime.now())
+    return tz.localize(datetime.datetime.now())  # type: ignore
 
 
 def format_datetime_local(datetime, format='DATETIME_FORMAT'):
@@ -265,7 +267,7 @@ def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
         sleep(uniform(0.05, 0.2))
 
 
-class retry_transaction_decorator(object):
+class retry_transaction_decorator(object):  # noqa
     def __init__(self, max_tries=None, serializable=None):
         # type: (Optional[int], Optional[bool]) -> None
         self.max_tries = max_tries
@@ -300,6 +302,7 @@ def dumpstacks(signal, frame):
             if line:
                 code.append("  %s" % (line.strip()))
     print("\n".join(code))
+
 
 if 0:
     import signal

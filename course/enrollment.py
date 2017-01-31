@@ -67,7 +67,7 @@ from course.utils import course_view, render_course_page
 
 from relate.utils import StyledForm, StyledModelForm
 
-from pytools.lex import RE as REBase
+from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 

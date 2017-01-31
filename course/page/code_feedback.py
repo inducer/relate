@@ -158,3 +158,22 @@ class Feedback:
             raise GradingComplete()
 
         return good
+
+    def call_user(self, f, *args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            from traceback import format_exc
+            self.add_feedback(
+                    "<p>"
+                    "The callable '%s' supplied in your code failed with "
+                    "an exception while it was being called by the grading "
+                    "code:"
+                    "</p>"
+                    "<pre>%s</pre>"
+                    % (
+                        f.__name__,
+                        "".join(format_exc())))
+
+            self.set_points(0)
+            raise GradingComplete()

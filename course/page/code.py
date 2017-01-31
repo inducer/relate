@@ -444,6 +444,10 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
               rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
           # returns True if accurate
 
+          feedback.call_user(self, f, *args, **kwargs)
+          # Calls a user-supplied function and prints an appropriate
+          # feedback message in case of failure.
+
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
 
@@ -648,12 +652,16 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             error_msg = "\n".join(error_msg_parts)
 
+            from relate.utils import local_now, format_datetime_local
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
                 message = render_to_string("course/broken-code-question-email.txt", {
+                    "site": getattr(settings, "RELATE_BASE_URL"),
                     "page_id": self.page_desc.id,
                     "course": page_context.course,
                     "error_message": error_msg,
+                    "review_uri": page_context.page_uri,
+                    "time": format_datetime_local(local_now())
                     })
 
                 if (
@@ -766,13 +774,16 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             raise RuntimeError("invalid runpy result: %s" % response.result)
 
         if hasattr(response, "feedback") and response.feedback:
+            def sanitize(s):
+                import bleach
+                return bleach.clean(s, tags=["p", "pre"])
             feedback_bits.append("".join([
                 "<p>",
                 _("Here is some feedback on your code"),
                 ":"
                 "<ul>%s</ul></p>"]) %
                         "".join(
-                            "<li>%s</li>" % escape(fb_item)
+                            "<li>%s</li>" % sanitize(fb_item)
                             for fb_item in response.feedback))
         if hasattr(response, "traceback") and response.traceback:
             feedback_bits.append("".join([
