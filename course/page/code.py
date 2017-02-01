@@ -954,17 +954,24 @@ class PythonCodeQuestionWithHumanTextFeedback(
     This will allow participants multiple attempts at getting
     the right answer.
 
-    The allowed attributes are the same as those of
-    :class:`PythonCodeQuestion`, with the following additional,
-    required attribute:
+    Besides those defined in :class:`PythonCodeQuestion`, the
+    following additional, allowed/required attribute are introduced:
 
     .. attribute:: human_feedback_value
 
-        Required.
+        Optional (deprecated).
         A number. The point value of the feedback component
         by the human grader (who will grade on a 0-100 scale,
         which is scaled to yield :attr:`human_feedback_value`
         at 100).
+
+    .. attribute:: human_feedback_percentage
+
+        Optional.
+        A number. The percentage the feedback by the human
+        grader takes in the overall grade. Noticing that
+        either this attribute or :attr:`human_feedback_value`
+        must be included. `
 
     .. attribute:: rubric
 
@@ -977,24 +984,76 @@ class PythonCodeQuestionWithHumanTextFeedback(
         super(PythonCodeQuestionWithHumanTextFeedback, self).__init__(
                 vctx, location, page_desc)
 
-        if (vctx is not None
-                and self.page_desc.human_feedback_value > self.page_desc.value):
-            raise ValidationError("".join([
-                "%s: ",
-                _("human_feedback_value greater than overall "
-                    "value of question")])
-                % location)
+        if vctx is not None:
+            if (hasattr(self.page_desc, "human_feedback_value")
+                and
+                    hasattr(self.page_desc, "human_feedback_percentage")):
+                raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("'human_feedback_value' and "
+                          "'human_feedback_percentage' are not "
+                          "allowed to coexist"))
+                    % {'location': location}
+                )
+            if not (hasattr(self.page_desc, "human_feedback_value")
+                    or hasattr(self.page_desc, "human_feedback_percentage")):
+                raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("expecting either 'human_feedback_value' "
+                          "or 'human_feedback_percentage', found neither."))
+                    % {'location': location}
+                )
+            if hasattr(self.page_desc, "human_feedback_value"):
+                vctx.add_warning(
+                    location,
+                    _("Used deprecated 'human_feedback_value' attribute--"
+                      "use 'human_feedback_percentage' instead."))
+                if self.page_desc.value == 0:
+                    raise ValidationError("".join([
+                        "%s: ",
+                        _("'human_feedback_value' attribute is not allowed "
+                          "if value of question is 0, use "
+                          "'human_feedback_percentage' instead")])
+                        % location)
+                if self.page_desc.human_feedback_value > self.page_desc.value:
+                    raise ValidationError("".join([
+                        "%s: ",
+                        _("human_feedback_value greater than overall "
+                            "value of question")])
+                        % location)
+            if hasattr(self.page_desc, "human_feedback_percentage"):
+                if not (
+                        0 <= self.page_desc.human_feedback_percentage <= 100):
+                    raise ValidationError("".join([
+                        "%s: ",
+                        _("the value of human_feedback_percentage "
+                          "must be between 0 and 100")])
+                        % location)
+
+        if hasattr(self.page_desc, "human_feedback_value"):
+            self.human_feedback_percentage = \
+                self.page_desc.human_feedback_value * 100 / self.page_desc.value
+        else:
+            self.human_feedback_percentage = self.page_desc.human_feedback_percentage
 
     def required_attrs(self):
         return super(
                 PythonCodeQuestionWithHumanTextFeedback, self).required_attrs() + (
                         # value is otherwise optional, but we require it here
                         ("value", (int, float)),
+                        )
+
+    def allowed_attrs(self):
+        return super(
+                PythonCodeQuestionWithHumanTextFeedback, self).allowed_attrs() + (
                         ("human_feedback_value", (int, float)),
+                        ("human_feedback_percentage", (int, float)),
                         )
 
     def human_feedback_point_value(self, page_context, page_data):
-        return self.page_desc.human_feedback_value
+        return self.page_desc.value * self.human_feedback_percentage / 100
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
@@ -1007,7 +1066,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
         code_feedback = PythonCodeQuestion.grade(self, page_context,
                 page_data, answer_data, grade_data)
 
-        human_points = self.page_desc.human_feedback_value
+        human_points = self.human_feedback_point_value(page_context, page_data)
         code_points = self.page_desc.value - human_points
 
         correctness = None
@@ -1016,20 +1075,20 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and code_feedback.correctness is not None
                 and grade_data is not None
                 and grade_data["grade_percent"] is not None):
-            correctness = (
-                    code_feedback.correctness * code_points
+            code_feedback_percentage = 100 - self.human_feedback_percentage
+            percentage = (
+                    code_feedback.correctness * code_feedback_percentage
 
                     + grade_data["grade_percent"] / 100
-                    * self.page_desc.human_feedback_value
-                    ) / self.page_desc.value
-            percentage = correctness * 100
-        elif (self.page_desc.human_feedback_value == self.page_desc.value
+                    * self.human_feedback_percentage
+                    )
+            correctness = percentage / 100
+        elif (self.human_feedback_percentage == 100
                 and grade_data is not None
                 and grade_data["grade_percent"] is not None):
             correctness = grade_data["grade_percent"] / 100
             percentage = correctness * 100
 
-        human_feedback_percentage = None
         human_feedback_text = None
 
         human_feedback_points = None
@@ -1038,9 +1097,9 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 human_feedback_text = markup_to_html(
                         page_context, grade_data["feedback_text"])
 
-            human_feedback_percentage = grade_data["grade_percent"]
-            if human_feedback_percentage is not None:
-                human_feedback_points = (human_feedback_percentage/100.
+            human_graded_percentage = grade_data["grade_percent"]
+            if human_graded_percentage is not None:
+                human_feedback_points = (human_graded_percentage/100.
                         * human_points)
 
         code_feedback_points = None
