@@ -1006,6 +1006,9 @@ class ExceptionStage3Form(StyledForm):
                 initial=default_data.get("due"),
                 label=_("Due time"))
 
+        self.fields["generates_grade"] = forms.BooleanField(required=False,
+                initial=default_data.get("generates_grade", True),
+                label=_("Generates grade"))
         self.fields["credit_percent"] = forms.FloatField(required=False,
                 initial=default_data.get("credit_percent"),
                 label=_("Credit percent"))
@@ -1021,6 +1024,7 @@ class ExceptionStage3Form(StyledForm):
 
         layout.append(Div("create_grading_exception",
             "due_same_as_access_expiration", "due",
+            "generates_grade",
             "credit_percent", "bonus_points", "max_points",
             "max_points_enforced_cap",
             css_class="well"))
@@ -1163,17 +1167,13 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     new_grading_rule["if_completed_before"] = due_local_naive
 
                 for attr_name in ["credit_percent", "bonus_points",
-                        "max_points", "max_points_enforced_cap"]:
+                        "max_points", "max_points_enforced_cap", "generates_grade"]:
                     if form.cleaned_data[attr_name] is not None:
                         new_grading_rule[attr_name] = form.cleaned_data[attr_name]
 
                 if (form.cleaned_data.get("restrict_to_same_tag")
                         and session.access_rules_tag is not None):
                     new_grading_rule["if_has_tag"] = session.access_rules_tag
-
-                if hasattr(grading_rule, "generates_grade"):
-                    new_grading_rule["generates_grade"] = \
-                            grading_rule.generates_grade
 
                 validate_session_grading_rule(
                         vctx, ugettext("newly created exception"),
@@ -1205,9 +1205,13 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     else:
         data = {
                 "restrict_to_same_tag": session.access_rules_tag is not None,
-                "credit_percent": grading_rule.credit_percent,
                 #"due_same_as_access_expiration": True,
                 "due": grading_rule.due,
+                "generates_grade": grading_rule.generates_grade,
+                "credit_percent": grading_rule.credit_percent,
+                "bonus_points": grading_rule.bonus_points,
+                "max_points": grading_rule.max_points,
+                "max_points_enforced_cap": grading_rule.max_points_enforced_cap,
                 }
         for perm in access_rule.permissions:
             data[perm] = True

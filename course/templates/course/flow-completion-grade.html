@@ -8,74 +8,99 @@
 
 {% block content %}
 
-  {% if grade_info != None and grade_info.total_count %}
-  <h1>{% trans "Results" %}: {{flow_desc.title}}</h1>
-  <div class="well flow-well">
-    <p>
-    {# Translators: the following 5 blocks of literals make a sentence. PartI #}
-    {% trans "You have" %}
-    {% if grade_info.max_points != grade_info.max_reachable_points %}
-      {# Translators: PartII #}
-      <b>{% trans "(so far)" %}</b>
-    {% endif %}
-    {# Translators: PartIII #}
-    {% blocktrans trimmed with provisional_points=grade_info.provisional_points|floatformat max_points=grade_info.max_points|floatformat %}
-    achieved <b>{{ provisional_points }}</b> out of
-    {{ max_points }}
-    points.
-    {% endblocktrans %}
-    {% if grade_info.max_points != grade_info.max_reachable_points %}
-      {# Translators: PartIV #}
-      {% blocktrans trimmed %}
-      (Some questions are not graded yet, so your grade will likely
-      change.)
-      {% endblocktrans %}
-    {% else %}
-      {# Translators: PartV #}
-      {% blocktrans trimmed with points_percent=grade_info.points_percent|floatformat %}
-      (That's <b>{{ points_percent }}%</b>.)
-      {% endblocktrans %}
-    {% endif %}
-    </p>
-
-    {% if grade_info.total_points_percent < 100.001 %}
-      {# otherwise we'll have trouble drawing the bar #}
-
-      <div class="progress">
-        <div class="progress-bar progress-bar-success"
-          style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
-        <div class="progress-bar progress-bar-danger"
-          style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
-        <div class="progress-bar progress-bar-info"
-          style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
-      </div>
-    {% endif %}
-
-    <p>
-    {% blocktrans trimmed with fully_correct_count=grade_info.fully_correct_count partially_correct_count=grade_info.partially_correct_count incorrect_count=grade_info.incorrect_count %}
-    You have answered {{ fully_correct_count }} questions
-    correctly, {{ partially_correct_count }} questions
-    partially correctly, and {{ incorrect_count }} questions
-    incorrectly.
-    {% endblocktrans %}
-    {% if grade_info.unknown_count %}
-    {% blocktrans trimmed with unknown_count=grade_info.unknown_count %}
-    The grade for {{ unknown_count }} questions is not yet known.
-    {% endblocktrans %}
-    {% endif %}
-    </p>
-
-    <div class="progress">
-      <div class="progress-bar progress-bar-success"
-        style="width: {{ grade_info.fully_correct_percent|stringformat:".8f" }}%"></div>
-      <div class="progress-bar progress-bar-warning"
-        style="width: {{ grade_info.partially_correct_percent|stringformat:".8f" }}%"></div>
-      <div class="progress-bar progress-bar-danger"
-        style="width: {{ grade_info.incorrect_percent|stringformat:".8f" }}%"></div>
-      <div class="progress-bar progress-bar-info"
-        style="width: {{ grade_info.unknown_percent|stringformat:".8f" }}%"></div>
-    </div>
-  </div>
+  {% if grade_info != None %}
+      {% if grade_info.total_count or grade_info.optional_total_count %}
+          <h1>{% trans "Results" %}: {{flow_desc.title}}</h1>
+          <div class="well flow-well">
+              {% if grade_info.total_count %}
+                  <p>
+                      {# Translators: the following 5 blocks of literals make a sentence. PartI #}
+                      {% trans "You have" %}
+                      {% if grade_info.max_points != grade_info.max_reachable_points %}
+                          {# Translators: PartII #}
+                          <b>{% trans "(so far)" %}</b>
+                      {% endif %}
+                      {# Translators: PartIII #}
+                      {% blocktrans trimmed with provisional_points=grade_info.provisional_points|floatformat max_points=grade_info.max_points|floatformat %}
+                          achieved <b>{{ provisional_points }}</b> out of
+                          {{ max_points }}
+                          points.
+                      {% endblocktrans %}
+                      {% if grade_info.max_points != grade_info.max_reachable_points %}
+                          {# Translators: PartIV #}
+                          {% blocktrans trimmed %}
+                              (Some questions are not graded yet, so your grade will likely
+                              change.)
+                          {% endblocktrans %}
+                      {% else %}
+                          {# Translators: PartV #}
+                          {% blocktrans trimmed with points_percent=grade_info.points_percent|floatformat %}
+                              (That's <b>{{ points_percent }}%</b>.)
+                          {% endblocktrans %}
+                      {% endif %}
+                  </p>
+                  {% if grade_info.total_points_percent < 100.001 %}
+                      {# otherwise we'll have trouble drawing the bar #}
+                      <div class="progress">
+                          <div class="progress-bar progress-bar-success"
+                               style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
+                          <div class="progress-bar progress-bar-danger"
+                               style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
+                          <div class="progress-bar progress-bar-info"
+                               style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
+                      </div>
+                  {% endif %}
+                  <p>
+                      {% blocktrans trimmed with fully_correct_count=grade_info.fully_correct_count partially_correct_count=grade_info.partially_correct_count incorrect_count=grade_info.incorrect_count %}
+                          You have answered {{ fully_correct_count }} grading questions
+                          correctly, {{ partially_correct_count }} questions
+                          partially correctly, and {{ incorrect_count }} questions
+                          incorrectly.
+                      {% endblocktrans %}
+                      {% if grade_info.unknown_count %}
+                          {% blocktrans trimmed with unknown_count=grade_info.unknown_count %}
+                              The grade for {{ unknown_count }} questions is not yet known.
+                          {% endblocktrans %}
+                      {% endif %}
+                  </p>
+                  <div class="progress">
+                      <div class="progress-bar progress-bar-success"
+                           style="width: {{ grade_info.fully_correct_percent|stringformat:".8f" }}%"></div>
+                      <div class="progress-bar progress-bar-warning"
+                           style="width: {{ grade_info.partially_correct_percent|stringformat:".8f" }}%"></div>
+                      <div class="progress-bar progress-bar-danger"
+                           style="width: {{ grade_info.incorrect_percent|stringformat:".8f" }}%"></div>
+                      <div class="progress-bar progress-bar-info"
+                           style="width: {{ grade_info.unknown_percent|stringformat:".8f" }}%"></div>
+                  </div>
+              {% endif %}
+              {% if grade_info.optional_total_count %}
+                  <p>
+                      {% blocktrans trimmed with total_count=grade_info.optional_total_count fully_correct_count=grade_info.optional_fully_correct_count partially_correct_count=grade_info.optional_partially_correct_count incorrect_count=grade_info.optional_incorrect_count %}
+                          There are {{ total_count }} optional questions (not for grading).
+                          You have answered {{ fully_correct_count }} correctly,
+                          {{ partially_correct_count }} partially correctly,
+                          and {{ incorrect_count }} incorrectly.
+                      {% endblocktrans %}
+                      {% if grade_info.optional_unknown_count %}
+                          {% blocktrans trimmed with unknown_count=grade_info.optional_unknown_count %}
+                              The correctness for {{ unknown_count }} optional questions is not yet known.
+                          {% endblocktrans %}
+                      {% endif %}
+                  </p>
+                  <div class="progress">
+                      <div class="progress-bar progress-bar-success"
+                           style="width: {{ grade_info.optional_fully_correct_percent|stringformat:".8f" }}%"></div>
+                      <div class="progress-bar progress-bar-warning"
+                           style="width: {{ grade_info.optional_partially_correct_percent|stringformat:".8f" }}%"></div>
+                      <div class="progress-bar progress-bar-danger"
+                           style="width: {{ grade_info.optional_incorrect_percent|stringformat:".8f" }}%"></div>
+                      <div class="progress-bar progress-bar-info"
+                           style="width: {{ grade_info.optional_unknown_percent|stringformat:".8f" }}%"></div>
+                  </div>
+              {% endif %}
+          </div>
+      {% endif %}
   {% endif %}
 
   {{ completion_text|safe }}

@@ -668,6 +668,12 @@ The following page types are predefined:
     An integer or a floating point number, representing the
     point value of the question.
 
+.. |is-optional-page-attr| replace::
+
+    Optional. A Boolean value indicating whether the page is an optional page
+    which does not require answer for fully completion of the flow.
+    If `true`, :attr:`value` will be igored. Defaults to `false` if not present.
+
 .. |text-widget-page-attr| replace::
 
     Optional.
