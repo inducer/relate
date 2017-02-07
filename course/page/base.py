@@ -820,7 +820,7 @@ class HumanTextFeedbackForm(StyledForm):
                     [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100]),
                 label=_("Grade percent"))
 
-        if point_value is not None:
+        if point_value is not None and point_value != 0:
             self.fields["grade_points"] = forms.FloatField(
                     min_value=0,
                     max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
@@ -893,7 +893,7 @@ class HumanTextFeedbackForm(StyledForm):
         if self.point_value is None:
             return self.cleaned_data["grade_percent"]
         elif (self.cleaned_data["grade_percent"] is not None
-                and self.cleaned_data["grade_points"] is not None):
+                and self.cleaned_data.get("grade_points") is not None):
             points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
             direct_percent = self.cleaned_data["grade_percent"]
 
@@ -905,7 +905,7 @@ class HumanTextFeedbackForm(StyledForm):
         elif self.cleaned_data["grade_percent"] is not None:
             return self.cleaned_data["grade_percent"]
 
-        elif self.cleaned_data["grade_points"] is not None:
+        elif self.cleaned_data.get("grade_points") is not None:
             if self.point_value:
                 return 100*self.cleaned_data["grade_points"]/self.point_value
             else:
