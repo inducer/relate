@@ -825,10 +825,12 @@ def gather_grade_info(
     if grading_rule.max_points_enforced_cap is not None:
         max_reachable_points = min(
                 max_reachable_points, grading_rule.max_points_enforced_cap)
-        points = min(
-                points, grading_rule.max_points_enforced_cap)
-        provisional_points = min(
-                provisional_points, grading_rule.max_points_enforced_cap)
+        if points is not None:
+            points = min(
+                    points, grading_rule.max_points_enforced_cap)
+        if provisional_points is not None:
+            provisional_points = min(
+                    provisional_points, grading_rule.max_points_enforced_cap)
 
     # }}}
 
