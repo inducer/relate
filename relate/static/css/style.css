@@ -66,6 +66,17 @@ table.past-flow-session-table {
   display: inline;
 }
 
+/* styling tooltip arrow for inline question validation errors */
+/* ref: http://stackoverflow.com/a/38279489/3437454*/
+.tooltip-danger.tooltip-inner {
+  text-align: left;
+  background-color: #a94442;
+}
+
+[data-placement="bottom"] + .tooltip > .tooltip-danger.tooltip-arrow {
+  border-bottom-color: #a94442;
+}
+
 code {
   /* Bootstrap: Hot pink for code? Really? */
   color: #333;
