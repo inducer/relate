@@ -137,7 +137,11 @@ class Feedback:
         import numpy as np
 
         if not isinstance(data, (float, int, np.number)):
-            self.finish(0, "'%s' is not a number" % name)
+            try:
+                if not data.is_number:
+                    raise AttributeError
+            except AttributeError:
+                self.finish(0, "'%s' is not a number" % name)
 
         good = False
 
