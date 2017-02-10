@@ -893,7 +893,7 @@ class EditParticipationForm(StyledModelForm):
         self.fields["individual_permissions"] = forms.MultipleChoiceField(
                 choices=PARTICIPATION_PERMISSION_CHOICES,
                 disabled=not may_edit_permissions,
-                #widget=forms.CheckboxSelectMultiple,
+                widget=forms.CheckboxSelectMultiple,
                 help_text=_("Permissions for this participant in addition to those "
                     "granted by their role"),
                 initial=self.instance.individual_permissions.values_list(
@@ -913,9 +913,9 @@ class EditParticipationForm(StyledModelForm):
                     Submit("drop", _("Drop"), css_class="btn-danger"))
 
     def save(self):
-        # type: () -> None
+        # type: () -> Participation
 
-        super(EditParticipationForm, self).save()
+        inst = super(EditParticipationForm, self).save()
 
         (ParticipationPermission.objects
                 .filter(participation=self.instance)
@@ -929,6 +929,8 @@ class EditParticipationForm(StyledModelForm):
             pp.save()
             pps.append(pp)
         self.instance.individual_permissions.set(pps)
+
+        return inst
 
     class Meta:
         model = Participation
@@ -965,43 +967,54 @@ def edit_participation(pctx, participation_id):
         raise SuspiciousOperation("may not edit participation in different course")
 
     if request.method == 'POST':
-        form = None  # type: Optional[EditParticipationForm]
+        form = EditParticipationForm(
+                add_new, pctx, request.POST, instance=participation)
+        reset_form = False
 
-        if "submit" in request.POST:
+        if form.is_valid():
+            if "submit" in request.POST:
+                form.save()
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Changes saved."))
+
+            elif "approve" in request.POST:
+                send_enrollment_decision(participation, True, pctx.request)
+
+                # FIXME: Double-saving
+                participation = form.save()
+                participation.status = participation_status.active
+                participation.save()
+                reset_form = True
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Successfully enrolled."))
+
+            elif "deny" in request.POST:
+                send_enrollment_decision(participation, False, pctx.request)
+
+                # FIXME: Double-saving
+                participation = form.save()
+                participation.status = participation_status.denied
+                participation.save()
+                reset_form = True
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Successfully denied."))
+
+            elif "drop" in request.POST:
+                # FIXME: Double-saving
+                participation = form.save()
+                participation.status = participation_status.dropped
+                participation.save()
+                reset_form = True
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Successfully dropped."))
+
+        if reset_form:
             form = EditParticipationForm(
-                    add_new, pctx, request.POST, instance=participation)
-
-            if form.is_valid():  # type: ignore
-                form.save()  # type: ignore
-        elif "approve" in request.POST:
-
-            send_enrollment_decision(participation, True, pctx.request)
-
-            participation.status = participation_status.active
-            participation.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("Successfully enrolled."))
-
-        elif "deny" in request.POST:
-            send_enrollment_decision(participation, False, pctx.request)
-
-            participation.status = participation_status.denied
-            participation.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("Successfully denied."))
-
-        elif "drop" in request.POST:
-            participation.status = participation_status.dropped
-            participation.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("Successfully dropped."))
-
-        if form is None:
-            form = EditParticipationForm(add_new, pctx, instance=participation)
-
+                    add_new, pctx, instance=participation)
     else:
         form = EditParticipationForm(add_new, pctx, instance=participation)
 
