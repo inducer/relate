@@ -213,26 +213,48 @@ div.progress:hover  span.stats-percentage{
   padding-right:50px;
 }
 
-.grading-page-student-work {
-  position: absolute;
-  top: 60px;
-  left: 0;
-  width: 50%;
-  bottom: 0;
-  padding-left:50px;
-  padding-right:50px;
-  overflow-y: auto;
+@media (min-width: 768px) {
+    .grading-page-student-work {
+        position: absolute;
+        top: 60px;
+        left: 0;
+        width: 50%;
+        bottom: 0;
+        padding-left: 50px;
+        padding-right: 50px;
+        overflow-y: auto;
+    }
+
+    .grading-page-grade-entry {
+        position: absolute;
+        top: 60px;
+        right: 0;
+        width: 50%;
+        bottom: 0;
+        overflow-y: auto;
+        padding-left: 50px;
+        padding-right: 50px;
+    }
 }
 
-.grading-page-grade-entry {
-  position: absolute;
-  top: 60px;
-  right: 0;
-  width: 50%;
-  bottom: 0;
-  overflow-y: auto;
-  padding-left:50px;
-  padding-right:50px;
+@media (max-width: 767px) {
+    .grading-page-student-work.container > div {
+        margin-left: 5px;
+        margin-right: 5px;
+    }
+
+    .grading-page-grade-entry.container > div {
+        margin-left: 5px;
+        margin-right: 5px;
+    }
+
+    h1, .h1 {
+        font-size: 30px;
+    }
+
+    h2, .h2 {
+        font-size: 24px;
+    }
 }
 
 .relate-participation-active {
