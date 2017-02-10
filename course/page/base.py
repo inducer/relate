@@ -143,9 +143,9 @@ def get_auto_feedback(correctness):
     # type: (Optional[float]) -> Text
     if correctness is None:
         return six.text_type(_("No information on correctness of answer."))
-    elif correctness == 0:
+    elif abs(correctness - 0) < 1e-5:
         return six.text_type(_("Your answer is not correct."))
-    elif correctness == 1:
+    elif abs(correctness - 1) < 1e-5:
         return six.text_type(_("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
