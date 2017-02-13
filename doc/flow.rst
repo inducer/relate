@@ -672,7 +672,11 @@ The following page types are predefined:
 
     Optional. A Boolean value indicating whether the page is an optional page
     which does not require answer for fully completion of the flow.
-    If `true`, :attr:`value` will be igored. Defaults to `false` if not present.
+    If ``true``, :attr:`value` should not present. Defaults to ``false`` if not present.
+    Note that ``is_optional_page: true`` differs from ``value: 0`` in that finishing flows
+    with unanswered page(s) with the latter will be warned of "unanswered question(s)",
+    while with the former won't. When using not-for-grading page(s) to collect
+    answers from students, it's to better use ``value: 0``.
 
 .. |text-widget-page-attr| replace::
 
