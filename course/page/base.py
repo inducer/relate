@@ -337,6 +337,7 @@ class PageBase(object):
                     # }}}
 
             self.page_desc = page_desc
+            self.is_optional_page = getattr(page_desc, "is_optional_page", False)
 
         else:
             from warnings import warn
@@ -366,6 +367,7 @@ class PageBase(object):
 
         return (
             ("access_rules", Struct),
+            ("is_optional_page", bool),
             )
 
     def get_modified_permissions_for_page(self, permissions):
@@ -731,6 +733,16 @@ class PageBaseWithTitle(PageBase):
 
 
 class PageBaseWithValue(PageBase):
+    def __init__(self, vctx, location, page_desc):
+        super(PageBaseWithValue, self).__init__(vctx, location, page_desc)
+
+        if vctx is not None:
+            if hasattr(page_desc, "value") and self.is_optional_page:
+                raise ValidationError(
+                    location,
+                    _("Attribute 'value' should be removed when "
+                      "'is_optional_page' is True."))
+
     def allowed_attrs(self):
         return super(PageBaseWithValue, self).allowed_attrs() + (
                 ("value", (int, float)),
@@ -740,6 +752,8 @@ class PageBaseWithValue(PageBase):
         return True
 
     def max_points(self, page_data):
+        if self.is_optional_page:
+            return 0
         return getattr(self.page_desc, "value", 1)
 
 

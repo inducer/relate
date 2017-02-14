@@ -193,6 +193,10 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
         ``ChoiceQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -327,6 +331,10 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
     .. attribute:: type
 
         ``MultipleChoiceQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 
@@ -567,6 +575,10 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     .. attribute:: type
 
         ``ChoiceQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 

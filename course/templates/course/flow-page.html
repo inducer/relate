@@ -317,6 +317,10 @@
       {{ max_points }} points
     {% endblocktrans %}
     </div>
+  {% elif is_optional_page %}
+    <div style="float:right" class="well">
+    {% trans "Optional question" %}
+    </div>
   {% endif %}
 
   {# }}} #}

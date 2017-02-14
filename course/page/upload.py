@@ -97,6 +97,10 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         ``Page``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
