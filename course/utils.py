@@ -868,9 +868,17 @@ def get_codemirror_widget(language_mode, interaction_mode,
                   "Ctrl-/": "toggleComment",
                   "Tab": function(cm)
                   {
-                    var spaces = \
-                        Array(cm.getOption("indentUnit") + 1).join(" ");
-                    cm.replaceSelection(spaces);
+                    // from https://github.com/codemirror/CodeMirror/issues/988
+
+                    if (cm.doc.somethingSelected()) {
+                        return CodeMirror.Pass;
+                    }
+                    var spacesPerTab = cm.getOption("indentUnit");
+                    var spacesToInsert = (
+                        spacesPerTab
+                        - (cm.doc.getCursor("start").ch % spacesPerTab));
+                    var spaces = Array(spacesToInsert + 1).join(" ");
+                    cm.replaceSelection(spaces, "end", "+input");
                   },
                   "F9": function(cm) {
                       cm.setOption("fullScreen",
