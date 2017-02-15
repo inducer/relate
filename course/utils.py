@@ -880,6 +880,7 @@ def get_codemirror_widget(language_mode, interaction_mode,
                     var spaces = Array(spacesToInsert + 1).join(" ");
                     cm.replaceSelection(spaces, "end", "+input");
                   },
+                  "Shift-Tab": "indentLess",
                   "F9": function(cm) {
                       cm.setOption("fullScreen",
                         !cm.getOption("fullScreen"));
