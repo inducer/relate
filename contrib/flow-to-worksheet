@@ -43,14 +43,22 @@ TEMPLATE = Template(r"""
 
 INCLUDE_GRAPHICS_MEDIA_RE = re.compile(r"\\includegraphics\{media:(.*)\}")
 INCLUDE_GRAPHICS_REPO_RE = re.compile(r"\\includegraphics\{repo:(.*)\}")
+FORMULA_ALIGN_RE = re.compile(
+        r"\\\["
+        r"\s*(\\begin\{align\*?\})"
+        r"(.*?)"
+        r"(\\end\{align\*?\})\s*"
+        r"\\\]", re.DOTALL)
 
 
 def convert_markup(s):
     result = pypandoc.convert(s, 'latex', format='markdown')
     result, _ = INCLUDE_GRAPHICS_MEDIA_RE.subn(
-            r"\includegraphics[height=4cm]{media/\1}", result)
+            r"\\includegraphics[height=4cm]{media/\1}", result)
     result, _ = INCLUDE_GRAPHICS_REPO_RE.subn(
-            r"\includegraphics[height=4cm]{\1}", result)
+            r"\\includegraphics[height=4cm]{\1}", result)
+    result, _ = FORMULA_ALIGN_RE.subn(
+            r"\1\2\3", result)
     return result
 
 
