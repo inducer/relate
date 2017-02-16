@@ -1775,6 +1775,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
     answer_visit = None
     prev_visit_id = None
+    viewing_prior_version = False
 
     if request.method == "POST":
         if "finish" in request.POST:
@@ -1813,7 +1814,6 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             except ValueError:
                 raise SuspiciousOperation("non-integer passed for 'visit_id'")
 
-        viewing_prior_version = False
         if prev_answer_visits and prev_visit_id is not None:
             answer_visit = prev_answer_visits[0]
 
@@ -1827,13 +1827,17 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
             if viewing_prior_version:
                 from django.template import defaultfilters
-                messages.add_message(request, messages.INFO,
-                    _("Viewing prior submission dated %(date)s.")
+                messages.add_message(request, messages.INFO, (
+                    _("Viewing prior submission dated %(date)s. ")
                     % {
                         "date": defaultfilters.date(
-                            as_local_time(pvisit.visit_time),
+                            as_local_time(answer_visit.visit_time),
                             "DATETIME_FORMAT"),
-                        })
+                    }
+                    +
+                    '<a class="btn btn-default btn-sm" href="?" '
+                    'role="button">&laquo; %s</a>'
+                    % _("Go back")))
 
             prev_visit_id = answer_visit.id
 
@@ -2013,6 +2017,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "interaction_kind": get_interaction_kind(
             fpctx, flow_session, generates_grade, all_page_data),
 
+        "viewing_prior_version": viewing_prior_version,
         "prev_answer_visits": prev_answer_visits,
         "prev_visit_id": prev_visit_id,
     }
@@ -2245,7 +2250,6 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
     page_id = FlowPageData.objects.get(
         flow_session=flow_session_id, ordinal=ordinal).page_id
 
-    from django.core.urlresolvers import reverse
     review_url = reverse(
         "relate-view_flow_page",
         kwargs={'course_identifier': pctx.course.identifier,
