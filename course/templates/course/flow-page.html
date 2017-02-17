@@ -166,6 +166,7 @@
 
       <div class="navbar-right relate-flow-submit"
         style="padding-right: 0.4em;">
+      {% if not viewing_prior_version %}
         <button type="submit" name="finish" class="btn btn-default relate-nav-button
         {% if flow_session.in_progress %}
           {% if not interaction_kind == flow_session_interaction_kind.noninteractive %}
@@ -201,13 +202,14 @@
             <i class="fa fa-sign-out" aria-hidden="true"></i>
         {% endif %}
         </button>
+      {% endif %}
       </div>
 
       {# }}} #}
 
       {# {{{ expiration mode #}
 
-      {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
+      {% if flow_session.in_progress and expiration_mode_choice_count > 1 and not viewing_prior_version %}
         <div class="flow-session-expiration-panel">
           <span id="expiration_mode_change_progress">
           </span>
