@@ -427,6 +427,7 @@ def start_flow(
         user=user,
         active_git_commit_sha=course_commit_sha.decode(),
         flow_id=flow_id,
+        start_time=now_datetime,
         in_progress=True,
         expiration_mode=exp_mode,
         access_rules_tag=session_start_rule.tag_session)
