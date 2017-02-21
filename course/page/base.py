@@ -739,9 +739,10 @@ class PageBaseWithValue(PageBase):
         if vctx is not None:
             if hasattr(page_desc, "value") and self.is_optional_page:
                 raise ValidationError(
-                    location,
-                    _("Attribute 'value' should be removed when "
-                      "'is_optional_page' is True."))
+                    string_concat(
+                        location,
+                        _("Attribute 'value' should be removed when "
+                          "'is_optional_page' is True.")))
 
     def allowed_attrs(self):
         return super(PageBaseWithValue, self).allowed_attrs() + (
