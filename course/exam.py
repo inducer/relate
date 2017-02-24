@@ -716,7 +716,7 @@ class ExamLockdownMiddleware(object):
                 msg = _("Error while processing exam lockdown: "
                         "flow session not found.")
                 messages.add_message(request, messages.ERROR, msg)
-                raise SuspiciousOperation(msg)
+                raise PermissionDenied(msg)
 
             request.relate_exam_lockdown = True
 
