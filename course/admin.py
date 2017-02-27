@@ -617,7 +617,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(
             flow_session__course__participations__user=request.user,
-            flow_session__course__participations__roles__permissions__identifier  # noqa
+            flow_session__course__participations__roles__permissions__permission  # noqa
             =pperm.use_admin_interface)
 
     # }}}
