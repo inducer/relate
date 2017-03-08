@@ -84,7 +84,7 @@ from relate.utils import retry_transaction_decorator
 
 # {{{ mypy
 
-from typing import Any, Optional, Iterable, Tuple, Text  # noqa
+from typing import Any, Optional, Iterable, Tuple, Text, List  # noqa
 import datetime  # noqa
 from course.models import (  # noqa
         Course,

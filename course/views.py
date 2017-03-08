@@ -82,7 +82,7 @@ from course.utils import (  # noqa
 
 # {{{ for mypy
 
-from typing import Tuple, List, Text, Optional, Any, Iterable  # noqa
+from typing import Tuple, List, Text, Optional, Any, Iterable, Dict  # noqa
 
 from course.content import (  # noqa
     FlowDesc,

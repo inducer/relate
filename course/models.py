@@ -59,6 +59,7 @@ from course.page.base import AnswerFeedback
 
 # {{{ mypy
 
+from typing import List, Dict  # noqa
 if False:
     from course.content import FlowDesc  # noqa
 

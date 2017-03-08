@@ -44,7 +44,7 @@ from django.conf import settings
 
 # {{{ mypy
 
-from typing import Text, Optional, Any, Tuple  # noqa
+from typing import Text, Optional, Any, Tuple, Dict  # noqa
 from django import http  # noqa
 
 if False:

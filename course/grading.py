@@ -55,7 +55,7 @@ from course.constants import (
 
 # {{{ for mypy
 
-from typing import Text, Any, Optional  # noqa
+from typing import Text, Any, Optional, Dict  # noqa
 from course.models import (  # noqa
         GradingOpportunity)
 from course.utils import (  # noqa

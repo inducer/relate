@@ -59,7 +59,7 @@ else:
 # {{{ mypy
 
 from typing import (  # noqa
-        cast, Union, Any, List, Tuple, Optional, Callable, Text)
+        cast, Union, Any, List, Tuple, Optional, Callable, Text, Dict)
 
 if False:
     # for mypy

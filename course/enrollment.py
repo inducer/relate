@@ -71,7 +71,7 @@ from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 
-from typing import Any, Tuple, Text, Optional  # noqa
+from typing import Any, Tuple, Text, Optional, List  # noqa
 from course.utils import CoursePageContext  # noqa
 
 # }}}
