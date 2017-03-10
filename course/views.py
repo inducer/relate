@@ -67,7 +67,6 @@ from course.constants import (
         participation_status,
         FLOW_PERMISSION_CHOICES,
         )
-from accounts.models import User
 from course.models import (
         Course,
         InstantFlowRequest,
@@ -89,6 +88,8 @@ from typing import Tuple, List, Text, Optional, Any, Iterable, Dict  # noqa
 from course.content import (  # noqa
     FlowDesc,
     )
+
+from accounts.models import User  # noqa
 
 # }}}
 
