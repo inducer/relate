@@ -67,6 +67,7 @@ from course.constants import (
         participation_status,
         FLOW_PERMISSION_CHOICES,
         )
+from accounts.models import User
 from course.models import (
         Course,
         InstantFlowRequest,
@@ -498,7 +499,7 @@ class FakeFacilityForm(StyledForm):
 
 
 def may_set_pretend_facility(user):
-    # type: Optional[User] -> bool
+    # type: (Optional[User]) -> bool
 
     if user is None:
         return False
