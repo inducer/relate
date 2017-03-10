@@ -156,6 +156,9 @@ class Histogram(object):
                 num_bin_starts = [
                         exp(log(min_value)+bin_width*i)
                         for i in range(self.num_bin_count)]
+                # Rounding error means exp(log(min_value)) may be greater
+                # than min_value, so set start of first bin to min_value
+                num_bin_starts[0] = min_value
             else:
                 bin_width = (max_value - min_value)/self.num_bin_count
                 num_bin_starts = [
