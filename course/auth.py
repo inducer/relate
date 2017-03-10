@@ -68,6 +68,14 @@ from django_select2.forms import ModelSelect2Widget
 
 # {{{ impersonation
 
+def get_pre_impersonation_user(request):
+    is_impersonating = hasattr(
+            request, "relate_impersonate_original_user")
+    if is_impersonating:
+        return request.relate_impersonate_original_user
+    return None
+
+
 def may_impersonate(impersonator, impersonee):
     # type: (User, User) -> bool
     if impersonator.is_superuser:

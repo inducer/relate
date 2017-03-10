@@ -58,6 +58,7 @@ from crispy_forms.layout import Submit, Layout, Div
 from relate.utils import StyledForm, StyledModelForm
 from bootstrap3_datetime.widgets import DateTimePicker
 
+from course.auth import get_pre_impersonation_user
 from course.enrollment import (
         get_participation_for_request,
         get_participation_permissions)
@@ -403,18 +404,26 @@ def get_now_or_fake_time(request):
         return fake_time
 
 
-def set_fake_time(request):
+def may_set_fake_time(user):
+    # type: (Optional[User]) -> bool
 
-    # allow staff to set fake time when impersonating
-    def is_original_user_staff(request):
-        is_impersonating = hasattr(
-                request, "relate_impersonate_original_user")
-        if is_impersonating:
-            return request.relate_impersonate_original_user.is_staff
+    if user is None:
         return False
 
-    if not (request.user.is_staff or is_original_user_staff(request)):
-        raise PermissionDenied(_("only staff may set fake time"))
+    return Participation.objects.filter(
+            user=user,
+            roles__permissions__permission=pperm.set_fake_time
+            ).count() > 0
+
+
+def set_fake_time(request):
+    # allow staff to set fake time when impersonating
+    pre_imp_user = get_pre_impersonation_user(request)
+    if not (
+            may_set_fake_time(request.user) or (
+                pre_imp_user is not None
+                and may_set_fake_time(pre_imp_user))):
+        raise PermissionDenied(_("may not set fake time"))
 
     if request.method == "POST":
         form = FakeTimeForm(request.POST, request.FILES)
@@ -488,9 +497,26 @@ class FakeFacilityForm(StyledForm):
                 Submit("unset", _("Unset")))
 
 
+def may_set_pretend_facility(user):
+    # type: Optional[User] -> bool
+
+    if user is None:
+        return False
+
+    return Participation.objects.filter(
+            user=user,
+            roles__permissions__permission=pperm.set_pretend_facility
+            ).count() > 0
+
+
 def set_pretend_facilities(request):
-    if not request.user.is_staff:
-        raise PermissionDenied(_("only staff may set fake facility"))
+    # allow staff to set fake time when impersonating
+    pre_imp_user = get_pre_impersonation_user(request)
+    if not (
+            may_set_pretend_facility(request.user) or (
+                pre_imp_user is not None
+                and may_set_pretend_facility(pre_imp_user))):
+        raise PermissionDenied(_("may not set fake time"))
 
     if request.method == "POST":
         form = FakeFacilityForm(request.POST)

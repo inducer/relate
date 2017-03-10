@@ -78,7 +78,6 @@ class participation_permission:  # noqa
     use_admin_interface = "use_admin_interface"
 
     impersonate_role = "impersonate_role"
-    # FIXME: Not yet used
     set_fake_time = "set_fake_time"
     # FIXME: Not yet used
     set_pretend_facility = "set_pretend_facility"
