@@ -79,7 +79,6 @@ class participation_permission:  # noqa
 
     impersonate_role = "impersonate_role"
     set_fake_time = "set_fake_time"
-    # FIXME: Not yet used
     set_pretend_facility = "set_pretend_facility"
 
     edit_course_permissions = "edit_course_permissions"
