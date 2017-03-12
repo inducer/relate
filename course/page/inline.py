@@ -746,7 +746,13 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         if vctx is not None:
             validate_markup(vctx, location, page_desc.question)
 
-            remainder_html = markup_to_html(vctx, page_desc.question)
+            def reverse_func(*args, **kwargs):
+                pass
+
+            # FIXME This is a bit redundant since validate_markup already calls
+            # markup_to_html.
+            remainder_html = markup_to_html(vctx, page_desc.question,
+                    reverse_func=reverse_func)
 
             html_list = []
             for wrapped_name in self.embedded_wrapped_name_list:

@@ -44,7 +44,7 @@ from django.conf import settings
 
 # {{{ mypy
 
-from typing import Text, Optional, Any, Tuple, Dict  # noqa
+from typing import Text, Optional, Any, Tuple, Dict, Callable  # noqa
 from django import http  # noqa
 
 if False:
@@ -125,6 +125,7 @@ def markup_to_html(
         page_context,  # type: PageContext
         text,  # type: Text
         use_jinja=True,  # type: bool
+        reverse_func=None,  # type: Callable
         ):
     # type: (...) -> Text
     from course.content import markup_to_html as mth
@@ -134,7 +135,8 @@ def markup_to_html(
             page_context.repo,
             page_context.commit_sha,
             text,
-            use_jinja=use_jinja)
+            use_jinja=use_jinja,
+            reverse_func=reverse_func)
 
 
 # {{{ answer feedback type
