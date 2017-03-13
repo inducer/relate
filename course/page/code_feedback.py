@@ -135,16 +135,13 @@ class Feedback:
     def check_scalar(self, name, ref, data, accuracy_critical=True,
             rtol=1e-5, atol=1e-8, report_success=True, report_failure=True):
         import numpy as np
+        import sympy as sp
 
-        if not isinstance(data, (complex, float, int, np.number)):
-            try:
-                # Check whether data is a sympy number because sympy
-                # numbers do not follow the typical interface
-                # See https://github.com/inducer/relate/pull/284
-                if not data.is_number:
-                    self.finish(0, "'%s' is not a number" % name)
-            except AttributeError:
-                self.finish(0, "'%s' is not a number" % name)
+        if not type(data) in (complex, float, int, np.number,
+                              sp.Number, sp.Float, sp.Integer,
+                              sp.Rational, sp.AlgebraicNumber):
+            # the built-in `type` function cannot be fooled
+            self.finish(0, "'%s' is not a number" % name)
 
         good = False
 
