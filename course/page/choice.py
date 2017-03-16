@@ -572,13 +572,15 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         corr_idx_list = self.unpermuted_correct_indices()
         always_correct_idx_list = self.unpermuted_always_correct_indices()
 
-        result = (string_concat(
-                    string_concat(_("The correct answer is"), ": %s.")
-                    % self.get_answer_html(page_context, corr_idx_list),
-                    string_concat(_("Additional acceptable options are"),
-                        ": %s.")
-                    % self.get_answer_html(page_context,
-                        always_correct_idx_list)))
+        result = (string_concat(_("The correct answer is"), ": %s")
+                    % self.get_answer_html(page_context, corr_idx_list))
+
+        if len(always_correct_idx_list) > 0:
+            result = (string_concat(result,
+                        string_concat(_("Additional acceptable options are"),
+                            ": %s")
+                        % self.get_answer_html(page_context,
+                            always_correct_idx_list)))
 
         if hasattr(self.page_desc, "answer_explanation"):
             result += markup_to_html(page_context, self.page_desc.answer_explanation)
