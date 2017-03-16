@@ -575,7 +575,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         result = (string_concat(_("The correct answer is"), ": %s")
                     % self.get_answer_html(page_context, corr_idx_list))
 
-        if len(always_correct_idx_list) == 0:
+        if len(always_correct_idx_list) > 0:
             result = (string_concat(result,
                         string_concat(_("Additional acceptable options are"),
                             ": %s")
