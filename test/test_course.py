@@ -22,13 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import shutil
+import shutil, re
 from django.test import TestCase, Client
 from accounts.models import User
 from course.models import FlowSession
+from course.constants import COURSE_ID_REGEX
 
 
-class CourseCreationTest(TestCase):
+class CourseTest(TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         # Set up data for the whole TestCase
@@ -65,7 +66,7 @@ class CourseCreationTest(TestCase):
     def tearDownClass(cls):
         # Remove created folder
         shutil.rmtree('../test-course')
-        super(CourseCreationTest, cls).tearDownClass()
+        super(CourseTest, cls).tearDownClass()
 
     def test_user_creation(self):
         self.assertTrue(self.c.login(
@@ -76,20 +77,27 @@ class CourseCreationTest(TestCase):
         resp = self.c.get("/course/test-course/")
         # 200 != 302 is better than False is not True
         self.assertEqual(resp.status_code, 200)
-        # self.assertTrue(resp.status_code == 302)
-        # Maybe more strict?
-        # self.assertEqual(resp.url, "/course/test-course/")
-        # self.assertTrue("/course" in resp.url)
 
     def test_quiz_start(self):
+        pattern = r"^/course" + \
+            "/" + COURSE_ID_REGEX + \
+            "/flow-session" + \
+            "/(?P<flow_session_id>[0-9]+)" + \
+            "/(?P<ordinal>[0-9]+)" + \
+            "/$"
         self.assertEqual(len(FlowSession.objects.all()), 0)
         resp = self.c.post("/course/test-course/flow/quiz-test/start/")
+        params = re.match(pattern, resp.url).groupdict()
+        session_url = "/course/test-course/flow-session/" + \
+            params["flow_session_id"] + "/{0}/"
         self.assertEqual(resp.status_code, 302)
+        self.assertEqual(params["course_identifier"], "test-course")
+        self.assertEqual(params["ordinal"], '0')
         self.assertEqual(len(FlowSession.objects.all()), 1)
-        resp = self.c.post("/course/test-course/flow-session/1/3/",
+        resp = self.c.post(session_url.format('3'),
                         {"answer": ['0.5'], "submit": ["Submit final answer"]})
         self.assertEqual(resp.status_code, 200)
-        resp = self.c.post("/course/test-course/flow-session/1/finish/",
+        resp = self.c.post(session_url.format("finish"),
                         {'submit': ['']})
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(FlowSession.objects.all()[0].points, 5)
