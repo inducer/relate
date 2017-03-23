@@ -79,26 +79,35 @@ class CourseTest(TestCase):
         # 200 != 302 is better than False is not True
         self.assertEqual(resp.status_code, 200)
 
-    def test_quiz_start(self):
+    def test_quiz_textual(self):
+        session_url = self.start_quiz()
+
+        resp = self.c.post(session_url.format('3'),
+                        {"answer": ['0.5'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        
+        resp = self.c.post(session_url.format("finish"),
+                        {'submit': ['']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(FlowSession.objects.all()[0].points, 5)
+
+    def start_quiz(self):
+        self.assertEqual(len(FlowSession.objects.all()), 0)
+        resp = self.c.post("/course/test-course/flow/quiz-test/start/")
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(len(FlowSession.objects.all()), 1)
+
         pattern = r"^/course" + \
             "/" + COURSE_ID_REGEX + \
             "/flow-session" + \
             "/(?P<flow_session_id>[0-9]+)" + \
             "/(?P<ordinal>[0-9]+)" + \
             "/$"
-        self.assertEqual(len(FlowSession.objects.all()), 0)
-        resp = self.c.post("/course/test-course/flow/quiz-test/start/")
         params = re.match(pattern, resp.url).groupdict()
-        session_url = "/course/test-course/flow-session/" + \
-            params["flow_session_id"] + "/{0}/"
-        self.assertEqual(resp.status_code, 302)
+        # Should be in correct course
         self.assertEqual(params["course_identifier"], "test-course")
+        # Should redirect us to welcome page
         self.assertEqual(params["ordinal"], '0')
-        self.assertEqual(len(FlowSession.objects.all()), 1)
-        resp = self.c.post(session_url.format('3'),
-                        {"answer": ['0.5'], "submit": ["Submit final answer"]})
-        self.assertEqual(resp.status_code, 200)
-        resp = self.c.post(session_url.format("finish"),
-                        {'submit': ['']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(FlowSession.objects.all()[0].points, 5)
+
+        return "/course/test-course/flow-session/" + \
+                    params["flow_session_id"] + "/{0}/"
