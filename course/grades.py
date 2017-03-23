@@ -652,6 +652,11 @@ class ReopenSessionForm(StyledForm):
                     else NONE_SESSION_TAG),
                 label=_("Set access rules tag"))
 
+        self.fields["unsubmit_pages"] = forms.BooleanField(
+                initial=True,
+                required=False,
+                label=_("Re-allow changes to already-submitted questions"))
+
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
                 label=_("Comment"))
@@ -700,11 +705,13 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
             from relate.utils import (
                     local_now, as_local_time,
                     format_datetime_local)
+            now_datetime = local_now()
+
             session.append_comment(
                     ugettext("Session reopened at %(now)s by %(user)s, "
                         "previous completion time was '%(completion_time)s': "
                         "%(comment)s.") % {
-                            "now": format_datetime_local(local_now()),
+                            "now": format_datetime_local(now_datetime),
                             "user": pctx.request.user,
                             "completion_time": format_datetime_local(
                                 as_local_time(session.completion_time)),
@@ -713,7 +720,8 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
             session.save()
 
             from course.flow import reopen_session
-            reopen_session(session, suppress_log=True)
+            reopen_session(now_datetime, session, suppress_log=True,
+                    unsubmit_pages=form.cleaned_data["unsubmit_pages"])
 
             return redirect("relate-view_single_grade",
                     pctx.course.identifier,

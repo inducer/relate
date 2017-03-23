@@ -1158,31 +1158,53 @@ def grade_flow_session(
 
 
 def reopen_session(
-        session, force=False, suppress_log=False):
-    # type: (FlowSession, bool, bool) -> None
+        now_datetime,  # type: datetime.datetime
+        session,  # type: FlowSession
+        force=False,  # type: bool
+        suppress_log=False,  # type: bool
+        unsubmit_pages=False,  # type: bool
+        ):
+    # type: (...) -> None
 
-    if session.in_progress:
-        raise RuntimeError(
-                _("Cannot reopen a session that's already in progress"))
-    if session.participation is None:
-        raise RuntimeError(
-                _("Cannot reopen anonymous sessions"))
+    with transaction.atomic():
+        if session.in_progress:
+            raise RuntimeError(
+                    _("Cannot reopen a session that's already in progress"))
+        if session.participation is None:
+            raise RuntimeError(
+                    _("Cannot reopen anonymous sessions"))
 
-    session.in_progress = True
-    session.points = None
-    session.max_points = None
+        session.in_progress = True
+        session.points = None
+        session.max_points = None
 
-    if not suppress_log:
-        session.append_comment(
-                _("Session reopened at %(now)s, previous completion time "
-                "was '%(complete_time)s'.") % {
-                    'now': format_datetime_local(local_now()),
-                    'complete_time': format_datetime_local(
-                        as_local_time(session.completion_time))
-                    })
+        if not suppress_log:
+            session.append_comment(
+                    _("Session reopened at %(now)s, previous completion time "
+                    "was '%(complete_time)s'.") % {
+                        'now': format_datetime_local(now_datetime),
+                        'complete_time': format_datetime_local(
+                            as_local_time(session.completion_time))
+                        })
 
-    session.completion_time = None
-    session.save()
+        session.completion_time = None
+        session.save()
+
+        if unsubmit_pages:
+            answer_visits = assemble_answer_visits(session)
+
+            for visit in answer_visits:
+                if visit is not None:
+                    visit.id = None
+                    visit.visit_time = now_datetime
+                    visit.remote_address = None
+                    visit.user = None
+                    visit.is_synthetic = True
+
+                    assert visit.is_submitted_answer
+                    visit.is_submitted_answer = False
+
+                    visit.save()
 
 
 def finish_flow_session_standalone(
@@ -1267,14 +1289,15 @@ def regrade_session(
     else:
         prev_completion_time = session.completion_time
 
+        now_datetime = local_now()
         with transaction.atomic():
             session.append_comment(
                     _("Session regraded at %(time)s.") % {
-                        'time': format_datetime_local(local_now())
+                        'time': format_datetime_local(now_datetime)
                         })
             session.save()
 
-            reopen_session(session, force=True, suppress_log=True)
+            reopen_session(now_datetime, session, force=True, suppress_log=True)
             finish_flow_session_standalone(
                     repo, course, session, force_regrade=True,
                     now_datetime=prev_completion_time,
@@ -1297,13 +1320,14 @@ def recalculate_session_grade(repo, course, session):
             respect_preview=False)
 
     with transaction.atomic():
+        now_datetime = local_now()
         session.append_comment(
                 _("Session grade recomputed at %(time)s.") % {
-                    'time': format_datetime_local(local_now())
+                    'time': format_datetime_local(now_datetime)
                     })
         session.save()
 
-        reopen_session(session, force=True, suppress_log=True)
+        reopen_session(now_datetime, session, force=True, suppress_log=True)
         finish_flow_session_standalone(
                 repo, course, session, force_regrade=False,
                 now_datetime=prev_completion_time,
