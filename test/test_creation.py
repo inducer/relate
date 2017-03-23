@@ -84,7 +84,12 @@ class CourseCreationTest(TestCase):
     def test_quiz_start(self):
         self.assertEqual(len(FlowSession.objects.all()), 0)
         resp = self.c.post("/course/test-course/flow/quiz-test/start/")
+        self.assertEqual(resp.status_code, 302)
         self.assertEqual(len(FlowSession.objects.all()), 1)
-        resp = self.c.post("/course/test-course/flow-session/1/3/", {"answer": ['0.5'], "submit": ["Submit final answer"]})
-        resp = self.c.post("/course/test-course/flow-session/1/finish/", {'submit': ['']})
+        resp = self.c.post("/course/test-course/flow-session/1/3/",
+                        {"answer": ['0.5'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        resp = self.c.post("/course/test-course/flow-session/1/finish/",
+                        {'submit': ['']})
+        self.assertEqual(resp.status_code, 200)
         self.assertEqual(FlowSession.objects.all()[0].points, 5)
