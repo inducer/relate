@@ -22,7 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import shutil, re
+import shutil
+import re
 from django.test import TestCase, Client
 from accounts.models import User
 from course.models import FlowSession
