@@ -22,8 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import shutil
 from django.test import TestCase, Client
 from accounts.models import User
+from course.models import FlowSession
 
 
 class CourseCreationTest(TestCase):
@@ -37,15 +39,13 @@ class CourseCreationTest(TestCase):
                 first_name="Test",
                 last_name="Admin")
         cls.admin.save()
-
-    def test_course_creation(self):
-        c = Client()
-
-        self.assertTrue(c.login(
+        # Create the course here and check later to
+        # avoid exceptions raised here
+        cls.c = Client()
+        cls.c.login(
             username="testadmin",
-            password="test"))
-
-        resp = c.post("/new-course/", dict(
+            password="test")
+        cls.c.post("/new-course/", dict(
             identifier="test-course",
             name="Test Course",
             number="CS123",
@@ -53,7 +53,7 @@ class CourseCreationTest(TestCase):
             hidden=True,
             listed=True,
             accepts_enrollment=True,
-            git_source="git://github.com/inducer/relate-sample",
+            git_source="git://github.com/zwang180/relate-sample",
             course_file="course.yml",
             events_file="events.yml",
             enrollment_approval_required=True,
@@ -61,5 +61,30 @@ class CourseCreationTest(TestCase):
             from_email="inform@tiker.net",
             notify_email="inform@tiker.net"))
 
-        self.assertTrue(resp.status_code == 302)
-        self.assertTrue("/course" in resp.url)
+    @classmethod
+    def tearDownClass(cls):
+        # Remove created folder
+        shutil.rmtree('../test-course')
+        super(CourseCreationTest, cls).tearDownClass()
+
+    def test_user_creation(self):
+        self.assertTrue(self.c.login(
+            username="testadmin",
+            password="test"))
+
+    def test_course_creation(self):
+        resp = self.c.get("/course/test-course/")
+        # 200 != 302 is better than False is not True
+        self.assertEqual(resp.status_code, 200)
+        # self.assertTrue(resp.status_code == 302)
+        # Maybe more strict?
+        # self.assertEqual(resp.url, "/course/test-course/")
+        # self.assertTrue("/course" in resp.url)
+
+    def test_quiz_start(self):
+        self.assertEqual(len(FlowSession.objects.all()), 0)
+        resp = self.c.post("/course/test-course/flow/quiz-test/start/")
+        self.assertEqual(len(FlowSession.objects.all()), 1)
+        resp = self.c.post("/course/test-course/flow-session/1/3/", {"answer": ['0.5'], "submit": ["Submit final answer"]})
+        resp = self.c.post("/course/test-course/flow-session/1/finish/", {'submit': ['']})
+        self.assertEqual(FlowSession.objects.all()[0].points, 5)
