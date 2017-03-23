@@ -332,7 +332,7 @@ class flow_permission:  # noqa
     .. attribute:: see_answer_after_submission
 
         If present, shows the correct answer to the participant after they have
-        submitted an answer of their own.
+        submitted an answer of their own (and are no longer able to change it).
 
     .. attribute:: cannot_see_flow_result
 

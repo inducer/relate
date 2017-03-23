@@ -1599,15 +1599,21 @@ def get_page_behavior(
     # type: (...) -> PageBehavior
     show_correctness = False
 
-    if page.expects_answer() and answer_was_graded:
-        show_correctness = flow_permission.see_correctness in permissions
+    if page.expects_answer():
+        if answer_was_graded:
+            show_correctness = flow_permission.see_correctness in permissions
 
-        show_answer = flow_permission.see_answer_after_submission in permissions
+            show_answer = flow_permission.see_answer_after_submission in permissions
 
-    elif page.expects_answer() and not answer_was_graded:
-        # Don't show answer yet
-        show_answer = (
-                flow_permission.see_answer_before_submission in permissions)
+            if session_in_progress:
+                # Don't reveal the answer if they can still change their mind
+                show_answer = (show_answer and
+                        flow_permission.change_answer not in permissions)
+
+        else:
+            # Don't show answer yet
+            show_answer = (
+                    flow_permission.see_answer_before_submission in permissions)
     else:
         show_answer = (
                 flow_permission.see_answer_before_submission in permissions
