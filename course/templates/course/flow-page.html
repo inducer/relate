@@ -115,7 +115,7 @@
                 <li>
                   <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
                      target="_blank">
-                    {% trans "Reopen" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                    {% trans "Reopen" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
                 </li>
               {% endif %}
@@ -123,7 +123,7 @@
                 <li>
                   <a href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                     target="_blank">
-                      {% trans "Grant exception" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                      {% trans "Grant exception" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
                 </li>
               {% endif %}
@@ -131,10 +131,17 @@
                 <li>
                   <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id ordinal %}"
                      target="_blank">
-                      {% trans "View in grading interface" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                      {% trans "View in grading interface" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
                 </li>
               {% endif %}
+            {% endif %}
+            {% if pperm.reopen_flow_session and flow_session.in_progress and expects_answer and not may_change_answer %}
+              <li>
+                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id ordinal %}">
+                    {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                </a>
+              </li>
             {% endif %}
           </ul>
         </div>

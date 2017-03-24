@@ -403,6 +403,14 @@ urlpatterns = [
         "/$",
         course.flow.send_email_about_flow_page,
         name="relate-flow_page_interaction_email"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/flow-session"
+        "/(?P<flow_session_id>[0-9]+)"
+        "/(?P<ordinal>[0-9]+)"
+        "/unsubmit/$",
+        course.flow.view_unsubmit_flow_page,
+        name="relate-unsubmit_flow_page"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +

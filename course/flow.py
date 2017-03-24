@@ -44,6 +44,8 @@ from django.utils import translation
 from django.conf import settings
 from django.urls import reverse
 
+from crispy_forms.helper import FormHelper
+
 from relate.utils import (
         StyledForm, local_now, as_local_time,
         format_datetime_local)
@@ -1157,6 +1159,21 @@ def grade_flow_session(
     return grade_info
 
 
+def unsubmit_page(prev_answer_visit, now_datetime):
+    # type: (FlowPageVisit, datetime.datetime) -> None
+
+    prev_answer_visit.id = None
+    prev_answer_visit.visit_time = now_datetime
+    prev_answer_visit.remote_address = None
+    prev_answer_visit.user = None
+    prev_answer_visit.is_synthetic = True
+
+    assert prev_answer_visit.is_submitted_answer
+    prev_answer_visit.is_submitted_answer = False
+
+    prev_answer_visit.save()
+
+
 def reopen_session(
         now_datetime,  # type: datetime.datetime
         session,  # type: FlowSession
@@ -1195,16 +1212,7 @@ def reopen_session(
 
             for visit in answer_visits:
                 if visit is not None:
-                    visit.id = None
-                    visit.visit_time = now_datetime
-                    visit.remote_address = None
-                    visit.user = None
-                    visit.is_synthetic = True
-
-                    assert visit.is_submitted_answer
-                    visit.is_submitted_answer = False
-
-                    visit.save()
+                    unsubmit_page(visit, now_datetime)
 
 
 def finish_flow_session_standalone(
@@ -2036,6 +2044,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "show_answer": page_behavior.show_answer,
         "may_send_email_about_flow_page":
             may_send_email_about_flow_page(permissions),
+        "expects_answer": fpctx.page.expects_answer(),
 
         "session_minutes": session_minutes,
         "time_factor": time_factor,
@@ -2745,6 +2754,81 @@ def regrade_flows_view(pctx):
         "form_description": _("Regrade not-for-credit Flow Sessions"),
     })
 
+
+# }}}
+
+
+# {{{ view: unsubmit flow page
+
+class UnsubmitFlowPageForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        self.helper = FormHelper()
+        super(UnsubmitFlowPageForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(Submit("submit", _("Re-allow changes")))
+        self.helper.add_input(Submit("cancel", _("Cancel")))
+
+
+@course_view
+def view_unsubmit_flow_page(pctx, flow_session_id, ordinal):
+    # type: (CoursePageContext, int, int) -> http.HttpResponse
+
+    request = pctx.request
+    now_datetime = get_now_or_fake_time(request)
+
+    ordinal = int(ordinal)
+
+    flow_session_id = int(flow_session_id)
+    try:
+        flow_session = (FlowSession.objects
+                .select_related("participation")
+                .get(id=flow_session_id))
+    except ObjectDoesNotExist:
+        raise http.Http404()
+
+    if flow_session.course.pk != pctx.course.pk:
+        raise http.Http404()
+
+    adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
+            respect_preview=True)
+
+    # {{{ permission checking
+
+    if flow_session is None:
+        raise SuspiciousOperation("no flow session found")
+
+    if pctx.participation is None:
+        raise http.Http403()
+
+    if flow_session.course.pk != pctx.participation.course.pk:
+        raise http.Http403()
+
+    if not pctx.has_permission(pperm.reopen_flow_session):
+        raise http.Http403()
+
+    # }}}
+
+    page_data = get_object_or_404(
+            FlowPageData, flow_session=flow_session, ordinal=ordinal)
+    visit = get_prev_answer_visit(page_data)
+
+    if request.method == 'POST':
+        form = UnsubmitFlowPageForm(request.POST)
+        if form.is_valid():
+            if "submit" in request.POST:
+                unsubmit_page(visit, now_datetime)
+                messages.add_message(request, messages.INFO,
+                        _("Flow page changes reallowed. "))
+
+            return redirect("relate-view_flow_page",
+                pctx.course.identifier, flow_session_id, ordinal)
+    else:
+        form = UnsubmitFlowPageForm()
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Re-allow Changes to Flow Page"),
+        "form": form
+        })
 
 # }}}
 
