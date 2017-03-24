@@ -10,6 +10,24 @@
 {% endblock %}
 
 {% block content %}
+  {% if user != flow_session.participation.user %}
+    <div id="other-user-alert" class="alert alert-info">
+      <div style="float:right">
+        <a onclick='$("#other-user-alert").hide()'>
+          <i class="fa fa-times-circle" aria-hidden="true"></i><Paste>
+        </a>
+      </div>
+
+      <i class="fa fa-user" aria-hidden="true"></i>
+      {% trans "Viewing session for partipant" %}
+      {% if flow_session.participation != None %}
+        <a href="{% url "relate-view_participant_grades" course.identifier flow_session.participation.id %}">{{ flow_session.participation.user.get_full_name }}</a>.
+      {% else %}
+        {% trans "(unspecified participant)" %}.
+      {% endif %}
+    </div>
+  {% endif %}
+
   {# {{{ navigation #}
   <form
     action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
