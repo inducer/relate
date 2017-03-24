@@ -106,11 +106,15 @@
             <i class="fa fa-bars"></i>
           </button>
           <ul class="dropdown-menu" aria-labelledby="menu_dropdown">
+            <li class="dropdown-header">
+              <b>{{ flow_desc.title }}</b>
+            </li>
             <li>
               <a href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
                 >{% trans "Return to flow start page" %}</a>
             </li>
             {% if page_expect_answer_and_gradable %}
+              <li role="separator" class="divider"></li>
               {% if pperm.reopen_flow_session and not flow_session.in_progress and opportunity.id != None %}
                 <li>
                   <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
@@ -137,6 +141,7 @@
               {% endif %}
             {% endif %}
             {% if pperm.reopen_flow_session and flow_session.in_progress and expects_answer and not may_change_answer %}
+              <li role="separator" class="divider"></li>
               <li>
                 <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id ordinal %}">
                     {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
@@ -205,7 +210,7 @@
           {% if interaction_kind == flow_session_interaction_kind.ungraded %}
             {% trans "Submit" %}
           {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
-            {% trans "Submit assignment" %}
+          {% blocktrans with flow_title=flow_desc.title %}Submit {{ flow_title }}{% endblocktrans %}
           {% else %}
             {% trans "Finish" %}
           {% endif %}
