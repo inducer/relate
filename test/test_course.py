@@ -55,7 +55,7 @@ class CourseTest(TestCase):
             hidden=True,
             listed=True,
             accepts_enrollment=True,
-            git_source="git://github.com/zwang180/relate-sample",
+            git_source="git://github.com/inducer/relate-sample",
             course_file="course.yml",
             events_file="events.yml",
             enrollment_approval_required=True,
@@ -79,18 +79,18 @@ class CourseTest(TestCase):
         # 200 != 302 is better than False is not True
         self.assertEqual(resp.status_code, 200)
 
+    def test_quiz_no_answer(self):
+        session_url = self.start_quiz()
+        self.end_quiz(session_url, 0)
+
     def test_quiz_textual(self):
         session_url = self.start_quiz()
-
         resp = self.c.post(session_url.format('3'),
                         {"answer": ['0.5'], "submit": ["Submit final answer"]})
         self.assertEqual(resp.status_code, 200)
-        
-        resp = self.c.post(session_url.format("finish"),
-                        {'submit': ['']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(FlowSession.objects.all()[0].points, 5)
+        self.end_quiz(session_url, 5)
 
+    # Decorator won't work here :(
     def start_quiz(self):
         self.assertEqual(len(FlowSession.objects.all()), 0)
         resp = self.c.post("/course/test-course/flow/quiz-test/start/")
@@ -111,3 +111,9 @@ class CourseTest(TestCase):
 
         return "/course/test-course/flow-session/" + \
                     params["flow_session_id"] + "/{0}/"
+
+    def end_quiz(self, session_url, expect_score):
+        resp = self.c.post(session_url.format("finish"),
+                        {'submit': ['']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(FlowSession.objects.all()[0].points, expect_score)
