@@ -116,7 +116,7 @@ class CourseTest(TestCase):
         return kwargs
 
     def end_quiz(self, params, expect_score):
-        resp = self.c.post(reverse("relate-finish_flow_session_view", kwargs=params)
-                        ,{'submit': ['']})
+        resp = self.c.post(reverse("relate-finish_flow_session_view",
+                                kwargs=params), {'submit': ['']})
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(FlowSession.objects.all()[0].points, expect_score)
