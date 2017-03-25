@@ -27,6 +27,7 @@ from django.test import TestCase, Client
 from django.urls import resolve, reverse
 from accounts.models import User
 from course.models import FlowSession
+from decimal import Decimal
 
 
 class CourseTest(TestCase):
@@ -54,7 +55,7 @@ class CourseTest(TestCase):
             hidden=True,
             listed=True,
             accepts_enrollment=True,
-            git_source="git://github.com/inducer/relate-sample",
+            git_source="git://github.com/zwang180/relate-sample",
             course_file="course.yml",
             events_file="events.yml",
             enrollment_approval_required=True,
@@ -80,39 +81,66 @@ class CourseTest(TestCase):
 
     def test_quiz_no_answer(self):
         params = self.start_quiz()
-        # Let it raise error
-        # Use pop() will not
-        del params["ordinal"]
         self.end_quiz(params, 0)
 
     def test_quiz_text(self):
         params = self.start_quiz()
-        params["ordinal"] = '3'
+        params["ordinal"] = '1'
         resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
                         {"answer": ['0.5'], "submit": ["Submit final answer"]})
         self.assertEqual(resp.status_code, 200)
-        # Let it raise error
-        # Use pop() will not
-        del params["ordinal"]
         self.end_quiz(params, 5)
 
     def test_quiz_choice(self):
-        pass
+        params = self.start_quiz()
+        params["ordinal"] = '2'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
+                        {"choice": ['0'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 2)
 
-    def test_quiz_multi_choice(self):
-        pass
+    def test_quiz_multi_choice_exact_correct(self):
+        params = self.start_quiz()
+        params["ordinal"] = '3'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
+                    {"choice": ['0', '1', '4'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 1)
+
+    def test_quiz_multi_choice_exact_wrong(self):
+        params = self.start_quiz()
+        params["ordinal"] = '3'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
+                    {"choice": ['0', '1'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 0)
+
+    def test_quiz_multi_choice_propotion(self):
+        params = self.start_quiz()
+        params["ordinal"] = '4'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
+                    {"choice": ['0'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 0.8)
 
     def test_quiz_inline(self):
-        pass
+        params = self.start_quiz()
+        params["ordinal"] = '5'
+        data = {'blank1': ['Bar'], 'blank_2': ['0.2'], 'blank3': ['1'],
+                'blank4': ['5'], 'blank5': ['Bar'], 'choice2': ['0'],
+                'choice_a': ['0'], 'submit': ['Submit final answer']}
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params), data)
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 10)
 
-    def test_quiz_survey_choice(self):
-        pass
-
-    def test_quiz_survey_text(self):
-        pass
-
-    def test_quiz_human_text(self):
-        pass
+    # def test_quiz_survey_choice(self):
+    #     pass
+    #
+    # def test_quiz_survey_text(self):
+    #     pass
+    #
+    # def test_quiz_human_text(self):
+    #     pass
 
     # Decorator won't work here :(
     def start_quiz(self):
@@ -132,7 +160,10 @@ class CourseTest(TestCase):
         return kwargs
 
     def end_quiz(self, params, expect_score):
+        # Let it raise error
+        # Use pop() will not
+        del params["ordinal"]
         resp = self.c.post(reverse("relate-finish_flow_session_view",
                                 kwargs=params), {'submit': ['']})
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(FlowSession.objects.all()[0].points, expect_score)
+        self.assertEqual(FlowSession.objects.all()[0].points, Decimal(str(expect_score)))
