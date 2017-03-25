@@ -26,9 +26,7 @@ import shutil
 from django.test import TestCase, Client
 from django.urls import resolve, reverse
 from accounts.models import User
-from course.views import course_page
 from course.models import FlowSession
-from course.flow import view_flow_page, finish_flow_session_view
 
 
 class CourseTest(TestCase):
@@ -97,6 +95,24 @@ class CourseTest(TestCase):
         # Use pop() will not
         del params["ordinal"]
         self.end_quiz(params, 5)
+
+    def test_quiz_choice(self):
+        pass
+
+    def test_quiz_multi_choice(self):
+        pass
+
+    def test_quiz_inline(self):
+        pass
+
+    def test_quiz_survey_choice(self):
+        pass
+
+    def test_quiz_survey_text(self):
+        pass
+
+    def test_quiz_human_text(self):
+        pass
 
     # Decorator won't work here :(
     def start_quiz(self):
