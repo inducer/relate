@@ -23,11 +23,12 @@ THE SOFTWARE.
 """
 
 import shutil
-import re
 from django.test import TestCase, Client
+from django.urls import resolve, reverse
 from accounts.models import User
+from course.views import course_page
 from course.models import FlowSession
-from course.constants import COURSE_ID_REGEX
+from course.flow import view_flow_page, finish_flow_session_view
 
 
 class CourseTest(TestCase):
@@ -75,45 +76,47 @@ class CourseTest(TestCase):
             password="test"))
 
     def test_course_creation(self):
-        resp = self.c.get("/course/test-course/")
+        resp = self.c.get(reverse("relate-course_page", args=["test-course"]))
         # 200 != 302 is better than False is not True
         self.assertEqual(resp.status_code, 200)
 
     def test_quiz_no_answer(self):
-        session_url = self.start_quiz()
-        self.end_quiz(session_url, 0)
+        params = self.start_quiz()
+        # Let it raise error
+        # Use pop() will not
+        del params["ordinal"]
+        self.end_quiz(params, 0)
 
-    def test_quiz_textual(self):
-        session_url = self.start_quiz()
-        resp = self.c.post(session_url.format('3'),
+    def test_quiz_text(self):
+        params = self.start_quiz()
+        params["ordinal"] = '3'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
                         {"answer": ['0.5'], "submit": ["Submit final answer"]})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(session_url, 5)
+        # Let it raise error
+        # Use pop() will not
+        del params["ordinal"]
+        self.end_quiz(params, 5)
 
     # Decorator won't work here :(
     def start_quiz(self):
         self.assertEqual(len(FlowSession.objects.all()), 0)
-        resp = self.c.post("/course/test-course/flow/quiz-test/start/")
+        params = {"course_identifier": "test-course", "flow_id": "quiz-test"}
+        resp = self.c.post(reverse("relate-view_start_flow", kwargs=params))
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(len(FlowSession.objects.all()), 1)
 
-        pattern = r"^/course" + \
-            "/" + COURSE_ID_REGEX + \
-            "/flow-session" + \
-            "/(?P<flow_session_id>[0-9]+)" + \
-            "/(?P<ordinal>[0-9]+)" + \
-            "/$"
-        params = re.match(pattern, resp.url).groupdict()
+        # Yep, no regax!
+        _, _, kwargs = resolve(resp.url)
         # Should be in correct course
-        self.assertEqual(params["course_identifier"], "test-course")
+        self.assertEqual(kwargs["course_identifier"], "test-course")
         # Should redirect us to welcome page
-        self.assertEqual(params["ordinal"], '0')
+        self.assertEqual(kwargs["ordinal"], '0')
 
-        return "/course/test-course/flow-session/" + \
-                    params["flow_session_id"] + "/{0}/"
+        return kwargs
 
-    def end_quiz(self, session_url, expect_score):
-        resp = self.c.post(session_url.format("finish"),
-                        {'submit': ['']})
+    def end_quiz(self, params, expect_score):
+        resp = self.c.post(reverse("relate-finish_flow_session_view", kwargs=params)
+                        ,{'submit': ['']})
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(FlowSession.objects.all()[0].points, expect_score)
