@@ -26,7 +26,7 @@ import shutil
 from django.test import TestCase, Client
 from django.urls import resolve, reverse
 from accounts.models import User
-from course.models import FlowSession
+from course.models import FlowSession, FlowPageVisit
 from decimal import Decimal
 
 
@@ -115,13 +115,21 @@ class CourseTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.end_quiz(params, 0)
 
-    def test_quiz_multi_choice_propotion(self):
+    def test_quiz_multi_choice_propotion_partial(self):
         params = self.start_quiz()
         params["ordinal"] = '4'
         resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
                     {"choice": ['0'], "submit": ["Submit final answer"]})
         self.assertEqual(resp.status_code, 200)
         self.end_quiz(params, 0.8)
+
+    def test_quiz_multi_choice_propotion_correct(self):
+        params = self.start_quiz()
+        params["ordinal"] = '4'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
+                    {"choice": ['0', '3'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 1)
 
     def test_quiz_inline(self):
         params = self.start_quiz()
@@ -133,14 +141,36 @@ class CourseTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.end_quiz(params, 10)
 
-    # def test_quiz_survey_choice(self):
-    #     pass
-    #
-    # def test_quiz_survey_text(self):
-    #     pass
-    #
-    # def test_quiz_human_text(self):
-    #     pass
+    # All I can do for now since db do not store ordinal value
+    def test_quiz_survey_choice(self):
+        params = self.start_quiz()
+        params["ordinal"] = '6'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
+                    {"answer": ["NOTHING!!!"], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 0)
+
+        query = FlowPageVisit.objects.filter(
+                            flow_session__exact = params["flow_session_id"],
+                            answer__isnull = False)
+        self.assertEqual(len(query), 1)
+        record = query[0]
+        self.assertEqual(record.answer["answer"], "NOTHING!!!")
+
+    def test_quiz_survey_text(self):
+        params = self.start_quiz()
+        params["ordinal"] = '7'
+        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
+                    {"choice": ['8'], "submit": ["Submit final answer"]})
+        self.assertEqual(resp.status_code, 200)
+        self.end_quiz(params, 0)
+
+        query = FlowPageVisit.objects.filter(
+                            flow_session__exact = params["flow_session_id"],
+                            answer__isnull = False)
+        self.assertEqual(len(query), 1)
+        record = query[0]
+        self.assertEqual(record.answer["choice"], 8)
 
     # Decorator won't work here :(
     def start_quiz(self):
