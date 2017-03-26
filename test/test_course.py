@@ -151,8 +151,8 @@ class CourseTest(TestCase):
         self.end_quiz(params, 0)
 
         query = FlowPageVisit.objects.filter(
-                            flow_session__exact = params["flow_session_id"],
-                            answer__isnull = False)
+                            flow_session__exact=params["flow_session_id"],
+                            answer__isnull=False)
         self.assertEqual(len(query), 1)
         record = query[0]
         self.assertEqual(record.answer["answer"], "NOTHING!!!")
@@ -166,8 +166,8 @@ class CourseTest(TestCase):
         self.end_quiz(params, 0)
 
         query = FlowPageVisit.objects.filter(
-                            flow_session__exact = params["flow_session_id"],
-                            answer__isnull = False)
+                            flow_session__exact=params["flow_session_id"],
+                            answer__isnull=False)
         self.assertEqual(len(query), 1)
         record = query[0]
         self.assertEqual(record.answer["choice"], 8)
@@ -196,4 +196,5 @@ class CourseTest(TestCase):
         resp = self.c.post(reverse("relate-finish_flow_session_view",
                                 kwargs=params), {'submit': ['']})
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(FlowSession.objects.all()[0].points, Decimal(str(expect_score)))
+        self.assertEqual(FlowSession.objects.all()[0].points,
+                                                Decimal(str(expect_score)))
