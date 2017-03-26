@@ -55,7 +55,7 @@ class CourseTest(TestCase):
             hidden=True,
             listed=True,
             accepts_enrollment=True,
-            git_source="git://github.com/zwang180/relate-sample",
+            git_source="git://github.com/inducer/relate-sample",
             course_file="course.yml",
             events_file="events.yml",
             enrollment_approval_required=True,
