@@ -775,7 +775,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_tag(self, tag_name, attrs):
         changed_attrs = {}
 
-        if tag_name == "table":
+        if tag_name == "table" and attrs.get("bootstrap") != "no":
             changed_attrs["class"] = "table table-condensed"
 
         if tag_name in ["a", "link"] and "href" in attrs:
