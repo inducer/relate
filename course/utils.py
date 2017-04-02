@@ -36,6 +36,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import (
         ugettext as _, string_concat, pgettext_lazy)
 
+from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+
 from course.content import (
         get_course_repo, get_flow_desc,
         parse_date_spec, get_course_commit_sha)
@@ -821,14 +823,19 @@ class PageInstanceCache(object):
 
 # {{{ codemirror config
 
-def get_codemirror_widget(language_mode, interaction_mode,
-        config=None, addon_css=(), addon_js=(), dependencies=(),
-        read_only=False):
+def get_codemirror_widget(
+        language_mode,  # type: Text
+        interaction_mode,  # type: Text
+        config=None,  # type: Optional[Dict]
+        addon_css=(),  # type: Tuple
+        addon_js=(),  # type: Tuple
+        dependencies=(),  # type: Tuple
+        read_only=False,  # type: bool
+        ):
+    # type: (...) ->  CodeMirrorTextarea
     theme = "default"
     if read_only:
         theme += " relate-readonly"
-
-    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
     from django.urls import reverse
     help_text = (_("Press F9 to toggle full-screen mode. ")

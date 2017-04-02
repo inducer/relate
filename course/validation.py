@@ -424,6 +424,7 @@ def validate_staticpage_desc(vctx, location, page_desc):
 # {{{ flow validation
 
 def validate_flow_page(vctx, location, page_desc):
+    # type: (ValidationContext, Text, Any) -> None
     if not hasattr(page_desc, "id"):
         raise ValidationError(
                 string_concat(
@@ -451,7 +452,7 @@ def validate_flow_page(vctx, location, page_desc):
                     "%(err_str)s<br><pre>%(format_exc)s</pre>")
                 % {
                     'location': location,
-                    "err_type": tp.__name__,
+                    "err_type": tp.__name__,  # type: ignore
                     "err_str": str(e),
                     'format_exc': format_exc()})
 

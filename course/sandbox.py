@@ -29,12 +29,23 @@ from django.utils.safestring import mark_safe
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext, ugettext_lazy as _
+from django import http  # noqa
 
 from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
 
 from course.constants import participation_permission as pperm
+from course.utils import (  # noqa
+        CoursePageContext)
+from course.content import FlowPageDesc
+
+
+# {{{ for mypy
+
+from typing import Tuple, Text, Optional, Any, Iterable, Dict, cast  # noqa
+
+# }}}
 
 
 # {{{ sandbox form
@@ -45,6 +56,7 @@ class SandboxForm(forms.Form):
 
     def __init__(self, initial_text,
             language_mode, interaction_mode, help_text, *args, **kwargs):
+        # type: (Text, Text, Text, Text, *Any, **Any) -> None
         super(SandboxForm, self).__init__(*args, **kwargs)
 
         from crispy_forms.helper import FormHelper
@@ -137,13 +149,14 @@ def view_markup_sandbox(pctx):
 # {{{ page sandbox data retriever
 
 def get_sandbox_data_for_page(pctx, page_desc, key):
+    # type: (CoursePageContext, Any, Text) -> Any
     stored_data_tuple = pctx.request.session.get(key)
 
     # Session storage uses JSON and may turn tuples into lists.
     if (isinstance(stored_data_tuple, (list, tuple))
             and len(stored_data_tuple) == 3):
         stored_data_page_type, stored_data_page_id, \
-            stored_data = stored_data_tuple
+            stored_data = cast(Tuple, stored_data_tuple)
 
         if (
                 stored_data_page_type == page_desc.type
@@ -161,6 +174,7 @@ def get_sandbox_data_for_page(pctx, page_desc, key):
 class PageSandboxForm(SandboxForm):
     def __init__(self, initial_text,
             language_mode, interaction_mode, help_text, *args, **kwargs):
+        # type: (Text, Text, Text, Text, *Any, **Any) -> None
         super(PageSandboxForm, self).__init__(
                 initial_text, language_mode, interaction_mode, help_text,
                 *args, **kwargs)
@@ -177,6 +191,8 @@ class PageSandboxForm(SandboxForm):
 
 @course_view
 def view_page_sandbox(pctx):
+    # type: (CoursePageContext) -> http.HttpResponse
+
     if not pctx.has_permission(pperm.use_page_sandbox):
         raise PermissionDenied()
 
@@ -203,6 +219,7 @@ def view_page_sandbox(pctx):
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
     def make_form(data=None):
+        # type: (Optional[Text]) -> PageSandboxForm
         return PageSandboxForm(
                 page_source, "yaml", request.user.editor_mode,
                 ugettext("Enter YAML markup for a flow page."),
@@ -218,6 +235,9 @@ def view_page_sandbox(pctx):
                 new_page_source = remove_common_indentation(
                         edit_form.cleaned_data["content"],
                         require_leading_newline=False)
+                from course.content import expand_yaml_macros
+                new_page_source = expand_yaml_macros(
+                        pctx.repo, pctx.course_commit_sha, new_page_source)
                 page_desc = dict_to_struct(yaml.load(new_page_source))
 
                 if not isinstance(page_desc, Struct):
@@ -242,7 +262,7 @@ def view_page_sandbox(pctx):
                         ugettext("Page failed to load/validate")
                         + ": "
                         + "%(err_type)s: %(err_str)s" % {
-                            "err_type": tp.__name__, "err_str": e})
+                            "err_type": tp.__name__, "err_str": e})  # type: ignore
 
             else:
                 # Yay, it did validate.
@@ -273,7 +293,7 @@ def view_page_sandbox(pctx):
 
     have_valid_page = page_source is not None
     if have_valid_page:
-        page_desc = dict_to_struct(yaml.load(page_source))
+        page_desc = cast(FlowPageDesc, dict_to_struct(yaml.load(page_source)))
 
         from course.content import instantiate_flow_page
         try:
@@ -287,7 +307,7 @@ def view_page_sandbox(pctx):
                     ugettext("Page failed to load/validate")
                     + ": "
                     + "%(err_type)s: %(err_str)s" % {
-                        "err_type": tp.__name__, "err_str": e})
+                        "err_type": tp.__name__, "err_str": e})  # type: ignore
             have_valid_page = False
 
     if have_valid_page:
@@ -360,7 +380,7 @@ def view_page_sandbox(pctx):
                                 "(change page ID to clear faults)")
                             + ": "
                             + "%(err_type)s: %(err_str)s" % {
-                                "err_type": tp.__name__, "err_str": e})
+                                "err_type": tp.__name__, "err_str": e})  # type: ignore  # noqa: E501
                     have_valid_page = False
 
                     page_form = None
