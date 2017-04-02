@@ -646,12 +646,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
 
-        from course.content import expand_markup
-        expanded_question = expand_markup(
-                vctx.course,
-                vctx.repo,
-                vctx.commit_sha,
-                page_desc.question)
+        expanded_question = page_desc.question
 
         self.embedded_wrapped_name_list = WRAPPED_NAME_RE.findall(expanded_question)
         self.embedded_name_list = NAME_RE.findall(expanded_question)
