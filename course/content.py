@@ -850,6 +850,34 @@ def remove_prefix(prefix, s):
 JINJA_PREFIX = "[JINJA]"
 
 
+def expand_markup(
+        course,  # type: Optional[Course]
+        repo,  # type: Repo_ish
+        commit_sha,  # type: bytes
+        text,  # type: Text
+        use_jinja=True,  # type: bool
+        jinja_env={},  # type: Dict
+        ):
+    # type: (...) -> Text
+
+    if not isinstance(text, six.text_type):
+        text = six.text_type(text)
+
+    # {{{ process through Jinja
+
+    if use_jinja:
+        from jinja2 import Environment, StrictUndefined
+        env = Environment(
+                loader=GitTemplateLoader(repo, commit_sha),
+                undefined=StrictUndefined)
+        template = env.from_string(text)
+        text = template.render(**jinja_env)
+
+    # }}}
+
+    return text
+
+
 def markup_to_html(
         course,  # type: Optional[Course]
         repo,  # type: Repo_ish
@@ -861,11 +889,6 @@ def markup_to_html(
         jinja_env={},  # type: Dict
         ):
     # type: (...) -> Text
-
-    if reverse_func is None:
-        from django.urls import reverse
-        reverse_func = reverse
-
     if course is not None and not jinja_env:
         try:
             import django.core.cache as cache
@@ -888,20 +911,12 @@ def markup_to_html(
     else:
         cache_key = None
 
-    if not isinstance(text, six.text_type):
-        text = six.text_type(text)
+    text = expand_markup(
+            course, repo, commit_sha, text, use_jinja=use_jinja, jinja_env=jinja_env)
 
-    # {{{ process through Jinja
-
-    if use_jinja:
-        from jinja2 import Environment, StrictUndefined
-        env = Environment(
-                loader=GitTemplateLoader(repo, commit_sha),
-                undefined=StrictUndefined)
-        template = env.from_string(text)
-        text = template.render(**jinja_env)
-
-    # }}}
+    if reverse_func is None:
+        from django.urls import reverse
+        reverse_func = reverse
 
     if validate_only:
         return ""
