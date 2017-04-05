@@ -216,7 +216,7 @@ def main():
                 sub_nodes.append({
                     "text": "Run interactively (on mybinder.org)",
                     "link": binder_url,
-                    "icon": "fa fa-download",
+                    "icon": "fa fa-keyboard-o",
                     })
                 main_link = binder_url
 
@@ -232,7 +232,7 @@ def main():
                 sub_nodes.append({
                     "text": "Download Jupyter notebook",
                     "link": link_ipynb,
-                    "icon": "fa fa-keyboard-o",
+                    "icon": "fa fa-download",
                     })
 
             demo_node = {
