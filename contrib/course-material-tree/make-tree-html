@@ -151,6 +151,9 @@ def main():
     parser.add_argument("--ipynb-as-py", action="store_true")
     parser.add_argument("--ipynb-as-ipynb", action="store_true")
 
+    parser.add_argument("--binder-urlroot", metavar="URL",
+            help="(without the trailing slash)")
+
     parser.add_argument("--py-dir", metavar="DIRECTORY")
     parser.add_argument("--py-urlroot", metavar="URL",
             help="(without the trailing slash)")
@@ -199,12 +202,23 @@ def main():
 
             link_ipynb = args.ipynb_urlroot + "/" + trunk
             link_html = link_ipynb.replace(".ipynb", ".html")
+            main_link = link_html
 
             sub_nodes = [{
                         "text": "View on the web",
                         "link": link_html,
                         "icon": "fa fa-newspaper-o",
                         }]
+
+            if args.binder_urlroot:
+                binder_url = args.binder_urlroot + "/" + trunk
+
+                sub_nodes.append({
+                    "text": "Run interactively (on mybinder.org)",
+                    "link": binder_url,
+                    "icon": "fa fa-download",
+                    })
+                main_link = binder_url
 
             if args.ipynb_as_py:
                 link_py = link_ipynb.replace(".ipynb", ".py")
@@ -218,12 +232,12 @@ def main():
                 sub_nodes.append({
                     "text": "Download Jupyter notebook",
                     "link": link_ipynb,
-                    "icon": "fa fa-download",
+                    "icon": "fa fa-keyboard-o",
                     })
 
             demo_node = {
                 "text": "Demo: " + display_name,
-                "link": link_html,
+                "link": main_link,
                 "icon": "fa fa-keyboard-o",
                 "nodes": sub_nodes,
                 }
