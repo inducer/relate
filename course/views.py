@@ -83,13 +83,14 @@ from course.utils import (  # noqa
 
 # {{{ for mypy
 
-from typing import Tuple, List, Text, Optional, Any, Iterable, Dict  # noqa
+if False:
+    from typing import Tuple, List, Text, Optional, Any, Iterable, Dict  # noqa
 
-from course.content import (  # noqa
-    FlowDesc,
-    )
+    from course.content import (  # noqa
+        FlowDesc,
+        )
 
-from accounts.models import User  # noqa
+    from accounts.models import User  # noqa
 
 # }}}
 

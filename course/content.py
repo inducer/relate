@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -58,11 +59,10 @@ else:
 
 # {{{ mypy
 
-from typing import (  # noqa
-        cast, Union, Any, List, Tuple, Optional, Callable, Text, Dict)
-
 if False:
     # for mypy
+    from typing import (  # noqa
+        Any, List, Tuple, Optional, Callable, Text, Dict)
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa
@@ -1090,7 +1090,11 @@ def parse_date_spec(
         return localize_if_needed(
                 datetime.datetime.combine(datespec, datetime.time.min))
 
-    datespec_str = cast(Text, datespec).strip()
+    try:
+        from typing import Text
+    except ImportError:
+        Text = None  # noqa
+    datespec_str = cast(Text, datespec).strip()  # type: ignore
 
     # {{{ parse postprocessors
 

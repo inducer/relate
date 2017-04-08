@@ -26,11 +26,15 @@ THE SOFTWARE.
 
 
 import six
-from typing import Text, Union, List, Dict, Tuple, Optional, Any  # noqa
-import datetime  # noqa
+import datetime
 
 import django.forms as forms
 import dulwich.repo
+
+from typing import Union
+
+if False:
+    from typing import Text, List, Dict, Tuple, Optional, Any  # noqa
 
 
 class StyledForm(forms.Form):

@@ -63,6 +63,7 @@ from course.constants import (
         flow_session_interaction_kind
         )
 from course.models import (
+        Participation,
         FlowSession, FlowPageData, FlowPageVisit,
         FlowPageVisitGrade,
         get_feedback_for_grade,
@@ -86,25 +87,23 @@ from relate.utils import retry_transaction_decorator
 
 # {{{ mypy
 
-from typing import Any, Optional, Iterable, Tuple, Text, List  # noqa
-import datetime  # noqa
-from course.models import (  # noqa
-        Course,
-        Participation
-        )
-from course.utils import (  # noqa
-        CoursePageContext,
-        FlowSessionStartRule,
-        )
-from course.content import (  # noqa
-        FlowDesc,
-        )
-from course.page.base import (  # noqa
-        PageBase,
-        PageBehavior,
-        AnswerFeedback
-        )
-from relate.utils import Repo_ish  # noqa
+if False:
+    from typing import Any, Optional, Iterable, Tuple, Text, List  # noqa
+    import datetime  # noqa
+    from course.models import Course  # noqa
+    from course.utils import (  # noqa
+            CoursePageContext,
+            FlowSessionStartRule,
+            )
+    from course.content import (  # noqa
+            FlowDesc,
+            )
+    from course.page.base import (  # noqa
+            PageBase,
+            PageBehavior,
+            AnswerFeedback
+            )
+    from relate.utils import Repo_ish  # noqa
 
 # }}}
 
