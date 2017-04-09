@@ -26,7 +26,7 @@ import shutil
 from django.test import TestCase, Client
 from django.urls import resolve, reverse
 from accounts.models import User
-from course.models import FlowSession, FlowPageVisit
+from course.models import FlowSession, FlowPageVisit, Course
 from decimal import Decimal
 
 
@@ -70,11 +70,15 @@ class CourseTest(TestCase):
         super(CourseTest, cls).tearDownClass()
 
     def test_user_creation(self):
+        # Should only have one user
+        self.assertEqual(len(User.objects.all()), 1)
         self.assertTrue(self.c.login(
             username="testadmin",
             password="test"))
 
     def test_course_creation(self):
+        # Should only have one course
+        self.assertEqual(len(Course.objects.all()), 1)
         resp = self.c.get(reverse("relate-course_page", args=["test-course"]))
         # 200 != 302 is better than False is not True
         self.assertEqual(resp.status_code, 200)
