@@ -26,8 +26,7 @@ import shutil
 from django.test import TestCase, Client
 from django.urls import resolve, reverse
 from accounts.models import User
-from course.models import FlowSession, Course, GradingOpportunity #, Participation
-
+from course.models import FlowSession, Course, GradingOpportunity  # , Participation
 
 
 class GradeTest(TestCase):
@@ -248,7 +247,7 @@ class GradeTest(TestCase):
     def test_view_grade_flow_page(self):
         params = {"course_identifier": self.datas["course_identifier"],
                     "flow_session_id": self.datas["flow_session_id"][0]}
-        for i in xrange(18):
+        for i in range(18):
             params["page_ordinal"] = str(i)
             resp = self.c.get(reverse("relate-grade_flow_page",
                                                 kwargs=params))
