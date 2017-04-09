@@ -136,3 +136,109 @@ class GradeTest(TestCase):
         del kwargs["ordinal"]
         resp = cls.c.post(reverse("relate-finish_flow_session_view",
                                 kwargs=kwargs), {'submit': ['']})
+
+    def test_view_my_grade(self):
+        resp = self.c.get(reverse("relate-view_participant_grades",
+                                            args=self.datas["course_identifier"]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_view_participant_grades(self):
+        params = {"course_identifier": self.datas["course_identifier"],
+                                                "participation_id": self.admin.id}
+        resp = self.c.get(reverse("relate-view_participant_grades",
+                                                    kwargs=params))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_view_participant_list(self):
+        resp = self.c.get(reverse("relate-view_participant_list",
+                                            args=self.datas["course_identifier"]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_view_grading_opportunity_list(self):
+        resp = self.c.get(reverse("relate-view_grading_opportunity_list",
+                                            args=self.datas["course_identifier"]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_view_gradebook(self):
+        resp = self.c.get(reverse("relate-view_gradebook",
+                                            args=self.datas["course_identifier"]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_view_export_gradebook_csv(self):
+        resp = self.c.get(reverse("relate-export_gradebook_csv",
+                                            args=self.datas["course_identifier"]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Disposition"],
+                            'attachment; filename="grades-test-course.csv"')
+
+    def test_view_grades_by_opportunity(self):
+        print len(GradingOpportunity.objects.all())
+
+
+
+
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/grading/by-opportunity"
+#     "/(?P<opp_id>[0-9]+)"
+#     "/$",
+#     course.grades.view_grades_by_opportunity,
+#     name="relate-view_grades_by_opportunity"),
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/grading/single-grade"
+#     "/(?P<participation_id>[0-9]+)"
+#     "/(?P<opportunity_id>[0-9]+)"
+#     "/$",
+#     course.grades.view_single_grade,
+#     name="relate-view_single_grade"),
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/grading/reopen-session"
+#     "/(?P<flow_session_id>[0-9]+)"
+#     "/(?P<opportunity_id>[0-9]+)"
+#     "/$",
+#     course.grades.view_reopen_session,
+#     name="relate-view_reopen_session"),
+#
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/grading"
+#     "/csv-import"
+#     "/$",
+#     course.grades.import_grades,
+#     name="relate-import_grades"),
+#
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/grading"
+#     "/flow-page"
+#     "/(?P<flow_session_id>[0-9]+)"
+#     "/(?P<page_ordinal>[0-9]+)"
+#     "/$",
+#     course.grading.grade_flow_page,
+#     name="relate-grade_flow_page"),
+#
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/grading/statistics"
+#     "/" + FLOW_ID_REGEX +
+#     "/$",
+#     course.grading.show_grader_statistics,
+#     name="relate-show_grader_statistics"),
+#
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/grading/download-submissions"
+#     "/" + FLOW_ID_REGEX +
+#     "/$",
+#     course.grades.download_all_submissions,
+#     name="relate-download_all_submissions"),
+#
+# url(r"^course"
+#     "/" + COURSE_ID_REGEX +
+#     "/edit-grading-opportunity"
+#      "/(?P<opportunity_id>[-0-9]+)"
+#     "/$",
+#     course.grades.edit_grading_opportunity,
+#     name="relate-edit_grading_opportunity")
