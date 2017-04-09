@@ -27,6 +27,8 @@ THE SOFTWARE.
 import re
 import six
 
+from typing import cast
+
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, ugettext, string_concat)
 from django.shortcuts import (  # noqa
@@ -59,10 +61,11 @@ from course.constants import (
 
 # {{{ for mypy
 
-from typing import cast, Tuple, Text, Optional, Any, Iterable, List  # noqa
-from course.utils import CoursePageContext  # noqa
-from course.content import FlowDesc  # noqa
-from course.models import Course, FlowPageVisitGrade  # noqa
+if False:
+    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+    from course.utils import CoursePageContext  # noqa
+    from course.content import FlowDesc  # noqa
+    from course.models import Course, FlowPageVisitGrade  # noqa
 
 # }}}
 

@@ -63,8 +63,9 @@ from relate.utils import StyledForm
 
 # {{{ mypy
 
-import datetime  # noqa
-from typing import Optional, Text, Tuple, FrozenSet  # noqa
+if False:
+    import datetime  # noqa
+    from typing import Optional, Text, Tuple, FrozenSet  # noqa
 
 # }}}
 

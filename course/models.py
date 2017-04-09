@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Any, Optional, Text, Iterable  # noqa
+from typing import cast
 
 import six
 
@@ -59,8 +59,8 @@ from course.page.base import AnswerFeedback
 
 # {{{ mypy
 
-from typing import List, Dict  # noqa
 if False:
+    from typing import List, Dict, Any, Optional, Text, Iterable  # noqa  # noqa
     from course.content import FlowDesc  # noqa
 
 # }}}
