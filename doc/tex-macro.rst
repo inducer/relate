@@ -78,6 +78,7 @@ Prerequisites
 * **ImageMagick**, required.
     - For Windows platform, install with option
       ``install legacy component`` ticked.
+* **MongoDB**, required.
 
 Configurations
 ^^^^^^^^^^^^^^

@@ -30,14 +30,21 @@ from django.utils.translation import ugettext as _
 
 from .utils import strip_comments, strip_spaces
 
+if False:
+    from typing import Text, Any, Optional  # noqa
+
+
 class TexDocParseError(Exception):
     pass
+
 
 class TexDocMissingElementError(TexDocParseError):
     pass
 
+
 class TexDocWrongElementOrderError(TexDocParseError):
     pass
+
 
 class TexDoc():
     """
@@ -50,12 +57,14 @@ class TexDoc():
     has_enddoc = False
 
     def is_empty_pagestyle_already(self):
+        # type: () -> bool
         match = re.search(r"\\pagestyle{\s?empty\s?}", self.preamble)
         if match:
             return True
         return False
 
     def parse(self, latex, test=False):
+        # type: (Text, Optional[bool]) -> None
         """
         parse the doc into preamble and document. If test=True, the
         method will try to find out which elements of the latex code
@@ -108,6 +117,7 @@ class TexDoc():
             assert self.document is not None
 
     def as_latex(self):
+        # type: () -> Text
         """
         Assemble LaTeX Document
         """
@@ -131,6 +141,7 @@ class TexDoc():
 
     def __init__(self, text=None, preamble="", preamble_extra="",
                  empty_pagestyle=False):
+        # type: (...) -> None
         """
         Parse LaTeX document
         :param text: string. Full latex document, or body only if

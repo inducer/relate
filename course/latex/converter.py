@@ -26,28 +26,67 @@ THE SOFTWARE.
 
 import six
 import os
-import platform
 import sys
 import shutil
 import re
+from hashlib import md5
 
 from django.core.checks import Critical
 from django.core.management.base import CommandError
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.html import escape
 from django.utils.encoding import DEFAULT_LOCALE_ENCODING
 from django.utils.translation import ugettext as _, string_concat
 from django.conf import settings
 
+from relate.utils import local_now
+
+from course.latex.utils import get_mongo_db
+
 from .utils import (
     popen_wrapper, get_basename_or_md5,
-    _file_read, _file_write, get_abstract_latex_log)
+    file_read, file_write, get_abstract_latex_log)
+
+# mypy
+if False:
+    from typing import Text, Optional, Any, List  # noqa
+    from pymongo import MongoClient  # noqa
+    from pymongo.collection import Collection  # noqa
+
+DB = get_mongo_db()
+
+
+def get_latex_datauri_mongo_collection(name=None, db=DB, index_name="key"):
+    # type: (Optional[Text], Optional[MongoClient], Optional[Text]) -> Collection
+    if not name:
+        name = getattr(
+            settings, "RELATE_LATEX_DATAURI_MONGO_COLLECTION_NAME",
+            "relate_latex_datauri")
+    collection = db[name]
+    if index_name:
+        collection.ensure_index(index_name, unique=True)
+    return collection
+
+
+def get_latex_error_mongo_collection(name=None, db=DB, index_name="key"):
+    # type: (Optional[Text], Optional[MongoClient], Optional[Text]) -> Collection
+    if not name:
+        name = getattr(
+            settings, "RELATE_LATEX_ERROR_MONGO_COLLECTION_NAME",
+            "relate_latex_error")
+    collection = db[name]
+    if index_name:
+        collection.ensure_index(index_name, unique=True)
+    return collection
 
 
 # {{{ latex compiler classes and image converter classes
 
+
 class CommandBase(object):
     @property
     def name(self):
+        # type: () -> Text
         """
         The name of the command tool
         """
@@ -55,15 +94,17 @@ class CommandBase(object):
 
     @property
     def cmd(self):
+        # type: () -> Text
         """
         The string of the command
         """
         raise NotImplementedError
 
-    required_version = ""
-    bin_path = ""
+    required_version = ""  # type: Text
+    bin_path = ""  # type: Text
 
     def check(self):
+        # type: () -> Text
         error = ""
         out = ""
         strerror = ""
@@ -83,26 +124,25 @@ class CommandBase(object):
                 hint=("Unable to run '%(cmd)s'. Is "
                       "%(tool)s installed or has its "
                       "path correctly configured "
-                      "in local_settings.py?")
-                     % {"cmd": self.cmd,
-                        "tool": self.name,
-                        },
+                      "in local_settings.py?") % {
+                    "cmd": self.cmd,
+                    "tool": self.name,
+                },
                 obj=self.name
             )
         elif self.required_version:
             version = ".".join(d for d in m.groups() if d)
-            from distutils.version import LooseVersion as LV
+            import distutils.version.LooseVersion as LV
             if LV(version) < LV(self.required_version):
                 error = Critical(
                     "Version outdated",
                     hint=("'%(tool)s' with version "
                           ">=%(required)s is required, "
                           "current version is %(version)s"
-                          )
-                         % {"tool": self.name,
-                            "required": self.required_version,
-                            "version": version
-                            },
+                          ) % {
+                        "tool": self.name,
+                        "required": self.required_version,
+                        "version": version},
                     obj=self.name
                 )
         return error
@@ -110,6 +150,7 @@ class CommandBase(object):
 
 class TexCompilerBase(CommandBase):
     def __init__(self):
+        # type: () -> None
         self.bin_path_dir = getattr(
             settings, "RELATE_%s_BIN_DIR" % self.name.upper(),
             getattr(settings, "RELATE_LATEX_BIN_DIR", "")
@@ -132,13 +173,16 @@ class LatexCompiler(TexCompilerBase):
 
     @property
     def output_format(self):
+        # type: () -> Text
         raise NotImplementedError()
 
     def __init__(self):
+        # type: () -> None
         super(LatexCompiler, self).__init__()
         self.latexmk_prog_repl = self._get_latexmk_prog_repl()
 
     def _get_latexmk_prog_repl(self):
+        # type: () -> Text
         """
         Program replace when using "-pdflatex=" or "-latex="
         arg in latexmk, especially needed when compilers are
@@ -151,6 +195,7 @@ class LatexCompiler(TexCompilerBase):
         )
 
     def get_latexmk_subpro_cmdline(self, input_path):
+        # type: (Text) -> List[Text]
         latexmk = Latexmk()
         return [
             latexmk.bin_path,
@@ -177,31 +222,33 @@ class LuaLatex(LatexCompiler):
     name = "LuaLatex"
     cmd = "lualatex"
     output_format = "pdf"
+
     def __init__(self):
+        # type: () -> None
         super(LuaLatex, self).__init__()
-        self.latexmk_prog_repl = (
-            "-%s=%s" % ("pdflatex", self.bin_path)
-        )
+        self.latexmk_prog_repl = "-%s=%s" % ("pdflatex", self.bin_path)
 
 
 class XeLatex(LatexCompiler):
     name = "XeLatex"
     cmd = "xelatex"
     output_format = "pdf"
+
     def __init__(self):
+        # type: () -> None
         super(XeLatex, self).__init__()
-        self.latexmk_prog_repl = (
-            "-%s=%s" % ("pdflatex", self.bin_path)
-        )
+        self.latexmk_prog_repl = "-%s=%s" % ("pdflatex", self.bin_path)
 
 
 class Imageconverter(CommandBase):
 
     @property
     def output_format(self):
+        # type: () -> Text
         raise NotImplementedError
 
     def __init__(self):
+        # type: () -> None
         bin_path_dir = getattr(
             settings, "RELATE_%s_BIN_DIR" % self.name.upper(),
             ""
@@ -211,6 +258,7 @@ class Imageconverter(CommandBase):
 
     def get_converter_cmdline(
             self, input_filepath, output_filepath):
+        # type: (Text, Text) -> List[Text]
         raise NotImplementedError
 
 
@@ -221,8 +269,10 @@ class Dvipng(TexCompilerBase, Imageconverter):
     name = "dvipng"
     cmd = "dvipng"
     output_format = "png"
+
     def get_converter_cmdline(
             self, input_filepath, output_filepath):
+        # type: (Text, Text) -> List[Text]
         return [self.bin_path,
                 '-o', output_filepath,
                 '-pp', '1',
@@ -238,8 +288,10 @@ class Dvisvg(TexCompilerBase, Imageconverter):
     name = "dvisvg"
     cmd = "dvisvgm"
     output_format = "svg"
+
     def get_converter_cmdline(
             self, input_filepath, output_filepath):
+        # type: (Text, Text) -> List[Text]
         return[self.bin_path,
             '--no-fonts',
             '-o', output_filepath,
@@ -253,6 +305,7 @@ class ImageMagick(Imageconverter):
 
     def get_converter_cmdline(
             self, input_filepath, output_filepath):
+        # type: (Text, Text) -> List[Text]
         return [self.bin_path,
                 '-density', '96',
                 '-quality', '85',
@@ -266,7 +319,8 @@ class ImageMagick(Imageconverter):
 
 # {{{ convert file to data uri
 
-def get_file_data_uri(file_path):
+def get_image_datauri(file_path):
+    # type: (Text) -> Optional[Text]
     """
     Convert file to data URI
     """
@@ -274,7 +328,7 @@ def get_file_data_uri(file_path):
         return None
 
     try:
-        buf = _file_read(file_path)
+        buf = file_read(file_path)
     except OSError:
         raise
 
@@ -298,6 +352,7 @@ class Tex2ImgBase(object):
 
     @property
     def compiler(self):
+        # type: () -> LatexCompiler
         """
         :return: an instance of `LatexCompiler`
         """
@@ -305,18 +360,18 @@ class Tex2ImgBase(object):
 
     @property
     def converter(self):
+        # type: () -> Imageconverter
         """
         :return: an instance of `Imageconverter`
         """
         raise NotImplementedError()
 
-    def __init__(self, tex_source, tex_filename, output_dir):
+    def __init__(self, tex_source, tex_filename):
+        # type: (...) -> None
         """
         :param tex_source: Required, a string representing the
         full tex source code.
         :param tex_filename: Optional, a string
-        :param output_dir: Required, a string of the path where
-        the images and error logs will be saved.
         """
 
         if tex_source:
@@ -325,23 +380,8 @@ class Tex2ImgBase(object):
             raise ValueError(
                 _("Param 'tex_source' can not be an empty string")
             )
-        assert isinstance(tex_source, unicode)
+        assert isinstance(tex_source, six.text_type)
         self.tex_source = tex_source
-
-        if output_dir:
-            output_dir = output_dir.strip()
-        if not output_dir:
-            raise ValueError(
-                _("Param output_dir must be specified"))
-        else:
-            try:
-                if (not os.path.exists(output_dir)
-                        or not os.path.isdir(output_dir)):
-                    os.makedirs(output_dir)
-            except Exception:
-                raise ValueError(
-                    _("Param output_dir '%s' is not a valid path")
-                    % output_dir)
 
         self.working_dir = None
 
@@ -352,47 +392,47 @@ class Tex2ImgBase(object):
             .replace(".", "").lower()
         self.image_ext = ".%s" % self.image_format
 
-        self.compiled_ext =".%s" % self.compiler.output_format\
+        self.compiled_ext = ".%s" % self.compiler.output_format\
             .replace(".", "").lower()
 
-        # Where the latex compilation error log
-        # will finally be saved.
-        self.errlog_saving_path = os.path.join(
-            output_dir,
-            "%s_%s.log" % (self.basename, self.compiler.cmd)
-        )
-
-        # Where the generated image will finally be saved.
-        self.image_saving_path = os.path.join(
-            output_dir,
-            "%s_%s.%s" % (self.basename,
+        self.datauri_basename = (
+            "%s_%s_%s_datauri" % (self.basename,
                           self.compiler.cmd,
                           self.image_format)
         )
 
     def get_compiler_cmdline(self, tex_path):
+        # type: (Text) -> List[Text]
         return self.compiler.get_latexmk_subpro_cmdline(tex_path)
 
     def get_converter_cmdline(self, input_path, output_path):
+        # type: (Text, Text) -> List[Text]
         return self.converter.get_converter_cmdline(
             input_path, output_path)
 
     def _remove_working_dir(self):
-        shutil.rmtree(self.working_dir)
+        # type: () -> None
+        if self.working_dir:
+            shutil.rmtree(self.working_dir)
 
     def get_compiled_file(self):
+        # type: () -> Optional[Text]
         """
-        Compile latex source. If failed, error log will copied
-        to ``output_dir``.
+        Compile latex source.
         :return: string, the path of the compiled file if succeeded.
         """
         from tempfile import mkdtemp
-        self.working_dir = mkdtemp(prefix="RELATE_LATEX_")
 
+        # https://github.com/python/mypy/issues/1833
+        self.working_dir = mkdtemp(prefix="RELATE_LATEX_")  # type: ignore
+
+        assert self.basename is not None
+        assert self.working_dir is not None
         tex_filename = self.basename + ".tex"
         tex_path = os.path.join(self.working_dir, tex_filename)
-        _file_write(tex_path, self.tex_source.encode('UTF-8'))
+        file_write(tex_path, self.tex_source.encode('UTF-8'))
 
+        assert tex_path is not None
         log_path = tex_path.replace(".tex", ".log")
         compiled_file_path = tex_path.replace(
             ".tex", self.compiled_ext)
@@ -403,7 +443,7 @@ class Tex2ImgBase(object):
 
         if status != 0:
             try:
-                log = _file_read(log_path)
+                log = file_read(log_path).decode("utf-8")
             except OSError:
                 # no log file is generated
                 self._remove_working_dir()
@@ -411,12 +451,42 @@ class Tex2ImgBase(object):
 
             try:
                 log = get_abstract_latex_log(log)
-                _file_write(self.errlog_saving_path, log)
+
+                err_key = ("latex_err:%s:%s"
+                           % (self.compiler.cmd, self.basename))
+
+                try:
+                    import django.core.cache as cache
+                except ImproperlyConfigured:
+                    err_cache_key = None
+                else:
+                    def_cache = cache.caches["latex"]
+                    err_cache_key = err_key
+
+                if not isinstance(log, six.text_type):
+                    log = six.text_type(log)
+
+                get_latex_error_mongo_collection().update_one(
+                    {"key": err_key},
+                    {"$setOnInsert":
+                         {"key": err_key,
+                          "errorlog": log.encode('utf-8'),
+                          "source": self.tex_source.encode('utf-8'),
+                          "creation_time": local_now()
+                          }},
+                    upsert=True,
+                )
+
+                if err_cache_key:
+                    assert isinstance(log, six.text_type)
+                    if len(log) <= getattr(
+                            settings, "RELATE_CACHE_MAX_BYTES", 0):
+                        def_cache.add(err_cache_key, log)
+
             except:
                 raise
             finally:
                 self._remove_working_dir()
-                from django.utils.html import escape
                 raise ValueError(
                     "<pre>%s</pre>" % escape(log).strip())
 
@@ -431,11 +501,11 @@ class Tex2ImgBase(object):
                     % self.compiler.output_format)
             )
 
-    def get_converted_image(self):
+    def get_converted_image_datauri(self):
+        # type: () -> Optional[Text]
         """
-        Convert compiled file into image. If succeeded, the image
-        will be copied to ``output_dir``.
-        :return: string, the path of the generated image
+        Convert compiled file into image.
+        :return: string, the datauri
         """
         compiled_file_path = self.get_compiled_file()
         if not compiled_file_path:
@@ -469,113 +539,149 @@ class Tex2ImgBase(object):
                 ))
 
         try:
-            shutil.copyfile(image_path, self.image_saving_path)
+            datauri = get_image_datauri(image_path)
+
         except OSError:
             raise RuntimeError(error)
         finally:
             self._remove_working_dir()
 
-        return self.image_saving_path
+        return datauri
 
-    def get_compile_err_cached(self):
+    def get_compile_err_cached(self, force_regenerate=False):
+        # type: (Optional[bool]) -> Optional[Text]
         """
         If the problematic latex source is not modified, check
-        wheter there is error log both in cache and output_dir.
+        whether there is error log both in cache or mongo.
         If it exists, raise the error.
         :return: None if no error log find.
         """
         err_result = None
+        err_key = ("latex_err:%s:%s"
+                         % (self.compiler.cmd, self.basename))
 
         try:
             import django.core.cache as cache
         except ImproperlyConfigured:
             err_cache_key = None
         else:
-            def_cache = cache.caches["default"]
-            err_cache_key = ("latex_err:%s:%s"
-                             % (self.compiler.cmd, self.basename))
+            def_cache = cache.caches["latex"]
+            err_cache_key = err_key
             # Memcache is apparently limited to 250 characters.
             if len(err_cache_key) < 240:
-                err_result = def_cache.get(err_cache_key)
+                if not force_regenerate:
+                    err_result = def_cache.get(err_cache_key)
+                else:
+                    def_cache.delete(err_cache_key)
+                    get_latex_error_mongo_collection().delete_one({"key": err_key})
             if err_result is not None:
-                assert isinstance(err_result, six.string_types),\
-                    err_cache_key
+                raise ValueError(
+                    "<pre>%s</pre>" % escape(err_result).strip())
 
         if err_result is None:
             # read the saved err_log if it exists
-            if os.path.isfile(self.errlog_saving_path):
-                err_result = _file_read(self.errlog_saving_path)
-                assert isinstance(err_result, six.string_types)
+            mongo_result = get_latex_error_mongo_collection().find_one(
+                {"key": err_key}
+            )
+            if mongo_result:
+                err_result = mongo_result["errorlog"].decode("utf-8")
 
         if err_result:
             if err_cache_key:
+                assert isinstance(err_result, six.text_type)
                 if len(err_result) <= getattr(
                         settings, "RELATE_CACHE_MAX_BYTES", 0):
-                        def_cache.add(err_cache_key, err_result, None)
+                        def_cache.add(err_cache_key, err_result)
 
-            from django.utils.html import escape
             raise ValueError(
                 "<pre>%s</pre>" % escape(err_result).strip())
 
         return None
 
     def get_data_uri_cached(self, force_regenerate=False):
+        # type: (Optional[bool]) -> Text
         """
         :param force_regenerate: :class:`Bool', if True, the tex file
         will be recompiled and re-convert the image, regardless of
         existing file or cached result.
         :return: string, data uri of the coverted image.
         """
-        uri_result = None
+        result = None
+
         if force_regenerate:
-            image_path = self.get_converted_image()
-            uri_result = get_file_data_uri(image_path)
-            assert isinstance(uri_result, six.string_types)
+            # first remove cached error results and files
+            self.get_compile_err_cached(force_regenerate)
+            result = self.get_converted_image_datauri()
+            if not isinstance(result, six.text_type):
+                result = six.text_type(result)
 
-        if not uri_result:
-            err_result = self.get_compile_err_cached()
+        if not result:
+            err_result = self.get_compile_err_cached(force_regenerate)
             if err_result:
-                return None
+                raise ValueError(
+                    "<pre>%s</pre>" % escape(err_result).strip())
 
+        # we make the key so that it can be used when cache is not configured
+        # and it can be used by mongo
+        uri_key = (
+            "latex2img:%s:%s" % (
+                self.compiler.cmd,
+                md5(
+                    self.datauri_basename.encode("utf-8")
+                ).hexdigest()
+            )
+        )
         try:
             import django.core.cache as cache
         except ImproperlyConfigured:
             uri_cache_key = None
         else:
-            def_cache = cache.caches["default"]
+            def_cache = cache.caches["latex"]
+            uri_cache_key = uri_key
 
-            from hashlib import md5
-            uri_cache_key = (
-                "latex2img:%s:%s" % (
-                    self.compiler.cmd,
-                    md5(
-                        self.image_saving_path.encode("utf-8")
-                    ).hexdigest()
-                )
-            )
-            if not uri_result:
+            if force_regenerate:
+                def_cache.delete(uri_cache_key)
+                get_latex_datauri_mongo_collection().delete_one({"key": uri_key})
+            elif not result:
                 # Memcache is apparently limited to 250 characters.
                 if len(uri_cache_key) < 240:
-                    uri_result = def_cache.get(uri_cache_key)
-                    if uri_result:
-                        assert isinstance(
-                            uri_result, six.string_types),\
-                            uri_cache_key
-                        return uri_result
+                    result = def_cache.get(uri_cache_key)
+                    if result:
+                        if not isinstance(result, six.text_type):
+                            result = six.text_type(result)
+                        return result
 
         # Neighter regenerated nor cached,
-        # then read or generate the image
-        if not uri_result:
-            if not os.path.isfile(self.image_saving_path):
-                self.image_saving_path = self.get_converted_image()
-            uri_result = get_file_data_uri(self.image_saving_path)
-            assert isinstance(uri_result, six.string_types)
+        # then read from mongo
+        if not result:
+            mongo_result = get_latex_datauri_mongo_collection().find_one(
+                {"key": uri_key}
+            )
+            if mongo_result:
+                result = mongo_result["datauri"].decode("utf-8")
+                if not isinstance(result, six.text_type):
+                    result = six.text_type(result)
 
-        assert uri_result
+        # Not found in mongo, regenerate it
+        if not result:
+            result = self.get_converted_image_datauri()
+            if not isinstance(result, six.text_type):
+                result = six.text_type(result)
+            get_latex_datauri_mongo_collection().update_one(
+                {"key": uri_key},
+                {"$setOnInsert":
+                     {"key": uri_key,
+                      "datauri": result.encode('utf-8'),
+                      "creation_time": local_now()
+                      }},
+                upsert=True,
+            )
+
+        assert result
 
         # no cache configured
         if not uri_cache_key:
-            return uri_result
+            return result
 
         # cache configure, but image not cached
         allowed_max_bytes = getattr(
@@ -584,11 +690,14 @@ class Tex2ImgBase(object):
                 settings, "RELATE_CACHE_MAX_BYTES",
             )
         )
-        if len(uri_result) <= allowed_max_bytes:
+
+        if len(result) <= allowed_max_bytes:
             # image size larger than allowed_max_bytes
             # won't be cached, espeically for svgs.
-            def_cache.add(uri_cache_key, uri_result, None)
-        return uri_result
+            assert isinstance(result, six.text_type), \
+                uri_cache_key
+            def_cache.add(uri_cache_key, result)
+        return result
 
 # }}}
 
@@ -636,13 +745,14 @@ ALLOWED_COMPILER_FORMAT_COMBINATION = (
 
 
 def get_tex2img_class(compiler, image_format):
+    # type: (Text, Text) -> Any
     image_format = image_format.replace(".", "").lower()
     compiler = compiler.lower()
-    if not image_format in ALLOWED_LATEX2IMG_FORMAT:
+    if image_format not in ALLOWED_LATEX2IMG_FORMAT:
         raise ValueError(
             _("Unsupported image format '%s'") % image_format)
 
-    if not compiler in ALLOWED_COMPILER:
+    if compiler not in ALLOWED_COMPILER:
         raise ValueError(
             _("Unsupported tex compiler '%s'") % compiler)
 
@@ -651,10 +761,10 @@ def get_tex2img_class(compiler, image_format):
             _("Unsupported combination: "
               "('%(compiler)s', '%(format)s'). "
               "Currently support %(supported)s.")
-              % {"compiler": compiler,
-                 "format": image_format,
-                 "supported": ", ".join(
-                     str(e) for e in ALLOWED_COMPILER_FORMAT_COMBINATION)}
+            % {"compiler": compiler,
+               "format": image_format,
+               "supported": ", ".join(
+                   str(e) for e in ALLOWED_COMPILER_FORMAT_COMBINATION)}
         )
 
     class_name = "%s2%s" % (compiler.title(), image_format.title())
@@ -663,9 +773,11 @@ def get_tex2img_class(compiler, image_format):
 
 # }}}
 
+
 # {{{ check if multiple images are generated due to long pdf
 
 def get_number_of_images(image_path, image_ext):
+    # type: (Text, Text) -> int
     if os.path.isfile(image_path):
         return 1
     count = 0

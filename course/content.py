@@ -855,6 +855,7 @@ def expand_markup(
         repo,  # type: Repo_ish
         commit_sha,  # type: bytes
         text,  # type: Text
+        validate_only=False,  # type: bool
         use_jinja=True,  # type: bool
         jinja_env={},  # type: Dict
         ):
@@ -870,8 +871,45 @@ def expand_markup(
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
+
         template = env.from_string(text)
-        text = template.render(**jinja_env)
+        kwargs = {}
+        if jinja_env:
+            kwargs.update(jinja_env)
+
+        # {{{ tex2img
+
+        def latex_not_enabled_warning(caller, *args, **kwargs):
+            return (
+                "<div class='alert alert-danger'>%s</div>" %
+                ("RELATE_LATEX_TO_IMAGE_ENABLED is set to False, "
+                 "no image will be generated."))
+
+        def jinja_tex_to_img_tag(caller, *args, **kwargs):
+            try:
+                from course.latex import tex_to_img_tag
+                return tex_to_img_tag(caller(), *args, **kwargs)
+            except Exception as e:
+                raise ValueError(
+                    u"<pre><div class='alert alert-danger'>"
+                    u"Error: %s: %s</div></pre>"
+                    % (type(e).__name__, str(e)))
+
+        latex2image_enabled = getattr(
+            settings, "RELATE_LATEX_TO_IMAGE_ENABLED", False)
+
+        if latex2image_enabled:
+            env.globals["latex"] = jinja_tex_to_img_tag
+        else:
+            if not validate_only:
+                env.globals["latex"] = latex_not_enabled_warning
+            else:
+                raise ImproperlyConfigured(
+                    _("RELATE_LATEX_TO_IMAGE_ENABLED is set to False, "
+                      "no image will be generated."))
+        # }}}
+
+        text = template.render(**kwargs)
 
     # }}}
 
@@ -912,7 +950,8 @@ def markup_to_html(
         cache_key = None
 
     text = expand_markup(
-            course, repo, commit_sha, text, use_jinja=use_jinja, jinja_env=jinja_env)
+            course, repo, commit_sha, text, validate_only=validate_only,
+            use_jinja=use_jinja, jinja_env=jinja_env)
 
     if reverse_func is None:
         from django.urls import reverse
