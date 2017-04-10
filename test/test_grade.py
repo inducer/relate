@@ -365,7 +365,6 @@ class GradeTest(TestCase):
         # Should have two flow sessions now
         self.assertEqual(len(FlowSession.objects.all()), 2)
 
-
     def test_view_grant_exception_exist_session(self):
         # Perform all checking before moving to stage three
         params = self.check_stage_one_and_two()
@@ -416,7 +415,6 @@ class GradeTest(TestCase):
         # Should have two exception rules now
         # One for access and one for grading
         self.assertEqual(len(FlowRuleException.objects.all()), 2)
-
 
     # Helper method for testing grant exception view
     def check_stage_one_and_two(self):
