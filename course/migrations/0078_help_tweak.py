@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='userstatus',
             name='editor_mode',
-            field=models.CharField(choices=[(b'default', 'Default'), (b'sublime', b'Sublime text'), (b'emacs', b'Emacs'), (b'vim', b'Vim')], default=b'default', help_text="Which key bindings you prefer when editing larger amounts of text or code. (If you do not understand what this means, leave it as 'Default'.)", max_length=20, verbose_name='Editor mode'),
+            field=models.CharField(choices=[('default', 'Default'), ('sublime', 'Sublime text'), ('emacs', 'Emacs'), ('vim', 'Vim')], default='default', help_text="Which key bindings you prefer when editing larger amounts of text or code. (If you do not understand what this means, leave it as 'Default'.)", max_length=20, verbose_name='Editor mode'),
         ),
     ]

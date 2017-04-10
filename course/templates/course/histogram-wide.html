@@ -11,13 +11,15 @@
           ({{ bin.raw_weight }})
         </td>
         <td class="histogram-bar-cell">
-          <div class="progress">
-            <div class="progress-bar progress-bar-info" role="progressbar"
-              aria-valuenow="{{ bin.percentage }}" aria-valuemin="0" aria-valuemax="100"
-              style="width: {{ bin.percentage|stringformat:".4f" }}%">
-              <span class="stats-percentage">{{ bin.percentage|floatformat:1 }}%</span>
+          {% if bin.percentage != None %}
+            <div class="progress">
+              <div class="progress-bar progress-bar-info" role="progressbar"
+                aria-valuenow="{{ bin.percentage }}" aria-valuemin="0" aria-valuemax="100"
+                style="width: {{ bin.percentage|stringformat:".4f" }}%">
+                <span class="stats-percentage">{{ bin.percentage|floatformat:1 }}%</span>
+              </div>
             </div>
-          </div>
+          {% endif %}
         </td>
       </div>
     {% endfor %}

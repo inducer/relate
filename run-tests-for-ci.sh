@@ -65,7 +65,7 @@ fi
 
 $PIP install -r req.txt
 
-cp local_settings.py.example local_settings.py
+cp local_settings.example.py local_settings.py
 
 cd test
 python ../manage.py test

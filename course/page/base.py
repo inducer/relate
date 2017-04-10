@@ -42,6 +42,21 @@ from django.utils.translation import (
 from django.utils import translation
 from django.conf import settings
 
+# {{{ mypy
+
+from typing import Text, Optional, Any, Tuple, Dict, Callable  # noqa
+from django import http  # noqa
+
+if False:
+    from course.models import (  # noqa
+            Course,
+            FlowSession
+            )
+    from course.content import Repo_ish  # noqa
+
+# }}}
+
+
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 
 
@@ -60,8 +75,17 @@ class PageContext(object):
     which is used internally by the flow views.
     """
 
-    def __init__(self, course, repo, commit_sha, flow_session,
-            in_sandbox=False, page_uri=None):
+    def __init__(
+            self,
+            course,  # type: Course
+            repo,  # type: Repo_ish
+            commit_sha,  # type: bytes
+            flow_session,  # type: FlowSession
+            in_sandbox=False,  # type: bool
+            page_uri=None,  # type: Optional[str]
+            ):
+        # type: (...) -> None
+
         self.course = course
         self.repo = repo
         self.commit_sha = commit_sha
@@ -77,7 +101,14 @@ class PageBehavior(object):
     .. attribute:: may_change_answer
     """
 
-    def __init__(self, show_correctness, show_answer, may_change_answer):
+    def __init__(
+            self,
+            show_correctness,  # type: bool
+            show_answer,  # type: bool
+            may_change_answer,  # type:bool
+            ):
+        # type: (...) -> None
+
         self.show_correctness = show_correctness
         self.show_answer = show_answer
         self.may_change_answer = may_change_answer
@@ -90,24 +121,33 @@ class PageBehavior(object):
     __nonzero__ = __bool__
 
 
-def markup_to_html(page_context, text):
-    from course.content import markup_to_html
+def markup_to_html(
+        page_context,  # type: PageContext
+        text,  # type: Text
+        use_jinja=True,  # type: bool
+        reverse_func=None,  # type: Callable
+        ):
+    # type: (...) -> Text
+    from course.content import markup_to_html as mth
 
-    return markup_to_html(
+    return mth(
             page_context.course,
             page_context.repo,
             page_context.commit_sha,
-            text)
+            text,
+            use_jinja=use_jinja,
+            reverse_func=reverse_func)
 
 
 # {{{ answer feedback type
 
 def get_auto_feedback(correctness):
+    # type: (Optional[float]) -> Text
     if correctness is None:
         return six.text_type(_("No information on correctness of answer."))
-    elif correctness == 0:
+    elif abs(correctness - 0) < 1e-5:
         return six.text_type(_("Your answer is not correct."))
-    elif correctness == 1:
+    elif abs(correctness - 1) < 1e-5:
         return six.text_type(_("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
@@ -150,6 +190,8 @@ class AnswerFeedback(object):
     """
 
     def __init__(self, correctness, feedback=None, bulk_feedback=None):
+        # type: (Optional[float], Optional[Text], Optional[Text]) -> None
+
         if correctness is not None:
             # allow for extra credit
             if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
@@ -163,6 +205,7 @@ class AnswerFeedback(object):
         self.bulk_feedback = bulk_feedback
 
     def as_json(self):
+        # type: () -> Tuple[Dict[Text, Any], Dict[Text, Any]]
         result = {
                 "correctness": self.correctness,
                 "feedback": self.feedback,
@@ -175,6 +218,8 @@ class AnswerFeedback(object):
 
     @staticmethod
     def from_json(json, bulk_json):
+        # type: (Any, Any) -> AnswerFeedback
+
         if json is None:
             return json
 
@@ -190,6 +235,8 @@ class AnswerFeedback(object):
                 )
 
     def percentage(self):
+        # type: () -> Optional[float]
+
         if self.correctness is not None:
             return 100*self.correctness
         else:
@@ -219,7 +266,7 @@ class PageBase(object):
     .. automethod:: allowed_attrs
 
     .. automethod:: get_modified_permissions_for_page
-    .. automethod:: make_page_data
+    .. automethod:: initialize_page_data
     .. automethod:: title
     .. automethod:: body
 
@@ -238,7 +285,7 @@ class PageBase(object):
 
     .. automethod:: make_grading_form
     .. automethod:: post_grading_form
-    .. automethod:: update_grade_data_from_grading_form
+    .. automethod:: update_grade_data_from_grading_form_v2
     .. automethod:: grading_form_to_html
 
     .. rubric:: Grading/Feedback
@@ -292,10 +339,11 @@ class PageBase(object):
                     # }}}
 
             self.page_desc = page_desc
+            self.is_optional_page = getattr(page_desc, "is_optional_page", False)
 
         else:
             from warnings import warn
-            warn("Not passing page_desc to PageBase.__init__ is deprecated",
+            warn(_("Not passing page_desc to PageBase.__init__ is deprecated"),
                     DeprecationWarning)
             id = page_desc
             del page_desc
@@ -321,43 +369,61 @@ class PageBase(object):
 
         return (
             ("access_rules", Struct),
+            ("is_optional_page", bool),
             )
 
     def get_modified_permissions_for_page(self, permissions):
-        permissions = set(permissions)
+        # type: (frozenset[Text]) -> frozenset[Text]
+        rw_permissions = set(permissions)
 
         if hasattr(self.page_desc, "access_rules"):
             if hasattr(self.page_desc.access_rules, "add_permissions"):
                 for perm in self.page_desc.access_rules.add_permissions:
-                    permissions.add(perm)
+                    rw_permissions.add(perm)
 
             if hasattr(self.page_desc.access_rules, "remove_permissions"):
                 for perm in self.page_desc.access_rules.remove_permissions:
-                    if perm in permissions:
-                        permissions.remove(perm)
+                    if perm in rw_permissions:
+                        rw_permissions.remove(perm)
 
-        return permissions
+        return frozenset(rw_permissions)
 
     def make_page_data(self):
+        return {}
+
+    def initialize_page_data(self, page_context):
         """Return (possibly randomly generated) data that is used to generate
         the content on this page. This is passed to methods below as the *page_data*
         argument. One possible use for this argument would be a random permutation
         of choices that is generated once (at flow setup) and then used whenever
         this page is shown.
         """
-        return {}
+        data = self.make_page_data()
+        if data:
+            from warnings import warn
+            warn(_("%s is using the make_page_data compatiblity hook, which "
+                 "is deprecated.") % type(self).__name__,
+                 DeprecationWarning)
+
+        return data
 
     def title(self, page_context, page_data):
+        # type: (PageContext, Dict) -> str
+
         """Return the (non-HTML) title of this page."""
 
         raise NotImplementedError()
 
     def body(self, page_context, page_data):
+        # type: (PageContext, Dict) -> str
+
         """Return the (HTML) body of the page."""
 
         raise NotImplementedError()
 
     def expects_answer(self):
+        # type: () -> bool
+
         """
         :return: a :class:`bool` indicating whether this page lets the
             user provide an answer of some type.
@@ -365,6 +431,7 @@ class PageBase(object):
         raise NotImplementedError()
 
     def is_answer_gradable(self):
+        # type: () -> bool
         """
         :return: a :class:`bool` indicating whether answers on this can
             have :meth:`grade` called on them.
@@ -374,6 +441,7 @@ class PageBase(object):
         return True
 
     def max_points(self, page_data):
+        # type: (Any) -> float
         """
         :return: a :class:`int` or :class:`float` indicating how many points
             are achievable on this page.
@@ -382,14 +450,26 @@ class PageBase(object):
 
     # {{{ student input
 
-    def answer_data(self, page_context, page_data, form, files_data):
+    def answer_data(
+            self,
+            page_context,  # type:  PageContext
+            page_data,  # type: Any
+            form,  # type: forms.Form
+            files_data,  # type: Any
+            ):
+        # type: (...) -> Any
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
         """
         raise NotImplementedError()
 
-    def make_form(self, page_context, page_data,
-            answer_data, page_behavior):
+    def make_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            page_behavior,  # type: Any
+            ):
         """
         :arg answer_data: value returned by :meth:`answer_data`.
              May be *None*.
@@ -402,11 +482,25 @@ class PageBase(object):
 
         raise NotImplementedError()
 
-    def post_form(self, page_context, page_data, post_data, files_data):
+    def post_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            post_data,  # type: Any
+            files_data  # type: Any
+            ):
+        # type: (...) -> forms.Form
         raise NotImplementedError()
 
-    def process_form_post(self, page_context, page_data, post_data, files_data,
-            page_behavior):
+    def process_form_post(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            post_data,  # type: Any
+            files_data,  # type: Any
+            page_behavior,  # type: PageBehavior
+            ):
+        # type: (...) -> forms.Form
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -418,13 +512,19 @@ class PageBase(object):
         """
 
         from warnings import warn
-        warn("%s is using the post_form compatiblity hook, which "
-                "is deprecated." % type(self).__name__,
+        warn(_("%s is using the post_form compatiblity hook, which "
+                "is deprecated.") % type(self).__name__,
                 DeprecationWarning)
 
         return self.post_form(page_context, page_data, post_data, files_data)
 
-    def form_to_html(self, request, page_context, form, answer_data):
+    def form_to_html(
+            self,
+            request,  # type: http.HttpRequest
+            page_context,  # type: PageContext
+            form,  # type: StyledForm
+            answer_data,  # type: Any
+            ):
         """Returns an HTML rendering of *form*."""
 
         from django.template import loader, RequestContext
@@ -446,17 +546,30 @@ class PageBase(object):
 
     # {{{ grader input
 
-    def make_grading_form(self, page_context, page_data, grade_data):
+    def make_grading_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data  # type: Any
+            ):
+        # type: (...) -> forms.Form
         """
         :arg grade_data: value returned by
-            :meth:`update_grade_data_from_grading_form`.  May be *None*.
+            :meth:`update_grade_data_from_grading_form_v2`.  May be *None*.
         :return:
             a :class:`django.forms.Form` instance with *grade_data* prepopulated.
         """
         return None
 
-    def post_grading_form(self, page_context, page_data, grade_data,
-            post_data, files_data):
+    def post_grading_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data,  # type: Any
+            post_data,  # type: Any
+            files_data  # type: Any
+            ):
+        # type: (...) -> forms.Form
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -465,16 +578,48 @@ class PageBase(object):
         """
         raise NotImplementedError()
 
-    def update_grade_data_from_grading_form(self, page_context, page_data,
-            grade_data, grading_form, files_data):
+    def update_grade_data_from_grading_form_v2(
+            self,
+            request,  # type: http.HttpRequest
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data,  # type: Any
+            grading_form,  # type: Any
+            files_data  # type: Any
+            ):
         """Return an updated version of *grade_data*, which is a
         JSON-persistable object reflecting data on grading of this response.
         This will be passed to other methods as *grade_data*.
         """
 
+        from warnings import warn
+        warn(_("%s is using the update_grade_data_from_grading_form "
+               "compatiblity hook, which "
+                "is deprecated.") % type(self).__name__,
+                DeprecationWarning)
+
+        return self.update_grade_data_from_grading_form(
+                page_context, page_data, grade_data, grading_form, files_data)
+
+    def update_grade_data_from_grading_form(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            grade_data,  # type: Any
+            grading_form,  # type: Any
+            files_data  # type: Any
+            ):
+
         return grade_data
 
-    def grading_form_to_html(self, request, page_context, grading_form, grade_data):
+    def grading_form_to_html(
+            self,
+            request,  # type: http.HttpRequest
+            page_context,  # type: PageContext
+            grading_form,  # type: Any
+            grade_data  # type: Any
+            ):
+        # type: (...) -> Text
         """Returns an HTML rendering of *grading_form*."""
 
         from crispy_forms.utils import render_crispy_form
@@ -486,20 +631,34 @@ class PageBase(object):
 
     # {{{ grading/feedback
 
-    def grade(self, page_context, page_data, answer_data, grade_data):
+    def grade(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            grade_data,  # type: Any
+            ):
+        # type: (...) -> Optional[AnswerFeedback]
         """Grade the answer contained in *answer_data*.
 
         :arg answer_data: value returned by :meth:`answer_data`,
             or *None*, which means that no answer was supplied.
         :arg grade_data: value updated by
-            :meth:`update_grade_data_from_grading_form`
+            :meth:`update_grade_data_from_grading_form_v2`
         :return: a :class:`AnswerFeedback` instanstance, or *None* if the
             grade is not yet available.
         """
 
         raise NotImplementedError()
 
-    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+    def correct_answer(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            grade_data,  # type: Any
+            ):
+        # type: (...) -> Optional[Text]
         """The correct answer to this page's interaction, formatted as HTML,
         or *None*.
         """
@@ -576,6 +735,17 @@ class PageBaseWithTitle(PageBase):
 
 
 class PageBaseWithValue(PageBase):
+    def __init__(self, vctx, location, page_desc):
+        super(PageBaseWithValue, self).__init__(vctx, location, page_desc)
+
+        if vctx is not None:
+            if hasattr(page_desc, "value") and self.is_optional_page:
+                raise ValidationError(
+                    string_concat(
+                        location,
+                        _("Attribute 'value' should be removed when "
+                          "'is_optional_page' is True.")))
+
     def allowed_attrs(self):
         return super(PageBaseWithValue, self).allowed_attrs() + (
                 ("value", (int, float)),
@@ -585,6 +755,8 @@ class PageBaseWithValue(PageBase):
         return True
 
     def max_points(self, page_data):
+        if self.is_optional_page:
+            return 0
         return getattr(self.page_desc, "value", 1)
 
 
@@ -665,7 +837,7 @@ class HumanTextFeedbackForm(StyledForm):
                     [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100]),
                 label=_("Grade percent"))
 
-        if point_value is not None:
+        if point_value is not None and point_value != 0:
             self.fields["grade_points"] = forms.FloatField(
                     min_value=0,
                     max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
@@ -694,6 +866,10 @@ class HumanTextFeedbackForm(StyledForm):
                 "will notify the participant "
                 "with a generic message containing the feedback text"),
                 label=_("Notify"))
+        self.fields["may_reply"] = forms.BooleanField(
+                initial=False, required=False,
+                help_text=_("Allow recipient to reply to this email?"),
+                label=_("May reply email to me"))
         self.fields["released"] = forms.BooleanField(
                 initial=True, required=False,
                 help_text=_("Whether the grade and feedback are to "
@@ -707,6 +883,12 @@ class HumanTextFeedbackForm(StyledForm):
                 help_text=_("Internal notes, not shown to student"),
                 required=False,
                 label=_("Notes"))
+        self.fields["notify_instructor"] = forms.BooleanField(
+                initial=False, required=False,
+                help_text=_("Checking this box and submitting the form "
+                "will notify the instructor "
+                "with a generic message containing the notes"),
+                label=_("Notify instructor"))
 
     def clean(self):
         grade_percent = self.cleaned_data.get("grade_percent")
@@ -728,7 +910,7 @@ class HumanTextFeedbackForm(StyledForm):
         if self.point_value is None:
             return self.cleaned_data["grade_percent"]
         elif (self.cleaned_data["grade_percent"] is not None
-                and self.cleaned_data["grade_points"] is not None):
+                and self.cleaned_data.get("grade_points") is not None):
             points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
             direct_percent = self.cleaned_data["grade_percent"]
 
@@ -740,7 +922,7 @@ class HumanTextFeedbackForm(StyledForm):
         elif self.cleaned_data["grade_percent"] is not None:
             return self.cleaned_data["grade_percent"]
 
-        elif self.cleaned_data["grade_points"] is not None:
+        elif self.cleaned_data.get("grade_points") is not None:
             if self.point_value:
                 return 100*self.cleaned_data["grade_points"]/self.point_value
             else:
@@ -786,8 +968,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
         return HumanTextFeedbackForm(
                 human_feedback_point_value, post_data, files_data)
 
-    def update_grade_data_from_grading_form(self, page_context, page_data,
-            grade_data, grading_form, files_data):
+    def update_grade_data_from_grading_form_v2(self, request, page_context,
+            page_data, grade_data, grading_form, files_data):
 
         if grade_data is None:
             grade_data = {}
@@ -816,9 +998,53 @@ class PageBaseWithHumanTextFeedback(PageBase):
                         % {'identifier': page_context.course.identifier,
                             'flow_id': page_context.flow_session.flow_id},
                         message,
-                        page_context.course.from_email,
+                        getattr(settings, "GRADER_FEEDBACK_EMAIL_FROM",
+                                page_context.course.get_from_email()),
                         [page_context.flow_session.participation.user.email])
                 msg.bcc = [page_context.course.notify_email]
+
+                if grading_form.cleaned_data["may_reply"]:
+                    msg.reply_to = [request.user.email]
+
+                if hasattr(settings, "GRADER_FEEDBACK_EMAIL_FROM"):
+                    from relate.utils import get_outbound_mail_connection
+                    msg.connection = get_outbound_mail_connection("grader_feedback")
+                msg.send()
+
+        if (grading_form.cleaned_data["notes"]
+                and grading_form.cleaned_data["notify_instructor"]
+                and page_context.flow_session):
+            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from django.template.loader import render_to_string
+                message = render_to_string("course/grade-internal-notes-notify.txt",
+                        {
+                            "page_title": self.title(page_context, page_data),
+                            "course": page_context.course,
+                            "participation": page_context.flow_session.participation,
+                            "notes_text": grade_data["notes"],
+                            "flow_session": page_context.flow_session,
+                            "review_uri": page_context.page_uri,
+                            "sender": request.user
+                            })
+
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
+                        string_concat("[%(identifier)s:%(flow_id)s] ",
+                            _("Grading notes from %(ta)s"))
+                        % {'identifier': page_context.course.identifier,
+                           'flow_id': page_context.flow_session.flow_id,
+                           'ta': request.user.get_full_name()
+                           },
+                        message,
+                        getattr(settings, "GRADER_FEEDBACK_EMAIL_FROM",
+                                page_context.course.get_from_email()),
+                        [page_context.course.notify_email])
+                msg.bcc = [request.user.email]
+                msg.reply_to = [request.user.email]
+
+                if hasattr(settings, "GRADER_FEEDBACK_EMAIL_FROM"):
+                    from relate.utils import get_outbound_mail_connection
+                    msg.connection = get_outbound_mail_connection("grader_feedback")
                 msg.send()
 
         return grade_data
@@ -829,13 +1055,18 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 "rubric": markup_to_html(page_context, self.page_desc.rubric)
                 }
 
-        from django.template import RequestContext
         from django.template.loader import render_to_string
         return render_to_string(
-                "course/human-feedback-form.html",
-                RequestContext(request, ctx))
+                "course/human-feedback-form.html", ctx, request)
 
-    def grade(self, page_context, page_data, answer_data, grade_data):
+    def grade(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            grade_data,  # type: Any
+            ):
+        # type: (...) -> Optional[AnswerFeedback]
         """This method is appropriate if the grade consists *only* of the
         feedback provided by humans. If more complicated/combined feedback
         is desired, a subclass would likely override this.
@@ -868,7 +1099,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                             _("The following feedback was provided"),
                             ":<p>")
                         + markup_to_html(
-                            page_context, grade_data["feedback_text"]))
+                            page_context, grade_data["feedback_text"],
+                            use_jinja=False))
 
             return AnswerFeedback(
                     correctness=correctness,

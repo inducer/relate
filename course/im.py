@@ -35,15 +35,18 @@ import django.forms as forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
-from course.models import (
-        participation_role,
-        InstantMessage)
-
+from course.models import InstantMessage
+from course.constants import (
+        participation_permission as pperm,
+        )
+from course.models import Course  # noqa
 from course.utils import course_view, render_course_page
 
 import sleekxmpp
 
 import threading
+
+from typing import List, Dict  # noqa
 
 
 # {{{ instant message
@@ -67,8 +70,8 @@ class InstantMessageForm(forms.Form):
         super(InstantMessageForm, self).__init__(*args, **kwargs)
 
 
-_xmpp_connections = {}
-_disconnectors = []
+_xmpp_connections = {}  # type: Dict[int, CourseXMPP]
+_disconnectors = []  # type: List[Disconnector]
 
 
 class CourseXMPP(sleekxmpp.ClientXMPP):
@@ -113,14 +116,16 @@ class CourseXMPP(sleekxmpp.ClientXMPP):
 
 class Disconnector(object):
     def __init__(self, xmpp, course):
+        # type: (CourseXMPP, Course) -> None
         self.timer = None
         self.xmpp = xmpp
         self.course = course
 
-        self.timer = threading.Timer(60, self)
+        self.timer = threading.Timer(60, self)  # type: ignore
         self.timer.start()
 
     def __call__(self):
+        # type: () -> None
         # print "EXPIRING XMPP", self.course.pk
         del _xmpp_connections[self.course.pk]
         self.xmpp.disconnect(wait=True)
@@ -152,11 +157,8 @@ def get_xmpp_connection(course):
 
 @course_view
 def send_instant_message(pctx):
-    if pctx.role not in [
-            participation_role.student,
-            participation_role.teaching_assistant,
-            participation_role.instructor]:
-        raise PermissionDenied(_("only enrolled folks may do that"))
+    if not pctx.has_permission(pperm.send_instant_message):
+        raise PermissionDenied(_("may not batch-download submissions"))
 
     request = pctx.request
     course = pctx.course

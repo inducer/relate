@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+from __future__ import print_function
+
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "relate.settings")
 
@@ -15,4 +17,4 @@ session = Session.objects.get(session_key=session_key)
 uid = session.get_decoded().get('_auth_user_id')
 user = User.objects.get(pk=uid)
 
-print user.username, user.get_full_name(), user.email
+print(user.username, user.get_full_name(), user.email)

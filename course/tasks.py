@@ -87,7 +87,8 @@ def finish_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
     from course.flow import finish_flow_session_standalone
     for i, session in enumerate(sessions):
         from course.flow import adjust_flow_session_page_data
-        adjust_flow_session_page_data(repo, session, course.identifier)
+        adjust_flow_session_page_data(repo, session, course.identifier,
+                respect_preview=False)
 
         if finish_flow_session_standalone(repo, course, session,
                 now_datetime=now_datetime, past_due_only=past_due_only):

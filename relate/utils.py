@@ -26,11 +26,16 @@ THE SOFTWARE.
 
 
 import six
+from typing import Text, Union, List, Dict, Tuple, Optional, Any  # noqa
+import datetime  # noqa
+
 import django.forms as forms
+import dulwich.repo
 
 
 class StyledForm(forms.Form):
     def __init__(self, *args, **kwargs):
+        # type: (...) -> None
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self.helper.form_class = "form-horizontal"
@@ -42,6 +47,8 @@ class StyledForm(forms.Form):
 
 class StyledInlineForm(forms.Form):
     def __init__(self, *args, **kwargs):
+        # type: (...) -> None
+
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -52,6 +59,8 @@ class StyledInlineForm(forms.Form):
 
 class StyledModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
+        # type: (...) -> None
+
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self.helper.form_class = "form-horizontal"
@@ -59,6 +68,29 @@ class StyledModelForm(forms.ModelForm):
         self.helper.field_class = "col-lg-8"
 
         super(StyledModelForm, self).__init__(*args, **kwargs)
+
+
+# {{{ repo-ish types
+
+class SubdirRepoWrapper(object):
+    def __init__(self, repo, subdir):
+        # type: (dulwich.Repo, Text) -> None
+        self.repo = repo
+
+        # This wrapper should only get used if there is a subdir to be had.
+        assert subdir
+        self.subdir = subdir
+
+    def controldir(self):
+        return self.repo.controldir()
+
+    def close(self):
+        self.repo.close()
+
+
+Repo_ish = Union[dulwich.repo.Repo, SubdirRepoWrapper]
+
+# }}}
 
 
 # {{{ maintenance mode
@@ -84,10 +116,15 @@ def is_maintenance_mode(request):
 
 
 class MaintenanceMiddleware(object):
-    def process_request(self, request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         if is_maintenance_mode(request):
             from django.shortcuts import render
             return render(request, "maintenance.html")
+        else:
+            return self.get_response(request)
 
 # }}}
 
@@ -109,31 +146,37 @@ def settings_context_processor(request):
         }
 
 
-def as_local_time(datetime):
-    """Takes an timezone-aware datetime and applies the server timezone."""
+def as_local_time(dtm):
+    # type: (datetime.datetime) -> datetime.datetime
+    """Takes a timezone-aware datetime and applies the server timezone."""
+
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    return datetime.astimezone(tz)
+    return dtm.astimezone(tz)
 
 
-def localize_datetime(datetime):
+def localize_datetime(dtm):
+    # type: (datetime.datetime) -> datetime.datetime
     """Takes an timezone-naive datetime and applies the server timezone."""
+
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    return tz.localize(datetime)
+    return tz.localize(dtm)  # type: ignore
 
 
 def local_now():
+    # type: () -> datetime.datetime
+
     from django.conf import settings
     from pytz import timezone
     tz = timezone(settings.TIME_ZONE)
-    from datetime import datetime
-    return tz.localize(datetime.now())
+    return tz.localize(datetime.datetime.now())  # type: ignore
 
 
 def format_datetime_local(datetime, format='DATETIME_FORMAT'):
+    # type: (datetime.datetime, str) -> str
     """
     Format a datetime object to a localized string via python.
 
@@ -144,16 +187,14 @@ def format_datetime_local(datetime, format='DATETIME_FORMAT'):
     is enabled.
     """
 
-    fmt = format
-
     from django.utils import formats
-    from django.utils.dateformat import format
+    from django.utils.dateformat import format as dformat
 
     try:
-        return formats.date_format(datetime, fmt)
+        return formats.date_format(datetime, format)
     except AttributeError:
         try:
-            return format(datetime, fmt)
+            return dformat(datetime, format)
         except AttributeError:
             return formats.date_format(datetime, "DATETIME_FORMAT")
 
@@ -162,6 +203,7 @@ def format_datetime_local(datetime, format='DATETIME_FORMAT'):
 
 class Struct(object):
     def __init__(self, entries):
+        # type: (Dict) -> None
         for name, val in six.iteritems(entries):
             self.__dict__[name] = val
 
@@ -172,6 +214,7 @@ class Struct(object):
 
 
 def dict_to_struct(data):
+    # type: (Dict) -> Struct
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
     elif isinstance(data, dict):
@@ -181,6 +224,7 @@ def dict_to_struct(data):
 
 
 def struct_to_dict(data):
+    # type: (Struct) -> Dict
     return dict(
             (name, val)
             for name, val in six.iteritems(data.__dict__)
@@ -190,6 +234,8 @@ def struct_to_dict(data):
 
 
 def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
+    # type: (Any, Tuple, Dict, Optional[int], Optional[bool]) -> Any
+
     from django.db import transaction
     from django.db.utils import OperationalError
 
@@ -216,13 +262,19 @@ def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
             if not max_tries:
                 raise
 
+        from random import uniform
+        from time import sleep
+        sleep(uniform(0.05, 0.2))
 
-class retry_transaction_decorator(object):
+
+class retry_transaction_decorator(object):  # noqa
     def __init__(self, max_tries=None, serializable=None):
+        # type: (Optional[int], Optional[bool]) -> None
         self.max_tries = max_tries
         self.serializable = serializable
 
     def __call__(self, f):
+        # type: (Any) -> Any
         from functools import update_wrapper
 
         def wrapper(*args, **kwargs):
@@ -251,6 +303,7 @@ def dumpstacks(signal, frame):
                 code.append("  %s" % (line.strip()))
     print("\n".join(code))
 
+
 if 0:
     import signal
     import os
@@ -275,6 +328,71 @@ def to_js_lang_name(dj_lang_name):
         return dj_lang_name.lower()
 
 # }}}
+
+
+#{{{ Allow multiple email connections
+# https://gist.github.com/niran/840999
+
+def get_outbound_mail_connection(label=None, **kwargs):
+    # type: (Optional[Text], **Any) -> Any
+    from django.conf import settings
+    if label is None:
+        label = getattr(settings, 'EMAIL_CONNECTION_DEFAULT', None)
+
+    try:
+        connections = getattr(settings, 'EMAIL_CONNECTIONS')
+        options = connections[label]
+    except (KeyError, AttributeError):
+        # Neither EMAIL_CONNECTIONS nor
+        # EMAIL_CONNECTION_DEFAULT in
+        # settings fail silently and fall
+        # back to django's built-in
+        # get_connection.
+        options = {}
+
+    options.update(kwargs)
+
+    from django.core import mail
+    return mail.get_connection(**options)
+
+#}}}
+
+
+def ignore_no_such_table(f, *args):
+    from django.db import connections, DEFAULT_DB_ALIAS
+    conn = connections[DEFAULT_DB_ALIAS]
+
+    if conn.vendor == "postgresql":
+        cursor = conn.cursor()
+        cursor.execute("SAVEPOINT sp;")
+
+    def local_rollback():
+        if conn.vendor == "postgresql":
+            cursor = conn.cursor()
+            cursor.execute("ROLLBACK TO SAVEPOINT sp;")
+
+    from django.db.utils import OperationalError, ProgrammingError
+    try:
+        return f(*args)
+
+    # django.auth actually will not create auth_* if we're starting
+    # with an empty database and a custom user model.
+
+    except OperationalError as e:
+        if "no such table" in str(e):
+            local_rollback()
+        else:
+            raise
+
+    except ProgrammingError as e:
+        cause = getattr(e, "__cause__", None)
+        pgcode = getattr(cause, "pgcode", None)
+        if pgcode == "42P01":
+            local_rollback()
+        elif "no such table" in str(e):
+            local_rollback()
+        else:
+            raise
 
 
 # vim: foldmethod=marker

@@ -38,7 +38,7 @@
         <td>{% trans "Tags" %}</td>
         <td>
           {% for ptag in grade_participation.tags.all %}
-            {% if not is_student_viewing or ptag.shown_to_participant %}
+            {% if is_privileged_view or ptag.shown_to_participant %}
               <span class="label label-default">{{ ptag.name }}</span>
             {% endif %}
           {% endfor %}
@@ -58,19 +58,24 @@
       {% with grade_info.grade_state_machine as gsm %}
       <tr>
         <td data-order="{{ grade_info.opportunity.identifier }}">{{ grade_info.opportunity.name }}</td>
-        <td data-order="{{ gsm.stringify_percentage }}">
-          <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
-           ><span class="sensitive">{{ gsm.stringify_state }}</span></a>
-        </td>
-        <td
-         {% if  gsm.last_graded_time %}
-             data-order="{{ gsm.last_graded_time.isoformat }}"
-          {% else %}
-             data-order=""
-          {% endif %}
-          >
-          {{ grade_info.grade_state_machine.last_graded_time }}</a>
-        </td>
+        {% if grade_info.opportunity.result_shown_in_participant_grade_book %}
+          <td data-order="{{ gsm.stringify_percentage }}">
+            <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
+             ><span class="sensitive">{{ gsm.stringify_state }}</span></a>
+          </td>
+          <td
+           {% if  gsm.last_graded_time %}
+               data-order="{{ gsm.last_graded_time.isoformat }}"
+            {% else %}
+               data-order=""
+            {% endif %}
+            >
+            {{ grade_info.grade_state_machine.last_graded_time }}
+          </td>
+        {% else %}
+          <td>{% trans "(not released)" %}</td>
+          <td>{% trans "(not released)" %}</td>
+        {% endif %}
       </tr>
       {% endwith %}
       {% endfor %}

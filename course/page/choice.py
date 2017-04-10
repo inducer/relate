@@ -70,6 +70,7 @@ def markup_to_html_plain(page_context, s):
 class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
     CORRECT_TAG = "~CORRECT~"
     DISREGARD_TAG = "~DISREGARD~"
+    ALWAYS_CORRECT_TAG = "~ALWAYS_CORRECT~"
 
     @classmethod
     def process_choice_string(cls, page_context, s):
@@ -77,6 +78,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
             s = str(s)
         s = remove_prefix(cls.CORRECT_TAG, s)
         s = remove_prefix(cls.DISREGARD_TAG, s)
+        s = remove_prefix(cls.ALWAYS_CORRECT_TAG, s)
         s = markup_to_html_plain(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
@@ -88,6 +90,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
 
         self.correct_choice_count = 0
         self.disregard_choice_count = 0
+        self.always_correct_choice_count = 0
         for choice_idx, choice in enumerate(page_desc.choices):
             try:
                 choice = str(choice)
@@ -105,11 +108,15 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
             if choice.startswith(self.DISREGARD_TAG):
                 self.disregard_choice_count += 1
 
+            if choice.startswith(self.ALWAYS_CORRECT_TAG):
+                self.always_correct_choice_count += 1
+
             if vctx is not None:
                 validate_markup(vctx, location,
                         remove_prefix(self.DISREGARD_TAG,
                             remove_prefix(self.CORRECT_TAG,
-                                choice)))
+                                remove_prefix(self.ALWAYS_CORRECT_TAG,
+                                    choice))))
 
     def required_attrs(self):
         return super(ChoiceQuestionBase, self).required_attrs() + (
@@ -128,7 +135,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def make_page_data(self):
+    def initialize_page_data(self, page_context):
         import random
         perm = list(range(len(self.page_desc.choices)))
         if getattr(self.page_desc, "shuffle", False):
@@ -149,6 +156,9 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
 
     def unpermuted_disregard_indices(self):
         return self.unpermuted_indices_with_tag(self.DISREGARD_TAG)
+
+    def unpermuted_always_correct_indices(self):
+        return self.unpermuted_indices_with_tag(self.ALWAYS_CORRECT_TAG)
 
     def make_form(self, page_context, page_data,
             answer_data, page_behavior):
@@ -193,6 +203,10 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
         ``ChoiceQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -218,6 +232,10 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
         Optional. ``True`` or ``False``. If true, the choices will
         be presented in random order.
+
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -240,6 +258,19 @@ class ChoiceQuestion(ChoiceQuestionBase):
                         _("ChoiceQuestion does not allow any choices "
                         "marked 'disregard'"))
                     % {'location': location})
+
+        if self.always_correct_choice_count:
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("ChoiceQuestion does not allow any choices "
+                        "marked 'always_correct'"))
+                    % {'location': location})
+
+    def allowed_attrs(self):
+        return super(ChoiceQuestion, self).allowed_attrs() + (
+                ("answer_explanation", "markup"),
+                )
 
     def make_choice_form(
             self, page_context, page_data, page_behavior, *args, **kwargs):
@@ -282,10 +313,15 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        return (string_concat(_("A correct answer is"), ": '%s'.")
+        result = (string_concat(_("A correct answer is"), ": '%s'.")
                 % self.process_choice_string(
                     page_context,
                     self.page_desc.choices[corr_idx]).lstrip())
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def normalized_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
@@ -314,6 +350,10 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
 
         ``MultipleChoiceQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -336,6 +376,8 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         choices are indicated by the prefix ``~CORRECT~``.
         Choices marked with the prefix ``~DISREGARD~`` are
         ignored when determining the correctness of an answer.
+        Choices marked with the prefix ``~ALWAYS_CORRECT~`` are
+        marked as correct whether they are selected or not.
 
     .. attribute:: shuffle
 
@@ -357,6 +399,10 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
             as the fraction of boxes that are checked in both the participant's
             answer and the solution relative to the total number of correct answers.
             Credit is only awarded if *no* incorrect answer is checked.
+
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -425,6 +471,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                 ("allow_partial_credit", bool),
                 ("allow_partial_credit_subset_only", bool),
                 ("credit_mode", str),
+                ("answer_explanation", "markup"),
                 )
 
     def make_choice_form(self, page_context, page_data, page_behavior,
@@ -461,10 +508,13 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         choice = answer_data["choice"]
 
         disregard_idx_set = set(self.unpermuted_disregard_indices())
+        always_correct_idx_set = set(self.unpermuted_always_correct_indices())
         unpermed_idx_set = (
-                set([permutation[idx] for idx in choice]) - disregard_idx_set)
+                set([permutation[idx] for idx in choice]) - disregard_idx_set
+                - always_correct_idx_set)
         correct_idx_set = (
-                set(self.unpermuted_correct_indices()) - disregard_idx_set)
+                set(self.unpermuted_correct_indices()) - disregard_idx_set
+                - always_correct_idx_set)
         num_choices = len(self.page_desc.choices) - len(disregard_idx_set)
 
         if self.credit_mode == "exact":
@@ -487,7 +537,16 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         elif self.credit_mode == "proportional_correct":
 
             correctness = (
-                    len(unpermed_idx_set & correct_idx_set)/len(correct_idx_set))
+                    (
+                        len(unpermed_idx_set & correct_idx_set)
+                        +
+                        len(always_correct_idx_set))
+                    /
+                    (
+                        len(correct_idx_set)
+                        +
+                        len(always_correct_idx_set)))
+
             if not (unpermed_idx_set <= correct_idx_set):
                 correctness = 0
 
@@ -511,9 +570,22 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx_list = self.unpermuted_correct_indices()
+        always_correct_idx_list = self.unpermuted_always_correct_indices()
 
-        return (string_concat(_("The correct answer is"), ": %s.")
-                % self.get_answer_html(page_context, corr_idx_list))
+        result = (string_concat(_("The correct answer is"), ": %s")
+                    % self.get_answer_html(page_context, corr_idx_list))
+
+        if len(always_correct_idx_list) > 0:
+            result = (string_concat(result,
+                        string_concat(_("Additional acceptable options are"),
+                            ": %s")
+                        % self.get_answer_html(page_context,
+                            always_correct_idx_list)))
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def normalized_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
@@ -543,6 +615,10 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     .. attribute:: type
 
         ``ChoiceQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 

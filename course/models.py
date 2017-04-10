@@ -24,21 +24,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, Any, Optional, Text, Iterable  # noqa
+
 import six
 
 from django.db import models
 from django.utils.timezone import now
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy, string_concat)
 from django.core.validators import RegexValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 from django.conf import settings
 
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
-        participation_role, PARTICIPATION_ROLE_CHOICES,
         participation_status, PARTICIPATION_STATUS_CHOICES,
         flow_permission, FLOW_PERMISSION_CHOICES,
         flow_session_expiration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
@@ -46,9 +49,21 @@ from course.constants import (  # noqa
         grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
         flow_rule_kind, FLOW_RULE_KIND_CHOICES,
         exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
+        participation_permission, PARTICIPATION_PERMISSION_CHOICES,
 
-        COURSE_ID_REGEX
+        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX
         )
+
+from course.page.base import AnswerFeedback
+
+
+# {{{ mypy
+
+from typing import List, Dict  # noqa
+if False:
+    from course.content import FlowDesc  # noqa
+
+# }}}
 
 
 from jsonfield import JSONField
@@ -214,6 +229,20 @@ class Course(models.Model):
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
+    def get_from_email(self):
+        if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
+            return self.from_email
+        else:
+            return settings.DEFAULT_FROM_EMAIL
+
+    def get_reply_to_email(self):
+        # this functionality need more fields in Course model,
+        # about the preference of the course.
+        if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
+            return self.from_email
+        else:
+            return self.notify_email
+
 # }}}
 
 
@@ -303,6 +332,83 @@ class ParticipationTag(models.Model):
         ordering = ("course", "name")
 
 
+class ParticipationRole(models.Model):
+    course = models.ForeignKey(Course,
+            verbose_name=_('Course'), on_delete=models.CASCADE)
+    identifier = models.CharField(
+            max_length=100, blank=False, null=False,
+            help_text=_("A symbolic name for this role, used in course code. "
+            "lower_case_with_underscores, no spaces. May be any string. The "
+            "name 'unenrolled' is special and refers to anyone not enrolled "
+            "in the course."),
+            verbose_name=_('Role identifier'))
+    name = models.CharField(max_length=200, blank=False, null=False,
+            help_text=_("A human-readable description of this role."),
+            verbose_name=_('Role name'))
+
+    is_default_for_new_participants = models.BooleanField(default=False,
+            verbose_name=_('Is default role for new participants'))
+    is_default_for_unenrolled = models.BooleanField(default=False,
+            verbose_name=_('Is default role for unenrolled users'))
+
+    def clean(self):
+        super(ParticipationRole, self).clean()
+
+        import re
+        name_valid_re = re.compile(r"^\w+$")
+
+        if name_valid_re.match(self.identifier) is None:
+            # Translators: "Name" is the name of a ParticipationTag
+            raise ValidationError(
+                    {"name": _("Name contains invalid characters.")})
+
+    def __unicode__(self):
+        return _("%(identifier)s in %(course)s") % {
+            "identifier": self.identifier,
+            "course": self.course}
+
+    if six.PY3:
+        __str__ = __unicode__
+
+    class Meta:
+        verbose_name = _("Participation role")
+        verbose_name_plural = _("Participation roles")
+        unique_together = (("course", "identifier"),)
+        ordering = ("course", "identifier")
+
+
+class ParticipationPermissionBase(models.Model):
+    permission = models.CharField(max_length=200, blank=False, null=False,
+            choices=PARTICIPATION_PERMISSION_CHOICES,
+            verbose_name=_('Permission'),
+            db_index=True)
+    argument = models.CharField(max_length=200, blank=True, null=True,
+            verbose_name=_('Argument'))
+
+    class Meta:
+        abstract = True
+
+    def __unicode__(self):
+        if self.argument:
+            return "%s %s" % (self.permission, self.argument)
+        else:
+            return self.permission
+
+    if six.PY3:
+        __str__ = __unicode__
+
+
+class ParticipationRolePermission(ParticipationPermissionBase):
+    role = models.ForeignKey(ParticipationRole,
+            verbose_name=_('Role'), on_delete=models.CASCADE,
+            related_name="permissions")
+
+    class Meta:
+        verbose_name = _("Participation role permission")
+        verbose_name_plural = _("Participation role permissions")
+        unique_together = (("role", "permission", "argument"),)
+
+
 class Participation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
             verbose_name=_('User ID'), on_delete=models.CASCADE,
@@ -313,12 +419,10 @@ class Participation(models.Model):
     enroll_time = models.DateTimeField(default=now,
             verbose_name=_('Enroll time'))
     role = models.CharField(max_length=50,
-            choices=PARTICIPATION_ROLE_CHOICES,
-            help_text=_("Instructors may update course content. "
-            "Teaching assistants may access and change grade data. "
-            "Observers may access analytics. "
-            "Each role includes privileges from subsequent roles."),
-            verbose_name=_('Participation role'))
+            verbose_name=_("Role (unused)"),)
+    roles = models.ManyToManyField(ParticipationRole, blank=True,
+            verbose_name=_("Roles"), related_name="participation")
+
     status = models.CharField(max_length=50,
             choices=PARTICIPATION_STATUS_CHOICES,
             verbose_name=_('Participation status'))
@@ -336,13 +440,18 @@ class Participation(models.Model):
 
     tags = models.ManyToManyField(ParticipationTag, blank=True,
             verbose_name=_('Tags'))
+    notes = models.TextField(blank=True, null=True,
+            verbose_name=_('Notes'))
 
     def __unicode__(self):
         # Translators: displayed format of Participation: some user in some
         # course as some role
         return _("%(user)s in %(course)s as %(role)s") % {
                 "user": self.user, "course": self.course,
-                "role": dict(PARTICIPATION_ROLE_CHOICES).get(self.role).lower()}
+                "role": "/".join(
+                    role.identifier
+                    for role in self.roles.all())
+                }
 
     if six.PY3:
         __str__ = __unicode__
@@ -354,8 +463,50 @@ class Participation(models.Model):
         ordering = ("course", "user")
 
     def get_role_desc(self):
-        return dict(PARTICIPATION_ROLE_CHOICES).get(
-                self.role)
+        return ", ".join(role.name for role in self.roles.all())
+
+    # {{{ permissions handling
+
+    def permissions(self):
+        try:
+            return self._permissions_cache
+        except AttributeError:
+            pass
+
+        perm = (
+                list(
+                    ParticipationRolePermission.objects.filter(
+                        role__course=self.course,
+                        role__participation=self)
+                    .values_list("permission", "argument"))
+                +
+                list(
+                    ParticipationPermission.objects.filter(
+                        participation=self)
+                    .values_list("permission", "argument")))
+
+        perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm)
+
+        self._permissions_cache = perm
+        return perm
+
+    def has_permission(self, perm, argument=None):
+        return (perm, argument) in self.permissions()
+
+    # }}}
+
+
+class ParticipationPermission(ParticipationPermissionBase):
+    participation = models.ForeignKey(Participation,
+            verbose_name=_('Participation'), on_delete=models.CASCADE,
+            related_name="individual_permissions")
+
+    class Meta:
+        verbose_name = _("Participation permission")
+        verbose_name_plural = _("Participation permissionss")
+        unique_together = (("participation", "permission", "argument"),)
 
 
 class ParticipationPreapproval(models.Model):
@@ -366,8 +517,9 @@ class ParticipationPreapproval(models.Model):
     course = models.ForeignKey(Course,
             verbose_name=_('Course'), on_delete=models.CASCADE)
     role = models.CharField(max_length=50,
-            choices=PARTICIPATION_ROLE_CHOICES,
-            verbose_name=_('Role'))
+            verbose_name=_("Role (unused)"),)
+    roles = models.ManyToManyField(ParticipationRole, blank=True,
+            verbose_name=_("Roles"), related_name="+")
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
             verbose_name=_('Creator'), on_delete=models.SET_NULL)
@@ -394,6 +546,130 @@ class ParticipationPreapproval(models.Model):
         verbose_name_plural = _("Participation preapprovals")
         unique_together = (("course", "email"),)
         ordering = ("course", "email")
+
+
+def add_default_roles_and_permissions(course,
+        role_model=ParticipationRole,
+        role_permission_model=ParticipationRolePermission):
+    from course.constants import participation_permission as pp
+
+    rpm = role_permission_model
+
+    def add_unenrolled_permissions(role):
+        rpm(role=role, permission=pp.view_calendar).save()
+        rpm(role=role, permission=pp.access_files_for,
+                argument="unenrolled").save()
+        rpm(role=role, permission=pp.access_files_for,
+                argument="public").save()
+
+    def add_student_permissions(role):
+        rpm(role=role, permission=pp.send_instant_message).save()
+        rpm(role=role, permission=pp.access_files_for,
+                argument="student").save()
+
+        add_unenrolled_permissions(role)
+
+    def add_teaching_assistant_permissions(role):
+        rpm(role=role, permission=pp.impersonate_role,
+                argument="student").save()
+        rpm(role=role, permission=pp.set_fake_time).save()
+        rpm(role=role, permission=pp.set_pretend_facility).save()
+        rpm(role=role, permission=pp.view_hidden_course_page).save()
+        rpm(role=role, permission=pp.access_files_for,
+                argument="ta").save()
+        rpm(role=role, permission=pp.access_files_for,
+                argument="in_exam").save()
+
+        rpm(role=role, permission=pp.issue_exam_ticket).save()
+
+        rpm(role=role, permission=pp.view_flow_sessions_from_role,
+                argument="student").save()
+        rpm(role=role, permission=pp.view_gradebook).save()
+        rpm(role=role, permission=pp.assign_grade).save()
+        rpm(role=role, permission=pp.view_grader_stats).save()
+        rpm(role=role, permission=pp.batch_download_submission).save()
+
+        rpm(role=role, permission=pp.impose_flow_session_deadline).save()
+        rpm(role=role, permission=pp.end_flow_session).save()
+        rpm(role=role, permission=pp.regrade_flow_session).save()
+        rpm(role=role, permission=pp.recalculate_flow_session_grade).save()
+
+        rpm(role=role, permission=pp.reopen_flow_session).save()
+        rpm(role=role, permission=pp.grant_exception).save()
+        rpm(role=role, permission=pp.view_analytics).save()
+
+        rpm(role=role, permission=pp.preview_content).save()
+        rpm(role=role, permission=pp.use_markup_sandbox).save()
+        rpm(role=role, permission=pp.use_page_sandbox).save()
+        rpm(role=role, permission=pp.test_flow).save()
+        rpm(role=role, permission=pp.query_participation).save()
+        rpm(role=role, permission=pp.edit_participation).save()
+
+        add_student_permissions(role)
+
+    def add_instructor_permissions(role):
+        rpm(role=role, permission=pp.use_admin_interface)
+        rpm(role=role, permission=pp.impersonate_role,
+                argument="ta").save()
+        rpm(role=role, permission=pp.edit_course_permissions).save()
+        rpm(role=role, permission=pp.edit_course).save()
+        rpm(role=role, permission=pp.access_files_for,
+                argument="instructor").save()
+
+        rpm(role=role, permission=pp.edit_exam).save()
+        rpm(role=role, permission=pp.batch_issue_exam_ticket).save()
+
+        rpm(role=role, permission=pp.view_flow_sessions_from_role,
+                argument="ta").save()
+        rpm(role=role, permission=pp.edit_grading_opportunity).save()
+        rpm(role=role, permission=pp.batch_import_grade).save()
+        rpm(role=role, permission=pp.batch_export_grade).save()
+
+        rpm(role=role, permission=pp.batch_impose_flow_session_deadline).save()
+        rpm(role=role, permission=pp.batch_end_flow_session).save()
+        rpm(role=role, permission=pp.batch_regrade_flow_session).save()
+        rpm(role=role, permission=pp.batch_recalculate_flow_session_grade).save()
+
+        rpm(role=role, permission=pp.update_content).save()
+        rpm(role=role, permission=pp.edit_events).save()
+        rpm(role=role, permission=pp.manage_instant_flow_requests).save()
+        rpm(role=role, permission=pp.preapprove_participation).save()
+
+        add_teaching_assistant_permissions(role)
+
+    instructor = role_model(
+            course=course, identifier="instructor",
+            name=_("Instructor"))
+    instructor.save()
+    teaching_assistant = role_model(
+            course=course, identifier="ta",
+            name=_("Teaching Assistant"))
+    teaching_assistant.save()
+    student = role_model(
+            course=course, identifier="student",
+            name=_("Student"),
+            is_default_for_new_participants=True)
+    student.save()
+    unenrolled = role_model(
+            course=course, identifier="unenrolled",
+            name=_("Unenrolled"),
+            is_default_for_unenrolled=True)
+    unenrolled.save()
+
+    rpm(role=student, permission=pp.included_in_grade_statistics).save()
+    rpm(role=unenrolled, permission=pp.included_in_grade_statistics).save()
+
+    add_unenrolled_permissions(unenrolled)
+    add_student_permissions(student)
+    add_teaching_assistant_permissions(teaching_assistant)
+    add_instructor_permissions(instructor)
+
+
+@receiver(post_save, sender=Course, dispatch_uid="add_default_permissions")
+def _set_up_course_permissions(sender, instance, created, raw, using, update_fields,
+        **kwargs):
+    if created:
+        add_default_roles_and_permissions(instance)
 
 # }}}
 
@@ -515,6 +791,7 @@ class FlowSession(models.Model):
         __str__ = __unicode__
 
     def append_comment(self, s):
+        # type: (Text) -> None
         if s is None:
             return
 
@@ -691,6 +968,8 @@ class FlowPageVisit(models.Model):
         unique_together = (("page_data", "visit_time"),)
 
     def get_most_recent_grade(self):
+        # type: () -> Optional[FlowPageVisitGrade]
+
         grades = self.grades.order_by("-grade_time")[:1]
 
         for grade in grades:
@@ -808,6 +1087,7 @@ class FlowPageBulkFeedback(models.Model):
 
 
 def update_bulk_feedback(page_data, grade, bulk_feedback_json):
+    # type: (FlowPageData, FlowPageVisitGrade, Any) -> None
     FlowPageBulkFeedback.objects.update_or_create(
             page_data=page_data,
             defaults=dict(
@@ -816,6 +1096,8 @@ def update_bulk_feedback(page_data, grade, bulk_feedback_json):
 
 
 def get_feedback_for_grade(grade):
+    # type: (FlowPageVisitGrade) -> Optional[AnswerFeedback]
+
     try:
         bulk_feedback_json = FlowPageBulkFeedback.objects.get(
                 page_data=grade.visit.page_data,
@@ -823,7 +1105,6 @@ def get_feedback_for_grade(grade):
     except ObjectDoesNotExist:
         bulk_feedback_json = None
 
-    from course.page import AnswerFeedback
     if grade is not None:
         return AnswerFeedback.from_json(
                 grade.feedback, bulk_feedback_json)
@@ -1048,7 +1329,14 @@ class GradingOpportunity(models.Model):
             # Translators: format of identifier for GradingOpportunity
             help_text=_("A symbolic name for this grade. "
             "lower_case_with_underscores, no spaces."),
-            verbose_name=_('Grading opportunity ID'))
+            verbose_name=_('Grading opportunity ID'),
+            validators=[
+                RegexValidator(
+                    "^"+GRADING_OPP_ID_REGEX+"$",
+                    message=_(
+                        "Identifier may only contain letters, "
+                        "numbers, and hypens ('-').")),
+                    ])
     name = models.CharField(max_length=200, blank=False, null=False,
             # Translators: name for GradingOpportunity
             help_text=_("A human-readable identifier for the grade."),
@@ -1073,6 +1361,9 @@ class GradingOpportunity(models.Model):
             verbose_name=_('Shown in grade book'))
     shown_in_participant_grade_book = models.BooleanField(default=True,
             verbose_name=_("Shown in student grade book"))
+    result_shown_in_participant_grade_book = models.BooleanField(default=True,
+            verbose_name=_("Result shown in student grade book"))
+
     page_scores_in_participant_gradebook = models.BooleanField(default=False,
             verbose_name=_("Scores for individual pages are shown "
                 "in the participants' grade book"))
@@ -1084,7 +1375,7 @@ class GradingOpportunity(models.Model):
                 'superseded by later grade changes will not be shown to '
                 'participants. '
                 'This can help avoid discussions about pre-release grading '
-                'adjustments.'
+                'adjustments. '
                 'May be blank. In that case, the entire grade history is '
                 'shown.'))
 
@@ -1182,6 +1473,8 @@ class GradeChange(models.Model):
                     "in the same course"))
 
     def percentage(self):
+        # type: () -> Optional[float]
+
         if (self.max_points is not None
                 and self.points is not None
                 and self.max_points != 0):
@@ -1200,6 +1493,7 @@ class GradeChange(models.Model):
 
 class GradeStateMachine(object):
     def __init__(self):
+        # type: () -> None
         self.opportunity = None
 
         self.state = None
@@ -1212,17 +1506,24 @@ class GradeStateMachine(object):
         self._last_grade_change_time = None
 
     def _clear_grades(self):
+        # type: () -> None
+
         self.state = None
         self.last_grade_time = None
-        self.valid_percentages = []
-        self.attempt_id_to_gchange = {}
+        self.valid_percentages = []  # type: List[GradeChange]
+        self.attempt_id_to_gchange = {}  # type: Dict[Text, GradeChange]
 
     def _consume_grade_change(self, gchange, set_is_superseded):
+        # type: (GradeChange, bool) -> None
+
         if self.opportunity is None:
-            self.opportunity = gchange.opportunity
-            self.due_time = self.opportunity.due_time
+            opp = self.opportunity = gchange.opportunity
+            assert opp is not None
+            self.due_time = opp.due_time
         else:
             assert self.opportunity.pk == gchange.opportunity.pk
+
+        assert self.opportunity is not None
 
         # check that times are increasing
         if self._last_grade_change_time is not None:
@@ -1282,6 +1583,8 @@ class GradeStateMachine(object):
                     _("invalid grade change state '%s'") % gchange.state)
 
     def consume(self, iterable, set_is_superseded=False):
+        # type: (Iterable[GradeChange], bool) -> GradeStateMachine
+
         for gchange in iterable:
             gchange.is_superseded = False
             self._consume_grade_change(gchange, set_is_superseded)
@@ -1293,7 +1596,7 @@ class GradeStateMachine(object):
                 key=lambda gchange: gchange.grade_time)
 
         self.valid_percentages.extend(
-                gchange.percentage()
+                cast(GradeChange, gchange.percentage())
                 for gchange in valid_grade_changes)
 
         del self.attempt_id_to_gchange
@@ -1301,6 +1604,8 @@ class GradeStateMachine(object):
         return self
 
     def percentage(self):
+        # type: () -> Optional[float]
+
         """
         :return: a percentage of achieved points, or *None*
         """
@@ -1365,9 +1670,9 @@ class GradeStateMachine(object):
 
 # {{{ flow <-> grading integration
 
-def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
-    from course.utils import FlowSessionGradingRule
-    assert isinstance(grading_rule, FlowSessionGradingRule)
+def get_flow_grading_opportunity(course, flow_id, flow_desc,
+        grade_identifier, grade_aggregation_strategy):
+    # type: (Course, Text, FlowDesc, Text, Text) -> GradingOpportunity
 
     default_name = (
             # Translators: display the name of a flow
@@ -1376,11 +1681,11 @@ def get_flow_grading_opportunity(course, flow_id, flow_desc, grading_rule):
 
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
-            identifier=grading_rule.grade_identifier,
+            identifier=grade_identifier,
             defaults=dict(
                 name=default_name,
                 flow_id=flow_id,
-                aggregation_strategy=grading_rule.grade_aggregation_strategy,
+                aggregation_strategy=grade_aggregation_strategy,
                 ))
 
     # update gopp.name when flow_desc.title changed
@@ -1429,7 +1734,14 @@ class Exam(models.Model):
             verbose_name=_('Flow ID'))
     active = models.BooleanField(
             default=True,
-            verbose_name=_('Currently active'))
+            verbose_name=_("Active"),
+            help_text=_(
+                'Currently active, i.e. may be used to log in '
+                'via an exam ticket'))
+    listed = models.BooleanField(
+            verbose_name=_("Listed"),
+            default=True,
+            help_text=_('Shown in the list of current exams'))
 
     no_exams_before = models.DateTimeField(
             verbose_name=_('No exams before'))
@@ -1464,7 +1776,8 @@ class ExamTicket(models.Model):
     creation_time = models.DateTimeField(default=now,
             verbose_name=_('Creation time'))
     usage_time = models.DateTimeField(
-            verbose_name=_('Date and time of first usage of ticket'),
+            verbose_name=_("Usage time"),
+            help_text=_('Date and time of first usage of ticket'),
             null=True, blank=True)
 
     state = models.CharField(max_length=50,
@@ -1472,6 +1785,21 @@ class ExamTicket(models.Model):
             verbose_name=_('Exam ticket state'))
 
     code = models.CharField(max_length=50, db_index=True, unique=True)
+
+    valid_start_time = models.DateTimeField(
+            verbose_name=_("End valid period"),
+            help_text=_('If not blank, date and time at which this exam ticket '
+                'starts being valid/usable'),
+            null=True, blank=True)
+    valid_end_time = models.DateTimeField(
+            verbose_name=_("End valid period"),
+            help_text=_('If not blank, date and time at which this exam ticket '
+                'stops being valid/usable'),
+            null=True, blank=True)
+    restrict_to_facility = models.CharField(max_length=200, blank=True, null=True,
+            verbose_name=_("Restrict to facility"),
+            help_text=_("If not blank, this exam ticket may only be used in the "
+                "given facility"))
 
     class Meta:
         verbose_name = _("Exam ticket")

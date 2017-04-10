@@ -78,17 +78,92 @@ EMAIL_USE_TLS = False
 ROBOT_EMAIL_FROM = "Example Admin <admin@example.com>"
 RELATE_ADMIN_EMAIL_LOCALE = "en_US"
 
-# Cool down time (seconds) required before another new session of a flow
-# is allowed to be started.
-RELATE_SESSION_RESTART_COOLDOWN_SECONDS = 10
-
 SERVER_EMAIL = ROBOT_EMAIL_FROM
 
 ADMINS = (
     ("Example Admin", "admin@example.com"),
     )
 
+# If your email service do not allow nonauthorized sender, uncomment the following
+# statement and change the configurations above accordingly, noticing that all 
+# emails will be sent using the EMAIL_ settings above.
+#RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
+
+# Advanced email settings if you want to configure multiple SMTPs for different
+# purpose/type of emails. It is also very useful when
+# "RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER" is False.
+# If you want to enable this functionality, set the next line to True, and edit
+# the next block with your cofigurations.
+RELATE_ENABLE_MULTIPLE_SMTP = False
+
+if RELATE_ENABLE_MULTIPLE_SMTP:
+    EMAIL_CONNECTIONS = {
+
+        # For automatic email sent by site.
+        "robot": {
+            # You can use your preferred email backend.
+            'backend': 'djcelery_email.backends.CeleryEmailBackend',
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
+
+        # For emails that expect no reply for recipients, e.g., registration,
+        # reset password, etc.
+        "no_reply": {
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
+
+        # For sending notifications like submission of flow sessions.
+        "notification": {
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
+
+        # For sending feedback email to students in grading interface.
+        "grader_feedback": {
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
+
+        # For student to send email to course staff in flow pages
+        "student_interact": {
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
+    }
+
+    # This will be used as default connection when other keys are not set.
+    EMAIL_CONNECTION_DEFAULT = "robot"
+
+    NO_REPLY_EMAIL_FROM = "Noreply <noreply_example@example.com>"
+    NOTIFICATION_EMAIL_FROM = "Notification <notification_example@example.com>"
+    GRADER_FEEDBACK_EMAIL_FROM = "Feedback <feedback_example@example.com>"
+    STUDENT_INTERACT_EMAIL_FROM = "interaction <feedback_example@example.com>"
+
+
 # }}}
+
+
+# Cool down time (seconds) required before another new session of a flow
+# is allowed to be started.
+RELATE_SESSION_RESTART_COOLDOWN_SECONDS = 10
+
 
 # {{{ sign-in methods
 

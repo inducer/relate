@@ -97,6 +97,10 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         ``Page``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -234,7 +238,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 answer_data["base64_data"],
                 )
 
-        from django.template import RequestContext
         from django.template.loader import render_to_string
         return render_to_string(
                 "course/file-upload-form.html", ctx, request)

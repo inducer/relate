@@ -354,6 +354,11 @@ Rules for starting new sessions
         This can be used by :attr:`FlowAccessRules.if_has_tag` and
         :attr:`FlowGradingRules.if_has_tag`.
 
+    .. attribute:: default_expiration_mode
+
+        (Optional) One of :class:`flow_session_expiration_mode`. The expiration mode applied
+        when a session is first created or rolled over.
+
 Rules about accessing and interacting with a flow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -662,6 +667,16 @@ The following page types are predefined:
 
     An integer or a floating point number, representing the
     point value of the question.
+
+.. |is-optional-page-attr| replace::
+
+    Optional. A Boolean value indicating whether the page is an optional page
+    which does not require answer for fully completion of the flow.
+    If ``true``, :attr:`value` should not present. Defaults to ``false`` if not present.
+    Note that ``is_optional_page: true`` differs from ``value: 0`` in that finishing flows
+    with unanswered page(s) with the latter will be warned of "unanswered question(s)",
+    while with the former won't. When using not-for-grading page(s) to collect
+    answers from students, it's to better use ``value: 0``.
 
 .. |text-widget-page-attr| replace::
 

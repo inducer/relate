@@ -32,6 +32,7 @@ MAX_EXTRA_CREDIT_FACTOR = 10
 
 COURSE_ID_REGEX = "(?P<course_identifier>[-a-zA-Z0-9]+)"
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"
+GRADING_OPP_ID_REGEX = "(?P<grading_opp_id>[-_a-zA-Z0-9]+)"
 # FIXME : Support page hierarchy. Add '/' here, fix validation code.
 STATICPAGE_PATH_REGEX = "(?P<page_path>[-\w]+)"
 
@@ -40,38 +41,14 @@ class user_status:  # noqa
     unconfirmed = "unconfirmed"
     active = "active"
 
+
 USER_STATUS_CHOICES = (
         (user_status.unconfirmed, pgettext_lazy("User status", "Unconfirmed")),
         (user_status.active, pgettext_lazy("User status", "Active")),
         )
 
 
-class participation_role:  # noqa
-    instructor = "instructor"
-    teaching_assistant = "ta"
-    student = "student"
-    auditor = "auditor"
-
-    # can see analytics
-    observer = "observer"
-
-    unenrolled = "unenrolled"
-
-
-PARTICIPATION_ROLE_CHOICES = (
-        (participation_role.instructor,
-            pgettext_lazy("Participation role", "Instructor")),
-        (participation_role.teaching_assistant,
-            pgettext_lazy("Participation role", "Teaching Assistant")),
-        (participation_role.student,
-            pgettext_lazy("Participation role", "Student")),
-        (participation_role.observer,
-            pgettext_lazy("Participation role", "Observer")),
-        (participation_role.auditor,
-            pgettext_lazy("Participation role", "Auditor")),
-        # unenrolled is only used internally
-        )
-
+# {{{ participation status
 
 class participation_status:  # noqa
     requested = "requested"
@@ -91,6 +68,176 @@ PARTICIPATION_STATUS_CHOICES = (
             pgettext_lazy("Participation status", "Denied")),
         )
 
+# }}}
+
+
+# {{{ participation permission
+
+class participation_permission:  # noqa
+    edit_course = "edit_course"
+    use_admin_interface = "use_admin_interface"
+
+    impersonate_role = "impersonate_role"
+    set_fake_time = "set_fake_time"
+    set_pretend_facility = "set_pretend_facility"
+
+    edit_course_permissions = "edit_course_permissions"
+    view_hidden_course_page = "view_hidden_course_page"
+    view_calendar = "view_calendar"
+    send_instant_message = "send_instant_message"
+    access_files_for = "access_files_for"
+    included_in_grade_statistics = "included_in_grade_statistics"
+
+    edit_exam = "edit_exam"
+    issue_exam_ticket = "issue_exam_ticket"
+    batch_issue_exam_ticket = "batch_issue_exam_ticket"
+
+    view_flow_sessions_from_role = "view_flow_sessions_from_role"
+    view_gradebook = "view_gradebook"
+    edit_grading_opportunity = "edit_grading_opportunity"
+    assign_grade = "assign_grade"
+    view_grader_stats = "view_grader_stats"
+    batch_import_grade = "batch_import_grade"
+    batch_export_grade = "batch_export_grade"
+    batch_download_submission = "batch_download_submission"
+
+    impose_flow_session_deadline = "impose_flow_session_deadline"
+    batch_impose_flow_session_deadline = "batch_impose_flow_session_deadline"
+    end_flow_session = "end_flow_session"
+    batch_end_flow_session = "batch_end_flow_session"
+    regrade_flow_session = "regrade_flow_session"
+    batch_regrade_flow_session = "batch_regrade_flow_session"
+    recalculate_flow_session_grade = "recalculate_flow_session_grade"
+    batch_recalculate_flow_session_grade = "batch_recalculate_flow_session_grade"
+
+    reopen_flow_session = "reopen_flow_session"
+    grant_exception = "grant_exception"
+    view_analytics = "view_analytics"
+
+    preview_content = "preview_content"
+    update_content = "update_content"
+    use_markup_sandbox = "use_markup_sandbox"
+    use_page_sandbox = "use_page_sandbox"
+    test_flow = "test_flow"
+
+    edit_events = "edit_events"
+
+    query_participation = "query_participation"
+    edit_participation = "edit_participation"
+    preapprove_participation = "preapprove_participation"
+
+    manage_instant_flow_requests = "manage_instant_flow_requests"
+
+
+PARTICIPATION_PERMISSION_CHOICES = (
+        (participation_permission.edit_course,
+            pgettext_lazy("Participation permission", "Edit course")),
+        (participation_permission.use_admin_interface,
+            pgettext_lazy("Participation permission", "Use admin interface")),
+        (participation_permission.impersonate_role,
+            pgettext_lazy("Participation permission", "Impersonate role")),
+        (participation_permission.set_fake_time,
+            pgettext_lazy("Participation permission", "Set fake time")),
+        (participation_permission.set_pretend_facility,
+            pgettext_lazy("Participation permission", "Pretend to be in facility")),
+        (participation_permission.edit_course_permissions,
+            pgettext_lazy("Participation permission", "Edit course permissions")),
+        (participation_permission.view_hidden_course_page,
+            pgettext_lazy("Participation permission", "View hidden course page")),
+        (participation_permission.view_calendar,
+            pgettext_lazy("Participation permission", "View calendar")),
+        (participation_permission.send_instant_message,
+            pgettext_lazy("Participation permission", "Send instant message")),
+        (participation_permission.access_files_for,
+            pgettext_lazy("Participation permission", "Access files for")),
+        (participation_permission.included_in_grade_statistics,
+            pgettext_lazy("Participation permission",
+                "Included in grade statistics")),
+
+        (participation_permission.edit_exam,
+            pgettext_lazy("Participation permission", "Edit exam")),
+        (participation_permission.issue_exam_ticket,
+            pgettext_lazy("Participation permission", "Issue exam ticket")),
+        (participation_permission.batch_issue_exam_ticket,
+            pgettext_lazy("Participation permission", "Batch issue exam ticket")),
+
+        (participation_permission.view_flow_sessions_from_role,
+            pgettext_lazy("Participation permission",
+                "View flow sessions from role ")),
+        (participation_permission.view_gradebook,
+            pgettext_lazy("Participation permission", "View gradebook")),
+        (participation_permission.edit_grading_opportunity,
+            pgettext_lazy("Participation permission", "Edit grading opportunity")),
+        (participation_permission.assign_grade,
+            pgettext_lazy("Participation permission", "Assign grade")),
+        (participation_permission.view_grader_stats,
+            pgettext_lazy("Participation permission", "View grader stats")),
+        (participation_permission.batch_import_grade,
+            pgettext_lazy("Participation permission", "Batch-import grades")),
+        (participation_permission.batch_export_grade,
+            pgettext_lazy("Participation permission", "Batch-export grades")),
+        (participation_permission.batch_download_submission,
+            pgettext_lazy("Participation permission", "Batch-download submissions")),
+
+        (participation_permission.impose_flow_session_deadline,
+            pgettext_lazy("Participation permission",
+                "Impose flow session deadline")),
+        (participation_permission.batch_impose_flow_session_deadline,
+            pgettext_lazy("Participation permission",
+                "Batch-impose flow session deadline")),
+        (participation_permission.end_flow_session,
+            pgettext_lazy("Participation permission", "End flow session")),
+        (participation_permission.batch_end_flow_session,
+            pgettext_lazy("Participation permission", "Batch-end flow sessions")),
+        (participation_permission.regrade_flow_session,
+            pgettext_lazy("Participation permission", "Regrade flow session")),
+        (participation_permission.batch_regrade_flow_session,
+            pgettext_lazy("Participation permission",
+                "Batch-regrade flow sessions")),
+        (participation_permission.recalculate_flow_session_grade,
+            pgettext_lazy("Participation permission",
+                "Recalculate flow session grade")),
+        (participation_permission.batch_recalculate_flow_session_grade,
+            pgettext_lazy("Participation permission",
+                "Batch-recalculate flow sesssion grades")),
+
+        (participation_permission.reopen_flow_session,
+            pgettext_lazy("Participation permission", "Reopen flow session")),
+        (participation_permission.grant_exception,
+            pgettext_lazy("Participation permission", "Grant exception")),
+        (participation_permission.view_analytics,
+            pgettext_lazy("Participation permission", "View analytics")),
+
+        (participation_permission.preview_content,
+            pgettext_lazy("Participation permission", "Preview content")),
+        (participation_permission.update_content,
+            pgettext_lazy("Participation permission", "Update content")),
+        (participation_permission.use_markup_sandbox,
+            pgettext_lazy("Participation permission", "Use markup sandbox")),
+        (participation_permission.use_page_sandbox,
+            pgettext_lazy("Participation permission", "Use page sandbox")),
+        (participation_permission.test_flow,
+            pgettext_lazy("Participation permission", "Test flow")),
+
+        (participation_permission.edit_events,
+            pgettext_lazy("Participation permission", "Edit events")),
+
+        (participation_permission.query_participation,
+            pgettext_lazy("Participation permission", "Query participation")),
+        (participation_permission.edit_participation,
+            pgettext_lazy("Participation permission", "Edit participation")),
+        (participation_permission.preapprove_participation,
+            pgettext_lazy("Participation permission", "Preapprove participation")),
+
+        (participation_permission.manage_instant_flow_requests,
+            pgettext_lazy("Participation permission",
+                "Manage instant flow requests")),
+        )
+
+# }}}
+
+
+# {{{ flow session related
 
 class flow_session_interaction_kind:  # noqa
     noninteractive = "noninteractive"
@@ -120,6 +267,7 @@ class flow_session_expiration_mode:  # noqa
     # allowed by special permission below
     roll_over = "roll_over"
 
+
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
         (flow_session_expiration_mode.end,
             pgettext_lazy("Flow expiration mode", "Submit session for grading")),
@@ -130,6 +278,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(expmode, permissions):
+    # type: (str, frozenset[str]) -> bool
     if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
                 in permissions):
@@ -141,6 +290,10 @@ def is_expiration_mode_allowed(expmode, permissions):
 
     return False
 
+# }}}
+
+
+# {{{ flow permission
 
 class flow_permission:  # noqa
     """
@@ -179,7 +332,7 @@ class flow_permission:  # noqa
     .. attribute:: see_answer_after_submission
 
         If present, shows the correct answer to the participant after they have
-        submitted an answer of their own.
+        submitted an answer of their own (and are no longer able to change it).
 
     .. attribute:: cannot_see_flow_result
 
@@ -203,6 +356,11 @@ class flow_permission:  # noqa
 
         (Optional) Once any page of the flow has been viewed, access to all content
         except for this session on this RELATE instance will be denied.
+
+    .. attribute:: send_email_about_flow_page
+
+        (Optional) If present, the participant can send interaction emails to
+        course staffs for questions for each page with that permission.
     """
     view = "view"
     end_session = "end_session"
@@ -215,6 +373,8 @@ class flow_permission:  # noqa
     set_roll_over_expiration_mode = "set_roll_over_expiration_mode"
     see_session_time = "see_session_time"
     lock_down_as_exam_session = "lock_down_as_exam_session"
+    send_email_about_flow_page = "send_email_about_flow_page"
+
 
 FLOW_PERMISSION_CHOICES = (
         (flow_permission.view,
@@ -244,7 +404,12 @@ FLOW_PERMISSION_CHOICES = (
             pgettext_lazy("Flow permission", "See session time")),
         (flow_permission.lock_down_as_exam_session,
             pgettext_lazy("Flow permission", "Lock down as exam session")),
+        (flow_permission.send_email_about_flow_page,
+         pgettext_lazy("Flow permission",
+                       "Send emails about the flow page to course staff")),
         )
+
+# }}}
 
 
 class flow_rule_kind:  # noqa
@@ -262,6 +427,8 @@ FLOW_RULE_KIND_CHOICES = (
             pgettext_lazy("Flow rule kind choices", "Grading")),
         )
 
+
+# {{{ grade aggregation strategy
 
 class grade_aggregation_strategy:  # noqa
     """A strategy for aggregating multiple grades into one.
@@ -308,6 +475,10 @@ GRADE_AGGREGATION_STRATEGY_CHOICES = (
             pgettext_lazy("Grade aggregation strategy", "Use the latest grade")),
         )
 
+# }}}
+
+
+# {{{ grade state-change type
 
 class grade_state_change_types:  # noqa
     grading_started = "grading_started"
@@ -339,6 +510,10 @@ GRADE_STATE_CHANGE_CHOICES = (
             pgettext_lazy("Grade state change", "Exempt")),
         )
 
+# }}}
+
+
+# {{{ exam ticket state
 
 class exam_ticket_states:  # noqa
     valid = "valid"
@@ -354,3 +529,10 @@ EXAM_TICKET_STATE_CHOICES = (
         (exam_ticket_states.revoked,
             pgettext_lazy("Exam ticket state", "Revoked")),
         )
+
+# }}}
+
+
+ATTRIBUTES_FILENAME = ".attributes.yml"
+
+# vim: foldmethod=marker

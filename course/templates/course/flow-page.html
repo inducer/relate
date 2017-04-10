@@ -10,6 +10,24 @@
 {% endblock %}
 
 {% block content %}
+  {% if user != flow_session.participation.user %}
+    <div id="other-user-alert" class="alert alert-info">
+      <div style="float:right">
+        <a onclick='$("#other-user-alert").hide()'>
+          <i class="fa fa-times-circle" aria-hidden="true"></i><Paste>
+        </a>
+      </div>
+
+      <i class="fa fa-user" aria-hidden="true"></i>
+      {% trans "Viewing session for partipant" %}
+      {% if flow_session.participation != None %}
+        <a href="{% url "relate-view_participant_grades" course.identifier flow_session.participation.id %}">{{ flow_session.participation.user.get_full_name }}</a>.
+      {% else %}
+        {% trans "(unspecified participant)" %}.
+      {% endif %}
+    </div>
+  {% endif %}
+
   {# {{{ navigation #}
   <form
     action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
@@ -25,20 +43,24 @@
         {% if page_data.ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-            role="button">&laquo; {% trans "Previous" context "Previous page/item in a flow" %}</a>
+            title='{% trans "Previous page" context "Previous page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-left"></i></a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
             href="#"
-            role="button">&laquo; {% trans "Previous" context "Previous page/item in a flow" %}</a>
+            title='{% trans "Previous page" context "Previous page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-left"></i></a>
         {% endif %}
         {% if page_data.next_ordinal < flow_session.page_count %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-            role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
+            title='{% trans "Next page" context "Next page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-right"></i></a>
         {% else %}
           <a class="btn btn-default relate-nav-button disabled"
             href="#"
-            role="button">{% trans "Next" context "Next page/item in a flow" %} &raquo;</a>
+            title='{% trans "Next page" context "Next page/item in a flow" %}'
+            role="button"><i class="fa fa-chevron-right"></i></a>
         {% endif %}
         <button id="btn_bookmark"
                 class="btn btn-default relate-flow-page-bookmark-button
@@ -54,40 +76,93 @@
               fa-star-o
             {% endif %}
             " aria-hidden="true"></i>
-          Bookmark
         </button>
       </div>
 
       {# }}} #}
 
-      {# {{{ 'finish' button #}
+      {# {{{ send email button #}
+      {% if may_send_email_about_flow_page %}
+        <div class="navbar-right relate-flow-page-send-email"
+             style="padding-right: 0.4em;">
+            <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id ordinal %}"
+               class="btn btn-default relate-nav-button btn-info"
+               title="{% trans 'Send an email about this page to course staff' %}"
+               target="_blank"
+            >
+                <i class="fa fa-envelope-o" aria-hidden="true"></i>
+            </a>
+        </div>
+      {% endif %}
+      {# }}} #}
 
-      <div class="relate-flow-submit">
-        <button type="submit" name="finish" class="btn btn-default relate-nav-button">
-          {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
-            {% trans "Go to end" %}
-          {% elif interaction_kind == flow_session_interaction_kind.ungraded %}
-            {% trans "Submit" %}
-          {% elif interaction_kind == flow_session_interaction_kind.practice_grade %}
-            {% trans "Finish" %}
-          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
-            {% trans "Submit assignment" %}
-          {% else %}
-            {% trans "Finish" %}
-          {% endif %}
-          &raquo;
-        </button>
+      {# {{{ menu #}
+
+      <div class="navbar-right relate-flow-page-menu"
+        style="padding-right: 0.4em;">
+        <div class="dropdown">
+          <button class="btn btn-default dropdown-toggle" type="button" id="menu_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+            title='{% trans "Page Menu" %}'>
+            <i class="fa fa-bars"></i>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="menu_dropdown">
+            <li class="dropdown-header">
+              <b>{{ flow_desc.title }}</b>
+            </li>
+            <li>
+              <a href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
+                >{% trans "Return to flow start page" %}</a>
+            </li>
+            {% if page_expect_answer_and_gradable %}
+              <li role="separator" class="divider"></li>
+              {% if pperm.reopen_flow_session and not flow_session.in_progress and opportunity.id != None %}
+                <li>
+                  <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
+                     target="_blank">
+                    {% trans "Reopen" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                  </a>
+                </li>
+              {% endif %}
+              {% if page_expect_answer_and_gradable and pperm.grant_exception and flow_session.participation.id != None %}
+                <li>
+                  <a href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
+                    target="_blank">
+                      {% trans "Grant exception" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                  </a>
+                </li>
+              {% endif %}
+              {% if pperm.view_gradebook %}
+                <li>
+                  <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id ordinal %}"
+                     target="_blank">
+                      {% trans "View in grading interface" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                  </a>
+                </li>
+              {% endif %}
+            {% endif %}
+            {% if pperm.reopen_flow_session and flow_session.in_progress and expects_answer and not may_change_answer %}
+              <li role="separator" class="divider"></li>
+              <li>
+                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id ordinal %}">
+                    {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
       </div>
 
       {# }}} #}
 
       {# {{{ past submissions #}
 
-      {% if prev_answer_visits %}
-      <div class="relate-flow-page-past-submissions" style="padding-right: 0.4em">
+      {% if prev_answer_visits|length > 1 %}
+      <div class="navbar-right relate-flow-page-past-submissions"
+        style="padding-right: 0.4em; margin-right:0;">
         <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-            {% trans "Past submissions" %}
+          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+            title='{% trans "Submission history for this page" %}'>
+            <i class="fa fa-history"></i>
             <span class="caret"></span>
           </button>
           <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
@@ -117,9 +192,54 @@
 
       {# }}} #}
 
+      {# {{{ 'finish' button #}
+
+      <div class="navbar-right relate-flow-submit"
+        style="padding-right: 0.4em;">
+      {% if not viewing_prior_version %}
+        <button type="submit" name="finish" class="btn btn-default relate-nav-button
+        {% if flow_session.in_progress %}
+          {% if not interaction_kind == flow_session_interaction_kind.noninteractive %}
+            btn-success
+          {% endif %}
+        {% endif %}"
+        title='
+        {% if interaction_kind == flow_session_interaction_kind.noninteractive %}
+            {% trans "Go to end" %}
+        {% elif flow_session.in_progress %}
+          {% if interaction_kind == flow_session_interaction_kind.ungraded %}
+            {% trans "Submit" %}
+          {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
+          {% blocktrans with flow_title=flow_desc.title %}Submit {{ flow_title }}{% endblocktrans %}
+          {% else %}
+            {% trans "Finish" %}
+          {% endif %}
+        {% elif not flow_session.in_progress %}
+          {% if interaction_kind == flow_session_interaction_kind.ungraded or interaction_kind == flow_session_interaction_kind.permanent_grade %}
+            {% trans "Result" %}
+          {% else %}
+            {% trans "Finish" %}
+          {% endif %}
+        {% endif %}
+        '>
+        {% if interaction_kind == flow_session_interaction_kind.permanent_grade or interaction_kind == flow_session_interaction_kind.ungraded %}
+          {% if flow_session.in_progress %}
+            <i class="fa fa-check" aria-hidden="true"></i>
+          {% else %}
+            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+          {% endif %}
+        {% else %}
+            <i class="fa fa-sign-out" aria-hidden="true"></i>
+        {% endif %}
+        </button>
+      {% endif %}
+      </div>
+
+      {# }}} #}
+
       {# {{{ expiration mode #}
 
-      {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
+      {% if flow_session.in_progress and expiration_mode_choice_count > 1 and not viewing_prior_version %}
         <div class="flow-session-expiration-panel">
           <span id="expiration_mode_change_progress">
           </span>
@@ -229,6 +349,10 @@
       {{ max_points }} points
     {% endblocktrans %}
     </div>
+  {% elif is_optional_page %}
+    <div style="float:right" class="well">
+    {% trans "Optional question" %}
+    </div>
   {% endif %}
 
   {# }}} #}
@@ -318,6 +442,7 @@
       $(":checkbox").on("change", on_input_change);
       $(":radio").on("change", on_input_change);
       $(":text").on("change", on_input_change);
+      $(":file").on("change", on_input_change);
       $("textarea").on("change", on_input_change);
 
       // }}}

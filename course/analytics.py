@@ -32,7 +32,7 @@ from django.shortcuts import (  # noqa
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import connection
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django import http
 from django.contrib import messages
@@ -41,8 +41,11 @@ from course.utils import course_view, render_course_page, PageInstanceCache
 from course.models import (
         FlowSession,
         FlowPageVisit,
-        participation_role,
         flow_permission)
+
+from course.constants import (
+        participation_permission as pperm,
+        )
 
 from course.content import get_flow_desc
 
@@ -52,13 +55,8 @@ from course.content import get_flow_desc
 @login_required
 @course_view
 def flow_list(pctx):
-    if pctx.role not in [
-            participation_role.teaching_assistant,
-            participation_role.instructor,
-            participation_role.observer,
-            ]:
-        # Translators: "TA" is short for Teaching Assistant.
-        raise PermissionDenied(_("must be at least TA to view analytics"))
+    if not pctx.has_permission(pperm.view_analytics):
+        raise PermissionDenied(_("may not view analytics"))
 
     cursor = connection.cursor()
 
@@ -158,6 +156,9 @@ class Histogram(object):
                 num_bin_starts = [
                         exp(log(min_value)+bin_width*i)
                         for i in range(self.num_bin_count)]
+                # Rounding error means exp(log(min_value)) may be greater
+                # than min_value, so set start of first bin to min_value
+                num_bin_starts[0] = min_value
             else:
                 bin_width = (max_value - min_value)/self.num_bin_count
                 num_bin_starts = [
@@ -168,7 +169,7 @@ class Histogram(object):
 
         temp_string_weights = self.string_weights.copy()
 
-        oob = "<out of bounds>"
+        oob = pgettext("Value in histogram", "<out of bounds>")
 
         from bisect import bisect
         for value, weight in self.num_values:
@@ -182,11 +183,15 @@ class Histogram(object):
                 bins[bin_nr] += weight
 
         total_weight = self.total_weight()
+
         num_bin_info = [
                 BinInfo(
                     title=self.num_bin_title_formatter(start),
                     raw_weight=weight,
-                    percentage=100*weight/total_weight)
+                    percentage=(
+                        100*weight/total_weight
+                        if total_weight
+                        else None))
                 for start, weight in zip(num_bin_starts, bins)]
 
         str_bin_info = [
@@ -255,7 +260,9 @@ def is_page_multiple_submit(flow_desc, page_desc):
 def make_grade_histogram(pctx, flow_id):
     qset = FlowSession.objects.filter(
             course=pctx.course,
-            flow_id=flow_id)
+            flow_id=flow_id,
+            participation__roles__permissions__permission=(
+                pperm.included_in_grade_statistics))
 
     hist = Histogram(
         num_min_value=0,
@@ -313,6 +320,8 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
                     .filter(
                         flow_session__course=pctx.course,
                         flow_session__flow_id=flow_id,
+                        flow_session__participation__roles__permissions__permission=(
+                            pperm.included_in_grade_statistics),
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
                         is_submitted_answer=True,
@@ -436,12 +445,8 @@ def count_participants(pctx, flow_id):
 @login_required
 @course_view
 def flow_analytics(pctx, flow_id):
-    if pctx.role not in [
-            participation_role.teaching_assistant,
-            participation_role.instructor,
-            participation_role.observer,
-            ]:
-        raise PermissionDenied(_("must be at least TA to view analytics"))
+    if not pctx.has_permission(pperm.view_analytics):
+        raise PermissionDenied(_("may not view analytics"))
 
     restrict_to_first_attempt = int(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
@@ -482,12 +487,8 @@ class AnswerStats(object):
 @login_required
 @course_view
 def page_analytics(pctx, flow_id, group_id, page_id):
-    if pctx.role not in [
-            participation_role.teaching_assistant,
-            participation_role.instructor,
-            participation_role.observer,
-            ]:
-        raise PermissionDenied(_("must be at least TA to view analytics"))
+    if not pctx.has_permission(pperm.view_analytics):
+        raise PermissionDenied(_("may not view analytics"))
 
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
             pctx.course_commit_sha)
@@ -503,6 +504,8 @@ def page_analytics(pctx, flow_id, group_id, page_id):
             .filter(
                 flow_session__course=pctx.course,
                 flow_session__flow_id=flow_id,
+                flow_session__participation__roles__permissions__permission=(
+                    pperm.included_in_grade_statistics),
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
                 is_submitted_answer=True,

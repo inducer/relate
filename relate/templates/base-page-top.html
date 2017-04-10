@@ -43,7 +43,7 @@
   </div>
 {% endif %}
 
-{% if pretend_facilities %}
+{% if pretend_facilities and add_pretend_facilities_header %}
   <div class="alert alert-info">
     <i class="fa fa-info-circle"></i>
     {% blocktrans trimmed with facilities=pretend_facilities|join:", "  %}
@@ -57,7 +57,7 @@
   </div>
 {% endif %}
 
-{% if currently_impersonating %}
+{% if currently_impersonating and add_impersonation_header %}
   <div class="alert alert-info">
     <i class="fa fa-info-circle"></i>
     {% trans "Now impersonating" %} {{ user.get_full_name }} ({{ user.username }} - {{ user.email }}).

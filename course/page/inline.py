@@ -43,7 +43,8 @@ import re
 
 # {{{ multiple text question
 
-from crispy_forms.layout import Layout, Field, HTML
+from crispy_forms.layout import Layout, HTML
+from crispy_forms.bootstrap import PrependedAppendedText
 
 
 class InlineMultiQuestionForm(StyledInlineForm):
@@ -103,7 +104,7 @@ class InlineMultiQuestionForm(StyledInlineForm):
         answer_name_list = [answer_instance.name
                 for answer_instance in self.answer_instance_list]
 
-        for answer in cleaned_data.keys():
+        for answer in list(cleaned_data.keys()):
             idx = answer_name_list.index(answer)
             instance_idx = self.answer_instance_list[idx]
             field_name_idx = instance_idx.name
@@ -174,23 +175,19 @@ class AnswerBase(object):
             return 0
 
     def get_field_layout(self, correctness=None):
+        kwargs = {}
+        kwargs["prepended_text"] = getattr(self.answers_desc, "prepended_text", "")
+        kwargs["appended_text"] = getattr(self.answers_desc, "appended_text", "")
+        kwargs["use_popover"] = "true"
+        kwargs["popover_title"] = getattr(self.answers_desc, "hint_title", "")
+        kwargs["popover_content"] = getattr(self.answers_desc, "hint", "")
         if correctness is None:
-            return Field(
-                    self.name,
-                    use_popover="true",
-                    popover_title=getattr(self.answers_desc, "hint_title", ""),
-                    popover_content=getattr(self.answers_desc, "hint", ""),
-                    style=self.get_width_str()
-                    )
+            kwargs["style"] = self.get_width_str()
         else:
-            return Field(
-                    self.name,
-                    use_popover="true",
-                    popover_title=getattr(self.answers_desc, "hint_title", ""),
-                    popover_content=getattr(self.answers_desc, "hint", ""),
-                    style=self.get_width_str(self.width + 2),
-                    correctness=correctness
-                    )
+            kwargs["style"] = self.get_width_str(self.width + 2)
+            kwargs["correctness"] = correctness
+
+        return PrependedAppendedText(self.name, **kwargs)
 
     def get_form_field(self, page_context):
         raise NotImplementedError()
@@ -277,6 +274,8 @@ class ShortAnswer(AnswerBase):
                 ),
             allowed_attrs=(
                 ("weight", (int, float)),
+                ("prepended_text", str),
+                ("appended_text", str),
                 ("hint", str),
                 ("hint_title", str),
                 ("width", (str, int, float)),
@@ -337,11 +336,15 @@ class ShortAnswer(AnswerBase):
                 break
 
         assert unspec_correct_answer_text
-        return unspec_correct_answer_text
+        return ("%s%s%s"
+                % (getattr(self.answers_desc, "prepended_text", "").strip(),
+                   unspec_correct_answer_text,
+                   getattr(self.answers_desc, "appended_text", "").strip())
+                )
 
     def get_correctness(self, answer):
 
-        correctnesses_and_answers = [(0, "")]
+        correctnesses = [0]
         # If empty an list, sometime it will cause ValueError:
         # max() arg is an empty sequence, observed in SandBox
 
@@ -351,12 +354,9 @@ class ShortAnswer(AnswerBase):
             except forms.ValidationError:
                 continue
 
-            correctnesses_and_answers.append(
-                    (matcher.grade(answer), matcher.correct_answer_text()))
+            correctnesses.append(matcher.grade(answer))
 
-        correctness, correct_answer_text = max(correctnesses_and_answers)
-
-        return correctness
+        return max(correctnesses)
 
     def get_form_field(self, page_context, force_required=False):
         return (self.form_field_class)(
@@ -458,8 +458,13 @@ class ChoicesAnswer(AnswerBase):
 
     def get_correct_answer_text(self, page_context):
         corr_idx = self.correct_indices()[0]
-        return self.process_choice_string(
-                page_context, self.answers_desc.choices[corr_idx]).lstrip()
+        return ("%s%s%s"
+                % (
+                    getattr(self.answers_desc, "prepended_text", "").strip(),
+                    self.process_choice_string(
+                        page_context, self.answers_desc.choices[corr_idx]).lstrip(),
+                    getattr(self.answers_desc, "appended_text", "").strip())
+                )
 
     def get_max_correct_answer_len(self, page_context):
         return max([len(answer) for answer in
@@ -516,6 +521,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         ``InlineMultiQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -535,6 +544,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         cloze question require an answer struct. The question now
         support cloze question of TextAnswer and ChoiceAnswer type.
 
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
+
     Here is an example of :class:`InlineMultiQuestion`::
 
         type: InlineMultiQuestion
@@ -542,17 +555,20 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         value: 10
         prompt: |
 
-            # An example
+            # An InlineMultiQuestion example
 
             Complete the following paragraph.
 
         question: |
 
             Foo and [[blank1]] are often used in code examples, or
-            tutorials. The float value of $\frac{1}{5}$ is [[blank_2]].
+            tutorials. $\frac{1}{5}$ is equivalent to [[blank_2]].
 
             The correct answer for this choice question is [[choice_a]].
-            The Upper case of "foo" is [[choice2]]
+            The Upper case of "foo" is [[choice2]].
+
+            One dollar is [[blank3]], and five percent is [[blank4]], and "Bar"
+            wrapped by a pair of parentheses is [[blank5]].
 
         answers:
 
@@ -591,15 +607,49 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 - BAR
                 - fOO
 
+            blank3:
+                type: ShortAnswer
+                width: 3em
+                prepended_text: "$"
+                hint: Blank with prepended text
+                correct_answer:
+                - type: float
+                  value: 1
+                  rtol: 0.00001
+                - <plain> "1"
+
+            blank4:
+                type: ShortAnswer
+                width: 3em
+                appended_text: "%"
+                hint: Blank with appended text
+                correct_answer:
+                - type: float
+                  value: 5
+                  rtol: 0.00001
+                - <plain> "5"
+
+            blank5:
+                type: ShortAnswer
+                width: 6em
+                prepended_text: "("
+                appended_text: ")"
+                required: True
+                hint: Blank with both prepended and appended text
+                correct_answer:
+                - <plain> BAR
+                - <plain>bar
+
     """
 
     def __init__(self, vctx, location, page_desc):
         super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
 
-        self.embedded_wrapped_name_list = WRAPPED_NAME_RE.findall(
-                page_desc.question)
-        self.embedded_name_list = NAME_RE.findall(page_desc.question)
+        expanded_question = page_desc.question
+
+        self.embedded_wrapped_name_list = WRAPPED_NAME_RE.findall(expanded_question)
+        self.embedded_name_list = NAME_RE.findall(expanded_question)
 
         answer_instance_list = []
 
@@ -607,7 +657,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             answers_desc = getattr(self.page_desc.answers, name)
 
             parsed_answer = parse_question(
-                    None, None, name, answers_desc)
+                    vctx, location, name, answers_desc)
             answer_instance_list.append(parsed_answer)
 
         self.answer_instance_list = answer_instance_list
@@ -617,6 +667,14 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         invalid_answer_name = []
         invalid_embedded_name = []
+
+        if not answer_instance_list:
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("InlineMultiQuestion requires at least one "
+                        "answer field to be defined."))
+                    % {'location': location})
 
         for answers_name in answers_name_list:
             if NAME_VALIDATE_RE.match(answers_name) is None:
@@ -689,7 +747,13 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         if vctx is not None:
             validate_markup(vctx, location, page_desc.question)
 
-            remainder_html = markup_to_html(vctx, page_desc.question)
+            def reverse_func(*args, **kwargs):
+                pass
+
+            # FIXME This is a bit redundant since validate_markup already calls
+            # markup_to_html.
+            remainder_html = markup_to_html(vctx, page_desc.question,
+                    reverse_func=reverse_func)
 
             html_list = []
             for wrapped_name in self.embedded_wrapped_name_list:
@@ -722,13 +786,13 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
     def allowed_attrs(self):
         return super(InlineMultiQuestion, self).allowed_attrs() + (
-                ("answer_comment", "markup"),
+                ("answer_explanation", "markup"),
                 )
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def get_question(self, page_context):
+    def get_question(self, page_context, page_data):
         # for correct render of question with more than one
         # paragraph, remove heading <p> tags and change </p>
         # to line break.
@@ -737,8 +801,8 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 self.page_desc.question,
                 ).replace("<p>", "").replace("</p>", "<br/>")
 
-    def get_dict_for_form(self, page_context):
-        remainder_html = self.get_question(page_context)
+    def get_dict_for_form(self, page_context, page_data):
+        remainder_html = self.get_question(page_context, page_data)
 
         html_list = []
         for wrapped_name in self.embedded_wrapped_name_list:
@@ -757,16 +821,22 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         read_only = not page_behavior.may_change_answer
 
         if answer_data is not None:
-            dict_feedback_form = self.get_dict_for_form(page_context)
+            dict_feedback_form = self.get_dict_for_form(page_context, page_data)
 
             answer = answer_data["answer"]
             if page_behavior.show_correctness:
                 correctness_list = []
 
                 for answer_instance in self.answer_instance_list:
-                    if answer[answer_instance.name] is not None:
-                        correctness_list.append(answer_instance.get_correctness(
-                                answer[answer_instance.name]))
+                    try:
+                        if answer[answer_instance.name] is not None:
+                            correctness_list.append(answer_instance.get_correctness(
+                                    answer[answer_instance.name]))
+
+                    # The answer doesn't exist for newly added question
+                    # for pages which have been submitted.
+                    except KeyError:
+                        correctness_list.append(1)
 
                     dict_feedback_form["correctness_list"] = correctness_list
 
@@ -779,7 +849,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             answer = None
             form = InlineMultiQuestionForm(
                     read_only,
-                    self.get_dict_for_form(page_context),
+                    self.get_dict_for_form(page_context, page_data),
                     page_context)
 
         return form
@@ -790,14 +860,14 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         return InlineMultiQuestionForm(
                 read_only,
-                self.get_dict_for_form(page_context),
+                self.get_dict_for_form(page_context, page_data),
                 page_context,
                 post_data, files_data)
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
-        cor_answer_output = self.get_question(page_context)
+        cor_answer_output = self.get_question(page_context, page_data)
 
         for idx, wrapped in enumerate(self.embedded_wrapped_name_list):
             correct_answer_i = self.answer_instance_list[idx] \
@@ -808,7 +878,12 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         CA_PATTERN = string_concat(_("A correct answer is"), ": <br/> %s")  # noqa
 
-        return CA_PATTERN % cor_answer_output
+        result = CA_PATTERN % cor_answer_output
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data}
@@ -868,7 +943,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer_dict = answer_data["answer"]
 
-        nml_answer_output = self.get_question(page_context)
+        nml_answer_output = self.get_question(page_context, page_data)
 
         for idx, wrapped_name in enumerate(self.embedded_wrapped_name_list):
             nml_answer_output = nml_answer_output.replace(

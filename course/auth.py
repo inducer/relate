@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, Any, Optional, Text  # noqa
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
@@ -33,7 +34,6 @@ from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Div
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
         login as auth_login, logout as auth_logout)
@@ -41,7 +41,7 @@ from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.decorators import user_passes_test
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core import validators
 from django.utils.http import is_safe_url
 from django.http import HttpResponseRedirect
@@ -49,129 +49,162 @@ from django.template.response import TemplateResponse
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
+from django import http  # noqa
 
 from djangosaml2.backends import Saml2Backend as Saml2BackendBase
 
-from course.models import (
+from course.constants import (
         user_status,
-        Participation, participation_role, participation_status,
+        participation_status,
+        participation_permission as pperm,
         )
+from course.models import Participation, Course  # noqa
+from accounts.models import User
+
 
 from relate.utils import StyledForm, StyledModelForm
-from django_select2.forms import Select2Widget
+from django_select2.forms import ModelSelect2Widget
 
 
 # {{{ impersonation
 
-def may_impersonate(user):
-    return user.is_staff
+def get_pre_impersonation_user(request):
+    is_impersonating = hasattr(
+            request, "relate_impersonate_original_user")
+    if is_impersonating:
+        return request.relate_impersonate_original_user
+    return None
 
 
-def whom_may_impersonate(impersonator):
+def may_impersonate(impersonator, impersonee):
+    # type: (User, User) -> bool
     if impersonator.is_superuser:
-        return set(get_user_model().objects.filter(
-                participations__status=participation_status.active))
+        return True
 
-    my_privileged_participations = Participation.objects.filter(
+    my_participations = Participation.objects.filter(
             user=impersonator,
-            status=participation_status.active,
-            role__in=(
-                participation_role.instructor,
-                participation_role.teaching_assistant))
+            status=participation_status.active)
 
-    q_object = None
+    for part in my_participations:
+        impersonable_roles = [
+                argument
+                for perm, argument in part.permissions()
+                if perm == pperm.impersonate_role]
 
-    for part in my_privileged_participations:
-        if part.role == participation_role.instructor:
-            impersonable_roles = (
-                participation_role.teaching_assistant,
-                participation_role.observer,
-                participation_role.auditor,
-                participation_role.student)
-        elif part.role == participation_role.teaching_assistant:
-            impersonable_roles = (
-                participation_role.student,
-                participation_role.auditor,
-                )
-        else:
-            assert False
+        if Participation.objects.filter(
+                course=part.course,
+                status=participation_status.active,
+                roles__identifier__in=impersonable_roles,
+                user=impersonee).count():
+            return True
 
-        part_q_object = Q(
-                participations__course=part.course,
-                participations__status=participation_status.active,
-                participations__role__in=impersonable_roles)
-
-        if q_object is None:
-            q_object = part_q_object
-        else:
-            q_object = q_object | part_q_object
-
-    return set(get_user_model().objects.filter(q_object).order_by("last_name"))
+    return False
 
 
 class ImpersonateMiddleware(object):
-    def process_request(self, request):
-        if request.user.is_staff and 'impersonate_id' in request.session:
-            imp_id = request.session['impersonate_id']
+    def __init__(self, get_response):
+        self.get_response = get_response
 
-            request.relate_impersonate_original_user = request.user
-            if imp_id is not None:
-                impersonees = whom_may_impersonate(request.user)
-                if any(u.id == imp_id for u in impersonees):
-                    request.user = get_user_model().objects.get(id=imp_id)
+    def __call__(self, request):
+        if 'impersonate_id' in request.session:
+            imp_id = request.session['impersonate_id']
+            impersonee = None
+
+            try:
+                if imp_id is not None:
+                    impersonee = cast(User, get_user_model().objects.get(id=imp_id))
+            except ObjectDoesNotExist:
+                pass
+
+            if impersonee is not None:
+                if may_impersonate(cast(User, request.user), impersonee):
+                    request.relate_impersonate_original_user = request.user
+                    request.user = impersonee
                 else:
                     messages.add_message(request, messages.ERROR,
                             _("Error while impersonating."))
 
+            else:
+                messages.add_message(request, messages.ERROR,
+                        _("Error while impersonating."))
+
+        return self.get_response(request)
+
+
+class UserSearchWidget(ModelSelect2Widget):
+    model = User
+    search_fields = [
+            'username__icontains',
+            'email__icontains',
+            'first_name__icontains',
+            'last_name__icontains',
+            ]
+
+    def label_from_instance(self, u):
+        return (
+            (
+                # Translators: information displayed when selecting
+                # userfor impersonating. Customize how the name is
+                # shown, but leave email first to retain usability
+                # of form sorted by last name.
+                "%(full_name)s (%(username)s - %(email)s)"
+                % {
+                    "full_name": u.get_full_name(),
+                    "email": u.email,
+                    "username": u.username
+                    }))
+
 
 class ImpersonateForm(StyledForm):
-    def __init__(self, impersonator, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        # type:(*Any, **Any) -> None
+
         super(ImpersonateForm, self).__init__(*args, **kwargs)
 
-        impersonees = whom_may_impersonate(impersonator)
-
-        self.fields["user"] = forms.ChoiceField(
-                choices=[
-                    (
-                        # Translators: information displayed when selecting
-                        # userfor impersonating. Customize how the name is
-                        # shown, but leave email first to retain usability
-                        # of form sorted by last name.
-                        u.id, "%(full_name)s (%(username)s - %(email)s)"
-                        % {
-                            "full_name": u.get_full_name(),
-                            "email": u.email,
-                            "username": u.username
-                            })
-                    for u in sorted(impersonees,
-                        key=lambda user: user.last_name.lower())
-                    ],
+        self.fields["user"] = forms.ModelChoiceField(
+                queryset=User.objects.order_by("last_name"),
                 required=True,
                 help_text=_("Select user to impersonate."),
-                widget=Select2Widget(),
+                widget=UserSearchWidget(),
                 label=_("User"))
+
+        self.fields["add_impersonation_header"] = forms.BooleanField(
+                required=False,
+                initial=True,
+                label=_("Add impersonation header"),
+                help_text=_("Add impersonation header to every page rendered "
+                    "while impersonating, as a reminder that impersonation "
+                    "is in progress."))
 
         self.helper.add_input(Submit("submit", _("Impersonate")))
 
 
-@user_passes_test(may_impersonate)
 def impersonate(request):
+    # type: (http.HttpRequest) -> http.HttpResponse
+
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 _("Already impersonating someone."))
         return redirect("relate-stop_impersonating")
 
     if request.method == 'POST':
-        form = ImpersonateForm(request.user, request.POST)
+        form = ImpersonateForm(request.POST)
         if form.is_valid():
-            user = get_user_model().objects.get(id=form.cleaned_data["user"])
+            impersonee = form.cleaned_data["user"]
 
-            request.session['impersonate_id'] = user.id
+            if may_impersonate(cast(User, request.user), cast(User, impersonee)):
+                request.session['impersonate_id'] = impersonee.id
+                request.session['relate_impersonation_header'] = form.cleaned_data[
+                        "add_impersonation_header"]
 
-            # Because we'll likely no longer have access to this page.
-            return redirect("relate-home")
+                # Because we'll likely no longer have access to this page.
+                return redirect("relate-home")
+            else:
+                messages.add_message(request, messages.ERROR,
+                        _("Impersonating that user is not allowed."))
+
     else:
-        form = ImpersonateForm(request.user)
+        form = ImpersonateForm()
 
     return render(request, "generic-form.html", {
         "form_description": _("Impersonate user"),
@@ -215,12 +248,15 @@ def impersonation_context_processor(request):
     return {
             "currently_impersonating":
             hasattr(request, "relate_impersonate_original_user"),
+            "add_impersonation_header":
+            request.session.get("relate_impersonation_header", True),
             }
 
 # }}}
 
 
 def make_sign_in_key(user):
+    # type: (User) -> Text
     # Try to ensure these hashes aren't guessable.
     import random
     import hashlib
@@ -269,6 +305,9 @@ class TokenBackend(object):
 
 # {{{ choice
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))
@@ -298,6 +337,9 @@ class LoginForm(AuthenticationFormBase):
 @sensitive_post_parameters()
 @csrf_protect
 @never_cache
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
     """
     Displays the login form and handles the login action.
@@ -365,6 +407,9 @@ class SignUpForm(StyledModelForm):
                 Submit("submit", _("Send email")))
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_up(request):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
@@ -409,13 +454,21 @@ def sign_up(request):
                         reverse("relate-home"))
                     })
 
-                from django.core.mail import send_mail
-                send_mail(
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
                         string_concat("[", _("RELATE"), "] ",
                                      _("Verify your email")),
                         message,
-                        settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[email])
+                        getattr(settings, "NO_REPLY_EMAIL_FROM",
+                                settings.ROBOT_EMAIL_FROM),
+                        [email])
+
+                from relate.utils import get_outbound_mail_connection
+                msg.connection = (
+                        get_outbound_mail_connection("no_reply")
+                        if hasattr(settings, "NO_REPLY_EMAIL_FROM")
+                        else get_outbound_mail_connection("robot"))
+                msg.send()
 
                 messages.add_message(request, messages.INFO,
                         _("Email sent. Please check your email and click "
@@ -460,13 +513,16 @@ def masked_email(email):
     return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def reset_password(request, field="email"):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
 
     # return form class by string of class name
-    ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]
+    ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]  # noqa
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
         if form.is_valid():
@@ -486,7 +542,7 @@ def reset_password(request, field="email"):
                     user = None
 
             if user is None:
-                FIELD_DICT = {
+                FIELD_DICT = {  # noqa
                         "email": _("email address"),
                         "instid": _("institutional ID")
                         }
@@ -516,13 +572,21 @@ def reset_password(request, field="email"):
                         "home_uri": request.build_absolute_uri(
                             reverse("relate-home"))
                         })
-                    from django.core.mail import send_mail
-                    send_mail(
+                    from django.core.mail import EmailMessage
+                    msg = EmailMessage(
                             string_concat("[", _("RELATE"), "] ",
                                          _("Password reset")),
                             message,
-                            settings.ROBOT_EMAIL_FROM,
-                            recipient_list=[email])
+                            getattr(settings, "NO_REPLY_EMAIL_FROM",
+                                    settings.ROBOT_EMAIL_FROM),
+                            [email])
+
+                    from relate.utils import get_outbound_mail_connection
+                    msg.connection = (
+                            get_outbound_mail_connection("no_reply")
+                            if hasattr(settings, "NO_REPLY_EMAIL_FROM")
+                            else get_outbound_mail_connection("robot"))
+                    msg.send()
 
                     if field == "instid":
                         messages.add_message(request, messages.INFO,
@@ -568,6 +632,9 @@ class ResetPasswordStage2Form(StyledForm):
                     _("The two password fields didn't match."))
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def reset_password_stage2(request, user_id, sign_in_key):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
@@ -637,6 +704,9 @@ class SignInByEmailForm(StyledForm):
                 Submit("submit", _("Send sign-in email")))
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_by_email(request):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
@@ -667,12 +737,20 @@ def sign_in_by_email(request):
                         args=(user.id, user.sign_in_key,))),
                 "home_uri": request.build_absolute_uri(reverse("relate-home"))
                 })
-            from django.core.mail import send_mail
-            send_mail(
+            from django.core.mail import EmailMessage
+            msg = EmailMessage(
                     _("Your %(RELATE)s sign-in link") % {"RELATE": _("RELATE")},
                     message,
-                    settings.ROBOT_EMAIL_FROM,
-                    recipient_list=[email])
+                    getattr(settings, "NO_REPLY_EMAIL_FROM",
+                            settings.ROBOT_EMAIL_FROM),
+                    [email])
+
+            from relate.utils import get_outbound_mail_connection
+            msg.connection = (
+                get_outbound_mail_connection("no_reply")
+                if hasattr(settings, "NO_REPLY_EMAIL_FROM")
+                else get_outbound_mail_connection("robot"))
+            msg.send()
 
             messages.add_message(request, messages.INFO,
                     _("Email sent. Please check your email and click the link."))
@@ -687,6 +765,9 @@ def sign_in_by_email(request):
         })
 
 
+@user_passes_test(
+        lambda user: not user.username,
+        login_url='relate-logout-confirmation')
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
@@ -755,7 +836,7 @@ class UserForm(StyledModelForm):
         self.helper.layout = Layout(
                 Div("last_name", "first_name", css_class="well"),
                 Div("institutional_id", css_class="well"),
-                Div("editor_mode", css_class="well hidden-xs hidden-sm")
+                Div("editor_mode", css_class="well")
                 )
 
         self.fields["institutional_id"].help_text = (
@@ -831,7 +912,7 @@ class UserForm(StyledModelForm):
 
 
 def user_profile(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         raise PermissionDenied()
 
     user_form = None
@@ -884,33 +965,49 @@ def user_profile(request):
 # }}}
 
 
-def get_role_and_participation(request, course):
-    # "wake up" lazy object
-    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
-    user = (request.user._wrapped
-            if hasattr(request.user, '_wrapped')
-            else request.user)
+# {{{ manage auth token
 
-    if not user.is_authenticated():
-        return participation_role.unenrolled, None
+class AuthenticationTokenForm(StyledForm):
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
 
-    participations = list(Participation.objects.filter(
-            user=user,
-            course=course,
-            status=participation_status.active
-            ))
+        self.helper.add_input(Submit("reset", _("Reset")))
 
-    # The uniqueness constraint should have ensured that.
-    assert len(participations) <= 1
 
-    if len(participations) == 0:
-        return participation_role.unenrolled, None
+def manage_authentication_token(request):
+    # type: (http.HttpRequest) -> http.HttpResponse
+    if not request.user.is_authenticated:
+        raise PermissionDenied()
 
-    participation = participations[0]
-    if participation.status != participation_status.active:
-        return participation_role.unenrolled, participation
+    if request.method == 'POST':
+        form = AuthenticationTokenForm(request.POST)
+        if form.is_valid():
+            token = make_sign_in_key(request.user)
+            from django.contrib.auth.hashers import make_password
+            request.user.git_auth_token_hash = make_password(token)
+            request.user.save()
+
+            messages.add_message(request, messages.SUCCESS,
+                    _("A new authentication token has been set: %s.")
+                    % token)
+
     else:
-        return participation.role, participation
+        if request.user.git_auth_token_hash is not None:
+            messages.add_message(request, messages.INFO,
+                    _("An authentication token has previously been set."))
+        else:
+            messages.add_message(request, messages.INFO,
+                    _("No authentication token has previously been set."))
+
+        form = AuthenticationTokenForm()
+
+    return render(request, "generic-form.html", {
+        "form_description": _("Manage Git Authentication Token"),
+        "form": form
+        })
+
+# }}}
 
 
 # {{{ SAML auth backend
@@ -945,9 +1042,23 @@ class Saml2Backend(Saml2BackendBase):
 
 # {{{ sign-out
 
-@never_cache
-def sign_out(request):
+def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
+    redirect_to = request.POST.get(redirect_field_name,
+                                   request.GET.get(redirect_field_name, ''))
 
+    next_uri = ""
+    if redirect_to:
+        next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
+
+    return render(request, "sign-out-confirmation.html",
+                  {"next_uri": next_uri})
+
+
+@never_cache
+def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
+
+    redirect_to = request.POST.get(redirect_field_name,
+                                   request.GET.get(redirect_field_name, ''))
     response = None
 
     if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
@@ -959,6 +1070,8 @@ def sign_out(request):
 
     if response is not None:
         return response
+    elif redirect_to:
+        return redirect(redirect_to)
     else:
         return redirect("relate-home")
 

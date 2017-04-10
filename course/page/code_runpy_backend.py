@@ -30,7 +30,7 @@ import traceback
 try:
     from .code_feedback import Feedback, GradingComplete
 except SystemError:
-    from code_feedback import Feedback, GradingComplete
+    from code_feedback import Feedback, GradingComplete  # type: ignore
 
 
 __doc__ = """
@@ -104,6 +104,11 @@ PROTOCOL
 
         Optional.
 
+    .. attribute:: html
+
+        A list of HTML strings generated. These are aggressively sanitized
+        before being rendered.
+
     .. attribute:: points
 
         A number between 0 and 1 (inclusive).
@@ -170,7 +175,7 @@ def run_code(result, run_req):
     if getattr(run_req, "setup_code", None):
         try:
             setup_code = compile(
-                    run_req.setup_code, "<setup code>", 'exec')
+                    run_req.setup_code, "[setup code]", 'exec')
         except:
             package_exception(result, "setup_compile_error")
             return
@@ -179,7 +184,7 @@ def run_code(result, run_req):
 
     try:
         user_code = compile(
-                run_req.user_code, "<user code>", 'exec')
+                run_req.user_code, "[user code]", 'exec')
     except:
         package_exception(result, "user_compile_error")
         return
@@ -187,7 +192,7 @@ def run_code(result, run_req):
     if getattr(run_req, "test_code", None):
         try:
             test_code = compile(
-                    run_req.test_code, "<test code>", 'exec')
+                    run_req.test_code, "[test code]", 'exec')
         except:
             package_exception(result, "test_compile_error")
             return
@@ -208,11 +213,18 @@ def run_code(result, run_req):
         for name, contents in run_req.data_files.items():
             data_files[name] = b64decode(contents.encode())
 
+    generated_html = []
+    result["html"] = generated_html
+
+    def output_html(s):
+        generated_html.append(s)
+
     feedback = Feedback()
     maint_ctx = {
             "feedback": feedback,
             "user_code": user_code,
             "data_files": data_files,
+            "output_html": output_html,
             "GradingComplete": GradingComplete,
             }
 

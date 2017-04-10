@@ -22,36 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase, Client
-from accounts.models import User
+from django.test import TestCase
 
 
-class CourseCreationTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        # Set up data for the whole TestCase
-        cls.admin = User.objects.create(
-                username="testadmin",
-                password="test",
-                email="test@example.com",
-                first_name="Test",
-                last_name="Admin")
-
-    def test_course_creation(self):
-        c = Client()
-        c.login(username="testadmin", password="test")
-
-        resp = c.post("/new-course/", dict(
-            identifier="test-course",
-            hidden=True,
-            listed=True,
-            accepts_enrollment=True,
-            git_source="git://github.com/inducer/relate-sample",
-            course_file="course.yml",
-            events_file="events.yml",
-            enrollment_approval_required=True,
-            enrollment_required_email_suffix=None,
-            from_email="inform@tiker.net",
-            notify_email="inform@tiker.net"))
-
-        self.assert_(resp.status_code == 302)
+class GradeTest(TestCase):
+    pass

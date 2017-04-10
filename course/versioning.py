@@ -30,7 +30,7 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 import django.forms as forms
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.utils.translation import (
         ugettext_lazy as _,
@@ -49,11 +49,28 @@ from crispy_forms.layout import Submit
 
 from course.models import (
         Course,
-        Participation, participation_role, participation_status)
+        Participation,
+        ParticipationRole)
 
 from course.utils import course_view, render_course_page
 import paramiko
 import paramiko.client
+
+from dulwich.repo import Repo
+import dulwich.client  # noqa
+
+from course.constants import (
+        participation_status,
+        participation_permission as pperm,
+        )
+
+# {{{ for mypy
+
+from django import http  # noqa
+from typing import Tuple, List, Text, Any, Dict  # noqa
+from dulwich.client import GitClient  # noqa
+
+# }}}
 
 
 class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
@@ -63,12 +80,16 @@ class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
 
 
 def _remove_prefix(prefix, s):
+    # type: (bytes, bytes) -> bytes
+
     assert s.startswith(prefix)
 
     return s[len(prefix):]
 
 
 def transfer_remote_refs(repo, remote_refs):
+    # type: (Repo, Dict[bytes, Text]) -> None
+
     valid_refs = []
 
     if remote_refs is not None:
@@ -122,6 +143,7 @@ class DulwichParamikoSSHVendor(object):
 
 
 def get_dulwich_client_and_remote_path_from_course(course):
+    # type: (Course) -> Tuple[dulwich.client.GitClient, bytes]
     ssh_kwargs = {}
     if course.ssh_private_key:
         from six import StringIO
@@ -133,7 +155,6 @@ def get_dulwich_client_and_remote_path_from_course(course):
         return vendor
 
     # writing to another module's global variable: gross!
-    import dulwich.client
     dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor
 
     from dulwich.client import get_transport_and_path
@@ -149,8 +170,7 @@ def get_dulwich_client_and_remote_path_from_course(course):
     except AttributeError:
         pass
 
-    from dulwich.client import LocalGitClient
-    if not isinstance(client, LocalGitClient):
+    if not isinstance(client, dulwich.client.LocalGitClient):
         # LocalGitClient uses Py3 Unicode path names to refer to
         # paths, so it doesn't want an encoded path.
         remote_path = remote_path.encode("utf-8")
@@ -186,6 +206,8 @@ class CourseCreationForm(StyledModelForm):
                 }
 
     def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+
         super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         self.helper.add_input(
@@ -199,11 +221,9 @@ class CourseCreationForm(StyledModelForm):
         return self.cleaned_data["git_source"]
 
 
-@login_required
+@permission_required("course.add_course")
 def set_up_new_course(request):
-    if not request.user.is_staff:
-        raise PermissionDenied(_("only staff may create courses"))
-
+    # type: (http.HttpRequest) -> http.HttpResponse
     if request.method == "POST":
         form = CourseCreationForm(request.POST)
 
@@ -221,7 +241,6 @@ def set_up_new_course(request):
 
                 try:
                     with transaction.atomic():
-                        from dulwich.repo import Repo
                         repo = Repo.init(repo_path)
 
                         client, remote_path = \
@@ -246,11 +265,10 @@ def set_up_new_course(request):
                                     vrepo, new_course.course_root_path)
 
                         from course.validation import validate_course_content
-                        validate_course_content(
+                        validate_course_content(  # type: ignore
                                 vrepo, new_course.course_file,
                                 new_course.events_file, new_sha)
 
-                        del repo
                         del vrepo
 
                         new_course.active_git_commit_sha = new_sha.decode()
@@ -261,9 +279,15 @@ def set_up_new_course(request):
                         part = Participation()
                         part.user = request.user
                         part.course = new_course
-                        part.role = participation_role.instructor
                         part.status = participation_status.active
                         part.save()
+
+                        part.roles.set([
+                            # created by signal handler for course creation
+                            ParticipationRole.objects.get(
+                                course=new_course,
+                                identifier="instructor")
+                            ])
 
                         # }}}
 
@@ -521,12 +545,11 @@ def _get_commit_message_as_html(repo, commit_sha):
 @login_required
 @course_view
 def update_course(pctx):
-    if pctx.role not in [
-            participation_role.instructor,
-            participation_role.teaching_assistant
-            ]:
-        raise PermissionDenied(
-                _("must be instructor or TA to update course"))
+    if not (
+            pctx.has_permission(pperm.update_content)
+            or
+            pctx.has_permission(pperm.preview_content)):
+        raise PermissionDenied()
 
     course = pctx.course
     request = pctx.request
@@ -543,7 +566,7 @@ def update_course(pctx):
     previewing = bool(participation is not None
             and participation.preview_git_commit_sha)
 
-    may_update = pctx.role == participation_role.instructor
+    may_update = pctx.has_permission(pperm.update_content)
 
     response_form = None
     if request.method == "POST":

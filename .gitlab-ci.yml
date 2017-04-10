@@ -17,9 +17,28 @@ Python 3.5:
 Documentation:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
-  - "cp local_settings.py.example local_settings.py"
+  - "cp local_settings.example.py local_settings.py"
   - ". ./build-docs.sh"
   tags:
   - python3.5
   only:
   - master
+
+Mypy:
+  script:
+  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
+  - "cp local_settings.example.py local_settings.py"
+  - ". ./prepare-and-run-mypy.sh"
+  tags:
+  - python3.5
+  except:
+  - tags
+
+Flake8:
+  script:
+  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
+  - ". ./prepare-and-run-flake8.sh relate course accounts test bin"
+  tags:
+  - python3.5
+  except:
+  - tags

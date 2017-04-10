@@ -3,10 +3,15 @@
 
 <script type="text/javascript">
 
+    {#  responsive for small screen #}
+    if (window.matchMedia("(max-width: 768px)").matches) {
+        var input_element = $(".relate-interaction-container").find(".form-control");
+        input_element.removeAttr("style");
+    }
 
     $('[use-popover="true"]').each(function(){
 
-        // enable popovers
+        {# enable popovers #}
         $(this).popover({
                 trigger: "focus",
                 placement: "top",
@@ -15,7 +20,7 @@
                 content: $(this).attr("popover-content")
             })
 
-        // render TeX in popovers
+        {# render TeX in popovers #}
         .on("shown.bs.popover", function () {
             $(".popover-content").each(function() {
                     MathJax.Hub.Queue(["Typeset", MathJax.Hub, this]);
@@ -23,46 +28,47 @@
             });
         });
 
-    // {{{ move form error messages into tooltips
+    {#  {{{ move form error messages into tooltips #}
 
-    $('span[id^="error_1"]').each(function(){
-
-        var all_error_block = $(this).siblings('.help-block').andSelf();
+    $('.relate-interaction-container> * .controls:has(span[id^="error_1"])').each(function(){
+        var all_error_block = $(this).children('.help-block' || '.form-control-feedback' && '[id^="error_"]');
         all_error_block.hide();
 
         if(all_error_block.length > 1){
             var error_message = "";
             $(all_error_block).each(function(){
-                error_message += "<li align='left'>" + $(this).html() + "</li>";
-                });
-                error_message = "<ul>" + error_message + "</ul>";
-            }
-            else{
-                error_message = $(all_error_block[0]).html();
-            };
-            $(this).siblings('[use-popover]')
-                    .tooltip({
-                        placement : 'bottom',
-                        title : error_message,
-                        html: true
-                    });
-        });
+                error_message += "<li>" + $(this).html() + "</li>";
+            });
+            error_message = "<ul>" + error_message + "</ul>";
+        }
+        else{
+            error_message = $(all_error_block[0]).html();
+        }
+        $(this).children(".input-group").children(":input")
+            {# styling tooltip arrow http://stackoverflow.com/a/38279489/3437454 #}
+            .attr("data-toggle","tooltip")
+            .attr("data-placement","bottom")
+            .tooltip({
+                placement : 'bottom',
+                title : error_message,
+                html: true
+            })
+            .tooltip("show");
 
-    $('.form-inline').ready(function(){
-        MathJax.Hub.Register.StartupHook("End", function() {
+        $(this).children(".input-group").children(".tooltip")
+            .children(".tooltip-inner").addClass("tooltip-danger");
+        $(this).children(".input-group").children(".tooltip")
+            .children(".tooltip-arrow").addClass("tooltip-danger");
 
-            $('span[id^="error_1"]').each(function(){
-                $(this).siblings('[use-popover]').tooltip("show");
-
-            $('.tooltip-inner')
-                    .css("background-color", "#a94442");
-            $('.tooltip-arrow')
-                    .css("border-bottom-color", "#a94442");
+        $(this).on("shown.bs.tooltip", function () {
+            $(this).children(".input-group").children(".tooltip")
+                .children(".tooltip-inner").each(function() {
+                    MathJax.Hub.Queue(["Typeset", MathJax.Hub, this]);
             });
         });
     });
 
-    // }}}
+    {#     }}} #}
 
     $('[correctness="1"]').parent("div")
             .addClass("has-success")
@@ -77,4 +83,23 @@
             .append('<span class="glyphicon glyphicon-remove \
                     form-control-feedback" aria-hidden="true">\
                     </span>');
+
+    {# https://github.com/twbs/bootstrap/issues/15325 #}
+    $(".relate-interaction-container> * .has-feedback > input + .input-group-addon")
+            .parent("div")
+            .children(".form-control-feedback")
+            .attr("style", "right:34px;");
+
+    {# Remove feedback icons/styles when answer is edited #}
+    $(".relate-interaction-container> * .has-feedback > :input").on("change paste", function () {
+            $(this).parent("div").removeClass("has-feedback has-success has-error");
+            $(this).siblings(".form-control-feedback").remove();
+        });
+
+    $(".relate-interaction-container> * :input").on("change paste", function () {
+            $(this).parentsUntil(".form-inline").removeClass("has-error");
+            $(this).parent("div").siblings(".help-block").remove();
+            $(this).tooltip("disable");
+        });
+
 </script>

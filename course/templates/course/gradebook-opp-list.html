@@ -15,9 +15,14 @@
 {% block content %}
   <h1>{% trans "List of Grading Opportunities" %}</h1>
 
+  <a href="{% url "relate-edit_grading_opportunity" course.identifier -1 %}" class="btn btn-default">{% trans "Add grading opportunity" %}</a>
+
   <table class="table table-striped gradebook-opportunities">
     <thead>
       <th class="datacol">{% trans "Name of grading opportunity" %}</th>
+      {% if pperm.edit_grading_opportunity %}
+        <th class="datacol">{% trans "Actions" %}</th>
+      {% endif %}
       <th class="datacol">{% trans "Flow ID" %}</th>
       <th class="datacol">{% trans "Aggregation strategy" %}</th>
       <th class="datacol">{% trans "Due time" %}</th>
@@ -25,11 +30,21 @@
     </thead>
     <tbody>
       {% for opp in grading_opps %}
-      <tr>
+      <tr
+        class="
+          {% if not opp.shown_in_grade_book %}
+            relate-invisible-grading-opportunity
+          {% endif %}
+        ">
         <td class="datacol" data-order="{{ opp.identifier }}">
           <a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
           <span style="font-size:x-small">(<tt>{{ opp.identifier }}</tt>)</span>
         </td>
+        {% if pperm.edit_participation %}
+          <td class="datacol">
+            <a href="{% url "relate-edit_grading_opportunity" course.identifier opp.id %}" class="btn btn-default btn-xs">{% trans "Edit" %}</a>
+          </td>
+        {% endif %}
         <td class="datacol">
           {% if opp.flow_id %}
             <a href="{% url "relate-view_start_flow" course.identifier opp.flow_id %}">{{ opp.flow_id }}</a>
@@ -44,7 +59,7 @@
           {% endif %}
           >{{ opp.due_time }}</td>
         <td class="datacol">
-          {% if opp.shown_in_participant_grade_book %}
+          {% if opp.shown_in_participant_grade_book and opp.result_shown_in_participant_grade_book %}
             <i class="fa fa-check-square-o"></i>
           {% else %}
             <i class="fa fa-square-o"></i>

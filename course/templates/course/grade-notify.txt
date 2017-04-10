@@ -8,4 +8,4 @@ Click here to review the feedback in context:
 {{ review_uri }}
 
 {% endblocktrans %}
-{% blocktrans %}- RELATE staff {% endblocktrans %}
+- {{course.name}}-{{course.time_period}} {% blocktrans %}course staff{% endblocktrans %}

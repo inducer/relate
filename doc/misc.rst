@@ -1,9 +1,8 @@
 Installation
 ============
 
-RELATE currently works with Python 2.7. (This is because `dulwich
-<https://www.samba.org/~jelmer/dulwich/>`_, a dependency, does not yet support
-Python 3.)
+RELATE currently works with Python 2.7 and Python 3. (By default, :file:`requirements.txt`
+is set up for Python 3. See below for edit instructions if you are using Python 2.)
 
 Install `bower <http://bower.io/>`_ and its dependencies, as described on its
 web page.
@@ -28,7 +27,7 @@ the dependencies::
 
 Copy (and, optionally, edit) the example configuration::
 
-    cp local_settings.py.example local_settings.py
+    cp local_settings.example.py local_settings.py
     vi local_settings.py
 
 Initialize the database::
@@ -38,7 +37,7 @@ Initialize the database::
 
 Retrieve static (JS/CSS) dependencies::
 
-    python manage.py bower install
+    python manage.py bower_install
 
 Run the server::
 

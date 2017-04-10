@@ -8,14 +8,52 @@
 {% endblock %}
 
 {% block root_container %}
-  <div class="grading-page-student-work">
+  <div class="grading-page-student-work container">
     <div class="row">
       {# {{{ student view #}
 
+      {# {{{ past submissions #}
+
+      <div style="float: right; padding-top:1.5em; margin-right:0 !important;" class="navbar-right">
+        <div class="dropdown">
+          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            {% trans "Past submissions/grades" %}
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
+            {% for pgrade in prev_grades %}
+            <li>
+              {% if forloop.first %}
+                <a href="?">
+              {% else %}
+                <a href="?grade_id={{ pgrade.id }}">
+              {% endif %}
+
+              {% if prev_grade_id == pgrade.id %}<b>{% endif %}
+               {% trans "Submission:" %} {{ pgrade.visit.visit_time }}
+                &middot; {% trans "Grade:" %}
+                {{ pgrade.grade_time }}
+              {% if prev_grade_id == pgrade.id %}</b>{% endif %}
+
+              {% if forloop.first %}
+                {% trans "(current)" %}
+              {% endif %}
+              {% if pgrade.value == None %}
+                [{% trans "no grade" %}]
+              {% else %}
+                [{{ pgrade.value}} {% trans "points" %}]
+              {% endif %}
+            </a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      {# }}} #}
       {{ body|safe }}
 
       {% if form_html %}
-        <div class="well">
+        <div class="well relate-interaction-container">
           {{ form_html|safe }}
         </div>
       {% endif %}
@@ -41,7 +79,7 @@
 
     </div>
   </div>
-  <div class="grading-page-grade-entry">
+  <div class="grading-page-grade-entry container">
     <div class="row">
       <h1> {% trans "Grading" %}: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> </h1>
 
@@ -96,16 +134,16 @@
         <tr>
           <td>{% trans "Graded" %}</td>
           <td>
-            {% if most_recent_grade != None %}
-              {% if most_recent_grade.grader == None %}
+            {% if shown_grade != None %}
+              {% if shown_grade.grader == None %}
                 {% trans "(autograded)" %}
               {% else %}
                 {# Translators: the grade is awarded "by" some humman grader. #}
-                {% blocktrans trimmed with grader_name=most_recent_grade.grader.get_full_name %}
+                {% blocktrans trimmed with grader_name=shown_grade.grader.get_full_name %}
                 by {{ grader_name }}
                 {% endblocktrans %}
               {% endif %}
-              {% with time=most_recent_grade.grade_time %}
+              {% with time=shown_grade.grade_time %}
               {% trans "at" context "at (what time)" %} {{ time }}
               {% endwith %}
             {% else %}

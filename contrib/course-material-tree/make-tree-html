@@ -8,19 +8,28 @@ import re
 
 section_nr = [1]
 
+
 def normalize_nodes(nodes, text_icon):
     for i in range(len(nodes)):
         node = nodes[i]
         if isinstance(node, str):
             node = {"text": node, "icon": text_icon}
 
+        assign_section_number = False
+
         if "section_nr" in node and node["section_nr"] is not False:
-            section_nr[0] = node["section_nr"]
+            if node["section_nr"] is True:
+                assign_section_number = True
+            else:
+                section_nr[0] = node["section_nr"]
 
         if "section" in node:
             if node.get("section_nr") is not False:
-                node["section_nr"] = section_nr[0]
-                section_nr[0] += 1
+                assign_section_number = True
+
+        if assign_section_number:
+            node["section_nr"] = section_nr[0]
+            section_nr[0] += 1
 
         nodes[i] = node
 
@@ -65,7 +74,7 @@ def render(settings, outf, node, indent=0, skip=1):
         from json import dumps
         print(
             indent * " ",
-            "<li data-jstree='%s'>" % dumps(attrs).replace("'", '"'),
+            "<li data-jstree='%s'>" % dumps(attrs, sort_keys=True).replace("'", '"'),
             file=outf, sep="")
         indent += 2
         if "link" in node:
@@ -90,6 +99,7 @@ def render(settings, outf, node, indent=0, skip=1):
     if not skip:
         indent -= 2
         print(indent * " ", "</li>", file=outf, sep="")
+
 
 FN_REGEX = re.compile(r"^([0-9]+)-(.*)(\.[a-z]+)$")
 
@@ -119,6 +129,13 @@ def get_section_id_and_display_name(trunk, include_extension):
     return section_id, display_name
 
 
+def blacklisted_glob(basedir, pattern, blacklist_regexps):
+    return sorted(
+            name
+            for name in glob(join(basedir, pattern))
+            if not any(bl_re.match(name[len(basedir)+1:])
+                for bl_re in blacklist_regexps))
+
 
 def main():
     import argparse
@@ -134,6 +151,9 @@ def main():
     parser.add_argument("--ipynb-as-py", action="store_true")
     parser.add_argument("--ipynb-as-ipynb", action="store_true")
 
+    parser.add_argument("--binder-urlroot", metavar="URL",
+            help="(without the trailing slash)")
+
     parser.add_argument("--py-dir", metavar="DIRECTORY")
     parser.add_argument("--py-urlroot", metavar="URL",
             help="(without the trailing slash)")
@@ -147,10 +167,19 @@ def main():
     parser.add_argument("--text-icon", metavar="ICON_STR",
             default="fa fa-file-o")
     parser.add_argument("--number-sections", action="store_true")
+    parser.add_argument("--blacklist-file", metavar="PATTERN_FILE")
 
     parser.add_argument("input_file", metavar="FILE")
 
     args = parser.parse_args()
+
+    if args.blacklist_file is not None:
+        blacklist_regexps = []
+        with open(args.blacklist_file, "rt") as bl_file:
+            import fnmatch
+            for pattern in bl_file:
+                blacklist_regexps.append(
+                        re.compile(fnmatch.translate(pattern.strip())))
 
     from yaml import load
     with open(args.input_file, "rb") as inf:
@@ -164,7 +193,8 @@ def main():
     # {{{ demos
 
     if args.ipynb_dir is not None:
-        for fn in sorted(glob(join(args.ipynb_dir, "*", "*.ipynb"))):
+        for fn in blacklisted_glob(args.ipynb_dir, join("*", "*.ipynb"),
+                blacklist_regexps):
             trunk = fn[len(args.ipynb_dir)+1:]
 
             section_id, display_name = get_section_id_and_display_name(
@@ -172,12 +202,23 @@ def main():
 
             link_ipynb = args.ipynb_urlroot + "/" + trunk
             link_html = link_ipynb.replace(".ipynb", ".html")
+            main_link = link_html
 
             sub_nodes = [{
                         "text": "View on the web",
                         "link": link_html,
                         "icon": "fa fa-newspaper-o",
                         }]
+
+            if args.binder_urlroot:
+                binder_url = args.binder_urlroot + "/" + trunk
+
+                sub_nodes.append({
+                    "text": "Run interactively (on mybinder.org)",
+                    "link": binder_url,
+                    "icon": "fa fa-keyboard-o",
+                    })
+                main_link = binder_url
 
             if args.ipynb_as_py:
                 link_py = link_ipynb.replace(".ipynb", ".py")
@@ -196,19 +237,21 @@ def main():
 
             demo_node = {
                 "text": "Demo: " + display_name,
-                "link": link_html,
+                "link": main_link,
                 "icon": "fa fa-keyboard-o",
                 "nodes": sub_nodes,
                 }
 
-            section_dict[section_id]["nodes"].append(demo_node)
+            if section_id in section_dict:
+                section_dict[section_id]["nodes"].append(demo_node)
 
     # }}}
 
     # {{{ python source
 
     if args.py_dir is not None:
-        for fn in sorted(glob(join(args.py_dir, "*", "*.py"))):
+        for fn in blacklisted_glob(args.py_dir, join("*", "*.py"),
+                blacklist_regexps):
             trunk = fn[len(args.py_dir)+1:]
             section_id, display_name = get_section_id_and_display_name(
                     trunk, include_extension=True)
@@ -218,14 +261,16 @@ def main():
                 "link": args.py_urlroot + "/" + trunk,
                 "icon": "fa fa-file-text-o",
             }
-            section_dict[section_id]["nodes"].append(src_node)
+            if section_id in section_dict:
+                section_dict[section_id]["nodes"].append(src_node)
 
     # }}}
 
     # {{{ notes
 
     if args.pdf_dir is not None:
-        for fn in sorted(glob(join(args.pdf_dir, "*.pdf"))):
+        for fn in blacklisted_glob(args.pdf_dir, join("*.pdf"),
+                blacklist_regexps):
             if "autosave" in fn:
                 continue
 
@@ -238,11 +283,13 @@ def main():
                 "link": args.pdf_urlroot + "/" + trunk,
                 "icon": "fa fa-book",
                 }
-            section_dict[section_id]["nodes"].insert(0, notes_node)
+
+            if section_id in section_dict:
+                section_dict[section_id]["nodes"].insert(0, notes_node)
 
     # }}}
 
-    with open(args.output_file, "wt") as outf:
+    with open(args.output_file, "wt", encoding="utf-8") as outf:
         render(
                 RenderSettings(
                     default_icon=args.default_icon,

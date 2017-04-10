@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 import six
 
+from typing import Any  # noqa
+
 from django.utils.translation import (
         ugettext_lazy as _, string_concat, pgettext)
 from django.contrib import admin
@@ -31,7 +33,9 @@ from django.contrib import admin
 from course.models import (
         Course, Event,
         ParticipationTag,
-        Participation, ParticipationPreapproval,
+        Participation, ParticipationPermission,
+        ParticipationRole, ParticipationRolePermission,
+        ParticipationPreapproval,
         InstantFlowRequest,
         FlowSession, FlowPageData,
         FlowPageVisit, FlowPageVisitGrade,
@@ -40,22 +44,22 @@ from course.models import (
         Exam, ExamTicket)
 from django import forms
 from course.enrollment import (approve_enrollment, deny_enrollment)
-from course.constants import participation_role, exam_ticket_states
+from course.constants import (
+        participation_permission as pperm,
+        exam_ticket_states
+        )
 
 
 # {{{ permission helpers
 
-admin_roles = [
-    participation_role.instructor,
-    participation_role.teaching_assistant]
-
-
 def _filter_courses_for_user(queryset, user):
     if user.is_superuser:
         return queryset
-    return queryset.filter(
+    z = queryset.filter(
             participations__user=user,
-            participations__role__in=admin_roles)
+            participations__roles__permissions__permission=pperm.use_admin_interface)
+    print(z.query)
+    return z
 
 
 def _filter_course_linked_obj_for_user(queryset, user):
@@ -63,7 +67,9 @@ def _filter_course_linked_obj_for_user(queryset, user):
         return queryset
     return queryset.filter(
             course__participations__user=user,
-            course__participations__role__in=admin_roles)
+            course__participations__roles__permissions__permission  # noqa
+            =pperm.use_admin_interface
+            )
 
 
 def _filter_participation_linked_obj_for_user(queryset, user):
@@ -71,7 +77,8 @@ def _filter_participation_linked_obj_for_user(queryset, user):
         return queryset
     return queryset.filter(
         participation__course__participations__user=user,
-        participation__course__participations__role__in=admin_roles)
+        participation__course__participations__roles__permissions__permission  # noqa
+        =pperm.use_admin_interface)
 
 # }}}
 
@@ -143,6 +150,7 @@ class CourseAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(Course, CourseAdmin)
 
 # }}}
@@ -190,6 +198,7 @@ class EventAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(Event, EventAdmin)
 
 # }}}
@@ -215,6 +224,7 @@ class ParticipationTagAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(ParticipationTag, ParticipationTagAdmin)
 
 # }}}
@@ -222,10 +232,29 @@ admin.site.register(ParticipationTag, ParticipationTagAdmin)
 
 # {{{ participations
 
+class ParticipationRolePermissionInline(admin.TabularInline):
+    model = ParticipationRolePermission
+    extra = 3
+
+
+class ParticipationRoleAdmin(admin.ModelAdmin):
+    inlines = (ParticipationRolePermissionInline,)
+
+    list_filter = ("course", "identifier")
+
+
+admin.site.register(ParticipationRole, ParticipationRoleAdmin)
+
+
+class ParticipationPermissionInline(admin.TabularInline):
+    model = ParticipationPermission
+    extra = 3
+
+
 class ParticipationForm(forms.ModelForm):
     class Meta:
         model = Participation
-        exclude = ()
+        exclude = ("role",)
 
     def clean(self):
         super(ParticipationForm, self).clean()
@@ -237,13 +266,24 @@ class ParticipationForm(forms.ModelForm):
                     {"tags": _("Tags must belong to same course as "
                                "participation.")})
 
+        for role in self.cleaned_data.get("roles", []):
+            if role.course != self.cleaned_data.get("course"):
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    {"roles": _("Role must belong to same course as "
+                               "participation.")})
+
 
 class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
 
-    def get_user(self, obj):
+    def get_roles(self, obj):
+        return ", ".join(six.text_type(role.name) for role in obj.roles.all())
 
-        from django.core.urlresolvers import reverse
+    get_roles.short_description = _("Roles")  # type: ignore
+
+    def get_user(self, obj):
+        from django.urls import reverse
         from django.conf import settings
 
         return string_concat(
@@ -259,22 +299,22 @@ class ParticipationAdmin(admin.ModelAdmin):
                         force_verbose_blank=True),
                     }
 
-    get_user.short_description = pgettext("real name of a user", "Name")
-    get_user.admin_order_field = "user__last_name"
-    get_user.allow_tags = True
+    get_user.short_description = pgettext("real name of a user", "Name")  # type:ignore  # noqa
+    get_user.admin_order_field = "user__last_name"  # type: ignore
+    get_user.allow_tags = True  # type: ignore
 
     list_display = (
             "user",
             "get_user",
             "course",
-            "role",
+            "get_roles",
             "status",
             )
-    list_filter = ("course", "role", "status", "tags")
+    list_filter = ("course", "roles__name", "status", "tags")
 
     raw_id_fields = ("user",)
 
-    filter_horizontal = ("tags",)
+    filter_horizontal = ("tags", "roles",)
 
     search_fields = (
             "course__identifier",
@@ -284,6 +324,10 @@ class ParticipationAdmin(admin.ModelAdmin):
             )
 
     actions = [approve_enrollment, deny_enrollment]
+
+    inlines = (ParticipationPermissionInline,)
+
+    save_on_top = True
 
     # {{{ permissions
 
@@ -303,13 +347,19 @@ class ParticipationAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(Participation, ParticipationAdmin)
 
 
 class ParticipationPreapprovalAdmin(admin.ModelAdmin):
-    list_display = ("email", "institutional_id", "course", "role",
+    def get_roles(self, obj):
+        return ", ".join(six.text_type(role.name) for role in obj.roles.all())
+
+    get_roles.short_description = _("Roles")  # type: ignore
+
+    list_display = ("email", "institutional_id", "course", "get_roles",
             "creation_time", "creator")
-    list_filter = ("course", "role")
+    list_filter = ("course", "roles")
 
     search_fields = (
             "email", "institutional_id",
@@ -323,7 +373,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
             return qs
         return _filter_course_linked_obj_for_user(qs, request.user)
 
-    exclude = ("creator", "creation_time")
+    exclude = ("creator", "creation_time", "role")
 
     def save_model(self, request, obj, form, change):
         obj.creator = request.user
@@ -337,6 +387,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
                 db_field, request, **kwargs)
 
     # }}}
+
 
 admin.site.register(ParticipationPreapproval, ParticipationPreapprovalAdmin)
 
@@ -352,6 +403,7 @@ class InstantFlowRequestAdmin(admin.ModelAdmin):
     search_fields = (
             "email",
             )
+
 
 admin.site.register(InstantFlowRequest, InstantFlowRequestAdmin)
 
@@ -370,8 +422,8 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
         return obj.participation.user
 
-    get_participant.short_description = _("Participant")
-    get_participant.admin_order_field = "participation__user"
+    get_participant.short_description = _("Participant")  # type: ignore
+    get_participant.admin_order_field = "participation__user"  # type: ignore
 
     search_fields = (
             "=id",
@@ -436,6 +488,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(FlowSession, FlowSessionAdmin)
 
 # }}}
@@ -468,13 +521,13 @@ class HasAnswerListFilter(admin.SimpleListFilter):
 class FlowPageVisitAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.flow_session.course
-    get_course.short_description = _("Course")
-    get_course.admin_order_field = "flow_session__course"
+    get_course.short_description = _("Course")  # type: ignore
+    get_course.admin_order_field = "flow_session__course"  # type: ignore
 
     def get_flow_id(self, obj):
         return obj.flow_session.flow_id
-    get_flow_id.short_description = _("Flow ID")
-    get_flow_id.admin_order_field = "flow_session__flow_id"
+    get_flow_id.short_description = _("Flow ID")  # type: ignore
+    get_flow_id.admin_order_field = "flow_session__flow_id"  # type: ignore
 
     def get_page_id(self, obj):
         if obj.page_data.ordinal is None:
@@ -487,8 +540,8 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
                     obj.page_data.page_id,
                     obj.page_data.ordinal)
 
-    get_page_id.short_description = _("Page ID")
-    get_page_id.admin_order_field = "page_data__page_id"
+    get_page_id.short_description = _("Page ID")  # type: ignore
+    get_page_id.admin_order_field = "page_data__page_id"  # type: ignore
 
     def get_participant(self, obj):
         if obj.flow_session.participation:
@@ -496,18 +549,18 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
         else:
             return string_concat("(", _("anonymous"), ")")
 
-    get_participant.short_description = _("Owner")
-    get_participant.admin_order_field = "flow_session__participation"
+    get_participant.short_description = _("Owner")  # type: ignore
+    get_participant.admin_order_field = "flow_session__participation"  # type: ignore
 
     def get_answer_is_null(self, obj):
         return obj.answer is not None
-    get_answer_is_null.short_description = _("Has answer")
-    get_answer_is_null.boolean = True
+    get_answer_is_null.short_description = _("Has answer")  # type: ignore
+    get_answer_is_null.boolean = True  # type: ignore
 
     def get_flow_session_id(self, obj):
         return obj.flow_session.id
-    get_flow_session_id.short_description = _("Flow Session ID")
-    get_flow_session_id.admin_order_field = "flow_session__id"
+    get_flow_session_id.short_description = _("Flow Session ID")  # type: ignore
+    get_flow_session_id.admin_order_field = "flow_session__id"  # type: ignore
 
     list_filter = (
             HasAnswerListFilter,
@@ -564,9 +617,11 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(
             flow_session__course__participations__user=request.user,
-            flow_session__course__participations__role__in=admin_roles)
+            flow_session__course__participations__roles__permissions__permission  # noqa
+            =pperm.use_admin_interface)
 
     # }}}
+
 
 admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 
@@ -578,13 +633,13 @@ admin.site.register(FlowPageVisit, FlowPageVisitAdmin)
 class FlowRuleExceptionAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
-    get_course.short_description = _("Course")
-    get_course.admin_order_field = "participation__course"
+    get_course.short_description = _("Course")  # type: ignore
+    get_course.admin_order_field = "participation__course"  # type: ignore
 
     def get_participant(self, obj):
         return obj.participation.user
-    get_participant.short_description = _("Participant")
-    get_participant.admin_order_field = "participation__user"
+    get_participant.short_description = _("Participant")  # type: ignore
+    get_participant.admin_order_field = "participation__user"  # type: ignore
 
     search_fields = (
             "flow_id",
@@ -678,24 +733,25 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(GradingOpportunity, GradingOpportunityAdmin)
 
 
 class GradeChangeAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
-    get_course.short_description = _("Course")
-    get_course.admin_order_field = "participation__course"
+    get_course.short_description = _("Course")  # type: ignore
+    get_course.admin_order_field = "participation__course"  # type: ignore
 
     def get_opportunity(self, obj):
         return obj.opportunity.name
-    get_opportunity.short_description = _("Opportunity")
-    get_opportunity.admin_order_field = "opportunity"
+    get_opportunity.short_description = _("Opportunity")  # type: ignore
+    get_opportunity.admin_order_field = "opportunity"  # type: ignore
 
     def get_participant(self, obj):
         return obj.participation.user
-    get_participant.short_description = _("Participant")
-    get_participant.admin_order_field = "participation__user"
+    get_participant.short_description = _("Participant")  # type: ignore
+    get_participant.admin_order_field = "participation__user"  # type: ignore
 
     def get_percentage(self, obj):
         if obj.points is None or obj.max_points is None:
@@ -703,7 +759,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
         else:
             return round(100*obj.points/obj.max_points)
 
-    get_percentage.short_description = "%"
+    get_percentage.short_description = "%"  # type: ignore
 
     list_display = (
             "get_opportunity",
@@ -754,6 +810,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(GradeChange, GradeChangeAdmin)
 
 # }}}
@@ -764,13 +821,13 @@ admin.site.register(GradeChange, GradeChangeAdmin)
 class InstantMessageAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
-    get_course.short_description = _("Course")
-    get_course.admin_order_field = "participation__course"
+    get_course.short_description = _("Course")  # type: ignore
+    get_course.admin_order_field = "participation__course"  # type: ignore
 
     def get_participant(self, obj):
         return obj.participation.user
-    get_participant.short_description = _("Participant")
-    get_participant.admin_order_field = "participation__user"
+    get_participant.short_description = _("Participant")  # type: ignore
+    get_participant.admin_order_field = "participation__user"  # type: ignore
 
     list_filter = ("participation__course",)
     list_display = (
@@ -803,6 +860,7 @@ class InstantMessageAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(InstantMessage, InstantMessageAdmin)
 
 # }}}
@@ -814,12 +872,14 @@ class ExamAdmin(admin.ModelAdmin):
     list_filter = (
             "course",
             "active",
+            "listed",
             )
 
     list_display = (
             "course",
             "flow_id",
             "active",
+            "listed",
             "no_exams_before",
             )
 
@@ -844,6 +904,7 @@ class ExamAdmin(admin.ModelAdmin):
 
     # }}}
 
+
 admin.site.register(Exam, ExamAdmin)
 
 
@@ -851,13 +912,15 @@ class ExamTicketAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.participation.course
 
-    get_course.short_description = _("Participant")
-    get_course.admin_order_field = "participation__course"
+    get_course.short_description = _("Course")  # type: ignore
+    get_course.admin_order_field = "participation__course"  # type: ignore
 
     list_filter = (
             "participation__course",
             "state",
             )
+
+    raw_id_fields = ("participation",)
 
     list_display = (
             "get_course",
@@ -898,9 +961,10 @@ class ExamTicketAdmin(admin.ModelAdmin):
                 .filter(state=exam_ticket_states.valid) \
                 .update(state=exam_ticket_states.revoked)
 
-    revoke_exam_tickets.short_description = _("Revoke Exam Tickets")
+    revoke_exam_tickets.short_description = _("Revoke Exam Tickets")  # type: ignore
 
     actions = [revoke_exam_tickets]
+
 
 admin.site.register(ExamTicket, ExamTicketAdmin)
 

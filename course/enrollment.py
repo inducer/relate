@@ -34,11 +34,13 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import transaction, IntegrityError
 from django import forms
+from django import http  # noqa
 from django.utils import translation
 from django.utils.safestring import mark_safe
 
@@ -47,17 +49,113 @@ from crispy_forms.layout import Submit
 from course.models import (
         user_status,
         Course,
-        Participation, ParticipationPreapproval,
+        Participation,
+        ParticipationPreapproval,
+        ParticipationPermission,
+        ParticipationRole,
         ParticipationTag,
-        participation_role, participation_status,
-        PARTICIPATION_ROLE_CHOICES)
+        participation_status)
 
-from course.views import get_role_and_participation
+from course.constants import (
+        PARTICIPATION_PERMISSION_CHOICES,
+        participation_permission as pperm,
+        )
+
+from course.auth import UserSearchWidget
+
 from course.utils import course_view, render_course_page
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, StyledModelForm
 
-from pytools.lex import RE as REBase
+from pytools.lex import RE as REBase  # noqa
+
+# {{{ for mypy
+
+from typing import Any, Tuple, Text, Optional, List  # noqa
+from course.utils import CoursePageContext  # noqa
+
+# }}}
+
+
+# {{{ get_participation_for_request
+
+def get_participation_for_request(request, course):
+    # type: (http.HttpRequest, Course) -> Optional[Participation]
+
+    # "wake up" lazy object
+    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
+    user = request.user
+    try:
+        possible_user = user._wrapped
+    except AttributeError:
+        pass
+    else:
+        if isinstance(possible_user, get_user_model()):
+            user = possible_user
+
+    if not user.is_authenticated:
+        return None
+
+    participations = list(Participation.objects.filter(
+            user=user,
+            course=course,
+            status=participation_status.active
+            ))
+
+    # The uniqueness constraint should have ensured that.
+    assert len(participations) <= 1
+
+    if len(participations) == 0:
+        return None
+
+    return participations[0]
+
+# }}}
+
+
+# {{{ get_participation_role_identifiers
+
+def get_participation_role_identifiers(course, participation):
+    # type: (Course, Optional[Participation]) -> List[Text]
+
+    if participation is None:
+        return (
+                ParticipationRole.objects.filter(
+                    course=course,
+                    is_default_for_unenrolled=True)
+                .values_list("identifier", flat=True))
+
+    else:
+        return [r.identifier for r in participation.roles.all()]
+
+# }}}
+
+
+# {{{ get_permissions
+
+def get_participation_permissions(
+        course,  # type: Course
+        participation,  # type: Optional[Participation]
+        ):
+    # type: (...) -> frozenset[Tuple[Text, Optional[Text]]]
+
+    if participation is not None:
+        return participation.permissions()
+    else:
+        from course.models import ParticipationRolePermission
+
+        perm_list = list(
+                ParticipationRolePermission.objects.filter(
+                    role__is_default_for_unenrolled=True)
+                .values_list("permission", "argument"))
+
+        perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm_list)
+
+        return perm
+
+# }}}
 
 
 # {{{ enrollment
@@ -65,10 +163,12 @@ from pytools.lex import RE as REBase
 @login_required
 @transaction.atomic
 def enroll_view(request, course_identifier):
-    course = get_object_or_404(Course, identifier=course_identifier)
-    role, participation = get_role_and_participation(request, course)
+    # type: (http.HttpRequest, str) -> http.HttpResponse
 
-    if role != participation_role.unenrolled:
+    course = get_object_or_404(Course, identifier=course_identifier)
+    participation = get_participation_for_request(request, course)
+
+    if participation is not None:
         messages.add_message(request, messages.ERROR,
                 _("Already enrolled. Cannot re-renroll."))
         return redirect("relate-course_page", course_identifier)
@@ -120,15 +220,18 @@ def enroll_view(request, course_identifier):
                 "enroll.") % course.enrollment_required_email_suffix)
         return redirect("relate-course_page", course_identifier)
 
-    role = participation_role.student
+    roles = ParticipationRole.objects.filter(
+            course=course,
+            is_default_for_new_participants=True)
 
     if preapproval is not None:
-        role = preapproval.role
+        roles = list(preapproval.roles.all())
 
     try:
         if course.enrollment_approval_required and preapproval is None:
-            handle_enrollment_request(course, user, participation_status.requested,
-                                      role, request)
+            participation = handle_enrollment_request(
+                    course, user, participation_status.requested,
+                    roles, request)
 
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
@@ -137,26 +240,28 @@ def enroll_view(request, course_identifier):
                     "course": course,
                     "admin_uri": mark_safe(
                         request.build_absolute_uri(
-                            reverse("admin:course_participation_changelist")
-                            +
-                            "?status__exact=requested&course__id__exact=%d"
-                            % course.id))
+                            reverse("relate-edit_participation",
+                                args=(course.identifier, participation.id))))
                     })
 
-                from django.core.mail import send_mail
-                send_mail(
+                from django.core.mail import EmailMessage
+                msg = EmailMessage(
                         string_concat("[%s] ", _("New enrollment request"))
                         % course_identifier,
                         message,
                         settings.ROBOT_EMAIL_FROM,
-                        recipient_list=[course.notify_email])
+                        [course.notify_email])
+
+                from relate.utils import get_outbound_mail_connection
+                msg.connection = get_outbound_mail_connection("robot")
+                msg.send()
 
             messages.add_message(request, messages.INFO,
                     _("Enrollment request sent. You will receive notifcation "
                     "by email once your request has been acted upon."))
         else:
             handle_enrollment_request(course, user, participation_status.active,
-                                      role, request)
+                                      roles, request)
 
             messages.add_message(request, messages.SUCCESS,
                     _("Successfully enrolled."))
@@ -169,7 +274,8 @@ def enroll_view(request, course_identifier):
 
 
 @transaction.atomic
-def handle_enrollment_request(course, user, status, role, request=None):
+def handle_enrollment_request(course, user, status, roles, request=None):
+    # type: (Course, Any, Text, List[Text], Optional[http.HttpRequest]) -> Participation  # noqa
     participations = Participation.objects.filter(course=course, user=user)
 
     assert participations.count() <= 1
@@ -177,9 +283,11 @@ def handle_enrollment_request(course, user, status, role, request=None):
         participation = Participation()
         participation.user = user
         participation.course = course
-        participation.role = role
         participation.status = status
         participation.save()
+
+        if roles is not None:
+            participation.roles.set(roles)
     else:
         (participation,) = participations
         participation.status = status
@@ -189,8 +297,8 @@ def handle_enrollment_request(course, user, status, role, request=None):
         send_enrollment_decision(participation, True, request)
     elif status == participation_status.denied:
         send_enrollment_decision(participation, False, request)
-    else:
-        return
+
+    return participation
 
 # }}}
 
@@ -220,48 +328,53 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 
 
 def send_enrollment_decision(participation, approved, request=None):
-        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-            course = participation.course
-            if request:
-                course_uri = request.build_absolute_uri(
-                        reverse("relate-course_page",
-                            args=(course.identifier,)))
-            else:
-                # This will happen when this method is triggered by
-                # a model signal which doesn't contain a request object.
-                from urlparse import urljoin
-                course_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
-                                     course.get_absolute_url())
+    # type: (Participation, bool, http.HttpRequest) -> None
 
-            from django.template.loader import render_to_string
-            message = render_to_string("course/enrollment-decision-email.txt", {
-                "user": participation.user,
-                "approved": approved,
-                "course": course,
-                "course_uri": course_uri
-                })
+    with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+        course = participation.course
+        if request:
+            course_uri = request.build_absolute_uri(
+                    reverse("relate-course_page",
+                        args=(course.identifier,)))
+        else:
+            # This will happen when this method is triggered by
+            # a model signal which doesn't contain a request object.
+            from six.moves.urllib.parse import urljoin
+            course_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
+                                 course.get_absolute_url())
 
-            from django.core.mail import EmailMessage
-            msg = EmailMessage(
-                    string_concat("[%s] ", _("Your enrollment request"))
-                    % course.identifier,
-                    message,
-                    course.from_email,
-                    [participation.user.email])
-            msg.bcc = [course.notify_email]
-            msg.send()
+        from django.template.loader import render_to_string
+        message = render_to_string("course/enrollment-decision-email.txt", {
+            "user": participation.user,
+            "approved": approved,
+            "course": course,
+            "course_uri": course_uri
+            })
+
+        from django.core.mail import EmailMessage
+        msg = EmailMessage(
+                string_concat("[%s] ", _("Your enrollment request"))
+                % course.identifier,
+                message,
+                course.get_from_email(),
+                [participation.user.email])
+        msg.bcc = [course.notify_email]
+        if not settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
+            from relate.utils import get_outbound_mail_connection
+            msg.connection = get_outbound_mail_connection("robot")
+        msg.send()
 
 
 def approve_enrollment(modeladmin, request, queryset):
     decide_enrollment(True, modeladmin, request, queryset)
 
-approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")
+approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")  # type:ignore  # noqa
 
 
 def deny_enrollment(modeladmin, request, queryset):
     decide_enrollment(False, modeladmin, request, queryset)
 
-deny_enrollment.short_description = _("Deny enrollment")
+deny_enrollment.short_description = _("Deny enrollment")  # type:ignore  # noqa
 
 # }}}
 
@@ -269,24 +382,27 @@ deny_enrollment.short_description = _("Deny enrollment")
 # {{{ preapprovals
 
 class BulkPreapprovalsForm(StyledForm):
-    role = forms.ChoiceField(
-            choices=PARTICIPATION_ROLE_CHOICES,
-            initial=participation_role.student,
-            label=_("Role"))
-    preapproval_type = forms.ChoiceField(
-            choices=(
-                ("email", _("Email")),
-                ("institutional_id", _("Institutional ID")),
-                ),
-            initial="email",
-            label=_("Preapproval type"))
-    preapproval_data = forms.CharField(required=True, widget=forms.Textarea,
-            help_text=_("Enter fully qualified data according to \"Preapproval"
-                        "type\" you selected, one per line."),
-            label=_("Preapproval data"))
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, course, *args, **kwargs):
         super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
+
+        self.fields["roles"] = forms.ModelMultipleChoiceField(
+                queryset=(
+                    ParticipationRole.objects
+                    .filter(course=course)
+                    ),
+                label=_("Roles"))
+        self.fields["preapproval_type"] = forms.ChoiceField(
+                choices=(
+                    ("email", _("Email")),
+                    ("institutional_id", _("Institutional ID")),
+                    ),
+                initial="email",
+                label=_("Preapproval type"))
+        self.fields["preapproval_data"] = forms.CharField(
+                required=True, widget=forms.Textarea,
+                help_text=_("Enter fully qualified data according to the "
+                            "\"Preapproval type\" you selected, one per line."),
+                label=_("Preapproval data"))
 
         self.helper.add_input(
                 Submit("submit", _("Preapprove")))
@@ -296,20 +412,20 @@ class BulkPreapprovalsForm(StyledForm):
 @transaction.atomic
 @course_view
 def create_preapprovals(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied(_("only instructors may do that"))
+    if not pctx.has_permission(pperm.preapprove_participation):
+        raise PermissionDenied(_("may not preapprove participation"))
 
     request = pctx.request
 
     if request.method == "POST":
-        form = BulkPreapprovalsForm(request.POST)
+        form = BulkPreapprovalsForm(pctx.course, request.POST)
         if form.is_valid():
 
             created_count = 0
             exist_count = 0
             pending_approved_count = 0
 
-            role = form.cleaned_data["role"]
+            roles = form.cleaned_data["roles"]
             for l in form.cleaned_data["preapproval_data"].split("\n"):
                 l = l.strip()
                 preapp_type = form.cleaned_data["preapproval_type"]
@@ -350,9 +466,9 @@ def create_preapprovals(pctx):
                     preapproval = ParticipationPreapproval()
                     preapproval.email = l
                     preapproval.course = pctx.course
-                    preapproval.role = role
                     preapproval.creator = request.user
                     preapproval.save()
+                    preapproval.roles.set(roles)
 
                     created_count += 1
 
@@ -392,9 +508,9 @@ def create_preapprovals(pctx):
                     preapproval = ParticipationPreapproval()
                     preapproval.institutional_id = l
                     preapproval.course = pctx.course
-                    preapproval.role = role
                     preapproval.creator = request.user
                     preapproval.save()
+                    preapproval.roles.set(roles)
 
                     created_count += 1
 
@@ -411,7 +527,7 @@ def create_preapprovals(pctx):
             return redirect("relate-course_page", pctx.course.identifier)
 
     else:
-        form = BulkPreapprovalsForm()
+        form = BulkPreapprovalsForm(pctx.course)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
@@ -448,6 +564,7 @@ _whitespace = intern("whitespace")
 
 class RE(REBase):
     def __init__(self, s):
+        # type: (str) -> None
         import re
         super(RE, self).__init__(s, re.UNICODE)
 
@@ -624,9 +741,9 @@ class ParticipationQueryForm(StyledForm):
     queries = forms.CharField(
             required=True,
             widget=forms.Textarea,
-            help_text=_(
-                "Enter queries, one per line. "
-                "Allowed: "
+            help_text=string_concat(
+                _("Enter queries, one per line."), " ",
+                _("Allowed"), ": ",
                 "<code>and</code>, "
                 "<code>or</code>, "
                 "<code>not</code>, "
@@ -668,8 +785,8 @@ class ParticipationQueryForm(StyledForm):
 @transaction.atomic
 @course_view
 def query_participations(pctx):
-    if pctx.role != participation_role.instructor:
-        raise PermissionDenied(_("only instructors may do that"))
+    if not pctx.has_permission(pperm.query_participation):
+        raise PermissionDenied(_("may not query participations"))
 
     request = pctx.request
 
@@ -741,6 +858,170 @@ def query_participations(pctx):
         "form": form,
         "result": result,
     })
+
+# }}}
+
+
+# {{{ edit_participation
+
+class EditParticipationForm(StyledModelForm):
+    def __init__(self, add_new, pctx, *args, **kwargs):
+        # type: (bool, CoursePageContext, *Any, **Any) -> None
+        super(EditParticipationForm, self).__init__(*args, **kwargs)
+
+        participation = self.instance
+
+        self.fields["status"].disabled = True
+        self.fields["preview_git_commit_sha"].disabled = True
+        self.fields["enroll_time"].disabled = True
+
+        if not add_new:
+            self.fields["user"].disabled = True
+
+        may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
+        if not may_edit_permissions:
+            self.fields["roles"].disabled = True
+            # FIXME Add individual permissions
+
+        self.fields["roles"].queryset = (
+                ParticipationRole.objects.filter(
+                    course=participation.course))
+        self.fields["tags"].queryset = (
+                ParticipationTag.objects.filter(
+                    course=participation.course))
+
+        self.fields["individual_permissions"] = forms.MultipleChoiceField(
+                choices=PARTICIPATION_PERMISSION_CHOICES,
+                disabled=not may_edit_permissions,
+                widget=forms.CheckboxSelectMultiple,
+                help_text=_("Permissions for this participant in addition to those "
+                    "granted by their role"),
+                initial=self.instance.individual_permissions.values_list(
+                    "permission", flat=True),
+                required=False)
+
+        self.helper.add_input(
+                Submit("submit", _("Update")))
+        if participation.status != participation_status.active:
+            self.helper.add_input(
+                    Submit("approve", _("Approve"), css_class="btn-success"))
+            if participation.status == participation_status.requested:
+                self.helper.add_input(
+                        Submit("deny", _("Deny"), css_class="btn-danger"))
+        elif participation.status == participation_status.active:
+            self.helper.add_input(
+                    Submit("drop", _("Drop"), css_class="btn-danger"))
+
+    def save(self):
+        # type: () -> Participation
+
+        inst = super(EditParticipationForm, self).save()
+
+        (ParticipationPermission.objects
+                .filter(participation=self.instance)
+                .delete())
+
+        pps = []
+        for perm in self.cleaned_data["individual_permissions"]:
+            pp = ParticipationPermission(
+                        participation=self.instance,
+                        permission=perm)
+            pp.save()
+            pps.append(pp)
+        self.instance.individual_permissions.set(pps)
+
+        return inst
+
+    class Meta:
+        model = Participation
+        exclude = (
+                "role",
+                "course",
+                )
+
+        widgets = {
+                "user": UserSearchWidget,
+                }
+
+
+@course_view
+def edit_participation(pctx, participation_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+    if not pctx.has_permission(pperm.edit_participation):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    num_participation_id = int(participation_id)
+
+    if num_participation_id == -1:
+        participation = Participation(
+                course=pctx.course,
+                status=participation_status.active)
+        add_new = True
+    else:
+        participation = get_object_or_404(Participation, id=num_participation_id)
+        add_new = False
+
+    if participation.course.id != pctx.course.id:
+        raise SuspiciousOperation("may not edit participation in different course")
+
+    if request.method == 'POST':
+        form = EditParticipationForm(
+                add_new, pctx, request.POST, instance=participation)
+        reset_form = False
+
+        if form.is_valid():
+            if "submit" in request.POST:
+                form.save()
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Changes saved."))
+
+            elif "approve" in request.POST:
+                send_enrollment_decision(participation, True, pctx.request)
+
+                # FIXME: Double-saving
+                participation = form.save()
+                participation.status = participation_status.active
+                participation.save()
+                reset_form = True
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Successfully enrolled."))
+
+            elif "deny" in request.POST:
+                send_enrollment_decision(participation, False, pctx.request)
+
+                # FIXME: Double-saving
+                participation = form.save()
+                participation.status = participation_status.denied
+                participation.save()
+                reset_form = True
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Successfully denied."))
+
+            elif "drop" in request.POST:
+                # FIXME: Double-saving
+                participation = form.save()
+                participation.status = participation_status.dropped
+                participation.save()
+                reset_form = True
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("Successfully dropped."))
+
+        if reset_form:
+            form = EditParticipationForm(
+                    add_new, pctx, instance=participation)
+    else:
+        form = EditParticipationForm(add_new, pctx, instance=participation)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Edit Participation"),
+        "form": form
+        })
 
 # }}}
 

@@ -476,8 +476,15 @@ class FloatMatcher(TextAnswerMatcher):
                             "%s: 'atol' ",
                             _("does not provide a valid float literal"))
                         % location)
+        else:
+            if matcher_desc.value == 0:
+                vctx.add_warning(location,
+                         _("Float match for 'value' zero should have atol--"
+                           "otherwise it will match any number"))
 
         if (
+                not matcher_desc.value == 0
+                and
                 not hasattr(matcher_desc, "atol")
                 and
                 not hasattr(matcher_desc, "rtol")
@@ -625,6 +632,10 @@ class TextQuestionBase(PageBaseWithTitle):
 
         ``TextQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -744,6 +755,10 @@ class SurveyTextQuestion(TextQuestionBase):
 
         ``TextQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -802,6 +817,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     .. attribute:: type
 
         ``TextQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 
@@ -872,6 +891,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                   atol: 0.2  # absolute tolerance
 
           One of ``rtol`` or ``atol`` must be given.
+
+    .. attribute:: answer_explanation
+
+        Text justifying the answer, written in :ref:`markup`.
     """
 
     def __init__(self, vctx, location, page_desc):
@@ -903,6 +926,11 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def required_attrs(self):
         return super(TextQuestion, self).required_attrs() + (
                 ("answers", list),
+                )
+
+    def allowed_attrs(self):
+        return super(TextQuestion, self).allowed_attrs() + (
+                ("answer_explanation", "markup"),
                 )
 
     def get_validators(self):
@@ -942,7 +970,12 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         assert unspec_correct_answer_text
 
-        return CA_PATTERN % unspec_correct_answer_text
+        result = CA_PATTERN % unspec_correct_answer_text
+
+        if hasattr(self.page_desc, "answer_explanation"):
+            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+
+        return result
 
     def is_case_sensitive(self):
         return any(matcher.is_case_sensitive for matcher in self.matchers)
@@ -964,6 +997,10 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
     .. attribute:: type
 
         ``HumanGradedTextQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 

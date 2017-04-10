@@ -4,6 +4,10 @@ from __future__ import absolute_import
 Django settings for RELATE.
 """
 
+if False:
+    # for mypy
+    from typing import Callable, Any, Union, Dict  # noqa
+
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
@@ -13,6 +17,8 @@ from django.conf.global_settings import STATICFILES_FINDERS
 import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = True
 
 _local_settings_file = join(BASE_DIR, "local_settings.py")
 local_settings = {
@@ -51,13 +57,13 @@ INSTALLED_APPS = (
 )
 
 if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
-    INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)
+    INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
 
 # }}}
 
 # {{{ django: middleware
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -84,7 +90,7 @@ AUTHENTICATION_BACKENDS = (
     )
 
 if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
-    AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (
+    AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
             'course.auth.Saml2Backend',
             )
 
@@ -218,7 +224,7 @@ SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 # {{{ app defaults
 
-RELATE_FACILITIES = {}
+RELATE_FACILITIES = {}  # type: Union[None,Dict[str, Dict[str, Any]], Callable[..., Dict[str, Dict[str, Any]]], ]  # noqa
 
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
 
@@ -245,8 +251,8 @@ CELERY_TRACK_STARTED = True
 
 if "CELERY_RESULT_BACKEND" not in globals():
     if ("CACHES" in globals()
-            and "LocMem" not in CACHES["default"]["BACKEND"]  # noqa
-            and "Dummy" not in CACHES["default"]["BACKEND"]  # noqa
+            and "LocMem" not in CACHES["default"]["BACKEND"]  # type:ignore # noqa
+            and "Dummy" not in CACHES["default"]["BACKEND"]  # type:ignore # noqa
             ):
         # If possible, we would like to use an external cache as a
         # result backend--because then the progress bars work, because
