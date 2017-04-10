@@ -66,9 +66,10 @@ from course.constants import (
 
 # {{{ for mypy
 
-from django import http  # noqa
-from typing import Tuple, List, Text, Any, Dict  # noqa
-from dulwich.client import GitClient  # noqa
+if False:
+    from django import http  # noqa
+    from typing import Tuple, List, Text, Any, Dict  # noqa
+    from dulwich.client import GitClient  # noqa
 
 # }}}
 

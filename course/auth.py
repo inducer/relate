@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Any, Optional, Text  # noqa
+from typing import cast
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
@@ -61,9 +61,11 @@ from course.constants import (
 from course.models import Participation, Course  # noqa
 from accounts.models import User
 
-
 from relate.utils import StyledForm, StyledModelForm
 from django_select2.forms import ModelSelect2Widget
+
+if False:
+    from typing import Any, Optional, Text  # noqa
 
 
 # {{{ impersonation

@@ -24,8 +24,6 @@ THE SOFTWARE.
 
 import six
 
-from typing import Any  # noqa
-
 from django.utils.translation import (
         ugettext_lazy as _, string_concat, pgettext)
 from django.contrib import admin
@@ -48,6 +46,9 @@ from course.constants import (
         participation_permission as pperm,
         exam_ticket_states
         )
+
+if False:
+    from typing import Any  # noqa
 
 
 # {{{ permission helpers

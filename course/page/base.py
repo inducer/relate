@@ -44,10 +44,9 @@ from django.conf import settings
 
 # {{{ mypy
 
-from typing import Text, Optional, Any, Tuple, Dict, Callable  # noqa
-from django import http  # noqa
-
 if False:
+    from typing import Text, Optional, Any, Tuple, Dict, Callable  # noqa
+    from django import http  # noqa
     from course.models import (  # noqa
             Course,
             FlowSession
