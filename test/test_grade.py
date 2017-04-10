@@ -26,7 +26,8 @@ import shutil
 from django.test import TestCase, Client
 from django.urls import resolve, reverse
 from accounts.models import User
-from course.models import FlowSession, Course, GradingOpportunity  # , Participation
+from course.models import FlowSession, Course, GradingOpportunity, \
+                            Participation, FlowRuleException
 
 
 class GradeTest(TestCase):
@@ -37,7 +38,7 @@ class GradeTest(TestCase):
     #                     'django.core.mail.backends.console.EmailBackend')
 
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls):  # noqa
         # Set up data for the whole TestCase
         # Admin account
         cls.admin = User.objects.create_superuser(
@@ -130,7 +131,7 @@ class GradeTest(TestCase):
         # Yep, no regax!
         _, _, kwargs = resolve(resp.url)
         # Store flow_session_id
-        cls.datas["flow_session_id"].append(kwargs["flow_session_id"])
+        cls.datas["flow_session_id"].append(int(kwargs["flow_session_id"]))
 
         # Let it raise error
         # Use pop() will not
@@ -327,8 +328,129 @@ class GradeTest(TestCase):
         # Check changes
         self.assertEqual(opportunity.page_scores_in_participant_gradebook, True)
 
-# @TODO remain tests
-# http://localhost:8000/course/course-test/flow-analytics/quiz-test/
-# http://localhost:8000/course/course-test/regrade-flows/
-# http://localhost:8000/course/course-test/grant-exception/
-# http://localhost:8000/course/course-test/batch-issue-exam-tickets/
+    def test_view_flow_list_analytics(self):
+        resp = self.c.get(reverse("relate-flow_list",
+                                            args=[self.datas["course_identifier"]]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_view_flow_analytics(self):
+        params = {"course_identifier": self.datas["course_identifier"],
+                    "flow_id": self.datas["flow_id"]}
+        resp = self.c.get(reverse("relate-flow_analytics",
+                                            kwargs=params))
+        self.assertEqual(resp.status_code, 200)
+
+    # Only check page for now
+    def test_view_regrade_flow(self):
+        resp = self.c.get(reverse("relate-regrade_flows_view",
+                                            args=[self.datas["course_identifier"]]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_view_grant_exception_new_session(self):
+        # Perform all checking before moving to stage three
+        params = self.check_stage_one_and_two()
+
+        # Should have only one flow session now
+        self.assertEqual(len(FlowSession.objects.all()), 1)
+        self.assertEqual(FlowSession.objects.all()[0].id,
+                                self.datas["flow_session_id"][0])
+
+        # Grant a new one
+        datas = {'access_rules_tag_for_new_session': ['<<<NONE>>>'],
+                    'create_session': ['Create session']}
+        resp = self.c.post(reverse("relate-grant_exception_stage_2",
+                                                kwargs=params), datas)
+        self.assertEqual(resp.status_code, 200)
+
+        # Should have two flow sessions now
+        self.assertEqual(len(FlowSession.objects.all()), 2)
+
+
+    def test_view_grant_exception_exist_session(self):
+        # Perform all checking before moving to stage three
+        params = self.check_stage_one_and_two()
+
+        # Should have only one flow session now
+        self.assertEqual(len(FlowSession.objects.all()), 1)
+        flow_session = FlowSession.objects.all()[0]
+        self.assertEqual(flow_session.id,
+                                self.datas["flow_session_id"][0])
+
+        # Grant an existing one
+        datas = {'session': [str(flow_session.id)], 'next': ['Next \xbb']}
+        resp = self.c.post(reverse("relate-grant_exception_stage_2",
+                                                kwargs=params), datas)
+        self.assertEqual(resp.status_code, 302)
+
+        # Prepare parameters
+        params["session_id"] = datas["session"][0]
+        # Check redirect
+        self.assertEqual(resp.url, reverse("relate-grant_exception_stage_3",
+                                                                kwargs=params))
+
+        # Check stage three page
+        resp = self.c.get(reverse("relate-grant_exception_stage_3",
+                                                                kwargs=params))
+        self.assertEqual(resp.status_code, 200)
+
+        # Should have no exception rule now
+        self.assertEqual(len(FlowRuleException.objects.all()), 0)
+
+        # Create a new exception rule
+        datas = {'comment': ['test-rule'], 'save': ['Save'], 'view': ['on'],
+                'see_answer_after_submission': ['on'],
+                'create_grading_exception': ['on'],
+                'create_access_exception': ['on'],
+                'access_expires': [''], 'due': [''],
+                'bonus_points': ['0.0'], 'max_points': [''],
+                'credit_percent': ['100.0'], 'max_points_enforced_cap': [''],
+                'generates_grade': ['on'], 'see_correctness': ['on']}
+        resp = self.c.post(reverse("relate-grant_exception_stage_3",
+                                                kwargs=params), datas)
+        self.assertEqual(resp.status_code, 302)
+
+        # Check redirect
+        self.assertEqual(resp.url, reverse("relate-grant_exception",
+                                        args=[self.datas["course_identifier"]]))
+
+        # Should have two exception rules now
+        # One for access and one for grading
+        self.assertEqual(len(FlowRuleException.objects.all()), 2)
+
+
+    # Helper method for testing grant exception view
+    def check_stage_one_and_two(self):
+        # Check stage one page
+        resp = self.c.get(reverse("relate-grant_exception",
+                                        args=[self.datas["course_identifier"]]))
+        self.assertEqual(resp.status_code, 200)
+
+        # Move to stage two
+        # Shoud be only one participation record
+        self.assertEqual(len(Participation.objects.all()), 1)
+        participation = Participation.objects.all()[0]
+
+        datas = {"next": ["Next \xbb"], "participation": [str(participation.id)],
+                "flow_id": [self.datas["flow_id"]]}
+        resp = self.c.post(reverse("relate-grant_exception",
+                                    args=[self.datas["course_identifier"]]), datas)
+        self.assertEqual(resp.status_code, 302)
+
+        # Prepare parameters
+        params = datas.copy()
+        params["participation_id"] = params["participation"][0]
+        params["course_identifier"] = self.datas["course_identifier"]
+        params["flow_id"] = params["flow_id"][0]
+        del params["next"]
+        del params["participation"]
+        # Check redirect
+        self.assertEqual(resp.url, reverse("relate-grant_exception_stage_2",
+                                                                kwargs=params))
+
+        # Check stage two page
+        resp = self.c.get(reverse("relate-grant_exception_stage_2",
+                                                                kwargs=params))
+        self.assertEqual(resp.status_code, 200)
+
+        # Return params to reuse
+        return params
