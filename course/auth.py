@@ -42,7 +42,7 @@ from django.contrib.auth.forms import \
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.decorators import user_passes_test
 from django.urls import reverse
-from django.core import validators
+from django.contrib.auth.validators import ASCIIUsernameValidator
 from django.utils.http import is_safe_url
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -386,15 +386,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
 class SignUpForm(StyledModelForm):
     username = forms.CharField(required=True, max_length=30,
             label=_("Username"),
-            validators=[
-                validators.RegexValidator('^[\\w.@+-]+$',
-                    string_concat(
-                        _('Enter a valid username.'), (' '),
-                        _('This value may contain only letters, '
-                          'numbers and @/./+/-/_ characters.')
-                        ),
-                    'invalid')
-                ])
+            validators=[ASCIIUsernameValidator()])
 
     class Meta:
         model = get_user_model()
