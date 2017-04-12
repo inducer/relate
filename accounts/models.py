@@ -153,8 +153,6 @@ class User(AbstractBaseUser, PermissionsMixin):
             Returns the first_name plus the last_name, with a space in
             between.
             """
-            if force_verbose_blank:
-                first_name
             return '%s %s' % (
                 verbose_blank(first_name), verbose_blank(last_name))
 
