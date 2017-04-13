@@ -92,6 +92,7 @@ class participation_permission:  # noqa
     issue_exam_ticket = "issue_exam_ticket"
     batch_issue_exam_ticket = "batch_issue_exam_ticket"
 
+    view_participant_masked_profile = "view_participant_masked_profile"
     view_flow_sessions_from_role = "view_flow_sessions_from_role"
     view_gradebook = "view_gradebook"
     edit_grading_opportunity = "edit_grading_opportunity"
@@ -161,9 +162,12 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.batch_issue_exam_ticket,
             pgettext_lazy("Participation permission", "Batch issue exam ticket")),
 
+        (participation_permission.view_participant_masked_profile,
+            pgettext_lazy("Participation permission",
+                "View participants' masked profile only")),
         (participation_permission.view_flow_sessions_from_role,
             pgettext_lazy("Participation permission",
-                "View flow sessions from role ")),
+                "View flow sessions from role")),
         (participation_permission.view_gradebook,
             pgettext_lazy("Participation permission", "View gradebook")),
         (participation_permission.edit_grading_opportunity,

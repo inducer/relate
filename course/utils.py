@@ -1007,4 +1007,21 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
 
     return True, ""
 
+
+def will_use_masked_profile_for_email(recipient_email):
+    # type: (Union[Text, List[Text]]) -> bool
+    if not recipient_email:
+        return False
+    if not isinstance(recipient_email, list):
+        recipient_email = [recipient_email]
+    recepient_participations = (
+        Participation.objects.filter(
+            user__email__in=recipient_email
+        ))
+    from course.constants import participation_permission as pperm
+    for part in recepient_participations:
+        if part.has_permission(pperm.view_participant_masked_profile):
+            return True
+    return False
+
 # vim: foldmethod=marker

@@ -1,4 +1,4 @@
-{% load i18n %}{% blocktrans trimmed with username=participation.user.get_email_appellation %}Dear {{username}},{% endblocktrans %}
+{% load i18n %}{% if use_masked_profile %}{% trans "Dear user" %},{% else %}{% blocktrans trimmed with username=participation.user.get_email_appellation %}Dear {{username}},{% endblocktrans %}{% endif %}
 {% blocktrans with flow_id=flow_session.flow_id flow_id=flow_session.flow_id course_identifier=course.identifier feedback_text=feedback_text|safe %}
 You have a new notification regarding your work on the page with title '{{ page_title }}' in '{{ flow_id }}' of '{{ course_identifier }}'. The full text of the feedback follows.
 -------------------------------------------------------------------

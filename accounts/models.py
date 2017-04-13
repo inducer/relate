@@ -171,6 +171,22 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return full_name.strip()
 
+    def get_masked_profile(self):
+        """
+        Returns the masked user profile.
+        """
+
+        def default_mask_method(user):
+            return "%s%s" % (_("User"), str(user.pk))
+
+        from django.conf import settings
+        mask_method = getattr(
+                settings,
+                "RELATE_USER_PROFILE_MASK_METHOD",
+                default_mask_method)
+
+        return str(mask_method(self)).strip()
+
     def get_short_name(self):
         "Returns the short name for the user."
         return self.first_name

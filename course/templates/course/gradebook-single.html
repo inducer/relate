@@ -17,7 +17,11 @@
       <td>{% trans "Participant" %}</td>
       <td>
         <span class="sensitive">
-          {{ grade_participation.user.get_full_name }} ({{ grade_participation.user.username }})
+            {% if not pperm.view_participant_masked_profile %}
+                {{ grade_participation.user.get_full_name }} ({{ grade_participation.user.username }})
+            {% else %}
+                {{ grade_participation.user.get_masked_profile }}
+            {% endif %}
         </span>
       </td>
     </tr>

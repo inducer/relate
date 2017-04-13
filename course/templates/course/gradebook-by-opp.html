@@ -114,8 +114,12 @@
 
   <table class="table table-striped gradebook-by-opportunity">
     <thead>
-      <th class="datacol">{% trans "User ID" %}</th>
-      <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
+      {% if not pperm.view_participant_masked_profile %}
+          <th class="datacol">{% trans "User ID" %}</th>
+          <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
+      {% else %}
+          <th class="datacol">{% trans "User" %}</th>
+      {% endif %}
       {% if view_page_grades %}
         {% for i in page_numbers %}
           <th class="datacol">{{ i }}</th>
@@ -129,16 +133,29 @@
       {% for participation, grade_info in grade_table %}
       <tr>
         <th class="headcol">
-          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">{{ participation.user.username }}</span></a>
-        </th>
-        <td class="datacol">
-            <span class="sensitive">
-                {{ participation.user.get_full_name }}
-            </span>
-          {% if participation.role != participation_role.student %}
-            ({{ participation.role }})
+          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">
+              {% if not pperm.view_participant_masked_profile %}
+                  {{ participation.user.username }}
+              {% else %}
+                  {% if participation.user == user %}{% trans "Me" %}{% else %}{{ participation.user.get_masked_profile }}{% endif %}
+              {% endif %}
+          </span></a>
+          {% if pperm.view_participant_masked_profile %}
+              {% if participation|has_permission:"view_gradebook" %}
+                  ({{ participation.get_role_desc }})
+              {% endif %}
           {% endif %}
-        </td>
+        </th>
+        {% if not pperm.view_participant_masked_profile %}
+            <td class="datacol">
+                <span class="sensitive">
+                    {{ participation.user.get_full_name }}
+                </span>
+              {% if participation|has_permission:"view_gradebook" %}
+                ({{ participation.get_role_desc }})
+              {% endif %}
+            </td>
+        {% endif %}
         {% if view_page_grades %}
         {% for page_idx, grade in grade_info.grades %}
         <td class="datacol"
@@ -200,7 +217,6 @@
     </tbody>
   </table>
 
-  {% load coursetags %}
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-by-opportunity").dataTable({
