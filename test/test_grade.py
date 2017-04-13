@@ -254,12 +254,9 @@ class GradeTest(TestCase):
                                                 kwargs=params))
             self.assertEqual(resp.status_code, 200)
 
-    # flow_session_id and flow_id
-    # Consistency plz :(
-    # Should be flow_session_id?
     def test_view_grader_statistics(self):
         params = {"course_identifier": self.datas["course_identifier"],
-                    "flow_id": self.datas["flow_session_id"][0]}
+                    "flow_id": self.datas["flow_id"]}
         resp = self.c.get(reverse("relate-show_grader_statistics",
                                             kwargs=params))
         self.assertEqual(resp.status_code, 200)
