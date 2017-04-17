@@ -166,7 +166,7 @@
         <td class="datacol" data-order="{{ grade_info.flow_session.in_progress }}">
           {% if grade_info.flow_session %}
           {% include "course/flow-session-state.html" with flow_session=grade_info.flow_session %}
-          {% if not flow_session.in_progress %}
+          {% if not grade_info.flow_session.in_progress %}
               ({{ grade_info.flow_session.completion_time }})
           {% endif %}
           {% if grade_info.flow_session.access_rules_tag %}
