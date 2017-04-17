@@ -404,7 +404,7 @@
       $("#save_next_page").click(save_and_next_page);
       $("#save_next_session").click(save_and_next_session);
 
-      $(".relate-grading-form").prepend($(".form-group:last"));
+      $(".relate-grading-form").prepend($(".form-group:last").clone());
     }
 
     $(document).ready(add_submit_next);
