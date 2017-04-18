@@ -29,6 +29,7 @@ from course.models import FlowSession, Course, GradingOpportunity, \
                             Participation, FlowRuleException, ParticipationRole
 
 
+# This serve as a base test cases for other grade tests to subclass
 # Nice little tricks :)
 class BaseGradeTest(object):
 
@@ -44,7 +45,7 @@ class BaseGradeTest(object):
                 last_name="Admin")
         cls.admin.save()
 
-        # User account
+        # Student account
         cls.student = User.objects.create_user(
                 username="tester1",
                 password="test",
@@ -103,7 +104,7 @@ class BaseGradeTest(object):
                                                 cls.datas["course_identifier"])[0]
             participation.status = "active"
             participation.save()
-            
+
             if assign_role == "student":
                 role = ParticipationRole.objects.filter(id=3)[0]
             elif assign_role == "ta":
@@ -198,31 +199,16 @@ class BaseGradeTest(object):
         self.assertEqual(self.course, opportunity.course)
         self.assertEqual(self.datas["flow_id"], opportunity.flow_id)
 
-        # Check flow, should have only one
+        # Check flow numbers
+        self.assertEqual(len(FlowSession.objects.all()),
+                                len(self.datas["flow_session_id"]))
+
+        # Check each flow session
+        for session in FlowSession.objects.all():
+            self.check_reopen_session(session.id, opportunity.id)
+
+        # Check flow numbers again
         self.assertEqual(len(FlowSession.objects.all()), 1)
-
-        # Finished flow session
-        flow_session = FlowSession.objects.all()[0]
-        self.assertEqual(flow_session.in_progress, False)
-
-        # Check reopen session form
-        params = {"course_identifier": self.datas["course_identifier"],
-                    "opportunity_id": opportunity.id,
-                    "flow_session_id": self.datas["flow_session_id"][0]}
-        resp = self.c.get(reverse("relate-view_reopen_session",
-                                                    kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-
-        # Reopen session
-        datas = {'set_access_rules_tag': ['<<<NONE>>>'], 'comment': ['test-reopen'],
-                                'unsubmit_pages': ['on'], 'reopen': ['Reopen']}
-        resp = self.c.post(reverse("relate-view_reopen_session",
-                                                    kwargs=params), datas)
-
-        # Should still have one
-        self.assertEqual(len(FlowSession.objects.all()), 1)
-        flow_session = FlowSession.objects.all()[0]
-        self.assertEqual(flow_session.in_progress, True)
 
     # Only test if import form is working for now
     # Maybe try export then import?
@@ -331,14 +317,36 @@ class BaseGradeTest(object):
         self.assertEqual(resp.status_code, 200)
 
     def test_view_grant_exception_new_session(self):
-        # Perform all checking before moving to stage three
-        params = self.check_stage_one_and_two()
+        # Check number of flow sessions and ids
+        self.assertEqual(len(FlowSession.objects.all()),
+                                    len(self.datas["flow_session_id"]))
+        for session in FlowSession.objects.all():
+            # Perform all checking before moving to stage three
+            params = self.check_stage_one_and_two(session.participation)
+            self.assertTrue(session.id in self.datas["flow_session_id"])
+            self.check_grant_new_exception(params)
 
-        # Should have only one flow session now
-        self.assertEqual(len(FlowSession.objects.all()), 1)
-        self.assertEqual(FlowSession.objects.all()[0].id,
-                                self.datas["flow_session_id"][0])
+        # Should have two flow sessions now
+        self.assertEqual(len(FlowSession.objects.all()), 2 * self.datas["accounts"])
 
+    def test_view_grant_exception_exist_session(self):
+        # Store numbers to reuse
+        session_nums = len(self.datas["flow_session_id"])
+        # Check session numbers
+        self.assertEqual(len(FlowSession.objects.all()), session_nums)
+
+        # Check for each existing session
+        for session in FlowSession.objects.all():
+            # Perform all checking before moving to stage three
+            params = self.check_stage_one_and_two(session.participation)
+            self.check_grant_exist_exception(session.id, params)
+
+        # Should have two exception rules now
+        # One for access and one for grading
+        self.assertEqual(len(FlowRuleException.objects.all()), session_nums + 1)
+
+    # Helper method for testing grant exceptions for new session
+    def check_grant_new_exception(self, params):
         # Grant a new one
         datas = {'access_rules_tag_for_new_session': ['<<<NONE>>>'],
                     'create_session': ['Create session']}
@@ -346,18 +354,11 @@ class BaseGradeTest(object):
                                                 kwargs=params), datas)
         self.assertEqual(resp.status_code, 200)
 
-        # Should have two flow sessions now
-        self.assertEqual(len(FlowSession.objects.all()), 2)
-
-    def test_view_grant_exception_exist_session(self):
-        # Perform all checking before moving to stage three
-        params = self.check_stage_one_and_two()
-
-        # Should have only one flow session now
-        self.assertEqual(len(FlowSession.objects.all()), 1)
-        flow_session = FlowSession.objects.all()[0]
-        self.assertEqual(flow_session.id,
-                                self.datas["flow_session_id"][0])
+    # Helper method for testing grant exceptions for existing one
+    def check_grant_exist_exception(self, session_id, parameters):
+        params = parameters.copy()
+        flow_session = FlowSession.objects.filter(id=session_id)[0]
+        self.assertTrue(flow_session.id in self.datas["flow_session_id"])
 
         # Grant an existing one
         datas = {'session': [str(flow_session.id)], 'next': ['Next \xbb']}
@@ -396,12 +397,30 @@ class BaseGradeTest(object):
         self.assertEqual(resp.url, reverse("relate-grant_exception",
                                         args=[self.datas["course_identifier"]]))
 
-        # Should have two exception rules now
-        # One for access and one for grading
-        self.assertEqual(len(FlowRuleException.objects.all()), 2)
+    # Helper method for testing reopen session
+    def check_reopen_session(self, session_id, opportunity_id):
+        flow_session = FlowSession.objects.filter(id=session_id)[0]
+        self.assertEqual(flow_session.in_progress, False)
+
+        # Check reopen session form
+        params = {"course_identifier": self.datas["course_identifier"],
+                    "opportunity_id": opportunity_id,
+                    "flow_session_id": session_id}
+        resp = self.c.get(reverse("relate-view_reopen_session",
+                                                    kwargs=params))
+        self.assertEqual(resp.status_code, 200)
+
+        # Reopen session
+        datas = {'set_access_rules_tag': ['<<<NONE>>>'], 'comment': ['test-reopen'],
+                                'unsubmit_pages': ['on'], 'reopen': ['Reopen']}
+        resp = self.c.post(reverse("relate-view_reopen_session",
+                                                    kwargs=params), datas)
+
+        flow_session = FlowSession.objects.filter(id=session_id)[0]
+        self.assertEqual(flow_session.in_progress, True)
 
     # Helper method for testing grant exception view
-    def check_stage_one_and_two(self):
+    def check_stage_one_and_two(self, participation):
         # Check stage one page
         resp = self.c.get(reverse("relate-grant_exception",
                                         args=[self.datas["course_identifier"]]))
@@ -409,8 +428,7 @@ class BaseGradeTest(object):
 
         # Move to stage two
         # Shoud be only one participation record
-        self.assertEqual(len(Participation.objects.all()), 1)
-        participation = Participation.objects.all()[0]
+        self.assertEqual(len(Participation.objects.all()), self.datas["accounts"])
 
         datas = {"next": ["Next \xbb"], "participation": [str(participation.id)],
                 "flow_id": [self.datas["flow_id"]]}

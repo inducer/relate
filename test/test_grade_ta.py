@@ -25,14 +25,25 @@ THE SOFTWARE.
 import shutil
 from base_grade_tests import BaseGradeTest
 from django.test import TestCase
+from accounts.models import User
 
 
 class TAGradeTest(BaseGradeTest, TestCase):
     @classmethod
     def setUpTestData(cls): # noqa
         super(TAGradeTest, cls).setUpTestData()
-        # cls.do_quiz(cls.ta, "ta")
+        # TA account
+        cls.ta = User.objects.create_user(
+                username="ta1",
+                password="test",
+                email="ta1@example.com",
+                first_name="TA",
+                last_name="Tester")
+        cls.ta.save()
+
+        cls.do_quiz(cls.ta, "ta")
         cls.do_quiz(cls.admin)
+        cls.datas["accounts"] = 3
 
     @classmethod
     def tearDownClass(cls):

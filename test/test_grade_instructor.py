@@ -31,6 +31,7 @@ class InstructorGradeTest(BaseGradeTest, TestCase):
     def setUpTestData(cls): # noqa
         super(InstructorGradeTest, cls).setUpTestData()
         cls.do_quiz(cls.admin)
+        cls.datas["accounts"] = 2
 
     @classmethod
     def tearDownClass(cls):
