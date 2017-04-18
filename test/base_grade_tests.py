@@ -22,20 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import shutil
-from django.test import TestCase, Client
+from django.test import Client
 from django.urls import resolve, reverse
 from accounts.models import User
 from course.models import FlowSession, Course, GradingOpportunity, \
-                            Participation, FlowRuleException
+                            Participation, FlowRuleException, ParticipationRole
 
 
-class GradeTest(TestCase):
-    # @classmethod
-    # def setUpClass(cls):
-    #     super(GradeTest, cls).setUpClass()
-    #     cls.modify_settings(EMAIL_BACKEND=
-    #                     'django.core.mail.backends.console.EmailBackend')
+# Nice little tricks :)
+class BaseGradeTest(object):
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -50,21 +45,13 @@ class GradeTest(TestCase):
         cls.admin.save()
 
         # User account
-        # cls.user1 = User.objects.create_user(
-        #         username="tester1",
-        #         password="test",
-        #         email="tester1@example.com",
-        #         first_name="Test1",
-        #         last_name="Tester")
-        # cls.user1.save()
-        #
-        # cls.user2 = User.objects.create_user(
-        #         username="tester2",
-        #         password="test",
-        #         email="tester2@example.com",
-        #         first_name="Test2",
-        #         last_name="Tester")
-        # cls.user2.save()
+        cls.student = User.objects.create_user(
+                username="tester1",
+                password="test",
+                email="tester1@example.com",
+                first_name="Student",
+                last_name="Tester")
+        cls.student.save()
 
         # Create the course here and check later to
         # avoid exceptions raised here
@@ -94,20 +81,13 @@ class GradeTest(TestCase):
                                                 "flow_id": "quiz-test"}
         cls.datas["flow_session_id"] = []
 
-        # Make sure admin is logged in after all this
-        # cls.do_quiz(cls.user1)
-        # cls.do_quiz(cls.user2)
-        cls.do_quiz(cls.admin)
-
-    @classmethod
-    def tearDownClass(cls):
-        # Remove created folder
-        shutil.rmtree('../' + cls.datas["course_identifier"])
-        super(GradeTest, cls).tearDownClass()
+        # Make sure admin is logged in after all this in all sub classes
+        # Student takes quiz anyway
+        cls.do_quiz(cls.student, "student")
 
     # Use specified user to take a quiz
     @classmethod
-    def do_quiz(cls, user):
+    def do_quiz(cls, user, assign_role=None):
         # Login user first
         cls.c.logout()
         cls.c.login(
@@ -116,13 +96,20 @@ class GradeTest(TestCase):
 
         # Enroll if not admin
         # Little hacky for not using enrollment view
-        # if not user.is_superuser:
-        #     participation = Participation()
-        #     participation.user = user
-        #     participation.course = Course.objects.filter(identifier=
-        #                                                     "test-course")[0]
-        #     participation.status = "active"
-        #     participation.save()
+        if assign_role:
+            participation = Participation()
+            participation.user = user
+            participation.course = Course.objects.filter(identifier=
+                                                cls.datas["course_identifier"])[0]
+            participation.status = "active"
+            participation.save()
+            
+            if assign_role == "student":
+                role = ParticipationRole.objects.filter(id=3)[0]
+            elif assign_role == "ta":
+                role = ParticipationRole.objects.filter(id=2)[0]
+            participation.roles.add(role)
+
 
         params = cls.datas.copy()
         del params["flow_session_id"]
