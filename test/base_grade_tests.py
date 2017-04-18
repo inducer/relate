@@ -208,7 +208,8 @@ class BaseGradeTest(object):
             self.check_reopen_session(session.id, opportunity.id)
 
         # Check flow numbers again
-        self.assertEqual(len(FlowSession.objects.all()), 1)
+        self.assertEqual(len(FlowSession.objects.all()),
+                                len(self.datas["flow_session_id"]))
 
     # Only test if import form is working for now
     # Maybe try export then import?
@@ -343,7 +344,7 @@ class BaseGradeTest(object):
 
         # Should have two exception rules now
         # One for access and one for grading
-        self.assertEqual(len(FlowRuleException.objects.all()), session_nums + 1)
+        self.assertEqual(len(FlowRuleException.objects.all()), 2 * session_nums)
 
     # Helper method for testing grant exceptions for new session
     def check_grant_new_exception(self, params):
@@ -376,9 +377,6 @@ class BaseGradeTest(object):
         resp = self.c.get(reverse("relate-grant_exception_stage_3",
                                                                 kwargs=params))
         self.assertEqual(resp.status_code, 200)
-
-        # Should have no exception rule now
-        self.assertEqual(len(FlowRuleException.objects.all()), 0)
 
         # Create a new exception rule
         datas = {'comment': ['test-rule'], 'save': ['Save'], 'view': ['on'],
