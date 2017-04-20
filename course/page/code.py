@@ -716,7 +716,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         if hasattr(self.page_desc, "correct_code"):
             def normalize_code(s):
-                return s.replace(" ", "").replace("\r", "").replace("\n", "").replace("\t", "")
+                return (s
+                        .replace(" ", "")
+                        .replace("\r", "")
+                        .replace("\n", "")
+                        .replace("\t", ""))
 
             if (normalize_code(user_code)
                     == normalize_code(self.page_desc.correct_code)):
