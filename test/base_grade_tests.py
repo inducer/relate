@@ -22,7 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import cStringIO
+# For compatibility between Python 2 and Python 3
+try:
+    import cStringIO
+except ImportError:
+    import io as cStringIO
+    
 import csv
 from django.test import Client
 from django.urls import resolve, reverse
