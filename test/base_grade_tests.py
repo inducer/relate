@@ -103,8 +103,8 @@ class BaseGradeTest(object):
         if assign_role:
             participation = Participation()
             participation.user = user
-            participation.course = Course.objects.filter(identifier=
-                                                cls.datas["course_identifier"])[0]
+            participation.course = Course.objects.filter(identifier=\
+                                            cls.datas["course_identifier"])[0]
             participation.status = "active"
             participation.save()
 
@@ -113,7 +113,6 @@ class BaseGradeTest(object):
             elif assign_role == "ta":
                 role = ParticipationRole.objects.filter(id=2)[0]
             participation.roles.add(role)
-
 
         params = cls.datas.copy()
         del params["flow_session_id"]

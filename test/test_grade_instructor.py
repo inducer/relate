@@ -26,6 +26,7 @@ import shutil
 from base_grade_tests import BaseGradeTest
 from django.test import TestCase
 
+
 class InstructorGradeTest(BaseGradeTest, TestCase):
     @classmethod
     def setUpTestData(cls): # noqa
