@@ -22,11 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import cStringIO
+import csv
 from django.test import Client
 from django.urls import resolve, reverse
 from accounts.models import User
 from course.models import FlowSession, Course, GradingOpportunity, \
-                            Participation, FlowRuleException, ParticipationRole
+                            Participation, FlowRuleException, ParticipationRole, \
+                            GradeChange
 
 
 # This serve as a base test cases for other grade tests to subclass
@@ -40,7 +43,7 @@ class BaseGradeTest(object):
         cls.admin = User.objects.create_superuser(
                 username="testadmin",
                 password="test",
-                email="test@example.com",
+                email="testadmin@example.com",
                 first_name="Test",
                 last_name="Admin")
         cls.admin.save()
@@ -168,6 +171,7 @@ class BaseGradeTest(object):
 
     def test_view_grades_by_opportunity(self):
         # Check attributes
+        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
         opportunity = GradingOpportunity.objects.all()[0]
         self.assertEqual(self.course, opportunity.course)
         self.assertEqual(self.datas["flow_id"], opportunity.flow_id)
@@ -181,6 +185,7 @@ class BaseGradeTest(object):
 
     def test_view_participant_grade_by_opportunity(self):
         # Check attributes
+        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
         opportunity = GradingOpportunity.objects.all()[0]
         self.assertEqual(self.course, opportunity.course)
         self.assertEqual(self.datas["flow_id"], opportunity.flow_id)
@@ -195,28 +200,34 @@ class BaseGradeTest(object):
 
     def test_view_reopen_session(self):
         # Check attributes
+        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
         opportunity = GradingOpportunity.objects.all()[0]
         self.assertEqual(self.course, opportunity.course)
         self.assertEqual(self.datas["flow_id"], opportunity.flow_id)
 
+        all_session = FlowSession.objects.all()
         # Check flow numbers
-        self.assertEqual(len(FlowSession.objects.all()),
+        self.assertEqual(len(all_session),
                                 len(self.datas["flow_session_id"]))
 
         # Check each flow session
-        for session in FlowSession.objects.all():
+        for session in all_session:
             self.check_reopen_session(session.id, opportunity.id)
 
         # Check flow numbers again
         self.assertEqual(len(FlowSession.objects.all()),
                                 len(self.datas["flow_session_id"]))
 
-    # Only test if import form is working for now
-    # Maybe try export then import?
-    def test_view_import_grades(self):
-        resp = self.c.get(reverse("relate-import_grades",
-                                            args=[self.datas["course_identifier"]]))
-        self.assertEqual(resp.status_code, 200)
+    def test_view_import_grades_without_header(self):
+        csv_datas = [("testadmin", 99, "Almost!"),
+                ("tester1", 50, "I hate this course :(")]
+        self.check_import_grade(csv_datas)
+
+    def test_view_import_grades_with_header(self):
+        csv_datas = [("username", "grade", "feedback"),
+                ("testadmin", 99, "Almost!"),
+                ("tester1", 50, "I hate this course :(")]
+        self.check_import_grade(csv_datas, True)
 
     # Seems just show the answer
     def test_view_grade_flow_page(self):
@@ -264,6 +275,7 @@ class BaseGradeTest(object):
 
     def test_view_edit_grading_opportunity(self):
         # Check attributes
+        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
         opportunity = GradingOpportunity.objects.all()[0]
         self.assertEqual(self.course, opportunity.course)
         self.assertEqual(self.datas["flow_id"], opportunity.flow_id)
@@ -318,10 +330,11 @@ class BaseGradeTest(object):
         self.assertEqual(resp.status_code, 200)
 
     def test_view_grant_exception_new_session(self):
+        all_session = FlowSession.objects.all()
         # Check number of flow sessions and ids
-        self.assertEqual(len(FlowSession.objects.all()),
+        self.assertEqual(len(all_session),
                                     len(self.datas["flow_session_id"]))
-        for session in FlowSession.objects.all():
+        for session in all_session:
             # Perform all checking before moving to stage three
             params = self.check_stage_one_and_two(session.participation)
             self.assertTrue(session.id in self.datas["flow_session_id"])
@@ -333,11 +346,13 @@ class BaseGradeTest(object):
     def test_view_grant_exception_exist_session(self):
         # Store numbers to reuse
         session_nums = len(self.datas["flow_session_id"])
+
+        all_session = FlowSession.objects.all()
         # Check session numbers
-        self.assertEqual(len(FlowSession.objects.all()), session_nums)
+        self.assertEqual(len(all_session), session_nums)
 
         # Check for each existing session
-        for session in FlowSession.objects.all():
+        for session in all_session:
             # Perform all checking before moving to stage three
             params = self.check_stage_one_and_two(session.participation)
             self.check_grant_exist_exception(session.id, params)
@@ -345,6 +360,56 @@ class BaseGradeTest(object):
         # Should have two exception rules now
         # One for access and one for grading
         self.assertEqual(len(FlowRuleException.objects.all()), 2 * session_nums)
+
+    # Helper method for creating in memory csv files to test import grades
+    def creat_grading_csv(self, datas):
+        csvfile = cStringIO.StringIO()
+        csvwriter = csv.writer(csvfile)
+        for data in datas:
+            # (username, grades, feedback)
+            csvwriter.writerow([data[0], data[1], data[2]])
+        # Reset back to the start of file to avoid invalid form error
+        # Otherwise it will consider the file as empty
+        csvfile.seek(0)
+        return csvfile
+
+    # Helper method for testing import grades
+    def check_import_grade(self, csv_datas, headers=False):
+        # Check import form works well
+        resp = self.c.get(reverse("relate-import_grades",
+                                            args=[self.datas["course_identifier"]]))
+        self.assertEqual(resp.status_code, 200)
+
+        # Check number of GradeChange
+        self.assertEqual(len(GradeChange.objects.all()), self.datas["accounts"])
+
+        # Check attributes
+        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
+        opportunity = GradingOpportunity.objects.all()[0]
+        self.assertEqual(self.course, opportunity.course)
+        self.assertEqual(self.datas["flow_id"], opportunity.flow_id)
+
+        # Prepare datas
+        # Prepare csv
+        csv_file = self.creat_grading_csv(csv_datas)
+        # Prepare form datas
+        datas = {'points_column': ['2'], 'attr_column': ['1'],
+                'feedback_column': ['3'],
+                'grading_opportunity': [str(opportunity.id)],
+                'format': ['csv' + ('head' if headers else '')],
+                'attempt_id': ['main'], 'max_points': ['100'],
+                'import': ['Import'], 'attr_type': ['email_or_id'],
+                'file': csv_file}
+
+        # Check importing
+        resp = self.c.post(reverse("relate-import_grades",
+                                    args=[self.datas["course_identifier"]]), datas)
+        self.assertEqual(resp.status_code, 200)
+
+        # Check number of GradeChange
+        num_diff = len(csv_datas) - 1 if headers else len(csv_datas)
+        self.assertEqual(len(GradeChange.objects.all()),
+                                            self.datas["accounts"] + num_diff)
 
     # Helper method for testing grant exceptions for new session
     def check_grant_new_exception(self, params):
