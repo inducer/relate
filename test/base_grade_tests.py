@@ -27,7 +27,7 @@ try:
     import cStringIO
 except ImportError:
     import io as cStringIO
-    
+
 import csv
 from django.test import Client
 from django.urls import resolve, reverse
