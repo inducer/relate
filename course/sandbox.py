@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast
+from typing import cast, Tuple
 
 import django.forms as forms
 from django.utils.safestring import mark_safe
@@ -42,11 +42,10 @@ from course.utils import (  # noqa
         CoursePageContext)
 from course.content import FlowPageDesc
 
-
 # {{{ for mypy
 
 if False:
-    from typing import Tuple, Text, Optional, Any, Iterable, Dict  # noqa
+    from typing import Text, Optional, Any, Iterable, Dict  # noqa
 
 # }}}
 
