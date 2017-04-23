@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 import shutil
 from django.test import TestCase, Client
-from django.urls import resolve, reverse
+from django.urls import reverse
 from accounts.models import User
 
 
