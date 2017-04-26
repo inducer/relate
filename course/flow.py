@@ -1643,6 +1643,8 @@ def get_page_behavior(
                 show_answer = (show_answer and
                         flow_permission.change_answer not in permissions)
 
+            show_answer = show_answer or (
+                    flow_permission.see_answer_before_submission in permissions)
         else:
             # Don't show answer yet
             show_answer = (
