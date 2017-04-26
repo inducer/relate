@@ -31,8 +31,8 @@ pytz
 # Course content is stored in YAML.
 pyyaml
 
-# dulwich (git for Py3 support)
-dulwich>=0.14
+# dulwich
+dulwich>=0.17.3
 ecdsa
 paramiko
 
