@@ -153,6 +153,8 @@ def main():
 
     parser.add_argument("--binder-urlroot", metavar="URL",
             help="(without the trailing slash)")
+    parser.add_argument("--ipynb-main-link", choices=["static", "binder"],
+            default="static")
 
     parser.add_argument("--py-dir", metavar="DIRECTORY")
     parser.add_argument("--py-urlroot", metavar="URL",
@@ -218,7 +220,8 @@ def main():
                     "link": binder_url,
                     "icon": "fa fa-keyboard-o",
                     })
-                main_link = binder_url
+                if args.ipynb_main_link == "binder":
+                    main_link = binder_url
 
             if args.ipynb_as_py:
                 link_py = link_ipynb.replace(".ipynb", ".py")
