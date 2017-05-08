@@ -871,13 +871,13 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             def sanitize(s):
                 import bleach
 
-                def filter_audio_attributes(name, value):
+                def filter_audio_attributes(tag, name, value):
                     if name in ["controls"]:
                         return True
                     else:
                         return False
 
-                def filter_source_attributes(name, value):
+                def filter_source_attributes(tag, name, value):
                     if name in ["type"]:
                         return True
                     elif name == "src":
@@ -887,7 +887,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     else:
                         return False
 
-                def filter_img_attributes(name, value):
+                def filter_img_attributes(tag, name, value):
                     if name in ["alt", "title"]:
                         return True
                     elif name == "src":
