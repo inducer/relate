@@ -2339,6 +2339,14 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
             from django.utils import translation
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
+                from course.utils import will_use_masked_profile_for_email
+                use_masked_profile_for_email = (
+                    will_use_masked_profile_for_email(recipient_list)
+                )
+                if use_masked_profile_for_email:
+                    username = pctx.participation.user.get_masked_profile()
+                else:
+                    username = pctx.participation.user.get_full_name()
                 message = render_to_string(
                     "course/flow-page-interaction-email.txt", {
                         "page_id": page_id,
@@ -2346,7 +2354,7 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
                         "course": pctx.course,
                         "question_text": form.cleaned_data["message"],
                         "review_uri": review_uri,
-                        "username": pctx.participation.user.get_full_name()
+                        "username": username
                     })
 
                 from django.core.mail import EmailMessage
@@ -2358,7 +2366,7 @@ def send_email_about_flow_page(pctx, flow_session_id, ordinal):
                             'identifier': pctx.course_identifier,
                             'flow_id': flow_session_id,
                             'page_id': page_id,
-                            'username': pctx.participation.user.get_full_name()
+                            'username': username
                             },
                     body=message,
                     from_email=from_email,
@@ -2574,6 +2582,11 @@ def finish_flow_session_view(pctx, flow_session_id):
 
         if (hasattr(fctx.flow_desc, "notify_on_submit")
                 and fctx.flow_desc.notify_on_submit):
+            from course.utils import will_use_masked_profile_for_email
+            staff_email = (
+                fctx.flow_desc.notify_on_submit + [fctx.course.notify_email])
+            use_masked_profile = will_use_masked_profile_for_email(staff_email)
+
             if (grading_rule.grade_identifier
                     and flow_session.participation is not None):
                 from course.models import get_flow_grading_opportunity
@@ -2594,17 +2607,30 @@ def finish_flow_session_view(pctx, flow_session_id):
 
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
+                participation = flow_session.participation
                 message = render_to_string("course/submit-notify.txt", {
                     "course": fctx.course,
                     "flow_session": flow_session,
+                    "use_masked_profile": use_masked_profile,
                     "review_uri": pctx.request.build_absolute_uri(review_uri)
                     })
+
+                participation_desc = repr(participation)
+                if use_masked_profile:
+                    participation_desc = _(
+                        "%(user)s in %(course)s as %(role)s") % {
+                        "user": participation.user.get_masked_profile(),
+                        "course": flow_session.course,
+                        "role": "/".join(
+                            role.identifier
+                            for role in participation.roles.all())
+                    }
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
-                            _("Submission by %(participation)s"))
-                        % {'participation': flow_session.participation,
+                            _("Submission by %(participation_desc)s"))
+                        % {'participation_desc': participation_desc,
                             'identifier': fctx.course.identifier,
                             'flow_id': flow_session.flow_id},
                         message,

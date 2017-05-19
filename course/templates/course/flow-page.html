@@ -21,7 +21,7 @@
       <i class="fa fa-user" aria-hidden="true"></i>
       {% trans "Viewing session for participant" %}
       {% if flow_session.participation != None %}
-        <a href="{% url "relate-view_participant_grades" course.identifier flow_session.participation.id %}">{{ flow_session.participation.user.get_full_name }}</a>.
+        <a href="{% url "relate-view_participant_grades" course.identifier flow_session.participation.id %}">{% if not pperm.view_participant_masked_profile %}{{ flow_session.participation.user.username }}{% else %}{{ flow_session.participation.user.get_masked_profile }}{% endif %}</a>.
       {% else %}
         {% trans "(unspecified participant)" %}.
       {% endif %}

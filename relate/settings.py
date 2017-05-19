@@ -166,6 +166,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
                 ) + RELATE_EXTRA_CONTEXT_PROCESSORS,
+            "builtins": ["course.templatetags.coursetags"],
             }
     },
 ]

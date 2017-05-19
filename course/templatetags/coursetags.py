@@ -66,3 +66,30 @@ def do_get_current_js_lang_name(parser, token):
     return GetCurrentLanguageJsFmtNode(args[2])
 
 # }}}
+
+
+# {{{ filter for participation.has_permission()
+
+@register.filter(name='has_permission')
+def has_permission(participation, arg):
+    """
+    Check if a participation instance has specific permission.
+    :param a :class:`participation:` instance
+    :param arg: String, with permission and arguments separated by comma
+    :return: a :class:`bool`
+    """
+    has_pperm = False
+    try:
+        arg_list = [s.strip() for s in arg.split(",")]
+        perm = arg_list[0]
+        argument = None
+        if len(arg_list) > 1:
+            argument = arg_list[1]
+        has_pperm = participation.has_permission(perm, argument)
+    except:
+        # fail silently
+        pass
+
+    return has_pperm
+
+# }}}

@@ -88,6 +88,12 @@ def may_impersonate(impersonator, impersonee):
             status=participation_status.active)
 
     for part in my_participations:
+        # FIXME: if a TA is not allowed to view participants'
+        # profile in one course, then he/she is not able to impersonate
+        # any user, even in courses he/she is allow to view profiles
+        # of all users.
+        if part.has_permission(pperm.view_participant_masked_profile):
+            return False
         impersonable_roles = [
                 argument
                 for perm, argument in part.permissions()
