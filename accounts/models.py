@@ -30,7 +30,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy
 from django.utils import timezone
 from django.contrib.auth.models import UserManager
-from django.core import validators
+from django.contrib.auth.validators import ASCIIUsernameValidator
 
 from course.constants import USER_STATUS_CHOICES
 
@@ -44,13 +44,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         unique=True,
         help_text=_(
             'Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only.'),
-        validators=[
-            validators.RegexValidator(
-                r'^[\w.@+-]+$',
-                _('Enter a valid username. This value may contain only '
-                  'letters, numbers ' 'and @/./+/-/_ characters.')
-            ),
-        ],
+        validators=[ASCIIUsernameValidator()],
         error_messages={
             'unique': _("A user with that username already exists."),
         },
@@ -159,8 +153,6 @@ class User(AbstractBaseUser, PermissionsMixin):
             Returns the first_name plus the last_name, with a space in
             between.
             """
-            if force_verbose_blank:
-                first_name
             return '%s %s' % (
                 verbose_blank(first_name), verbose_blank(last_name))
 
@@ -178,6 +170,22 @@ class User(AbstractBaseUser, PermissionsMixin):
                 verbose_blank(self.first_name), verbose_blank(self.last_name))
 
         return full_name.strip()
+
+    def get_masked_profile(self):
+        """
+        Returns the masked user profile.
+        """
+
+        def default_mask_method(user):
+            return "%s%s" % (_("User"), str(user.pk))
+
+        from django.conf import settings
+        mask_method = getattr(
+                settings,
+                "RELATE_USER_PROFILE_MASK_METHOD",
+                default_mask_method)
+
+        return str(mask_method(self)).strip()
 
     def get_short_name(self):
         "Returns the short name for the user."

@@ -162,20 +162,6 @@ def get_dulwich_client_and_remote_path_from_course(course):
     client, remote_path = get_transport_and_path(
             course.git_source)
 
-    try:
-        # Work around
-        # https://bugs.launchpad.net/dulwich/+bug/1025886
-        client._fetch_capabilities.remove('thin-pack')
-    except KeyError:
-        pass
-    except AttributeError:
-        pass
-
-    if not isinstance(client, dulwich.client.LocalGitClient):
-        # LocalGitClient uses Py3 Unicode path names to refer to
-        # paths, so it doesn't want an encoded path.
-        remote_path = remote_path.encode("utf-8")
-
     return client, remote_path
 
 

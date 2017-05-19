@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+__copyright__ = "Copyright (C) 2017 Zesheng Wang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,8 +22,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import shutil
+from base_grade_tests import BaseGradeTest
 from django.test import TestCase
+from accounts.models import User
 
 
-class GradeTest(TestCase):
-    pass
+class TAGradeTest(BaseGradeTest, TestCase):
+    @classmethod
+    def setUpTestData(cls): # noqa
+        super(TAGradeTest, cls).setUpTestData()
+        # TA account
+        cls.ta = User.objects.create_user(
+                username="ta1",
+                password="test",
+                email="ta1@example.com",
+                first_name="TA",
+                last_name="Tester")
+        cls.ta.save()
+
+        cls.do_quiz(cls.ta, "ta")
+        cls.do_quiz(cls.admin)
+        cls.datas["accounts"] = 3
+
+    @classmethod
+    def tearDownClass(cls):
+        # Remove created folder
+        shutil.rmtree('../' + cls.datas["course_identifier"])
+        super(TAGradeTest, cls).tearDownClass()

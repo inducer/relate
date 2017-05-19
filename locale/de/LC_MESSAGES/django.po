@@ -8,31 +8,27 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-19 13:57-0600\n"
+"POT-Creation-Date: 2017-04-09 23:42+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: \n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: accounts/apps.py:8
 #, fuzzy
 #| msgid "Counts"
 msgid "Accounts"
 msgstr "Anzahlen"
 
-#: accounts/models.py:42
 msgid "username"
 msgstr "Benutzername"
 
-#: accounts/models.py:46
 msgid "Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only."
 msgstr ""
 
-#: accounts/models.py:50
 msgid ""
 "Enter a valid username. This value may contain only letters, numbers and @/./"
 "+/-/_ characters."
@@ -40,297 +36,249 @@ msgstr ""
 "Geben Sie einen gültigen Benutzernamen ein. Dieser Wert darf nur Buchstaben, "
 "Zahlen und die Zeichen @/./+/-/_ enthalten."
 
-#: accounts/models.py:55 course/auth.py:367
 msgid "A user with that username already exists."
 msgstr "Ein Benutzer mit diesem Benutzernamen existiert bereits"
 
-#: accounts/models.py:58
 msgid "first name"
 msgstr "Vorname"
 
-#: accounts/models.py:59
 msgid "last name"
 msgstr "Nachname"
 
-#: accounts/models.py:60 course/auth.py:478
 msgid "email address"
 msgstr ""
 
-#: accounts/models.py:63
 msgid "Name verified"
 msgstr ""
 
-#: accounts/models.py:66
 msgid ""
 "Indicates that this user's name has been verified as being associated with "
 "the individual able to sign in to this account."
 msgstr ""
 
-#: accounts/models.py:72
 msgctxt "User status"
 msgid "active"
 msgstr "Aktiv"
 
-#: accounts/models.py:75
 msgid ""
 "Designates whether this user should be treated as active. Unselect this "
 "instead of deleting accounts."
 msgstr ""
 
-#: accounts/models.py:79
 msgid "date joined"
 msgstr "Beitrittsdatum"
 
-#: accounts/models.py:84
 msgid "staff status"
 msgstr "Team-Status"
 
-#: accounts/models.py:86
 msgid "Designates whether the user can log into this admin site."
 msgstr "Bestimmt, ob der Benutzer sich bei die Admin-Seite anmelden kann"
 
-#: accounts/models.py:90 course/auth.py:436 course/enrollment.py:273
-#: course/models.py:365 course/templates/course/participation-table.html.py:8
-#: relate/templates/reset-passwd-form.html:20
 msgid "Institutional ID"
 msgstr "Institutionelle ID"
 
-#: accounts/models.py:93
 msgid "Institutional ID verified"
 msgstr "Institutionelle ID geprüft"
 
-#: accounts/models.py:96
 msgid ""
 "Indicates that this user's institutional ID has been verified as being "
 "associated with the individual able to log in to this account."
 msgstr ""
 
-#: accounts/models.py:103
 msgid "User status"
 msgstr "Benutzer-Status"
 
-#: accounts/models.py:106
 msgid "The sign in token sent out in email."
 msgstr ""
 
 #. Translators: the sign in token of the user.
-#: accounts/models.py:109
 msgid "Sign in key"
 msgstr "Anmelde-Token"
 
-#: accounts/models.py:112
 msgid "The time stamp of the sign in token."
 msgstr "Zeitstempel des Anmelde-Tokens"
 
 #. Translators: the time when the token is sent out.
-#: accounts/models.py:114
 msgid "Key time"
 msgstr ""
 
-#: accounts/models.py:117
 msgid ""
 "Which key bindings you prefer when editing larger amounts of text or code. "
 "(If you do not understand what this means, leave it as 'Default'.)"
 msgstr ""
 
-#: accounts/models.py:122
 msgid "Default"
 msgstr ""
 
 #. Translators: the text editor used by participants
-#: accounts/models.py:129
 msgid "Editor mode"
 msgstr "Editor-Modus"
 
-#: accounts/models.py:135 accounts/models.py:213
+msgid "A hash of the authentication token to be used for direct git access."
+msgstr ""
+
+msgid "Hash of git authentication token"
+msgstr ""
+
 msgid "user"
 msgstr "Benutzer"
 
-#: accounts/models.py:136
 msgid "users"
 msgstr "Benutzer"
 
-#: accounts/models.py:146
 msgid "(blank)"
 msgstr "(leer)"
 
-#: course/admin.py:237
 msgid "Tags must belong to same course as participation."
 msgstr "Tags müssen zum selben Kurs gehören wie die Teilnahme"
 
-#: course/admin.py:262 course/exam.py:187
-#: course/templates/course/gradebook-by-opp.html:99
-#: course/templates/course/gradebook-participant.html:30
-#: course/templates/course/gradebook.html:18
-#: course/templates/course/participation-table.html:6
+#, fuzzy
+#| msgid "Tags must belong to same course as participation."
+msgid "Role must belong to same course as participation."
+msgstr "Tags müssen zum selben Kurs gehören wie die Teilnahme"
+
+#, fuzzy
+#| msgid "Role"
+msgid "Roles"
+msgstr "Rolle"
+
 msgctxt "real name of a user"
 msgid "Name"
 msgstr ""
 
-#: course/admin.py:373 course/admin.py:499 course/admin.py:584
-#: course/admin.py:695 course/admin.py:770 course/admin.py:852
-#: course/exam.py:99 course/templates/course/gradebook-single.html.py:17
-#: course/views.py:644
 msgid "Participant"
 msgstr "Teilnehmer"
 
-#: course/admin.py:471 course/admin.py:579 course/admin.py:685
-#: course/admin.py:765 course/models.py:205 course/models.py:228
-#: course/models.py:273 course/models.py:311 course/models.py:367
-#: course/models.py:405 course/models.py:440 course/models.py:1032
-#: course/models.py:1399
 msgid "Course"
 msgstr "Kurs"
 
-#: course/admin.py:476 course/flow.py:1812 course/models.py:407
-#: course/models.py:455 course/models.py:858 course/models.py:930
-#: course/models.py:1046 course/models.py:1403
-#: course/templates/course/gradebook-opp-list.html:21
-#: course/templates/course/gradebook-single.html:138 course/views.py:491
-#: course/views.py:573 course/views.py:649
 msgid "Flow ID"
 msgstr "Flow-ID"
 
-#: course/admin.py:481
 msgid "not in use"
 msgstr "nicht verwendet"
 
-#: course/admin.py:490 course/grades.py:1152 course/models.py:575
 msgid "Page ID"
 msgstr "Seiten-ID"
 
-#: course/admin.py:497
 msgid "anonymous"
 msgstr "anonym"
 
-#: course/admin.py:504
+msgid "Owner"
+msgstr ""
+
 msgid "Has answer"
 msgstr "Hat Antwort"
 
-#: course/admin.py:509
 msgid "Flow Session ID"
 msgstr "Flow-Sitzungs-ID"
 
-#: course/admin.py:690
 msgid "Opportunity"
 msgstr "Gelegenheit"
 
-#: course/admin.py:899
 msgid "Revoke Exam Tickets"
 msgstr "Prüfungsticket entwerten"
 
-#. Translators: "TA" is short for Teaching Assistant.
-#: course/analytics.py:61 course/analytics.py:423 course/analytics.py:469
-msgid "must be at least TA to view analytics"
+#, fuzzy
+#| msgid "must be at least TA to view analytics"
+msgid "may not view analytics"
 msgstr "muss mindestens Kurs-Assistent sein um Analytics anzusehen"
 
-#: course/analytics.py:109
 msgctxt "No data"
 msgid "None"
 msgstr "Kein(e)"
 
-#: course/analytics.py:118
 msgctxt "Value of grade"
 msgid "value greater than max"
 msgstr "Wert größer als Maximum"
 
-#: course/analytics.py:126
 msgctxt "Value of grade"
 msgid "value smaller than min"
 msgstr "Wert kleiner als Minimum"
 
-#: course/analytics.py:244 course/analytics.py:392
+msgctxt "Value in histogram"
+msgid "<out of bounds>"
+msgstr ""
+
 msgctxt "Status of session"
 msgid "in progress"
 msgstr "Im Gange"
 
-#: course/analytics.py:386
 msgctxt "Minute (time unit)"
 msgid "min"
 msgstr ""
 
-#: course/analytics.py:433
 #, python-format
 msgid ""
 "Flow '%s' was not found in the repository, but it exists in the database--"
 "maybe it was deleted?"
 msgstr ""
 
-#: course/apps.py:8
 msgid "Course module"
 msgstr "Kurs-Modul"
 
-#: course/auth.py:124
 msgid "Error while impersonating."
 msgstr "Fehler beim sich-ausgeben-als"
 
-#: course/auth.py:149
 msgid "Select user to impersonate."
 msgstr "Benutzer auswählen, als den/die Sie sich ausgeben möchten"
 
-#: course/auth.py:151 course/exam.py:186 course/models.py:450
-#: course/templates/course/grade-import-preview.html:19
 msgid "User"
 msgstr "Benutzer"
 
-#: course/auth.py:153
+#, fuzzy
+#| msgid "Stop impersonating user"
+msgid "Add impersonation header"
+msgstr "Nicht mehr als jemand anders ausgeben"
+
+msgid ""
+"Add impersonation header to every page rendered while impersonating, as a "
+"reminder that impersonation is in progress."
+msgstr ""
+
 msgid "Impersonate"
 msgstr "Sich-ausgeben-als"
 
-#: course/auth.py:160
 msgid "Already impersonating someone."
 msgstr "Sie geben sich bereits als jemand anders aus."
 
-#: course/auth.py:176 relate/templates/base.html.py:75
+msgid "Impersonating that user is not allowed."
+msgstr ""
+
 msgid "Impersonate user"
 msgstr "Sich ausgeben als anderer Benutzer"
 
-#: course/auth.py:186 relate/templates/base-page-top.html.py:66
-#: relate/templates/base.html:73
 msgid "Stop impersonating"
 msgstr "Nicht mehr als anderer Benutzer ausgeben"
 
-#: course/auth.py:192
 msgid "Not currently impersonating anyone."
 msgstr "Sie geben sich gegenwärtig nicht als jemand anders aus."
 
-#: course/auth.py:199
 msgid "No longer impersonating anyone."
 msgstr "Sie geben sich nicht mehr als jemand anders aus."
 
-#: course/auth.py:208
 msgid "Stop impersonating user"
 msgstr "Nicht mehr als jemand anders ausgeben"
 
-#: course/auth.py:286 course/templates/course/course-page.html.py:17
-#: course/templates/course/flow-start.html:199
-#: course/templates/course/login.html:7 relate/templates/403.html.py:14
-#: relate/templates/base.html:111
 msgid "Sign in"
 msgstr "Anmelden"
 
-#: course/auth.py:332
 msgid "Username"
 msgstr "Benutzername"
 
-#: course/auth.py:336
 msgid "Enter a valid username."
 msgstr "Geben Sie einen gültigen Benutzernamen ein."
 
-#: course/auth.py:337
 msgid "This value may contain only letters, numbers and @/./+/-/_ characters."
 msgstr ""
 "Dieser Wert darf nur Buchstaben, Zahlen und die Zeichen @/./+/-/_ enthalten."
 
-#: course/auth.py:353 course/auth.py:430 course/auth.py:442
 msgid "Send email"
 msgstr "Email senden"
 
-#: course/auth.py:359 course/auth.py:454 course/auth.py:562
 msgid "self-registration is not enabled"
 msgstr ""
 
-#: course/auth.py:372
 #, python-format
 msgid ""
 "That email address is already in use. Would you like to <a href='%s'>reset "
@@ -339,60 +287,27 @@ msgstr ""
 "Diese Emailadresse wird bereits verwendet. Möchten Sie statt dessen Ihr <a "
 "href='%s'>Passwort zurücksetzen</a>?"
 
-#: course/auth.py:402 course/auth.py:509 course/auth.py:533 course/auth.py:607
-#: course/auth.py:658 course/templates/course/analytics-flow.html.py:5
-#: course/templates/course/analytics-flows.html:5
-#: course/templates/course/analytics-page.html:5
-#: course/templates/course/broken-code-question-email.txt:6
-#: course/templates/course/calendar.html:8
-#: course/templates/course/course-base.html:8
-#: course/templates/course/flow-completion-grade.html:6
-#: course/templates/course/flow-completion.html:6
-#: course/templates/course/flow-confirm-completion.html:6
-#: course/templates/course/flow-page.html:9
-#: course/templates/course/flow-start.html:6
-#: course/templates/course/grade-flow-page.html:7
-#: course/templates/course/gradebook-by-opp.html:8
-#: course/templates/course/gradebook-opp-list.html:8
-#: course/templates/course/gradebook-participant-list.html:7
-#: course/templates/course/gradebook-participant.html:7
-#: course/templates/course/gradebook-single.html:5
-#: course/templates/course/gradebook.html:5
-#: course/templates/course/grading-statistics.html:5
-#: course/templates/course/home.html:6 course/templates/course/home.html:50
-#: course/templates/course/query-participations.html:7
-#: course/templates/course/sandbox-page.html:17
-#: course/templates/course/sign-in-email.txt:2
-#: relate/templates/admin/base_site.html:5 relate/templates/base.html.py:11
-#: relate/templates/base.html:56 relate/templates/maintenance.html.py:7
 msgid "RELATE"
 msgstr ""
 
-#: course/auth.py:403
 msgid "Verify your email"
 msgstr "Email bestätigen"
 
-#: course/auth.py:409 course/auth.py:522 course/auth.py:664
 msgid "Email sent. Please check your email and click the link."
 msgstr ""
 "Email gesendet. Bitte schauen Sie in Ihre Email und klicken sie auf den Link."
 
-#: course/auth.py:418
 msgid "Sign up"
 msgstr "Registrieren"
 
-#: course/auth.py:424 course/auth.py:617 course/enrollment.py:272
-#: course/models.py:363 relate/templates/reset-passwd-form.html.py:17
 msgid "Email"
 msgstr ""
 
-#: course/auth.py:479
 #, fuzzy
 #| msgid "Institutional ID"
 msgid "institutional ID"
 msgstr "Institutionelle ID"
 
-#: course/auth.py:482
 #, fuzzy, python-format
 #| msgid ""
 #| "That email address doesn't have an associated user account. Are you sure "
@@ -404,98 +319,79 @@ msgstr ""
 "Diese Email hat kein zugeordnetes Benutzerkonto. Sind Sie sicher, dassSie "
 "sich registriert haben?"
 
-#: course/auth.py:490
 msgid "The account with that institution ID doesn't have an associated email."
 msgstr ""
 
-#: course/auth.py:510
 msgid "Password reset"
 msgstr "Passwort zurücksetzen"
 
-#: course/auth.py:517
 #, python-format
 msgid "The email address associated with that account is %s."
 msgstr ""
 
-#: course/auth.py:532 course/auth.py:606
 #, python-format
 msgid "Password reset on %(site_name)s"
 msgstr "Password zurücksetzen auf %(site_name)s"
 
-#: course/auth.py:540
 msgid "Password"
 msgstr "Passwort"
 
-#: course/auth.py:542
 msgid "Password confirmation"
 msgstr "Passwort-Bestätigung"
 
-#: course/auth.py:548 course/auth.py:772 course/versioning.py:475
 msgid "Update"
 msgstr "Aktualisieren"
 
-#: course/auth.py:556
 msgid "The two password fields didn't match."
 msgstr "Die zwei Passwortfelder stimmen nicht überein."
 
-#: course/auth.py:566 course/auth.py:684
 msgid "Invalid sign-in token. Perhaps you've used an old token email?"
 msgstr ""
 "Ungültiges Anmelde-Token. Vielleicht haben Sie eine alte Token-Email "
 "verwendet?"
 
-#: course/auth.py:568 course/auth.py:576 course/auth.py:581 course/auth.py:686
-#: course/auth.py:691
 msgid "invalid sign-in token"
 msgstr "Ungültiges Anmelde-Token"
 
-#: course/auth.py:580 course/auth.py:690
 msgid "Account disabled."
 msgstr "Konto nicht verwendbar"
 
-#: course/auth.py:591 course/auth.py:697
 msgid ""
 "Successfully signed in. Please complete your registration information below."
 msgstr ""
 "Erfolgreich angemeldet. Bitte vervollständigen Sie Ihre Anmeldedaten "
 "unterhalb."
 
-#: course/auth.py:598 course/auth.py:704
 msgid "Successfully signed in."
 msgstr "Erfolgreich angemeldet."
 
-#: course/auth.py:625
 msgid "Send sign-in email"
 msgstr "Anmelde-Email senden"
 
-#: course/auth.py:630 course/auth.py:678
-msgid "email-based sign-in is not being used"
+#, fuzzy
+#| msgid "email-based sign-in is not being used"
+msgid "Email-based sign-in is not being used"
 msgstr "Email-basierte Anmeldung wird nicht verwendet"
 
-#: course/auth.py:658
 #, python-format
 msgid "Your %(RELATE)s sign-in link"
 msgstr "Ihr %(RELATE)s Amelde-Link"
 
-#: course/auth.py:720
 #, fuzzy
 #| msgid "Institutional ID"
 msgid "Institutional ID Confirmation"
 msgstr "Institutionelle ID"
 
-#: course/auth.py:723
 #, fuzzy
 #| msgid "Institutional ID"
 msgid "I have no Institutional ID"
 msgstr "Institutionelle ID"
 
-#: course/auth.py:724
 msgid ""
 "Check the checkbox if you are not a student or you forget your institutional "
 "id."
 msgstr ""
 
-#: course/auth.py:746
 #, python-format
 msgid ""
 "The unique ID your university or school provided, which may be used by some "
@@ -503,794 +399,1011 @@ msgid ""
 "it cannot be changed</b>."
 msgstr ""
 
-#: course/auth.py:753
 msgid "verified"
 msgstr "geprüft"
 
-#: course/auth.py:753
 msgid "submitted"
 msgstr "eingereicht"
 
-#: course/auth.py:811
 msgid "This field is required."
 msgstr "Dieses Feld ist erforderlich."
 
-#: course/auth.py:813
 msgid "Inputs do not match."
 msgstr "Eingaben stimmen nicht überein."
 
-#: course/auth.py:841
 msgid "Profile data saved."
 msgstr "Profildaten gesichert."
 
+#, fuzzy
+#| msgid "Result"
+msgid "Reset"
+msgstr "Ergebnis"
+
+#, python-format
+msgid "A new authentication token has been set: %s."
+msgstr ""
+
+msgid "An authentication token has previously been set."
+msgstr ""
+
+msgid "No authentication token has previously been set."
+msgstr ""
+
+msgid "Manage Git Authentication Token"
+msgstr ""
+
 #. Translators: format of event kind in Event model
-#: course/calendar.py:50 course/calendar.py:192 course/models.py:231
 msgid "Should be lower_case_with_underscores, no spaces allowed."
 msgstr "Sollte kleingeschrieben_mit_unterstrichen sein, ohne Leerzeichen."
 
-#: course/calendar.py:52 course/calendar.py:194
 msgctxt "Kind of event"
 msgid "Kind of event"
 msgstr "Typ des Ereignisses"
 
-#: course/calendar.py:56
 msgctxt "Starting time of event"
 msgid "Starting time"
 msgstr "Anfangszeit"
 
-#: course/calendar.py:58
 msgid "Duration in minutes"
 msgstr "Dauer in Minuten"
 
-#: course/calendar.py:61
+#, fuzzy
+#| msgid "All day"
+msgid "All-day event"
+msgstr "Ganztägig"
+
+#. Translators: for when the due time is "All day", how the webpage
+#. of a event is displayed.
+msgid ""
+"Only affects the rendering in the class calendar, in that a start time is "
+"not shown"
+msgstr ""
+
+msgid "Shown in calendar"
+msgstr ""
+
 msgid "Weekly"
 msgstr "Wöchentlich"
 
-#: course/calendar.py:63
+#, fuzzy
+#| msgid "Weekly"
+msgid "Bi-Weekly"
+msgstr "Wöchentlich"
+
 msgctxt "Interval of recurring events"
 msgid "Interval"
 msgstr "Intervall"
 
-#: course/calendar.py:66 course/calendar.py:197
 msgctxt "Starting ordinal of recurring events"
 msgid "Starting ordinal"
 msgstr "Start-Ordnungszahl"
 
-#: course/calendar.py:68
 msgctxt "Count of recurring events"
 msgid "Count"
 msgstr "Anzahl"
 
-#: course/calendar.py:74
 msgid "Create"
 msgstr "Erstellen"
 
-#: course/calendar.py:102
 #, python-format
 msgid "'%(event_kind)s %(event_ordinal)d' already exists"
 msgstr "%(event_kind)s %(event_ordinal)d' existiert bereits"
 
-#: course/calendar.py:117
 msgctxt "Unkown time interval"
 msgid "unknown interval"
 msgstr "unbekanntes Intervall"
 
-#: course/calendar.py:130 course/calendar.py:213
-msgid "only instructors and TAs may do that"
-msgstr "Nur Instruktoren und Assistenten dürfen das"
+#, fuzzy
+#| msgid "Edit events"
+msgid "may not edit events"
+msgstr "Ereignisse bearbeiten"
 
-#: course/calendar.py:160 course/calendar.py:172
 msgid "No events created."
 msgstr "Keine Ereignisse erstellt."
 
-#: course/calendar.py:178
 msgid "Events created."
 msgstr "Ereignisse erstellt."
 
-#: course/calendar.py:186 course/templates/course/course-base.html.py:114
 msgid "Create recurring events"
 msgstr "Wiederkehrende Ereignisse erstellen"
 
-#: course/calendar.py:203
 msgid "Renumber"
 msgstr "Neu numerieren"
 
-#: course/calendar.py:245
 msgid "Events renumbered."
 msgstr "Ereignisse neu numeriert"
 
-#: course/calendar.py:248
 msgid "No events found."
 msgstr "Keine Ereignisse gefunden."
 
-#: course/calendar.py:255 course/templates/course/course-base.html.py:115
 msgid "Renumber events"
 msgstr "Ereignisse neu numerieren"
 
-#: course/constants.py:44
+#, fuzzy
+#| msgid "View calendar"
+msgid "may not view calendar"
+msgstr "Kalender ansehen"
+
 msgctxt "User status"
 msgid "Unconfirmed"
 msgstr "Unbestätigt"
 
-#: course/constants.py:45
 msgctxt "User status"
 msgid "Active"
 msgstr "Aktiv"
 
-#: course/constants.py:63
-msgctxt "Participation role"
-msgid "Instructor"
-msgstr "Instruktor"
-
-#: course/constants.py:65
-msgctxt "Participation role"
-msgid "Teaching Assistant"
-msgstr "Assistent"
-
-#: course/constants.py:67
-msgctxt "Participation role"
-msgid "Student"
-msgstr "Student/Schüler"
-
-#: course/constants.py:69
-msgctxt "Participation role"
-msgid "Observer"
-msgstr "Beobachter"
-
-#: course/constants.py:71
-msgctxt "Participation role"
-msgid "Auditor"
-msgstr "Auditor"
-
-#: course/constants.py:85
 msgctxt "Participation status"
 msgid "Requested"
 msgstr "Beantragt"
 
-#: course/constants.py:87
 msgctxt "Participation status"
 msgid "Active"
 msgstr "Aktiv"
 
-#: course/constants.py:89
 msgctxt "Participation status"
 msgid "Dropped"
 msgstr "Abgemeldet"
 
-#: course/constants.py:91
 msgctxt "Participation status"
 msgid "Denied"
 msgstr "Abgelehnt"
 
-#: course/constants.py:125
+#, fuzzy
+#| msgid "Edit course"
+msgctxt "Participation permission"
+msgid "Edit course"
+msgstr "Kurs bearbeiten"
+
+#, fuzzy
+#| msgctxt "Grade aggregation strategy"
+#| msgid "Use the min grade"
+msgctxt "Participation permission"
+msgid "Use admin interface"
+msgstr "Die niedrigste erzielte Note verwenden"
+
+#, fuzzy
+#| msgid "Impersonate"
+msgctxt "Participation permission"
+msgid "Impersonate role"
+msgstr "Sich-ausgeben-als"
+
+#, fuzzy
+#| msgid "Set fake time"
+msgctxt "Participation permission"
+msgid "Set fake time"
+msgstr "Eine andere Zeit vorgeben"
+
+#, fuzzy
+#| msgid "Pretend to be in facilities"
+msgctxt "Participation permission"
+msgid "Pretend to be in facility"
+msgstr "Vorgeben in Einrichtungen zu sein"
+
+#, fuzzy
+#| msgid "Update Course Revision"
+msgctxt "Participation permission"
+msgid "Edit course permissions"
+msgstr "Kurs-Version aktualisieren"
+
+#, fuzzy
+#| msgid "Back to course page"
+msgctxt "Participation permission"
+msgid "View hidden course page"
+msgstr "Zurück zur Kursseite"
+
+#, fuzzy
+#| msgid "View calendar"
+msgctxt "Participation permission"
+msgid "View calendar"
+msgstr "Kalender ansehen"
+
+#, fuzzy
+#| msgid "Instant message"
+msgctxt "Participation permission"
+msgid "Send instant message"
+msgstr "Sofortnachricht"
+
+#, fuzzy
+#| msgid "Access rules tag"
+msgctxt "Participation permission"
+msgid "Access files for"
+msgstr "Zugangs-Regel-Tag"
+
+#, fuzzy
+#| msgid "Grading statistics"
+msgctxt "Participation permission"
+msgid "Included in grade statistics"
+msgstr "Benotungsstatistik"
+
+#, fuzzy
+#| msgid "Edit exams"
+msgctxt "Participation permission"
+msgid "Edit exam"
+msgstr "Prüfungen bearbeiten"
+
+#, fuzzy
+#| msgid "Issue exam tickets"
+msgctxt "Participation permission"
+msgid "Issue exam ticket"
+msgstr "Prüfungstickets ausgeben"
+
+#, fuzzy
+#| msgid "Batch-issue exam tickets"
+msgctxt "Participation permission"
+msgid "Batch issue exam ticket"
+msgstr "Prüfungstickets en masse ausgeben"
+
+msgctxt "Participation permission"
+msgid "View flow sessions from role "
+msgstr ""
+
+#, fuzzy
+#| msgid "View grades"
+msgctxt "Participation permission"
+msgid "View gradebook"
+msgstr "Noten ansehen"
+
+#, fuzzy
+#| msgid "Grading opportunity"
+msgctxt "Participation permission"
+msgid "Edit grading opportunity"
+msgstr "Benotungsmöglichkeit"
+
+#, fuzzy
+#| msgid "Session regraded."
+msgctxt "Participation permission"
+msgid "Assign grade"
+msgstr "Sitzung neu benotet."
+
+#, fuzzy
+#| msgid "View grades"
+msgctxt "Participation permission"
+msgid "View grader stats"
+msgstr "Noten ansehen"
+
+#, fuzzy
+#| msgid "Import Grades"
+msgctxt "Participation permission"
+msgid "Batch-import grades"
+msgstr "Noten importieren"
+
+#, fuzzy
+#| msgid "Import Grades"
+msgctxt "Participation permission"
+msgid "Batch-export grades"
+msgstr "Noten importieren"
+
+#, fuzzy
+#| msgid "Past submissions"
+msgctxt "Participation permission"
+msgid "Batch-download submissions"
+msgstr "Vergangene Sitzungen"
+
+msgctxt "Participation permission"
+msgid "Impose flow session deadline"
+msgstr ""
+
+msgctxt "Participation permission"
+msgid "Batch-impose flow session deadline"
+msgstr ""
+
+#, fuzzy
+#| msgctxt "Flow permission"
+#| msgid "End session"
+msgctxt "Participation permission"
+msgid "End flow session"
+msgstr "Sitzung beenden"
+
+#, fuzzy
+#| msgid "Flow sessions"
+msgctxt "Participation permission"
+msgid "Batch-end flow sessions"
+msgstr "Flow-Sitzungen"
+
+#, fuzzy
+#| msgid "Regrade flows"
+msgctxt "Participation permission"
+msgid "Regrade flow session"
+msgstr "Flows neu benoten"
+
+#, fuzzy
+#| msgid "Flow sessions"
+msgctxt "Participation permission"
+msgid "Batch-regrade flow sessions"
+msgstr "Flow-Sitzungen"
+
+#, fuzzy
+#| msgid "Recalculate grade"
+msgctxt "Participation permission"
+msgid "Recalculate flow session grade"
+msgstr "Note neu berechnen"
+
+msgctxt "Participation permission"
+msgid "Batch-recalculate flow sesssion grades"
+msgstr ""
+
+#, fuzzy
+#| msgid "Reopen session"
+msgctxt "Participation permission"
+msgid "Reopen flow session"
+msgstr "Sitzung wieder öffnen"
+
+#, fuzzy
+#| msgid "Grant exception"
+msgctxt "Participation permission"
+msgid "Grant exception"
+msgstr "Ausnahme gewähren"
+
+msgctxt "Participation permission"
+msgid "View analytics"
+msgstr ""
+
+#, fuzzy
+#| msgid "Preview ended."
+msgctxt "Participation permission"
+msgid "Preview content"
+msgstr "Vorschau beendet."
+
+#, fuzzy
+#| msgid "date joined"
+msgctxt "Participation permission"
+msgid "Update content"
+msgstr "Beitrittsdatum"
+
+#, fuzzy
+#| msgid "Markup sandbox"
+msgctxt "Participation permission"
+msgid "Use markup sandbox"
+msgstr "Markup-Sandkasten"
+
+#, fuzzy
+#| msgid "Page sandbox"
+msgctxt "Participation permission"
+msgid "Use page sandbox"
+msgstr "Seiten-Sandkasten"
+
+#, fuzzy
+#| msgid "Test flow"
+msgctxt "Participation permission"
+msgid "Test flow"
+msgstr "Flow testen"
+
+#, fuzzy
+#| msgid "Edit events"
+msgctxt "Participation permission"
+msgid "Edit events"
+msgstr "Ereignisse bearbeiten"
+
+#, fuzzy
+#| msgctxt "menu item"
+#| msgid "Query participations"
+msgctxt "Participation permission"
+msgid "Query participation"
+msgstr "Teilnahmen durchsuchen"
+
+#, fuzzy
+#| msgid "Participation"
+msgctxt "Participation permission"
+msgid "Edit participation"
+msgstr "Teilnahme"
+
+#, fuzzy
+#| msgctxt "menu item"
+#| msgid "Query participations"
+msgctxt "Participation permission"
+msgid "Preapprove participation"
+msgstr "Teilnahmen durchsuchen"
+
+#, fuzzy
+#| msgid "Manage instant flow requests"
+msgctxt "Participation permission"
+msgid "Manage instant flow requests"
+msgstr "Sofort-Flow-Anforderungen verwalten"
+
 msgctxt "Flow expiration mode"
 msgid "Submit session for grading"
 msgstr "Sitzung zur Benotung einreichen"
 
-#: course/constants.py:128
 msgctxt "Flow expiration mode"
 msgid "Do not submit session for grading"
 msgstr "Sitzung nicht zur Benotung einreichen"
 
-#: course/constants.py:140
 msgid "unknown expiration mode"
 msgstr "Unbekannter Ablaufmodus"
 
-#: course/constants.py:221
 msgctxt "Flow permission"
 msgid "View the flow"
 msgstr "Flow ansehen"
 
-#: course/constants.py:223
 msgctxt "Flow permission"
 msgid "Submit answers"
 msgstr "Antworten einreichen"
 
-#: course/constants.py:225
 msgctxt "Flow permission"
 msgid "End session"
 msgstr "Sitzung beenden"
 
-#: course/constants.py:227
 msgctxt "Flow permission"
 msgid "Change already-graded answer"
 msgstr "Benotete Antwort ändern"
 
-#: course/constants.py:230
 msgctxt "Flow permission"
 msgid "See whether an answer is correct"
 msgstr "Sehen, ob eine Antwort korrekt ist"
 
-#: course/constants.py:233
 msgctxt "Flow permission"
 msgid "See the correct answer before answering"
 msgstr "Die korrekte Antwort vor der Einreichung sehen"
 
-#: course/constants.py:236
 msgctxt "Flow permission"
 msgid "See the correct answer after answering"
 msgstr "Die korrekte Antwort nach der Einreichung sehen"
 
-#: course/constants.py:239
 msgctxt "Flow permission"
 msgid "Cannot see flow result"
 msgstr "Darf Flow-Ergebnis nicht sehen"
 
-#: course/constants.py:242
 msgctxt "Flow permission"
 msgid "Set the session to 'roll over' expiration mode"
 msgstr ""
 
-#: course/constants.py:244
 msgctxt "Flow permission"
 msgid "See session time"
 msgstr "Sitzungs-Zeit sehen"
 
-#: course/constants.py:246
 msgctxt "Flow permission"
 msgid "Lock down as exam session"
 msgstr "Als Prüfungs-Sitzung einschränken"
 
-#: course/constants.py:258
+#, fuzzy
+#| msgid "Only visible to course staff"
+msgctxt "Flow permission"
+msgid "Send emails about the flow page to course staff"
+msgstr "Nur für Kurs-Mitarbeiter sichtbar"
+
 msgctxt "Flow rule kind choices"
 msgid "Session Start"
 msgstr "Sitzungs-Start"
 
-#: course/constants.py:260
 msgctxt "Flow rule kind choices"
 msgid "Session Access"
 msgstr "Sitzungs-Zugriff"
 
-#: course/constants.py:262
 msgctxt "Flow rule kind choices"
 msgid "Grading"
 msgstr "Benotung"
 
-#: course/constants.py:300
 msgctxt "Grade aggregation strategy"
 msgid "Use the max grade"
 msgstr "Die höchste erzielte Note verwenden"
 
-#: course/constants.py:302
 msgctxt "Grade aggregation strategy"
 msgid "Use the avg grade"
 msgstr "Die durchschnittlich erzielte Note verwenden"
 
-#: course/constants.py:304
 msgctxt "Grade aggregation strategy"
 msgid "Use the min grade"
 msgstr "Die niedrigste erzielte Note verwenden"
 
-#: course/constants.py:306
 msgctxt "Grade aggregation strategy"
 msgid "Use the earliest grade"
 msgstr "Die zuerst erzielte Note verwenden"
 
-#: course/constants.py:308
 msgctxt "Grade aggregation strategy"
 msgid "Use the latest grade"
 msgstr "Die zuletzt erzielte Note verwenden"
 
-#: course/constants.py:325
 msgctxt "Grade state change"
 msgid "Grading started"
 msgstr ""
 
-#: course/constants.py:327
 msgctxt "Grade state change"
 msgid "Graded"
 msgstr "Benotet"
 
-#: course/constants.py:329
 msgctxt "Grade state change"
 msgid "Retrieved"
 msgstr "Geholt"
 
-#: course/constants.py:331
 msgctxt "Grade state change"
 msgid "Unavailable"
 msgstr "Nicht verfügbar"
 
-#: course/constants.py:333
 msgctxt "Grade state change"
 msgid "Extension"
 msgstr "Verlängerung"
 
-#: course/constants.py:335
 msgctxt "Grade state change"
 msgid "Report sent"
 msgstr "Bericht gesendet"
 
-#: course/constants.py:337
 msgctxt "Grade state change"
 msgid "Do-over"
 msgstr "Erneuter Versuch"
 
-#: course/constants.py:339
 msgctxt "Grade state change"
 msgid "Exempt"
 msgstr "Ausgenommen"
 
-#: course/constants.py:351
 msgctxt "Exam ticket state"
 msgid "Valid"
 msgstr "Gültig"
 
-#: course/constants.py:353
 msgctxt "Exam ticket state"
 msgid "Used"
 msgstr "Benutzt"
 
-#: course/constants.py:355
 msgctxt "Exam ticket state"
 msgid "Revoked"
 msgstr "Widerrufen"
 
-#: course/content.py:117
+#, fuzzy, python-format
+#| msgid "resource '%s' not found"
+msgid "commit sha '%s' not found"
+msgstr "Ressource '%s' nicht gefunden"
+
+#, fuzzy, python-format
+#| msgid "resource '%s' not found"
+msgid "resource '%s' is a file, not a directory"
+msgstr "Ressource '%s' nicht gefunden"
+
+msgid "repo root is a directory, not a file"
+msgstr ""
+
+#, fuzzy, python-format
+#| msgid "resource '%s' not found"
+msgid "resource '%s' is a directory, not a file"
+msgstr "Ressource '%s' nicht gefunden"
+
 #, python-format
 msgid "resource '%s' not found"
 msgstr "Ressource '%s' nicht gefunden"
 
-#: course/content.py:488
 msgid "I have no idea what a processing instruction is."
 msgstr ""
 
-#: course/content.py:822
 #, python-format
 msgid "invalid period: %s"
 msgstr "Ungültiges Zeitintervall: %s"
 
-#: course/content.py:911 course/content.py:936
 #, python-format
 msgid "unrecognized date/time specification: '%s' (interpreted as 'now')"
 msgstr ""
 
-#: course/content.py:1088
+#, python-format
+msgid "event '%s' has no end time, using start time instead"
+msgstr ""
+
 #, python-format
 msgid "page '%(group_id)s/%(page_id)s' in flow '%(flow_id)s'"
 msgstr ""
 
-#: course/content.py:1145
 #, python-format
 msgid "repo page class must conist of two dotted components (invalid: '%s')"
 msgstr ""
 
-#: course/enrollment.py:73
 msgid "Already enrolled. Cannot re-renroll."
 msgstr "Bereits geingeschrieben. Kann nicht erneut einschreiben."
 
-#: course/enrollment.py:78
 msgid "Course is not accepting enrollments."
 msgstr "Kurs akzeptiert keine Einschreibungen"
 
-#: course/enrollment.py:85
 msgid "Can only enroll using POST request"
 msgstr ""
 
-#: course/enrollment.py:92
 msgid ""
 "Your email address is not yet confirmed. Confirm your email to continue."
-msgstr "Ihre Email ist noch nicht bestätigt. Bestätigen Sie Ihre Email, um fortzufahren."
+msgstr ""
+"Ihre Email ist noch nicht bestätigt. Bestätigen Sie Ihre Email, um "
+"fortzufahren."
 
-#: course/enrollment.py:119
 #, python-format
 msgid "Enrollment not allowed. Please use your '%s' email to enroll."
-msgstr "Einschreibung nicht erlaubt. Bitte benutzen Sie Ihre Email '%s' um sich einzuschreiben."
+msgstr ""
+"Einschreibung nicht erlaubt. Bitte benutzen Sie Ihre Email '%s' um sich "
+"einzuschreiben."
 
-#: course/enrollment.py:146
 msgid "New enrollment request"
 msgstr "Neue Einschreibe-Anforderung"
 
-#: course/enrollment.py:153
 msgid ""
 "Enrollment request sent. You will receive notifcation by email once your "
 "request has been acted upon."
 msgstr ""
 
-#: course/enrollment.py:160
 msgid "Successfully enrolled."
 msgstr "Erfolgreich eingeschrieben"
 
+msgid "A participation already exists. Enrollment attempt aborted."
+msgstr ""
+
 #. Translators: how many enroll requests have ben processed.
-#: course/enrollment.py:213
 #, python-format
 msgid "%d requests processed."
 msgstr "%d Anforderungen bearbeitet."
 
-#: course/enrollment.py:240
 msgid "Your enrollment request"
 msgstr "Ihr Einschreibe-Ersuchen"
 
-#: course/enrollment.py:252
 msgctxt "Admin"
 msgid "Approve enrollment"
 msgstr "Einschreibung genhemigen"
 
-#: course/enrollment.py:258
 msgid "Deny enrollment"
 msgstr "Einschreibung verweigern"
 
-#: course/enrollment.py:269 course/models.py:370
-#: course/templates/course/participation-table.html:7
-msgid "Role"
-msgstr "Rolle"
-
-#: course/enrollment.py:276
 #, fuzzy
 #| msgid "Preapprove"
 msgid "Preapproval type"
 msgstr "Vorab-Bestätigungs-Typ"
 
-#: course/enrollment.py:278
 msgid ""
-"Enter fully qualified data according to \"Preapprovaltype\" you selected, "
-"one per line."
+"Enter fully qualified data according to the \"Preapproval type\" you "
+"selected, one per line."
 msgstr ""
 
-#: course/enrollment.py:280
 msgid "Preapproval data"
 msgstr "Vorab-Bestätigungs-Daten"
 
-#: course/enrollment.py:286
 msgid "Preapprove"
 msgstr "Vorab bestätigen"
 
-#: course/enrollment.py:294 course/enrollment.py:643
-msgid "only instructors may do that"
-msgstr ""
+#, fuzzy
+#| msgctxt "menu item"
+#| msgid "Query participations"
+msgid "may not preapprove participation"
+msgstr "Teilnahmen durchsuchen"
 
-#: course/enrollment.py:397
 #, python-format
 msgid ""
-"%(n_created)d preapprovals created, %(n_exist)d already existed, "
-"%(n_requested_approved)d pending requests approved."
+"%(n_created)d preapprovals created, %(n_exist)d already existed, %"
+"(n_requested_approved)d pending requests approved."
 msgstr ""
 
-#: course/enrollment.py:412
 msgid "Create Participation Preapprovals"
 msgstr "Teilnahme-Vorab-Bestätigungen Erstellen"
 
-#: course/enrollment.py:601
-msgid ""
-"Enter queries, one per line. Allowed: <code>and</code>, <code>or</code>, "
-"<code>not</code>, <code>id:1234</code>, <code>email:a@b.com</code>, "
-"<code>email-contains:abc</code>, <code>username:abc</code>, <code>username-"
-"contains:abc</code>, <code>tagged:abc</code>, <code>role:instructor|"
-"teaching_assistant|student|observer|auditor</code>, <code>status:requested|"
-"active|dropped|denied</code>."
+msgid "Enter queries, one per line."
 msgstr ""
 
-#: course/enrollment.py:616
+msgid "Allowed"
+msgstr ""
+
 msgid "Queries"
 msgstr "Anfragen"
 
-#: course/enrollment.py:619
 msgid "Apply tag"
 msgstr "Tag anwenden"
 
-#: course/enrollment.py:620
 msgid "Remove tag"
 msgstr "Tag entfernen"
 
-#: course/enrollment.py:621
 msgid "Drop"
 msgstr "Abmelden"
 
-#: course/enrollment.py:623
 msgid "Operation"
 msgstr "Vorgang"
 
-#: course/enrollment.py:625
 msgid "Tag"
 msgstr "Tag"
 
-#: course/enrollment.py:626
 msgid "Tag to apply or remove"
 msgstr "Tag zum Hinzufügen oder Entfernen"
 
-#: course/enrollment.py:633 course/exam.py:181
 msgid "List"
 msgstr "Liste"
 
-#: course/enrollment.py:635
 msgid "Apply operation"
 msgstr "Operation anwenden"
 
-#: course/enrollment.py:668
+#, fuzzy
+#| msgctxt "menu item"
+#| msgid "Query participations"
+msgid "may not query participations"
+msgstr "Teilnahmen durchsuchen"
+
 #, python-format
 msgid "Error in line %(lineno)d: %(error_type)s: %(error)s"
 msgstr ""
 
-#: course/exam.py:97
+msgid ""
+"Permissions for this participant in addition to those granted by their role"
+msgstr ""
+
+#, fuzzy
+#| msgid "Preapprove"
+msgid "Approve"
+msgstr "Vorab bestätigen"
+
+msgid "Deny"
+msgstr ""
+
+#, fuzzy
+#| msgid "Answer saved."
+msgid "Changes saved."
+msgstr "Antwort gespeichert."
+
+#, fuzzy
+#| msgid "Successfully enrolled."
+msgid "Successfully denied."
+msgstr "Erfolgreich eingeschrieben"
+
+#, fuzzy
+#| msgid "Successfully enrolled."
+msgid "Successfully dropped."
+msgstr "Erfolgreich eingeschrieben"
+
+#, fuzzy
+#| msgid "Participation"
+msgid "Edit Participation"
+msgstr "Teilnahme"
+
 msgid "Select participant for whom ticket is to be issued."
 msgstr ""
 
-#: course/exam.py:106 course/exam.py:272 course/models.py:1415
-#: course/models.py:1431
 msgid "Exam"
 msgstr "Prüfung"
 
-#: course/exam.py:109
+#, fuzzy
+#| msgid "Start date"
+msgid "Start validity"
+msgstr "Anfangsdatum"
+
+#, fuzzy
+#| msgid "Event validity check"
+msgid "End validity"
+msgstr "Ereignis-Gültigkeitsprüfung"
+
+msgid "Restrict to facility"
+msgstr ""
+
+msgid "If not blank, the exam ticket may only be used in the given facility"
+msgstr ""
+
 msgid "Revoke prior exam tickets for this user"
 msgstr "Vorige Prüfungs-Tickets für diesen Benutzer widerrufen"
 
-#: course/exam.py:116
 msgid "Issue ticket"
 msgstr "Ticket herausgeben"
 
-#: course/exam.py:135
 msgid "User is not enrolled in course."
 msgstr ""
 
-#: course/exam.py:159
 #, python-format
 msgid ""
-"Ticket issued for <b>%(participation)s</b>. The ticket code is <b>"
-"%(ticket_code)s</b>."
+"Ticket issued for <b>%(participation)s</b>. The ticket code is <b>%"
+"(ticket_code)s</b>."
 msgstr ""
 
-#: course/exam.py:171
 msgid "Issue Exam Ticket"
 msgstr ""
 
-#: course/exam.py:188 course/exam.py:233
 msgctxt "ticket code required to login exam"
 msgid "Code"
 msgstr ""
 
-#: course/exam.py:211
 msgid "Instructions for {{ ticket.exam.description }}"
 msgstr ""
 
-#: course/exam.py:215
 msgid ""
 "These are personalized instructions for {{ ticket.participation.user."
 "get_full_name }}."
 msgstr ""
 
-#: course/exam.py:218
 msgid ""
 "If this is not you, please let the proctor know so that you can get the "
 "correct set of instructions."
 msgstr ""
 
-#: course/exam.py:221
 msgid ""
 "Please sit down at your workstation and open a browser at this location:"
 msgstr ""
 
-#: course/exam.py:224
 msgid "Exam URL"
 msgstr "Prüfungs-URL"
 
-#: course/exam.py:226
 msgid ""
 "You should see boxes prompting for your user name and a one-time check-in "
 "code."
 msgstr ""
 
-#: course/exam.py:229
 msgid "Enter the following information"
 msgstr ""
 
-#: course/exam.py:231 course/exam.py:442
 msgid "User name"
 msgstr "Benutzername"
 
-#: course/exam.py:235
 msgid "You have one hour to complete the exam."
 msgstr "Sie haben eine Stunde, um die Prüfung zu bearbeiten."
 
-#: course/exam.py:237
 msgid "Good luck!"
 msgstr "Viel Glück!"
 
-#: course/exam.py:253
 msgid ""
 "Enter <a href=\"http://documen.tician.de/relate/content.html#relate-markup"
 "\">RELATE markup</a> containing Django template statements to render your "
 "exam tickets. <tt>tickets</tt> contains a list of data structures containing "
-"ticket information. For each entry <tt>tkt</tt>  in this list, use "
-"<tt>{{ tkt.participation.user.user_name }}</tt>, <tt>{{ tkt.code }}</tt>, "
-"<tt>{{ tkt.exam.description }}</tt>, and <tt>{{ checkin_uri }}</tt> as "
+"ticket information. For each entry <tt>tkt</tt>  in this list, use <tt>"
+"{{ tkt.participation.user.user_name }}</tt>, <tt>{{ tkt.code }}</tt>, <tt>"
+"{{ tkt.exam.description }}</tt>, and <tt>{{ checkin_uri }}</tt> as "
 "placeholders. See the example for how to use this."
 msgstr ""
 
-#: course/exam.py:274
 msgid "Ticket Format"
 msgstr "Ticket-Format"
 
-#: course/exam.py:280
 msgid "Revoke prior exam tickets"
 msgstr ""
 
-#: course/exam.py:287
 msgid "Issue tickets"
 msgstr "Tickets herausgeben"
 
-#: course/exam.py:296
-msgid "must be instructor or TA to batch-issue tickets"
-msgstr ""
+#, fuzzy
+#| msgid "Batch-issue exam tickets"
+msgid "may not batch-issue tickets"
+msgstr "Prüfungstickets en masse ausgeben"
 
-#: course/exam.py:349 course/exam.py:357
 msgid "Template rendering failed"
 msgstr ""
 
-#: course/exam.py:363
 #, python-format
 msgid "%d tickets issued."
 msgstr ""
 
-#: course/exam.py:371
 msgid "Batch-Issue Exam Tickets"
 msgstr ""
 
-#: course/exam.py:393
 msgid "User name or ticket code not recognized."
 msgstr "Benutzername oder Ticket-Code nicht korrekt."
 
-#: course/exam.py:399
 msgid "Ticket is not in usable state. (Has it been revoked?)"
 msgstr ""
 
-#: course/exam.py:409
 msgid "Ticket has exceeded its validity period."
 msgstr "Ticket hat seine Gültigkeitsperiode überschritten."
 
-#: course/exam.py:412
+#, fuzzy
+#| msgid "Exam has not started yet."
+msgid "Exam is not active."
+msgstr "Prüfung hat noch nicht begonnen."
+
 msgid "Exam has not started yet."
 msgstr "Prüfung hat noch nicht begonnen."
 
-#: course/exam.py:417
 msgid "Exam has ended."
 msgstr "Prüfung hat geendet."
 
-#: course/exam.py:419
+#, python-format
+msgid "Exam ticket requires presence in facility '%s'."
+msgstr ""
+
+#, fuzzy
+#| msgid "Ticket is valid."
+msgid "Exam ticket is not yet valid."
+msgstr "Ticket ist gültig."
+
+#, fuzzy
+#| msgid "Exam has ended."
+msgid "Exam ticket has expired."
+msgstr "Prüfung hat geendet."
+
 msgid "Ticket is valid."
 msgstr "Ticket ist gültig."
 
-#: course/exam.py:445
 msgid "This is typically your full email address."
 msgstr "Dies ist typischerweise Ihre volle Email-Adresse."
 
-#: course/exam.py:446
 msgid "Code"
 msgstr "Code"
 
-#: course/exam.py:448
 msgid ""
 "This is not your password, but a code that was given to you by a staff "
 "member. If you do not have one, please follow the link above to log in."
 msgstr ""
 
-#: course/exam.py:456
 msgid "Check in"
 msgstr "Anmelden"
 
-#: course/exam.py:512 course/templates/course/exam-check-in.html.py:7
 msgid "Check in for Exam"
 msgstr "Für Prüfung Anmelden"
 
-#: course/exam.py:587
 msgid ""
 "Access to flows in an exams-only facility is only granted if the flow is "
 "locked down. To do so, add 'lock_down_as_exam_session' to your flow's access "
 "permissions."
 msgstr ""
 
-#: course/exam.py:610
 msgid "Error while processing exam lockdown: flow session not found."
 msgstr ""
 
-#: course/exam.py:666
 msgid ""
 "Your RELATE session is currently locked down to this exam flow. Navigating "
-"to other parts of RELATE is not currently allowed. To abandon this exam, log "
+"to other parts of RELATE is not currently allowed. To exit this exam, log "
 "out."
 msgstr ""
 
-#: course/flow.py:86
 msgid "cannot grade ungraded answer"
 msgstr ""
 
-#: course/flow.py:533
 msgid "Can't end a session that's already ended"
 msgstr ""
 
-#: course/flow.py:581
 msgid "Can't expire a session that's not in progress"
 msgstr ""
 
-#: course/flow.py:583
 msgid "Can't expire an anonymous flow session"
 msgstr ""
 
-#: course/flow.py:626
 #, python-format
 msgid "invalid expiration mode '%(mode)s' on flow session ID %(session_id)d"
 msgstr ""
 
 #. Translators: grade flow: calculating grade.
-#: course/flow.py:661
 #, python-format
 msgid "Counted at %(percent).1f%% of %(point).1f points"
 msgstr ""
 
-#: course/flow.py:728
 msgid "Cannot reopen a session that's already in progress"
 msgstr ""
 
-#: course/flow.py:731
 msgid "Cannot reopen anonymous sessions"
 msgstr ""
 
-#: course/flow.py:739
 #, python-format
 msgid ""
-"Session reopened at %(now)s, previous completion time was "
-"'%(complete_time)s'."
+"Session reopened at %(now)s, previous completion time was '%(complete_time)"
+"s'."
 msgstr ""
 
-#: course/flow.py:810
 #, python-format
 msgid "Session regraded at %(time)s."
 msgstr ""
 
-#: course/flow.py:828
 msgid "cannot recalculate grade on in-progress session"
 msgstr ""
 
-#: course/flow.py:833
 #, python-format
 msgid "Session grade recomputed at %(time)s."
 msgstr ""
 
-#: course/flow.py:975
 msgid "new session not allowed"
 msgstr ""
 
-#: course/flow.py:1048 course/flow.py:1052
 msgid "may not view other people's sessions"
 msgstr ""
 
-#: course/flow.py:1114
 msgid "Save answer"
 msgstr "Antwort speichern"
 
-#: course/flow.py:1121
 #, fuzzy
 #| msgid "Submit answer for grading"
 msgid "Submit answer for feedback"
 msgstr "Antwort zur Benotung einreichen"
 
-#: course/flow.py:1126
 msgid "Submit final answer"
 msgstr "Endgültige Antwort einreichen"
 
-#: course/flow.py:1135
 msgid "Save answer and move on"
 msgstr "Antwort speichern und weiter"
 
-#: course/flow.py:1143
 msgid "Save answer and finish"
 msgstr "Antwort speichern und abschließen"
 
-#: course/flow.py:1170
 msgid ""
 "No in-progress session record found for this flow. Redirected to flow start "
 "page."
 msgstr ""
 
-#: course/flow.py:1215
 msgid "not allowed to view flow"
 msgstr ""
 
-#: course/flow.py:1273
 #, python-format
-msgid "Viewing prior submission dated %(date)s."
+msgid "Viewing prior submission dated %(date)s. "
 msgstr ""
 
-#: course/flow.py:1327
+msgid "Go back"
+msgstr "Zurück"
+
 msgid ""
 "The page data stored in the database was found to be invalid for the page as "
 "given in the course content. Likely the course content was changed in an "
@@ -1298,468 +1411,496 @@ msgid ""
 "changing the question ID. The precise error encountered was the following: "
 msgstr ""
 
-#: course/flow.py:1372
 msgid ""
 "Changes to this session are being prevented because this session yields a "
 "permanent grade, but you have not completed your enrollment process in this "
 "course."
 msgstr ""
 
-#: course/flow.py:1457
 msgid "could not find which button was pressed"
 msgstr ""
 
-#: course/flow.py:1473
 msgid "Answer submission not allowed."
 msgstr ""
 
-#: course/flow.py:1482
 msgid "Already have final answer."
 msgstr ""
 
-#: course/flow.py:1504
 msgid "Answer saved."
 msgstr "Antwort gespeichert."
 
-#: course/flow.py:1590
 msgid "Failed to submit answer."
 msgstr "Antwort konnte nicht eingereicht werden."
 
-#: course/flow.py:1604
+#, fuzzy, python-format
+#| msgid "Signed in as %(username)s"
+msgid "Interaction request from %(username)s"
+msgstr "Als %(username)s angemeldet"
+
+msgid "Email sent, and notice that you will also receive a copy of the email."
+msgstr ""
+
+#, fuzzy
+#| msgid "Send sign-in email"
+msgid "Send interaction email"
+msgstr "Anmelde-Email senden"
+
+#, python-format
+msgid "Your questions about page %s . "
+msgstr ""
+
+msgid ""
+"Notice that <strong>only</strong> questions for that page will be answered."
+msgstr ""
+
+msgid "Message"
+msgstr ""
+
+#, fuzzy
+#| msgid "Send email"
+msgid "Send Email"
+msgstr "Email senden"
+
+msgid "At least 20 characters are required for submission."
+msgstr ""
+
 msgid "only POST allowed"
 msgstr ""
 
-#: course/flow.py:1610
 msgid "may only change your own flow sessions"
 msgstr ""
 
-#: course/flow.py:1613
+#, fuzzy
+#| msgid "invalid operation"
+msgid "invalid bookmark state"
+msgstr "Ungültige Operation"
+
 msgid "may only change in-progress flow sessions"
 msgstr ""
 
-#: course/flow.py:1618
 msgid "invalid expiration mode"
 msgstr ""
 
-#: course/flow.py:1689
 msgid "odd POST parameters"
 msgstr ""
 
-#: course/flow.py:1693
 msgid "Cannot end a session that's already ended"
 msgstr ""
 
-#: course/flow.py:1697
 msgid "not permitted to end session"
 msgstr ""
 
-#: course/flow.py:1737
 #, python-format
 msgid "Submission by %(participation)s"
 msgstr ""
 
-#: course/flow.py:1815
 msgid ""
 "If non-empty, limit the regrading to sessions started under this access "
 "rules tag."
 msgstr ""
 
-#: course/flow.py:1817 course/models.py:478
 msgid "Access rules tag"
 msgstr "Zugangs-Regel-Tag"
 
-#: course/flow.py:1821
 msgid "Regrade in-progress and not-in-progress sessions"
 msgstr ""
 
-#: course/flow.py:1823
 msgid "Regrade in-progress sessions only"
 msgstr ""
 
-#: course/flow.py:1825
 msgid "Regrade not-in-progress sessions only"
 msgstr ""
 
-#: course/flow.py:1827
 msgid "Regraded session in progress"
 msgstr ""
 
-#: course/flow.py:1830 course/templates/course/gradebook-single.html.py:271
 msgid "Regrade"
 msgstr "Neu benoten"
 
-#: course/flow.py:1836
-msgid "must be instructor to regrade flows"
-msgstr ""
+#, fuzzy
+#| msgid "Regrade flows"
+msgid "may not batch-regrade flows"
+msgstr "Flows neu benoten"
 
-#: course/flow.py:1866
 msgid ""
 "This regrading process is only intended for flows that donot show up in the "
 "grade book. If you would like to regradefor-credit flows, use the "
 "corresponding functionality in the grade book."
 msgstr ""
 
-#: course/flow.py:1871
 msgid "Regrade not-for-credit Flow Sessions"
 msgstr ""
 
-#: course/grades.py:61
+#, fuzzy
+#| msgid "Grade changes"
+msgid "Re-allow changes"
+msgstr "Noten-Änderungen"
+
+#, fuzzy
+#| msgctxt "Cancel all instant flow(s)"
+#| msgid "Cancel all"
+msgid "Cancel"
+msgstr "Alle abbrechen"
+
+#, fuzzy
+#| msgid "flow page has no ID"
+msgid "Flow page changes reallowed. "
+msgstr "Flow-Seite hat keine ID"
+
+msgid "Re-allow Changes to Flow Page"
+msgstr ""
+
 msgid "must be enrolled to view grades"
 msgstr ""
 
-#: course/grades.py:74 course/grades.py:722
 msgid "may not view other people's grades"
 msgstr ""
 
-#: course/grades.py:153 course/grades.py:176 course/grades.py:273
-#: course/grades.py:388 course/grading.py:63
-msgid "must be instructor or TA to view grades"
+msgid "may not view grade book"
 msgstr ""
 
-#: course/grades.py:297
-msgid "must be instructor or TA to export grades"
+msgid "may not batch-export grades"
 msgstr ""
 
-#: course/grades.py:351
 msgid "Session tag"
 msgstr "Sitzungs-Tag"
 
-#: course/grades.py:355
 msgid ""
 "Only act on in-progress sessions that are past their access rule's due date "
 "(applies to 'expire')"
 msgstr ""
 
 #. Translators: see help text above.
-#: course/grades.py:358
 msgid "Past due only"
 msgstr ""
 
-#: course/grades.py:361
 msgid "Impose deadline (Expire sessions)"
 msgstr ""
 
-#: course/grades.py:365
 msgid "Regrade ended sessions"
 msgstr ""
 
-#: course/grades.py:367
 msgid "Recalculate grades of ended sessions"
 msgstr ""
 
-#: course/grades.py:393
 msgid "opportunity from wrong course"
 msgstr ""
 
-#: course/grades.py:419 course/views.py:524 course/views.py:551
-#: course/views.py:599
+msgid "may not impose deadline"
+msgstr ""
+
+msgid "may not batch-end flows"
+msgstr ""
+
+#, fuzzy
+#| msgid "Recalculate grade"
+msgid "may not batch-recalculate grades"
+msgstr "Note neu berechnen"
+
 msgid "invalid operation"
 msgstr "Ungültige Operation"
 
-#: course/grades.py:574 course/views.py:899
 msgid "Set access rules tag"
 msgstr "Zugriffsregel-Tag setzen"
 
-#: course/grades.py:578 course/models.py:888 course/models.py:942
-#: course/models.py:1124 course/views.py:943
+msgid "Re-allow changes to already-submitted questions"
+msgstr ""
+
 msgid "Comment"
 msgstr "Kommentar"
 
-#: course/grades.py:582 course/templates/course/gradebook-single.html.py:285
 msgid "Reopen"
 msgstr "Wieder öffnen"
 
-#: course/grades.py:611
+#, fuzzy
+#| msgid "Reopen session"
+msgid "may not reopen session"
+msgstr "Sitzung wieder öffnen"
+
 msgid "Cannot reopen a session that's already in progress."
 msgstr ""
 
-#: course/grades.py:625
 #, python-format
 msgid ""
-"Session reopened at %(now)s by %(user)s, previous completion time was "
-"'%(completion_time)s': %(comment)s."
+"Session reopened at %(now)s by %(user)s, previous completion time was '%"
+"(completion_time)s': %(comment)s."
 msgstr ""
 
-#: course/grades.py:649
 msgid "Reopen session"
 msgstr "Sitzung wieder öffnen"
 
-#: course/grades.py:706
 msgid "participation does not match course"
 msgstr ""
 
-#: course/grades.py:715
 msgid "This grade is not shown in the grade book."
 msgstr "Diese Note wird nicht im Notenbuch gezeigt."
 
-#: course/grades.py:718
 msgid "This grade is not shown in the student grade book."
 msgstr "Diese Note wird nicht im Teilnehmer-Notenbuch gezeigt."
 
-#: course/grades.py:725
 msgid "grade has not been released"
 msgstr ""
 
-#: course/grades.py:745
 msgid "unknown action"
 msgstr ""
 
-#: course/grades.py:761
-msgid "Session expired."
-msgstr "Sitzung abgelaufen."
+#, fuzzy
+#| msgid "Session ended."
+msgid "Session deadline imposed."
+msgstr "Sitzung beendet."
 
-#: course/grades.py:768
 msgid "Session ended."
 msgstr "Sitzung beendet."
 
-#: course/grades.py:774
 msgid "Session regraded."
 msgstr "Sitzung neu benotet."
 
-#: course/grades.py:780
 msgid "Session grade recalculated."
 msgstr "Sitzungs-Note neu berechnet."
 
-#: course/grades.py:783
 msgid "invalid session operation"
 msgstr ""
 
-#: course/grades.py:789 course/grades.py:1099 course/versioning.py:545
 msgctxt "Starting of Error message"
 msgid "Error"
 msgstr "Fehler"
 
-#: course/grades.py:885
 #, python-format
 msgid ""
 "Click to <a href='%s' target='_blank'>create</a> a new grading opportunity. "
 "Reload this form when done."
 msgstr ""
 
-#: course/grades.py:889
 msgctxt "Field name in Import grades form"
 msgid "Grading opportunity"
 msgstr ""
 
-#: course/grades.py:894 course/models.py:1115
 msgid "Attempt ID"
 msgstr ""
 
-#: course/grades.py:896
 msgid "File"
 msgstr ""
 
-#: course/grades.py:900
 msgid "CSV with Header"
 msgstr ""
 
-#: course/grades.py:903
 msgid "Format"
 msgstr ""
 
+msgid "Email or NetID"
+msgstr ""
+
+#, fuzzy
+#| msgid "User status"
+msgid "User attribute"
+msgstr "Benutzer-Status"
+
 #. Translators: the following strings are for the format
 #. informatioin for a CSV file to be imported.
-#: course/grades.py:908
 msgid ""
-"1-based column index for the Email or NetID used to locate student record"
+"1-based column index for the user attribute selected above to locate student "
+"record"
 msgstr ""
 
-#: course/grades.py:911
-msgid "User ID column"
+msgid "User attribute column"
 msgstr ""
 
-#: course/grades.py:913
 msgid "1-based column index for the (numerical) grade"
 msgstr ""
 
-#: course/grades.py:915
 msgid "Points column"
 msgstr "Spaltennr. mit Punktzahl"
 
-#: course/grades.py:917
 msgid "1-based column index for further (textual) feedback"
 msgstr ""
 
-#: course/grades.py:919
 msgid "Feedback column"
 msgstr "Spaltennr mit Punktzahl"
 
 #. Translators: "Max point" refers to full credit in points.
-#: course/grades.py:923 course/models.py:734 course/models.py:1121
 msgid "Max points"
 msgstr "Maximal-Punktzahl"
 
-#: course/grades.py:925 course/sandbox.py:70
-#: course/templates/course/grade-import-preview.html:15
-#: course/versioning.py:481
 msgid "Preview"
 msgstr "Vorschau"
 
-#: course/grades.py:926
 msgid "Import"
 msgstr "Importieren"
 
+#. Translators: use institutional_id_string to find user
+#. (participant).
+#, python-format
+msgid "no participant found with institutional ID '%(inst_id_string)s'"
+msgstr ""
+
+#, python-format
+msgid ""
+"more than one participant found with institutional ID '%(inst_id_string)s'"
+msgstr ""
+
 #. Translators: use id_string to find user (participant).
-#: course/grades.py:961
 #, python-format
 msgid "no participant found for '%(id_string)s'"
 msgstr ""
 
-#: course/grades.py:965
 #, python-format
 msgid "more than one participant found for '%(id_string)s'"
 msgstr ""
 
-#: course/grades.py:1107
+#, python-format
+msgid "Unknown user attribute '%(attr_type)s'"
+msgstr ""
+
+#, fuzzy
+#| msgid "point"
+#| msgid_plural "points"
+msgid "points"
+msgstr "Punkt"
+
+#, fuzzy
+#| msgid "Max points"
+msgid "max_points"
+msgstr "Maximal-Punktzahl"
+
+#, fuzzy
+#| msgid "Comment"
+msgid "comment"
+msgstr "Kommentar"
+
+#, fuzzy
+#| msgid "Update"
+msgid "updated"
+msgstr "Aktualisieren"
+
+msgid "may not batch-import grades"
+msgstr ""
+
 #, python-format
 msgid "%(total)d grades found, %(unchaged)d unchanged."
 msgstr "%(total)d Noten gefunden, %(unchaged)d unverändert."
 
-#: course/grades.py:1121
 #, python-format
 msgid "%d grades imported."
 msgstr "%d Noten importiert."
 
-#: course/grades.py:1134
 msgid "Import Grade Data"
 msgstr "Notendaten importieren"
 
-#: course/grades.py:1155
 msgid "Least recent attempt"
 msgstr ""
 
-#: course/grades.py:1156
 msgid "Most recent attempt"
 msgstr ""
 
-#: course/grades.py:1157
 msgid "All attempts"
 msgstr "Alle Versuche"
 
-#: course/grades.py:1159
 msgid "Attempts to include."
 msgstr ""
 
-#: course/grades.py:1161
 msgid "Every submission to the page counts as an attempt."
 msgstr ""
 
-#: course/grades.py:1165
 msgid "Only download sessions tagged with this rules tag."
 msgstr ""
 
-#: course/grades.py:1166
 msgid "Restrict to rules tag"
 msgstr ""
 
-#: course/grades.py:1170
 msgid "Only download submissions from non-in-progress sessions"
 msgstr ""
 
-#: course/grades.py:1172
 #, fuzzy
 #| msgid "in progress"
 msgid "Non-in-progress only"
 msgstr "im Gange"
 
-#: course/grades.py:1174
+msgid "Include provided feedback as text file in zip"
+msgstr ""
+
+msgid "Include feedback"
+msgstr ""
+
 msgid "Additional File"
 msgstr ""
 
-#: course/grades.py:1176
 msgid ""
 "If given, the uploaded file will be included in the zip archive. If the "
 "produced archive is to be used for plagiarism detection, then this may be "
 "used to include the reference solution."
 msgstr ""
 
-#: course/grades.py:1184
 msgid "Download"
 msgstr ""
 
-#: course/grades.py:1194
 #, fuzzy
-#| msgid "must be at least TA to view analytics"
-msgid "must be at least TA to download submissions"
-msgstr "muss mindestens Kurs-Assistent sein um Analytics anzusehen"
+#| msgid "Past submissions"
+msgid "may not batch-download submissions"
+msgstr "Vergangene Sitzungen"
 
-#: course/grades.py:1207 course/grades.py:1211
 msgid "ALL"
 msgstr ""
 
-#: course/grades.py:1320
 msgid "Download All Submissions in Zip file"
 msgstr ""
 
-#: course/grading.py:69
+#, fuzzy
+#| msgid "Grading opportunity"
+msgid "Edit Grading Opportunity"
+msgstr "Benotungsmöglichkeit"
+
 msgid "Flow session not part of specified course"
 msgstr ""
 
-#: course/grading.py:72
 msgid "Cannot grade anonymous session"
 msgstr ""
 
-#: course/grading.py:213 course/templates/course/flow-page.html.py:54
+msgid "may not assign grades"
+msgstr ""
+
 msgid "Submit"
 msgstr ""
 
-#: course/grading.py:290
-msgid "must be instructor or TA to view grading stats"
+msgid "may not view grader stats"
 msgstr ""
 
-#: course/im.py:53
 msgctxt "Instant message"
 msgid "Message"
 msgstr ""
 
 #. Translators: literals in this file are about
 #. the instant messaging function.
-#: course/im.py:65
 msgctxt "Send instant messages"
 msgid "Send"
 msgstr ""
 
-#: course/im.py:141
 msgid "unable to connect"
 msgstr ""
 
-#: course/im.py:159
-msgid "only enrolled folks may do that"
-msgstr ""
-
-#: course/im.py:166
 msgid "Instant messaging is not enabled for this course."
 msgstr ""
 
-#: course/im.py:172
 msgid "Recipient is <span class='label label-success'>Online</span>."
 msgstr ""
 
-#: course/im.py:175
 msgid "Recipient is <span class='label label-danger'>Offline</span>."
 msgstr ""
 
-#: course/im.py:189
 msgid "no recipient XMPP ID"
 msgstr ""
 
-#: course/im.py:192
 msgid "no XMPP password"
 msgstr ""
 
-#: course/im.py:204
 msgid "An error occurred while sending the message. Sorry."
 msgstr ""
 
-#: course/im.py:208
 msgid "Message sent."
 msgstr ""
 
-#: course/im.py:217 course/templates/course/course-base.html.py:35
 msgid "Send instant message"
 msgstr ""
 
-#: course/models.py:62
 msgid ""
 "A course identifier. Alphanumeric with dashes, no spaces. This is visible in "
 "URLs and determines the location on your file system where the course's git "
@@ -1767,91 +1908,71 @@ msgid ""
 "been created without also moving the course's git on the server."
 msgstr ""
 
-#: course/models.py:67
 msgid "Course identifier"
 msgstr ""
 
-#: course/models.py:73
 msgid "Identifier may only contain letters, numbers, and hypens ('-')."
 msgstr ""
 
-#: course/models.py:80
 msgid "Course name"
 msgstr "Kurs-Modul"
 
-#: course/models.py:81
 msgid "A human-readable name for the course. (e.g. 'Numerical Methods')"
 msgstr ""
 
-#: course/models.py:86
 msgid "Course number"
 msgstr "Kurs-Nummer"
 
-#: course/models.py:87
 msgid "A human-readable course number/ID for the course (e.g. 'CS123')"
 msgstr ""
 
-#: course/models.py:92
 msgid "Time Period"
 msgstr "Zeit-Intervall"
 
-#: course/models.py:93
 msgid ""
 "A human-readable description of the time period for the course (e.g. 'Fall "
 "2014')"
 msgstr ""
 
-#: course/models.py:97
 msgid "Start date"
 msgstr "Anfangsdatum"
 
-#: course/models.py:100
 msgid "End date"
 msgstr "Enddatum"
 
-#: course/models.py:105
 msgid "Is the course only accessible to course staff?"
 msgstr "Ist der Kurs nur für Teammitglieder zugänglich?"
 
-#: course/models.py:106
 msgid "Only visible to course staff"
 msgstr "Nur für Kurs-Mitarbeiter sichtbar"
 
-#: course/models.py:109
 msgid "Should the course be listed on the main page?"
 msgstr "Soll der Kurs auf der Hauptseite gelistet werden?"
 
-#: course/models.py:110
 msgid "Listed on main page"
 msgstr "Auf der Hauptseite gelistet"
 
-#: course/models.py:113
 msgid "Accepts enrollment"
 msgstr "Akzeptiert Anmeldungen"
 
-#: course/models.py:116
 msgid ""
 "A Git URL from which to pull course updates. If you're just starting out, "
 "enter <tt>git://github.com/inducer/relate-sample</tt> to get some sample "
 "content."
 msgstr ""
 
-#: course/models.py:120
 msgid "git source"
 msgstr "git-Quelle"
 
-#: course/models.py:122
 msgid ""
 "An SSH private key to use for Git authentication. Not needed for the sample "
 "URL above.You may use <a href='/generate-ssh-key'>this tool</a> to generate "
 "a key pair."
 msgstr ""
 
-#: course/models.py:126
 msgid "SSH private key"
 msgstr "Geheimer SSH-Schlüssel"
 
-#: course/models.py:129
 msgid ""
 "Subdirectory <em>within</em> the git repository to use as course root "
 "directory. Not required, and usually blank. Use only if your course content "
@@ -1859,257 +1980,249 @@ msgid ""
 "slash."
 msgstr ""
 
-#: course/models.py:134
 msgid "Course root in repository"
 msgstr "Kurs-Wurzel im Repository"
 
-#: course/models.py:138
 msgid ""
 "Name of a YAML file in the git repository that contains the root course "
 "descriptor."
 msgstr ""
 
-#: course/models.py:140
 msgid "Course file"
 msgstr ""
 
-#: course/models.py:143
 msgid ""
 "Name of a YAML file in the git repository that contains calendar information."
 msgstr "Name einer YAML-Datei, die die Kalender-Information enthält."
 
-#: course/models.py:145 course/validation.py:1141
 msgid "Events file"
 msgstr ""
 
-#: course/models.py:149
 msgid "If set, each enrolling student must be individually approved."
 msgstr ""
 
-#: course/models.py:151
 msgid "Enrollment approval required"
 msgstr ""
 
-#: course/models.py:154
 msgid ""
-"If set, students cannot get particiaption preapproval using institutional ID "
-"if institutional ID they provided are not verified."
+"If set, students cannot get participation preapproval using institutional ID "
+"if the institutional ID they provided is not verified."
 msgstr ""
 
-#: course/models.py:158
 #, fuzzy
 #| msgid "Institutional ID verified"
-msgid "None preapproval by institutional ID if not verified?"
+msgid "Prevent preapproval by institutional ID if not verified?"
 msgstr "Institutionelle ID geprüft"
 
-#: course/models.py:162
 msgid ""
 "Enrollee's email addresses must end in the specified suffix, such as "
 "'@illinois.edu'."
 msgstr ""
 
-#: course/models.py:164
 msgid "Enrollment required email suffix"
 msgstr ""
 
 #. Translators: replace "RELATE" with the brand name of your
 #. website if necessary.
-#: course/models.py:169
 msgid ""
 "This email address will be used in the 'From' line of automated emails sent "
 "by RELATE."
 msgstr ""
 
-#: course/models.py:171
 msgid "From email"
 msgstr ""
 
-#: course/models.py:174
 msgid "This email address will receive notifications about the course."
 msgstr ""
 
-#: course/models.py:176
 msgid "Notify email"
 msgstr ""
 
-#: course/models.py:181
 msgid ""
 "(Required only if the instant message feature is desired.) The Jabber/XMPP "
 "ID (JID) the course will use to sign in to an XMPP server."
 msgstr ""
 
-#: course/models.py:184
 msgid "Course xmpp ID"
 msgstr ""
 
-#: course/models.py:186
 msgid ""
 "(Required only if the instant message feature is desired.) The password to "
 "go with the JID above."
 msgstr ""
 
-#: course/models.py:188
 msgid "Course xmpp password"
 msgstr ""
 
-#: course/models.py:191
 msgid ""
 "(Required only if the instant message feature is desired.) The JID to which "
 "instant messages will be sent."
 msgstr ""
 
-#: course/models.py:193
 msgid "Recipient xmpp ID"
 msgstr ""
 
-#: course/models.py:199 course/models.py:453
 msgid "Active git commit SHA"
 msgstr ""
 
-#: course/models.py:206
 msgid "Courses"
 msgstr "Kurse"
 
-#: course/models.py:233
 msgid "Kind of event"
 msgstr ""
 
 #. Translators: ordinal of event of the same kind
-#: course/models.py:236
 msgid "Ordinal of event"
 msgstr ""
 
-#: course/models.py:238 course/models.py:409 course/models.py:457
-#: course/templates/course/flow-start.html:23
 msgid "Start time"
 msgstr "Anfangszeit"
 
-#: course/models.py:240 course/models.py:411
 msgid "End time"
 msgstr "Endzeit"
 
-#. Translators: for when the due time is "All day", how the webpage
-#. of a event is displayed.
-#: course/models.py:244
-msgid ""
-"Only affects the rendering in the class calendar, in that a start time is "
-"not shown"
-msgstr ""
-
-#: course/models.py:246
 msgid "All day"
 msgstr "Ganztägig"
 
-#: course/models.py:249
-msgid "Shown in calendar"
-msgstr ""
-
-#: course/models.py:252
 msgid "Event"
 msgstr "Ereignis"
 
-#: course/models.py:253
 msgid "Events"
 msgstr "Ereignisse"
 
 #. Translators: name format of ParticipationTag
-#: course/models.py:276
 msgid "Format is lower-case-with-hyphens. Do not use spaces."
 msgstr ""
 
-#: course/models.py:278
 msgid "Name of participation tag"
 msgstr ""
 
-#: course/models.py:280
 msgid "Shown to pariticpant"
 msgstr "Wird Teilnehmern angezeigt"
 
-#: course/models.py:291
 msgid "Name contains invalid characters."
 msgstr "Name enthält ungültige Zeichen."
 
-#: course/models.py:300
 msgid "Participation tag"
 msgstr "Teilnahmen-Tag"
 
-#: course/models.py:301
 msgid "Participation tags"
 msgstr "Teilnahmen-Tags"
 
-#: course/models.py:308 course/templates/course/gradebook-by-opp.html.py:98
-#: course/templates/course/gradebook-participant.html:26
-#: course/templates/course/gradebook.html:17
-#: course/templates/course/participation-table.html:5
-msgid "User ID"
-msgstr ""
-
-#: course/models.py:314
-msgid "Enroll time"
-msgstr "Registrierungszeit"
-
-#: course/models.py:317
 msgid ""
-"Instructors may update course content. Teaching assistants may access and "
-"change grade data. Observers may access analytics. Each role includes "
-"privileges from subsequent roles."
+"A symbolic name for this role, used in course code. "
+"lower_case_with_underscores, no spaces. May be any string. The name "
+"'unenrolled' is special and refers to anyone not enrolled in the course."
 msgstr ""
 
-#: course/models.py:321
+msgid "Role identifier"
+msgstr ""
+
+msgid "A human-readable description of this role."
+msgstr ""
+
+#, fuzzy
+#| msgid "Course name"
+msgid "Role name"
+msgstr "Kurs-Modul"
+
+#, fuzzy
+#| msgid "List of Participants"
+msgid "Is default role for new participants"
+msgstr "Teilnehmerliste"
+
+msgid "Is default role for unenrolled users"
+msgstr ""
+
+#, fuzzy, python-format
+#| msgid "%(user)s in %(course)s as %(role)s"
+msgid "%(identifier)s in %(course)s"
+msgstr "%(user)s in %(course)s als %(role)s"
+
 msgid "Participation role"
 msgstr "Teilnahme-Rolle"
 
-#: course/models.py:324
+#, fuzzy
+#| msgid "Participation role"
+msgid "Participation roles"
+msgstr "Teilnahme-Rolle"
+
+msgid "Permission"
+msgstr ""
+
+msgid "Argument"
+msgstr ""
+
+msgid "Role"
+msgstr "Rolle"
+
+#, fuzzy
+#| msgid "Participation role"
+msgid "Participation role permission"
+msgstr "Teilnahme-Rolle"
+
+#, fuzzy
+#| msgid "Participation role"
+msgid "Participation role permissions"
+msgstr "Teilnahme-Rolle"
+
+msgid "User ID"
+msgstr ""
+
+msgid "Enroll time"
+msgstr "Registrierungszeit"
+
+msgid "Role (unused)"
+msgstr ""
+
 msgid "Participation status"
 msgstr "Teilnahme-Status"
 
-#: course/models.py:329
 msgid "Multiplier for time available on time-limited flows"
 msgstr ""
 
-#: course/models.py:331
 msgid "Time factor"
 msgstr "Zeit-Faktor"
 
-#: course/models.py:335
 msgid "Preview git commit SHA"
 msgstr ""
 
-#: course/models.py:338 course/templates/course/gradebook-participant.html:38
-#: course/templates/course/participation-table.html:9
 msgid "Tags"
+msgstr ""
+
+msgid "Notes"
 msgstr ""
 
 #. Translators: displayed format of Participation: some user in some
 #. course as some role
-#: course/models.py:343
 #, python-format
 msgid "%(user)s in %(course)s as %(role)s"
 msgstr "%(user)s in %(course)s als %(role)s"
 
-#: course/models.py:351 course/models.py:444 course/models.py:856
-#: course/models.py:932 course/models.py:1102 course/models.py:1375
-#: course/models.py:1434 course/templates/course/course-base.html.py:125
 msgid "Participation"
 msgstr "Teilnahme"
 
-#: course/models.py:352
 msgid "Participations"
 msgstr "Teilnahmen"
 
-#: course/models.py:373 course/models.py:874 course/models.py:937
-#: course/models.py:1130 course/models.py:1437
+#, fuzzy
+#| msgid "Participation role"
+msgid "Participation permission"
+msgstr "Teilnahme-Rolle"
+
+#, fuzzy
+#| msgid "Participation preapprovals"
+msgid "Participation permissionss"
+msgstr "Teilnahmen-Vorab-Bestätigungen"
+
 msgid "Creator"
 msgstr "Ersteller"
 
-#: course/models.py:375 course/models.py:876 course/models.py:939
-#: course/models.py:1057 course/models.py:1439
 msgid "Creation time"
 msgstr "Erstellungszeitpunkt"
 
 #. Translators: somebody's email in some course in Participation
 #. Preapproval
-#: course/models.py:381
 #, fuzzy, python-format
 #| msgid "%(user)s in %(course)s as %(role)s"
 msgid "Email %(email)s in %(course)s"
@@ -2117,625 +2230,586 @@ msgstr "%(user)s in %(course)s als %(role)s"
 
 #. Translators: somebody's Institutional ID in some course in
 #. Participation Preapproval
-#: course/models.py:386
 #, python-format
 msgid "Institutional ID %(inst_id)s in %(course)s"
 msgstr ""
 
-#: course/models.py:393
 msgid "Participation preapproval"
 msgstr "Teilnahmen-Vorab-Bestätigung"
 
-#: course/models.py:394
 msgid "Participation preapprovals"
 msgstr "Teilnahmen-Vorab-Bestätigungen"
 
-#: course/models.py:413
+#, fuzzy
+#| msgctxt "Participation role"
+#| msgid "Instructor"
+msgid "Instructor"
+msgstr "Instruktor"
+
+#, fuzzy
+#| msgctxt "Participation role"
+#| msgid "Teaching Assistant"
+msgid "Teaching Assistant"
+msgstr "Assistent"
+
+#, fuzzy
+#| msgctxt "Participation role"
+#| msgid "Student"
+msgid "Student"
+msgstr "Student/Schüler"
+
+#, fuzzy
+#| msgid "Deny enrollment"
+msgid "Unenrolled"
+msgstr "Einschreibung verweigern"
+
 msgid "Cancelled"
 msgstr ""
 
-#: course/models.py:416
 msgid "Instant flow request"
 msgstr "Sofort-Flow-Anforderung"
 
-#: course/models.py:417 course/templates/course/course-base.html.py:130
 msgid "Instant flow requests"
 msgstr "Sofort-Flow-Anforderungen"
 
-#: course/models.py:420
 #, python-format
 msgid "Instant flow request for %(flow_id)s in %(course)s at %(start_time)s"
 msgstr ""
 
-#: course/models.py:459
 msgid "Completion time"
 msgstr "Abschlusszeit"
 
-#: course/models.py:461
 msgid "Page count"
 msgstr "Seitenzahl"
 
-#: course/models.py:469
 #, fuzzy
 #| msgid "Update Course Revision"
 msgid "Page data at course revision"
 msgstr "Kurs-Version aktualisieren"
 
-#: course/models.py:471
 #, fuzzy
 #| msgid "Prevent updating to a git revision prior to the current one"
 msgid "Page set-up data is up-to date for this revision of the course material"
 msgstr "Aktualisierung auf eine vorherige git-Version verhindern"
 
-#: course/models.py:475
 msgid "In progress"
 msgstr "Im Gange"
 
-#: course/models.py:482 course/templates/course/gradebook-single.html.py:166
 msgid "Expiration mode"
 msgstr "Ablauf-Modus"
 
-#: course/models.py:491 course/models.py:1119
-#: course/templates/course/gradebook-single.html:226
 msgid "Points"
 msgstr "Punkte"
 
-#: course/models.py:494
 msgid "Max point"
 msgstr ""
 
-#: course/models.py:496
 msgid "Result comment"
 msgstr "Resultats-Kommentar"
 
-#: course/models.py:499 course/models.py:562 course/models.py:625
-#: course/models.py:1136 course/templates/course/grade-flow-page.html.py:58
 msgid "Flow session"
 msgstr "Flow-Sitzung"
 
-#: course/models.py:500 course/templates/course/gradebook-single.html.py:131
 msgid "Flow sessions"
 msgstr "Flow-Sitzungen"
 
-#: course/models.py:505
 #, python-format
 msgid "anonymous session %(session_id)d on '%(flow_id)s'"
 msgstr ""
 
-#: course/models.py:509
 #, python-format
 msgid "%(user)s's session %(session_id)d on '%(flow_id)s'"
 msgstr ""
 
-#: course/models.py:564
 msgid "Ordinal"
 msgstr ""
 
-#: course/models.py:569
 msgid "Page type as indicated in course content"
 msgstr ""
 
-#: course/models.py:573
 msgid "Group ID"
 msgstr "Gruppen-ID"
 
-#: course/models.py:580
 msgid "Data"
 msgstr ""
 
-#: course/models.py:582
 #, fuzzy
 #| msgid "Page count"
 msgid "Page Title"
 msgstr "Seitenzahl"
 
-#: course/models.py:585
 msgid ""
 "A user-facing 'marking' feature to allow participants to easily return to "
 "pages that still need their attention."
 msgstr ""
 
-#: course/models.py:587
 msgid "Bookmarked"
 msgstr ""
 
-#: course/models.py:590 course/models.py:591
 msgid "Flow page data"
 msgstr "Flow-Seiten-Daten"
 
-#: course/models.py:595
 #, python-format
 msgid ""
-"Data for page '%(group_id)s/%(page_id)s' (ordinal %(ordinal)s) in "
-"%(flow_session)s"
+"Data for page '%(group_id)s/%(page_id)s' (ordinal %(ordinal)s) in %"
+"(flow_session)s"
 msgstr ""
 
-#: course/models.py:628 course/models.py:787
 msgid "Page data"
 msgstr ""
 
-#: course/models.py:630
 msgid "Visit time"
 msgstr ""
 
-#: course/models.py:632
 msgid "Remote address"
 msgstr ""
 
-#: course/models.py:635
+#, fuzzy
+#| msgid "Impersonate"
+msgid "Impersonated by"
+msgstr "Sich-ausgeben-als"
+
 msgid ""
 "Synthetic flow page visits are generated for unvisited pages once a flow is "
 "finished. This is needed since grade information is attached to a visit, and "
 "it needs a place to go."
 msgstr ""
 
-#: course/models.py:639
 msgid "Is synthetic"
 msgstr "Ist synthetisch"
 
 #. Translators: "Answer" is a Noun.
-#: course/models.py:645 course/page/code.py:62 course/page/text.py:98
 msgid "Answer"
 msgstr "Antwort"
 
 #. Translators: determine whether the answer is a final,
 #. submitted answer fit for grading.
-#: course/models.py:658
 msgid "Is submitted answer"
 msgstr "Ist eingereichte Antwort"
 
 #. Translators: flow page visit
-#: course/models.py:663
 #, python-format
 msgid "'%(group_id)s/%(page_id)s' in '%(session)s' on %(time)s"
 msgstr ""
 
 #. Translators: flow page visit: if an answer is
 #. provided by user then append the string.
-#: course/models.py:673
 msgid " (with answer)"
 msgstr " (mit Antwort)"
 
-#: course/models.py:681
 msgid "Flow page visit"
 msgstr "Flow-Seiten-Besuch"
 
-#: course/models.py:682
 msgid "Flow page visits"
 msgstr "Flow-Seiten-Besuche"
 
-#: course/models.py:709
 msgid "Visit"
 msgstr ""
 
-#: course/models.py:713 course/templates/course/gradebook-single.html.py:228
 msgid "Grader"
 msgstr "Benotet von"
 
-#: course/models.py:715 course/models.py:1132
 msgid "Grade time"
 msgstr ""
 
-#: course/models.py:719
 msgid "Graded at git commit SHA"
 msgstr ""
 
-#: course/models.py:724
 msgid "Grade data"
 msgstr ""
 
 #. Translators: max point in grade
-#: course/models.py:732
 msgid "Point value of this question when receiving full credit."
 msgstr ""
 
 #. Translators: correctness in grade
-#: course/models.py:737
 msgid ""
 "Real number between zero and one (inclusively) indicating the degree of "
 "correctness of the answer."
 msgstr ""
 
-#: course/models.py:739
 msgid "Correctness"
 msgstr ""
 
 #. Translators: "Feedback" stands for the feedback of answers.
-#: course/models.py:750 course/templates/course/grade-import-preview.html.py:21
 msgid "Feedback"
 msgstr ""
 
-#: course/models.py:765
 msgid "Flow page visit grade"
 msgstr ""
 
-#: course/models.py:766
 msgid "Flow page visit grades"
 msgstr ""
 
 #. Translators: return the information of the grade of a user
 #. by percentage.
-#: course/models.py:776
 #, python-format
 msgid "grade of %(visit)s: %(percentage)s"
 msgstr ""
 
-#: course/models.py:789 course/templates/course/grade-import-preview.html.py:20
-#: course/templates/course/gradebook-participant.html:53
-#: course/templates/course/gradebook-single.html:72
 msgid "Grade"
 msgstr "Note"
 
-#: course/models.py:794
 msgid "Bulk feedback"
 msgstr ""
 
-#: course/models.py:830
 msgid "stipulations must be a dictionary"
 msgstr ""
 
-#: course/models.py:835
 msgid "unrecognized keys in stipulations"
 msgstr ""
 
-#: course/models.py:841
 msgid "credit_percent must be a float"
 msgstr ""
 
-#: course/models.py:847
 msgid "'allowed_session_count' must be a non-negative integer"
 msgstr ""
 
-#: course/models.py:860 course/models.py:934
 msgid "Expiration"
 msgstr ""
 
 #. Translators: help text for stipulations in FlowAccessException
 #. (deprecated)
-#: course/models.py:865
 msgid ""
 "A dictionary of the same things that can be added to a flow access rule, "
 "such as allowed_session_count or credit_percent. If not specified here, "
 "values will default to the stipulations in the course content."
 msgstr ""
 
-#: course/models.py:871
 msgid "Stipulations"
 msgstr ""
 
 #. Translators: deprecated
-#: course/models.py:881
 msgid ""
 "Check if a flow started under this exception rule set should stay under this "
 "rule set until it is expired."
 msgstr ""
 
 #. Translators: deprecated
-#: course/models.py:885
 msgid "Is sticky"
 msgstr ""
 
 #. Translators: flow access exception in admin (deprecated)
-#: course/models.py:893
 #, python-format
 msgid "Access exception for '%(user)s' to '%(flow_id)s' in '%(course)s'"
 msgstr ""
 
-#: course/models.py:910
 msgid "Exception"
 msgstr ""
 
-#: course/models.py:913
-msgid "Permission"
-msgstr ""
-
 #. Translators: FlowAccessExceptionEntry (deprecated)
-#: course/models.py:917
 msgid "Flow access exception entries"
 msgstr ""
 
-#: course/models.py:946
 msgid "Kind"
 msgstr ""
 
-#: course/models.py:948
 msgid "Rule"
 msgstr ""
 
-#: course/models.py:951
 msgctxt "Is the flow rule exception activated?"
 msgid "Active"
 msgstr ""
 
 #. Translators: For FlowRuleException
-#: course/models.py:956
 #, python-format
 msgid "%(kind)s exception for '%(user)s' to '%(flow_id)s'in '%(course)s'"
 msgstr ""
 
-#: course/models.py:972
 msgid "grading rules may not expire"
 msgstr ""
 
-#: course/models.py:1015
 msgid "invalid rule kind: "
 msgstr ""
 
-#: course/models.py:1019
 msgid "invalid existing_session_rules: "
 msgstr ""
 
-#: course/models.py:1022
 msgid "Flow rule exception"
 msgstr "Flow-Regel-Ausnahme"
 
-#: course/models.py:1023
 msgid "Flow rule exceptions"
 msgstr "Flow-Regel-Ausnahmen"
 
 #. Translators: format of identifier for GradingOpportunity
-#: course/models.py:1036
 msgid "A symbolic name for this grade. lower_case_with_underscores, no spaces."
 msgstr ""
 
-#: course/models.py:1038
 msgid "Grading opportunity ID"
 msgstr ""
 
 #. Translators: name for GradingOpportunity
-#: course/models.py:1041
 msgid "A human-readable identifier for the grade."
 msgstr ""
 
-#: course/models.py:1042
 msgid "Grading opportunity name"
 msgstr ""
 
-#: course/models.py:1044
 msgid "Flow identifier that this grading opportunity is linked to, if any"
 msgstr ""
 
 #. Translators: strategy on how the grading of mutiple sessioins
 #. are aggregated.
-#: course/models.py:1052 course/templates/course/gradebook-by-opp.html.py:31
-#: course/templates/course/gradebook-opp-list.html:22
-#: course/templates/course/gradebook-single.html:119
 msgid "Aggregation strategy"
 msgstr ""
 
-#: course/models.py:1055 course/models.py:1127
-#: course/templates/course/gradebook-opp-list.html:23 course/views.py:932
 msgid "Due time"
 msgstr ""
 
-#: course/models.py:1060
 msgid "Shown in grade book"
 msgstr ""
 
-#: course/models.py:1062
 msgid "Shown in student grade book"
 msgstr ""
 
-#: course/models.py:1064
+#, fuzzy
+#| msgid "This grade is not shown in the student grade book."
+msgid "Result shown in student grade book"
+msgstr "Diese Note wird nicht im Teilnehmer-Notenbuch gezeigt."
+
 msgid "Scores for individual pages are shown in the participants' grade book"
 msgstr ""
 
-#: course/models.py:1068 course/models.py:1099
+msgid "Hide superseded grade history before"
+msgstr ""
+
+msgid ""
+"Grade changes dated before this date that are superseded by later grade "
+"changes will not be shown to participants. This can help avoid discussions "
+"about pre-release grading adjustments. May be blank. In that case, the "
+"entire grade history is shown."
+msgstr ""
+
 msgid "Grading opportunity"
 msgstr "Benotungsmöglichkeit"
 
-#: course/models.py:1069
 msgid "Grading opportunities"
 msgstr "Benotungsmöglichkeiten"
 
 #. Translators: For GradingOpportunity
-#: course/models.py:1076
 #, python-format
 msgid "%(opportunity_name)s (%(opportunity_id)s) in %(course)s"
 msgstr ""
 
 #. Translators: something like 'status'.
-#: course/models.py:1107 course/templates/course/flow-start.html.py:24
-#: course/templates/course/gradebook-single.html:139
-#: course/templates/course/task-monitor.html:17
 msgid "State"
 msgstr "Zustand"
 
 #. Translators: help text of "attempt_id" in GradeChange class
-#: course/models.py:1112
 msgid ""
 "Grade changes are grouped by their 'attempt ID' where later grades with the "
 "same attempt ID supersede earlier ones."
 msgstr ""
 
-#: course/models.py:1139
 msgid "Grade change"
 msgstr "Noten-Änderung"
 
-#: course/models.py:1140
 msgid "Grade changes"
 msgstr "Noten-Änderungen"
 
 #. Translators: information for GradeChange
-#: course/models.py:1145
 #, python-format
 msgid "%(participation)s %(state)s on %(opportunityname)s"
 msgstr ""
 
-#: course/models.py:1157
 msgid "Participation and opportunity must live in the same course"
 msgstr ""
 
-#: course/models.py:1209
 msgid "cannot accept grade once opportunity has been marked 'unavailable'"
 msgstr ""
 
-#: course/models.py:1213
 msgid "cannot accept grade once opportunity has been marked 'exempt'"
 msgstr ""
 
-#: course/models.py:1256
 #, python-format
 msgid "invalid grade change state '%s'"
 msgstr ""
 
-#: course/models.py:1298
 #, python-format
 msgid "invalid grade aggregation strategy '%s'"
 msgstr ""
 
 #. Translators: display the name of a flow
-#: course/models.py:1348
 #, python-format
 msgid "Flow: %(flow_desc_title)s"
 msgstr ""
 
-#: course/models.py:1377
 msgid "Text"
 msgstr ""
 
-#: course/models.py:1379 course/templates/course/gradebook-single.html.py:69
-#: course/views.py:332
 msgid "Time"
 msgstr ""
 
-#: course/models.py:1382
 msgid "Instant message"
 msgstr "Sofortnachricht"
 
-#: course/models.py:1383
 msgid "Instant messages"
 msgstr "Sofortnachrichten"
 
-#: course/models.py:1401
 msgid "Description"
 msgstr "Beschreibung"
 
-#: course/models.py:1406
-msgid "Currently active"
+#, fuzzy
+#| msgctxt "User status"
+#| msgid "Active"
+msgid "Active"
+msgstr "Aktiv"
+
+msgid "Currently active, i.e. may be used to log in via an exam ticket"
 msgstr ""
 
-#: course/models.py:1409
+#, fuzzy
+#| msgid "List"
+msgid "Listed"
+msgstr "Liste"
+
+msgid "Shown in the list of current exams"
+msgstr ""
+
 msgid "No exams before"
 msgstr ""
 
-#: course/models.py:1412
 msgid "No exams after"
 msgstr ""
 
-#: course/models.py:1416 course/templates/course/course-base.html.py:80
-#: relate/templates/base.html:84
 msgid "Exams"
 msgstr "Prüfungen"
 
-#: course/models.py:1420
 #, python-format
 msgid "Exam  %(description)s in %(course)s"
 msgstr ""
 
-#: course/models.py:1441
+#, fuzzy
+#| msgid "User name"
+msgid "Usage time"
+msgstr "Benutzername"
+
 msgid "Date and time of first usage of ticket"
 msgstr ""
 
-#: course/models.py:1446
 msgid "Exam ticket state"
 msgstr ""
 
-#: course/models.py:1451
+#, fuzzy
+#| msgid "invalid period: %s"
+msgid "End valid period"
+msgstr "Ungültiges Zeitintervall: %s"
+
+msgid ""
+"If not blank, date and time at which this exam ticket starts being valid/"
+"usable"
+msgstr ""
+
+msgid ""
+"If not blank, date and time at which this exam ticket stops being valid/"
+"usable"
+msgstr ""
+
+msgid "If not blank, this exam ticket may only be used in the given facility"
+msgstr ""
+
 msgid "Exam ticket"
 msgstr "Prüfungsticket"
 
-#: course/models.py:1452
 msgid "Exam tickets"
 msgstr "Prüfungstickets"
 
-#: course/models.py:1455
 msgid "Can issue exam tickets to student"
 msgstr ""
 
-#: course/models.py:1459
 #, python-format
 msgid "Exam  ticket for %(participation)s in %(exam)s"
 msgstr ""
 
-#: course/models.py:1472
 msgid "Participation and exam must live in the same course"
 msgstr ""
 
-#: course/page/base.py:107
-msgid "Your answer is not correct."
-msgstr ""
-
-#: course/page/base.py:109
-msgid "Your answer is correct."
-msgstr ""
-
-#: course/page/base.py:113
-msgid "Your answer is mostly correct."
-msgstr ""
-
-#: course/page/base.py:117
 msgid "No information on correctness of answer."
 msgstr ""
 
-#: course/page/base.py:121
-msgid "Your answer is somewhat correct."
+msgid "Your answer is not correct."
 msgstr ""
 
-#: course/page/base.py:150
+msgid "Your answer is correct."
+msgstr ""
+
+msgid "Your answer is correct and earned bonus points."
+msgstr ""
+
+msgid "Your answer is mostly correct."
+msgstr ""
+
+msgid "Your answer is somewhat correct. "
+msgstr ""
+
 msgid "Invalid correctness value"
 msgstr ""
 
-#: course/page/base.py:544
+msgid "Not passing page_desc to PageBase.__init__ is deprecated"
+msgstr ""
+
+#, python-format
+msgid "%s is using the make_page_data compatiblity hook, which is deprecated."
+msgstr ""
+
+#, python-format
+msgid "%s is using the post_form compatiblity hook, which is deprecated."
+msgstr ""
+
+#, python-format
+msgid ""
+"%s is using the update_grade_data_from_grading_form compatiblity hook, which "
+"is deprecated."
+msgstr ""
+
 #, python-format
 msgid ""
 "PageBaseWithTitle subclass '%s' does not implement markdown_body_for_title()"
 msgstr ""
 
-#: course/page/base.py:555
 msgid "no title found in body or title attribute"
 msgstr ""
 
-#: course/page/base.py:599
+msgid "Attribute 'value' should be removed when 'is_optional_page' is True."
+msgstr ""
+
 msgid "Grade assigned, in percent"
 msgstr ""
 
-#: course/page/base.py:604
 msgid "Grade percent"
 msgstr ""
 
-#: course/page/base.py:610
 #, python-format
 msgid ""
 "Grade assigned, as points out of %.1f. Fill out either this or 'grade "
 "percent'."
 msgstr ""
 
-#: course/page/base.py:617
 msgid "Grade points"
 msgstr "Notenpunkte"
 
-#: course/page/base.py:623
 msgid ""
 "Feedback to be shown to student, using <a href='http://documen.tician.de/"
 "relate/content.html#relate-markup'>RELATE-flavored Markdown</a>"
 msgstr ""
 
-#: course/page/base.py:627
 msgid "Feedback text"
 msgstr ""
 
-#: course/page/base.py:630
 msgid ""
 "Checking this box and submitting the form will notify the participant with a "
 "generic message containing the feedback text"
 msgstr ""
 
-#: course/page/base.py:633
 msgid "Notify"
 msgstr "Benachrichtigen"
 
-#: course/page/base.py:636
+msgid "Allow recipient to reply to this email?"
+msgstr ""
+
+msgid "May reply email to me"
+msgstr ""
+
 msgid ""
 "Whether the grade and feedback are to be shown to student. (If you would "
 "like to release all grades at once, do not use this. Instead, use the 'shown "
@@ -2743,99 +2817,121 @@ msgid ""
 "admin.)"
 msgstr ""
 
-#: course/page/base.py:641
 msgid "Released"
 msgstr ""
 
-#: course/page/base.py:644
 msgid "Internal notes, not shown to student"
 msgstr ""
 
-#: course/page/base.py:646
-msgid "Notes"
+msgid ""
+"Checking this box and submitting the form will notify the instructor with a "
+"generic message containing the notes"
 msgstr ""
 
-#: course/page/base.py:659 course/page/base.py:673
+#, fuzzy
+#| msgctxt "Participation role"
+#| msgid "Instructor"
+msgid "Notify instructor"
+msgstr "Instruktor"
+
 msgid "Grade (percent) and Grade (points) disagree"
 msgstr ""
 
-#: course/page/base.py:750
 msgid "New notification"
 msgstr ""
 
-#: course/page/base.py:781 course/page/choice.py:240 course/page/choice.py:373
-#: course/page/code.py:557 course/page/code.py:905 course/page/inline.py:837
-#: course/page/text.py:911
+#, python-format
+msgid "Grading notes from %(ta)s"
+msgstr ""
+
 msgid "No answer provided."
 msgstr ""
 
-#: course/page/base.py:803
 msgid "The following feedback was provided"
 msgstr ""
 
 #. Translators: "choice" in Choice Answer Form in a single-choice question.
-#: course/page/choice.py:47
 msgid "Choice"
 msgstr "Auswahl"
 
 #. Translators: "Choice" in Choice Answer Form in a multiple
 #. choice question in which multiple answers can be chosen.
-#: course/page/choice.py:58
-msgid "Choices"
-msgstr "Auswahl"
+msgid "Select all that apply:"
+msgstr ""
 
-#: course/page/choice.py:133 course/page/choice.py:493
-#: course/page/inline.py:421
 #, python-format
 msgid "choice %(idx)d: unable to convert to string"
 msgstr ""
 
-#: course/page/choice.py:148
-#, python-format
-msgid "one or more correct answer(s) expected, %(n_correct)d found"
-msgstr ""
-
-#: course/page/choice.py:208
 msgid ""
 "existing choice permutation not suitable for number of choices in question"
 msgstr ""
 
-#: course/page/choice.py:254 course/page/inline.py:809 course/page/text.py:932
+#, python-format
+msgid "one or more correct answer(s) expected, %(n_correct)d found"
+msgstr ""
+
+msgid "ChoiceQuestion does not allow any choices marked 'disregard'"
+msgstr ""
+
+msgid "ChoiceQuestion does not allow any choices marked 'always_correct'"
+msgstr ""
+
 msgid "A correct answer is"
 msgstr ""
 
-#: course/page/choice.py:338
 msgid ""
-"'allow_partial_credit' and 'allow_partial_credit_subset_only' are not "
-"allowed to co-exist when both attribute are 'True'"
+"'allow_partial_credit' or 'allow_partial_credit_subset_only' may not be "
+"specifiedat the same time as 'credit_mode'"
 msgstr ""
 
-#: course/page/choice.py:424
+msgid ""
+"'allow_partial_credit' and 'allow_partial_credit_subset_only' are not "
+"allowed to coexist when both attribute are 'True'"
+msgstr ""
+
+#, python-format
+msgid "unrecognized credit_mode '%(credit_mode)s'"
+msgstr ""
+
+msgid ""
+"'credit_mode' will be required on multi-select choice questions in a future "
+"version. set 'credit_mode: {}' to match current behavior."
+msgstr ""
+
 msgid "The correct answer is"
 msgstr ""
 
-#: course/page/code.py:644
+msgid "Additional acceptable options are"
+msgstr ""
+
+msgid ""
+"code question does not explicitly allow multiple submission. Either add "
+"access_rules/add_permssions/change_answer or add 'single_submission: True' "
+"to confirm that you intend for only a single submission to be allowed. While "
+"you're at it, consider adding access_rules/add_permssions/see_correctness."
+msgstr ""
+
 msgid "code question execution failed"
 msgstr ""
 
-#: course/page/code.py:656
+msgid "<unknown flow>"
+msgstr ""
+
 msgid ""
 "Both the grading code and the attempt to notify course staff about the issue "
 "failed. Please contact the course or site staff and inform them of this "
 "issue, mentioning this entire error message:"
 msgstr ""
 
-#: course/page/code.py:664
 msgid ""
 "Sending an email to the course staff about the following failure failed with "
 "the following error message:"
 msgstr ""
 
-#: course/page/code.py:670
 msgid "The original failure message follows:"
 msgstr ""
 
-#: course/page/code.py:698
 msgid ""
 "The grading code failed. Sorry about that. The staff has been informed, and "
 "if this problem is due to an issue with the grading code, it will be fixed "
@@ -2843,168 +2939,164 @@ msgid ""
 "help you figure out what went wrong."
 msgstr ""
 
-#: course/page/code.py:710
 #, python-format
 msgid ""
 "Your code took too long to execute. The problem specifies that your code may "
 "take at most %s seconds to run. It took longer than that and was aborted."
 msgstr ""
 
-#: course/page/code.py:722
 msgid "Your code failed to compile. An error message is below."
 msgstr ""
 
-#: course/page/code.py:730
 msgid "Your code failed with an exception. A traceback is below."
 msgstr ""
 
-#: course/page/code.py:741
 msgid "Here is some feedback on your code"
 msgstr ""
 
-#: course/page/code.py:750
 msgid "This is the exception traceback"
 msgstr ""
 
-#: course/page/code.py:763
 #, python-format
 msgid "Your code ran on %s."
 msgstr ""
 
-#: course/page/code.py:769
 msgid "Your code printed the following output"
 msgstr ""
 
-#: course/page/code.py:776
 msgid "Your code printed the following error messages"
 msgstr ""
 
-#: course/page/code.py:782
 msgid "Your code produced the following plots"
 msgstr ""
 
-#: course/page/code.py:791
 msgid "Figure"
 msgstr ""
 
-#: course/page/code.py:813
 msgid "The following code is a valid answer"
 msgstr ""
 
-#: course/page/code.py:887
+msgid ""
+"'human_feedback_value' and 'human_feedback_percentage' are not allowed to "
+"coexist"
+msgstr ""
+
+msgid ""
+"expecting either 'human_feedback_value' or 'human_feedback_percentage', "
+"found neither."
+msgstr ""
+
+msgid ""
+"Used deprecated 'human_feedback_value' attribute--use "
+"'human_feedback_percentage' instead."
+msgstr ""
+
+msgid ""
+"'human_feedback_value' attribute is not allowed if value of question is 0, "
+"use 'human_feedback_percentage' instead"
+msgstr ""
+
 msgid "human_feedback_value greater than overall value of question"
 msgstr ""
 
-#: course/page/inline.py:134
+msgid "the value of human_feedback_percentage must be between 0 and 100"
+msgstr ""
+
 #, python-format
 msgid "unknown embedded question type '%(type)s'"
 msgstr ""
 
-#: course/page/inline.py:148
 msgid "must be struct"
 msgstr ""
 
-#: course/page/inline.py:239
 #, python-format
 msgid "unrecogonized width attribute string: '%(width_attr)s'"
 msgstr ""
 
-#: course/page/inline.py:250
 #, python-format
 msgid ""
-"unsupported length unit '%(length_unit)s', expected length unit can be "
-"%(allowed_length_unit)s"
+"unsupported length unit '%(length_unit)s', expected length unit can be %"
+"(allowed_length_unit)s"
 msgstr ""
 
-#: course/page/inline.py:293 course/page/text.py:881
 msgid "at least one answer must be provided"
 msgstr ""
 
 #. Translators: refers to optional
 #. correct answer for checking
 #. correctness sumbitted by students.
-#: course/page/inline.py:316
 msgid "answer"
 msgstr ""
 
-#: course/page/inline.py:326 course/page/text.py:896
 msgid "no matcher is able to provide a plain-text correct answer"
 msgstr ""
 
-#: course/page/inline.py:438
 #, python-format
 msgid ""
-"one or more correct answer(s) expected  for question '%(question_name)s', "
-"%(n_correct)d found"
+"one or more correct answer(s) expected  for question '%(question_name)s', %"
+"(n_correct)d found"
 msgstr ""
 
-#: course/page/inline.py:628
+msgid "InlineMultiQuestion requires at least one answer field to be defined."
+msgstr ""
+
 #, python-format
 msgid "invalid answers name %s. "
 msgstr ""
 
-#: course/page/inline.py:629 course/page/inline.py:647
 msgid ""
 "A valid name should start with letters. Alphanumeric with underscores. Do "
 "not use spaces."
 msgstr ""
 
-#: course/page/inline.py:646
 #, python-format
 msgid "invalid embedded question name %s. "
 msgstr ""
 
-#: course/page/inline.py:664
 #, python-format
 msgid "embedded question name %s not unique."
 msgstr ""
 
-#: course/page/inline.py:675
 #, python-format
 msgid "correct answer(s) not provided for question %s."
 msgstr ""
 
-#: course/page/inline.py:683
 #, python-format
 msgid "redundant answers %s provided for non-existing question(s)."
 msgstr ""
 
-#: course/page/inline.py:710
 #, python-format
 msgid "have unpaired '%s'."
 msgstr ""
 
-#: course/page/text.py:153
 #, python-format
 msgid "page must be of type '%s'"
 msgstr ""
 
-#: course/page/text.py:176
 msgid "unknown validator type"
 msgstr ""
 
-#: course/page/text.py:186 course/page/text.py:595
 msgid "must be struct or string"
 msgstr ""
 
-#: course/page/text.py:285
 #, python-format
 msgid "regex '%(pattern)s' did not compile"
 msgstr ""
 
-#: course/page/text.py:341
 msgid "unable to check symbolic expression"
 msgstr ""
 
-#: course/page/text.py:445 course/page/text.py:456 course/page/text.py:474
 msgid "does not provide a valid float literal"
 msgstr ""
 
-#: course/page/text.py:463
 msgid "not allowed when 'value' is zero"
 msgstr ""
 
-#: course/page/text.py:484
+msgid ""
+"Float match for 'value' zero should have atol--otherwise it will match any "
+"number"
+msgstr ""
+
 msgid ""
 "Float match should have either rtol or atol--otherwise it will match any "
 "number"
@@ -3013,419 +3105,307 @@ msgstr ""
 #. Translators: a "matcher" is used to determine
 #. if the answer to text question (blank filling
 #. question) is correct.
-#: course/page/text.py:542
 #, python-format
 msgid "%(matcherclassname)s only accepts '%(matchertype)s' patterns"
 msgstr ""
 
-#: course/page/text.py:554
 #, python-format
 msgid "unknown match type '%(matchertype)s'"
 msgstr ""
 
-#: course/page/text.py:573
 msgid "does not specify match type"
 msgstr ""
 
-#: course/page/text.py:581
 msgid "uses deprecated 'matcher:answer' style"
 msgstr ""
 
-#: course/page/text.py:602
 msgid "matcher must supply 'type'"
 msgstr ""
 
-#: course/page/text.py:653
 msgid "unrecognized widget type"
 msgstr ""
 
-#: course/page/upload.py:44
 msgid "Uploaded file"
 msgstr "Hochgeladene Datei"
 
-#: course/page/upload.py:58
 #, python-format
 msgid ""
-"Please keep file size under %(allowedsize)s. Current filesize is "
-"%(uploadedsize)s."
+"Please keep file size under %(allowedsize)s. Current filesize is %"
+"(uploadedsize)s."
 msgstr ""
 
-#: course/page/upload.py:65
 msgid "Uploaded file is not a PDF."
 msgstr ""
 
-#: course/page/upload.py:151
 msgid "unrecognized mime types"
 msgstr ""
 
-#: course/page/upload.py:161
 msgid "upload question does not have assigned point value"
 msgstr ""
 
-#: course/sandbox.py:63
 msgid "Press Alt/Cmd+(Shift+)P to preview."
 msgstr ""
 
-#: course/sandbox.py:66
 msgid "Content"
 msgstr "Inhalt"
 
-#: course/sandbox.py:84 course/sandbox.py:138
-msgid "must be instructor or TA to access sandbox"
-msgstr ""
+msgid "Clear"
+msgstr "Löschen"
 
-#: course/sandbox.py:90
 msgid ""
 "Enter <a href=\"http://documen.tician.de/relate/content.html#relate-markup"
 "\">RELATE markup</a>."
 msgstr ""
 
-#: course/sandbox.py:112
 msgid "Markup failed to render"
 msgstr ""
 
-#: course/sandbox.py:160
+msgid "Clear Response Data"
+msgstr ""
+
 msgid "Enter YAML markup for a flow page."
 msgstr ""
 
-#: course/sandbox.py:190 course/sandbox.py:219
 msgid "Page failed to load/validate"
 msgstr ""
 
-#: course/sandbox.py:299
+msgid "Page failed to load/validate (change page ID to clear faults)"
+msgstr ""
+
 msgid "Submit answer"
 msgstr "Antwort einreichen"
 
-#: course/tasks.py:68
 #, python-format
 msgid "%d sessions expired."
 msgstr "%d Sitzungen abgelaufen."
 
-#: course/tasks.py:102
 #, python-format
 msgid "%d sessions ended."
 msgstr "%d Sitzungen beendet."
 
-#: course/tasks.py:134
 #, python-format
 msgid "Grades recalculated for %d sessions."
 msgstr ""
 
-#: course/tasks.py:169
 #, python-format
 msgid "%d sessions regraded."
 msgstr "%d Sitzungen neu benotet."
 
-#: course/templates/course/analytics-flow.html:5
-#: course/templates/course/analytics-flows.html:5
-#: course/templates/course/analytics-page.html:5
-#: course/templates/course/analytics-page.html:9
 msgid "Analytics"
 msgstr ""
 
-#: course/templates/course/analytics-flow.html:9
 #, python-format
 msgid " Analytics: <tt>%(flow_identifier)s</tt> "
 msgstr ""
 
-#: course/templates/course/analytics-flow.html:11
 msgid "Grade Distribution"
 msgstr "Notenverteilung"
 
 #. Translators: the following are the options when showing attempts of particiants in
 #. grade analytics.
 #.
-#: course/templates/course/analytics-flow.html:19
-#: course/templates/course/analytics-page.html:23
 msgid "Showing results for <i>only the first attempt</i> by each participant."
 msgstr ""
 
-#: course/templates/course/analytics-flow.html:23
-#: course/templates/course/analytics-page.html:27
 msgid "Show all attempts"
 msgstr ""
 
-#: course/templates/course/analytics-flow.html:26
-#: course/templates/course/analytics-page.html:30
 msgid "Showing results for <i>all attempts</i> by each participant."
 msgstr ""
 
-#: course/templates/course/analytics-flow.html:28
-#: course/templates/course/analytics-page.html:32
 msgid "Show only the first attempt"
 msgstr ""
 
-#: course/templates/course/analytics-flow.html:33
 #, python-format
 msgid "%(weight)s grade"
 msgid_plural "%(weight)s grades"
 msgstr[0] ""
 msgstr[1] ""
 
-#: course/templates/course/analytics-flow.html:39
 #, python-format
 msgid "(from %(participant_count)s distinct participant)"
 msgid_plural "(from %(participant_count)s distinct participants)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: course/templates/course/analytics-flow.html:49
 msgid "Page-by-Page Statistics"
 msgstr ""
 
-#: course/templates/course/analytics-flow.html:61
 #, python-format
 msgid "(%(answer_count)s non-empty response,"
 msgid_plural "(%(answer_count)s non-empty responses,"
 msgstr[0] ""
 msgstr[1] ""
 
-#: course/templates/course/analytics-flow.html:66
 #, python-format
 msgid "%(total_count)s response total)"
 msgid_plural "%(total_count)s responses total)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: course/templates/course/analytics-flow.html:93
 msgid "Time Distribution"
 msgstr ""
 
-#: course/templates/course/analytics-flows.html:9
 msgid "Analytics: List of Flows with Sessions"
 msgstr ""
 
-#: course/templates/course/analytics-flows.html:21
 msgid " No flow sessions have been recorded."
 msgstr ""
 
-#: course/templates/course/analytics-page.html:15
 msgid "Answer Distribution"
 msgstr ""
 
-#: course/templates/course/analytics-page.html:42
 #, python-format
 msgid "(%(astats_count)s response)"
 msgid_plural "(%(astats_count)s responses)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: course/templates/course/broken-code-question-email.txt:1
 #, python-format
 msgid ""
 "Hi there,\n"
+"This message was sent from %(site)s at %(time)s.\n"
 "Bad news! A code question with ID '%(page_id)s' in '%(course_identifier)s' "
 "has just failed while a user was trying to get his or her code graded.\n"
 "Details of the problem are below:\n"
 "%(error_message)s\n"
 msgstr ""
 
-#: course/templates/course/calendar.html:8
-#: course/templates/course/calendar.html:21
-#: course/templates/course/course-base.html:110
+msgid "You can navigate to the following url to check the problem:"
+msgstr ""
+
 msgid "Calendar"
 msgstr "Kalender"
 
-#: course/templates/course/calendar.html:42
 msgid ""
 "<b>Note:</b> Some calendar entries are clickable and link to entries below."
 msgstr ""
 
 #. Translators: The following are names for menu items in course page
-#: course/templates/course/course-base.html:32
 msgctxt "menu item"
 msgid "Student"
 msgstr ""
 
-#: course/templates/course/course-base.html:37
 msgid "View grades"
 msgstr "Noten ansehen"
 
-#: course/templates/course/course-base.html:38
 msgid "View calendar"
 msgstr "Kalender ansehen"
 
-#: course/templates/course/course-base.html:39
 msgid "Back to course page"
 msgstr "Zurück zur Kursseite"
 
-#: course/templates/course/course-base.html:46
 msgctxt "menu item"
 msgid "Grading"
 msgstr "Benotung"
 
-#: course/templates/course/course-base.html:48
 msgid "Analytics Overview"
 msgstr "Analytics-Überblick"
 
-#: course/templates/course/course-base.html:52
-#: course/templates/course/gradebook-participant.html:18
-msgid "Grades"
-msgstr "Noten"
+#, fuzzy
+#| msgid "Grade book"
+msgid "Grade Book"
+msgstr "Notenbuch"
 
-#: course/templates/course/course-base.html:53
-#: course/templates/course/gradebook-participant-list.html:7
-#: course/templates/course/gradebook-participant-list.html:15
 msgid "List of Participants"
 msgstr "Teilnehmerliste"
 
-#: course/templates/course/course-base.html:55
-#, fuzzy
-#| msgid "Participations"
-msgid "Edit Participations (admin)"
-msgstr "Teilnahmen"
-
-#: course/templates/course/course-base.html:57
-#: course/templates/course/gradebook-opp-list.html:8
-#: course/templates/course/gradebook-opp-list.html:16
 msgid "List of Grading Opportunities"
 msgstr "Liste der Benotungsmöglichkeiten"
 
-#: course/templates/course/course-base.html:59
-msgid "Edit Grading Opportunities (admin)"
-msgstr "Benotungsmöglichkeiten bearbeiten (Admin)"
-
-#: course/templates/course/course-base.html:61
-#: course/templates/course/gradebook-by-opp.html:8
-#: course/templates/course/gradebook-by-opp.html:17
-#: course/templates/course/gradebook-single.html:5
-#: course/templates/course/gradebook.html:5
-#: course/templates/course/gradebook.html:13
 msgid "Grade book"
 msgstr "Notenbuch"
 
-#: course/templates/course/course-base.html:62
 msgid "Grade book (CSV export)"
 msgstr "Notenbuch (CSV-Export)"
 
-#: course/templates/course/course-base.html:65
 msgid "Import Grades"
 msgstr "Noten importieren"
 
-#: course/templates/course/course-base.html:67
 msgid "Regrade flows"
 msgstr "Flows neu benoten"
 
-#: course/templates/course/course-base.html:71
 msgid "Exceptions"
 msgstr "Ausnahmen"
 
-#: course/templates/course/course-base.html:72
-#: course/templates/course/gradebook-single.html:294
-#: course/templates/course/gradebook-single.html:309
 msgid "Grant exception"
 msgstr "Ausnahme gewähren"
 
-#: course/templates/course/course-base.html:74
 msgid "Show exceptions"
 msgstr "Ausnahmen zeigen"
 
-#: course/templates/course/course-base.html:82
 msgid "Edit exams"
 msgstr "Prüfungen bearbeiten"
 
-#: course/templates/course/course-base.html:84
 msgid "Batch-issue exam tickets"
 msgstr "Prüfungstickets en masse ausgeben"
 
-#: course/templates/course/course-base.html:93
 msgctxt "menu item"
 msgid "Content"
 msgstr "Inhalte"
 
-#: course/templates/course/course-base.html:96
 msgid "Retrieve/preview new course revisions"
 msgstr "Abholen/Vorschau von neuen Kurs-Inhalten"
 
-#: course/templates/course/course-base.html:99
 msgid "Edit course"
 msgstr "Kurs bearbeiten"
 
-#: course/templates/course/course-base.html:102
 msgid "Content creation"
 msgstr "Inhaltserstellung"
 
-#: course/templates/course/course-base.html:103
 msgid "Page sandbox"
 msgstr "Seiten-Sandkasten"
 
-#: course/templates/course/course-base.html:104
 msgid "Markup sandbox"
 msgstr "Markup-Sandkasten"
 
-#: course/templates/course/course-base.html:107
 msgid "Test flow"
 msgstr "Flow testen"
 
-#: course/templates/course/course-base.html:112
 msgid "Edit events"
 msgstr "Ereignisse bearbeiten"
 
-#: course/templates/course/course-base.html:123
 msgctxt "menu item"
 msgid "Instructor"
 msgstr "Instruktor"
 
-#: course/templates/course/course-base.html:126
 msgctxt "menu item"
 msgid "Preapprove enrollments"
 msgstr "Teilnahmen vorab bestätigen"
 
-#: course/templates/course/course-base.html:127
 msgctxt "menu item"
 msgid "Query participations"
 msgstr "Teilnahmen durchsuchen"
 
-#: course/templates/course/course-base.html:131
 msgid "Manage instant flow requests"
 msgstr "Sofort-Flow-Anforderungen verwalten"
 
-#: course/templates/course/course-base.html:142
-msgid "You are currently seeing a preview of revision"
-msgstr "Sie sehen eine Vorschau von Revision"
-
-#: course/templates/course/course-base.html:145
-msgid "View revisions"
-msgstr "Versionen ansehen"
-
-#: course/templates/course/course-base.html:155
 msgid "There is an interactive activity going on right now."
 msgstr "Es ist eine interaktive Aktivität im Gange."
 
-#: course/templates/course/course-base.html:159
-#: course/templates/course/course-base.html:166
 msgid "Go to activity"
 msgstr "Zur Aktivität"
 
-#: course/templates/course/course-base.html:162
 msgid "There are some interactive activities going on right now."
 msgstr "Es sind interaktive Aktivitäten im Gange"
 
-#: course/templates/course/course-page.html:8
 msgid "This course is only visible to course staff at the moment."
 msgstr "Dieser Kurs ist im Moment nur für Kurs-Mitarbeiter sichtbar."
 
-#: course/templates/course/course-page.html:10
 msgctxt "change the visibility of a course"
 msgid "Change"
 msgstr "Ändern"
 
-#: course/templates/course/course-page.html:15
 msgid "You're not currently signed in."
 msgstr ""
 
-#: course/templates/course/course-page.html:26
 msgid "Enroll"
 msgstr ""
 
-#: course/templates/course/enrollment-decision-email.txt:1
-#: course/templates/course/grade-notify.txt:1
-#: course/templates/course/sign-in-email.txt:1
 #, python-format
 msgid "Dear %(username)s,"
 msgstr ""
 
-#: course/templates/course/enrollment-decision-email.txt:3
 #, python-format
 msgid ""
 "Welcome! Your request to join the course '%(course_identifier)s' has been "
@@ -3435,11 +3415,10 @@ msgid ""
 "Welcome, and we hope you have a productive class!"
 msgstr ""
 
-#: course/templates/course/enrollment-decision-email.txt:8
 #, python-format
 msgid ""
-"We're sorry to let you know that your request to join the course "
-"'%(course_identifier)s' has been denied. Please get in touch with the course "
+"We're sorry to let you know that your request to join the course '%"
+"(course_identifier)s' has been denied. Please get in touch with the course "
 "staff (for example by replying to this email) to state your case.\n"
 "One common reason for this may be that you may have used your personal email "
 "(such as a GMail or Yahoo account) rather than your official university "
@@ -3447,15 +3426,9 @@ msgid ""
 "try again."
 msgstr ""
 
-#: course/templates/course/enrollment-decision-email.txt:12
-#: course/templates/course/enrollment-request-email.txt:8
-#: course/templates/course/grade-notify.txt:13
-#: course/templates/course/sign-in-email.txt:11
-#: course/templates/course/submit-notify.txt:8
 msgid "- RELATE staff "
 msgstr ""
 
-#: course/templates/course/enrollment-request-email.txt:1
 #, python-format
 msgid ""
 "Dear course staff of %(course_identifier)s,\n"
@@ -3468,7 +3441,6 @@ msgid ""
 "actions.\n"
 msgstr ""
 
-#: course/templates/course/exam-check-in.html:12
 #, python-format
 msgid ""
 "If you have a not been issued an exam ticket by your instructor, please <a "
@@ -3476,313 +3448,331 @@ msgid ""
 "instead."
 msgstr ""
 
-#: course/templates/course/feedback-code-with-human.html:4
-#: course/templates/course/gradebook-by-opp.html:100
-#: course/templates/course/gradebook-single.html:113
 msgid "Overall grade"
 msgstr "Gesamtnote"
 
-#: course/templates/course/feedback-code-with-human.html:7
 #, python-format
 msgid "The overall grade is %(percentage)s%%."
 msgstr ""
 
-#: course/templates/course/feedback-code-with-human.html:16
 msgid "Autograder feedback"
 msgstr ""
 
-#: course/templates/course/feedback-code-with-human.html:20
 #, python-format
 msgid "The autograder assigned %(feedback_points)s/%(points)s points."
 msgstr ""
 
-#: course/templates/course/feedback-code-with-human.html:33
 msgid "Human feedback"
 msgstr ""
 
-#: course/templates/course/feedback-code-with-human.html:37
 #, python-format
 msgid "The human grader assigned %(feedback_points)s/%(human_points)s points."
 msgstr ""
 
-#: course/templates/course/file-upload-form.html:8
 msgid "Review uploaded file"
 msgstr "Hochgeladene Datei ansehen"
 
-#: course/templates/course/file-upload-form.html:10
 msgid "Embed viewer"
 msgstr "Betrachter einbetten"
 
-#: course/templates/course/file-upload-form.html:21
 #, python-format
 msgid ""
 " Your browser reported itself unable to render <tt>%(mime_type)s</tt> "
 "inline. "
 msgstr ""
 
-#: course/templates/course/flow-completion-grade.html:12
-#: course/templates/course/flow-start.html:82
 msgid "Results"
 msgstr "Ergebnis"
 
 #. Translators: the following 5 blocks of literals make a sentence. PartI
-#: course/templates/course/flow-completion-grade.html:16
 msgid "You have"
 msgstr "Sie haben"
 
 #. Translators: PartII
-#: course/templates/course/flow-completion-grade.html:19
 msgid "(so far)"
 msgstr "(bis jetzt)"
 
 #. Translators: PartIII
-#: course/templates/course/flow-completion-grade.html:22
 #, python-format
 msgid "achieved <b>%(provisional_points)s</b> out of %(max_points)s points."
 msgstr "<b>%(provisional_points)s</b> von %(max_points)s Punkten erreicht."
 
 #. Translators: PartIV
-#: course/templates/course/flow-completion-grade.html:29
 msgid "(Some questions are not graded yet, so your grade will likely change.)"
 msgstr ""
 "(Einige Fragen sind noch nicht benotet, daher wird sich Ihre Note "
 "wahrscheinlich noch ändern.)"
 
 #. Translators: PartV
-#: course/templates/course/flow-completion-grade.html:35
 #, python-format
 msgid "(That's <b>%(points_percent)s%%</b>.)"
 msgstr "(Das sind <b>%(points_percent)s%%</b>.)"
 
-#: course/templates/course/flow-completion-grade.html:55
-#, python-format
+#, fuzzy, python-format
+#| msgid ""
+#| "You have answered %(fully_correct_count)s questions correctly, %"
+#| "(partially_correct_count)s questions partially correctly, and %"
+#| "(incorrect_count)s questions incorrectly."
 msgid ""
-"You have answered %(fully_correct_count)s questions correctly, "
-"%(partially_correct_count)s questions partially correctly, and "
-"%(incorrect_count)s questions incorrectly."
+"You have answered %(fully_correct_count)s grading questions correctly, %"
+"(partially_correct_count)s questions partially correctly, and %"
+"(incorrect_count)s questions incorrectly."
 msgstr ""
-"Sie haben answered %(fully_correct_count)s Fragen korrekt bentwortet, "
-"%(partially_correct_count)s Fragen teilweise korrekt, und "
-"%(incorrect_count)s Fragen inkorrekt."
+"Sie haben answered %(fully_correct_count)s Fragen korrekt bentwortet, %"
+"(partially_correct_count)s Fragen teilweise korrekt, und %(incorrect_count)s "
+"Fragen inkorrekt."
 
-#: course/templates/course/flow-completion-grade.html:62
 #, python-format
 msgid "The grade for %(unknown_count)s questions is not yet known."
 msgstr "Die Note für %(unknown_count)s Fragen ist noch nicht verfügbar."
 
-#: course/templates/course/flow-completion-grade.html:86
-#: course/templates/course/flow-completion.html:15
+#, fuzzy, python-format
+#| msgid ""
+#| "You have answered %(fully_correct_count)s questions correctly, %"
+#| "(partially_correct_count)s questions partially correctly, and %"
+#| "(incorrect_count)s questions incorrectly."
+msgid ""
+"There are %(total_count)s optional questions (not for grading). You have "
+"answered %(fully_correct_count)s correctly, %(partially_correct_count)s "
+"partially correctly, and %(incorrect_count)s incorrectly."
+msgstr ""
+"Sie haben answered %(fully_correct_count)s Fragen korrekt bentwortet, %"
+"(partially_correct_count)s Fragen teilweise korrekt, und %(incorrect_count)s "
+"Fragen inkorrekt."
+
+#, fuzzy, python-format
+#| msgid "The grade for %(unknown_count)s questions is not yet known."
+msgid ""
+"The correctness for %(unknown_count)s optional questions is not yet known."
+msgstr "Die Note für %(unknown_count)s Fragen ist noch nicht verfügbar."
+
 msgid "Back to start page"
 msgstr "Zurück zur Startseite"
 
-#: course/templates/course/flow-confirm-completion.html:10
 msgid "End Session"
 msgstr "Sitzung beenden"
 
-#: course/templates/course/flow-confirm-completion.html:15
-msgid "You have left questions unanswered."
+#, fuzzy
+#| msgid "You have left questions unanswered."
+msgid "You have left the following question(s) unanswered:"
 msgstr "Sie haben Fragen unbeantwortet gelassen."
 
-#: course/templates/course/flow-confirm-completion.html:21
-#, python-format
-msgid "There were %(total_count)s questions."
+#, fuzzy, python-format
+#| msgid "There were %(total_count)s questions."
+msgid "There were %(required_count)s grading questions."
 msgstr "Es gab %(total_count)s Fragen."
 
-#: course/templates/course/flow-confirm-completion.html:25
 msgid "You have provided an answer for all of them."
 msgstr "Sie haben alle beantwortet."
 
-#: course/templates/course/flow-confirm-completion.html:29
 #, python-format
 msgid ""
 "You have answered %(answered_count)s and left %(unanswered_count)s "
 "unanswered."
 msgstr ""
 
-#: course/templates/course/flow-confirm-completion.html:36
 msgid "If you choose to end your session, the following things will happen:"
 msgstr ""
 
-#: course/templates/course/flow-confirm-completion.html:38
 msgid "You will be prevented from making further changes to your answers."
 msgstr ""
 
-#: course/templates/course/flow-confirm-completion.html:39
 msgid ""
 "All your currently saved answers, if not graded already, will be graded."
 msgstr ""
 
-#: course/templates/course/flow-confirm-completion.html:40
 msgid ""
 "If possible, a final grade will be computed from all saved, graded answers."
 msgstr ""
 
-#: course/templates/course/flow-confirm-completion.html:49
-msgid "Go back"
-msgstr "Zurück"
-
-#: course/templates/course/flow-confirm-completion.html:51
 msgid "Confirm: Submit answers and end session"
 msgstr "Bestätigen: Antworten einreichen und Sitzung beenden"
 
-#: course/templates/course/flow-page.html:28
-#: course/templates/course/flow-page.html:32
+msgid "Are you sure you will submit this session with questions unanswered?"
+msgstr ""
+
+#. Translators: student should confirm to start another session.
+msgid "I am sure"
+msgstr "Ich bin sicher"
+
+#, python-format
+msgid ""
+"Hi there,\n"
+"I have some question with the flow page with ID \"%(page_id)s\" in flow \"%"
+"(flow_session_id)s\" of  \"%(course_identifier)s\". Details of the question "
+"follows:\n"
+"-------------------------------------------------------------------\n"
+"%(question_text)s\n"
+"-------------------------------------------------------------------\n"
+"Click here to review the question in the flow page:\n"
+"%(review_uri)s\n"
+"\n"
+msgstr ""
+
+#, fuzzy
+#| msgctxt "Flow expiration mode"
+#| msgid "Submit session for grading"
+msgid "Viewing session for partipant"
+msgstr "Sitzung zur Benotung einreichen"
+
+#, fuzzy
+#| msgid "A participant"
+msgid "(unspecified participant)"
+msgstr "Ein Teilnehmer"
+
+#, fuzzy
+#| msgctxt "Previous page/item in a flow"
+#| msgid "Previous"
 msgctxt "Previous page/item in a flow"
-msgid "Previous"
+msgid "Previous page"
 msgstr "Voherige"
 
-#: course/templates/course/flow-page.html:37
-#: course/templates/course/flow-page.html:41
+#, fuzzy
+#| msgctxt "Next page/item in a flow"
+#| msgid "Next"
 msgctxt "Next page/item in a flow"
-msgid "Next"
+msgid "Next page"
 msgstr "Nächste"
 
-#: course/templates/course/flow-page.html:52
-msgid "Go to end"
-msgstr "Zum Ende gehen"
-
-#: course/templates/course/flow-page.html:56
-#: course/templates/course/flow-page.html:60
-msgid "Finish"
-msgstr "Beenden"
-
-#: course/templates/course/flow-page.html:58
 #, fuzzy
-#| msgid "Submit answer"
-msgid "Submit assignment"
-msgstr "Antwort einreichen"
+#| msgid "Back to start page"
+msgid "Boomark this page"
+msgstr "Zurück zur Startseite"
 
-#: course/templates/course/flow-page.html:74
-msgid "Past submissions"
-msgstr "Vergangene Sitzungen"
+#, fuzzy
+#| msgid "Only visible to course staff"
+msgid "Send an email about this page to course staff"
+msgstr "Nur für Kurs-Mitarbeiter sichtbar"
 
-#: course/templates/course/flow-page.html:90
+#, fuzzy
+#| msgid "Page number"
+msgid "Page Menu"
+msgstr "Seite Nr."
+
+#, fuzzy
+#| msgid "Flow start page"
+msgid "Return to flow start page"
+msgstr "Flow-Startseite"
+
+msgid "View in grading interface"
+msgstr ""
+
+msgid "Re-allow changes to page"
+msgstr ""
+
+msgid "Submission history for this page"
+msgstr ""
+
 msgid "(current)"
 msgstr ""
 
-#: course/templates/course/flow-page.html:93
 msgid "(submitted)"
 msgstr ""
 
+msgid "Go to end"
+msgstr "Zum Ende gehen"
+
+#, python-format
+msgid "Submit %(flow_title)s"
+msgstr ""
+
+msgid "Finish"
+msgstr "Beenden"
+
+msgid "Result"
+msgstr "Ergebnis"
+
 #. Translators: the string is followed by "what will happen" at deadline.
-#: course/templates/course/flow-page.html:112
 msgid "At deadline:"
 msgstr "Wenn fällig:"
 
-#: course/templates/course/flow-page.html:177
 msgid "Session duration:"
 msgstr "Sitzungs-Dauer"
 
-#: course/templates/course/flow-page.html:179
 msgid "minutes"
 msgstr "Minuten"
 
-#: course/templates/course/flow-page.html:182
 msgid "Time factor:"
 msgstr "Zeitfaktor:"
 
-#: course/templates/course/flow-page.html:197
 #, python-format
 msgid "%(max_points)s point"
 msgid_plural "%(max_points)s points"
 msgstr[0] "%(max_points)s Punkt"
 msgstr[1] "%(max_points)s Punkte"
 
-#: course/templates/course/flow-page.html:221
+msgid "Optional question"
+msgstr ""
+
 msgid "(You may still change your answer after you submit it.)"
 msgstr ""
 "(Sie können Ihre Antwort noch ändern, nachdem Sie sie eingereicht haben.)"
 
-#: course/templates/course/flow-page.html:300
 msgid "You have unsaved changes on this page."
 msgstr "Sie haben ungespeicherte Änderungen auf dieser Seite."
 
-#: course/templates/course/flow-page.html:371
 msgid "Saved."
 msgstr "Gespeichert."
 
-#: course/templates/course/flow-session-state.html:3
-msgid "in progress"
-msgstr "im Gange"
+msgid "Error--not saved."
+msgstr ""
 
-#: course/templates/course/flow-session-state.html:5
+#, fuzzy
+#| msgid "finished"
+msgid "unfinished"
+msgstr "fertig"
+
 msgid "finished"
 msgstr "fertig"
 
-#: course/templates/course/flow-start.html:19
 msgid "Past sessions"
 msgstr "Vergangene Sitzungen"
 
-#: course/templates/course/flow-start.html:25
-#: course/templates/course/gradebook-single.html:159
 msgid "Grading rules"
 msgstr "Benotungsregeln"
 
-#: course/templates/course/flow-start.html:26
-#: course/templates/course/gradebook-by-opp.html:28
-#: course/templates/course/gradebook-single.html:29
-#: course/templates/course/gradebook-single.html:140
 msgid "Due"
 msgstr "Fällig"
 
-#: course/templates/course/flow-start.html:27
-#: course/templates/course/gradebook-single.html:141
-msgid "Result"
-msgstr "Ergebnis"
-
-#: course/templates/course/flow-start.html:28
-#: course/templates/course/gradebook-single.html:146
 msgid "Actions"
 msgstr "(Aktionen)"
 
-#: course/templates/course/flow-start.html:43
 msgid "(no description)"
 msgstr "(keine Beschreibung)"
 
-#: course/templates/course/flow-start.html:54
 #, python-format
 msgid "<b>%(points)s</b> out of %(max_points)s (<b>%(percentage)s%%</b>)"
 msgstr "<b>%(points)s</b> von %(max_points)s (<b>%(percentage)s%%</b>)"
 
-#: course/templates/course/flow-start.html:62
-#: course/templates/course/gradebook-single.html:207
 msgid "(none)"
 msgstr "(kein)"
 
-#: course/templates/course/flow-start.html:65
 msgid "(not shown)"
 msgstr ""
 
-#: course/templates/course/flow-start.html:73
 msgid "Resume"
 msgstr "Fortsetzen"
 
-#: course/templates/course/flow-start.html:75
 msgid "Review"
 msgstr "Ansehen"
 
-#: course/templates/course/flow-start.html:95
 msgid "If you start a new session, the following rules will apply:"
 msgstr ""
 "Wenn Sie eine neue Sitzung beginnen, werden die folgenden Regeln gelten:"
 
-#: course/templates/course/flow-start.html:99
 #, python-format
 msgid "Your session will be a '<b>%(description)s</b>'."
 msgstr "Ihre Sitzung wird eine '<b>%(description)s</b>' sein."
 
-#: course/templates/course/flow-start.html:106
 #, python-format
 msgid "Your session will be due on <b>%(due)s</b>."
 msgstr "Ihre Sitzung wird am <b>%(due)s</b> fällig sein."
 
-#: course/templates/course/flow-start.html:112
 #, python-format
 msgid "You will receive <b>%(credit_percent)s%% credit</b> for your work."
 msgstr ""
 "Sie werden Ihre Arbeit <b>zu %(credit_percent)s%%</b> angerechnet bekommen."
 
-#: course/templates/course/flow-start.html:119
 #, python-format
 msgid ""
 "This is not your first session. If you start another one, for your overall "
@@ -3793,32 +3783,22 @@ msgstr ""
 "für Ihre Gesamtnote  '<b>%(grade_aggregation_strategy_descr)s</b>' über all "
 "Ihre Sitzungen."
 
-#: course/templates/course/flow-start.html:134
-#: course/templates/course/flow-start.html:166
 msgid "Start"
 msgstr "Los"
 
-#: course/templates/course/flow-start.html:138
 msgid "I understand that starting a new session could lower my overall grade."
 msgstr ""
 "Ich verstehe, dass ich meine Gesamtnote verringern kann, wenn ich eine neue "
 "Sitzung starte."
 
-#. Translators: student should confirm to start another session.
-#: course/templates/course/flow-start.html:143
-msgid "I am sure"
-msgstr "Ich bin sicher"
-
-#: course/templates/course/flow-start.html:188
 msgid ""
-"You do not have any existing sessions and are not allowed to start a new one."
+"You do not have any existing/viewable sessions and are not allowed to start "
+"a new one."
 msgstr ""
 
-#: course/templates/course/flow-start.html:195
 msgid "Check the following:"
 msgstr ""
 
-#: course/templates/course/flow-start.html:201
 #, python-format
 msgid ""
 "You're not currently signed in. Access to the resource is restricted, and "
@@ -3827,143 +3807,136 @@ msgid ""
 "href=\"%(relate-home)s\"> home page </a> and retry your last action."
 msgstr ""
 
-#: course/templates/course/flow-start.html:212
 msgid "Has the deadline for this assignment passed?"
 msgstr ""
 
-#: course/templates/course/flow-start.html:215 relate/templates/403.html:27
 msgid ""
 "Complete your enrollment in your course. If you're not enrolled, a large "
 "\"Enroll now\" button will show up at the top of your course page. Click "
 "that, follow the indicated steps, and then retry your last action."
 msgstr ""
 
-#: course/templates/course/flow-start.html:223 relate/templates/403.html:34
 #, python-format
 msgid ""
 "If none of the above steps help, please navigate back to your course from "
-"the <a href=\"%(relate-home)s\"> home page </a> and contact your course "
-"staff."
+"the <a href=\"%(relate-home)s\">home page</a> and contact your course staff."
 msgstr ""
 
-#: course/templates/course/grade-flow-page.html:7
-#: course/templates/course/grade-flow-page.html:46
 msgid "Grading"
 msgstr "Benotung"
 
-#: course/templates/course/grade-flow-page.html:53
-#: course/templates/course/gradebook-by-opp.html:21
-#: course/templates/course/gradebook-participant.html:22
-#: course/templates/course/gradebook-single.html:13
+#, fuzzy
+#| msgid "Past submissions"
+msgid "Past submissions/grades"
+msgstr "Vergangene Sitzungen"
+
+#, fuzzy
+#| msgid "Past submissions"
+msgid "Submission:"
+msgstr "Vergangene Sitzungen"
+
+#, fuzzy
+#| msgid "Grade"
+msgid "Grade:"
+msgstr "Note"
+
+#, fuzzy
+#| msgid "(no grade)"
+msgid "no grade"
+msgstr "(keine Note)"
+
 msgid "Property"
 msgstr "Eigenschaft"
 
-#: course/templates/course/grade-flow-page.html:53
-#: course/templates/course/gradebook-by-opp.html:21
-#: course/templates/course/gradebook-participant.html:22
-#: course/templates/course/gradebook-single.html:13
 msgid "Value"
 msgstr "Wert"
 
 #. Translators: the grade information "for" a participant with fullname + (username)
-#: course/templates/course/grade-flow-page.html:63
 #, python-format
 msgid "for %(full_name)s (%(username)s)"
 msgstr ""
 
-#: course/templates/course/grade-flow-page.html:73
 msgid "Points awarded"
 msgstr ""
 
-#: course/templates/course/grade-flow-page.html:80
 msgid "(unknown)"
 msgstr ""
 
 #. Translators: the unit name in grading
-#: course/templates/course/grade-flow-page.html:85
 msgid "point"
 msgid_plural "points"
 msgstr[0] "Punkt"
 msgstr[1] "Punkte"
 
-#: course/templates/course/grade-flow-page.html:92
-#: course/templates/course/grade-flow-page.html:112
 msgid "(n/a)"
 msgstr "-/-"
 
-#: course/templates/course/grade-flow-page.html:97
 msgid "Graded"
 msgstr "Benotet"
 
-#: course/templates/course/grade-flow-page.html:101
-#: course/templates/course/grading-statistics.html:19
 msgid "(autograded)"
 msgstr "(automatisch)"
 
 #. Translators: the grade is awarded "by" some humman grader.
-#: course/templates/course/grade-flow-page.html:104
 #, python-format
 msgid "by %(grader_name)s"
 msgstr "von %(grader_name)s"
 
-#: course/templates/course/grade-flow-page.html:109
 #, fuzzy
 #| msgid "Date"
 msgctxt "at (what time)"
 msgid "at"
 msgstr "Datum"
 
-#: course/templates/course/grade-flow-page.html:130 course/views.py:737
 msgid "Session"
 msgstr "Sitzung"
 
-#: course/templates/course/grade-flow-page.html:135
 msgid "Start:"
 msgstr "Start:"
 
-#: course/templates/course/grade-flow-page.html:153
 msgid "Page number"
 msgstr "Seite Nr."
 
-#: course/templates/course/grade-flow-page.html:158
 msgid "View in flow"
 msgstr ""
 
-#: course/templates/course/grade-flow-page.html:176
 #, fuzzy
 #| msgid "Answer"
 msgid "Correct Answer"
 msgstr "Antwort"
 
-#: course/templates/course/grade-flow-page.html:250
 msgid "Enter new feedback item:"
 msgstr ""
 
-#: course/templates/course/grade-flow-page.html:298
 msgid "Add phrase"
 msgstr "Phrase hinzufügen"
 
-#: course/templates/course/grade-flow-page.html:300
-#: course/templates/course/grade-flow-page.html:325
-#: course/templates/course/grade-flow-page.html:361
-msgid "Clear"
-msgstr "Löschen"
-
-#: course/templates/course/grade-flow-page.html:407
 msgid "Submit and next page"
 msgstr "Abschicken und nächste Seite"
 
-#: course/templates/course/grade-flow-page.html:412
 msgid "Submit and next session"
 msgstr "Abschicken und nächste Sitzung"
 
-#: course/templates/course/grade-notify.txt:2
+#, python-format
+msgid ""
+"Hi there,\n"
+"I am sending you the internal grading notes regarding %(username)s's work on "
+"the page with title '%(page_title)s' in '%(flow_id)s' of '%"
+"(course_identifier)s'. The full text of the notes follows.\n"
+"-------------------------------------------------------------------\n"
+"%(notes_text)s\n"
+"-------------------------------------------------------------------\n"
+"Click here to review the page in the flow page:\n"
+"%(review_uri)s\n"
+"\n"
+msgstr ""
+
 #, python-format
 msgid ""
 "\n"
-"You have a new notification regarding your work on the page with title\n"
-"'%(page_title)s' in '%(flow_id)s' of '%(course_identifier)s'. The\n"
-"full text of the feedback follows.\n"
+"You have a new notification regarding your work on the page with title '%"
+"(page_title)s' in '%(flow_id)s' of '%(course_identifier)s'. The full text of "
+"the feedback follows.\n"
 "-------------------------------------------------------------------\n"
 "%(feedback_text)s\n"
 "-------------------------------------------------------------------\n"
@@ -3972,51 +3945,62 @@ msgid ""
 "\n"
 msgstr ""
 
-#: course/templates/course/gradebook-by-opp.html:25
-#: course/templates/course/gradebook-single.html:25
+#, fuzzy
+#| msgid "Courses"
+msgid "course staff"
+msgstr "Kurse"
+
 msgid "Grading Opportunity ID"
 msgstr "ID der Benotungsmöglichkeit"
 
-#: course/templates/course/gradebook-by-opp.html:35
-#: course/templates/course/gradebook-single.html:34
 msgid "Flow"
 msgstr ""
 
-#: course/templates/course/gradebook-by-opp.html:37
 msgid "(Start page)"
 msgstr "(Startseite)"
 
-#: course/templates/course/gradebook-by-opp.html:39
-msgid "Grading statistics"
-msgstr "Benotungsstatistik"
-
 #. Translators: "Counts" on the quantities of total session and finished sessions
-#: course/templates/course/gradebook-by-opp.html:44
 msgid "Counts"
 msgstr "Anzahlen"
 
-#: course/templates/course/gradebook-by-opp.html:46
 #, python-format
 msgid "%(total_sessions)s total sessions (%(finished_sessions)s finished)"
 msgstr ""
 
-#: course/templates/course/gradebook-by-opp.html:53
 #, fuzzy
 #| msgid "Operation"
 msgid "Operations"
 msgstr "Vorgang"
 
-#: course/templates/course/gradebook-by-opp.html:56
+msgid "View analytics"
+msgstr ""
+
+#, fuzzy
+#| msgid "Grading statistics"
+msgid "View grader statistics"
+msgstr "Benotungsstatistik"
+
+#, fuzzy
+#| msgid "View grades"
+msgid "View page grades"
+msgstr "Noten ansehen"
+
+#, fuzzy
+#| msgid "Average grade"
+msgid "Hide page grades"
+msgstr "Durchschnittsnote"
+
 #, fuzzy
 #| msgid "Past submissions"
 msgid "Download submissions"
 msgstr "Vergangene Sitzungen"
 
-#: course/templates/course/gradebook-by-opp.html:64
+msgid "Edit"
+msgstr ""
+
 msgid "Modify many sessions at once"
 msgstr ""
 
-#: course/templates/course/gradebook-by-opp.html:68
 msgid ""
 "<p> \"Impose deadline (Expire sessions)\" will find all sessions for this "
 "flow that match the selected session tag and, depending on the session's "
@@ -4033,288 +4017,269 @@ msgid ""
 "grading rules. </p>"
 msgstr ""
 
-#: course/templates/course/gradebook-by-opp.html:101
-msgid "Sessions"
-msgstr ""
+#, fuzzy
+#| msgctxt "Flow rule kind choices"
+#| msgid "Session Start"
+msgid "Session state"
+msgstr "Sitzungs-Start"
 
-#: course/templates/course/gradebook-by-opp.html:138
+#, fuzzy
+#| msgid "Session regraded."
+msgid "Session grade"
+msgstr "Sitzung neu benotet."
+
 msgid "Rules tag"
 msgstr ""
 
-#: course/templates/course/gradebook-by-opp.html:141
 #, python-format
 msgid "%(points)s/%(max_points)s points"
 msgstr ""
 
-#: course/templates/course/gradebook-opp-list.html:20
-#: course/templates/course/gradebook-participant.html:52
+#, fuzzy
+#| msgid "Grading opportunity"
+msgid "Add grading opportunity"
+msgstr "Benotungsmöglichkeit"
+
 msgid "Name of grading opportunity"
 msgstr "Name der Benotungsmöglichkeit"
 
-#: course/templates/course/gradebook-opp-list.html:24
 #, fuzzy
 #| msgid "Shown to pariticpant"
 msgid "Shown to participants"
 msgstr "Wird Teilnehmern angezeigt"
 
-#: course/templates/course/gradebook-participant.html:7
-#: course/templates/course/gradebook-participant.html:16
+#, fuzzy
+#| msgid "A participant"
+msgid "Add participant"
+msgstr "Ein Teilnehmer"
+
 msgid "My Grades"
 msgstr "Meine Noten"
 
-#: course/templates/course/gradebook-participant.html:54
+msgid "Grades"
+msgstr "Noten"
+
 msgid "Date"
 msgstr "Datum"
 
-#: course/templates/course/gradebook-single.html:9
+#, fuzzy
+#| msgid "(no grade)"
+msgid "(not released)"
+msgstr "(keine Note)"
+
 msgid "Understand a grade"
 msgstr "Noten-Details"
 
-#: course/templates/course/gradebook-single.html:40
 msgid "Flow start page"
 msgstr "Flow-Startseite"
 
 #. Translators: averaged grade of a flow of all participants
-#: course/templates/course/gradebook-single.html:46
 msgid "Average grade"
 msgstr "Durchschnittsnote"
 
 #. Translators: average grade of a flow, format "10% (out of 5 grades)"
-#: course/templates/course/gradebook-single.html:50
 #, python-format
 msgid "%(avg_grade_percentage)s%% (out of %(avg_grade_population)s grades)"
 msgstr ""
 
-#: course/templates/course/gradebook-single.html:55
 msgid "(no data)"
 msgstr "(keine Daten)"
 
-#: course/templates/course/gradebook-single.html:63
 msgid "Grade history"
 msgstr "Notengeschichte"
 
-#: course/templates/course/gradebook-single.html:65
 msgid " (no grade data available)"
 msgstr ""
 
 #. Translators: "what" stand for the state of a grade, e.g. "graded"
-#: course/templates/course/gradebook-single.html:71
 msgid "What"
 msgstr "Was"
 
-#: course/templates/course/gradebook-single.html:73
 msgid "Further Information"
 msgstr ""
 
-#: course/templates/course/gradebook-single.html:88
 #, python-format
 msgid "%(points)s/%(max_points)s points (%(percentage)s%%)"
 msgstr ""
 
-#: course/templates/course/gradebook-single.html:94
-#: course/templates/course/gradebook-single.html:253
 msgid "(no grade)"
 msgstr "(keine Note)"
 
-#: course/templates/course/gradebook-single.html:105
 #, python-format
 msgid "(from flow session %(gchange_flow_session_id)s)"
 msgstr ""
 
-#: course/templates/course/gradebook-single.html:143
 msgid "Pages"
 msgstr ""
 
 #. Translators: means "Started at", which followed by a time string
-#: course/templates/course/gradebook-single.html:171
 msgid "Started"
 msgstr "Begonnen"
 
 #. Translators: means "Completed at", which followed by a time string
-#: course/templates/course/gradebook-single.html:176
 msgid "Completed"
 msgstr "Beendet"
 
 #. Translators: means "Last activity at", which followed by a time string
-#: course/templates/course/gradebook-single.html:180
 msgid "Last activity"
 msgstr "Letzte Aktivität"
 
-#: course/templates/course/gradebook-single.html:201
 #, python-format
 msgid "(grade not available) (%(max_points)s points achievable)"
 msgstr "(Note nicht verfügbar) (%(max_points)s Punkte erreichbar)"
 
-#: course/templates/course/gradebook-single.html:211
 msgid " Notes:"
 msgstr " Notizen:"
 
-#: course/templates/course/gradebook-single.html:224
 #, fuzzy
 #| msgid "Page ID"
 msgid "Page"
 msgstr "Seiten-ID"
 
-#: course/templates/course/gradebook-single.html:225
 msgid "Percent"
 msgstr "Prozent"
 
-#: course/templates/course/gradebook-single.html:276
-msgid "Expire"
-msgstr ""
+#, fuzzy
+#| msgid "At deadline:"
+msgid "Impose deadline"
+msgstr "Wenn fällig:"
 
-#: course/templates/course/gradebook-single.html:280
 msgid "End and grade"
 msgstr "Beenden und benoten"
 
-#: course/templates/course/gradebook-single.html:289
 msgid "Recalculate grade"
 msgstr "Note neu berechnen"
 
-#: course/templates/course/grading-statistics.html:5
-msgid "Grading Statistics"
+#, fuzzy
+#| msgid "Grading statistics"
+msgid "Grader Statistics"
+msgstr "Benotungsstatistik"
+
+#, fuzzy
+#| msgid "Grading statistics"
+msgid "Grader Statistics: "
+msgstr "Benotungsstatistik"
+
+msgid ""
+"(No information about grading work distribution for human-graded problems "
+"available.)"
 msgstr ""
 
-#: course/templates/course/grading-statistics.html:9
-msgid "Grading Statistics: "
-msgstr ""
-
-#: course/templates/course/grading-statistics.html:23
-#: course/templates/course/grading-statistics.html:35
 msgid "Total"
 msgstr ""
 
-#: course/templates/course/home.html:7
 #, python-format
 msgid " Welcome to %(RELATE)s "
 msgstr "Willkommen bei %(RELATE)s "
 
-#: course/templates/course/home.html:8
 msgid "RELATE is an Environment for Learning And TEaching"
 msgstr ""
 "RELATE is an Environment for Learning And TEaching -- eine Umgebung fürs "
 "Lernen und Lehren"
 
-#: course/templates/course/home.html:10
 msgid "Learn more"
 msgstr "Mehr erfahren"
 
-#: course/templates/course/home.html:21
-#: course/templates/course/list-exams.html:20
 msgid "View"
 msgstr "Ansehen"
 
-#: course/templates/course/home.html:27
 msgid "Past Courses"
 msgstr "Vergangene Kurse"
 
-#: course/templates/course/home.html:51
 #, python-format
 msgid "There are no courses hosted on this %(RELATE)s site."
 msgstr ""
 
-#: course/templates/course/home.html:54
 #, python-format
 msgid "<a href=\"%(relate-sign_in_by_user_pw)s\">Sign in</a> to get started."
 msgstr ""
 
-#: course/templates/course/home.html:61 course/versioning.py:312
 msgid "Set up new course"
 msgstr "Neuen Kurs erstellen"
 
-#: course/templates/course/human-feedback-form.html:9
 msgid "Rubric"
 msgstr "Benotungsrichtlinie"
 
-#: course/templates/course/invalid-datespec-list.html:5
 msgid "Event validity check"
 msgstr "Ereignis-Gültigkeitsprüfung"
 
-#: course/templates/course/invalid-datespec-list.html:8
 msgid ""
 "The following events were found in course content that are not present in "
 "the database:"
 msgstr ""
 
-#: course/templates/course/invalid-datespec-list.html:26
 msgid "Unrecognized events were found."
 msgstr ""
 
-#: course/templates/course/invalid-datespec-list.html:30
 msgid ""
 "Check the \"Calendar\" functions in the instructor menu to add the missing "
 "labels."
 msgstr ""
 
-#: course/templates/course/invalid-datespec-list.html:39
 msgid "No unrecognized events were found."
 msgstr ""
 
-#: course/templates/course/keypair.html:5
 msgid "SSH Key Pair"
 msgstr ""
 
-#: course/templates/course/keypair.html:7
 msgid "Private key:"
 msgstr ""
 
-#: course/templates/course/keypair.html:8
 msgid ""
 "Copy and paste this block of text into the 'private key' field in RELATE."
 msgstr ""
 
-#: course/templates/course/keypair.html:13
 msgid "Public key:"
 msgstr ""
 
-#: course/templates/course/keypair.html:14
 msgid ""
 "On Bitbucket, GitHub, or an other repository hosting site, add this snippet "
 "as an \"SSH Key\" to your user profile or as a \"Deployment key\" to your "
 "repository."
 msgstr ""
 
-#: course/templates/course/list-exams.html:5
 msgid "Available Exams"
 msgstr "Verfügbare Prüfungen"
 
-#: course/templates/course/login-by-email.html:7
+msgid "Take exam"
+msgstr ""
+
+msgid "(No exams available.)"
+msgstr ""
+
+msgid "(No exams available. Please sign in to continue.)"
+msgstr ""
+
 msgid "Sign in or create account"
 msgstr "Anmelden oder Konto erstellen"
 
-#: course/templates/course/login-by-email.html:12
 #, python-format
 msgid ""
-"If you cannot or would not like to sign in by email, <a href="
-"\"%(relate-sign_in_choice)s\">please choose a different method to sign in</"
-"a>."
+"If you cannot or would not like to sign in by email, <a href=\"%(relate-"
+"sign_in_choice)s\">please choose a different method to sign in</a>."
 msgstr ""
 
 #. Translators: For courses which require specific email suffix for enrollment, translate the following literals
 #. with your customized email suffix.
 #.
-#: course/templates/course/login-by-email.html:24
 msgid ""
 "Please use the <em>official</em> email address associated with the "
 "institution at which this course is taking place. Some courses may require a "
 "certain email domain (such as \"@illinois.edu\") for enrollment."
 msgstr ""
 
-#: course/templates/course/login.html:12
 #, python-format
 msgid ""
 "If you cannot or would not like to sign in using a RELATE-specific user name "
-"or password, <a href='%(relate-sign_in_choice)s'>please choose a different "
-"method to sign in</a>."
+"or password, <a href='%(relate-sign_in_choice)s%(next_uri)s'>please choose a "
+"different method to sign in</a>."
 msgstr ""
 
-#: course/templates/course/login.html:21
 msgid ""
 "Note that the user name and password needed to use this form is <em>not</em> "
 "the user name and password you may have been assigned by your institution."
 msgstr ""
 
-#: course/templates/course/login.html:31
 #, python-format
 msgid ""
 "If you do not have an account, <a href='%(relate-sign_up)s'>sign up</a>."
@@ -4322,25 +4287,24 @@ msgstr ""
 "Falls Sie kein Konto haben, <a href='%(relate-sign_up)s'>erstellen Sie "
 "eines</a>."
 
-#: course/templates/course/login.html:36
 #, python-format
 msgid ""
 "If you do not remember your password, <a href=\"%(relate-reset_password)s\"> "
 "reset your password </a>."
 msgstr ""
 
+#, fuzzy
+#| msgid "State"
+msgid "Status"
+msgstr "Zustand"
+
 #. Translators: "set-up" stands for set-up code for code question
-#: course/templates/course/prompt-code-question.html:10
 msgid "Problem set-up code"
 msgstr ""
 
-#: course/templates/course/prompt-code-question.html:11
-#: course/templates/course/prompt-code-question.html:40
-#: course/templates/course/prompt-code-question.html:69
 msgid "(click to view)"
 msgstr "(klicken zum Ansehen)"
 
-#: course/templates/course/prompt-code-question.html:18
 msgid ""
 "This is the code that is used to set up the problem and produce test data "
 "for your submission. It is reproduced here for your information, or if you "
@@ -4349,13 +4313,11 @@ msgid ""
 "'behind the scenes' before your submitted code."
 msgstr ""
 
-#: course/templates/course/prompt-code-question.html:39
 #, fuzzy
 #| msgid "Grading code"
 msgid "Testing code"
 msgstr "Benotungs-Code"
 
-#: course/templates/course/prompt-code-question.html:47
 msgid ""
 "This is the code that is used to generate feedback for your submission. It "
 "is reproduced here for your information, or if you would like to run your "
@@ -4365,49 +4327,32 @@ msgid ""
 msgstr ""
 
 #. Translators: starter code for code question
-#: course/templates/course/prompt-code-question.html:68
 msgid "Starter code"
 msgstr "Code zum Loslegen"
 
-#: course/templates/course/query-participations.html:7
-#: course/templates/course/query-participations.html:15
 msgid "Query Participations"
 msgstr "Teilnahmen Durchsuchen"
 
-#: course/templates/course/query-participations.html:24
 msgid "No matches"
 msgstr ""
 
-#: course/templates/course/sandbox-markup.html:12
 msgid "Markup Sandbox"
 msgstr "Markup-Sandkasten"
 
 #. Translators: "[SB]" is abbreviation for "Sandbox"
-#: course/templates/course/sandbox-page.html:10
 #, python-format
 msgid "[SB] %(title)s"
 msgstr ""
 
-#: course/templates/course/sandbox-page.html:14
-#: course/templates/course/sandbox-page.html:29
 msgid "Page Sandbox"
 msgstr "Seiten-Sandkasten"
 
-#: course/templates/course/sandbox-page.html:25
-msgid ""
-"What you type into this page is not saved once you navigate away. Please "
-"make sure to retain a copy."
-msgstr ""
-
-#: course/templates/course/sandbox-page.html:41
 msgid "Warnings were encountered when validating the page:"
 msgstr "Bei der Seitenvalidierung gab es Warnungen:"
 
-#: course/templates/course/sandbox-page.html:89
 msgid "(Page preview appears here)"
 msgstr "(Seitenvorschau erscheint hier)"
 
-#: course/templates/course/sign-in-email.txt:2
 #, python-format
 msgid ""
 "\n"
@@ -4421,25 +4366,20 @@ msgid ""
 "If this was not you, it is safe to disregard this email.\n"
 msgstr ""
 
-#: course/templates/course/static-page.html:6
 msgid "Jump to"
 msgstr "Springen zu"
 
-#: course/templates/course/submit-notify.txt:1
 #, python-format
 msgid "Dear course staff of %(course_identifier)s,"
 msgstr ""
 
-#: course/templates/course/submit-notify.txt:3
 #, python-format
 msgid "Participant '%(participant)s'"
 msgstr "Teilnehmer '%(participant)s'"
 
-#: course/templates/course/submit-notify.txt:3
 msgid "A participant"
 msgstr "Ein Teilnehmer"
 
-#: course/templates/course/submit-notify.txt:3
 #, python-format
 msgid ""
 " has just submitted his/her work on '%(flow_id)s'.\n"
@@ -4448,234 +4388,214 @@ msgid ""
 "%(review_uri)s\n"
 msgstr ""
 
-#: course/templates/course/task-monitor.html:12
 msgid "Task Progress"
 msgstr "Fortschritt"
 
-#: course/templates/course/task-monitor.html:22
 msgid "Progress"
 msgstr "Fortschritt"
 
-#: course/templates/course/task-monitor.html:54
 msgid "The process failed and reported the following error:"
 msgstr ""
 
-#: course/utils.py:345
 msgid "grading rule determination was unable to find a grading rule"
 msgstr ""
 
-#: course/utils.py:581
+#, python-format
+msgid ""
+"Preview revision '%s' does not exist--showing active course content instead."
+msgstr ""
+
 msgid "Press F9 to toggle full-screen mode. "
 msgstr "F9 für Vollbild. "
 
-#: course/utils.py:582
 #, python-format
 msgid "Set editor mode in <a href='%s'>user profile</a>."
 msgstr "Editor-Modus im <a href='%s'>Benutzerprofil</a> einstellen."
 
-#: course/validation.py:55 course/validation.py:63
+msgid ""
+"Error: Columns to be imported contain non-ASCII characters. Please save your "
+"CSV file as utf-8 encoded and import again."
+msgstr ""
+
 msgid "invalid identifier"
 msgstr ""
 
-#: course/validation.py:81
 #, python-format
 msgid "invalid role '%(role)s'"
 msgstr ""
 
-#: course/validation.py:93
 #, python-format
 msgid ""
-"Name of facility not recognized: '%(fac_name)s'. Known facility names: "
-"'%(known_fac_names)s'"
+"Name of facility not recognized: '%(fac_name)s'. Known facility names: '%"
+"(known_fac_names)s'"
 msgstr ""
 
-#: course/validation.py:133
 #, python-format
 msgid "attribute '%(attr)s' missing"
 msgstr ""
 
-#: course/validation.py:151
 #, python-format
 msgid ""
 "attribute '%(attr)s' has wrong type: got '%(name)s', expected '%(allowed)s'"
 msgstr ""
 
-#: course/validation.py:166
 #, python-format
 msgid "extraneous attribute(s) '%(attr)s'"
 msgstr ""
 
-#: course/validation.py:275
 msgid "Uses deprecated 'start' attribute--use 'if_after' instead"
 msgstr ""
 
-#: course/validation.py:281
 msgid "Uses deprecated 'end' attribute--use 'if_before' instead"
 msgstr ""
 
-#: course/validation.py:287
 msgid "Uses deprecated 'roles' attribute--use 'if_has_role' instead"
 msgstr ""
 
-#: course/validation.py:319
 msgid "no title present"
 msgstr "kein Titel vorhanden"
 
-#: course/validation.py:350
 msgid "must have either 'chunks' or 'content'"
 msgstr "muss entweder 'chunks' oder 'content' haben"
 
-#: course/validation.py:377
 #, python-format
 msgid "chunk id '%(chunkid)s' not unique"
 msgstr "Chunk-ID '%(chunkid)s' ist nicht eindeutig"
 
-#: course/validation.py:394
 msgid "flow page has no ID"
 msgstr "Flow-Seite hat keine ID"
 
-#: course/validation.py:412
 msgid "could not instantiate flow page"
 msgstr "Konnte Flow-Seite nicht instantiieren"
 
-#: course/validation.py:448
 #, python-format
 msgid "group '%(group_id)s': group is empty"
 msgstr ""
 
-#: course/validation.py:455
 #, python-format
 msgid "group '%(group_id)s': max_page_count is not positive"
 msgstr ""
 
-#: course/validation.py:468
 #, python-format
 msgid "page id '%(page_desc_id)s' not unique"
 msgstr ""
 
-#: course/validation.py:521
 msgid "attribute 'may_start_new_session' is not present"
 msgstr "Attribut 'may_start_new_session' ist nicht vorhanden"
 
-#: course/validation.py:525
 msgid "attribute 'may_list_existing_sessions' is not present"
 msgstr "Attribut 'may_list_existing_sessions' ist nicht vorhanden"
 
-#: course/validation.py:529
 msgid ""
 "Attribute 'lock_down_as_exam_session' is deprecated and non-functional. Use "
 "the access permission flag 'lock_down_as_exam_session' instead."
 msgstr ""
 
-#: course/validation.py:543 course/validation.py:588 course/validation.py:671
 #, python-format
 msgid "invalid tag '%(tag)s'"
 msgstr "Ungültiges Tag '%(tag)s'"
 
-#: course/validation.py:597
+#, python-format
+msgid "invalid default expiration mode '%(expiremode)s'"
+msgstr ""
+
 #, python-format
 msgid "invalid expiration mode '%(expiremode)s'"
 msgstr ""
 
-#: course/validation.py:638
+msgid ""
+"Rule specifies 'submit_answer' or 'end_session' permissions for non-in-"
+"progress flow. These permissions will be ignored."
+msgstr ""
+
 msgid ""
 "'grade_identifier' attribute found. This attribute is no longer allowed here "
 "and should be moved upward into the 'rules' block."
 msgstr ""
 
-#: course/validation.py:647
 msgid ""
 "'grade_aggregation_strategy' attribute found. This attribute is no longer "
 "allowed here and should be moved upward into the 'rules' block."
 msgstr ""
 
-#: course/validation.py:682
 msgid "'generates_grade' is true, but no 'grade_identifier'is given."
 msgstr ""
 
-#: course/validation.py:711
 msgid ""
 "'rules' block does not have a grade_identifier attribute. This attribute "
 "needs to be moved out of the lower-level 'grading' rules block and into the "
 "'rules' block itself."
 msgstr ""
 
-#: course/validation.py:750
 #, python-format
 msgid ""
-"grading rule that have a grade identifier (%(type)s: %(identifier)s) must "
-"have a grade_aggregation_strategy"
+"flows that have a grade identifier ('%(identifier)s') must have grading "
+"rules with a grade_aggregation_strategy"
 msgstr ""
 
-#: course/validation.py:766
 msgid "invalid grade aggregation strategy"
 msgstr ""
 
-#: course/validation.py:777
 msgid "'grading' block is required if grade_identifier is not null/None."
 msgstr ""
 
-#: course/validation.py:788
 msgid "rules/grading: may not be an empty list"
 msgstr ""
 
-#: course/validation.py:803
 msgid "rules/grading: last grading rule must be unconditional"
 msgstr ""
 
-#: course/validation.py:813
 msgid ""
 "Uses deprecated 'modify' permission--replace by 'submit_answer' and "
 "'end_session'"
 msgstr ""
 
-#: course/validation.py:819
 msgid ""
 "Uses deprecated 'see_answer' permission--replace by "
 "'see_answer_after_submission'"
 msgstr ""
 
-#: course/validation.py:826
 #, python-format
 msgid "invalid flow permission '%(permission)s'"
 msgstr ""
 
-#: course/validation.py:863
 msgid "must have either 'groups' or 'pages'"
 msgstr ""
 
-#: course/validation.py:885
 #, python-format
 msgid "group %(group_index)d ('%(group_id)s'): 'pages' is not a list"
 msgstr ""
 
-#: course/validation.py:900
 #, python-format
 msgid "group %(group_index)d ('%(group_id)s'): no pages found"
 msgstr ""
 
-#: course/validation.py:908
 #, python-format
 msgid "%s: no pages found"
 msgstr ""
 
-#: course/validation.py:921
 #, python-format
 msgid "group id '%(group_id)s' not unique"
 msgstr ""
 
-#: course/validation.py:1030
+#, python-format
+msgid "notify_on_submit: item %d is not a string"
+msgstr ""
+
+#, python-format
+msgid ""
+"Attribute '%s' is deprecated as part of a flow. Specify it as part of a "
+"grading rule instead."
+msgstr ""
+
 msgid "Access class 'public' is deprecated. Use 'unenrolled' instead."
 msgstr ""
 
-#: course/validation.py:1035
 #, python-format
 msgid ""
 "%s: access classes 'public' and 'unenrolled' may not exist simultaneously."
 msgstr ""
 
-#: course/validation.py:1072
-#, python-brace-format
 msgid ""
 "{location}: existing grading opportunity with identifier "
 "'{grade_identifier}' refers to flow '{other_flow_id}', however flow code in "
@@ -4683,177 +4603,143 @@ msgid ""
 "renamed the flow? If so, edit the grading opportunity to match.)"
 msgstr ""
 
-#: course/validation.py:1111
 #, python-format
 msgid ""
 "%(loc)s, group '%(group)s', page '%(page)s': page type ('%(type_new)s') "
 "differs from type used in database ('%(type_old)s')"
 msgstr ""
 
-#: course/validation.py:1142
 #, python-format
 msgid "Your course repository does not have an events file named '%s'."
 msgstr ""
 
-#: course/validation.py:1162
 msgid ""
 "Your course repository has a 'media/' directory. Linking to media files "
 "using 'media:' is discouraged. Use the 'repo:' and 'repocur:' linkng schemes "
 "instead."
 msgstr ""
 
-#: course/validation.py:1187
 msgid ""
 "invalid flow name. Flow names may only contain (roman) letters, numbers, "
 "dashes and underscores."
 msgstr ""
 
-#: course/validation.py:1212
 msgid "flow uses the same grade_identifier as another flow"
 msgstr ""
 
-#: course/validation.py:1251
 msgid ""
 "invalid page name. Page names may only contain alphanumeric characters (any "
 "language) and hyphens."
 msgstr ""
 
-#: course/validation.py:1359
 msgid "WARNINGS: "
 msgstr "WARNUNGEN: "
 
-#: course/versioning.py:189
 msgid "Validate and create"
 msgstr "Validieren und Erstellen"
 
-#: course/versioning.py:194
 msgid "Git source must be specified"
 msgstr "Git-Quelle muss angegeben werden"
 
-#: course/versioning.py:202
-msgid "only staff may create courses"
+msgid ""
+"No refs found in remote repository (i.e. no master branch, no HEAD). This "
+"looks very much like a blank repository. Please create course.yml in the "
+"remote repository before creating your course."
 msgstr ""
 
-#: course/versioning.py:261
 msgid "Course content validated, creation succeeded."
 msgstr "Kurs-Inhalt validiert, Kurs-Erstellung erfolgreich."
 
-#: course/versioning.py:287
 #, python-format
 msgid "Failed to delete unused repository directory '%s'."
 msgstr "Konnte nicht mehr benutztes Repository-Verzeichnis '%s' nicht löschen."
 
-#: course/versioning.py:299
 msgid "Course creation failed"
 msgstr "Kurs-Erstellung fehlgeschlagen"
 
-#: course/versioning.py:348
 msgid "no git source URL specified"
 msgstr ""
 
-#: course/versioning.py:361
 msgid "fetch would discard commits, refusing"
 msgstr "Abholen würde Commits wegwerfen, abgelehnt"
 
-#: course/versioning.py:365
 msgid "Fetch successful."
 msgstr "Abholen erfolgreich."
 
-#: course/versioning.py:374
 msgid "Preview ended."
 msgstr "Vorschau beendet."
 
-#: course/versioning.py:389
 #, python-format
 msgid "Course content did not validate successfully. (%s) Update not applied."
 msgstr ""
 "Kurs-Inhalt nicht erfolgreich validiert. (%s) Aktualisierung nicht "
 "angewendet."
 
-#: course/versioning.py:396
 msgid "Course content validated successfully."
 msgstr "Kurs-Inhalt erfolgreich validiert."
 
-#: course/versioning.py:400
 msgid "Course content validated OK, with warnings: "
 msgstr "Kurs-Inhalt erfolgreich validiert, mit Warnungen:"
 
-#: course/versioning.py:411
 msgid "Preview activated."
 msgstr "Vorschau aktiviert."
 
-#: course/versioning.py:421
 msgid "Update applied. "
 msgstr "Aktualisierung angewendet."
 
-#: course/versioning.py:424 course/versioning.py:527 course/views.py:828
 msgid "invalid command"
 msgstr "ungültiger Befehl"
 
-#: course/versioning.py:463
 msgctxt "new git SHA for revision of course contents"
 msgid "New git SHA"
 msgstr "Neue git SHA"
 
-#: course/versioning.py:466
 msgid "Prevent updating to a git revision prior to the current one"
 msgstr "Aktualisierung auf eine vorherige git-Version verhindern"
 
-#: course/versioning.py:474
 msgid "Fetch and update"
 msgstr "Abholen und aktualisieren"
 
-#: course/versioning.py:478
 msgid "End preview"
 msgstr "Vorschau beenden"
 
-#: course/versioning.py:480
 msgid "Fetch and preview"
 msgstr "Abholen und Vorschau"
 
-#: course/versioning.py:483
 msgid "Fetch"
 msgstr "Abholen"
 
-#: course/versioning.py:494
-msgid "must be instructor or TA to update course"
-msgstr ""
+#, fuzzy
+#| msgid "No events found."
+msgid "- not found -"
+msgstr "Keine Ereignisse gefunden."
 
-#: course/versioning.py:571
 msgid "Git Source URL"
 msgstr "Git Quell-URL"
 
-#: course/versioning.py:576
 msgid "Public active git SHA"
 msgstr "Öffentlich sichtbare git SHA"
 
-#: course/versioning.py:586
 msgid "Current git HEAD"
 msgstr "Aktueller git HEAD"
 
-#: course/versioning.py:597 course/versioning.py:609
 msgid "Current preview git SHA"
 msgstr "Aktuelle git Vorschau-SHA"
 
-#: course/versioning.py:611
 msgid "None"
 msgstr "Kein"
 
-#: course/versioning.py:623
 msgid "Update Course Revision"
 msgstr "Kurs-Version aktualisieren"
 
-#: course/views.py:133
-msgid "only course staff have access"
+msgid "course page is currently hidden"
 msgstr ""
 
-#: course/views.py:157
 msgid ""
 "Your enrollment request is pending. You will be notified once it has been "
 "acted upon."
 msgstr ""
 
-#: course/views.py:167
 #, python-format
 msgid ""
 "This course uses institutional ID for enrollment preapproval, please <a "
@@ -4861,7 +4747,6 @@ msgid ""
 "institutional ID &nbsp;&raquo;</a> in your profile."
 msgstr ""
 
-#: course/views.py:182
 msgid ""
 "Your institutional ID is not verified or preapproved. Please contact your "
 "course staff."
@@ -4869,154 +4754,134 @@ msgstr ""
 
 #. Translators: "set" fake time.
 #. Translators: "set" fake facility.
-#: course/views.py:339 course/views.py:431
 msgid "Set"
 msgstr "Setzen"
 
 #. Translators: "unset" fake time.
 #. Translators: "unset" fake facility.
-#: course/views.py:342 course/views.py:434
 msgid "Unset"
 msgstr "Löschen"
 
-#: course/views.py:370
-msgid "only staff may set fake time"
-msgstr ""
+#, fuzzy
+#| msgid "Set fake time"
+msgid "may not set fake time"
+msgstr "Eine andere Zeit vorgeben"
 
-#: course/views.py:394 relate/templates/base-page-top.html.py:41
-#: relate/templates/base.html:77
 msgid "Set fake time"
 msgstr "Eine andere Zeit vorgeben"
 
-#: course/views.py:420
 msgid "Facilities"
 msgstr "Einrichtungen"
 
-#: course/views.py:421
 msgid "Facilities you wish to pretend to be in"
 msgstr "Einrichtungen, in denen Sie vorgeblich sein wollen"
 
-#: course/views.py:424
 msgid "Custom facilities"
 msgstr "Benutzer-spezifische Einrichtungen"
 
-#: course/views.py:426
 msgid ""
 "More (non-predefined) facility names, separated by commas, which would like "
 "to pretend to be in"
 msgstr ""
 
-#: course/views.py:439
-msgid "only staff may set fake facility"
+msgid "Add fake facililities header"
 msgstr ""
 
-#: course/views.py:469
+msgid ""
+"Add a page header to every page rendered while pretending to be in a "
+"facility, as a reminder that this pretending is in progress."
+msgstr ""
+
 msgid "Pretend to be in Facilities"
 msgstr "Vorgeben, in Einrichtungen zu sein"
 
-#: course/views.py:495
 msgctxt "Duration for instant flow"
 msgid "Duration in minutes"
 msgstr "Dauer in Minuten"
 
-#: course/views.py:500
 msgctxt "Add an instant flow"
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: course/views.py:504
 msgctxt "Cancel all instant flow(s)"
 msgid "Cancel all"
 msgstr "Alle abbrechen"
 
-#: course/views.py:511
-msgid "must be instructor to manage instant flow requests"
-msgstr ""
-
-#: course/views.py:558
 msgid "Manage Instant Flow Requests"
 msgstr "Sofort-Flow-Anforderungen verwalten"
 
-#: course/views.py:580
 msgctxt "Start an activity"
 msgid "Go"
 msgstr "Los"
 
-#: course/views.py:590
-msgid "must be instructor or TA to test flows"
-msgstr ""
-
-#: course/views.py:611
 msgid "Test Flow"
 msgstr "Flow testen"
 
-#: course/views.py:642
 msgid "Select participant for whom exception is to be granted."
 msgstr ""
 
-#: course/views.py:656 course/views.py:744
 msgctxt "Next step"
 msgid "Next"
 msgstr "Weiter"
 
-#: course/views.py:666 course/views.py:754 course/views.py:969
-msgid "must be instructor or TA to grant exceptions"
-msgstr ""
+#, fuzzy
+#| msgid "Grant exception"
+msgid "may not grant exceptions"
+msgstr "Ausnahme gewähren"
 
-#: course/views.py:686 course/views.py:865 course/views.py:1129
 msgid "Grant Exception"
 msgstr "Ausnahme gewähren"
 
 #. Translators: %s is the string of the start time of a session.
-#: course/views.py:693
 #, python-format
 msgid "started at %s"
 msgstr "begonnen am %s"
 
-#: course/views.py:710
 msgid ""
 "If you click 'Create session', this tag will be applied to the new session."
 msgstr ""
 
-#: course/views.py:712
 msgid "Access rules tag for new session"
 msgstr ""
 
-#: course/views.py:718
 msgid "Create session (override rules)"
 msgstr ""
 
-#: course/views.py:723
 msgid "Create session"
 msgstr "Sitzung erstellen"
 
-#: course/views.py:734
 msgid ""
 "The rules that currently apply to selected session will provide the default "
 "values for the rules on the next page."
 msgstr ""
 
-#: course/views.py:763
 #, python-format
 msgid "Granting exception to '%(participation)s' for '%(flow_id)s'."
 msgstr ""
 
-#: course/views.py:784 course/views.py:788
 msgid "NONE"
 msgstr ""
 
-#: course/views.py:800
 msgid ""
 "Creating a new session is (technically) not allowed by course rules. "
 "Clicking 'Create Session' anyway will override this rule."
 msgstr ""
 
-#: course/views.py:875
+msgid "Exception only applies to sessions with the above tag"
+msgstr ""
+
+msgid "If set, an exception for the access rules will be created."
+msgstr ""
+
+#, fuzzy
+#| msgid "Set access rules tag"
+msgid "Create access rule exception"
+msgstr "Zugriffsregel-Tag setzen"
+
 msgctxt "Time when access expires"
 msgid "Access expires"
 msgstr ""
 
-#: course/views.py:876
 msgid ""
 "At the specified time, the special access granted below will expire and "
 "revert to being the same as for the rest of the class. This field may be "
@@ -5025,126 +4890,126 @@ msgid ""
 "remain valid indefinitely, unless overridden by another exception."
 msgstr ""
 
-#: course/views.py:901
-msgid "Exception only applies to sessions with the above tag"
+msgid "If set, an exception for the grading rules will be created."
 msgstr ""
 
-#: course/views.py:920
+#, fuzzy
+#| msgid "Flow rule exception"
+msgid "Create grading rule exception"
+msgstr "Flow-Regel-Ausnahme"
+
 msgid "If set, the 'Due' field will be disregarded."
 msgstr ""
 
-#: course/views.py:923
 msgid "Due same as access expiration"
 msgstr ""
 
-#: course/views.py:928
 msgid ""
 "The due time shown to the student. Also, the time after which any session "
 "under these rules is subject to expiration."
 msgstr ""
 
-#: course/views.py:936
+#, fuzzy
+#| msgid "Average grade"
+msgid "Generates grade"
+msgstr "Durchschnittsnote"
+
 msgid "Credit percent"
 msgstr ""
 
-#: course/views.py:949
+#, fuzzy
+#| msgid "Max points"
+msgid "Bonus points"
+msgstr "Maximal-Punktzahl"
+
+msgid "Maximum number of points (for percentage)"
+msgstr ""
+
+msgid "Maximum number of points (enforced cap)"
+msgstr ""
+
 msgid "Save"
 msgstr "Sichern"
 
-#: course/views.py:958
 msgid ""
 "Must specify access expiration if 'due same as access expiration' is set."
 msgstr ""
 
-#: course/views.py:1030 course/views.py:1089
 msgid "newly created exception"
 msgstr ""
 
-#: course/views.py:1059
 msgid "Granted excecption"
 msgstr ""
 
-#: course/views.py:1061
 msgid "credit"
 msgstr ""
 
-#: course/views.py:1106
 #, python-format
 msgid "Exception granted to '%(participation)s' for '%(flow_id)s'."
 msgstr ""
 
-#: course/views.py:1132
 #, python-format
 msgid ""
-"Granting exception to '%(participation)s' for '%(flow_id)s' (session "
-"%(session)s)."
+"Granting exception to '%(participation)s' for '%(flow_id)s' (session %"
+"(session)s)."
 msgstr ""
 
-#: course/views.py:1149
 msgid "only staff may use this tool"
 msgstr ""
 
-#: course/views.py:1191
 #, python-format
 msgid "%(current)d out of %(total)d items processed."
 msgstr ""
 
-#: relate/templates/403.html:5
+#, fuzzy
+#| msgid "Edit course"
+msgid "Edit Course"
+msgstr "Kurs bearbeiten"
+
 msgid "403 Forbidden"
 msgstr ""
 
-#: relate/templates/403.html:7
 msgid "Access to the page you requested was denied."
 msgstr ""
 
-#: relate/templates/403.html:9
 msgid "Here are a few things you could try:"
 msgstr ""
 
-#: relate/templates/403.html:17
 #, python-format
 msgid ""
 "You're not currently signed in. Access to the resource is restricted, and "
 "since the site has no way of knowing who you are, it denied you accesss. "
-"Once you're signed in, navigate back to your course from the <a href="
-"\"%(relate-home)s\"> home page </a> and retry your last action."
+"Once you're signed in, navigate back to your course from the <a href=\"%"
+"(relate-home)s\"> home page </a> and retry your last action."
 msgstr ""
 
-#: relate/templates/403.html:42
 msgid " Sorry, and thanks for your patience! "
 msgstr ""
 
-#: relate/templates/404.html:5
 msgid "404 Not Found"
 msgstr "404 Nicht gefunden"
 
-#: relate/templates/404.html:8
 msgid "Request URL"
 msgstr "Anforderungs-URL"
 
-#: relate/templates/404.html:12
 msgid ""
 "Oops. Either the URL you entered was invalid, or you stumbled on a dead "
 "link. If it was the latter, please get in touch with your course staff to "
 "let them know what you were doing when the error occurred."
 msgstr ""
 
-#: relate/templates/404.html:20 relate/templates/500.html.py:18
 #, python-format
 msgid ""
 "In the meantime, you may navigate back to  the <a href=\"%(relate-home)s"
 "\">home page</a>."
 msgstr ""
 
-#: relate/templates/404.html:27 relate/templates/500.html.py:25
 msgid "Sorry, and thanks for your patience!"
 msgstr "Entschuldigung, und vielen Dank für Ihre Geduld!"
 
-#: relate/templates/500.html:5
 msgid "500 Server Error"
 msgstr "500 Server-Fehler"
 
-#: relate/templates/500.html:8
 msgid ""
 "Oops. That shouldn't have happened. Technical details of the error have been "
 "recorded. Please get in touch with your course staff to let them know what "
@@ -5152,116 +5017,149 @@ msgid ""
 "sending your report."
 msgstr ""
 
-#: relate/templates/admin/base_site.html:6
 #, python-format
 msgid "%(RELATE)s Administration"
 msgstr ""
 
-#: relate/templates/base-page-top.html:35
 #, python-format
 msgid ""
-"You are currently seeing a preview of what the site would look like at "
-"%(fake_time)s."
+"You are currently seeing a preview of what the site would look like at %"
+"(fake_time)s."
 msgstr ""
 
-#: relate/templates/base-page-top.html:49
 #, python-format
 msgid ""
 "You are currently seeing a preview of what the site would look like from "
 "inside the facilities  <b>%(facilities)s</b>."
 msgstr ""
-"Sie sehen eine Vorschau davon, wie die Seite aus den Eichrichtungen <b>"
-"%(facilities)s</b> aussehen würde."
+"Sie sehen eine Vorschau davon, wie die Seite aus den Eichrichtungen <b>%"
+"(facilities)s</b> aussehen würde."
 
-#: relate/templates/base-page-top.html:55 relate/templates/base.html.py:78
 msgid "Pretend to be in facilities"
 msgstr "Vorgeben in Einrichtungen zu sein"
 
-#: relate/templates/base-page-top.html:63
-#, fuzzy, python-format
-#| msgid ""
-#| "Now impersonating %(last_name)s, %(first_name)s (user: %(username)s, "
-#| "email: %(email)s)."
-msgid "Now impersonating %(full_name)s (user: %(username)s, email: %(email)s)."
-msgstr ""
-"Jetzt als %(last_name)s, %(first_name)s (Benutzer: %(username)s, E-Mail: "
-"%(email)s) ausgegeben."
+#, fuzzy
+#| msgid "Stop impersonating"
+msgid "Now impersonating"
+msgstr "Nicht mehr als anderer Benutzer ausgeben"
 
-#: relate/templates/base.html:66
 msgid "Staff"
 msgstr "Mitarbeiter"
 
-#: relate/templates/base.html:69
 msgid "Admin site"
 msgstr "Verwaltungs-Site"
 
-#: relate/templates/base.html:71
-msgid "Test/Troubleshoot"
-msgstr "Testen/Fehler beheben"
-
-#: relate/templates/base.html:85
 msgid "Issue exam tickets"
 msgstr "Prüfungstickets ausgeben"
 
-#: relate/templates/base.html:86
 msgid "Exam check-in"
 msgstr "Prüfungs-Check-In"
 
-#: relate/templates/base.html:96
+msgid "Test/Troubleshoot"
+msgstr "Testen/Fehler beheben"
+
 #, python-format
 msgid "Signed in as %(username)s"
 msgstr "Als %(username)s angemeldet"
 
-#: relate/templates/base.html:103
 msgid "(impersonated)"
 msgstr "(ausgegeben als)"
 
-#: relate/templates/djangosaml2/wayf.html:5
 msgid "Institutional Login (SAML2)"
 msgstr "Institutions-Login (SAML2)"
 
-#: relate/templates/djangosaml2/wayf.html:6
 msgid "Please select your Identity Provider from the following list:"
 msgstr "Bitte wählen Sie Ihren Identity Provider aus der folgenden Liste:"
 
-#: relate/templates/maintenance.html:8
 #, python-format
 msgid ""
 "%(RELATE)s is currently in maintenance mode. Sorry for the interruption, "
 "we'll be back shortly."
 msgstr ""
 
-#: relate/templates/sign-in-choice.html:5
 msgid "Sign in to RELATE"
 msgstr "Bei RELATE Anmelden"
 
-#: relate/templates/sign-in-choice.html:14
 msgid "Sign in using your institution's login"
 msgstr "Via Institutions-Login anmelden"
 
-#: relate/templates/sign-in-choice.html:23
 msgid "Sign in using your email"
 msgstr "Via Email anmelden"
 
-#: relate/templates/sign-in-choice.html:32
 msgid "Sign up for an account"
 msgstr "Neues Konto erstellen"
 
-#: relate/templates/sign-in-choice.html:41
 msgid "Sign in using an exam ticket"
 msgstr "Mit Prüfungsticket anmelden"
 
-#: relate/templates/sign-in-choice.html:49
 msgid "Sign in with a RELATE-specific user name and password"
 msgstr "Mit einem RELATE-spezifischen Benutzernamen anmelden"
 
-#: relate/templates/user-profile-form.html:7
+msgid "You're already signed in"
+msgstr ""
+
+msgid "Would you like to sign out and proceed with your previous operation?"
+msgstr ""
+
+msgid "Sign out"
+msgstr "Abmelden"
+
 msgid "User Profile"
 msgstr "Benutzerprofil"
 
-#: relate/templates/user-profile-form.html:12
-msgid "Sign out"
-msgstr "Abmelden"
+#~ msgid "only instructors and TAs may do that"
+#~ msgstr "Nur Instruktoren und Assistenten dürfen das"
+
+#~ msgctxt "Participation role"
+#~ msgid "Observer"
+#~ msgstr "Beobachter"
+
+#~ msgctxt "Participation role"
+#~ msgid "Auditor"
+#~ msgstr "Auditor"
+
+#~ msgid "Session expired."
+#~ msgstr "Sitzung abgelaufen."
+
+#, fuzzy
+#~| msgid "must be at least TA to view analytics"
+#~ msgid "must be at least TA to download submissions"
+#~ msgstr "muss mindestens Kurs-Assistent sein um Analytics anzusehen"
+
+#~ msgid "Choices"
+#~ msgstr "Auswahl"
+
+#, fuzzy
+#~| msgid "Participations"
+#~ msgid "Edit Participations (admin)"
+#~ msgstr "Teilnahmen"
+
+#~ msgid "Edit Grading Opportunities (admin)"
+#~ msgstr "Benotungsmöglichkeiten bearbeiten (Admin)"
+
+#~ msgid "You are currently seeing a preview of revision"
+#~ msgstr "Sie sehen eine Vorschau von Revision"
+
+#~ msgid "View revisions"
+#~ msgstr "Versionen ansehen"
+
+#, fuzzy
+#~| msgid "Submit answer"
+#~ msgid "Submit assignment"
+#~ msgstr "Antwort einreichen"
+
+#~ msgid "in progress"
+#~ msgstr "im Gange"
+
+#, fuzzy
+#~| msgid ""
+#~| "Now impersonating %(last_name)s, %(first_name)s (user: %(username)s, "
+#~| "email: %(email)s)."
+#~ msgid ""
+#~ "Now impersonating %(full_name)s (user: %(username)s, email: %(email)s)."
+#~ msgstr ""
+#~ "Jetzt als %(last_name)s, %(first_name)s (Benutzer: %(username)s, E-Mail: %"
+#~ "(email)s) ausgegeben."
 
 #~ msgid "Emails"
 #~ msgstr "Email-Adressen"

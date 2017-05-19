@@ -981,6 +981,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
+                from course.utils import will_use_masked_profile_for_email
+                staff_email = [page_context.course.notify_email, request.user.email]
                 message = render_to_string("course/grade-notify.txt", {
                     "page_title": self.title(page_context, page_data),
                     "course": page_context.course,
@@ -988,6 +990,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                     "feedback_text": grade_data["feedback_text"],
                     "flow_session": page_context.flow_session,
                     "review_uri": page_context.page_uri,
+                    "use_masked_profile":
+                        will_use_masked_profile_for_email(staff_email)
                     })
 
                 from django.core.mail import EmailMessage
@@ -1015,6 +1019,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 and page_context.flow_session):
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
+                from course.utils import will_use_masked_profile_for_email
+                staff_email = [page_context.course.notify_email, request.user.email]
                 message = render_to_string("course/grade-internal-notes-notify.txt",
                         {
                             "page_title": self.title(page_context, page_data),
@@ -1023,7 +1029,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
                             "notes_text": grade_data["notes"],
                             "flow_session": page_context.flow_session,
                             "review_uri": page_context.page_uri,
-                            "sender": request.user
+                            "sender": request.user,
+                            "use_masked_profile":
+                                will_use_masked_profile_for_email(staff_email)
                             })
 
                 from django.core.mail import EmailMessage

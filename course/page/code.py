@@ -714,6 +714,21 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
+        if hasattr(self.page_desc, "correct_code"):
+            def normalize_code(s):
+                return (s
+                        .replace(" ", "")
+                        .replace("\r", "")
+                        .replace("\n", "")
+                        .replace("\t", ""))
+
+            if (normalize_code(user_code)
+                    == normalize_code(self.page_desc.correct_code)):
+                feedback_bits.append(
+                        "<p><b>%s</b></p>"
+                        % _("It looks like you submitted code that is identical to "
+                            "the reference solution. This is not allowed."))
+
         from relate.utils import dict_to_struct
         response = dict_to_struct(response_dict)
 
@@ -856,13 +871,13 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             def sanitize(s):
                 import bleach
 
-                def filter_audio_attributes(name, value):
+                def filter_audio_attributes(tag, name, value):
                     if name in ["controls"]:
                         return True
                     else:
                         return False
 
-                def filter_source_attributes(name, value):
+                def filter_source_attributes(tag, name, value):
                     if name in ["type"]:
                         return True
                     elif name == "src":
@@ -872,7 +887,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     else:
                         return False
 
-                def filter_img_attributes(name, value):
+                def filter_img_attributes(tag, name, value):
                     if name in ["alt", "title"]:
                         return True
                     elif name == "src":
