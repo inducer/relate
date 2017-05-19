@@ -38,7 +38,7 @@
       {% else %}
           <tr>
             <td>{% trans "User" %}</td>
-            <td><span class="sensitive">{{ grade_participation.user.get_masked_profile }}</span></td>
+            <td><span class="sensitive">{{ grade_participation.user.get_masked_profile }}{% if grade_participation.user == request.user %}(<strong>{% trans "ME" %})</strong>{% endif %}</span></td>
           </tr>
       {% endif %}
       <tr>
