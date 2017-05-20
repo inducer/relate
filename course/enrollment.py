@@ -786,7 +786,9 @@ class ParticipationQueryForm(StyledForm):
 @transaction.atomic
 @course_view
 def query_participations(pctx):
-    if not pctx.has_permission(pperm.query_participation):
+    if (not pctx.has_permission(pperm.query_participation)
+        or
+            pctx.has_permission(pperm.view_participant_masked_profile)):
         raise PermissionDenied(_("may not query participations"))
 
     request = pctx.request

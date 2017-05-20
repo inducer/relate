@@ -134,25 +134,27 @@
   </li>
   {% endif %}
 
-  {% if pperm.query_participations or pperm.manage_instant_flow_requests or pperm.preapprove_participation %}
-  <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Instructor" context "menu item" %}<b class="caret"></b></a>
-    <ul class="dropdown-menu">
-      <li role="presentation" class="dropdown-header">{% trans "Participation" %}</li>
-      {% if pperm.preapprove_participation %}
-        <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
-      {% endif %}
-      {% if pperm.query_participations %}
-        <li><a href="{% url "relate-query_participations" course.identifier %}">{% trans "Query participations" context "menu item" %}</a></li>
-      {% endif %}
+  {% if pperm.query_participation or pperm.manage_instant_flow_requests or pperm.preapprove_participation %}
+      {% if not pperm.view_participant_masked_profile %}
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Instructor" context "menu item" %}<b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li role="presentation" class="dropdown-header">{% trans "Participation" %}</li>
+              {% if pperm.preapprove_participation %}
+                <li><a href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
+              {% endif %}
+              {% if pperm.query_participation %}
+                <li><a href="{% url "relate-query_participations" course.identifier %}">{% trans "Query participations" context "menu item" %}</a></li>
+              {% endif %}
 
-      {% if pperm.manage_instant_flow_requests %}
-        <li role="presentation" class="divider"></li>
-        <li role="presentation" class="dropdown-header">{% trans "Instant flow requests" %}</li>
-        <li><a href="{% url "relate-manage_instant_flow_requests" course.identifier %}">{% trans "Manage instant flow requests" %}</a></li>
+              {% if pperm.manage_instant_flow_requests %}
+                <li role="presentation" class="divider"></li>
+                <li role="presentation" class="dropdown-header">{% trans "Instant flow requests" %}</li>
+                <li><a href="{% url "relate-manage_instant_flow_requests" course.identifier %}">{% trans "Manage instant flow requests" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
       {% endif %}
-    </ul>
-  </li>
   {% endif %}
 {% endblock %}
 
