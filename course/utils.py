@@ -172,6 +172,26 @@ def _eval_generic_conditions(
         if all(role not in rule.if_has_role for role in roles):
             return False
 
+    participation_tags_any_set = (
+        set(getattr(rule, "if_has_participation_tags_any", [])))
+    participation_tags_all_set = (
+        set(getattr(rule, "if_has_participation_tags_all", [])))
+
+    if participation_tags_any_set or participation_tags_all_set:
+        if not participation:
+            return False
+        ptag_set = set(participation.tags.all().values_list("name", flat=True))
+        if not ptag_set:
+            return False
+        if (participation_tags_any_set
+            and
+                not participation_tags_any_set & ptag_set):
+            return False
+        if (participation_tags_all_set
+            and
+                not participation_tags_all_set <= ptag_set):
+            return False
+
     if (hasattr(rule, "if_signed_in_with_matching_exam_ticket")
             and rule.if_signed_in_with_matching_exam_ticket):
         if login_exam_ticket is None:

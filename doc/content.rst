@@ -470,34 +470,44 @@ Here's an example:
 
     .. attribute:: weight
 
-        (required) An integer indicating how far up the page the block
+        (Required) An integer indicating how far up the page the block
         will be shown. Blocks with identical weight retain the order
         in which they are given in the course information file.
 
     .. attribute:: if_after
 
-        A :ref:`datespec <datespec>` that determines a date/time after which this rule
+        (Optional) A :ref:`datespec <datespec>` that determines a date/time after which this rule
         applies.
 
     .. attribute:: if_before
 
-        A :ref:`datespec <datespec>` that determines a date/time before which this rule
+        (Optional) A :ref:`datespec <datespec>` that determines a date/time before which this rule
         applies.
 
     .. attribute:: if_has_role
 
-        A list of a subset of ``[unenrolled, ta, student, instructor]``.
+        (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
+
+    .. attribute:: if_has_participation_tags_any
+
+        (Optional) A list of participation tags. Rule applies when the
+        participation has at least one tag in this list.
+
+    .. attribute:: if_has_participation_tags_all
+
+        (Optional) A list of participation tags. Rule applies if only the
+        participation's tags include all items in this list.
 
     .. attribute:: if_in_facility
 
-        Name of a facility known to the RELATE web page. This rule allows
+        (Optional) Name of a facility known to the RELATE web page. This rule allows
         (for example) showing chunks based on whether a user is physically
         located in a computer-based testing center (which RELATE can
         recognize based on IP ranges).
 
     .. attribute:: shown
 
-        A boolean (``true`` or ``false``) indicating whether the chunk
+        (Optional) A boolean (``true`` or ``false``) indicating whether the chunk
         should be shown.
 
 
