@@ -114,6 +114,7 @@ The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`::
 
     [uwsgi]
     plugins = python
+    # or plugins = python3
     socket = /tmp/uwsgi-relate.sock
     chdir=/home/andreas/relate
     virtualenv=/home/andreas/my-relate-env
