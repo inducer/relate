@@ -553,6 +553,8 @@ _email = intern("email")
 _email_contains = intern("email_contains")
 _user = intern("user")
 _user_contains = intern("user_contains")
+_institutional_id = intern("institutional_id")
+_institutional_id_contains = intern("institutional_id__contains")
 _tagged = intern("tagged")
 _role = intern("role")
 _status = intern("status")
@@ -583,6 +585,9 @@ _LEX_TABLE = [
     (_email_contains, RE(r"email-contains:([^ \t\n\r\f\v)]+)")),
     (_user, RE(r"username:([^ \t\n\r\f\v)]+)")),
     (_user_contains, RE(r"username-contains:([^ \t\n\r\f\v)]+)")),
+    (_institutional_id, RE(r"institutional-id:([^ \t\n\r\f\v)]+)")),
+    (_institutional_id_contains,
+            RE(r"institutional-id-contains:([^ \t\n\r\f\v)]+)")),
     (_tagged, RE(r"tagged:([-\w]+)")),
     (_role, RE(r"role:(\w+)")),
     (_status, RE(r"status:(\w+)")),
@@ -594,7 +599,9 @@ _LEX_TABLE = [
 
 
 _TERMINALS = ([
-    _id, _email, _email_contains, _user, _user_contains, _tagged, _role, _status])
+    _id, _email, _email_contains, _user, _user_contains, _tagged, _role, _status,
+    _institutional_id, _institutional_id_contains
+])
 
 # {{{ operator precedence
 
@@ -634,6 +641,18 @@ def parse_query(course, expr_str):
 
         elif next_tag is _user_contains:
             result = Q(user__username__contains=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _institutional_id:
+            result = Q(
+                user__institutional_id__iexact=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _institutional_id_contains:
+            result = Q(
+                user__institutional_id__icontains=pstate.next_match_obj().group(1))
             pstate.advance()
             return result
 
@@ -753,6 +772,8 @@ class ParticipationQueryForm(StyledForm):
                 "<code>email-contains:abc</code>, "
                 "<code>username:abc</code>, "
                 "<code>username-contains:abc</code>, "
+                "<code>institutional-id:2015abcd</code>, "
+                "<code>institutional-id-contains:2015</code>, "
                 "<code>tagged:abc</code>, "
                 "<code>role:instructor|teaching_assistant|"
                 "student|observer|auditor</code>, "
@@ -786,7 +807,9 @@ class ParticipationQueryForm(StyledForm):
 @transaction.atomic
 @course_view
 def query_participations(pctx):
-    if not pctx.has_permission(pperm.query_participation):
+    if (not pctx.has_permission(pperm.query_participation)
+        or
+            pctx.has_permission(pperm.view_participant_masked_profile)):
         raise PermissionDenied(_("may not query participations"))
 
     request = pctx.request
