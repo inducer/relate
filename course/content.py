@@ -78,6 +78,8 @@ class ChunkRulesDesc(Struct):
     if_before = None  # type: Datespec
     if_after = None  # type: Datespec
     if_in_facility = None  # type: Text
+    if_has_participation_tags_any = None  # type: List[Text]
+    if_has_participation_tags_all = None  # type: List[Text]
     roles = None  # type: List[Text]
     start = None  # type: Datespec
     end = None  # type: Datespec
@@ -108,6 +110,8 @@ class FlowSessionStartRuleDesc(Struct):
     if_after = None  # type: Date_ish
     if_before = None  # type: Date_ish
     if_has_role = None  # type: list
+    if_has_participation_tags_any = None  # type: List[Text]
+    if_has_participation_tags_all = None  # type: List[Text]
     if_in_facility = None  # type: Text
     if_has_in_progress_session = None  # type: bool
     if_has_session_tagged = None  # type: Optional[Text]
@@ -127,6 +131,8 @@ class FlowSessionAccessRuleDesc(Struct):
     if_before = None  # type: Date_ish
     if_started_before = None  # type: Date_ish
     if_has_role = None  # type: List[Text]
+    if_has_participation_tags_any = None  # type: List[Text]
+    if_has_participation_tags_all = None  # type: List[Text]
     if_in_facility = None  # type: Text
     if_has_tag = None  # type: Optional[Text]
     if_in_progress = None  # type: bool
