@@ -30,14 +30,13 @@ import django.forms as forms
 
 from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
-from relate.utils import StyledForm, Struct
+from relate.utils import StyledForm, Struct, string_concat
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
-        string_concat,
         )
 from django.utils import translation
 from django.conf import settings

@@ -28,7 +28,7 @@ import six
 from six.moves import range
 
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy, string_concat)
+        ugettext_lazy as _, pgettext_lazy)
 from django.contrib.auth.decorators import login_required
 from course.utils import course_view, render_course_page
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
@@ -41,7 +41,7 @@ from crispy_forms.layout import Submit
 import datetime
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from relate.utils import StyledForm, as_local_time
+from relate.utils import StyledForm, as_local_time, string_concat
 from course.constants import (
         participation_permission as pperm,
         )

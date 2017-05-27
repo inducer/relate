@@ -33,13 +33,14 @@ from django.utils.timezone import now
 from django.urls import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy, string_concat)
+        ugettext_lazy as _, pgettext_lazy)
 from django.core.validators import RegexValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from django.conf import settings
 
+from relate.utils import string_concat
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
         participation_status, PARTICIPATION_STATUS_CHOICES,

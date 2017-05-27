@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 import six
-from django.utils.translation import ugettext as _, pgettext, string_concat
+from django.utils.translation import ugettext as _, pgettext
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib.auth.decorators import login_required
@@ -408,6 +408,7 @@ def make_time_histogram(pctx, flow_id):
             course=pctx.course,
             flow_id=flow_id)
 
+    from relate.utils import string_concat
     hist = Histogram(
             num_log_bins=True,
             num_bin_title_formatter=(

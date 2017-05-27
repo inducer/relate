@@ -32,14 +32,14 @@ import sys
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext, string_concat)
+        ugettext_lazy as _, ugettext)
 from course.constants import (
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         ATTRIBUTES_FILENAME,
         participation_permission as pperm)
 
 from course.content import get_repo_blob
-from relate.utils import Struct
+from relate.utils import Struct, string_concat
 
 # {{{ mypy
 

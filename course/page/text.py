@@ -27,11 +27,11 @@ THE SOFTWARE.
 
 import six
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext, string_concat)
+        ugettext_lazy as _, ugettext)
 from course.validation import validate_struct, ValidationError
 import django.forms as forms
 
-from relate.utils import StyledForm, Struct
+from relate.utils import StyledForm, Struct, string_concat
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer,

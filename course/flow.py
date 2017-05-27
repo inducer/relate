@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 from django.utils import six
 from django.utils.translation import (
-        ugettext, ugettext_lazy as _, string_concat)
+        ugettext, ugettext_lazy as _)
 from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -48,7 +48,7 @@ from crispy_forms.helper import FormHelper
 
 from relate.utils import (
         StyledForm, local_now, as_local_time,
-        format_datetime_local)
+        format_datetime_local, string_concat)
 from crispy_forms.layout import Submit
 from django_select2.forms import Select2Widget
 

@@ -30,11 +30,11 @@ from course.validation import ValidationError
 import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
-from django.utils.translation import ugettext as _, string_concat
+from django.utils.translation import ugettext as _
 from django.utils import translation
 from django.conf import settings
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, string_concat
 from course.page.base import (
         PageBaseWithTitle, markup_to_html, PageBaseWithValue,
         PageBaseWithHumanTextFeedback,

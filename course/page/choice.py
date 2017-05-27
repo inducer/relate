@@ -29,9 +29,9 @@ from six.moves import range
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext, string_concat)
+        ugettext_lazy as _, ugettext)
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, string_concat
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html)
 from course.content import remove_prefix

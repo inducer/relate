@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 import django.forms as forms
-from django.utils.translation import ugettext as _, ugettext_lazy, string_concat
+from django.utils.translation import ugettext as _, ugettext_lazy
 
 from course.page.base import (
         PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
@@ -34,7 +34,7 @@ from course.page.base import (
         markup_to_html)
 from course.validation import ValidationError
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, string_concat
 
 from crispy_forms.layout import Layout, Field
 

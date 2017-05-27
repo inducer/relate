@@ -28,8 +28,7 @@ from six.moves import intern
 
 from django.utils.translation import (
         ugettext_lazy as _,
-        pgettext,
-        string_concat)
+        pgettext)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -65,7 +64,7 @@ from course.auth import UserSearchWidget
 
 from course.utils import course_view, render_course_page
 
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 
 from pytools.lex import RE as REBase  # noqa
 

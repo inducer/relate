@@ -30,7 +30,7 @@ import six
 from typing import cast
 
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy, ugettext, string_concat)
+        ugettext_lazy as _, pgettext_lazy, ugettext)
 from django.shortcuts import (  # noqa
         render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -43,7 +43,7 @@ from django.utils.timezone import now
 from django import http
 
 from django.urls import reverse
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
 from bootstrap3_datetime.widgets import DateTimePicker
 

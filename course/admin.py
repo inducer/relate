@@ -25,7 +25,7 @@ THE SOFTWARE.
 import six
 
 from django.utils.translation import (
-        ugettext_lazy as _, string_concat, pgettext)
+        ugettext_lazy as _, pgettext)
 from django.contrib import admin
 
 from course.models import (
@@ -41,6 +41,7 @@ from course.models import (
         GradingOpportunity, GradeChange, InstantMessage,
         Exam, ExamTicket)
 from django import forms
+from relate.utils import string_concat
 from course.enrollment import (approve_enrollment, deny_enrollment)
 from course.constants import (
         participation_permission as pperm,
