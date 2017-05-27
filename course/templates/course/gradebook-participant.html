@@ -61,11 +61,11 @@
       <th>{% trans "Date" %}</th>
     </thead>
     <tbody>
-      {% for grade_info in grade_table %}
+      {% for grade_info, may_view_result in zipped_grade_info %}
       {% with grade_info.grade_state_machine as gsm %}
       <tr>
         <td data-order="{{ grade_info.opportunity.identifier }}">{{ grade_info.opportunity.name }}</td>
-        {% if grade_info.opportunity.result_shown_in_participant_grade_book %}
+        {% if grade_info.opportunity.result_shown_in_participant_grade_book and may_view_result %}
           <td data-order="{{ gsm.stringify_percentage }}">
             <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
              ><span class="sensitive">{{ gsm.stringify_state }}</span></a>
