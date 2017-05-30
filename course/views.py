@@ -840,7 +840,6 @@ class ExceptionStage2Form(StyledForm):
                             pgettext("Next step", "Next"),
                             " &raquo;"))))
 
-###################{{    
 
 '''
 given the participation and flow_id, find the latest exception record
@@ -898,7 +897,7 @@ def exception_table(participation, flow_id):
                     ).format(rendered)
 
     return excpt_table
-###################}}
+
 
 @course_view
 def grant_exception_stage_2(pctx, participation_id, flow_id):
@@ -921,12 +920,13 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                 'participation': participation,
                 'flow_id': flow_id})
 
-
-########################
+    # {{{ create the exception table and append to form_text 
+    
     form_text = string_concat(
                     form_text,
                     exception_table(participation, flow_id))
-########################
+
+    # }}}
 
     from course.content import get_flow_desc
     try:
