@@ -757,7 +757,6 @@ def grant_exception(pctx):
     if request.method == "POST":
         form = ExceptionStage1Form(pctx.course, flow_ids, request.POST)
 
-
         if form.is_valid():
             return redirect("relate-grant_exception_stage_2",
                     pctx.course.identifier,
