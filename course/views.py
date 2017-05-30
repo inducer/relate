@@ -747,7 +747,6 @@ class ExceptionStage1Form(StyledForm):
 
 @course_view
 def grant_exception(pctx):
-    print(type(pctx))
     if not pctx.has_permission(pperm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
@@ -756,19 +755,16 @@ def grant_exception(pctx):
 
     request = pctx.request
     if request.method == "POST":
-        print("post grant exception")
         form = ExceptionStage1Form(pctx.course, flow_ids, request.POST)
 
 
         if form.is_valid():
-            print("go to stage 2")
             return redirect("relate-grant_exception_stage_2",
                     pctx.course.identifier,
                     form.cleaned_data["participation"].id,
                     form.cleaned_data["flow_id"])
 
     else:
-        print("not post")
         form = ExceptionStage1Form(pctx.course, flow_ids)
 
     return render_course_page(pctx, "course/generic-course-form.html", {
@@ -846,7 +842,6 @@ given the participation and flow_id, find the latest exception record
 and build an exception table according to this record
 '''
 def exception_table(participation, flow_id):
-    print(participation, flow_id)
     try:
         last_exception = FlowRuleException.objects.filter(                    
                             participation=participation,
@@ -889,7 +884,6 @@ def exception_table(participation, flow_id):
     template = loader.get_template('course/exception-table.html')
     context = Context({ 'permissions': permissions, 'gradings': gradings })
     rendered = template.render(context)
-    print(rendered)
     excpt_table = string_concat(
                     "<div class='well'>",
                     "{}",
@@ -980,7 +974,6 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     exception_form = None
     request = pctx.request
     if request.method == "POST":
-        print("post exception stage 2")
         exception_form = ExceptionStage2Form(find_sessions(), request.POST)
         create_session_form = CreateSessionForm(
                 session_tag_choices, default_tag, create_session_is_override,
@@ -1010,9 +1003,6 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
             exception_form = None
 
         elif exception_form.is_valid() and "next" in request.POST:  # type: ignore
-
-            print("render stage 3 course page")
-
             return redirect(
                     "relate-grant_exception_stage_3",
                     pctx.course.identifier,
@@ -1025,8 +1015,6 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     if exception_form is None:
         exception_form = ExceptionStage2Form(find_sessions())
-
-    print("render stage 2 course page")
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "forms": [exception_form, create_session_form],
