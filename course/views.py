@@ -836,6 +836,62 @@ class ExceptionStage2Form(StyledForm):
                             " &raquo;"))))
 
 
+'''
+given the participation and flow_id, find the latest exception record
+and build an exception table according to this record
+'''
+def exception_table(participation, flow_id):
+    try:
+        last_exception = FlowRuleException.objects.filter(                    
+                            participation=participation,
+                            flow_id=flow_id).order_by("creation_time").last()
+    except FlowRuleException.DoesNotExist:
+        last_exception = False
+
+    # if the session of the given participation and flow id does not exist,
+    # do not build the exception table            
+    if not last_exception:
+        return ""
+
+    last_modify_time = last_exception.creation_time
+
+    # assuming permissions and gradings will be written into database within 1 second of delta time
+    from datetime import timedelta
+    curr_exceptions = list(FlowRuleException.objects
+                    .filter(
+                        participation=participation,
+                        flow_id=flow_id,
+                        creation_time__gt=last_modify_time-timedelta(seconds=1)))
+
+    # convert all underscore in exception rulee to space
+    def tostr(items):
+        l = list()
+        for it in items:
+            l.append(_(it.replace('_', ' ')))
+        return l
+
+    # find the permission rules and grading rules according to the latest exception record
+    permissions, gradings = False, False
+    for excpt in curr_exceptions:
+        if 'permissions' in excpt.rule:
+            permissions = tostr(excpt.rule['permissions'])
+        else:
+            gradings = excpt.rule.items()
+
+    # fill the exceptions to the exception table template
+    from django.template import loader, Context, Template
+    template = loader.get_template('course/exception-table.html')
+    context = Context({ 'permissions': permissions, 'gradings': gradings })
+    rendered = template.render(context)
+    excpt_table = string_concat(
+                    "<div class='well'>",
+                    "{}",
+                    "</div>"
+                    ).format(rendered)
+
+    return excpt_table
+
+
 @course_view
 def grant_exception_stage_2(pctx, participation_id, flow_id):
     # type: (CoursePageContext, Text, Text) -> http.HttpResponse
@@ -856,6 +912,14 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
             % {
                 'participation': participation,
                 'flow_id': flow_id})
+
+    # {{{ create the exception table and append to form_text 
+    
+    form_text = string_concat(
+                    form_text,
+                    exception_table(participation, flow_id))
+
+    # }}}
 
     from course.content import get_flow_desc
     try:

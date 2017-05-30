@@ -1,0 +1,27 @@
+{% load i18n %}
+<h3>{% trans "Existing Exceptions" %}</h3>
+{% if permissions %}
+<h4>{% trans "Permissions" %}</h4>
+<ul class="list-group row">
+  {% for p in permissions %}
+  <li class="list-group-item col-xs-6">{{ p }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if gradings %}
+
+<h4>{% trans "Gradings" %}</h4>
+<div>
+  <table class="table table-striped">
+    <tbody>
+      {% for g in gradings %}
+      <tr>
+        <td class="datacol">{{ g.0 }}</td>
+        <td class="datacol">{{ g.1 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
