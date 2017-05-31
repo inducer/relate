@@ -172,26 +172,6 @@ def _eval_generic_conditions(
         if all(role not in rule.if_has_role for role in roles):
             return False
 
-    participation_tags_any_set = (
-        set(getattr(rule, "if_has_participation_tags_any", [])))
-    participation_tags_all_set = (
-        set(getattr(rule, "if_has_participation_tags_all", [])))
-
-    if participation_tags_any_set or participation_tags_all_set:
-        if not participation:
-            return False
-        ptag_set = set(participation.tags.all().values_list("name", flat=True))
-        if not ptag_set:
-            return False
-        if (participation_tags_any_set
-            and
-                not participation_tags_any_set & ptag_set):
-            return False
-        if (participation_tags_all_set
-            and
-                not participation_tags_all_set <= ptag_set):
-            return False
-
     if (hasattr(rule, "if_signed_in_with_matching_exam_ticket")
             and rule.if_signed_in_with_matching_exam_ticket):
         if login_exam_ticket is None:
@@ -218,6 +198,36 @@ def _eval_generic_session_conditions(
     if hasattr(rule, "if_started_before"):
         ds = parse_date_spec(session.course, rule.if_started_before)
         if not session.start_time < ds:
+            return False
+
+    return True
+
+
+def _eval_participation_tags_conditions(
+        rule,  # type: Any
+        participation,  # type: Optional[Participation]
+        ):
+    # type: (...) -> bool
+
+    if not participation:
+        return False
+
+    participation_tags_any_set = (
+        set(getattr(rule, "if_has_participation_tags_any", [])))
+    participation_tags_all_set = (
+        set(getattr(rule, "if_has_participation_tags_all", [])))
+
+    if participation_tags_any_set or participation_tags_all_set:
+        ptag_set = set(participation.tags.all().values_list("name", flat=True))
+        if not ptag_set:
+            return False
+        if (participation_tags_any_set
+            and
+                not participation_tags_any_set & ptag_set):
+            return False
+        if (participation_tags_all_set
+            and
+                not participation_tags_all_set <= ptag_set):
             return False
 
     return True
@@ -293,6 +303,9 @@ def get_session_start_rule(
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
                 login_exam_ticket=login_exam_ticket):
+            continue
+
+        if not _eval_participation_tags_conditions(rule, participation):
             continue
 
         if not for_rollover and hasattr(rule, "if_in_facility"):
@@ -383,6 +396,9 @@ def get_session_access_rule(
                 login_exam_ticket=login_exam_ticket):
             continue
 
+        if not _eval_participation_tags_conditions(rule, session.participation):
+            continue
+
         if not _eval_generic_session_conditions(rule, session, now_datetime):
             continue
 
@@ -467,6 +483,9 @@ def get_session_grading_rule(
                 continue
 
         if not _eval_generic_session_conditions(rule, session, now_datetime):
+            continue
+
+        if not _eval_participation_tags_conditions(rule, session.participation):
             continue
 
         if hasattr(rule, "if_completed_before"):
