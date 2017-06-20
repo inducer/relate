@@ -8,6 +8,7 @@ local_settings.py
 .sw[opn]
 doc/_build
 components
+bower_components
 
 *.egg-info
 build
