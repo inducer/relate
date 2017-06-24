@@ -486,7 +486,8 @@ def sign_up(request):
 
 
 class ResetPasswordFormByEmail(StyledForm):
-    email = forms.EmailField(required=True, label=_("Email"))
+    email = forms.EmailField(required=True, label=_("Email"),
+                             max_length=User._meta.get_field('email').max_length)
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordFormByEmail, self).__init__(*args, **kwargs)
@@ -695,7 +696,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
 class SignInByEmailForm(StyledForm):
     email = forms.EmailField(required=True, label=_("Email"),
             # For now, until we upgrade to a custom user model.
-            max_length=30)
+            max_length=User._meta.get_field('email').max_length)
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
