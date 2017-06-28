@@ -238,6 +238,11 @@ div.progress:hover  span.stats-percentage{
 }
 
 @media (max-width: 767px) {
+
+    h1, h2, h3, p {
+        overflow-wrap: break-word;
+    }
+
     .grading-page-student-work.container > div {
         margin-left: 5px;
         margin-right: 5px;
@@ -255,6 +260,14 @@ div.progress:hover  span.stats-percentage{
     h2, .h2 {
         font-size: 24px;
     }
+}
+
+.relate-grade-flow-page-setting-btn {
+  float: right;
+  background-color:transparent;
+  padding: 0;
+  -webkit-box-shadow: none !important;
+  box-shadow: none  !important;
 }
 
 .relate-participation-active {
