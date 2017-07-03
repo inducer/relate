@@ -33,7 +33,9 @@
       {% if course.course_xmpp_id and pperm.send_instant_message %}
       <li><a href="{% url "relate-send_instant_message" course.identifier %}">{% trans "Send instant message" %}</a></li>
       {% endif %}
+      {% if not request.user.is_anonymous %}
       <li><a href="{% url "relate-view_participant_grades" course.identifier %}">{% trans "View grades" %}</a></li>
+      {% endif %}
       {% if pperm.view_calendar %}
         <li><a href="{% url "relate-view_calendar" course.identifier %}">{% trans "View calendar" %}</a></li>
       {% endif %}
