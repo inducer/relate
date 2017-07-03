@@ -835,7 +835,7 @@ class UserForm(StyledModelForm):
         super(UserForm, self).__init__(*args, **kwargs)
 
         self.helper.layout = Layout(
-                Div("last_name", "first_name", css_class="well"),
+                Div("first_name", "last_name", css_class="well"),
                 Div("institutional_id", css_class="well"),
                 Div("editor_mode", css_class="well")
                 )
