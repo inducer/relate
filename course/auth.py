@@ -859,6 +859,10 @@ class UserForm(StyledModelForm):
             else:
                 self.fields["institutional_id"].widget.\
                         attrs['disabled'] = True
+            if not settings.RELATE_SHOW_INST_ID_FORM:
+                self.helper.layout[1].css_class = 'well hidden'
+            if not settings.RELATE_SHOW_EDITOR_FORM:
+                self.helper.layout[2].css_class = 'well hidden'
 
         if self.instance.name_verified:
             self.fields["first_name"].widget.attrs['disabled'] = True

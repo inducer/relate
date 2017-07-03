@@ -85,7 +85,7 @@ ADMINS = (
     )
 
 # If your email service do not allow nonauthorized sender, uncomment the following
-# statement and change the configurations above accordingly, noticing that all 
+# statement and change the configurations above accordingly, noticing that all
 # emails will be sent using the EMAIL_ settings above.
 #RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
 
@@ -183,6 +183,10 @@ RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 # after submission. Set to False only when you trust your students
 # or you don't want to verfiy insitutional ID they submit.
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
+
+# If set to False, these fields will be hidden in the user profile form.
+RELATE_SHOW_INST_ID_FORM = True
+RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
