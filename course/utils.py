@@ -209,15 +209,17 @@ def _eval_participation_tags_conditions(
         ):
     # type: (...) -> bool
 
-    if not participation:
-        return False
-
     participation_tags_any_set = (
         set(getattr(rule, "if_has_participation_tags_any", [])))
     participation_tags_all_set = (
         set(getattr(rule, "if_has_participation_tags_all", [])))
 
     if participation_tags_any_set or participation_tags_all_set:
+        if not participation:
+            # Return False for anonymous users if only
+            # if_has_participation_tags_any or if_has_participation_tags_all
+            # is not empty.
+            return False
         ptag_set = set(participation.tags.all().values_list("name", flat=True))
         if not ptag_set:
             return False
