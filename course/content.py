@@ -934,7 +934,7 @@ def markup_to_html(
             LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
             MathJaxExtension(),
             "markdown.extensions.extra",
-            "markdown.extensions.codehilite",
+            #"markdown.extensions.codehilite",
             ],
         output_format="html5")
 
