@@ -652,7 +652,9 @@
 
     }
 
-    $(document).ready(add_submit_next);
+    {% if grading_form_html != None %}
+      $(document).ready(add_submit_next);
+    {% endif %}
   </script>
 
   {# }}} #}
