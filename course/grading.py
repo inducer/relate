@@ -541,7 +541,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         attrs={
                             'data-placeholder':
                                 _("Graded pages, ordered by last name "
-                                  "then grade time.")}),
+                                  "and grade time")}),
                 )
 
             else:
@@ -625,7 +625,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         PageGradedInfoSearchWidget(
                             attrs={
                                 'data-placeholder':
-                                    _("Graded pages, ordered by grade time.")}),
+                                    _("Graded pages, ordered by grade time")}),
                     )
 
                 if select2_ungraded_pagedata_qs.count():
