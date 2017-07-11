@@ -207,25 +207,40 @@
         </tr>
         <tr>
           <td>
-            {% if prev_flow_session_id != None %}
-              <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id prev_flow_session_ordinal %}"
-                 accesskey="p" class="btn btn-default relate-grading-nav" title="{% trans "Previous page with the same page_id" %} Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
-            {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
-            {% endif %}
-            {% if next_flow_session_id %}
-              <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id next_flow_session_ordinal %}"
-                 accesskey="n" class="btn btn-default relate-grading-nav" title="{% trans "Next page with the same page_id" %} Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
-            {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-right"></i></a>
-            {% endif %}
-            {% if grading_form_html != None %}
-              {% if next_ungraded_flow_session_id %}
-                <a href="{% url "relate-grade_flow_page" course.identifier next_ungraded_flow_session_id next_ungraded_flow_session_ordinal %}"
-                   accesskey="l" class="btn btn-default relate-grading-nav" title="{% trans "Next ungraded page with the same page_id (cyclicly)" %} Alt/Cmd+(Shift+)l"><i class="fa fa-forward"></i></a>
+            <a
+              {% if prev_flow_session_id != None %}
+                href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id prev_flow_session_ordinal %}"
+                class="btn btn-default relate-grading-nav"
               {% else %}
-                <a href="#" class="btn btn-default disabled"><i class="fa fa fa-forward"></i></a>
+                href="#"
+                class="btn btn-default disabled"
               {% endif %}
+              accesskey="p"
+              title="{% trans "Previous page with the same page_id" %} Alt/Cmd(+Shift+)p"
+            ><i class="fa fa-chevron-left"></i></a>
+            <a
+              {% if next_flow_session_id %}
+                href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id next_flow_session_ordinal %}"
+                   class="btn btn-default relate-grading-nav"
+              {% else %}
+                href="#"
+                class="btn btn-default disabled"
+              {% endif %}
+              accesskey="n"
+              title="{% trans "Next page with the same page_id" %} Alt/Cmd+(Shift+)n"
+            ><i class="fa fa-chevron-right"></i></a>
+            {% if grading_form_html != None %}
+              <a
+                {% if next_ungraded_flow_session_id %}
+                  href="{% url "relate-grade_flow_page" course.identifier next_ungraded_flow_session_id next_ungraded_flow_session_ordinal %}"
+                  class="btn btn-default relate-grading-nav"
+                {% else %}
+                  href="#"
+                  class="btn btn-default disabled"
+                {% endif %}
+                accesskey="l"
+                title="{% trans "Next ungraded page with the same page_id (cyclicly)" %} Alt/Cmd+(Shift+)l"
+                ><i class="fa fa fa-forward"></i></a>
             {% endif %}
             {% trans "Session" %}
           </td>
@@ -238,18 +253,25 @@
         </tr>
         <tr>
           <td>
-            {% if page_data.ordinal > 0 %}
-              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-                  class="btn btn-default relate-grading-nav"><i class="fa fa-chevron-left"></i></a>
-            {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
-            {% endif %}
-            {% if page_data.next_ordinal < flow_session.page_count %}
-              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-                  class="btn btn-default relate-grading-nav"><i class="fa fa-chevron-right"></i></a>
-            {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-right"></i></a>
-            {% endif %}
+            <a
+              {% if page_data.ordinal > 0 %}
+                href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
+                class="btn btn-default relate-grading-nav"
+              {% else %}
+                <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
+              {% endif %}
+              title="{% trans "Previous page in session" %}"
+            ><i class="fa fa-chevron-left"></i></a>
+            <a
+              {% if page_data.next_ordinal < flow_session.page_count %}
+                href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
+                class="btn btn-default relate-grading-nav"
+              {% else %}
+                href="#"
+                class="btn btn-default disabled"
+              {% endif %}
+              title="{% trans "Next page in session" %}"
+            ><i class="fa fa-chevron-right"></i></a>
             {% trans "Page number" %}
           </td>
           <td>
