@@ -401,7 +401,7 @@ def process_yaml_for_expansion(yaml_str):
     line_count = len(lines)
 
     while i < line_count:
-        l = lines[i]
+        l = lines[i].rstrip()
         yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(l)
 
         if yaml_block_scalar_match is not None:
@@ -428,7 +428,7 @@ def process_yaml_for_expansion(yaml_str):
                 if line_indent <= block_start_indent:
                     break
                 else:
-                    unprocessed_block_lines.append(l)
+                    unprocessed_block_lines.append(l.rstrip())
                     i += 1
 
             if not allow_jinja:
