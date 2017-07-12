@@ -139,6 +139,8 @@ def settings_context_processor(request):
         "student_sign_in_view": "relate-sign_in_choice",
         "relate_sign_in_by_email_enabled":
         settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED,
+        "relate_sign_in_by_username_enabled":
+        settings.RELATE_SIGN_IN_BY_USERNAME_ENABLED,
         "relate_registration_enabled":
         settings.RELATE_REGISTRATION_ENABLED,
         "relate_sign_in_by_exam_tickets_enabled":

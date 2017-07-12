@@ -352,6 +352,11 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
     """
     Displays the login form and handles the login action.
     """
+    if not settings.RELATE_SIGN_IN_BY_USERNAME_ENABLED:
+        messages.add_message(request, messages.ERROR,
+                _("Username-based sign-in is not being used"))
+        return redirect("relate-sign_in_choice")
+
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))
 
