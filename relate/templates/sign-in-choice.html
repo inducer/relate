@@ -41,6 +41,7 @@
           {% trans "Sign in using an exam ticket" %} &raquo;</a>
       </li>
     {% endif %}
+    {% if relate_sign_in_by_username_enabled %}
     <li>
       <a
         class="btn btn-primary"
@@ -48,5 +49,6 @@
         role="button"><i class="fa fa-key"></i>
         {% trans "Sign in with a RELATE-specific user name and password" %} &raquo;</a>
     </li>
+    {% endif %}
   </ul>
 {% endblock %}

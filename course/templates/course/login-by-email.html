@@ -6,6 +6,7 @@
 {% block content %}
   <h1>{% trans "Sign in or create account" %}</h1>
 
+  {% if relate_sign_in_by_exam_tickets_enabled or relate_sign_in_by_username_enabled %}
   <div class="alert alert-info">
     <i class="fa fa-chevron-left"></i>
     {% url "relate-sign_in_choice" as relate-sign_in_choice %}
@@ -14,6 +15,7 @@
       <a href="{{ relate-sign_in_choice }}">please choose a different method to sign in</a>.
     {% endblocktrans %}
   </div>
+  {% endif %}
 
   <div class="alert alert-warning">
     <i class="fa fa-warning"></i>

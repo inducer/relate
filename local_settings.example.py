@@ -85,7 +85,7 @@ ADMINS = (
     )
 
 # If your email service do not allow nonauthorized sender, uncomment the following
-# statement and change the configurations above accordingly, noticing that all 
+# statement and change the configurations above accordingly, noticing that all
 # emails will be sent using the EMAIL_ settings above.
 #RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
 
@@ -168,6 +168,7 @@ RELATE_SESSION_RESTART_COOLDOWN_SECONDS = 10
 # {{{ sign-in methods
 
 RELATE_SIGN_IN_BY_EMAIL_ENABLED = True
+RELATE_SIGN_IN_BY_USERNAME_ENABLED = True
 RELATE_REGISTRATION_ENABLED = False
 RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
 
