@@ -99,9 +99,9 @@ class PageGradedInfoSearchWidget(GradeInfoSearchWidgetBase):
 
         most_recent_grade = visit.get_most_recent_grade()
         return (
-            _("%(full_name)s, graded at %(grade_time)s %(grader)s"
-              "(flow session id '%(flow_session_pk)s' "
-              "started at %(start_time)s).")
+            _("%(full_name)s (%(username)s) session %(flow_session_pk)s, "
+                "graded at %(grade_time)s (%(grader)s)"
+              )
             % {
                 "full_name": (
                     obj.flow_session.user.get_full_name()
@@ -109,19 +109,20 @@ class PageGradedInfoSearchWidget(GradeInfoSearchWidgetBase):
                         and obj.flow_session.user.last_name)
                     else obj.flow_session.user.username
                 ),
+                "username": obj.flow_session.user.username,
                 "grade_time": format_datetime_local(
                     as_local_time(most_recent_grade.grade_time)
                 ),
-                "start_time": format_datetime_local(
-                    as_local_time(obj.flow_session.start_time)
-                ),
+                # "session_start_time": format_datetime_local(
+                #     as_local_time(obj.flow_session.start_time)
+                # ),
                 "flow_session_pk": obj.flow_session.pk,
                 "grader": (
                     string_concat(
                         _("by %(grader)s") %
                         {"grader": most_recent_grade.grader.get_full_name()},
                         " ")
-                    if most_recent_grade.grader is not None else "")
+                    if most_recent_grade.grader is not None else _("autograded"))
             })
 
 
@@ -129,8 +130,7 @@ class PageUnGradedInfoSearchWidget(GradeInfoSearchWidgetBase):
     def label_from_instance(self, obj):
         return (
             (
-                _("%(full_name)s, flow session id '%(flow_session_pk)s' "
-                  "started at %(time)s")
+                _("%(full_name)s session %(flow_session_pk)s")
                 % {
                     "full_name": (
                         obj.flow_session.user.get_full_name()
@@ -139,9 +139,9 @@ class PageUnGradedInfoSearchWidget(GradeInfoSearchWidgetBase):
                         else obj.flow_session.user.username
                     ),
                     "flow_session_pk": obj.flow_session.pk,
-                    "time": format_datetime_local(
-                        as_local_time(obj.flow_session.start_time)
-                    ),
+                    #"session_start_time": format_datetime_local(
+                    #as_local_time(obj.flow_session.start_time)
+                    #),
                 }))
 
 
