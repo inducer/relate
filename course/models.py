@@ -586,7 +586,6 @@ def add_default_roles_and_permissions(course,
                 argument="student").save()
         rpm(role=role, permission=pp.view_gradebook).save()
         rpm(role=role, permission=pp.assign_grade).save()
-        rpm(role=student, permission=pp.skip_during_manual_grading).save()
         rpm(role=role, permission=pp.view_grader_stats).save()
         rpm(role=role, permission=pp.batch_download_submission).save()
 
