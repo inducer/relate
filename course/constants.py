@@ -87,6 +87,7 @@ class participation_permission:  # noqa
     send_instant_message = "send_instant_message"
     access_files_for = "access_files_for"
     included_in_grade_statistics = "included_in_grade_statistics"
+    skip_during_manual_grading = "skip_during_manual_grading"
 
     edit_exam = "edit_exam"
     issue_exam_ticket = "issue_exam_ticket"
@@ -154,6 +155,9 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.included_in_grade_statistics,
             pgettext_lazy("Participation permission",
                 "Included in grade statistics")),
+        (participation_permission.skip_during_manual_grading,
+            pgettext_lazy("Participation permission",
+                "Skip during manual grading")),
 
         (participation_permission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),
