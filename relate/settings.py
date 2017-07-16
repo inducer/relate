@@ -235,6 +235,8 @@ RELATE_ADMIN_EMAIL_LOCALE = "en_US"
 
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
+RELATE_SIGN_IN_BY_USERNAME_ENABLED = True
+
 # }}}
 
 for name, val in local_settings.items():
