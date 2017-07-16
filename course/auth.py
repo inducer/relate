@@ -140,10 +140,13 @@ class ImpersonateMiddleware(object):
                     may_impersonate = True
                 else:
                     qset = get_impersonable_user_qset(cast(User, request.user))
-                    if qset.filter(pk__in=cast(User, impersonee).pk).count():
+                    if qset.filter(pk=cast(User, impersonee).pk).count():
                         may_impersonate = True
 
-            if not may_impersonate:
+            if may_impersonate:
+                request.relate_impersonate_original_user = request.user
+                request.user = impersonee
+            else:
                 messages.add_message(request, messages.ERROR,
                         _("Error while impersonating."))
 
@@ -230,7 +233,7 @@ def impersonate(request):
             impersonee = form.cleaned_data["user"]
 
             if impersonable_user_qset.filter(
-                    pk__in=cast(User, impersonee).pk).count():
+                    pk=cast(User, impersonee).pk).count():
                 request.session['impersonate_id'] = impersonee.id
                 request.session['relate_impersonation_header'] = form.cleaned_data[
                         "add_impersonation_header"]
