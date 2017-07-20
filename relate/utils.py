@@ -36,6 +36,30 @@ from typing import Union
 if False:
     from typing import Text, List, Dict, Tuple, Optional, Any  # noqa
 
+# {{{ string_concat compatibility for Django >= 1.11
+
+try:
+    from django.utils.text import format_lazy
+except ImportError:
+    def _format_lazy(format_string, *args, **kwargs):
+        # type(Text, *Any, **Any) -> Text
+        """
+        Apply str.format() on 'format_string' where format_string, args,
+        and/or kwargs might be lazy.
+        """
+        return format_string.format(*args, **kwargs)
+
+    from django.utils.functional import lazy
+    format_lazy = lazy(_format_lazy, str)
+
+try:
+    from django.utils.translation import string_concat
+except ImportError:
+    def string_concat(*strings):
+        return format_lazy("{}" * len(strings), *strings)
+
+# }}}
+
 
 class StyledForm(forms.Form):
     def __init__(self, *args, **kwargs):

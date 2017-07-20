@@ -40,7 +40,6 @@ from django.utils import six
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
-        string_concat,
         pgettext,
         pgettext_lazy,
         )
@@ -55,7 +54,7 @@ from django.views.decorators.cache import cache_control
 
 from crispy_forms.layout import Submit, Layout, Div
 
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from course.auth import get_pre_impersonation_user

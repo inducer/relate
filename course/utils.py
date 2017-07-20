@@ -34,10 +34,11 @@ from django.shortcuts import (  # noqa
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import (
-        ugettext as _, string_concat, pgettext_lazy)
+        ugettext as _, pgettext_lazy)
 
 from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
+from relate.utils import string_concat
 from course.content import (
         get_course_repo, get_flow_desc,
         parse_date_spec, get_course_commit_sha)

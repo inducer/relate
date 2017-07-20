@@ -29,8 +29,7 @@ import six
 from django.contrib.auth import get_user_model
 import django.forms as forms
 from django.utils.translation import (
-        ugettext, ugettext_lazy as _, string_concat,
-        pgettext)
+        ugettext, ugettext_lazy as _, pgettext)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.core.exceptions import (  # noqa
@@ -58,7 +57,7 @@ from course.constants import (
         participation_permission as pperm)
 from course.views import get_now_or_fake_time
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, string_concat
 
 
 # {{{ mypy

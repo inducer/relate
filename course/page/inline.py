@@ -26,13 +26,13 @@ THE SOFTWARE.
 
 
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext, string_concat)
+        ugettext_lazy as _, ugettext)
 from django.utils.safestring import mark_safe
 from course.validation import validate_struct, validate_markup, ValidationError
 from course.content import remove_prefix
 import django.forms as forms
 
-from relate.utils import Struct, StyledInlineForm
+from relate.utils import Struct, StyledInlineForm, string_concat
 from course.page.base import (
         AnswerFeedback, PageBaseWithValue, markup_to_html)
 

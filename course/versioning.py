@@ -37,14 +37,13 @@ from django.utils.translation import (
         ugettext,
         pgettext,
         pgettext_lazy,
-        string_concat,
         )
 from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from django.db import transaction
 
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
 
 from course.models import (
