@@ -2063,6 +2063,11 @@ def view_flow_page(pctx, flow_session_id, ordinal):
         "viewing_prior_version": viewing_prior_version,
         "prev_answer_visits": prev_answer_visits,
         "prev_visit_id": prev_visit_id,
+
+        # Wrappers used by JavaScript template (tmpl) so as not to
+        # conflict with Django template's tag wrapper
+        "JQ_OPEN": '{%',
+        'JQ_CLOSE': '%}',
     }
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
@@ -2078,6 +2083,39 @@ def view_flow_page(pctx, flow_session_id, ordinal):
             allow_instant_flow_requests=False)
 
     # }}}
+
+
+@course_view
+def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal):
+    """
+    :return: serialized prev_answer_visits items for past-submission-dropdown
+    """
+    request = pctx.request
+    if not request.is_ajax() or request.method != "GET":
+        raise PermissionDenied()
+
+    try:
+        page_ordinal = int(page_ordinal)
+        flow_session_id = int(flow_session_id)
+    except ValueError:
+        raise http.Http404()
+
+    flow_session = get_and_check_flow_session(pctx, int(flow_session_id))
+
+    page_data = get_object_or_404(
+        FlowPageData, flow_session=flow_session, ordinal=page_ordinal)
+    prev_answer_visits = get_prev_answer_visits_qset(page_data)
+
+    def serialize(obj):
+        return {
+            "id": obj.id,
+            "visit_time": (
+                format_datetime_local(as_local_time(obj.visit_time))),
+            "is_submitted_answer": obj.is_submitted_answer,
+        }
+
+    return http.JsonResponse(
+        {"result": [serialize(visit) for visit in prev_answer_visits]})
 
 
 def get_pressed_button(form):

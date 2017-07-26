@@ -156,39 +156,21 @@
 
       {# {{{ past submissions #}
 
-      {% if prev_answer_visits|length > 1 %}
       <div class="navbar-right relate-flow-page-past-submissions"
         style="padding-right: 0.4em; margin-right:0;">
-        <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+        <div class="dropdown" id="past-submission_dropdown">
+          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown_button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
             title='{% trans "Submission history for this page" %}'>
             <i class="fa fa-history"></i>
             <span class="caret"></span>
           </button>
-          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
-            {% for pvisit in prev_answer_visits %}
-            <li>
-              {% if forloop.first %}
-                <a href="?">
-              {% else %}
-                <a href="?visit_id={{ pvisit.id }}">
-              {% endif %}
-
-              {% if prev_visit_id == pvisit.id %}<b>{% endif %}
-                {{ pvisit.visit_time }}
-              {% if prev_visit_id == pvisit.id %}</b>{% endif %}
-              {% if forloop.first %}
-                {% trans "(current)" %}
-              {% endif %}
-              {% if pvisit.is_submitted_answer %}
-                {% trans "(submitted)" %}
-              {% endif %}
-            </a></li>
-            {% endfor %}
+          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
+            <li style="list-style:none; position:relative; left:50%;">
+              <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
+            </li>
           </ul>
         </div>
       </div>
-      {% endif %}
 
       {# }}} #}
 
@@ -623,4 +605,54 @@
 
 {% endblock %}
 
+{% block page_bottom_javascript_extra %}
+
+  <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
+  <script>
+    function generate_past_submission_dropdown_content(){
+      var jqxhr = $.ajax({
+        url: "{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id ordinal %}"
+      }).done(function (result) {
+        if(result.result)
+          document.getElementById("past-submission_dropdown_content").innerHTML = tmpl("tmpl-prev-answer-visits", result.result);
+      });
+    }
+
+    $('#past-submission_dropdown').on('shown.bs.dropdown', generate_past_submission_dropdown_content);
+
+
+  </script>
+
+  {# https://github.com/blueimp/JavaScript-Templates #}
+  <script type="text/x-tmpl" id="tmpl-prev-answer-visits">
+    {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
+      <li>
+        <a href="#" style="pointer-events: none; display: inline-block;">
+          {% trans 'No submission history' %}
+        </a>
+      </li>
+    {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+      {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
+        <li>
+          {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+            <a href="?">
+          {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+            <a href="?visit_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
+          {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+            {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }}
+            {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+            {% trans "(current)" %}
+            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+            {{ JQ_OPEN }} if (o[i].is_submitted_answer) { {{ JQ_CLOSE }}
+              {% trans "(submitted)" %}
+            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+          </a>
+        </li>
+      {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+    {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+  </script>
+  {{ block.super }}
+{% endblock %}
 {# vim: set foldmethod=marker: #}
