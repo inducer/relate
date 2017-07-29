@@ -610,7 +610,7 @@ def add_default_roles_and_permissions(course,
         add_student_permissions(role)
 
     def add_instructor_permissions(role):
-        rpm(role=role, permission=pp.use_admin_interface)
+        rpm(role=role, permission=pp.use_admin_interface).save()
         rpm(role=role, permission=pp.impersonate_role,
                 argument="ta").save()
         rpm(role=role, permission=pp.edit_course_permissions).save()
