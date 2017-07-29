@@ -876,8 +876,31 @@ def expand_markup(
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
+
+        def render_notebook_cells(ipynb_name, clear_output=False, indices=None,
+                                  clear_markdown=False):
+            try:
+                ipynb_source = get_repo_blob_data_cached(repo, ipynb_name,
+                                                         commit_sha).decode()
+
+                from course.utils import render_notebook_from_source
+                return render_notebook_from_source(
+                    ipynb_source,
+                    clear_output=clear_output,
+                    indices=indices,
+                    clear_markdown=clear_markdown,
+                )
+            except ObjectDoesNotExist:
+                raise
+
         template = env.from_string(text)
-        text = template.render(**jinja_env)
+        kwargs = {}
+        if jinja_env:
+            kwargs.update(jinja_env)
+
+        kwargs["render_notebook_cells"] = render_notebook_cells
+
+        text = template.render(**kwargs)
 
     # }}}
 
@@ -929,13 +952,21 @@ def markup_to_html(
 
     from course.mdx_mathjax import MathJaxExtension
     import markdown
+
+    extensions = [
+        LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
+        MathJaxExtension(),
+        "markdown.extensions.extra",
+    ]
+
+    relate_extra_markdown_extensions = getattr(
+        settings, "RELATE_EXTRA_MARKDOWN_EXTENSIONS", False)
+    if relate_extra_markdown_extensions:
+        assert isinstance(relate_extra_markdown_extensions, list)
+        extensions += relate_extra_markdown_extensions
+
     result = markdown.markdown(text,
-        extensions=[
-            LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
-            MathJaxExtension(),
-            "markdown.extensions.extra",
-            "markdown.extensions.codehilite",
-            ],
+        extensions=extensions,
         output_format="html5")
 
     assert isinstance(result, six.text_type)

@@ -109,4 +109,7 @@ pytools
 # For mypy (static type checking) support
 typing
 
+# For rendering ipython notebook
+nbconvert>=5.2.1
+
 # vim: foldmethod=marker

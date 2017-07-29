@@ -191,6 +191,10 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+RELATE_EXTRA_MARKDOWN_EXTENSIONS = [
+    # Enable this sometimes results in crashes
+    #"markdown.extensions.codehilite",
+]
 
 # {{{ user full_name format
 
