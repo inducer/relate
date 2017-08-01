@@ -474,7 +474,7 @@ class GitUpdateForm(StyledForm):
 
         self.fields["new_sha"] = forms.ChoiceField(
                 choices=([
-                    (repo_refs[ref],
+                    (repo_refs[ref].decode(),
                         "[%s] %s" % (
                             ref.decode("utf-8", errors="replace"),
                             format_sha(repo_refs[ref])))
