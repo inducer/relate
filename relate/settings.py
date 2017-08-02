@@ -122,6 +122,7 @@ BOWER_INSTALLED_APPS = (
     "jstree#3.2.1",
     "select2#4.0.1",
     "select2-bootstrap-css",
+    "blueimp-tmpl",
     )
 
 CODEMIRROR_PATH = "codemirror"
