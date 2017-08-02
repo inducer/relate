@@ -175,8 +175,8 @@ def main():
 
     args = parser.parse_args()
 
+    blacklist_regexps = []
     if args.blacklist_file is not None:
-        blacklist_regexps = []
         with open(args.blacklist_file, "rt") as bl_file:
             import fnmatch
             for pattern in bl_file:
