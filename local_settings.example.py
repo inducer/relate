@@ -11,6 +11,9 @@ ALLOWED_HOSTS = [
 # Configure the following as url as above.
 RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
+RELATE_LATEX_TO_IMAGE_ENABLED = True
+RELATE_LATEX_BIN_DIR = \
+    "/usr/local/texlive/2015/bin/x86_64-linux"
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
 #
@@ -228,6 +231,37 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # RELATE_EMAIL_APPELATION_PRIORITY_LIST = [
 #         "full_name", "first_name", "email", "username"]
+
+# }}}
+
+
+# {{{ convert LaTeX to image settings
+
+# The MongoDB database name for RELATE
+RELATE_MONGODB_NAME = "my_relate-mongodb"
+
+# The collection name in RELATE_MONGODB_NAME where the datauris are stored
+RELATE_LATEX_DATAURI_MONGO_COLLECTION_NAME = "my_relate_latex_datauri"
+
+# The collection name in RELATE_MONGODB_NAME where the compile error are stored
+RELATE_LATEX_ERROR_MONGO_COLLECTION_NAME = "my_relate_latex_error"
+
+# To enable tex2img functionality, uncomment the following line.
+#RELATE_LATEX_TO_IMAGE_ENABLED = True
+
+# The bin dir of tex compiler and image converter should be
+# correctly configured or RELATE will failed to start.
+#RELATE_LATEX_BIN_PATH = "/usr/local/texlive/2015/bin/x86_64-linux"
+#RELATE_IMAGEMAGICK_BIN_DIR = "/path/to/imagemagic/convert/bin/"
+
+# configure the following only if dvisvgm or dvipng can't be found
+# in sys evn..
+#RELATE_DVISVGM_BIN_DIR = "/path/to/dvisvgm/bin/"
+#RELATE_DVIPNG_BIN_DIR = "/path/to/dvipng/bin/"
+
+# image, especially svg have large file size, files with size
+# exceed the following won't be cached.
+RELATE_IMAGE_CACHE_MAX_BYTES = 65536
 
 # }}}
 

@@ -109,4 +109,9 @@ pytools
 # For mypy (static type checking) support
 typing
 
+# For mongodb
+pymongo
+
+# For string parse
+ply
 # vim: foldmethod=marker
