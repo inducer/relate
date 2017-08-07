@@ -1839,6 +1839,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
                 answer_data,
                 answer_was_graded) = post_result
 
+            prev_visit_id = prev_answer_visits[0].id
             # continue at common flow page generation below
 
     else:
