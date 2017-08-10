@@ -109,4 +109,7 @@ pytools
 # For mypy (static type checking) support
 typing
 
+# For unittest by mock (only required for Py2)
+# mock
+
 # vim: foldmethod=marker

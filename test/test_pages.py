@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+__copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,64 +22,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import shutil
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import resolve, reverse
-from accounts.models import User
+from django.contrib.auth import get_user_model
 from course.models import FlowSession, FlowPageVisit, Course
 from decimal import Decimal
+from base_test_mixins import SingleCourseTestMixin
 
 
-class CourseTest(TestCase):
+class SingleCoursePageTest(SingleCourseTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        # Set up data for the whole TestCase
-        cls.admin = User.objects.create_superuser(
-                username="testadmin",
-                password="test",
-                email="test@example.com",
-                first_name="Test",
-                last_name="Admin")
-        cls.admin.save()
-        # Create the course here and check later to
-        # avoid exceptions raised here
-        cls.c = Client()
-        cls.c.login(
-            username="testadmin",
-            password="test")
-        cls.c.post("/new-course/", dict(
-            identifier="test-course",
-            name="Test Course",
-            number="CS123",
-            time_period="Fall 2016",
-            hidden=True,
-            listed=True,
-            accepts_enrollment=True,
-            git_source="git://github.com/inducer/relate-sample",
-            course_file="course.yml",
-            events_file="events.yml",
-            enrollment_approval_required=True,
-            enrollment_required_email_suffix=None,
-            from_email="inform@tiker.net",
-            notify_email="inform@tiker.net"))
+        super(SingleCoursePageTest, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
 
-    @classmethod
-    def tearDownClass(cls):
-        # Remove created folder
-        shutil.rmtree('../test-course')
-        super(CourseTest, cls).tearDownClass()
-
+    # TODO: This should be moved to tests for auth module
     def test_user_creation(self):
-        # Should only have one user
-        self.assertEqual(len(User.objects.all()), 1)
-        self.assertTrue(self.c.login(
-            username="testadmin",
-            password="test"))
+        # Should have 4 users
+        self.assertEqual(get_user_model().objects.all().count(), 4)
+        self.c.logout()
 
+        self.assertTrue(
+            self.c.login(
+                username=self.instructor_participation.user.username,
+                password=(
+                    self.courses_setup_list[0]
+                    ["participations"][0]
+                    ["user"]["password"])))
+
+    # TODO: This should move to tests for course.view module
     def test_course_creation(self):
         # Should only have one course
-        self.assertEqual(len(Course.objects.all()), 1)
-        resp = self.c.get(reverse("relate-course_page", args=["test-course"]))
+        self.assertEqual(Course.objects.all().count(), 1)
+        resp = self.c.get(reverse("relate-course_page",
+                                  args=[self.course.identifier]))
         # 200 != 302 is better than False is not True
         self.assertEqual(resp.status_code, 200)
 
@@ -179,15 +155,16 @@ class CourseTest(TestCase):
     # Decorator won't work here :(
     def start_quiz(self):
         self.assertEqual(len(FlowSession.objects.all()), 0)
-        params = {"course_identifier": "test-course", "flow_id": "quiz-test"}
+        params = {"course_identifier": self.course.identifier,
+                  "flow_id": "quiz-test"}
         resp = self.c.post(reverse("relate-view_start_flow", kwargs=params))
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(len(FlowSession.objects.all()), 1)
+        self.assertEqual(FlowSession.objects.all().count(), 1)
 
         # Yep, no regax!
         _, _, kwargs = resolve(resp.url)
         # Should be in correct course
-        self.assertEqual(kwargs["course_identifier"], "test-course")
+        self.assertEqual(kwargs["course_identifier"], self.course.identifier)
         # Should redirect us to welcome page
         self.assertEqual(kwargs["ordinal"], '0')
 

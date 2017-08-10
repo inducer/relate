@@ -59,6 +59,7 @@ PIP="${PY_EXE} $(which pip)"
 grep -v dnspython requirements.txt > req.txt
 if [[ "$PY_EXE" = python2* ]]; then
   $PIP install dnspython
+  $PIP install mock
 else
   $PIP install dnspython3
 fi
