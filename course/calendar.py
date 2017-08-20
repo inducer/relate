@@ -416,7 +416,7 @@ def view_calendar(pctx):
 class EditEventForm(StyledModelForm):
     class Meta:
         model = Event
-        fields = ['kind', 'ordinal', 'time', 'end_time', 'all_day']
+        fields = ['kind', 'ordinal', 'time', 'end_time', 'all_day','shown_in_calendar']
 
     def __init__(self, *args, **kwargs):
         super(EditEventForm, self).__init__(*args, **kwargs)
@@ -434,6 +434,16 @@ def edit_calendar(pctx):
 
     if not pctx.has_permission(pperm.edit_events):
         raise PermissionDenied(_("may not edit events"))
+
+    request = pctx.request
+
+    if request.method == "POST":
+        init_event = Event(course=pctx.course)
+        form_event = EditEventForm(request.POST, instance=init_event)
+        form_event.save()
+
+
+
 
     events_json = []
 
