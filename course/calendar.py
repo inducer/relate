@@ -412,14 +412,16 @@ def view_calendar(pctx):
         "default_date": default_date.isoformat(),
     })
 
+
 class EditEventForm(StyledModelForm):
     class Meta:
         model = Event
-        fields = ['course', 'kind', 'ordinal','time','end_time','all_day']
+        fields = ['kind', 'ordinal', 'time', 'end_time', 'all_day']
 
     def __init__(self, *args, **kwargs):
         super(EditEventForm, self).__init__(*args, **kwargs)
-
+        self.fields['time'].widget.attrs = {'id': 'start_time'}
+        self.fields['end_time'].widget.attrs = {'id': 'end_time'}
 
 
 @login_required

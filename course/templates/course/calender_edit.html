@@ -15,6 +15,12 @@
   {# load calendar with local language #}
   {% get_current_language as LANGUAGE_CODE %}
   <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE }}.js'></script>
+  
+  <script type="text/javascript" src='{%static "eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js" %}'></script>
+
+  <link rel="stylesheet" href='{% static "eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" %}' />
+
+
 <style>
 /* The Modal (background) */
 .modal {
@@ -97,10 +103,11 @@
 
 {% block content %}
 
+
   <div class="row">
     
     <div class="col-sm-1 nopadding" style="padding:0; margin:0">
-      <button id="myBtn" type="button" class="btn btn-danger btn-md" style="width: 2.5cm;">Create</button>
+      <button id="create" type="button" class="btn btn-danger btn-md" style="width: 2.5cm;">Create</button>
     </div>
     
     <div class="col-sm-11">
@@ -128,75 +135,7 @@
   </script>
 
 
-  <div id="myModal" class="modal">
-
-  <!-- Modal content -->
-  <div class="modal-content">
-    
-
-    <div class="modal-body">
-      {% load i18n %}
-
-      {% load crispy_forms_tags %}
-
-      
-        {% if form_description %}
-          <h1>{{ form_description }}</h1>
-        {% endif %}
-        {{ form_text|safe }}
-
-        {% if form %}
-            {% crispy form %}
-        {% endif %}
-
-        {% if forms %}
-          {% for sub_form in forms %}
-            <div class="well">
-              {% crispy sub_form %}
-            </div>
-          {% endfor %}
-        {% endif %}
-          
-
-    </div>
-
-    <div class="modal-footer">
-    <button class="btn btn-md btn-default" onclick='modal.style.display = "none";'>Cancel</button>
-    <button class="btn btn-md btn-success">Save</button>
-    </div>
-    
-  </div>
-
-</div>
-
-<script>
-// Get the modal
-var modal = document.getElementById('myModal');
-
-// Get the button that opens the modal
-var btn = document.getElementById("myBtn");
-
-// Get the <span> element that closes the modal
-var span = document.getElementsByClassName("close")[0];
-
-// When the user clicks the button, open the modal 
-btn.onclick = function() {
-    modal.style.display = "block";
-}
-
-// When the user clicks on <span> (x), close the modal
-
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-    if (event.target == modal) {
-        modal.style.display = "none";
-    }
-}
-</script>
-
-
-
-
+  
 
 {% blocktrans trimmed %}
   <b>Note:</b> Some calendar entries are clickable and link to entries
@@ -217,9 +156,79 @@ window.onclick = function(event) {
   {% endfor%}
   </div>
 
+  <div id="editModal" class="modal">
+
+    <!-- Modal content -->
+    <div class="modal-content">
+      
+
+      <div class="modal-body">
+        {% load i18n %}
+
+        {% load crispy_forms_tags %}
+
+        
+          {% if form_description %}
+            <h1>{{ form_description }}</h1>
+          {% endif %}
+          {{ form_text|safe }}
+
+          {% if form %}
+              {% crispy form %}
+          {% endif %}
+
+          {% if forms %}
+            {% for sub_form in forms %}
+              <div class="well">
+                {% crispy sub_form %}
+              </div>
+            {% endfor %}
+          {% endif %}
+            
 
 
+      </div>
 
+      <div class="modal-footer">
+      <button class="btn btn-md btn-default" onclick='modal.style.display = "none";'>Cancel</button>
+      <button class="btn btn-md btn-success">Save</button>
+      </div>
+      
+    </div>
+
+  </div>
+
+  <script>
+  // Get the modal
+    var modal = document.getElementById('editModal');
+
+    // Get the button that opens the modal
+    var btn = document.getElementById("create");
+
+
+    // When the user clicks the button, open the modal 
+    btn.onclick = function() {
+        modal.style.display = "block";
+    }
+
+    // When the user clicks on <span> (x), close the modal
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+
+
+    $(function () {
+        $('#start_time').datetimepicker();
+        $('#end_time').datetimepicker();
+    });
+
+         
+
+  </script>
 
 
 {% endblock %}

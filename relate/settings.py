@@ -123,6 +123,7 @@ BOWER_INSTALLED_APPS = (
     "select2#4.0.1",
     "select2-bootstrap-css",
     "blueimp-tmpl",
+    "eonasdan-bootstrap-datetimepicker#latest"
     )
 
 CODEMIRROR_PATH = "codemirror"
