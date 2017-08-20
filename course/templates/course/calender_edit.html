@@ -15,19 +15,92 @@
   {# load calendar with local language #}
   {% get_current_language as LANGUAGE_CODE %}
   <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE }}.js'></script>
+<style>
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: 80%;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    -webkit-animation-name: animatetop;
+    -webkit-animation-duration: 0.4s;
+    animation-name: animatetop;
+    animation-duration: 0.4s
+}
+
+/* Add Animation */
+@-webkit-keyframes animatetop {
+    from {top:-300px; opacity:0} 
+    to {top:0; opacity:1}
+}
+
+@keyframes animatetop {
+    from {top:-300px; opacity:0}
+    to {top:0; opacity:1}
+}
+
+/* The Close Button */
+.close {
+    color: white;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+
+.modal-body {padding: 2px 16px;}
+
+.modal-header {
+    padding: 2px 16px;
+    color: white;
+    float:right;
+}
+.modal-footer {
+    padding: 2px 16px;
+    color: white;
+}
+</style>
+
 {% endblock %}
+
+
+
+
+  <!-- Modal content -->
+
+
 
 {% block content %}
 
-
-  <!-- <div id="coursecal" style="margin-top:3em"></div> -->
-
-
-  
   <div class="row">
     
     <div class="col-sm-1 nopadding" style="padding:0; margin:0">
-      <button type="button" class="btn btn-danger btn-md" style="width: 2.5cm;">Create</button>
+      <button id="myBtn" type="button" class="btn btn-danger btn-md" style="width: 2.5cm;">Create</button>
     </div>
     
     <div class="col-sm-11">
@@ -35,10 +108,6 @@
     </div>
     
   </div>
-
-
-
-
 
 
 
@@ -58,6 +127,77 @@
     });
   </script>
 
+
+  <div id="myModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    
+
+    <div class="modal-body">
+      {% load i18n %}
+
+      {% load crispy_forms_tags %}
+
+      
+        {% if form_description %}
+          <h1>{{ form_description }}</h1>
+        {% endif %}
+        {{ form_text|safe }}
+
+        {% if form %}
+            {% crispy form %}
+        {% endif %}
+
+        {% if forms %}
+          {% for sub_form in forms %}
+            <div class="well">
+              {% crispy sub_form %}
+            </div>
+          {% endfor %}
+        {% endif %}
+          
+
+    </div>
+
+    <div class="modal-footer">
+    <button class="btn btn-md btn-default" onclick='modal.style.display = "none";'>Cancel</button>
+    <button class="btn btn-md btn-success">Save</button>
+    </div>
+    
+  </div>
+
+</div>
+
+<script>
+// Get the modal
+var modal = document.getElementById('myModal');
+
+// Get the button that opens the modal
+var btn = document.getElementById("myBtn");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks the button, open the modal 
+btn.onclick = function() {
+    modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+</script>
+
+
+
+
+
 {% blocktrans trimmed %}
   <b>Note:</b> Some calendar entries are clickable and link to entries
   below.
@@ -76,6 +216,11 @@
     </div>
   {% endfor%}
   </div>
+
+
+
+
+
 
 {% endblock %}
 
