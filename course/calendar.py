@@ -41,7 +41,7 @@ from crispy_forms.layout import Submit
 import datetime
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from relate.utils import StyledForm, as_local_time, string_concat
+from relate.utils import StyledForm, as_local_time, string_concat, StyledModelForm
 from course.constants import (
         participation_permission as pperm,
         )
@@ -412,72 +412,13 @@ def view_calendar(pctx):
         "default_date": default_date.isoformat(),
     })
 
-class EditEventForm(StyledForm):
-    kind = forms.CharField(required=True,
-            help_text=_("Should be lower_case_with_underscores, no spaces "
-                        "allowed."),
-            label=pgettext_lazy("Kind of event", "Kind of event"))
-    time = forms.DateTimeField(
-            widget=DateTimePicker(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
-            label=pgettext_lazy("Starting time of event", "Starting time"))
-    duration_in_minutes = forms.FloatField(required=False,
-            label=_("Duration in minutes"))
-    all_day = forms.BooleanField(
-                required=False,
-                initial=False,
-                label=_("All-day event"),
-                help_text=_("Only affects the rendering in the class calendar, "
-                "in that a start time is not shown"))
-    shown_in_calendar = forms.BooleanField(
-            required=False,
-            initial=True,
-            label=_('Shown in calendar'))
-    interval = forms.ChoiceField(required=True,
-            choices=(
-                ("weekly", _("Weekly")),
-                ("biweekly", _("Bi-Weekly")),
-                ),
-            label=pgettext_lazy("Interval of recurring events", "Interval"))
-    starting_ordinal = forms.IntegerField(required=False,
-            label=pgettext_lazy(
-                "Starting ordinal of recurring events", "Starting ordinal"))
-    count = forms.IntegerField(required=True,
-            label=pgettext_lazy("Count of recurring events", "Count"))
+class EditEventForm(StyledModelForm):
+    class Meta:
+        model = Event
+        fields = ['course', 'kind', 'ordinal','time','end_time','all_day']
 
     def __init__(self, *args, **kwargs):
         super(EditEventForm, self).__init__(*args, **kwargs)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

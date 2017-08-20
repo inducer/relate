@@ -342,7 +342,7 @@ urlpatterns = [
         "/" + COURSE_ID_REGEX +
         "/calendar-edit/$",
         course.calendar.edit_calendar,
-        name="relate-view_calendar"),           
+        name="relate-edit_calendar"),           
 
     # }}}
 
