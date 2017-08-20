@@ -412,6 +412,128 @@ def view_calendar(pctx):
         "default_date": default_date.isoformat(),
     })
 
+@course_view
+def edit_calendar(pctx):
+    from course.content import markup_to_html, parse_date_spec
+
+    from course.views import get_now_or_fake_time
+    now = get_now_or_fake_time(pctx.request)
+
+    if not pctx.has_permission(pperm.view_calendar):
+        raise PermissionDenied(_("may not view calendar"))
+
+    events_json = []
+
+    from course.content import get_raw_yaml_from_repo
+    try:
+        event_descr = get_raw_yaml_from_repo(pctx.repo,
+                pctx.course.events_file, pctx.course_commit_sha)
+    except ObjectDoesNotExist:
+        event_descr = {}
+
+    event_kinds_desc = event_descr.get("event_kinds", {})
+    event_info_desc = event_descr.get("events", {})
+
+    event_info_list = []
+
+    events = sorted(
+            Event.objects
+            .filter(
+                course=pctx.course,
+                shown_in_calendar=True),
+            key=lambda evt: (
+                -evt.time.year, -evt.time.month, -evt.time.day,
+                evt.time.hour, evt.time.minute, evt.time.second))
+
+    for event in events:
+        kind_desc = event_kinds_desc.get(event.kind)
+
+        human_title = six.text_type(event)
+
+        event_json = {
+                "id": event.id,
+                "start": event.time.isoformat(),
+                "allDay": event.all_day,
+                }
+        if event.end_time is not None:
+            event_json["end"] = event.end_time.isoformat()
+
+        if kind_desc is not None:
+            if "color" in kind_desc:
+                event_json["color"] = kind_desc["color"]
+            if "title" in kind_desc:
+                if event.ordinal is not None:
+                    human_title = kind_desc["title"].format(nr=event.ordinal)
+                else:
+                    human_title = kind_desc["title"]
+
+        description = None
+        show_description = True
+        event_desc = event_info_desc.get(six.text_type(event))
+        if event_desc is not None:
+            if "description" in event_desc:
+                description = markup_to_html(
+                        pctx.course, pctx.repo, pctx.course_commit_sha,
+                        event_desc["description"])
+
+            if "title" in event_desc:
+                human_title = event_desc["title"]
+
+            if "color" in event_desc:
+                event_json["color"] = event_desc["color"]
+
+            if "show_description_from" in event_desc:
+                ds = parse_date_spec(
+                        pctx.course, event_desc["show_description_from"])
+                if now < ds:
+                    show_description = False
+
+            if "show_description_until" in event_desc:
+                ds = parse_date_spec(
+                        pctx.course, event_desc["show_description_until"])
+                if now > ds:
+                    show_description = False
+
+        event_json["title"] = human_title
+
+        if show_description and description:
+            event_json["url"] = "#event-%d" % event.id
+
+            start_time = event.time
+            end_time = event.end_time
+
+            if event.all_day:
+                start_time = start_time.date()
+                if end_time is not None:
+                    local_end_time = as_local_time(end_time)
+                    end_midnight = datetime.time(tzinfo=local_end_time.tzinfo)
+                    if local_end_time.time() == end_midnight:
+                        end_time = (end_time - datetime.timedelta(days=1)).date()
+                    else:
+                        end_time = end_time.date()
+
+            event_info_list.append(
+                    EventInfo(
+                        id=event.id,
+                        human_title=human_title,
+                        start_time=start_time,
+                        end_time=end_time,
+                        description=description
+                        ))
+
+        events_json.append(event_json)
+
+    default_date = now.date()
+    if pctx.course.end_date is not None and default_date > pctx.course.end_date:
+        default_date = pctx.course.end_date
+
+    from json import dumps
+    return render_course_page(pctx, "course/calender_edit.html", {
+        "events_json": dumps(events_json),
+        "event_info_list": event_info_list,
+        "default_date": default_date.isoformat(),
+    })    
+
 # }}}
 
 # vim: foldmethod=marker
