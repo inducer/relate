@@ -441,7 +441,6 @@ def edit_calendar(pctx):
     if request.method == "POST":
         if 'id_to_delete' in request.POST:
             Event.objects.filter(id=request.POST['id_to_delete']).delete()
-            print("success")
             return HttpResponse("deleted successful")
 
         else:
