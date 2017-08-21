@@ -22,56 +22,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import shutil
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
-from accounts.models import User
+from base_test_mixins import SingleCourseTestMixin
+from course.models import Participation
+from course.constants import participation_permission as pperm
 
 
-class CourseTest(TestCase):
+class SingleCoursePageSandboxTest(SingleCourseTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        # Set up data for the whole TestCase
-        cls.admin = User.objects.create_superuser(
-                username="testadmin",
-                password="test",
-                email="test@example.com",
-                first_name="Test",
-                last_name="Admin")
-        cls.admin.save()
-        # Create the course here and check later to
-        # avoid exceptions raised here
-        cls.c = Client()
-        cls.c.login(
-            username="testadmin",
-            password="test")
-        cls.c.post("/new-course/", dict(
-            identifier="test-course",
-            name="Test Course",
-            number="CS123",
-            time_period="Fall 2016",
-            hidden=True,
-            listed=True,
-            accepts_enrollment=True,
-            git_source="git://github.com/inducer/relate-sample",
-            course_file="course.yml",
-            events_file="events.yml",
-            enrollment_approval_required=True,
-            enrollment_required_email_suffix=None,
-            from_email="inform@tiker.net",
-            notify_email="inform@tiker.net"))
+        super(SingleCoursePageSandboxTest, cls).setUpTestData()
+        participation = (
+            Participation.objects.filter(
+                course=cls.course,
+                roles__permissions__permission=pperm.use_page_sandbox
+            ).first()
+        )
+        assert participation
+        cls.c.force_login(participation.user)
 
-    @classmethod
-    def tearDownClass(cls):
-        # Remove created folder
-        shutil.rmtree('../test-course')
-        super(CourseTest, cls).tearDownClass()
-
-    def test_page_sandbox(self):
-        # Check if page is there
-        resp = self.c.get(reverse("relate-view_page_sandbox", args=["test-course"]))
+    def test_page_sandbox_get(self):
+        resp = self.c.get(reverse("relate-view_page_sandbox",
+                                  args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
+    def test_page_sandbox_post(self):
         # Check one of the quiz questions
         question_markup = ("type: TextQuestion\r\n"
                             "id: half\r\nvalue: 5\r\n"
@@ -83,13 +59,13 @@ class CourseTest(TestCase):
                             "    rtol: 1e-4\r\n"
                             "  - <plain>half\r\n"
                             "  - <plain>a half")
-        datas = {'content': [question_markup], 'preview': ['Preview']}
+        data = {'content': [question_markup], 'preview': ['Preview']}
         resp = self.c.post(reverse("relate-view_page_sandbox",
-                                                    args=["test-course"]), datas)
+                                   args=[self.course.identifier]), data)
         self.assertEqual(resp.status_code, 200)
 
         # Try to answer the rendered question
-        datas = {'answer': ['0.5'], 'submit': ['Submit answer']}
+        data = {'answer': ['0.5'], 'submit': ['Submit answer']}
         resp = self.c.post(reverse("relate-view_page_sandbox",
-                                                    args=["test-course"]), datas)
+                                   args=[self.course.identifier]), data)
         self.assertEqual(resp.status_code, 200)
