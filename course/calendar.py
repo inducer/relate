@@ -417,7 +417,8 @@ def view_calendar(pctx):
 class EditEventForm(StyledModelForm):
     class Meta:
         model = Event
-        fields = ['kind', 'ordinal', 'time', 'end_time', 'all_day','shown_in_calendar']
+        fields = ['kind', 'ordinal', 'time',
+                    'end_time', 'all_day', 'shown_in_calendar']
 
     def __init__(self, *args, **kwargs):
         super(EditEventForm, self).__init__(*args, **kwargs)
@@ -450,7 +451,7 @@ def edit_calendar(pctx):
                 kind = form_event.cleaned_data['kind']
                 ordinal = form_event.cleaned_data['ordinal']
                 print()
-                try: 
+                try:
                     form_event.save()
                 except IntegrityError:
                     e = EventAlreadyExists(
@@ -575,7 +576,7 @@ def edit_calendar(pctx):
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
         "default_date": default_date.isoformat(),
-    })    
+    })
 
 # }}}
 
