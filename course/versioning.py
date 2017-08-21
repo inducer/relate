@@ -111,9 +111,6 @@ class DulwichParamikoSSHVendor(object):
 
     def run_command(self, host, command, username=None, port=None,
                     progress_stderr=None):
-        if not isinstance(command, bytes):
-            raise TypeError(command)
-
         if port is None:
             port = 22
 
