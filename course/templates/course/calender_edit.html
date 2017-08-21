@@ -118,8 +118,38 @@
           defaultDate: '{{ default_date }}',
           timezone: "local",
 
-          events: {{ events_json|safe }}
+          events: {{ events_json|safe }},
+
+          eventRender: function(event, element) {
+            
+            element.find('.fc-title').append( '<span class="glyphicon glyphicon-remove-circle" style="float:right;cursor:pointer" id="remove"></span>');
+
+            element.find('.fc-title').append( '<span class="glyphicon glyphicon-pencil" style="float:right; cursor:pointer" id="edit"></span>');
+
+            element.find("#edit").click(function() {
+
+            })
+
+            element.find("#remove").click(function() {
+               console.log(event.id)
+               $.ajax({
+                  type: 'POST',
+                  data:{
+                    id_to_delete :event.id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                  },
+                  success: function(result) {
+                      window.location = "";
+
+                  }
+              });
+            })
+          }
+
+
         })
+
+
     });
   </script>
 
@@ -170,7 +200,7 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-md btn-default" onclick='modal.style.display = "none";'>Cancel</button>
+          <button class="btn btn-md btn-default" onclick='modal.style.display = "none";' type="button">Cancel</button>
           <button class="btn btn-md btn-success" type="submit">Save</button>
         </div>
       </form>

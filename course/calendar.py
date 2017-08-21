@@ -46,6 +46,7 @@ from course.constants import (
         participation_permission as pperm,
         )
 from course.models import Event
+from django.http import HttpResponse
 
 
 # {{{ creation
@@ -438,13 +439,32 @@ def edit_calendar(pctx):
     request = pctx.request
 
     if request.method == "POST":
-        init_event = Event(course=pctx.course)
-        form_event = EditEventForm(request.POST, instance=init_event)
-        form_event.save()
+        if 'id_to_delete' in request.POST:
+            Event.objects.filter(id=request.POST['id_to_delete']).delete()
+            print("success")
+            return HttpResponse("deleted successful")
 
-
-
-
+        else:
+            init_event = Event(course=pctx.course)
+            form_event = EditEventForm(request.POST, instance=init_event)
+            if form_event.is_valid():
+                kind = form_event.cleaned_data['kind']
+                ordinal = form_event.cleaned_data['ordinal']
+                print()
+                try: 
+                    form_event.save()
+                except IntegrityError:
+                    e = EventAlreadyExists(
+                        _("'%(event_kind)s %(event_ordinal)d' already exists") %
+                        {'event_kind': kind,
+                        'event_ordinal': ordinal})
+                    messages.add_message(request, messages.ERROR,
+                                string_concat(
+                                    "%(err_type)s: %(err_str)s. ",
+                                    _("No events created."))
+                                % {
+                                    "err_type": type(e).__name__,
+                                    "err_str": str(e)})
     events_json = []
 
     from course.content import get_raw_yaml_from_repo
