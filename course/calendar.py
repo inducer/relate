@@ -461,10 +461,18 @@ def edit_calendar(pctx):
                     messages.add_message(request, messages.ERROR,
                                 string_concat(
                                     "%(err_type)s: %(err_str)s. ",
-                                    _("No events created."))
+                                    _("No event created."))
                                 % {
                                     "err_type": type(e).__name__,
                                     "err_str": str(e)})
+                except Exception as e:
+                    messages.add_message(request, messages.ERROR,
+                            string_concat(
+                                "%(err_type)s: %(err_str)s. ",
+                                _("No event created."))
+                            % {
+                                "err_type": type(e).__name__,
+                                "err_str": str(e)})
     events_json = []
 
     from course.content import get_raw_yaml_from_repo
