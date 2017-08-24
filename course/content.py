@@ -384,7 +384,7 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(:\s*[|>])"
     "(J?)"
     "((?:[0-9][-+]?|[-+][0-9]?)?)"
-    "(?:\s*\#.*)?"
+    r"(?:\s*\#.*)?"
     "$")
 
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
