@@ -101,7 +101,12 @@ def force_remove_path(path):
         func(path)
 
     import shutil
-    shutil.rmtree(path, onerror=remove_readonly)
+    try:
+        shutil.rmtree(path, onerror=remove_readonly)
+    except OSError:
+        # let the remove_exceptionally_undelete_course_repos method to delete
+        # the folder for the next test.
+        pass
 
 
 class SuperuserCreateMixin(object):
