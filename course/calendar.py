@@ -47,6 +47,7 @@ from course.constants import (
         )
 from course.models import Event
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 
 
 # {{{ creation
@@ -419,6 +420,9 @@ class EditEventForm(StyledModelForm):
         model = Event
         fields = ['kind', 'ordinal', 'time',
                     'end_time', 'all_day', 'shown_in_calendar']
+        help_texts = {
+                'shown_in_calendar': ('Shown in students\' calendar')
+        }
 
     def __init__(self, *args, **kwargs):
         super(EditEventForm, self).__init__(*args, **kwargs)
@@ -439,18 +443,37 @@ def edit_calendar(pctx):
 
     request = pctx.request
 
+    edit_existing_event_flag = False
+    id_to_edit = None
+    edit_event_form = EditEventForm()
+    default_date = now.date()
+
     if request.method == "POST":
         if 'id_to_delete' in request.POST:
-            Event.objects.filter(id=request.POST['id_to_delete']).delete()
-            return HttpResponse("deleted successful")
+            event_to_delete = get_object_or_404(Event,
+                id=request.POST['id_to_delete'])
+            default_date = event_to_delete.time
+            event_to_delete.delete()
+            messages.add_message(request, messages.SUCCESS,
+                            _("Event deleted."))
+
+        elif 'id_to_edit' in request.POST:
+            exsting_event_form = get_object_or_404(Event,
+                id=request.POST['id_to_edit'])
+            edit_event_form = EditEventForm(instance=exsting_event_form)
+            edit_existing_event_flag = True
 
         else:
             init_event = Event(course=pctx.course)
+
+            if 'existing_event_to_save' in request.POST:
+                init_event = get_object_or_404(Event,
+                    id=request.POST['existing_event_to_save'])
             form_event = EditEventForm(request.POST, instance=init_event)
+
             if form_event.is_valid():
                 kind = form_event.cleaned_data['kind']
                 ordinal = form_event.cleaned_data['ordinal']
-                print()
                 try:
                     form_event.save()
                 except IntegrityError:
@@ -473,6 +496,14 @@ def edit_calendar(pctx):
                             % {
                                 "err_type": type(e).__name__,
                                 "err_str": str(e)})
+                else:
+                    if 'existing_event_to_save' in request.POST:
+                        messages.add_message(request, messages.SUCCESS,
+                                _("Event updated."))
+                    else:
+                        messages.add_message(request, messages.SUCCESS,
+                                _("Event created."))
+                default_date = form_event.cleaned_data['time']
     events_json = []
 
     from course.content import get_raw_yaml_from_repo
@@ -491,7 +522,7 @@ def edit_calendar(pctx):
             Event.objects
             .filter(
                 course=pctx.course,
-                shown_in_calendar=True),
+                ),
             key=lambda evt: (
                 -evt.time.year, -evt.time.month, -evt.time.day,
                 evt.time.hour, evt.time.minute, evt.time.second))
@@ -574,16 +605,17 @@ def edit_calendar(pctx):
 
         events_json.append(event_json)
 
-    default_date = now.date()
     if pctx.course.end_date is not None and default_date > pctx.course.end_date:
         default_date = pctx.course.end_date
 
     from json import dumps
     return render_course_page(pctx, "course/calender_edit.html", {
-        "form": EditEventForm(),
+        "form": edit_event_form,
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
         "default_date": default_date.isoformat(),
+        "edit_existing_event_flag": edit_existing_event_flag,
+        "id_to_edit": id_to_edit,
     })
 
 # }}}

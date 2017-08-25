@@ -20,85 +20,24 @@
 
   <link rel="stylesheet" href='{% static "eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" %}' />
 
-
-<style>
-  /* The Modal (background) */
-  .modal {
-      display: none; /* Hidden by default */
-      position: fixed; /* Stay in place */
-      z-index: 1; /* Sit on top */
-      padding-top: 100px; /* Location of the box */
-      left: 0;
-      top: 0;
-      width: 100%; /* Full width */
-      height: 100%; /* Full height */
-      overflow: auto; /* Enable scroll if needed */
-      background-color: rgb(0,0,0); /* Fallback color */
-      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-  }
-
-  /* Modal Content */
-  .modal-content {
-      position: relative;
-      background-color: #fefefe;
-      margin: auto;
-      padding: 0;
-      border: 1px solid #888;
-      width: 80%;
-      box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-      -webkit-animation-name: animatetop;
-      -webkit-animation-duration: 0.4s;
-      animation-name: animatetop;
-      animation-duration: 0.4s
-  }
-
-  /* Add Animation */
-  @-webkit-keyframes animatetop {
-      from {top:-300px; opacity:0} 
-      to {top:0; opacity:1}
-  }
-
-  @keyframes animatetop {
-      from {top:-300px; opacity:0}
-      to {top:0; opacity:1}
-  }
-
-  /* The Close Button */
-  .close {
-      color: white;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-  }
-
-  .close:hover,
-  .close:focus {
-      color: #000;
-      text-decoration: none;
-      cursor: pointer;
-  }
-
-
-  .modal-body {padding: 2px 16px;}
-
-  .modal-header {
-      padding: 2px 16px;
-      color: white;
-      float:right;
-  }
-  .modal-footer {
-      padding: 2px 16px;
-      color: white;
-  }
-</style>
-
 {% endblock %}
+
+
+
+
 
 {% block content %}
 
+{% blocktrans trimmed %}
+  <b>Note:</b> Different from the students' calendar, this calender shows all events.
+{% endblocktrans %}
+
+
+
+
   <div class="row">
     <div class="col-sm-1 nopadding" style="padding:0; margin:0">
-      <button id="create" type="button" class="btn btn-danger btn-md" style="width: 2.5cm;">Create</button>
+      <button id="create" type="button" class="btn btn-danger btn-md" style="width: 2.5cm;" data-toggle="modal" data-target="#editModal">Create</button>
     </div>
 
     <div class="col-sm-11">
@@ -127,24 +66,19 @@
             element.find('.fc-title').append( '<span class="glyphicon glyphicon-pencil" style="float:right; cursor:pointer" id="edit"></span>');
 
             element.find("#edit").click(function() {
-
+              edit_existing_event(event.id);
             })
 
             element.find("#remove").click(function() {
-               console.log(event.id)
-               $.ajax({
-                  type: 'POST',
-                  data:{
-                    id_to_delete :event.id,
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                  },
-                  success: function(result) {
-                      window.location = "";
-                 }
-              });
+              delete_existing_event(event.id);
             })
           }
-        })
+        });
+
+        {% if edit_existing_event_flag %}
+          $('#editModal').modal('show');
+        {% endif %}  
+
     });
   </script>
 
@@ -168,40 +102,44 @@
   {% endfor%}
   </div>
 
-  <div id="editModal" class="modal">
-    <form method="POST" class="form-horizontal">
+  <div id="editModal" class="modal fade" role="dialog">
+    <div class="modal-dialog"  style="width:800px">
+      <form method="POST" class="form-horizontal">
 
-      <div class="modal-content">
-        <div class="modal-body">
-          <br>
-          
-            {% load i18n %}
-            {% load crispy_forms_tags %}
-              {% if form_description %}
-                <h1>{{ form_description }}</h1>
-              {% endif %}
-              {{ form_text|safe }}
-              {% if form %}
-                  {% crispy form %}
-              {% endif %}
-              {% if forms %}
-                {% for sub_form in forms %}
-                  <div class="well">
-                    {% crispy sub_form %}
-                  </div>
-                {% endfor %}
-              {% endif %}
+        <div class="modal-content">
+          <div class="modal-body">
+            <br>
+            
+              {% load i18n %}
+              {% load crispy_forms_tags %}
+                {% if form_description %}
+                  <h1>{{ form_description }}</h1>
+                {% endif %}
+                {{ form_text|safe }}
+                {% if form %}
+                    {% crispy form %}
+                {% endif %}
+                {% if forms %}
+                  {% for sub_form in forms %}
+                    <div class="well">
+                      {% crispy sub_form %}
+                    </div>
+                  {% endfor %}
+                {% endif %}
 
-        </div>
+                {% if edit_existing_event_flag %}
+                  <input type="Hidden" name="existing_event_to_save" value='{{id_to_edit}}'>
+                {% endif %}
 
-        <div class="modal-footer">
-          <button class="btn btn-md btn-default" onclick='modal.style.display = "none";' type="button">Cancel</button>
-          <button class="btn btn-md btn-success" type="submit">Save</button>
-        </div>
-      </form>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-md btn-default" data-dismiss="modal" type="button">Cancel</button>
+            <button class="btn btn-md btn-success" type="submit">Save</button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
-
   <script>
     var modal = document.getElementById('editModal');
     var btn = document.getElementById("create");
@@ -217,7 +155,32 @@
         $('#start_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
         $('#end_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
     });
+
+    function edit_existing_event(event_id) {
+      $('#id_to_edit').val(event_id);
+      document.existing_event_edit_form.submit();
+    }
+
+    function delete_existing_event(event_id) {
+      $('#id_to_delete').val(event_id);
+      document.existing_event_delete_form.submit();
+    }
   </script>
+
+  <form method='post' name='existing_event_edit_form'>
+    {% csrf_token %}
+    <input type='Hidden' name='id_to_edit' id="id_to_edit" value=''>  
+  </form>
+
+  <form method='post' name='existing_event_delete_form'>
+    {% csrf_token %}
+    <input type='Hidden' name='id_to_delete' id="id_to_delete" value=''>  
+  </form>
+
+
+
+
+
 
 {% endblock %}
 
