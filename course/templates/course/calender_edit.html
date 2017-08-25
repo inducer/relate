@@ -141,16 +141,7 @@
       </div>
     </div>
   <script>
-    var modal = document.getElementById('editModal');
-    var btn = document.getElementById("create");
-    btn.onclick = function() {
-        modal.style.display = "block";
-    }
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-    }
+    
     $(function () {
         $('#start_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
         $('#end_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
