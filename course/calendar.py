@@ -46,7 +46,6 @@ from course.constants import (
         participation_permission as pperm,
         )
 from course.models import Event
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
 
