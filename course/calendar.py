@@ -457,7 +457,7 @@ def edit_calendar(pctx):
                             _("Event deleted."))
 
         elif 'id_to_edit' in request.POST:
-            id_to_edit = request.POST['id_to_edit'] 
+            id_to_edit = request.POST['id_to_edit']
             exsting_event_form = get_object_or_404(Event,
                 id=id_to_edit)
             edit_event_form = EditEventForm(instance=exsting_event_form)
