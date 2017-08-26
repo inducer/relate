@@ -435,8 +435,6 @@ def validate_staticpage_desc(vctx, location, page_desc):
         assert not hasattr(page_desc, "content")
         assert hasattr(page_desc, "chunks")
 
-        validate_markup(vctx, location, page_desc.content)
-
     for i, chunk in enumerate(page_desc.chunks):
         validate_page_chunk(vctx,
                 "%s, chunk %d ('%s')"
