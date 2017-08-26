@@ -399,6 +399,8 @@ def validate_page_chunk(vctx, location, chunk):
                     "%s, rule %d" % (location, i+1),
                     rule)
 
+    validate_markup(vctx, location, chunk.content)
+
 
 def validate_staticpage_desc(vctx, location, page_desc):
     validate_struct(
@@ -432,6 +434,8 @@ def validate_staticpage_desc(vctx, location, page_desc):
 
         assert not hasattr(page_desc, "content")
         assert hasattr(page_desc, "chunks")
+
+        validate_markup(vctx, location, page_desc.content)
 
     for i, chunk in enumerate(page_desc.chunks):
         validate_page_chunk(vctx,
