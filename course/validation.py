@@ -1396,6 +1396,9 @@ def validate_course_content(repo, course_file, events_file,
                             permission=pperm.access_files_for,
                             )
                         .values_list("argument", flat=True))
+
+        access_kinds = frozenset(k for k in access_kinds if k is not None)
+
     else:
         access_kinds = ["public", "in_exam", "student", "ta",
                      "unenrolled", "instructor"]
