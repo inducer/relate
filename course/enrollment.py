@@ -994,46 +994,53 @@ def edit_participation(pctx, participation_id):
                 add_new, pctx, request.POST, instance=participation)
         reset_form = False
 
-        if form.is_valid():
-            if "submit" in request.POST:
-                form.save()
+        try:
+            if form.is_valid():
+                if "submit" in request.POST:
+                    form.save()
 
-                messages.add_message(request, messages.SUCCESS,
-                        _("Changes saved."))
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Changes saved."))
 
-            elif "approve" in request.POST:
-                send_enrollment_decision(participation, True, pctx.request)
+                elif "approve" in request.POST:
+                    send_enrollment_decision(participation, True, pctx.request)
 
-                # FIXME: Double-saving
-                participation = form.save()
-                participation.status = participation_status.active
-                participation.save()
-                reset_form = True
+                    # FIXME: Double-saving
+                    participation = form.save()
+                    participation.status = participation_status.active
+                    participation.save()
+                    reset_form = True
 
-                messages.add_message(request, messages.SUCCESS,
-                        _("Successfully enrolled."))
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Successfully enrolled."))
 
-            elif "deny" in request.POST:
-                send_enrollment_decision(participation, False, pctx.request)
+                elif "deny" in request.POST:
+                    send_enrollment_decision(participation, False, pctx.request)
 
-                # FIXME: Double-saving
-                participation = form.save()
-                participation.status = participation_status.denied
-                participation.save()
-                reset_form = True
+                    # FIXME: Double-saving
+                    participation = form.save()
+                    participation.status = participation_status.denied
+                    participation.save()
+                    reset_form = True
 
-                messages.add_message(request, messages.SUCCESS,
-                        _("Successfully denied."))
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Successfully denied."))
 
-            elif "drop" in request.POST:
-                # FIXME: Double-saving
-                participation = form.save()
-                participation.status = participation_status.dropped
-                participation.save()
-                reset_form = True
+                elif "drop" in request.POST:
+                    # FIXME: Double-saving
+                    participation = form.save()
+                    participation.status = participation_status.dropped
+                    participation.save()
+                    reset_form = True
 
-                messages.add_message(request, messages.SUCCESS,
-                        _("Successfully dropped."))
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Successfully dropped."))
+        except IntegrityError as e:
+            messages.add_message(request, messages.ERROR,
+                    _("A data integrity issue was detected when saving "
+                        "this participation. Maybe a participation for "
+                        "this user already exists? (%s)")
+                    % str(e))
 
         if reset_form:
             form = EditParticipationForm(
