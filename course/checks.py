@@ -220,7 +220,7 @@ def check_relate_settings(app_configs, **kwargs):
                                 errors.append(Warning(
                                     msg=(
                                         "Faclity `%s` in %s is an open facility "
-                                        "as it doesn't configured `ip_ranges`"
+                                        "as it has no configured `ip_ranges`"
                                         % (facility, RELATE_FACILITIES)
                                     ),
                                     id="relate_facilities.W001"
