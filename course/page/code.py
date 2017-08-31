@@ -368,8 +368,10 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     .. attribute:: test_code
 
         Optional.
-        Symbols that the participant's code is expected to define.
-        These will be made available to the :attr:`test_code`.
+        Code that will be run to determine the correctness of a
+        student-provided solution. Will have access to variables in
+        :attr:`names_from_user` (which will be *None*) if not provided. Should
+        never raise an exception.
 
         This may contain the marker "###CORRECT_CODE###", which will
         be replaced with the contents of :attr:`correct_code`, with

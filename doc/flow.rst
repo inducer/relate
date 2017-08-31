@@ -891,11 +891,11 @@ The rules for this can be written as follows::
             if_has_role: [student, instructor]
             if_after: exam 1 - 1 week
             if_before: end:exam 1 + 2 weeks
-            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+            permissions: [view, submit_answer, end_session, cannot_see_flow_result, lock_down_as_exam_session]
 
         -
             if_has_role: [instructor]
-            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+            permissions: [view, submit_answer, end_session, cannot_see_flow_result, lock_down_as_exam_session]
 
         -
             permissions: []
