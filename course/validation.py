@@ -1512,11 +1512,11 @@ def validate_course_content(repo, course_file, events_file,
                                 ))
                         % entry_path)
 
-        location = "staticpages/%s" % entry_path
-        page_desc = get_yaml_from_repo_safely(repo, location,
-                commit_sha=validate_sha)
+            location = "staticpages/%s" % entry_path
+            page_desc = get_yaml_from_repo_safely(repo, location,
+                    commit_sha=validate_sha)
 
-        validate_staticpage_desc(vctx, location, page_desc)
+            validate_staticpage_desc(vctx, location, page_desc)
 
     # }}}
 

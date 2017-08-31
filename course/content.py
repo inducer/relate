@@ -579,6 +579,9 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     return result
 
 
+LINE_HAS_INDENTING_TABS_RE = re.compile("^\s*\t\s*", re.MULTILINE)
+
+
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     # type: (Repo_ish, Text, bytes, bool) -> Any
 
@@ -605,10 +608,16 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         if result is not None:
             return result
 
+    yaml_bytestream = get_repo_blob(
+            repo, full_name, commit_sha, allow_tree=False).data
+    yaml_text = yaml_bytestream.decode("utf-8")
+
+    if LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
+        raise ValueError("File uses tabs in indentation. "
+                "This is not allowed.")
+
     expanded = expand_yaml_macros(
-            repo, commit_sha,
-            get_repo_blob(repo, full_name, commit_sha,
-                allow_tree=False).data)
+            repo, commit_sha, yaml_bytestream)
 
     result = dict_to_struct(load_yaml(expanded))
 
