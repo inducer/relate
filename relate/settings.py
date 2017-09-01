@@ -52,6 +52,10 @@ INSTALLED_APPS = (
     "djcelery",
     "kombu.transport.django",
 
+    # API helpers
+    "rest_framework",
+    "django_filters",
+
     "accounts",
     "course",
 )

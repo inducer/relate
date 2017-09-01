@@ -40,6 +40,8 @@ import course.versioning
 import course.flow
 import course.analytics
 import course.exam
+import course.api
+
 
 urlpatterns = [
     url(r"^login/$",
@@ -531,6 +533,9 @@ urlpatterns = [
     url(r'^select2/', include('django_select2.urls')),
 
     #}}}
+
+    url(r'^api/', include(course.api.router.urls)),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
     url(r'^admin/', admin.site.urls),
 ]

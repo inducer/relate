@@ -112,4 +112,8 @@ typing
 # For unittest by mock (only required for Py2)
 # mock
 
+# API support
+djangorestframework
+django-filter
+
 # vim: foldmethod=marker
