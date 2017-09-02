@@ -1,3 +1,9 @@
+.. image:: https://travis-ci.org/inducer/relate.svg
+   :target: https://travis-ci.org/inducer/relate
+
+.. image:: https://coveralls.io/repos/inducer/relate/badge.svg
+   :target: https://coveralls.io/r/inducer/relate
+
 RELATE
 ======
 
