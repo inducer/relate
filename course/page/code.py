@@ -270,6 +270,12 @@ def is_nuisance_failure(result):
 
         return True
 
+    if ("traceback" in result
+            and "requests.packages.urllib3.exceptions.NewConnectionError"
+            in result["traceback"]):
+
+        return True
+
     return False
 
 
