@@ -1,4 +1,5 @@
 language: python
+cache: pip
 python:
   - "2.7"
   - "3.5"
@@ -7,5 +8,3 @@ script:
   - bash ./run-coveralls.sh
 env:
   - if [[$TRAVIS_PYTHON_VERSION = "2.7"]]; then PY_EXE=python2.7; else PY_EXE=python3.5; fi
-after_success:
-  - coveralls

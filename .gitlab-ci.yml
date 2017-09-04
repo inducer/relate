@@ -5,6 +5,7 @@
   - python2.7
   except:
   - tags
+  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
 
 Python 3.5:
   script:
@@ -13,6 +14,7 @@ Python 3.5:
   - python3.5
   except:
   - tags
+  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
 
 Documentation:
   script:
