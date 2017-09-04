@@ -1,14 +1,8 @@
-.. image:: https://travis-ci.org/inducer/relate.svg
+.. image:: https://travis-ci.org/inducer/relate.svg?branch=master
   :target: https://travis-ci.org/inducer/relate
 
-.. image:: https://coveralls.io/repos/inducer/relate/badge.svg
-  :target: https://coveralls.io/r/inducer/relate
-
-.. image:: https://gitlab.tiker.net/inducer/relate/badges/master/build.svg
-  :target: https://gitlab.tiker.net/inducer/relate/commits/master
-
-.. image:: https://gitlab.tiker.net/inducer/relate/badges/master/coverage.svg?job=Python+3.5
-
+.. image:: https://coveralls.io/repos/github/inducer/relate/badge.svg?branch=master
+  :target: https://coveralls.io/github/inducer/relate?branch=master
 
 RELATE
 ======
