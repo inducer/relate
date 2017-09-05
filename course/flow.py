@@ -338,55 +338,54 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
             get_flow_page_desc,
             instantiate_flow_page)
 
-    repo = get_course_repo(course)
+    with get_course_repo(course) as repo:
+        course_commit_sha = get_course_commit_sha(
+                course, flow_session.participation if respect_preview else None)
 
-    course_commit_sha = get_course_commit_sha(
-            course, flow_session.participation if respect_preview else None)
+        flow_desc = get_flow_desc(repo, course,
+                flow_session.flow_id, course_commit_sha)
 
-    flow_desc = get_flow_desc(repo, course,
-            flow_session.flow_id, course_commit_sha)
+        page_desc = get_flow_page_desc(
+                flow_session.flow_id,
+                flow_desc,
+                page_data.group_id, page_data.page_id)
 
-    page_desc = get_flow_page_desc(
-            flow_session.flow_id,
-            flow_desc,
-            page_data.group_id, page_data.page_id)
+        page = instantiate_flow_page(
+                location="flow '%s', group, '%s', page '%s'"
+                % (flow_session.flow_id, page_data.group_id, page_data.page_id),
+                repo=repo, page_desc=page_desc,
+                commit_sha=course_commit_sha)
 
-    page = instantiate_flow_page(
-            location="flow '%s', group, '%s', page '%s'"
-            % (flow_session.flow_id, page_data.group_id, page_data.page_id),
-            repo=repo, page_desc=page_desc,
-            commit_sha=course_commit_sha)
+        assert page.expects_answer()
+        if not page.is_answer_gradable():
+            return
 
-    assert page.expects_answer()
-    if not page.is_answer_gradable():
-        return
+        from course.page import PageContext
+        grading_page_context = PageContext(
+                course=course,
+                repo=repo,
+                commit_sha=course_commit_sha,
+                flow_session=flow_session)
 
-    from course.page import PageContext
-    grading_page_context = PageContext(
-            course=course,
-            repo=repo,
-            commit_sha=course_commit_sha,
-            flow_session=flow_session)
+        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            answer_feedback = page.grade(
+                    grading_page_context, visit.page_data.data,
+                    visit.answer, grade_data=grade_data)
 
-    with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-        answer_feedback = page.grade(
-                grading_page_context, visit.page_data.data,
-                visit.answer, grade_data=grade_data)
+        grade = visit_grade_model()
+        grade.visit = visit
+        grade.grade_data = grade_data
+        grade.max_points = page.max_points(visit.page_data)
+        grade.graded_at_git_commit_sha = course_commit_sha.decode()
 
-    grade = visit_grade_model()
-    grade.visit = visit
-    grade.grade_data = grade_data
-    grade.max_points = page.max_points(visit.page_data)
-    grade.graded_at_git_commit_sha = course_commit_sha.decode()
+        bulk_feedback_json = None
+        if answer_feedback is not None:
+            grade.correctness = answer_feedback.correctness
+            grade.feedback, bulk_feedback_json = answer_feedback.as_json()
 
-    bulk_feedback_json = None
-    if answer_feedback is not None:
-        grade.correctness = answer_feedback.correctness
-        grade.feedback, bulk_feedback_json = answer_feedback.as_json()
+        grade.save()
 
-    grade.save()
-
-    update_bulk_feedback(page_data, grade, bulk_feedback_json)
+        update_bulk_feedback(page_data, grade, bulk_feedback_json)
 
 # }}}
 

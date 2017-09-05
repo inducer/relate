@@ -1280,16 +1280,16 @@ class FlowRuleException(models.Model):
         from relate.utils import dict_to_struct
         rule = dict_to_struct(self.rule)
 
-        repo = get_course_repo(self.participation.course)
-        commit_sha = get_course_commit_sha(
-                self.participation.course, self.participation)
-        ctx = ValidationContext(
-                repo=repo,
-                commit_sha=commit_sha)
+        with get_course_repo(self.participation.course) as repo:
+            commit_sha = get_course_commit_sha(
+                    self.participation.course, self.participation)
+            ctx = ValidationContext(
+                    repo=repo,
+                    commit_sha=commit_sha)
 
-        flow_desc = get_flow_desc(repo,
-                self.participation.course,
-                self.flow_id, commit_sha)
+            flow_desc = get_flow_desc(repo,
+                    self.participation.course,
+                    self.flow_id, commit_sha)
 
         tags = None
         grade_identifier = None
