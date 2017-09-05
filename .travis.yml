@@ -1,10 +1,8 @@
 language: python
 cache: pip
-python:
-  - "2.7"
-  - "3.5"
 install: true
 script:
-  - bash ./run-coveralls.sh
+  - bash ./run-tests-for-ci.sh
 env:
-  - if [[$TRAVIS_PYTHON_VERSION = "2.7"]]; then PY_EXE=python2.7; else PY_EXE=python3.5; fi
+  - PY_EXE=python2.7
+  - PY_EXE=python3.5
