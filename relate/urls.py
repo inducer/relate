@@ -532,6 +532,12 @@ urlpatterns = [
 
     #}}}
 
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/api/get-submissions$",
+        course.api.get_submission_data,
+        name="relate-course_get_submissions"),
+
     url(r'^admin/', admin.site.urls),
 ]
 
