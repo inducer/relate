@@ -2,7 +2,7 @@ language: python
 cache: pip
 install: true
 script:
-  - bash ./run-tests-for-ci.sh
+  - bash ./run-coveralls.sh
 env:
   - PY_EXE=python2.7
   - PY_EXE=python3.5

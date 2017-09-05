@@ -73,6 +73,3 @@ cp local_settings.example.py local_settings.py
 $PIP install coverage
 coverage run --source=. manage.py test test/
 coverage report -m
-
-$PIP install codecov
-codecov -X gcov
