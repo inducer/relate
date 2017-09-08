@@ -312,7 +312,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     def_cache = cache.caches["default"]
 
-    result = None
+    result = None  # type: Optional[bytes]
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
         result = def_cache.get(cache_key)
@@ -323,6 +323,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     result = get_repo_blob(repo, full_name, commit_sha,
             allow_tree=False).data
+    assert result is not None
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, (result,), None)
