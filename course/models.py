@@ -61,7 +61,7 @@ from course.page.base import AnswerFeedback
 # {{{ mypy
 
 if False:
-    from typing import List, Dict, Any, Optional, Text, Iterable  # noqa  # noqa
+    from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet  # noqa
     from course.content import FlowDesc  # noqa
 
 # }}}
@@ -468,7 +468,10 @@ class Participation(models.Model):
 
     # {{{ permissions handling
 
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
     def permissions(self):
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
         try:
             return self._permissions_cache
         except AttributeError:
@@ -486,14 +489,15 @@ class Participation(models.Model):
                         participation=self)
                     .values_list("permission", "argument")))
 
-        perm = frozenset(
+        fset_perm = frozenset(
                 (permission, argument) if argument else (permission, None)
                 for permission, argument in perm)
 
-        self._permissions_cache = perm
-        return perm
+        self._permissions_cache = fset_perm
+        return fset_perm
 
     def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
         return (perm, argument) in self.permissions()
 
     # }}}
