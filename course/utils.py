@@ -58,7 +58,7 @@ from course.page.base import (  # noqa
 # {{{ mypy
 
 if False:
-    from typing import Tuple, List, Text, Iterable, Any, Optional, Union, Dict  # noqa
+    from typing import Tuple, List, Text, Iterable, Any, Optional, Union, Dict, FrozenSet  # noqa
     from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,
@@ -105,7 +105,7 @@ class FlowSessionStartRule(FlowSessionRuleBase):
 class FlowSessionAccessRule(FlowSessionRuleBase):
     def __init__(
             self,
-            permissions,  # type: frozenset[Text]
+            permissions,  # type: FrozenSet[Text]
             message=None,  # type: Optional[Text]
             ):
         # type: (...) -> None
@@ -280,7 +280,7 @@ def get_session_start_rule(
         flow_id,  # type: Text
         flow_desc,  # type: FlowDesc
         now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[frozenset[Text]]
+        facilities=None,  # type: Optional[FrozenSet[Text]]
         for_rollover=False,  # type: bool
         login_exam_ticket=None,  # type: Optional[ExamTicket]
         ):
@@ -373,7 +373,7 @@ def get_session_access_rule(
         session,  # type: FlowSession
         flow_desc,  # type: FlowDesc
         now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[frozenset[Text]]
+        facilities=None,  # type: Optional[FrozenSet[Text]]
         login_exam_ticket=None,  # type: Optional[ExamTicket]
         ):
     # type: (...) -> FlowSessionAccessRule
@@ -552,7 +552,7 @@ class CoursePageContext(object):
 
         self.request = request
         self.course_identifier = course_identifier
-        self._permissions_cache = None  # type: Optional[frozenset[Tuple[Text, Optional[Text]]]]  # noqa
+        self._permissions_cache = None  # type: Optional[FrozenSet[Tuple[Text, Optional[Text]]]]  # noqa
         self._role_identifiers_cache = None  # type: Optional[List[Text]]
 
         from course.models import Course  # noqa
@@ -612,7 +612,7 @@ class CoursePageContext(object):
         return self._role_identifiers_cache
 
     def permissions(self):
-        # type: () -> frozenset[Tuple[Text, Optional[Text]]]
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
         if self.participation is None:
             if self._permissions_cache is not None:
                 return self._permissions_cache

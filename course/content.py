@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Union
+from typing import cast, Union, FrozenSet
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -1215,7 +1215,7 @@ def compute_chunk_weight_and_shown(
         chunk,  # type: ChunkDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> Tuple[float, bool]
     if not hasattr(chunk, "rules"):
@@ -1274,7 +1274,7 @@ def get_processed_page_chunks(
         page_desc,  # type: StaticPageDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> List[ChunkDesc]
     for chunk in page_desc.chunks:

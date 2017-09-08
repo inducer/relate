@@ -44,7 +44,7 @@ from django.conf import settings
 # {{{ mypy
 
 if False:
-    from typing import Text, Optional, Any, Tuple, Dict, Callable  # noqa
+    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet  # noqa
     from django import http  # noqa
     from course.models import (  # noqa
             Course,
@@ -371,7 +371,7 @@ class PageBase(object):
             )
 
     def get_modified_permissions_for_page(self, permissions):
-        # type: (frozenset[Text]) -> frozenset[Text]
+        # type: (FrozenSet[Text]) -> FrozenSet[Text]
         rw_permissions = set(permissions)
 
         if hasattr(self.page_desc, "access_rules"):
