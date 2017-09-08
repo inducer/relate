@@ -500,7 +500,11 @@ def get_session_grading_rule(
                         rule.use_last_activity_as_completion_time
 
             if use_last_activity_as_completion_time:
-                completion_time = session.last_activity()
+                last_activity = session.last_activity()
+                if last_activity is not None:
+                    completion_time = last_activity
+                else:
+                    completion_time = now_datetime
             else:
                 if session.in_progress:
                     completion_time = now_datetime

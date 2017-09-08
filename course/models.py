@@ -63,6 +63,7 @@ from course.page.base import AnswerFeedback
 if False:
     from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet  # noqa
     from course.content import FlowDesc  # noqa
+    import datetime # noqa
 
 # }}}
 
@@ -819,6 +820,7 @@ class FlowSession(models.Model):
         return assemble_answer_visits(self)
 
     def last_activity(self):
+        # type: () -> Optional[datetime.datetime]
         for visit in (FlowPageVisit.objects
                 .filter(
                     flow_session=self,
