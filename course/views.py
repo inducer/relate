@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, List, Text
+
 import datetime
 
 from django.shortcuts import (  # noqa
@@ -83,7 +85,7 @@ from course.utils import (  # noqa
 # {{{ for mypy
 
 if False:
-    from typing import Tuple, List, Text, Optional, Any, Iterable, Dict  # noqa
+    from typing import Tuple, Any, Iterable, Dict, Optional  # noqa
 
     from course.content import (  # noqa
         FlowDesc,
@@ -1130,9 +1132,10 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             flow_desc = get_flow_desc(pctx.repo,
                     pctx.course,
                     flow_id, pctx.course_commit_sha)
-            tags = None
+
+            tags = []  # type: List[Text]
             if hasattr(flow_desc, "rules"):
-                tags = getattr(flow_desc.rules, "tags", None)
+                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))
 
             # {{{ put together access rule
 

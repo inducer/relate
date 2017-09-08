@@ -233,6 +233,8 @@ def enroll_view(request, course_identifier):
                     course, user, participation_status.requested,
                     roles, request)
 
+            assert participation is not None
+
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
                 message = render_to_string("course/enrollment-request-email.txt", {

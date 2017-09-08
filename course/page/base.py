@@ -216,7 +216,7 @@ class AnswerFeedback(object):
 
     @staticmethod
     def from_json(json, bulk_json):
-        # type: (Any, Any) -> AnswerFeedback
+        # type: (Any, Any) -> Optional[AnswerFeedback]
 
         if json is None:
             return json
@@ -387,9 +387,11 @@ class PageBase(object):
         return frozenset(rw_permissions)
 
     def make_page_data(self):
+        # type: () -> Dict
         return {}
 
     def initialize_page_data(self, page_context):
+        # type: (PageContext) -> Dict
         """Return (possibly randomly generated) data that is used to generate
         the content on this page. This is passed to methods below as the *page_data*
         argument. One possible use for this argument would be a random permutation

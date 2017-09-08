@@ -797,7 +797,7 @@ class FlowSession(models.Model):
         __str__ = __unicode__
 
     def append_comment(self, s):
-        # type: (Text) -> None
+        # type: (Optional[Text]) -> None
         if s is None:
             return
 

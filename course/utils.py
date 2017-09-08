@@ -24,10 +24,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, Text
+
 import six
 import datetime  # noqa
-
-from typing import cast
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
@@ -58,7 +58,7 @@ from course.page.base import (  # noqa
 # {{{ mypy
 
 if False:
-    from typing import Tuple, List, Text, Iterable, Any, Optional, Union, Dict, FrozenSet  # noqa
+    from typing import Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet  # noqa
     from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,
@@ -518,7 +518,7 @@ def get_session_grading_rule(
 
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
-                grade_aggregation_strategy=grade_aggregation_strategy,
+                grade_aggregation_strategy=cast(Text, grade_aggregation_strategy),
                 due=due,
                 generates_grade=generates_grade,
                 description=getattr(rule, "description", None),
@@ -966,7 +966,7 @@ def get_codemirror_widget(
 # {{{ facility processing
 
 def get_facilities_config(request=None):
-    # type: (Optional[http.HttpRequest]) -> Dict[Text, Dict[Text, Any]]
+    # type: (Optional[http.HttpRequest]) -> Optional[Dict[Text, Dict[Text, Any]]]
     from django.conf import settings
 
     # This is called during offline validation, where Django isn't really set up.

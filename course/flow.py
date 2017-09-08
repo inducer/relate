@@ -88,7 +88,7 @@ from relate.utils import retry_transaction_decorator
 # {{{ mypy
 
 if False:
-    from typing import Any, Optional, Iterable, Tuple, Text, List, FrozenSet  # noqa
+    from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet  # noqa
     import datetime  # noqa
     from course.models import Course  # noqa
     from course.utils import (  # noqa
@@ -494,6 +494,7 @@ def get_prev_answer_visits_qset(page_data):
 
 
 def get_first_from_qset(qset):
+    # type: (Sequence) -> Optional[Any]
     for item in qset[:1]:
         return item
 
