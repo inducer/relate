@@ -240,7 +240,9 @@ def view_page_sandbox(pctx):
                 from course.content import expand_yaml_macros
                 new_page_source = expand_yaml_macros(
                         pctx.repo, pctx.course_commit_sha, new_page_source)
-                page_desc = dict_to_struct(yaml.load(new_page_source))
+
+                yaml_data = yaml.load(new_page_source)  # type: ignore
+                page_desc = dict_to_struct(yaml_data)
 
                 if not isinstance(page_desc, Struct):
                     raise ValidationError("Provided page source code is not "
@@ -295,7 +297,8 @@ def view_page_sandbox(pctx):
 
     have_valid_page = page_source is not None
     if have_valid_page:
-        page_desc = cast(FlowPageDesc, dict_to_struct(yaml.load(page_source)))
+        yaml_data = yaml.load(page_source)  # type: ignore
+        page_desc = cast(FlowPageDesc, dict_to_struct(yaml_data))
 
         from course.content import instantiate_flow_page
         try:
@@ -313,6 +316,8 @@ def view_page_sandbox(pctx):
             have_valid_page = False
 
     if have_valid_page:
+        page_desc = cast(FlowPageDesc, page_desc)
+
         # Try to recover page_data, answer_data
         page_data = get_sandbox_data_for_page(
                 pctx, page_desc, PAGE_DATA_SESSION_KEY)

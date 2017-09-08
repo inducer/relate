@@ -88,7 +88,7 @@ from relate.utils import retry_transaction_decorator
 # {{{ mypy
 
 if False:
-    from typing import Any, Optional, Iterable, Tuple, Text, List  # noqa
+    from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet  # noqa
     import datetime  # noqa
     from course.models import Course  # noqa
     from course.utils import (  # noqa
@@ -494,6 +494,7 @@ def get_prev_answer_visits_qset(page_data):
 
 
 def get_first_from_qset(qset):
+    # type: (Sequence) -> Optional[Any]
     for item in qset[:1]:
         return item
 
@@ -1347,7 +1348,7 @@ def recalculate_session_grade(repo, course, session):
 
 def lock_down_if_needed(
         request,  # type: http.HttpRequest
-        permissions,  # type: frozenset[Text]
+        permissions,  # type: FrozenSet[Text]
         flow_session,  # type: FlowSession
         ):
     # type: (...) -> None
@@ -1607,7 +1608,7 @@ def get_and_check_flow_session(pctx, flow_session_id):
 
 
 def will_receive_feedback(permissions):
-    # type: (frozenset[Text]) -> bool
+    # type: (FrozenSet[Text]) -> bool
 
     return (
             flow_permission.see_correctness in permissions
@@ -1615,14 +1616,14 @@ def will_receive_feedback(permissions):
 
 
 def may_send_email_about_flow_page(permissions):
-    # type: (frozenset[Text]) -> bool
+    # type: (FrozenSet[Text]) -> bool
 
     return flow_permission.send_email_about_flow_page in permissions
 
 
 def get_page_behavior(
         page,  # type: PageBase
-        permissions,  # type: frozenset[Text]
+        permissions,  # type: FrozenSet[Text]
         session_in_progress,  # type: bool
         answer_was_graded,  # type: bool
         generates_grade,  # type: bool
@@ -1679,7 +1680,7 @@ def get_page_behavior(
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
-    # type: (StyledForm, FlowPageContext, FlowSession, frozenset[Text]) -> StyledForm
+    # type: (StyledForm, FlowPageContext, FlowSession, FrozenSet[Text]) -> StyledForm
 
     from crispy_forms.layout import Submit
     show_save_button = getattr(form, "show_save_button", True)
@@ -2137,7 +2138,7 @@ def post_flow_page(
         flow_session,  # type: FlowSession
         fpctx,  # type: FlowPageContext
         request,  # type: http.HttpRequest
-        permissions,  # type: frozenset[Text]
+        permissions,  # type: FrozenSet[Text]
         generates_grade,  # type: bool
         ):
     # type: (...) -> Tuple[PageBehavior, List[FlowPageVisit], forms.Form, Optional[AnswerFeedback], Any, bool]  # noqa
@@ -2832,6 +2833,7 @@ def regrade_flows_view(pctx):
 
 class UnsubmitFlowPageForm(forms.Form):
     def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
         self.helper = FormHelper()
         super(UnsubmitFlowPageForm, self).__init__(*args, **kwargs)
 
