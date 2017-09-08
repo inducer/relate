@@ -472,10 +472,9 @@ class Participation(models.Model):
 
     def permissions(self):
         # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
-        try:
+
+        if self._permissions_cache is not None:
             return self._permissions_cache
-        except AttributeError:
-            pass
 
         perm = (
                 list(
