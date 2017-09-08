@@ -2832,6 +2832,7 @@ def regrade_flows_view(pctx):
 
 class UnsubmitFlowPageForm(forms.Form):
     def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
         self.helper = FormHelper()
         super(UnsubmitFlowPageForm, self).__init__(*args, **kwargs)
 
