@@ -1,8 +1,11 @@
 language: python
 cache: pip
 install: true
+matrix:
+  include:
+  - python: "2.7"
+    env: PY_EXE=python2.7
+  - python: "3.5"
+    env: PY_EXE=python3.5
 script:
   - bash ./run-coveralls.sh
-env:
-  - PY_EXE=python2.7
-  - PY_EXE=python3.5
