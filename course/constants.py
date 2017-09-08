@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+if False:
+    import typing  # noqa
 
 from django.utils.translation import pgettext_lazy, ugettext
 # Allow 10x extra credit at the very most.
@@ -286,7 +288,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(expmode, permissions):
-    # type: (str, frozenset[str]) -> bool
+    # type: (str, typing.FrozenSet[str]) -> bool
     if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
                 in permissions):

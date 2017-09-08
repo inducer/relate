@@ -62,7 +62,7 @@ else:
 if False:
     # for mypy
     from typing import (  # noqa
-        Any, List, Tuple, Optional, Callable, Text, Dict)
+        Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet)
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa
@@ -300,6 +300,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     except ImproperlyConfigured:
         cache_key = None
 
+    result = None  # type: Optional[bytes]
     if cache_key is None:
         result = get_repo_blob(repo, full_name, commit_sha,
                 allow_tree=False).data
@@ -312,17 +313,18 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     def_cache = cache.caches["default"]
 
-    result = None
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
-        result = def_cache.get(cache_key)
-    if result is not None:
-        (result,) = result
-        assert isinstance(result, six.binary_type), cache_key
-        return result
+        cached_result = def_cache.get(cache_key)
+
+        if cached_result is not None:
+            (result,) = cached_result
+            assert isinstance(result, six.binary_type), cache_key
+            return result
 
     result = get_repo_blob(repo, full_name, commit_sha,
             allow_tree=False).data
+    assert result is not None
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, (result,), None)
@@ -561,18 +563,20 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
-    result = None
+
+    result = None  # type: Optional[Any]
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
         result = def_cache.get(cache_key)
     if result is not None:
         return result
 
-    result = load_yaml(
-            expand_yaml_macros(
+    yaml_str = expand_yaml_macros(
                 repo, commit_sha,
                 get_repo_blob(repo, full_name, commit_sha,
-                    allow_tree=False).data))
+                    allow_tree=False).data)
+
+    result = load_yaml(yaml_str)  # type: ignore
 
     def_cache.add(cache_key, result, None)
 
@@ -619,7 +623,8 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     expanded = expand_yaml_macros(
             repo, commit_sha, yaml_bytestream)
 
-    result = dict_to_struct(load_yaml(expanded))
+    yaml_data = load_yaml(expanded)  # type:ignore
+    result = dict_to_struct(yaml_data)
 
     if cached:
         def_cache.add(cache_key, result, None)
@@ -1215,7 +1220,7 @@ def compute_chunk_weight_and_shown(
         chunk,  # type: ChunkDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> Tuple[float, bool]
     if not hasattr(chunk, "rules"):
@@ -1274,7 +1279,7 @@ def get_processed_page_chunks(
         page_desc,  # type: StaticPageDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> List[ChunkDesc]
     for chunk in page_desc.chunks:
