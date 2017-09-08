@@ -300,6 +300,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     except ImproperlyConfigured:
         cache_key = None
 
+    result = None  # type: Optional[bytes]
     if cache_key is None:
         result = get_repo_blob(repo, full_name, commit_sha,
                 allow_tree=False).data
@@ -312,14 +313,14 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     def_cache = cache.caches["default"]
 
-    result = None  # type: Optional[bytes]
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
-        result = def_cache.get(cache_key)
-    if result is not None:
-        (result,) = result
-        assert isinstance(result, six.binary_type), cache_key
-        return result
+        cached_result = def_cache.get(cache_key)
+
+        if cached_result is not None:
+            (result,) = cached_result
+            assert isinstance(result, six.binary_type), cache_key
+            return result
 
     result = get_repo_blob(repo, full_name, commit_sha,
             allow_tree=False).data
