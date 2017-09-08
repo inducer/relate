@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Union, FrozenSet
+from typing import cast, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -62,7 +62,7 @@ else:
 if False:
     # for mypy
     from typing import (  # noqa
-        Any, List, Tuple, Optional, Callable, Text, Dict)
+        Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet)
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa
