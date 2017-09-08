@@ -493,9 +493,25 @@ def get_session_grading_rule(
 
         if hasattr(rule, "if_completed_before"):
             ds = parse_date_spec(session.course, rule.if_completed_before)
-            if session.in_progress and now_datetime > ds:
-                continue
-            if not session.in_progress and session.completion_time > ds:
+
+            use_last_activity_as_completion_time = False
+            if hasattr(rule, "use_last_activity_as_completion_time"):
+                use_last_activity_as_completion_time = \
+                        rule.use_last_activity_as_completion_time
+
+            if use_last_activity_as_completion_time:
+                last_activity = session.last_activity()
+                if last_activity is not None:
+                    completion_time = last_activity
+                else:
+                    completion_time = now_datetime
+            else:
+                if session.in_progress:
+                    completion_time = now_datetime
+                else:
+                    completion_time = session.completion_time
+
+            if completion_time > ds:
                 continue
 
         due = parse_date_spec(session.course, getattr(rule, "due", None))
