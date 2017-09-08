@@ -510,6 +510,12 @@ Determining how final (overall) grades of flows are computed
         (Optional) A :ref:`datespec <datespec>`. Rule applies if the session was completed before
         this time.
 
+        When evaluating this condition for in-progress sessions, the current time,
+        or, if :attr:`use_last_activity_as_completion_time` is set, the time of the
+        last activity is used.
+
+        Since September 2017, this respects :attr:`use_last_activity_as_completion_time`.
+
     .. rubric:: Rules specified
 
     .. attribute:: credit_percent
