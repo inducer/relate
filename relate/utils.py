@@ -115,6 +115,12 @@ class SubdirRepoWrapper(object):
     def close(self):
         self.repo.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
 
 Repo_ish = Union[dulwich.repo.Repo, SubdirRepoWrapper]
 
@@ -423,6 +429,24 @@ def ignore_no_such_table(f, *args):
             local_rollback()
         else:
             raise
+
+
+def force_remove_path(path):
+    # type: (Text) -> None
+    """
+    Work around deleting read-only path on Windows.
+    Ref: https://docs.python.org/3.5/library/shutil.html#rmtree-example
+    """
+    import os
+    import stat
+    import shutil
+
+    def remove_readonly(func, path, _):  # noqa
+        "Clear the readonly bit and reattempt the removal"
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    shutil.rmtree(path, onerror=remove_readonly)
 
 
 # vim: foldmethod=marker

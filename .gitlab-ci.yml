@@ -34,9 +34,9 @@ Mypy:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
   - "cp local_settings.example.py local_settings.py"
-  - ". ./prepare-and-run-mypy.sh"
+  - ". ./prepare-and-run-mypy.sh python3.6 mypy==0.521 typed-ast==1.0.4"
   tags:
-  - python3.5
+  - python3.6
   except:
   - tags
 
