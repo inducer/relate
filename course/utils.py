@@ -593,24 +593,25 @@ class CoursePageContext(object):
             if self.participation.preview_git_commit_sha:
                 preview_sha = self.participation.preview_git_commit_sha.encode()
 
-                repo = get_course_repo(self.course)
+                with get_course_repo(self.course) as repo:
+                    from relate.utils import SubdirRepoWrapper
+                    if isinstance(repo, SubdirRepoWrapper):
+                        true_repo = repo.repo
+                    else:
+                        true_repo = cast(dulwich.repo.Repo, repo)
 
-                from relate.utils import SubdirRepoWrapper
-                if isinstance(repo, SubdirRepoWrapper):
-                    true_repo = repo.repo
-                else:
-                    true_repo = cast(dulwich.repo.Repo, repo)
+                    try:
+                        true_repo[preview_sha]
+                    except KeyError:
+                        from django.contrib import messages
+                        messages.add_message(request, messages.ERROR,
+                                _("Preview revision '%s' does not exist--"
+                                "showing active course content instead.")
+                                % preview_sha.decode())
 
-                try:
-                    true_repo[preview_sha]
-                except KeyError:
-                    from django.contrib import messages
-                    messages.add_message(request, messages.ERROR,
-                            _("Preview revision '%s' does not exist--"
-                            "showing active course content instead.")
-                            % preview_sha.decode())
-
-                    preview_sha = None
+                        preview_sha = None
+                    finally:
+                        true_repo.close()
 
                 if preview_sha is not None:
                     sha = preview_sha
@@ -649,6 +650,12 @@ class CoursePageContext(object):
                     for p, arg in self.permissions())
         else:
             return (perm, argument) in self.permissions()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.repo.close()
 
 
 class FlowContext(object):
@@ -768,10 +775,10 @@ def instantiate_flow_page_with_ctx(fctx, page_data):
 # {{{ utilties for course-based views
 def course_view(f):
     def wrapper(request, course_identifier, *args, **kwargs):
-        pctx = CoursePageContext(request, course_identifier)
-        response = f(pctx, *args, **kwargs)
-        pctx.repo.close()
-        return response
+        with CoursePageContext(request, course_identifier) as pctx:
+            response = f(pctx, *args, **kwargs)
+            pctx.repo.close()
+            return response
 
     from functools import update_wrapper
     update_wrapper(wrapper, f)

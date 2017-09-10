@@ -1484,14 +1484,14 @@ def get_course_commit_sha(course, participation):
         if participation.preview_git_commit_sha:
             preview_sha = participation.preview_git_commit_sha
 
-            repo = get_course_repo(course)
-            if isinstance(repo, SubdirRepoWrapper):
-                repo = repo.repo
+            with get_course_repo(course) as repo:
+                if isinstance(repo, SubdirRepoWrapper):
+                    repo = repo.repo
 
-            try:
-                repo[preview_sha.encode()]
-            except KeyError:
-                preview_sha = None
+                try:
+                    repo[preview_sha.encode()]
+                except KeyError:
+                    preview_sha = None
 
             if preview_sha is not None:
                 sha = preview_sha
