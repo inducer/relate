@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import re
 from typing import cast
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import (  # noqa
@@ -58,7 +59,7 @@ from course.constants import (
         participation_status,
         participation_permission as pperm,
         )
-from course.models import Participation  # noqa
+from course.models import Participation, AuthenticationToken  # noqa
 from accounts.models import User
 
 from relate.utils import StyledForm, StyledModelForm, string_concat
@@ -320,7 +321,7 @@ def check_sign_in_key(user_id, token):
     return True
 
 
-class TokenBackend(object):
+class EmailedTokenBackend(object):
     def authenticate(self, user_id=None, token=None):
         users = get_user_model().objects.filter(
                 id=user_id, sign_in_key=token)
@@ -1012,51 +1013,6 @@ def user_profile(request):
 # }}}
 
 
-# {{{ manage auth token
-
-class AuthenticationTokenForm(StyledForm):
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
-        super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(Submit("reset", _("Reset")))
-
-
-def manage_authentication_token(request):
-    # type: (http.HttpRequest) -> http.HttpResponse
-    if not request.user.is_authenticated:
-        raise PermissionDenied()
-
-    if request.method == 'POST':
-        form = AuthenticationTokenForm(request.POST)
-        if form.is_valid():
-            token = make_sign_in_key(request.user)
-            from django.contrib.auth.hashers import make_password
-            request.user.git_auth_token_hash = make_password(token)
-            request.user.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("A new authentication token has been set: %s.")
-                    % token)
-
-    else:
-        if request.user.git_auth_token_hash is not None:
-            messages.add_message(request, messages.INFO,
-                    _("An authentication token has previously been set."))
-        else:
-            messages.add_message(request, messages.INFO,
-                    _("No authentication token has previously been set."))
-
-        form = AuthenticationTokenForm()
-
-    return render(request, "generic-form.html", {
-        "form_description": _("Manage Git Authentication Token"),
-        "form": form
-        })
-
-# }}}
-
-
 # {{{ SAML auth backend
 
 # This ticks the 'verified' boxes once we've receive attribute assertions
@@ -1121,6 +1077,137 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect(redirect_to)
     else:
         return redirect("relate-home")
+
+# }}}
+
+
+# {{{ API auth
+
+def find_matching_token(token_id=None, token_hash_str=None, now_datetime=None):
+    try:
+        token = AuthenticationToken().objects.get(id=token_id)
+    except AuthenticationToken.DoesNotExist:
+        return None
+
+    from django.contrib.auth.hashers import check_password
+    if not check_password(token, token_hash_str):
+        return None
+
+    if token.revocation_time is not None:
+        return None
+    if now_datetime > token.valid_until:
+        return None
+
+    return token
+
+
+class APIBearerTokenBackend(object):
+    def authenticate(self, token_id=None, token_hash_str=None, now_datetime=None):
+        token = find_matching_token(token_id, token_hash_str, now_datetime)
+
+        token.last_use_time = now_datetime
+        token.save()
+
+        return token.user
+
+    def get_user(self, user_id):
+        try:
+            return get_user_model().objects.get(pk=user_id)
+        except get_user_model().DoesNotExist:
+            return None
+
+
+AUTH_HEADER_RE = re.compile("^Token ([0-9]+)_([a-z0-9]+)$")
+
+
+def with_course_api_auth(f):
+    def wrapper(request, course_identifier, *args, **kwargs):
+        from django.utils.timezone import now
+        now_datetime = now()
+
+        auth_header = request.META.get("AUTHORIZATION", None)
+
+        match = AUTH_HEADER_RE.match(auth_header)
+        if match is None:
+            raise PermissionDenied("ill-formed Authorization header")
+
+        auth_data = dict(
+                token_id=int(AUTH_HEADER_RE.group(1)),
+                token_hash_str=AUTH_HEADER_RE.group(2),
+                now_datetime=now_datetime)
+
+        # FIXME: Redundant db roundtrip
+        token = find_matching_token(**auth_data)
+
+        from django.contrib.auth import authenticate, login
+        user = authenticate(**auth_data)
+
+        assert user is not None
+
+        login(request, user)
+
+        response = f(
+                token.participation,
+                token.restrict_to_participation_role,
+                *args, **kwargs)
+
+        return response
+
+    from functools import update_wrapper
+    update_wrapper(wrapper, f)
+
+    return wrapper
+
+# }}}
+
+
+# {{{ manage API auth tokens
+
+class AuthenticationTokenForm(StyledModelForm):
+    class Meta:
+        model = AuthenticationToken
+        fields = (
+                "restrict_to_participation_role",
+                "description",
+                "valid_until",
+                )
+
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
+
+        self.helper.add_input(Submit("create", _("Create")))
+
+
+def manage_authentication_tokens(request):
+    # type: (http.HttpRequest) -> http.HttpResponse
+    if not request.user.is_authenticated:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = AuthenticationTokenForm(request.POST)
+        if form.is_valid():
+            token = make_sign_in_key(request.user)
+            from django.contrib.auth.hashers import make_password
+            request.user.git_auth_token_hash = make_password(token)
+            request.user.save()
+
+            messages.add_message(request, messages.SUCCESS,
+                    _("A new authentication token has been set: %s.")
+                    % token)
+
+    else:
+        form = AuthenticationTokenForm()
+
+    tokens = AuthenticationToken.objects.filter(
+            user=request.user,
+            revocation_time=None)
+
+    return render(request, "course/manage-auth-tokens.html", {
+        "form": form,
+        "new_token_message": "",
+        "tokens": tokens,
+        })
 
 # }}}
 

@@ -676,6 +676,41 @@ def _set_up_course_permissions(sender, instance, created, raw, using, update_fie
 # }}}
 
 
+# {{{ auth token
+
+class AuthenticationToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+            verbose_name=_('User ID'), on_delete=models.CASCADE,
+            related_name="participations")
+
+    participation = models.ForeignKey(Participation,
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    restrict_to_participation_role = models.ForeignKey(ParticipationRole,
+            verbose_name=_('Restrict to role'), on_delete=models.CASCADE,
+            blank=True, null=True)
+
+    description = models.CharField(max_length=200,
+            verbose_name=_('Description'))
+
+    creation_time = models.DateTimeField(
+            default=now, verbose_name=_('Creation time'))
+    last_use_time = models.DateTimeField(
+            default=now, verbose_name=_('Last use time'))
+    valid_until = models.DateTimeField(
+            default=None, verbose_name=_('Valid until'))
+    revocation_time = models.DateTimeField(
+            default=None, verbose_name=_('Revocation time'))
+
+    token_hash = models.CharField(max_length=200,
+            help_text=_("A hash of the authentication token to be "
+                "used for direct git access."),
+            null=True, blank=True, unique=True,
+            verbose_name=_('Hash of git authentication token'))
+
+# }}}
+
+
 # {{{ instant flow request
 
 class InstantFlowRequest(models.Model):
