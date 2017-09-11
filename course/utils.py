@@ -147,6 +147,59 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
         self.bonus_points = bonus_points
 
 
+def _eval_http_rule(rule, participation, flow_id):
+    get_parameters = {}
+
+    from relate.utils import struct_to_dict
+    for key, value in six.iteritems(struct_to_dict(rule.get_parameters)):
+        if value[0] == "literal":
+            _, get_value = value
+        elif value[0] == "field":
+            _, field_name = value
+            if field_name == "email":
+                get_value = participation.user.email
+            elif field_name == "institutional_id":
+                get_value = participation.user.institutional_id
+            else:
+                raise ValueError("invalid field name '%s'" % field_name)
+        else:
+            raise ValueError("invalid GET parameter type '%s'" % value[0])
+
+        get_parameters[key] = str(get_value)
+
+    # TODO: caching
+    # TODO: documentation
+
+    import requests
+    try:
+        r = requests.get(rule.url, params=get_parameters)
+        r.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        return False
+
+    try:
+        response_json = r.json()
+    except ValueError:
+        return False
+
+    for key, value in six.iteritems(struct_to_dict(rule.response)):
+        json_value = response_json.get(key)
+        if value[0] == "required_value":
+            _, req_value = value
+
+            if json_value != req_value:
+                return False
+
+        elif value[0] == "cache_until":
+            pass
+            # TODO
+
+        else:
+            raise ValueError("invalid response processing directive '%s'" % value[0])
+
+    return True
+
+
 def _eval_generic_conditions(
         rule,  # type: Any
         course,  # type: Course
@@ -180,6 +233,11 @@ def _eval_generic_conditions(
         if login_exam_ticket is None:
             return False
         if login_exam_ticket.exam.flow_id != flow_id:
+            return False
+
+    if hasattr(rule, "if_http_api_call"):
+        if not _eval_http_rule(
+                rule.if_external_http, participation, flow_id):
             return False
 
     return True

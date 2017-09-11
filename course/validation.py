@@ -554,6 +554,17 @@ def validate_flow_group(vctx, location, grp):
 
 # {{{ flow rules
 
+def validate_http_api_call_rule(vctx, location, http_rule):
+    validate_struct(
+            vctx, location, http_rule,
+            required_attrs=[
+                ("url", str),
+                ("get_parameters", Struct),
+                ("cache_for_max_seconds", int),
+                ("response", Struct),
+                ])
+
+
 def validate_session_start_rule(vctx, location, nrule, tags):
     validate_struct(
             vctx, location, nrule,
@@ -569,6 +580,8 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                 ("if_has_session_tagged", (six.string_types, type(None))),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
+                ("if_external_http", Struct),
+
                 ("if_signed_in_with_matching_exam_ticket", bool),
                 ("tag_session", (six.string_types, type(None))),
                 ("may_start_new_session", bool),
@@ -604,6 +617,9 @@ def validate_session_start_rule(vctx, location, nrule, tags):
         if nrule.if_has_session_tagged is not None:
             validate_identifier(vctx, "%s: if_has_session_tagged" % location,
                     nrule.if_has_session_tagged)
+
+    if hasattr(nrule, "if_http_api_call"):
+        validate_http_api_call_rule(vctx, location, nrule.if_external_http)
 
     if not hasattr(nrule, "may_start_new_session"):
         vctx.add_warning(
