@@ -88,7 +88,7 @@ from relate.utils import retry_transaction_decorator
 # {{{ mypy
 
 if False:
-    from typing import Any, Optional, Iterable, Tuple, Text, List  # noqa
+    from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet  # noqa
     import datetime  # noqa
     from course.models import Course  # noqa
     from course.utils import (  # noqa
@@ -338,55 +338,54 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
             get_flow_page_desc,
             instantiate_flow_page)
 
-    repo = get_course_repo(course)
+    with get_course_repo(course) as repo:
+        course_commit_sha = get_course_commit_sha(
+                course, flow_session.participation if respect_preview else None)
 
-    course_commit_sha = get_course_commit_sha(
-            course, flow_session.participation if respect_preview else None)
+        flow_desc = get_flow_desc(repo, course,
+                flow_session.flow_id, course_commit_sha)
 
-    flow_desc = get_flow_desc(repo, course,
-            flow_session.flow_id, course_commit_sha)
+        page_desc = get_flow_page_desc(
+                flow_session.flow_id,
+                flow_desc,
+                page_data.group_id, page_data.page_id)
 
-    page_desc = get_flow_page_desc(
-            flow_session.flow_id,
-            flow_desc,
-            page_data.group_id, page_data.page_id)
+        page = instantiate_flow_page(
+                location="flow '%s', group, '%s', page '%s'"
+                % (flow_session.flow_id, page_data.group_id, page_data.page_id),
+                repo=repo, page_desc=page_desc,
+                commit_sha=course_commit_sha)
 
-    page = instantiate_flow_page(
-            location="flow '%s', group, '%s', page '%s'"
-            % (flow_session.flow_id, page_data.group_id, page_data.page_id),
-            repo=repo, page_desc=page_desc,
-            commit_sha=course_commit_sha)
+        assert page.expects_answer()
+        if not page.is_answer_gradable():
+            return
 
-    assert page.expects_answer()
-    if not page.is_answer_gradable():
-        return
+        from course.page import PageContext
+        grading_page_context = PageContext(
+                course=course,
+                repo=repo,
+                commit_sha=course_commit_sha,
+                flow_session=flow_session)
 
-    from course.page import PageContext
-    grading_page_context = PageContext(
-            course=course,
-            repo=repo,
-            commit_sha=course_commit_sha,
-            flow_session=flow_session)
+        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            answer_feedback = page.grade(
+                    grading_page_context, visit.page_data.data,
+                    visit.answer, grade_data=grade_data)
 
-    with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-        answer_feedback = page.grade(
-                grading_page_context, visit.page_data.data,
-                visit.answer, grade_data=grade_data)
+        grade = visit_grade_model()
+        grade.visit = visit
+        grade.grade_data = grade_data
+        grade.max_points = page.max_points(visit.page_data)
+        grade.graded_at_git_commit_sha = course_commit_sha.decode()
 
-    grade = visit_grade_model()
-    grade.visit = visit
-    grade.grade_data = grade_data
-    grade.max_points = page.max_points(visit.page_data)
-    grade.graded_at_git_commit_sha = course_commit_sha.decode()
+        bulk_feedback_json = None
+        if answer_feedback is not None:
+            grade.correctness = answer_feedback.correctness
+            grade.feedback, bulk_feedback_json = answer_feedback.as_json()
 
-    bulk_feedback_json = None
-    if answer_feedback is not None:
-        grade.correctness = answer_feedback.correctness
-        grade.feedback, bulk_feedback_json = answer_feedback.as_json()
+        grade.save()
 
-    grade.save()
-
-    update_bulk_feedback(page_data, grade, bulk_feedback_json)
+        update_bulk_feedback(page_data, grade, bulk_feedback_json)
 
 # }}}
 
@@ -494,6 +493,7 @@ def get_prev_answer_visits_qset(page_data):
 
 
 def get_first_from_qset(qset):
+    # type: (Sequence) -> Optional[Any]
     for item in qset[:1]:
         return item
 
@@ -1347,7 +1347,7 @@ def recalculate_session_grade(repo, course, session):
 
 def lock_down_if_needed(
         request,  # type: http.HttpRequest
-        permissions,  # type: frozenset[Text]
+        permissions,  # type: FrozenSet[Text]
         flow_session,  # type: FlowSession
         ):
     # type: (...) -> None
@@ -1607,7 +1607,7 @@ def get_and_check_flow_session(pctx, flow_session_id):
 
 
 def will_receive_feedback(permissions):
-    # type: (frozenset[Text]) -> bool
+    # type: (FrozenSet[Text]) -> bool
 
     return (
             flow_permission.see_correctness in permissions
@@ -1615,14 +1615,14 @@ def will_receive_feedback(permissions):
 
 
 def may_send_email_about_flow_page(permissions):
-    # type: (frozenset[Text]) -> bool
+    # type: (FrozenSet[Text]) -> bool
 
     return flow_permission.send_email_about_flow_page in permissions
 
 
 def get_page_behavior(
         page,  # type: PageBase
-        permissions,  # type: frozenset[Text]
+        permissions,  # type: FrozenSet[Text]
         session_in_progress,  # type: bool
         answer_was_graded,  # type: bool
         generates_grade,  # type: bool
@@ -1679,7 +1679,7 @@ def get_page_behavior(
 
 
 def add_buttons_to_form(form, fpctx, flow_session, permissions):
-    # type: (StyledForm, FlowPageContext, FlowSession, frozenset[Text]) -> StyledForm
+    # type: (StyledForm, FlowPageContext, FlowSession, FrozenSet[Text]) -> StyledForm
 
     from crispy_forms.layout import Submit
     show_save_button = getattr(form, "show_save_button", True)
@@ -2137,7 +2137,7 @@ def post_flow_page(
         flow_session,  # type: FlowSession
         fpctx,  # type: FlowPageContext
         request,  # type: http.HttpRequest
-        permissions,  # type: frozenset[Text]
+        permissions,  # type: FrozenSet[Text]
         generates_grade,  # type: bool
         ):
     # type: (...) -> Tuple[PageBehavior, List[FlowPageVisit], forms.Form, Optional[AnswerFeedback], Any, bool]  # noqa
@@ -2832,6 +2832,7 @@ def regrade_flows_view(pctx):
 
 class UnsubmitFlowPageForm(forms.Form):
     def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
         self.helper = FormHelper()
         super(UnsubmitFlowPageForm, self).__init__(*args, **kwargs)
 

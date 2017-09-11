@@ -71,7 +71,7 @@ from pytools.lex import RE as REBase  # noqa
 # {{{ for mypy
 
 if False:
-    from typing import Any, Tuple, Text, Optional, List  # noqa
+    from typing import Any, Tuple, Text, Optional, List, FrozenSet  # noqa
     from course.utils import CoursePageContext  # noqa
 
 # }}}
@@ -137,7 +137,7 @@ def get_participation_permissions(
         course,  # type: Course
         participation,  # type: Optional[Participation]
         ):
-    # type: (...) -> frozenset[Tuple[Text, Optional[Text]]]
+    # type: (...) -> FrozenSet[Tuple[Text, Optional[Text]]]
 
     if participation is not None:
         return participation.permissions()
@@ -232,6 +232,8 @@ def enroll_view(request, course_identifier):
             participation = handle_enrollment_request(
                     course, user, participation_status.requested,
                     roles, request)
+
+            assert participation is not None
 
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string

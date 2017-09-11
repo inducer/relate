@@ -615,7 +615,7 @@ def is_from_exams_only_facility(request):
 
 
 def get_login_exam_ticket(request):
-    # type: (http.HttpRequest) -> ExamTicket
+    # type: (http.HttpRequest) -> Optional[ExamTicket]
     exam_ticket_pk = request.session.get("relate_exam_ticket_pk_used_for_login")
 
     if exam_ticket_pk is None:

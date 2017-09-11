@@ -263,18 +263,18 @@ def is_nuisance_failure(result):
 
         return True
 
-    if ("traceback" in result
-            and "bind: address already in use" in result["traceback"]):
+    if "traceback" in result:
+        if "bind: address already in use" in result["traceback"]:
+            # https://github.com/docker/docker/issues/8714
 
-        # https://github.com/docker/docker/issues/8714
+            return True
 
-        return True
+        if ("requests.packages.urllib3.exceptions.NewConnectionError"
+                in result["traceback"]):
+            return True
 
-    if ("traceback" in result
-            and "requests.packages.urllib3.exceptions.NewConnectionError"
-            in result["traceback"]):
-
-        return True
+        if "http.client.RemoteDisconnected" in result["traceback"]:
+            return True
 
     return False
 

@@ -1,10 +1,15 @@
 language: python
 cache: pip
-python:
-  - "2.7"
-  - "3.5"
 install: true
+matrix:
+  include:
+  - python: "2.7"
+    env: PY=true PY_EXE=python2.7
+  - python: "3.5"
+    env: PY=true PY_EXE=python3.5
+  - python: "3.5"
+    env: Flake8=true PY_EXE=python3.5
+  - python: "3.6"
+    env: Mypy=true PY_EXE=python3.6
 script:
-  - bash ./run-coveralls.sh
-env:
-  - if [[$TRAVIS_PYTHON_VERSION = "2.7"]]; then PY_EXE=python2.7; else PY_EXE=python3.5; fi
+  - bash ./run-travis-ci.sh

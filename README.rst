@@ -1,19 +1,16 @@
-.. image:: https://travis-ci.org/inducer/relate.svg
-  :target: https://travis-ci.org/inducer/relate
-
-.. image:: https://coveralls.io/repos/inducer/relate/badge.svg
-  :target: https://coveralls.io/r/inducer/relate
-
-.. image:: https://gitlab.tiker.net/inducer/relate/badges/master/build.svg
-  :target: https://gitlab.tiker.net/inducer/relate/commits/master
-
-.. image:: https://gitlab.tiker.net/inducer/relate/badges/master/coverage.svg?job=Python+3.5
-
-
 RELATE
 ======
 
 Relate is an Environment for Learning And TEaching
+
+.. image:: https://travis-ci.org/inducer/relate.svg?branch=master
+  :target: https://travis-ci.org/inducer/relate
+
+.. image:: https://ci.appveyor.com/api/projects/status/d5bigdw90bxnfdgy?svg=true
+  :target: https://ci.appveyor.com/project/inducer/relate
+
+.. image:: https://codecov.io/gh/inducer/relate/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/inducer/relate/commits
 
 +----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot-2.png |

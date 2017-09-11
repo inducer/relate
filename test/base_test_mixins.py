@@ -27,6 +27,7 @@ from django.conf import settings
 from django.test import Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from relate.utils import force_remove_path
 from course.models import Course, Participation, ParticipationRole
 from course.constants import participation_status
 
@@ -88,25 +89,6 @@ SINGLE_COURSE_SETUP_LIST = [
         ]
     }
 ]
-
-
-def force_remove_path(path):
-    # shutil.rmtree won't work when delete course repo folder, on Windows,
-    # so it cause all testcases failed.
-    # Though this work around (copied from http://bit.ly/2usqGxr) still fails
-    # for some tests, this enables **some other** tests on Windows.
-    import stat
-    def remove_readonly(func, path, _):  # noqa
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-
-    import shutil
-    try:
-        shutil.rmtree(path, onerror=remove_readonly)
-    except OSError:
-        # let the remove_exceptionally_undelete_course_repos method to delete
-        # the folder for the next test.
-        pass
 
 
 class SuperuserCreateMixin(object):
@@ -178,12 +160,18 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def remove_exceptionally_undelete_course_repos(cls, course_identifier):
-        # Remove undelete course repo folders coursed by
-        # unexpected exceptions in previous tests.
+        """
+        Remove existing course repo folders resulted in unexpected
+        exceptions in previous tests.
+        """
+        repo_path = os.path.join(settings.GIT_ROOT, course_identifier)
         try:
-            force_remove_path(os.path.join(settings.GIT_ROOT, course_identifier))
+            force_remove_path(repo_path)
         except OSError:
-            pass
+            if not os.path.isdir(repo_path):
+                # The repo path does not exist, that's good!
+                return
+            raise
 
     @classmethod
     def remove_course_repo(cls, course):
