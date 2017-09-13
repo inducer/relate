@@ -1087,6 +1087,7 @@ def will_use_masked_profile_for_email(recipient_email):
         return False
     if not isinstance(recipient_email, list):
         recipient_email = [recipient_email]
+    from course.models import Participation  # noqa
     recepient_participations = (
         Participation.objects.filter(
             user__email__in=recipient_email
