@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, List, Text
+from typing import cast, List
 
 import datetime
 
@@ -85,7 +85,7 @@ from course.utils import (  # noqa
 # {{{ for mypy
 
 if False:
-    from typing import Tuple, Any, Iterable, Dict, Optional  # noqa
+    from typing import Tuple, Text, Any, Iterable, Dict, Optional  # noqa
 
     from course.content import (  # noqa
         FlowDesc,
@@ -1136,7 +1136,11 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             tags = []  # type: List[Text]
             if hasattr(flow_desc, "rules"):
-                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))
+                try:
+                    from typing import Text  # noqa
+                except ImportError:
+                    Text = None  # noqa
+                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))  # type: ignore  # noqa
 
             # {{{ put together access rule
 
