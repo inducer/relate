@@ -411,6 +411,7 @@ def view_calendar(pctx):
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
         "default_date": default_date.isoformat(),
+        "edit_view": False
     })
 
 
@@ -432,14 +433,13 @@ class EditEventForm(StyledModelForm):
 @login_required
 @course_view
 def edit_calendar(pctx):
+    if not pctx.has_permission(pperm.edit_events):
+        raise PermissionDenied(_("may not edit events"))
+
     from course.content import markup_to_html, parse_date_spec
 
     from course.views import get_now_or_fake_time
     now = get_now_or_fake_time(pctx.request)
-
-    if not pctx.has_permission(pperm.edit_events):
-        raise PermissionDenied(_("may not edit events"))
-
     request = pctx.request
 
     edit_existing_event_flag = False
@@ -609,13 +609,14 @@ def edit_calendar(pctx):
         default_date = pctx.course.end_date
 
     from json import dumps
-    return render_course_page(pctx, "course/calender_edit.html", {
+    return render_course_page(pctx, "course/calendar.html", {
         "form": edit_event_form,
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
         "default_date": default_date.isoformat(),
         "edit_existing_event_flag": edit_existing_event_flag,
         "id_to_edit": id_to_edit,
+        "edit_view": True
     })
 
 # }}}
