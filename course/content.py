@@ -62,7 +62,7 @@ else:
 if False:
     # for mypy
     from typing import (  # noqa
-        Any, List, Tuple, Optional, Callable, Text, Dict)
+        Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet)
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa
@@ -300,6 +300,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     except ImproperlyConfigured:
         cache_key = None
 
+    result = None  # type: Optional[bytes]
     if cache_key is None:
         result = get_repo_blob(repo, full_name, commit_sha,
                 allow_tree=False).data
@@ -312,17 +313,18 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     def_cache = cache.caches["default"]
 
-    result = None
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
-        result = def_cache.get(cache_key)
-    if result is not None:
-        (result,) = result
-        assert isinstance(result, six.binary_type), cache_key
-        return result
+        cached_result = def_cache.get(cache_key)
+
+        if cached_result is not None:
+            (result,) = cached_result
+            assert isinstance(result, six.binary_type), cache_key
+            return result
 
     result = get_repo_blob(repo, full_name, commit_sha,
             allow_tree=False).data
+    assert result is not None
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, (result,), None)
@@ -384,7 +386,7 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(:\s*[|>])"
     "(J?)"
     "((?:[0-9][-+]?|[-+][0-9]?)?)"
-    "(?:\s*\#.*)?"
+    r"(?:\s*\#.*)?"
     "$")
 
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
@@ -561,22 +563,27 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
-    result = None
+
+    result = None  # type: Optional[Any]
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
         result = def_cache.get(cache_key)
     if result is not None:
         return result
 
-    result = load_yaml(
-            expand_yaml_macros(
+    yaml_str = expand_yaml_macros(
                 repo, commit_sha,
                 get_repo_blob(repo, full_name, commit_sha,
-                    allow_tree=False).data))
+                    allow_tree=False).data)
+
+    result = load_yaml(yaml_str)  # type: ignore
 
     def_cache.add(cache_key, result, None)
 
     return result
+
+
+LINE_HAS_INDENTING_TABS_RE = re.compile("^\s*\t\s*", re.MULTILINE)
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
@@ -605,12 +612,19 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         if result is not None:
             return result
 
-    expanded = expand_yaml_macros(
-            repo, commit_sha,
-            get_repo_blob(repo, full_name, commit_sha,
-                allow_tree=False).data)
+    yaml_bytestream = get_repo_blob(
+            repo, full_name, commit_sha, allow_tree=False).data
+    yaml_text = yaml_bytestream.decode("utf-8")
 
-    result = dict_to_struct(load_yaml(expanded))
+    if LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
+        raise ValueError("File uses tabs in indentation. "
+                "This is not allowed.")
+
+    expanded = expand_yaml_macros(
+            repo, commit_sha, yaml_bytestream)
+
+    yaml_data = load_yaml(expanded)  # type:ignore
+    result = dict_to_struct(yaml_data)
 
     if cached:
         def_cache.add(cache_key, result, None)
@@ -902,7 +916,7 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v6:%s:%d:%s:%s"
+            cache_key = ("markup:v7:%s:%d:%s:%s"
                     % (CACHE_KEY_ROOT, course.id, str(commit_sha),
                         hashlib.md5(text.encode("utf-8")).hexdigest()))
 
@@ -1206,7 +1220,7 @@ def compute_chunk_weight_and_shown(
         chunk,  # type: ChunkDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> Tuple[float, bool]
     if not hasattr(chunk, "rules"):
@@ -1265,7 +1279,7 @@ def get_processed_page_chunks(
         page_desc,  # type: StaticPageDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> List[ChunkDesc]
     for chunk in page_desc.chunks:
@@ -1470,14 +1484,14 @@ def get_course_commit_sha(course, participation):
         if participation.preview_git_commit_sha:
             preview_sha = participation.preview_git_commit_sha
 
-            repo = get_course_repo(course)
-            if isinstance(repo, SubdirRepoWrapper):
-                repo = repo.repo
+            with get_course_repo(course) as repo:
+                if isinstance(repo, SubdirRepoWrapper):
+                    repo = repo.repo
 
-            try:
-                repo[preview_sha.encode()]
-            except KeyError:
-                preview_sha = None
+                try:
+                    repo[preview_sha.encode()]
+                except KeyError:
+                    preview_sha = None
 
             if preview_sha is not None:
                 sha = preview_sha

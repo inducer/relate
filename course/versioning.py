@@ -111,9 +111,6 @@ class DulwichParamikoSSHVendor(object):
 
     def run_command(self, host, command, username=None, port=None,
                     progress_stderr=None):
-        if not isinstance(command, bytes):
-            raise TypeError(command)
-
         if port is None:
             port = 22
 
@@ -284,24 +281,14 @@ def set_up_new_course(request):
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
 
-                    # Work around read-only files on Windows.
-                    # https://docs.python.org/3.5/library/shutil.html#rmtree-example
-
-                    import os
-                    import stat
-                    import shutil
-
                     # Make sure files opened for 'repo' above are actually closed.
                     if repo is not None:  # noqa
                         repo.close()  # noqa
 
-                    def remove_readonly(func, path, _):  # noqa
-                        "Clear the readonly bit and reattempt the removal"
-                        os.chmod(path, stat.S_IWRITE)
-                        func(path)
+                    from relate.utils import force_remove_path
 
                     try:
-                        shutil.rmtree(repo_path, onerror=remove_readonly)
+                        force_remove_path(repo_path)
                     except OSError:
                         messages.add_message(request, messages.WARNING,
                                 ugettext("Failed to delete unused "
@@ -309,6 +296,10 @@ def set_up_new_course(request):
                                 % repo_path)
 
                     raise
+
+                finally:
+                    if repo is not None:
+                        repo.close()
 
             except Exception as e:
                 from traceback import print_exc

@@ -912,7 +912,11 @@ class UserForm(StyledModelForm):
                 Submit("submit_user", _("Update")))
 
     def clean_institutional_id(self):
-        inst_id = self.cleaned_data['institutional_id'].strip()
+        inst_id = self.cleaned_data['institutional_id']
+
+        if inst_id is not None:
+            inst_id = inst_id.strip()
+
         if self.is_inst_id_locked:
             # Disabled fields are not part of form submit--so simply
             # assume old value. At the same time, prevent smuggled-in

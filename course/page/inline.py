@@ -206,7 +206,7 @@ EM_LEN_DICT = {
         "%": ""}
 
 ALLOWED_LENGTH_UNIT = EM_LEN_DICT.keys()
-WIDTH_STR_RE = re.compile("^(\d*\.\d+|\d+)\s*(.*)$")
+WIDTH_STR_RE = re.compile(r"^(\d*\.\d+|\d+)\s*(.*)$")
 
 
 class ShortAnswer(AnswerBase):

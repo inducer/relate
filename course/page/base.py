@@ -44,7 +44,7 @@ from django.conf import settings
 # {{{ mypy
 
 if False:
-    from typing import Text, Optional, Any, Tuple, Dict, Callable  # noqa
+    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet  # noqa
     from django import http  # noqa
     from course.models import (  # noqa
             Course,
@@ -216,7 +216,7 @@ class AnswerFeedback(object):
 
     @staticmethod
     def from_json(json, bulk_json):
-        # type: (Any, Any) -> AnswerFeedback
+        # type: (Any, Any) -> Optional[AnswerFeedback]
 
         if json is None:
             return json
@@ -371,7 +371,7 @@ class PageBase(object):
             )
 
     def get_modified_permissions_for_page(self, permissions):
-        # type: (frozenset[Text]) -> frozenset[Text]
+        # type: (FrozenSet[Text]) -> FrozenSet[Text]
         rw_permissions = set(permissions)
 
         if hasattr(self.page_desc, "access_rules"):
@@ -387,9 +387,11 @@ class PageBase(object):
         return frozenset(rw_permissions)
 
     def make_page_data(self):
+        # type: () -> Dict
         return {}
 
     def initialize_page_data(self, page_context):
+        # type: (PageContext) -> Dict
         """Return (possibly randomly generated) data that is used to generate
         the content on this page. This is passed to methods below as the *page_data*
         argument. One possible use for this argument would be a random permutation

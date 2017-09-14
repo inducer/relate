@@ -23,18 +23,16 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
-from django.urls import resolve, reverse
+from django.urls import reverse
 from django.contrib.auth import get_user_model
-from course.models import FlowSession, FlowPageVisit, Course
-from decimal import Decimal
-from base_test_mixins import SingleCourseTestMixin
+from course.models import FlowPageVisit, Course
+from base_test_mixins import SingleCoursePageTestMixin
+
+QUIZ_FLOW_ID = "quiz-test"
 
 
-class SingleCoursePageTest(SingleCourseTestMixin, TestCase):
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCoursePageTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
+class SingleCourseQuizPageTest(SingleCoursePageTestMixin, TestCase):
+    flow_id = QUIZ_FLOW_ID
 
     # TODO: This should be moved to tests for auth module
     def test_user_creation(self):
@@ -60,122 +58,78 @@ class SingleCoursePageTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_quiz_no_answer(self):
-        params = self.start_quiz()
-        self.end_quiz(params, 0)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(0)
 
     def test_quiz_text(self):
-        params = self.start_quiz()
-        params["ordinal"] = '1'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                        {"answer": ['0.5'], "submit": ["Submit final answer"]})
+        resp = self.client_post_answer_by_ordinal(1, {"answer": ['0.5']})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 5)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(5)
 
     def test_quiz_choice(self):
-        params = self.start_quiz()
-        params["ordinal"] = '2'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                        {"choice": ['0'], "submit": ["Submit final answer"]})
+        resp = self.client_post_answer_by_ordinal(2, {"choice": ['0']})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 2)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(2)
 
     def test_quiz_multi_choice_exact_correct(self):
-        params = self.start_quiz()
-        params["ordinal"] = '3'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                    {"choice": ['0', '1', '4'], "submit": ["Submit final answer"]})
+        resp = self.client_post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 1)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(1)
 
     def test_quiz_multi_choice_exact_wrong(self):
-        params = self.start_quiz()
-        params["ordinal"] = '3'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                    {"choice": ['0', '1'], "submit": ["Submit final answer"]})
+        resp = self.client_post_answer_by_ordinal(3, {"choice": ['0', '1']})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 0)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(0)
 
-    def test_quiz_multi_choice_propotion_partial(self):
-        params = self.start_quiz()
-        params["ordinal"] = '4'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                    {"choice": ['0'], "submit": ["Submit final answer"]})
+    def test_quiz_multi_choice_proportion_partial(self):
+        resp = self.client_post_answer_by_ordinal(4, {"choice": ['0']})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 0.8)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(0.8)
 
-    def test_quiz_multi_choice_propotion_correct(self):
-        params = self.start_quiz()
-        params["ordinal"] = '4'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                    {"choice": ['0', '3'], "submit": ["Submit final answer"]})
+    def test_quiz_multi_choice_proportion_correct(self):
+        resp = self.client_post_answer_by_ordinal(4, {"choice": ['0', '3']})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 1)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(1)
 
     def test_quiz_inline(self):
-        params = self.start_quiz()
-        params["ordinal"] = '5'
-        data = {'blank1': ['Bar'], 'blank_2': ['0.2'], 'blank3': ['1'],
-                'blank4': ['5'], 'blank5': ['Bar'], 'choice2': ['0'],
-                'choice_a': ['0'], 'submit': ['Submit final answer']}
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params), data)
+        answer_data = {
+            'blank1': ['Bar'], 'blank_2': ['0.2'], 'blank3': ['1'],
+            'blank4': ['5'], 'blank5': ['Bar'], 'choice2': ['0'],
+            'choice_a': ['0']}
+        resp = self.client_post_answer_by_ordinal(5, answer_data)
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 10)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(10)
 
     # All I can do for now since db do not store ordinal value
     def test_quiz_survey_choice(self):
-        params = self.start_quiz()
-        params["ordinal"] = '6'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                    {"answer": ["NOTHING!!!"], "submit": ["Submit final answer"]})
+        resp = self.client_post_answer_by_ordinal(6, {"answer": ["NOTHING!!!"]})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 0)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(0)
 
         query = FlowPageVisit.objects.filter(
-                            flow_session__exact=params["flow_session_id"],
-                            answer__isnull=False)
-        self.assertEqual(len(query), 1)
+            flow_session__exact=self.page_params["flow_session_id"],
+            answer__isnull=False)
+        self.assertEqual(query.count(), 1)
         record = query[0]
         self.assertEqual(record.answer["answer"], "NOTHING!!!")
 
     def test_quiz_survey_text(self):
-        params = self.start_quiz()
-        params["ordinal"] = '7'
-        resp = self.c.post(reverse("relate-view_flow_page", kwargs=params),
-                    {"choice": ['8'], "submit": ["Submit final answer"]})
+        resp = self.client_post_answer_by_ordinal(7, {"choice": ['8']})
         self.assertEqual(resp.status_code, 200)
-        self.end_quiz(params, 0)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(0)
 
         query = FlowPageVisit.objects.filter(
-                            flow_session__exact=params["flow_session_id"],
+                            flow_session__exact=self.page_params["flow_session_id"],
                             answer__isnull=False)
-        self.assertEqual(len(query), 1)
+        self.assertEqual(query.count(), 1)
         record = query[0]
         self.assertEqual(record.answer["choice"], 8)
-
-    # Decorator won't work here :(
-    def start_quiz(self):
-        self.assertEqual(len(FlowSession.objects.all()), 0)
-        params = {"course_identifier": self.course.identifier,
-                  "flow_id": "quiz-test"}
-        resp = self.c.post(reverse("relate-view_start_flow", kwargs=params))
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(FlowSession.objects.all().count(), 1)
-
-        # Yep, no regax!
-        _, _, kwargs = resolve(resp.url)
-        # Should be in correct course
-        self.assertEqual(kwargs["course_identifier"], self.course.identifier)
-        # Should redirect us to welcome page
-        self.assertEqual(kwargs["ordinal"], '0')
-
-        return kwargs
-
-    def end_quiz(self, params, expect_score):
-        # Let it raise error
-        # Use pop() will not
-        del params["ordinal"]
-        resp = self.c.post(reverse("relate-finish_flow_session_view",
-                                kwargs=params), {'submit': ['']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(FlowSession.objects.all()[0].points,
-                                                Decimal(str(expect_score)))

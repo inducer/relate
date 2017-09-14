@@ -263,12 +263,18 @@ def is_nuisance_failure(result):
 
         return True
 
-    if ("traceback" in result
-            and "bind: address already in use" in result["traceback"]):
+    if "traceback" in result:
+        if "bind: address already in use" in result["traceback"]:
+            # https://github.com/docker/docker/issues/8714
 
-        # https://github.com/docker/docker/issues/8714
+            return True
 
-        return True
+        if ("requests.packages.urllib3.exceptions.NewConnectionError"
+                in result["traceback"]):
+            return True
+
+        if "http.client.RemoteDisconnected" in result["traceback"]:
+            return True
 
     return False
 
@@ -368,8 +374,10 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     .. attribute:: test_code
 
         Optional.
-        Symbols that the participant's code is expected to define.
-        These will be made available to the :attr:`test_code`.
+        Code that will be run to determine the correctness of a
+        student-provided solution. Will have access to variables in
+        :attr:`names_from_user` (which will be *None*) if not provided. Should
+        never raise an exception.
 
         This may contain the marker "###CORRECT_CODE###", which will
         be replaced with the contents of :attr:`correct_code`, with

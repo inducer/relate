@@ -231,6 +231,23 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+# {{{ extra checks
+
+# This allow user to add customized startup checkes for user-defined modules
+# using Django's system checks (https://docs.djangoproject.com/en/dev/ref/checks/)
+# For example, define a `my_check_func in `my_module` with
+# <code>
+#   def my_check_func(app_configs, **kwargs):
+#         return [list of error]
+#</code>
+# The configuration should be
+# RELATE_STARTUP_CHECKS_EXTRA = ["my_module.my_check_func"]
+# i.e., Each item should be the path to an importable check function.
+#RELATE_STARTUP_CHECKS_EXTRA = []
+
+# }}}
+
+
 # {{{ docker
 
 # A string containing the image ID of the docker image to be used to run
