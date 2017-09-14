@@ -39,7 +39,7 @@
         {% endif %}
       </a>
       {% if edit_view %}
-        <button id="create" type="button" class="btn btn-danger btn-md" style="width: 2.5cm;" data-toggle="modal" data-target="#editModal" onclick="remove_event_id_field();">Create</button>
+        <button id="create-new-event" type="button" class="btn btn-danger btn-md" data-toggle="modal" data-target="#editModal" onclick="remove_event_id_field();" title="create a new event">{% trans "Create a new event" %}</button>
       {% endif %}
     </div>
   {% endif %}
@@ -88,13 +88,13 @@
                 <input type="hidden" name="existing_event_to_save" id="existing_event_to_save" value='{{id_to_edit}}' readonly>
               {% endif %}
             </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-md btn-default" data-dismiss="modal" type="button">Cancel</button>
-            <button class="btn btn-md btn-success" type="submit">Save</button>
-          </div>
+            <div class="modal-footer">
+              <button class="btn btn-md btn-default" data-dismiss="modal" type="button">{% trans "Cancel" %}</button>
+              <button class="btn btn-md btn-success" type="submit">{% trans "Save" %}</button>
+            </div>
         </form>
       </div>
+    </div>
     </div>
     <form method='post' name='existing_event_edit_form'>
       {% csrf_token %}
@@ -121,8 +121,8 @@
         events: {{ events_json|safe }},
         {% if edit_view %}
           eventRender: function(event, element) {
-            element.find('.fc-title').append( '<span class="glyphicon glyphicon-remove-circle" style="float:right;cursor:pointer" id="remove"></span>');
-            element.find('.fc-title').append( '<span class="glyphicon glyphicon-pencil" style="float:right; cursor:pointer" id="edit"></span>');
+            element.find('.fc-title').append( '<span class="glyphicon glyphicon-remove-circle" style="float:right;cursor:pointer" id="remove" title="{% trans 'Remove this event'%}"></span>');
+            element.find('.fc-title').append( '<span class="glyphicon glyphicon-pencil" style="float:right; cursor:pointer" id="edit" title="{% trans 'Edit this event'%}"> </span>');
             element.find("#edit").click(function() {
               edit_existing_event(event.id);
             });
@@ -136,28 +136,28 @@
         {% if edit_existing_event_flag %}
           $('#editModal').modal('show');
         {% endif %}
-
-        $(function () {
-          $('#start_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
-          $('#end_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
-        });
-
-        function edit_existing_event(event_id) {
-          $('#id_to_edit').val(event_id);
-          document.existing_event_edit_form.submit();
-        }
-
-        function delete_existing_event(event_id) {
-          $('#id_to_delete').val(event_id);
-          document.existing_event_delete_form.submit();
-        }
-
-        function remove_event_id_field() {
-          $('#existing_event_to_save').remove()
-        }
-
       {% endif %}
     });
+
+    $(function () {
+      $('#start_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
+      $('#end_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
+    });
+
+    function edit_existing_event(event_id) {
+      $('#id_to_edit').val(event_id);
+      document.existing_event_edit_form.submit();
+    }
+
+    function delete_existing_event(event_id) {
+      $('#id_to_delete').val(event_id);
+      document.existing_event_delete_form.submit();
+    }
+
+    function remove_event_id_field() {
+      $('#existing_event_to_save').remove()
+    }
+
   </script>
   {{ block.super }}
 {% endblock %}

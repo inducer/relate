@@ -190,13 +190,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def create_participation(
             cls, course, create_user_kwargs, role_identifier, status):
-        try:
-            # TODO: why pop failed here?
-            password = create_user_kwargs["password"]
-        except:
-            raise
         user, created = get_user_model().objects.get_or_create(**create_user_kwargs)
         if created:
+            try:
+                # TODO: why pop failed here?
+                password = create_user_kwargs["password"]
+            except:
+                raise
             user.set_password(password)
             user.save()
         participation, p_created = Participation.objects.get_or_create(
@@ -214,6 +214,29 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     def create_course(cls, **create_course_kwargs):
         cls.c.force_login(cls.superuser)
         cls.c.post(reverse("relate-set_up_new_course"), create_course_kwargs)
+
+    def assertMessageContains(self, resp, expected_message):  # noqa
+        """
+        :param resp: response
+        :param expected_message: message string or list containing message string
+        """
+        if isinstance(expected_message, list):
+            self.assertTrue(set(expected_message).issubset(
+                set([m.message for m in list(resp.context['messages'])])))
+        if isinstance(expected_message, str):
+            self.assertIn(expected_message,
+                          [m.message for m in list(resp.context['messages'])])
+
+    def debug_print_response_messages(self, resp):
+        """
+        For debugging :class:`django.contrib.messages` objects in post response
+        :param resp: response
+        """
+        print("\n")
+        print("-----------message start-------------")
+        for m in list(resp.context['messages']):
+            print(m.message)
+        print("-----------message end-------------")
 
 
 class SingleCourseTestMixin(CoursesTestMixinBase):

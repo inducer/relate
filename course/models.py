@@ -291,6 +291,16 @@ class Event(models.Model):
         else:
             return self.kind
 
+    def save(self, *args, **kwargs):
+        # When ordinal is Null, unique_together failed to identify duplicate entries
+        if not self.ordinal:
+            object_exist = bool(
+                Event.objects.filter(kind=self.kind, ordinal__isnull=True).count())
+            if object_exist:
+                from django.db import IntegrityError
+                raise IntegrityError()
+        super(Event, self).save(*args, **kwargs)
+
     if six.PY3:
         __str__ = __unicode__
 
