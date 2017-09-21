@@ -28,11 +28,17 @@ from django.urls import reverse
 from course.models import Event
 from base_test_mixins import SingleCourseTestMixin
 from django.utils.timezone import now
+try:
+    from unittest import mock
+except:
+    import mock
+
+DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
 
 SHOWN_EVENT_KIND = "test_open_event"
 HIDDEN_EVENT_KIND = "test_secret_event"
-OPEN_EVENT_NO_ORDINAL = "test_open_no_ordinal"
-HIDDEN_EVENT_NO_ORDINAL = "test_secret_no_ordinal"
+OPEN_EVENT_NO_ORDINAL_KIND = "test_open_no_ordinal"
+HIDDEN_EVENT_NO_ORDINAL_KIND = "test_secret_no_ordinal"
 FAILURE_EVENT_KIND = "never_created_event_kind"
 
 TEST_EVENTS = (
@@ -46,11 +52,16 @@ TEST_EVENTS = (
         "shown_in_calendar": False, "time": now()},
     {"kind": HIDDEN_EVENT_KIND, "ordinal": "2",
         "shown_in_calendar": False, "time": now()},
-    {"kind": OPEN_EVENT_NO_ORDINAL,
+    {"kind": OPEN_EVENT_NO_ORDINAL_KIND,
         "shown_in_calendar": True, "time": now()},
-    {"kind": HIDDEN_EVENT_NO_ORDINAL,
+    {"kind": HIDDEN_EVENT_NO_ORDINAL_KIND,
         "shown_in_calendar": False, "time": now()},
 )
+
+TEST_NOT_EXIST_EVENT = {
+    "pk": 1000,
+    "kind": "DOES_NOT_EXIST_KIND", "ordinal": "1",
+    "shown_in_calendar": True, "time": now()}
 
 N_TEST_EVENTS = len(TEST_EVENTS)  # 7 events
 N_HIDDEN_EVENTS = len([event
@@ -70,10 +81,21 @@ HTML_CREATE_NEW_EVENT_BUTTON_TITLE = "create a new event"
 HTML_EVENT_CREATED_MSG = "Event created."
 
 MSG_EVENT_NOT_CREATED = "No event created."
-MSG_PREFIX_EVENT_ALREAD_EXIST_FAILURE_MSG = "EventAlreadyExists:"
+MSG_PREFIX_EVENT_ALREADY_EXIST_FAILURE = "EventAlreadyExists:"
+MSG_PREFIX_EVENT_NOT_DELETED_FAILURE = "No event deleted:"
 MSG_HTML_EVENT_DELETED = "Event deleted."
 MSG_EVENT_UPDATED = "Event updated."
 MSG_EVENT_NOT_UPDATED = "Event not updated."
+
+
+def get_object_or_404_side_effect(klass, *args, **kwargs):
+    """
+    Delete an existing object from db after get
+    """
+    from django.shortcuts import get_object_or_404
+    obj = get_object_or_404(klass, *args, **kwargs)
+    obj.delete()
+    return obj
 
 
 class CalendarTest(SingleCourseTestMixin, TestCase):
@@ -96,6 +118,11 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             })
             Event.objects.create(**event)
         assert Event.objects.count() == N_TEST_EVENTS
+
+    def set_course_end_date(self):
+        from datetime import timedelta
+        self.course.end_date = now() + timedelta(days=120)
+        self.course.save()
 
     def assertShownEventsCountEqual(self, resp, expected_shown_events_count):  # noqa
         self.assertEqual(
@@ -213,11 +240,11 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
 
     def test_instructor_calendar_edit_create_exist_failure(self):
         self.c.force_login(self.instructor_participation.user)
-        # Failing to create events already exist
+        # Failing to create event already exist
         post_data = {
             "kind": SHOWN_EVENT_KIND,
             "ordinal": "3",
-            "time": "2017-09-14 17:14",  # forgive me
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
             "shown_in_calendar": True,
             'submit': ['']
         }
@@ -227,7 +254,27 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, MSG_PREFIX_EVENT_ALREAD_EXIST_FAILURE_MSG)
+        self.assertContains(resp, MSG_PREFIX_EVENT_ALREADY_EXIST_FAILURE)
+        self.assertContains(resp, MSG_EVENT_NOT_CREATED)
+        self.assertTotalEventsCountEqual(N_TEST_EVENTS)
+        self.assertShownEventsCountEqual(resp, N_TEST_EVENTS)
+
+    def test_instructor_calendar_edit_create_exist_no_ordinal_event_faliure(self):
+        self.c.force_login(self.instructor_participation.user)
+        # Failing to create event (no ordinal) already exist
+        post_data = {
+            "kind": OPEN_EVENT_NO_ORDINAL_KIND,
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
+            "shown_in_calendar": True,
+            'submit': ['']
+        }
+
+        resp = self.c.post(
+            reverse("relate-edit_calendar", args=[self.course.identifier]),
+            post_data
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, MSG_PREFIX_EVENT_ALREADY_EXIST_FAILURE)
         self.assertContains(resp, MSG_EVENT_NOT_CREATED)
         self.assertTotalEventsCountEqual(N_TEST_EVENTS)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS)
@@ -238,7 +285,27 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
         post_data = {
             "kind": SHOWN_EVENT_KIND,
             "ordinal": "4",
-            "time": "2017-09-14 17:14",
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
+            "shown_in_calendar": True,
+            'submit': ['']
+        }
+        resp = self.c.post(
+            reverse("relate-edit_calendar", args=[self.course.identifier]),
+            post_data
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertMessageContains(resp, HTML_EVENT_CREATED_MSG)
+        self.assertTotalEventsCountEqual(N_TEST_EVENTS + 1)
+        self.assertShownEventsCountEqual(resp, N_TEST_EVENTS + 1)
+
+    def test_instructor_calendar_edit_post_create_for_course_has_end_date(self):
+        # Successfully create new event
+        self.set_course_end_date()
+        self.c.force_login(self.instructor_participation.user)
+        post_data = {
+            "kind": SHOWN_EVENT_KIND,
+            "ordinal": "4",
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
             "shown_in_calendar": True,
             'submit': ['']
         }
@@ -269,6 +336,25 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
         self.assertTotalEventsCountEqual(N_TEST_EVENTS - 1)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS - 1)
 
+    def test_instructor_calendar_edit_delete_for_course_has_end_date(self):
+        # Successfully remove an existing event
+        self.set_course_end_date()
+        self.c.force_login(self.instructor_participation.user)
+        id_to_delete = Event.objects.filter(kind=SHOWN_EVENT_KIND).first().id
+        post_data = {
+            "id_to_delete": id_to_delete,
+            'submit': ['']
+        }
+        resp = self.c.post(
+            reverse("relate-edit_calendar", args=[self.course.identifier]),
+            post_data
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertMessageContains(resp, MSG_HTML_EVENT_DELETED)
+        self.assertMessageContains(resp, [MSG_HTML_EVENT_DELETED])
+        self.assertTotalEventsCountEqual(N_TEST_EVENTS - 1)
+        self.assertShownEventsCountEqual(resp, N_TEST_EVENTS - 1)
+
     def test_instructor_calendar_edit_delete_non_exist(self):
         # Successfully remove an existing event
         self.c.force_login(self.instructor_participation.user)
@@ -283,6 +369,25 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(resp.status_code, 404)
         self.assertTotalEventsCountEqual(N_TEST_EVENTS)
 
+    @mock.patch("course.calendar.get_object_or_404",
+                side_effect=get_object_or_404_side_effect)
+    def test_instructor_calendar_edit_delete_deleted_event_before_transaction(
+            self, mocked_get_object_or_404):
+        # Deleting event which exist when get and was deleted before transaction
+        self.c.force_login(self.instructor_participation.user)
+        id_to_delete = Event.objects.filter(kind=SHOWN_EVENT_KIND).first().id
+        post_data = {
+            "id_to_delete": id_to_delete,
+            'submit': ['']
+        }
+        resp = self.c.post(
+            reverse("relate-edit_calendar", args=[self.course.identifier]),
+            post_data
+        )
+        self.assertContains(resp, MSG_PREFIX_EVENT_NOT_DELETED_FAILURE)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTotalEventsCountEqual(N_TEST_EVENTS - 1)
+
     def test_instructor_calendar_edit_update_success(self):
         # Successfully update an existing event
         self.c.force_login(self.instructor_participation.user)
@@ -296,7 +401,7 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             "existing_event_to_save": id_to_edit,
             "kind": SHOWN_EVENT_KIND,
             "ordinal": 10,
-            "time": "2017-09-14 17:14",  # forgive me
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
             "shown_in_calendar": True,
             'submit': ['']
         }
@@ -315,6 +420,27 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             Event.objects.filter(kind=SHOWN_EVENT_KIND).count(),
             shown_count_before_update + 1)
 
+    def test_instructor_calendar_edit_update_no_ordinal_event_success(self):
+        # Failure to update an existing event to overwrite and existing event
+        self.c.force_login(self.instructor_participation.user)
+        event_to_edit = Event.objects.filter(kind=HIDDEN_EVENT_KIND).first()
+        id_to_edit = event_to_edit.id  # forgive me
+        post_data = {
+            "existing_event_to_save": id_to_edit,
+            "kind": HIDDEN_EVENT_NO_ORDINAL_KIND,
+            "ordinal": "",
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
+            "shown_in_calendar": False,
+            'submit': ['']
+        }
+        resp = self.c.post(
+            reverse("relate-edit_calendar", args=[self.course.identifier]),
+            post_data
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertMessageContains(resp, MSG_EVENT_UPDATED)
+        self.assertTotalEventsCountEqual(N_TEST_EVENTS)
+
     def test_instructor_calendar_edit_update_non_exist_id_to_edit_failure(self):
         self.c.force_login(self.instructor_participation.user)
         id_to_edit = 1000  # forgive me
@@ -331,7 +457,7 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             "existing_event_to_save": id_to_edit,
             "kind": SHOWN_EVENT_KIND,
             "ordinal": 1000,
-            "time": "2017-09-14 17:14",  # forgive me
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
             "shown_in_calendar": True,
             'submit': ['']
         }
@@ -341,34 +467,12 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
         )
         self.assertEqual(resp.status_code, 404)
 
-    def test_instructor_calendar_edit_update_overwrite_exist_id_failure(self):
-        # Failure to update an existing event to overwrite and existing event
-        self.c.force_login(self.instructor_participation.user)
-        event_to_edit = Event.objects.filter(kind=HIDDEN_EVENT_KIND).first()
-        id_to_edit = event_to_edit.id  # forgive me
-        post_data = {
-            "existing_event_to_save": id_to_edit,
-            "kind": HIDDEN_EVENT_NO_ORDINAL,
-            "ordinal": "",
-            "time": "2017-09-14 17:14",  # forgive me
-            "shown_in_calendar": False,
-            'submit': ['']
-        }
-        resp = self.c.post(
-            reverse("relate-edit_calendar", args=[self.course.identifier]),
-            post_data
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, MSG_PREFIX_EVENT_ALREAD_EXIST_FAILURE_MSG)
-        self.assertContains(resp, MSG_EVENT_NOT_UPDATED)
-        self.assertTotalEventsCountEqual(N_TEST_EVENTS)
-
     def test_no_pperm_edit_event_post_create_fail(self):
         self.c.force_login(self.student_participation.user)
         post_data = {
             "kind": FAILURE_EVENT_KIND,
             "ordinal": "1",
-            "time": "2017-09-14 17:14",  # forgive me
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
             "shown_in_calendar": True,
             'submit': ['']
         }
@@ -412,7 +516,7 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             "existing_event_to_save": id_to_edit,
             "kind": FAILURE_EVENT_KIND,
             "ordinal": 1000,
-            "time": "2017-09-14 17:14",  # forgive me
+            "time": now().strftime(DATE_TIME_PICKER_TIME_FORMAT),
             "shown_in_calendar": True,
             'submit': ['']
         }

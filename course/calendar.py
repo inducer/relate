@@ -452,10 +452,19 @@ def edit_calendar(pctx):
             event_to_delete = get_object_or_404(Event,
                 id=request.POST['id_to_delete'])
             default_date = event_to_delete.time.date()
-            with transaction.atomic():
-                event_to_delete.delete()
-            messages.add_message(request, messages.SUCCESS,
-                            _("Event deleted."))
+            try:
+                with transaction.atomic():
+                    event_to_delete.delete()
+                messages.add_message(request, messages.SUCCESS,
+                                _("Event deleted."))
+            except Exception as e:
+                messages.add_message(request, messages.ERROR,
+                                     string_concat(
+                                         _("No event deleted"),
+                                         ": %(err_type)s: %(err_str)s")
+                                     % {
+                                         "err_type": type(e).__name__,
+                                         "err_str": str(e)})
 
         elif 'id_to_edit' in request.POST:
             id_to_edit = request.POST['id_to_edit']
@@ -466,8 +475,9 @@ def edit_calendar(pctx):
 
         else:
             init_event = Event(course=pctx.course)
+            is_editing_existing_event = 'existing_event_to_save' in request.POST
 
-            if 'existing_event_to_save' in request.POST:
+            if is_editing_existing_event:
                 init_event = get_object_or_404(Event,
                     id=request.POST['existing_event_to_save'])
             form_event = EditEventForm(request.POST, instance=init_event)
@@ -478,36 +488,30 @@ def edit_calendar(pctx):
                 try:
                     with transaction.atomic():
                         form_event.save()
-                except IntegrityError:
-                    if ordinal is not None:
-                        ordinal = str(int(ordinal))
-                    else:
-                        ordinal = _("(no ordinal)")
-                    e = EventAlreadyExists(
-                        _("'%(event_kind)s %(event_ordinal)s' already exists")
-                        % {'event_kind': kind,
-                           'event_ordinal': ordinal})
-                    if 'existing_event_to_save' in request.POST:
+                except Exception as e:
+                    if isinstance(e, IntegrityError):
+                        if ordinal is not None:
+                            ordinal = str(int(ordinal))
+                        else:
+                            ordinal = _("(no ordinal)")
+                        e = EventAlreadyExists(
+                            _("'%(event_kind)s %(event_ordinal)s' already exists")
+                            % {'event_kind': kind,
+                               'event_ordinal': ordinal})
+
+                    if is_editing_existing_event:
                         msg = _("Event not updated.")
                     else:
                         msg = _("No event created.")
-                    messages.add_message(request, messages.ERROR,
-                                string_concat(
-                                    "%(err_type)s: %(err_str)s. ",
-                                    msg)
-                                % {
-                                    "err_type": type(e).__name__,
-                                    "err_str": str(e)})
-                except Exception as e:
+
                     messages.add_message(request, messages.ERROR,
                             string_concat(
-                                "%(err_type)s: %(err_str)s. ",
-                                _("No event created."))
+                                "%(err_type)s: %(err_str)s. ", msg)
                             % {
                                 "err_type": type(e).__name__,
                                 "err_str": str(e)})
                 else:
-                    if 'existing_event_to_save' in request.POST:
+                    if is_editing_existing_event:
                         messages.add_message(request, messages.SUCCESS,
                                 _("Event updated."))
                     else:
