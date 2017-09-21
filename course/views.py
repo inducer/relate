@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, List
+
 import datetime
 
 from django.shortcuts import (  # noqa
@@ -83,7 +85,7 @@ from course.utils import (  # noqa
 # {{{ for mypy
 
 if False:
-    from typing import Tuple, List, Text, Optional, Any, Iterable, Dict  # noqa
+    from typing import Tuple, Text, Any, Iterable, Dict, Optional  # noqa
 
     from course.content import (  # noqa
         FlowDesc,
@@ -252,8 +254,9 @@ def media_etag_func(request, course_identifier, commit_sha, media_path):
 def get_media(request, course_identifier, commit_sha, media_path):
     course = get_object_or_404(Course, identifier=course_identifier)
 
-    repo = get_course_repo(course)
-    return get_repo_file_response(repo, "media/" + media_path, commit_sha.encode())
+    with get_course_repo(course) as repo:
+        return get_repo_file_response(
+            repo, "media/" + media_path, commit_sha.encode())
 
 
 def repo_file_etag_func(request, course_identifier, commit_sha, path):
@@ -320,9 +323,6 @@ def get_repo_file_backend(
     # check to see if the course is hidden
     check_course_state(course, participation)
 
-    # retrieve local path for the repo for the course
-    repo = get_course_repo(course)
-
     # set access to public (or unenrolled), student, etc
     if request.relate_exam_lockdown:
         access_kinds = ["in_exam"]
@@ -335,10 +335,13 @@ def get_repo_file_backend(
                 and arg is not None]
 
     from course.content import is_repo_file_accessible_as
-    if not is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
-        raise PermissionDenied()
 
-    return get_repo_file_response(repo, path, commit_sha)
+    # retrieve local path for the repo for the course
+    with get_course_repo(course) as repo:
+        if not is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
+            raise PermissionDenied()
+
+        return get_repo_file_response(repo, path, commit_sha)
 
 
 def get_repo_file_response(repo, path, commit_sha):
@@ -1130,9 +1133,14 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             flow_desc = get_flow_desc(pctx.repo,
                     pctx.course,
                     flow_id, pctx.course_commit_sha)
-            tags = None
+
+            tags = []  # type: List[Text]
             if hasattr(flow_desc, "rules"):
-                tags = getattr(flow_desc.rules, "tags", None)
+                try:
+                    from typing import Text  # noqa
+                except ImportError:
+                    Text = None  # noqa
+                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))  # type: ignore  # noqa
 
             # {{{ put together access rule
 

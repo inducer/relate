@@ -61,8 +61,9 @@ from course.page.base import AnswerFeedback
 # {{{ mypy
 
 if False:
-    from typing import List, Dict, Any, Optional, Text, Iterable  # noqa  # noqa
+    from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet  # noqa
     from course.content import FlowDesc  # noqa
+    import datetime # noqa
 
 # }}}
 
@@ -290,6 +291,16 @@ class Event(models.Model):
         else:
             return self.kind
 
+    def save(self, *args, **kwargs):
+        # When ordinal is Null, unique_together failed to identify duplicate entries
+        if not self.ordinal:
+            object_exist = bool(
+                Event.objects.filter(kind=self.kind, ordinal__isnull=True).count())
+            if object_exist:
+                from django.db import IntegrityError
+                raise IntegrityError()
+        super(Event, self).save(*args, **kwargs)
+
     if six.PY3:
         __str__ = __unicode__
 
@@ -468,11 +479,13 @@ class Participation(models.Model):
 
     # {{{ permissions handling
 
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
     def permissions(self):
-        try:
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+
+        if self._permissions_cache is not None:
             return self._permissions_cache
-        except AttributeError:
-            pass
 
         perm = (
                 list(
@@ -486,14 +499,15 @@ class Participation(models.Model):
                         participation=self)
                     .values_list("permission", "argument")))
 
-        perm = frozenset(
+        fset_perm = frozenset(
                 (permission, argument) if argument else (permission, None)
                 for permission, argument in perm)
 
-        self._permissions_cache = perm
-        return perm
+        self._permissions_cache = fset_perm
+        return fset_perm
 
     def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
         return (perm, argument) in self.permissions()
 
     # }}}
@@ -793,7 +807,7 @@ class FlowSession(models.Model):
         __str__ = __unicode__
 
     def append_comment(self, s):
-        # type: (Text) -> None
+        # type: (Optional[Text]) -> None
         if s is None:
             return
 
@@ -816,6 +830,7 @@ class FlowSession(models.Model):
         return assemble_answer_visits(self)
 
     def last_activity(self):
+        # type: () -> Optional[datetime.datetime]
         for visit in (FlowPageVisit.objects
                 .filter(
                     flow_session=self,
@@ -1280,16 +1295,16 @@ class FlowRuleException(models.Model):
         from relate.utils import dict_to_struct
         rule = dict_to_struct(self.rule)
 
-        repo = get_course_repo(self.participation.course)
-        commit_sha = get_course_commit_sha(
-                self.participation.course, self.participation)
-        ctx = ValidationContext(
-                repo=repo,
-                commit_sha=commit_sha)
+        with get_course_repo(self.participation.course) as repo:
+            commit_sha = get_course_commit_sha(
+                    self.participation.course, self.participation)
+            ctx = ValidationContext(
+                    repo=repo,
+                    commit_sha=commit_sha)
 
-        flow_desc = get_flow_desc(repo,
-                self.participation.course,
-                self.flow_id, commit_sha)
+            flow_desc = get_flow_desc(repo,
+                    self.participation.course,
+                    self.flow_id, commit_sha)
 
         tags = None
         grade_identifier = None

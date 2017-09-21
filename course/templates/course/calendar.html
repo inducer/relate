@@ -8,41 +8,45 @@
   {% trans "Calendar" %} - {% trans "RELATE" %}
 {% endblock %}
 
-{%block header_extra %}
+{% block header_extra %}
   <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}' />
   <script src='{% static "moment/moment.js" %}'></script>
   <script src='{% static "fullcalendar/dist/fullcalendar.js" %}'></script>
   {# load calendar with local language #}
   {% get_current_language as LANGUAGE_CODE %}
   <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE }}.js'></script>
+  {% if edit_view %}
+    <script type="text/javascript" src='{%static "eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js" %}'></script>
+    <link rel="stylesheet" href='{% static "eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" %}' />
+  {% endif %}
 {% endblock %}
 
 {% block content %}
   <h1>{{ course.number}} {% trans "Calendar" %}</h1>
-
+  {% if pperm.edit_events %}
+    <div>
+      <a
+          {% if edit_view %}
+            href="{% url "relate-view_calendar" course.identifier %}"
+          {% else %}
+            href="{% url "relate-edit_calendar" course.identifier %}"
+          {% endif %}
+          type="button" class="btn btn-primary">
+        {% if edit_view %}
+          {% trans "Switch to Student View" %}
+        {% else %}
+          {% trans "Switch to Edit View" %}
+        {% endif %}
+      </a>
+      {% if edit_view %}
+        <button id="create-new-event" type="button" class="btn btn-danger btn-md" data-toggle="modal" data-target="#editModal" onclick="remove_event_id_field();" title="create a new event">{% trans "Create a new event" %}</button>
+      {% endif %}
+    </div>
+  {% endif %}
   <div id="coursecal" style="margin-top:3em"></div>
 
+  <b>{% trans "Note" %}:</b> {% if edit_view %}{% trans "Different from the students' calendar, this calender shows <b>all</b> events. " %}{% endif %}{% trans "Some calendar entries are clickable and link to entries below." %}
 
-  <script type="text/javascript">
-    $(document).ready(function() {
-        $('#coursecal').fullCalendar({
-          header: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'month,agendaWeek,agendaDay'
-          },
-          defaultDate: '{{ default_date }}',
-          timezone: "local",
-
-          events: {{ events_json|safe }}
-        })
-    });
-  </script>
-
-{% blocktrans trimmed %}
-  <b>Note:</b> Some calendar entries are clickable and link to entries
-  below.
-{% endblocktrans %}
 
   <div style="margin-top:3ex">
   {% for event_info in event_info_list %}
@@ -58,5 +62,102 @@
   {% endfor%}
   </div>
 
+  {% if edit_view %}
+    <div id="editModal" class="modal fade" role="dialog">
+      <div class="modal-dialog"  style="width:800px">
+        <form method="POST" class="form-horizontal">
+          <div class="modal-content">
+            <div class="modal-body">
+              <br>
+              {% load crispy_forms_tags %}
+              {% if form_description %}
+                <h1>{{ form_description }}</h1>
+              {% endif %}
+              {{ form_text|safe }}
+              {% if form %}
+                {% crispy form %}
+              {% endif %}
+              {% if forms %}
+                {% for sub_form in forms %}
+                  <div class="well">
+                    {% crispy sub_form %}
+                  </div>
+                {% endfor %}
+              {% endif %}
+              {% if edit_existing_event_flag %}
+                <input type="hidden" name="existing_event_to_save" id="existing_event_to_save" value='{{id_to_edit}}' readonly>
+              {% endif %}
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-md btn-default" data-dismiss="modal" type="button">{% trans "Cancel" %}</button>
+              <button class="btn btn-md btn-success" type="submit">{% trans "Save" %}</button>
+            </div>
+        </form>
+      </div>
+    </div>
+    </div>
+    <form method='post' name='existing_event_edit_form'>
+      {% csrf_token %}
+      <input type='Hidden' name='id_to_edit' id="id_to_edit" value=''>
+    </form>
+    <form method='post' name='existing_event_delete_form'>
+      {% csrf_token %}
+      <input type='Hidden' name='id_to_delete' id="id_to_delete" value=''>
+    </form>
+  {% endif %}
 {% endblock %}
 
+{% block page_bottom_javascript_extra %}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $('#coursecal').fullCalendar({
+        header: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'month,agendaWeek,agendaDay'
+        },
+        defaultDate: '{{ default_date }}',
+        timezone: "local",
+        events: {{ events_json|safe }},
+        {% if edit_view %}
+          eventRender: function(event, element) {
+            element.find('.fc-title').append( '<span class="glyphicon glyphicon-remove-circle" style="float:right;cursor:pointer" id="remove" title="{% trans 'Remove this event'%}"></span>');
+            element.find('.fc-title').append( '<span class="glyphicon glyphicon-pencil" style="float:right; cursor:pointer" id="edit" title="{% trans 'Edit this event'%}"> </span>');
+            element.find("#edit").click(function() {
+              edit_existing_event(event.id);
+            });
+            element.find("#remove").click(function() {
+              delete_existing_event(event.id);
+            })
+          }
+        {% endif %}
+      });
+      {% if edit_view %}
+        {% if edit_existing_event_flag %}
+          $('#editModal').modal('show');
+        {% endif %}
+      {% endif %}
+    });
+
+    $(function () {
+      $('#start_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
+      $('#end_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
+    });
+
+    function edit_existing_event(event_id) {
+      $('#id_to_edit').val(event_id);
+      document.existing_event_edit_form.submit();
+    }
+
+    function delete_existing_event(event_id) {
+      $('#id_to_delete').val(event_id);
+      document.existing_event_delete_form.submit();
+    }
+
+    function remove_event_id_field() {
+      $('#existing_event_to_save').remove()
+    }
+
+  </script>
+  {{ block.super }}
+{% endblock %}

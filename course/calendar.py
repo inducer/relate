@@ -411,6 +411,7 @@ def view_calendar(pctx):
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
         "default_date": default_date.isoformat(),
+        "edit_view": False
     })
 
 
@@ -418,9 +419,9 @@ class EditEventForm(StyledModelForm):
     class Meta:
         model = Event
         fields = ['kind', 'ordinal', 'time',
-                    'end_time', 'all_day', 'shown_in_calendar']
+                  'end_time', 'all_day', 'shown_in_calendar']
         help_texts = {
-                'shown_in_calendar': ('Shown in students\' calendar')
+            'shown_in_calendar': ('Shown in students\' calendar')
         }
 
     def __init__(self, *args, **kwargs):
@@ -432,14 +433,13 @@ class EditEventForm(StyledModelForm):
 @login_required
 @course_view
 def edit_calendar(pctx):
+    if not pctx.has_permission(pperm.edit_events):
+        raise PermissionDenied(_("may not edit events"))
+
     from course.content import markup_to_html, parse_date_spec
 
     from course.views import get_now_or_fake_time
     now = get_now_or_fake_time(pctx.request)
-
-    if not pctx.has_permission(pperm.edit_events):
-        raise PermissionDenied(_("may not edit events"))
-
     request = pctx.request
 
     edit_existing_event_flag = False
@@ -452,7 +452,8 @@ def edit_calendar(pctx):
             event_to_delete = get_object_or_404(Event,
                 id=request.POST['id_to_delete'])
             default_date = event_to_delete.time
-            event_to_delete.delete()
+            with transaction.atomic():
+                event_to_delete.delete()
             messages.add_message(request, messages.SUCCESS,
                             _("Event deleted."))
 
@@ -475,16 +476,25 @@ def edit_calendar(pctx):
                 kind = form_event.cleaned_data['kind']
                 ordinal = form_event.cleaned_data['ordinal']
                 try:
-                    form_event.save()
+                    with transaction.atomic():
+                        form_event.save()
                 except IntegrityError:
+                    if ordinal is not None:
+                        ordinal = str(int(ordinal))
+                    else:
+                        ordinal = _("(no ordinal)")
                     e = EventAlreadyExists(
-                        _("'%(event_kind)s %(event_ordinal)d' already exists") %
-                        {'event_kind': kind,
-                        'event_ordinal': ordinal})
+                        _("'%(event_kind)s %(event_ordinal)s' already exists")
+                        % {'event_kind': kind,
+                           'event_ordinal': ordinal})
+                    if 'existing_event_to_save' in request.POST:
+                        msg = _("Event not updated.")
+                    else:
+                        msg = _("No event created.")
                     messages.add_message(request, messages.ERROR,
                                 string_concat(
                                     "%(err_type)s: %(err_str)s. ",
-                                    _("No event created."))
+                                    msg)
                                 % {
                                     "err_type": type(e).__name__,
                                     "err_str": str(e)})
@@ -609,13 +619,14 @@ def edit_calendar(pctx):
         default_date = pctx.course.end_date
 
     from json import dumps
-    return render_course_page(pctx, "course/calender_edit.html", {
+    return render_course_page(pctx, "course/calendar.html", {
         "form": edit_event_form,
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
         "default_date": default_date.isoformat(),
         "edit_existing_event_flag": edit_existing_event_flag,
         "id_to_edit": id_to_edit,
+        "edit_view": True
     })
 
 # }}}

@@ -56,7 +56,7 @@ INSTALLED_APPS = (
     "course",
 )
 
-if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
+if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
 
 # }}}
@@ -89,7 +89,7 @@ AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     )
 
-if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
+if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
             'course.auth.Saml2Backend',
             )
@@ -287,13 +287,5 @@ SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
 SAML_CREATE_UNKNOWN_USER = True
 
 # }}}
-
-# This makes sure the RELATE_BASE_URL is configured.
-assert local_settings["RELATE_BASE_URL"]
-
-# This makes sure RELATE_EMAIL_APPELATION_PRIORITY_LIST is a list
-if "RELATE_EMAIL_APPELATION_PRIORITY_LIST" in local_settings:
-    assert isinstance(
-        local_settings["RELATE_EMAIL_APPELATION_PRIORITY_LIST"], list)
 
 # vim: foldmethod=marker
