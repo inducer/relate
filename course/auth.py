@@ -52,6 +52,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django import http  # noqa
 
+from bootstrap3_datetime.widgets import DateTimePicker
+
 from djangosaml2.backends import Saml2Backend as Saml2BackendBase
 
 from course.constants import (
@@ -59,8 +61,9 @@ from course.constants import (
         participation_status,
         participation_permission as pperm,
         )
-from course.models import Participation, AuthenticationToken  # noqa
+from course.models import Participation, ParticipationRole, AuthenticationToken  # noqa
 from accounts.models import User
+from course.utils import render_course_page, course_view
 
 from relate.utils import StyledForm, StyledModelForm, string_concat
 from django_select2.forms import ModelSelect2Widget
@@ -1083,27 +1086,39 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
 # {{{ API auth
 
-def find_matching_token(token_id=None, token_hash_str=None, now_datetime=None):
+class APIError(Exception):
+    pass
+
+
+def find_matching_token(
+        course_identifier=None, token_id=None, token_hash_str=None,
+        now_datetime=None):
     try:
-        token = AuthenticationToken().objects.get(id=token_id)
+        token = AuthenticationToken.objects.get(
+                id=token_id,
+                participation__course__identifier=course_identifier)
     except AuthenticationToken.DoesNotExist:
         return None
 
     from django.contrib.auth.hashers import check_password
-    if not check_password(token, token_hash_str):
+    if not check_password(token_hash_str, token.token_hash):
         return None
 
     if token.revocation_time is not None:
         return None
-    if now_datetime > token.valid_until:
+    if token.valid_until is not None and now_datetime > token.valid_until:
         return None
 
     return token
 
 
 class APIBearerTokenBackend(object):
-    def authenticate(self, token_id=None, token_hash_str=None, now_datetime=None):
-        token = find_matching_token(token_id, token_hash_str, now_datetime)
+    def authenticate(self, course_identifier=None, token_id=None,
+            token_hash_str=None, now_datetime=None):
+        token = find_matching_token(course_identifier, token_id, token_hash_str,
+                now_datetime)
+        if token is None:
+            return None
 
         token.last_use_time = now_datetime
         token.save()
@@ -1120,36 +1135,79 @@ class APIBearerTokenBackend(object):
 AUTH_HEADER_RE = re.compile("^Token ([0-9]+)_([a-z0-9]+)$")
 
 
+class APIContext(object):
+    def __init__(self, request, token):
+        self.request = request
+
+        self.token = token
+        self.participation = token.participation
+        self.course = self.participation.course
+
+        restrict_to_role = token.restrict_to_participation_role
+        if restrict_to_role is not None:
+            role_restriction_ok = False
+
+            if restrict_to_role in token.participation.roles.all():
+                role_restriction_ok = True
+
+            if not role_restriction_ok and self.participation.has_permission(
+                    pperm.impersonate_role, restrict_to_role.identifier):
+                role_restriction_ok = True
+
+            if not role_restriction_ok:
+                raise PermissionDenied(
+                        "API token specifies invalid role restriction")
+
+        self.restrict_to_role = restrict_to_role
+
+    def has_permission(self, perm, argument=None):
+        if self.restrict_to_role is None:
+            return self.participation.has_permission(perm, argument)
+        else:
+            return self.restrict_to_role.has_permission(perm, argument)
+
+
 def with_course_api_auth(f):
     def wrapper(request, course_identifier, *args, **kwargs):
         from django.utils.timezone import now
         now_datetime = now()
 
-        auth_header = request.META.get("AUTHORIZATION", None)
+        try:
+            auth_header = request.META.get("HTTP_AUTHORIZATION", None)
+            if auth_header is None:
+                raise PermissionDenied("No Authorization header provided")
 
-        match = AUTH_HEADER_RE.match(auth_header)
-        if match is None:
-            raise PermissionDenied("ill-formed Authorization header")
+            match = AUTH_HEADER_RE.match(auth_header)
+            if match is None:
+                raise PermissionDenied("ill-formed Authorization header")
 
-        auth_data = dict(
-                token_id=int(AUTH_HEADER_RE.group(1)),
-                token_hash_str=AUTH_HEADER_RE.group(2),
-                now_datetime=now_datetime)
+            auth_data = dict(
+                    course_identifier=course_identifier,
+                    token_id=int(match.group(1)),
+                    token_hash_str=match.group(2),
+                    now_datetime=now_datetime)
 
-        # FIXME: Redundant db roundtrip
-        token = find_matching_token(**auth_data)
+            # FIXME: Redundant db roundtrip
+            token = find_matching_token(**auth_data)
+            if token is None:
+                raise PermissionDenied("invalid authentication token")
 
-        from django.contrib.auth import authenticate, login
-        user = authenticate(**auth_data)
+            from django.contrib.auth import authenticate, login
+            user = authenticate(**auth_data)
 
-        assert user is not None
+            assert user is not None
 
-        login(request, user)
+            login(request, user)
 
-        response = f(
-                token.participation,
-                token.restrict_to_participation_role,
-                *args, **kwargs)
+            response = f(
+                    APIContext(request, token),
+                    course_identifier, *args, **kwargs)
+        except PermissionDenied as e:
+            return http.HttpResponseForbidden(
+                    "403 Forbidden: " + str(e))
+        except APIError as e:
+            return http.HttpResponseBadRequest(
+                    "400 Bad Request: " + str(e))
 
         return response
 
@@ -1172,38 +1230,98 @@ class AuthenticationTokenForm(StyledModelForm):
                 "valid_until",
                 )
 
-    def __init__(self, *args, **kwargs):
+        widgets = {
+                "valid_until": DateTimePicker(options={"format": "YYYY-MM-DD"})
+                }
+
+    def __init__(self, participation, *args, **kwargs):
         # type: (*Any, **Any) -> None
         super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
+        self.participation = participation
+
+        self.fields["restrict_to_participation_role"].queryset = (
+                participation.roles.all()
+                | ParticipationRole.objects.filter(
+                    id__in=[
+                        prole.id
+                        for prole in ParticipationRole.objects.filter(
+                            course=participation.course)
+                        if participation.has_permission(
+                            pperm.impersonate_role, prole.identifier)
+                    ]))
 
         self.helper.add_input(Submit("create", _("Create")))
 
 
-def manage_authentication_tokens(request):
+@course_view
+def manage_authentication_tokens(pctx):
     # type: (http.HttpRequest) -> http.HttpResponse
+
+    request = pctx.request
+
     if not request.user.is_authenticated:
         raise PermissionDenied()
 
-    if request.method == 'POST':
-        form = AuthenticationTokenForm(request.POST)
-        if form.is_valid():
-            token = make_sign_in_key(request.user)
-            from django.contrib.auth.hashers import make_password
-            request.user.git_auth_token_hash = make_password(token)
-            request.user.save()
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(request)
 
-            messages.add_message(request, messages.SUCCESS,
-                    _("A new authentication token has been set: %s.")
-                    % token)
+    if request.method == 'POST':
+        form = AuthenticationTokenForm(pctx.participation, request.POST)
+
+        revoke_prefix = "revoke_"
+        revoke_post_args = [key for key in request.POST if key.startswith("revoke_")]
+
+        if revoke_post_args:
+            token_id = int(revoke_post_args[0][len(revoke_prefix):])
+
+            auth_token = get_object_or_404(AuthenticationToken,
+                    id=token_id,
+                    user=request.user)
+
+            auth_token.revocation_time = now_datetime
+            auth_token.save()
+
+            form = AuthenticationTokenForm(pctx.participation)
+
+        elif "create" in request.POST:
+            if form.is_valid():
+                token = make_sign_in_key(request.user)
+
+                from django.contrib.auth.hashers import make_password
+                auth_token = AuthenticationToken(
+                        user=pctx.request.user,
+                        participation=pctx.participation,
+                        restrict_to_participation_role=form.cleaned_data[
+                            "restrict_to_participation_role"],
+                        description=form.cleaned_data["description"],
+                        valid_until=form.cleaned_data["valid_until"],
+                        token_hash=make_password(token))
+                auth_token.save()
+
+                user_token = "%d_%s" % (auth_token.id, token)
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("A new authentication token has been created: %s. "
+                            "Please save this token, as you will not be able "
+                            "to retrieve it later.")
+                        % user_token)
+        else:
+            messages.add_message(request, messages.ERROR,
+                    _("Could not find which button was pressed."))
 
     else:
-        form = AuthenticationTokenForm()
+        form = AuthenticationTokenForm(pctx.participation)
 
+    from django.db.models import Q
+
+    from datetime import timedelta
     tokens = AuthenticationToken.objects.filter(
             user=request.user,
-            revocation_time=None)
+            ).filter(
+                Q(revocation_time=None)
+                | Q(revocation_time__gt=now_datetime - timedelta(weeks=1)))
 
-    return render(request, "course/manage-auth-tokens.html", {
+    return render_course_page(pctx, "course/manage-auth-tokens.html", {
         "form": form,
         "new_token_message": "",
         "tokens": tokens,

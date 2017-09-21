@@ -40,6 +40,7 @@ import course.versioning
 import course.flow
 import course.analytics
 import course.exam
+import course.api
 
 urlpatterns = [
     url(r"^login/$",
@@ -80,8 +81,11 @@ urlpatterns = [
     url(r"^profile/$",
         course.auth.user_profile,
         name="relate-user_profile"),
-    url(r"^profile/auth-token/$",
-        course.auth.manage_authentication_token,
+    url(
+        r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/auth-tokens/$",
+        course.auth.manage_authentication_tokens,
         name="relate-manage_authentication_tokens"),
 
     url(r"^generate-ssh-key/$",
@@ -534,9 +538,9 @@ urlpatterns = [
 
     url(r"^course"
         "/" + COURSE_ID_REGEX +
-        "/api/get-submissions$",
-        course.api.get_submission_data,
-        name="relate-course_get_submissions"),
+        "/api/v1/get-flow-sessions$",
+        course.api.get_flow_sessions,
+        name="relate-course_get_flow_session"),
 
     url(r'^admin/', admin.site.urls),
 ]

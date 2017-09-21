@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "course/course-base.html" %}
 {% load i18n %}
 
 {% load crispy_forms_tags %}
@@ -13,7 +13,9 @@
   {{ new_token_message }}
 
   {% if not tokens %}
-    {% trans "(No tokens have been created yet.)" %}
+    <div class="well">
+      {% trans "(No tokens have been created yet.)" %}
+    </div>
   {% else %}
     <form method="POST">
     <table class="table table-condensed">
@@ -29,16 +31,39 @@
       <tbody>
         {% for token in tokens %}
           <tr>
-            <td>{{ token.id }}</td>
-            <td>{{ token.restrict_to_participation_role }}}</td>
-            <td>{{ token.description}}</td>
+            <td>
+              {% if token.revocation_time %}
+                <s>{{ token.id }}</s>
+              {% else %}
+                {{ token.id }}
+              {% endif %}
+            </td>
+            <td>{{ token.restrict_to_participation_role }}</td>
+            <td>
+              {% if token.revocation_time %}
+                <s>{{ token.description }}</s>
+              {% else %}
+                {{ token.description }}
+              {% endif %}
+            </td>
             <td>{{ token.creation_time }}</td>
-            <td>{{ token.valid_until }}</td>
+            {% if token.revocation_time != None %}
+              <td>{% trans "Revoked" %} {{ token.revocation_time }}</td>
+            {% elif token.valid_until == None %}
+              <td>{% trans "Indefinitely" %}</td>
+            {% else %}
+              <td>{{ token.valid_until }}</td>
+            {% endif %}
             <td>{{ token.last_used }}</td>
             <td>
-              <button class="btn btn-danger" id="revoke_{{ token.id }}">
-                Revoke
-              </button>
+              {% if token.revocation_time == None %}
+                <form method="POST">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-xs" name="revoke_{{ token.id }}">
+                    Revoke
+                  </button>
+                </form>
+              {% endif %}
             </td>
           </tr>
         {% endfor %}
