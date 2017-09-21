@@ -1235,7 +1235,7 @@ class AuthenticationTokenForm(StyledModelForm):
                 }
 
     def __init__(self, participation, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+        # type: (Participation, *Any, **Any) -> None
         super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
         self.participation = participation
 

@@ -25,13 +25,12 @@ THE SOFTWARE.
 """
 
 from django import http
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import PermissionDenied
 
 from course.auth import with_course_api_auth, APIError
 from course.constants import (
         participation_permission as pperm,
         )
-import json
 
 from course.models import FlowSession
 
