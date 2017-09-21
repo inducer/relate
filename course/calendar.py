@@ -451,7 +451,7 @@ def edit_calendar(pctx):
         if 'id_to_delete' in request.POST:
             event_to_delete = get_object_or_404(Event,
                 id=request.POST['id_to_delete'])
-            default_date = event_to_delete.time
+            default_date = event_to_delete.time.date()
             with transaction.atomic():
                 event_to_delete.delete()
             messages.add_message(request, messages.SUCCESS,
@@ -513,7 +513,7 @@ def edit_calendar(pctx):
                     else:
                         messages.add_message(request, messages.SUCCESS,
                                 _("Event created."))
-                default_date = form_event.cleaned_data['time']
+                default_date = form_event.cleaned_data['time'].date()
     events_json = []
 
     from course.content import get_raw_yaml_from_repo
