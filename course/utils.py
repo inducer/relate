@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Text
+from typing import cast
 
 import six
 import datetime  # noqa
@@ -58,7 +58,8 @@ from course.page.base import (  # noqa
 # {{{ mypy
 
 if False:
-    from typing import Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet  # noqa
+    from typing import (  # noqa
+        Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text)
     from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,
@@ -532,9 +533,16 @@ def get_session_grading_rule(
         max_points_enforced_cap = getattr_with_fallback(
                 (rule, flow_desc), "max_points_enforced_cap", None)
 
+        try:
+            from typing import Text  # noqa
+        except ImportError:
+            Text = None  # noqa
+
+        grade_aggregation_strategy = cast(Text, grade_aggregation_strategy)  # type: ignore  # noqa
+
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
-                grade_aggregation_strategy=cast(Text, grade_aggregation_strategy),
+                grade_aggregation_strategy=grade_aggregation_strategy,
                 due=due,
                 generates_grade=generates_grade,
                 description=getattr(rule, "description", None),
@@ -1079,6 +1087,7 @@ def will_use_masked_profile_for_email(recipient_email):
         return False
     if not isinstance(recipient_email, list):
         recipient_email = [recipient_email]
+    from course.models import Participation  # noqa
     recepient_participations = (
         Participation.objects.filter(
             user__email__in=recipient_email

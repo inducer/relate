@@ -25,10 +25,10 @@ THE SOFTWARE.
 import os
 from django.conf import settings
 from django.test import Client
-from django.urls import reverse
+from django.urls import reverse, resolve
 from django.contrib.auth import get_user_model
 from relate.utils import force_remove_path
-from course.models import Course, Participation, ParticipationRole
+from course.models import Course, Participation, ParticipationRole, FlowSession
 from course.constants import participation_status
 
 CREATE_SUPERUSER_KWARGS = {
@@ -248,3 +248,73 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
     @classmethod
     def tearDownClass(cls):
         super(SingleCourseTestMixin, cls).tearDownClass()
+
+
+class SingleCoursePageTestMixin(SingleCourseTestMixin):
+    @property
+    def flow_id(self):
+        raise NotImplementedError
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(SingleCoursePageTestMixin, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_quiz(cls.flow_id)
+
+    @classmethod
+    def start_quiz(cls, flow_id):
+        existing_quiz_count = FlowSession.objects.all().count()
+        params = {"course_identifier": cls.course.identifier,
+                  "flow_id": flow_id}
+        resp = cls.c.post(reverse("relate-view_start_flow", kwargs=params))
+        assert resp.status_code == 302
+        new_quiz_count = FlowSession.objects.all().count()
+        assert new_quiz_count == existing_quiz_count + 1
+
+        # Yep, no regax!
+        _, _, kwargs = resolve(resp.url)
+        # Should be in correct course
+        assert kwargs["course_identifier"] == cls.course.identifier
+        # Should redirect us to welcome page
+        assert int(kwargs["ordinal"]) == 0
+        cls.page_params = kwargs
+
+    @classmethod
+    def end_quiz(cls):
+        from copy import deepcopy
+        page_params = deepcopy(cls.page_params)
+        del page_params["ordinal"]
+        resp = cls.c.post(reverse("relate-finish_flow_session_view",
+                                  kwargs=page_params), {'submit': ['']})
+        return resp
+
+    @classmethod
+    def get_ordinal_via_page_id(cls, page_id):
+        from course.models import FlowPageData
+        flow_page_data = FlowPageData.objects.get(
+            flow_session__id=cls.page_params["flow_session_id"],
+            page_id=page_id
+        )
+        return flow_page_data.ordinal
+
+    @classmethod
+    def client_post_answer_by_page_id(cls, page_id, answer_data):
+        page_ordinal = cls.get_ordinal_via_page_id(page_id)
+        return cls.client_post_answer_by_ordinal(page_ordinal, answer_data)
+
+    @classmethod
+    def client_post_answer_by_ordinal(cls, page_ordinal, answer_data):
+        from copy import deepcopy
+        page_params = deepcopy(cls.page_params)
+        page_params.update({"ordinal": str(page_ordinal)})
+        submit_data = answer_data
+        submit_data.update({"submit": ["Submit final answer"]})
+        resp = cls.c.post(
+            reverse("relate-view_flow_page", kwargs=page_params),
+            submit_data)
+        return resp
+
+    def assertSessionScoreEqual(self, expect_score):  # noqa
+        from decimal import Decimal
+        self.assertEqual(FlowSession.objects.all()[0].points,
+                                                Decimal(str(expect_score)))
