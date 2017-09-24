@@ -235,7 +235,9 @@ class Course(models.Model):
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
             return self.from_email
         else:
-            return settings.DEFAULT_FROM_EMAIL
+            return getattr(
+                settings, "NOTIFICATION_EMAIL_FROM",
+                settings.ROBOT_EMAIL_FROM)
 
     def get_reply_to_email(self):
         # this functionality need more fields in Course model,
