@@ -15,10 +15,6 @@
   {# load calendar with local language #}
   {% get_current_language as LANGUAGE_CODE %}
   <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE }}.js'></script>
-  {% if edit_view %}
-    <script type="text/javascript" src='{%static "eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js" %}'></script>
-    <link rel="stylesheet" href='{% static "eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" %}' />
-  {% endif %}
 {% endblock %}
 
 {% block content %}

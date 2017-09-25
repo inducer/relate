@@ -420,14 +420,10 @@ class EditEventForm(StyledModelForm):
         model = Event
         fields = ['kind', 'ordinal', 'time',
                   'end_time', 'all_day', 'shown_in_calendar']
-        help_texts = {
-            'shown_in_calendar': ('Shown in students\' calendar')
+        widgets = {
+            "time": DateTimePicker(options={"format": "YYYY-MM-DD HH:mm"}),
+            "end_time": DateTimePicker(options={"format": "YYYY-MM-DD HH:mm"}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super(EditEventForm, self).__init__(*args, **kwargs)
-        self.fields['time'].widget.attrs = {'id': 'start_time'}
-        self.fields['end_time'].widget.attrs = {'id': 'end_time'}
 
 
 @login_required

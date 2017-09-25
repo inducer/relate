@@ -277,6 +277,7 @@ class Event(models.Model):
             verbose_name=_('All day'))
 
     shown_in_calendar = models.BooleanField(default=True,
+            help_text=_("Shown in students' calendar"),
             verbose_name=_('Shown in calendar'))
 
     class Meta:
