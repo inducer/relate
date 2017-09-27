@@ -369,6 +369,32 @@ class ParticipationRole(models.Model):
             "identifier": self.identifier,
             "course": self.course}
 
+    # {{{ permissions handling
+
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
+    def permission_tuples(self):
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+
+        if self._permissions_cache is not None:
+            return self._permissions_cache
+
+        perm = list(
+                    ParticipationRolePermission.objects.filter(role=self)
+                    .values_list("permission", "argument"))
+
+        fset_perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm)
+
+        self._permissions_cache = fset_perm
+        return fset_perm
+
+    def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
+        return (perm, argument) in self.permission_tuples()
+
+    # }}}
     if six.PY3:
         __str__ = __unicode__
 
@@ -619,6 +645,7 @@ def add_default_roles_and_permissions(course,
                 argument="ta").save()
         rpm(role=role, permission=pp.edit_course_permissions).save()
         rpm(role=role, permission=pp.edit_course).save()
+        rpm(role=role, permission=pp.manage_authentication_tokens).save()
         rpm(role=role, permission=pp.access_files_for,
                 argument="instructor").save()
 
@@ -676,6 +703,43 @@ def _set_up_course_permissions(sender, instance, created, raw, using, update_fie
         **kwargs):
     if created:
         add_default_roles_and_permissions(instance)
+
+# }}}
+
+
+# {{{ auth token
+
+class AuthenticationToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
+
+    participation = models.ForeignKey(Participation,
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    restrict_to_participation_role = models.ForeignKey(ParticipationRole,
+            verbose_name=_('Restrict to role'), on_delete=models.CASCADE,
+            blank=True, null=True)
+
+    description = models.CharField(max_length=200,
+            verbose_name=_('Description'))
+
+    creation_time = models.DateTimeField(
+            default=now, verbose_name=_('Creation time'))
+    last_use_time = models.DateTimeField(
+            verbose_name=_('Last use time'),
+            blank=True, null=True)
+    valid_until = models.DateTimeField(
+            default=None, verbose_name=_('Valid until'),
+            blank=True, null=True)
+    revocation_time = models.DateTimeField(
+            default=None, verbose_name=_('Revocation time'),
+            blank=True, null=True)
+
+    token_hash = models.CharField(max_length=200,
+            help_text=_("A hash of the authentication token to be "
+                "used for direct git access."),
+            null=True, blank=True, unique=True,
+            verbose_name=_('Hash of git authentication token'))
 
 # }}}
 

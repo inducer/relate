@@ -122,12 +122,6 @@ class User(AbstractBaseUser, PermissionsMixin):
             # Translators: the text editor used by participants
             verbose_name=_("Editor mode"))
 
-    git_auth_token_hash = models.CharField(max_length=200,
-            help_text=_("A hash of the authentication token to be "
-                "used for direct git access."),
-            null=True, blank=True,
-            verbose_name=_('Hash of git authentication token'))
-
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
 
