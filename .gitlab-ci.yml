@@ -23,7 +23,6 @@ Python 3.5:
 Documentation:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
-  - "cp local_settings.example.py local_settings.py"
   - ". ./build-docs.sh"
   tags:
   - python3.5
@@ -33,7 +32,6 @@ Documentation:
 Mypy:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
-  - "cp local_settings.example.py local_settings.py"
   - ". ./prepare-and-run-mypy.sh python3.6 mypy==0.521 typed-ast==1.0.4"
   tags:
   - python3.6
