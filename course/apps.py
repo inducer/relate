@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 from django.utils.translation import ugettext_lazy as _
-from course.checks import register_startup_checks_extra, register_startup_checks
+from relate.checks import register_startup_checks_extra, register_startup_checks
 
 
 class CourseConfig(AppConfig):

@@ -15,5 +15,5 @@ if [[ $PY == true ]]; then
 elif [[ $Mypy == true ]]; then
   . ./prepare-and-run-mypy.sh python3.6 mypy==0.521 typed-ast==1.0.4
 elif [[ $Flake8 == true ]]; then
-  . ./prepare-and-run-flake8.sh relate course accounts test bin
+  . ./prepare-and-run-flake8.sh relate course accounts tests bin
 fi

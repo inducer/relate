@@ -29,7 +29,7 @@ from django.urls import reverse, resolve
 from django.contrib.auth import get_user_model
 from relate.utils import force_remove_path
 from course.models import Course, Participation, ParticipationRole, FlowSession
-from course.constants import participation_status
+from course.constants import participation_status, user_status
 
 CREATE_SUPERUSER_KWARGS = {
     "username": "test_admin",
@@ -52,7 +52,7 @@ SINGLE_COURSE_SETUP_LIST = [
             "course_file": "course.yml",
             "events_file": "events.yml",
             "enrollment_approval_required": False,
-            "enrollment_required_email_suffix": None,
+            "enrollment_required_email_suffix": "",
             "from_email": "inform@tiker.net",
             "notify_email": "inform@tiker.net"},
         "participations": [
@@ -86,7 +86,47 @@ SINGLE_COURSE_SETUP_LIST = [
                     "last_name": "Student"},
                 "status": participation_status.active
             }
-        ]
+        ],
+    }
+]
+
+
+NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
+    {
+        "username": "test_user1",
+        "password": "test_user1",
+        "email": "test_user1@suffix.com",
+        "first_name": "Test",
+        "last_name": "User1",
+        "institutional_id": "test_user1",
+        "status": user_status.active
+    },
+    {
+        "username": "test_user2",
+        "password": "test_user2",
+        "email": "test_user2@nosuffix.com",
+        "first_name": "Test",
+        "last_name": "User2",
+        "institutional_id": "test_user2",
+        "status": user_status.active
+    },
+    {
+        "username": "test_user3",
+        "password": "test_user3",
+        "email": "test_user3@suffix.com",
+        "first_name": "Test",
+        "last_name": "User3",
+        "institutional_id": "test_user3",
+        "status": user_status.unconfirmed
+    },
+    {
+        "username": "test_user4",
+        "password": "test_user4",
+        "email": "test_user4@no_suffix.com",
+        "first_name": "Test",
+        "last_name": "User4",
+        "institutional_id": "test_user4",
+        "status": user_status.unconfirmed
     }
 ]
 
@@ -117,6 +157,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     # A list of Dicts, each of which contain a course dict and a list of
     # participations. See SINGLE_COURSE_SETUP_LIST for the setup for one course.
     courses_setup_list = []
+    none_participation_user_create_kwarg_list = []
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -141,7 +182,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                         continue
                     cls.create_participation(
                         course=course,
-                        create_user_kwargs=create_user_kwargs,
+                        user_or_create_user_kwargs=create_user_kwargs,
                         role_identifier=role_identifier,
                         status=participation.get("status",
                                                  participation_status.active)
@@ -156,6 +197,16 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                             Participation.delete(superuser_participation)
                         except Participation.DoesNotExist:
                             pass
+            cls.non_participation_users = get_user_model().objects.none
+            if cls.none_participation_user_create_kwarg_list:
+                pks = []
+                for create_user_kwargs in (
+                        cls.none_participation_user_create_kwarg_list):
+                    user = cls.create_user(create_user_kwargs)
+                    pks.append(user.pk)
+                cls.non_participation_users = (
+                    get_user_model().objects.filter(pk__in=pks))
+
         cls.course_qset = Course.objects.all()
 
     @classmethod
@@ -188,22 +239,36 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         super(CoursesTestMixinBase, cls).tearDownClass()
 
     @classmethod
-    def create_participation(
-            cls, course, create_user_kwargs, role_identifier, status):
-        try:
-            # TODO: why pop failed here?
-            password = create_user_kwargs["password"]
-        except:
-            raise
+    def create_user(cls, create_user_kwargs):
         user, created = get_user_model().objects.get_or_create(**create_user_kwargs)
         if created:
+            try:
+                # TODO: why pop failed here?
+                password = create_user_kwargs["password"]
+            except:
+                raise
             user.set_password(password)
             user.save()
+        return user
+
+    @classmethod
+    def create_participation(
+            cls, course, user_or_create_user_kwargs,
+            role_identifier=None, status=None):
+        if isinstance(user_or_create_user_kwargs, get_user_model()):
+            user = user_or_create_user_kwargs
+        else:
+            assert isinstance(user_or_create_user_kwargs, dict)
+            user = cls.create_user(user_or_create_user_kwargs)
         participation, p_created = Participation.objects.get_or_create(
             user=user,
             course=course,
             status=status
         )
+        if role_identifier is None:
+            role_identifier = "student"
+        if status is None:
+            status = participation_status.active
         if p_created:
             role = ParticipationRole.objects.filter(
                 course=course, identifier=role_identifier)
@@ -214,6 +279,40 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     def create_course(cls, **create_course_kwargs):
         cls.c.force_login(cls.superuser)
         cls.c.post(reverse("relate-set_up_new_course"), create_course_kwargs)
+
+    @classmethod
+    def get_course_page_url(cls, course):
+        return reverse("relate-course_page", args=[course.identifier])
+
+    def assertResponseMessageCount(self, response, expected_count):  # noqa
+        self.assertEqual(len(list(response.context['messages'])), expected_count)
+
+    def assertResponseMessageContains(self, response, expected_message):  # noqa
+        """
+        :param response: response
+        :param expected_message: message string or list containing message string
+        """
+        if isinstance(expected_message, list):
+            self.assertTrue(set(expected_message).issubset(
+                set([m.message for m in list(response.context['messages'])])))
+        elif isinstance(expected_message, str):
+            self.assertIn(expected_message,
+                          [m.message for m in list(response.context['messages'])])
+
+    def debug_print_response_messages(self, response):
+        """
+        For debugging :class:`django.contrib.messages` objects in post response
+        :param response: response
+        """
+        try:
+            messages = response.context['messages']
+            print("\n-----------message start (%i total)-------------"
+                  % len(messages))
+            for m in list(messages):
+                print(m.message)
+            print("-----------message end-------------\n")
+        except KeyError:
+            print("\n-------no message----------")
 
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
@@ -244,6 +343,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         ).first()
         assert cls.ta_participation
         cls.c.logout()
+        cls.course_page_url = cls.get_course_page_url(cls.course)
 
     @classmethod
     def tearDownClass(cls):
@@ -316,5 +416,8 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
 
     def assertSessionScoreEqual(self, expect_score):  # noqa
         from decimal import Decimal
-        self.assertEqual(FlowSession.objects.all()[0].points,
-                                                Decimal(str(expect_score)))
+        if expect_score is not None:
+            self.assertEqual(FlowSession.objects.all()[0].points,
+                                                    Decimal(str(expect_score)))
+        else:
+            self.assertIsNone(FlowSession.objects.all()[0].points)

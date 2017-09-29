@@ -41,7 +41,7 @@ Mypy:
 Flake8:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
-  - ". ./prepare-and-run-flake8.sh relate course accounts test bin"
+  - ". ./prepare-and-run-flake8.sh relate course accounts tests bin"
   tags:
   - python3.5
   except:
