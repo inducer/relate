@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
-from base_test_mixins import SingleCourseTestMixin
+from .base_test_mixins import SingleCourseTestMixin
 from course.models import Participation
 from course.constants import participation_permission as pperm
 

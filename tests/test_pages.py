@@ -26,7 +26,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from course.models import FlowPageVisit, Course
-from base_test_mixins import SingleCoursePageTestMixin
+from .base_test_mixins import SingleCoursePageTestMixin
 
 QUIZ_FLOW_ID = "quiz-test"
 
