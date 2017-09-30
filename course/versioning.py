@@ -179,6 +179,7 @@ class CourseCreationForm(StyledModelForm):
             "course_file",
             "events_file",
             "enrollment_approval_required",
+            "preapproval_require_verified_inst_id",
             "enrollment_required_email_suffix",
             "from_email",
             "notify_email",

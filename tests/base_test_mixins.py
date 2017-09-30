@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 import os
 from django.conf import settings
-from django.test import Client
+from django.test import Client, override_settings
 from django.urls import reverse, resolve
 from django.contrib.auth import get_user_model
 from relate.utils import force_remove_path
@@ -53,6 +53,7 @@ SINGLE_COURSE_SETUP_LIST = [
             "events_file": "events.yml",
             "enrollment_approval_required": False,
             "enrollment_required_email_suffix": "",
+            "preapproval_require_verified_inst_id": True,
             "from_email": "inform@tiker.net",
             "notify_email": "inform@tiker.net"},
         "participations": [
@@ -98,7 +99,8 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "email": "test_user1@suffix.com",
         "first_name": "Test",
         "last_name": "User1",
-        "institutional_id": "test_user1",
+        "institutional_id": "test_user1_institutional_id",
+        "institutional_id_verified": True,
         "status": user_status.active
     },
     {
@@ -107,7 +109,8 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "email": "test_user2@nosuffix.com",
         "first_name": "Test",
         "last_name": "User2",
-        "institutional_id": "test_user2",
+        "institutional_id": "test_user2_institutional_id",
+        "institutional_id_verified": False,
         "status": user_status.active
     },
     {
@@ -116,7 +119,8 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "email": "test_user3@suffix.com",
         "first_name": "Test",
         "last_name": "User3",
-        "institutional_id": "test_user3",
+        "institutional_id": "test_user3_institutional_id",
+        "institutional_id_verified": True,
         "status": user_status.unconfirmed
     },
     {
@@ -125,7 +129,8 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "email": "test_user4@no_suffix.com",
         "first_name": "Test",
         "last_name": "User4",
-        "institutional_id": "test_user4",
+        "institutional_id": "test_user4_institutional_id",
+        "institutional_id_verified": False,
         "status": user_status.unconfirmed
     }
 ]
@@ -284,39 +289,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     def get_course_page_url(cls, course):
         return reverse("relate-course_page", args=[course.identifier])
 
-    def assertResponseMessageCount(self, response, expected_count):  # noqa
-        self.assertEqual(len(list(response.context['messages'])), expected_count)
-
-    def assertResponseMessageContains(self, response, expected_message):  # noqa
-        """
-        :param response: response
-        :param expected_message: message string or list containing message string
-        """
-        if isinstance(expected_message, list):
-            self.assertTrue(set(expected_message).issubset(
-                set([m.message for m in list(response.context['messages'])])))
-        elif isinstance(expected_message, str):
-            self.assertIn(expected_message,
-                          [m.message for m in list(response.context['messages'])])
-
-    def debug_print_response_messages(self, response):
-        """
-        For debugging :class:`django.contrib.messages` objects in post response
-        :param response: response
-        """
-        try:
-            messages = response.context['messages']
-            print("\n-----------message start (%i total)-------------"
-                  % len(messages))
-            for m in list(messages):
-                print(m.message)
-            print("-----------message end-------------\n")
-        except KeyError:
-            print("\n-------no message----------")
-
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
+
+    # This is used when there are some attributes which need to be configured
+    # differently from what are in the courses_setup_list
+    course_attributes_extra = {}
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -344,6 +323,18 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         assert cls.ta_participation
         cls.c.logout()
         cls.course_page_url = cls.get_course_page_url(cls.course)
+
+        if cls.course_attributes_extra:
+            cls._update_course_attribute()
+
+    @classmethod
+    def _update_course_attribute(cls):
+        # This should be used only in setUpTestData
+        attrs = cls.course_attributes_extra
+        if attrs:
+            assert isinstance(attrs, dict)
+            cls.course.__dict__.update(attrs)
+            cls.course.save()
 
     @classmethod
     def tearDownClass(cls):
@@ -421,3 +412,64 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
                                                     Decimal(str(expect_score)))
         else:
             self.assertIsNone(FlowSession.objects.all()[0].points)
+
+
+class FallBackStorageMessageTestMixin(object):
+    # In case other message storage are used, the following is the default
+    # storage used by django and RELATE. Tests which concerns the message
+    # should not include this mixin.
+    storage = 'django.contrib.messages.storage.fallback.FallbackStorage'
+
+    def setUp(self):  # noqa
+        self.settings_override = override_settings(MESSAGE_STORAGE=self.storage)
+        self.settings_override.enable()
+
+    def tearDown(self):  # noqa
+        self.settings_override.disable()
+
+    def get_storage_from_response(self, response):
+        return response.context['messages']
+
+    def get_listed_storage_from_response(self, response):
+        return list(self.get_storage_from_response(response))
+
+    def clear_message_response_storage(self, response):
+        # this should only be used for debug, because we are using private method
+        # which might change
+        storage = self.get_storage_from_response(response)
+        if hasattr(storage, '_loaded_data'):
+            storage._loaded_data = []
+        elif hasattr(storage, '_loaded_message'):
+            storage._loaded_messages = []
+
+        if hasattr(storage, '_queued_messages'):
+            storage._queued_messages = []
+
+        self.assertEqual(len(storage), 0)
+
+    def assertResponseMessagesCount(self, response, expected_count):  # noqa
+        storage = self.get_listed_storage_from_response(response)
+        self.assertEqual(len(storage), expected_count)
+
+    def assertResponseMessagesEqual(self, response, expected_messages):  # noqa
+        storage = self.get_listed_storage_from_response(response)
+        self.assertEqual([m.message for m in storage], expected_messages)
+
+    def assertResponseMessageLevelsEqual(self, response, expected_levels):  # noqa
+        storage = self.get_listed_storage_from_response(response)
+        self.assertEqual([m.level for m in storage], expected_levels)
+
+    def debug_print_response_messages(self, response):
+        """
+        For debugging :class:`django.contrib.messages` objects in post response
+        :param response: response
+        """
+        try:
+            storage = self.get_listed_storage_from_response(response)
+            print("\n-----------message start (%i total)-------------"
+                  % len(storage))
+            for m in storage:
+                print(m.message)
+            print("-----------message end-------------\n")
+        except KeyError:
+            print("\n-------no message----------")
