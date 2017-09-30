@@ -251,11 +251,16 @@ def enroll_view(request, course_identifier):
                         string_concat("[%s] ", _("New enrollment request"))
                         % course_identifier,
                         message,
-                        settings.ROBOT_EMAIL_FROM,
+                        getattr(settings, "ENROLLMENT_EMAIL_FROM",
+                            settings.ROBOT_EMAIL_FROM),
                         [course.notify_email])
 
                 from relate.utils import get_outbound_mail_connection
-                msg.connection = get_outbound_mail_connection("robot")
+                msg.connection = (
+                        get_outbound_mail_connection("enroll")
+                        if hasattr(settings, "ENROLLMENT_EMAIL_FROM")
+                        else get_outbound_mail_connection("robot"))
+
                 msg.send()
 
             messages.add_message(request, messages.INFO,
@@ -354,16 +359,27 @@ def send_enrollment_decision(participation, approved, request=None):
             })
 
         from django.core.mail import EmailMessage
+        email_kwargs = {}
+        if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
+            from_email = course.get_from_email()
+        else:
+            from_email = getattr(settings, "ENROLLMENT_EMAIL_FROM",
+                                 settings.ROBOT_EMAIL_FROM)
+            from relate.utils import get_outbound_mail_connection
+            email_kwargs.update(
+                {"connection": (
+                    get_outbound_mail_connection("enroll")
+                    if hasattr(settings, "ENROLLMENT_EMAIL_FROM")
+                    else get_outbound_mail_connection("robot"))})
+
         msg = EmailMessage(
                 string_concat("[%s] ", _("Your enrollment request"))
                 % course.identifier,
                 message,
-                course.get_from_email(),
-                [participation.user.email])
+                from_email,
+                [participation.user.email],
+                **email_kwargs)
         msg.bcc = [course.notify_email]
-        if not settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
-            from relate.utils import get_outbound_mail_connection
-            msg.connection = get_outbound_mail_connection("robot")
         msg.send()
 
 

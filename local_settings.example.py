@@ -146,6 +146,15 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'port': 587,
             'use_tls': True,
         },
+
+        # For enrollment request email sent to course instructors
+        "enroll": {
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
     }
 
     # This will be used as default connection when other keys are not set.
@@ -155,6 +164,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
     NOTIFICATION_EMAIL_FROM = "Notification <notification_example@example.com>"
     GRADER_FEEDBACK_EMAIL_FROM = "Feedback <feedback_example@example.com>"
     STUDENT_INTERACT_EMAIL_FROM = "interaction <feedback_example@example.com>"
+    ENROLLMENT_EMAIL_FROM = "Enrollment <enroll@example.com>"
 
 
 # }}}
