@@ -90,7 +90,8 @@ MIDDLEWARE = (
 # {{{ django: auth
 
 AUTHENTICATION_BACKENDS = (
-    "course.auth.TokenBackend",
+    "course.auth.EmailedTokenBackend",
+    "course.auth.APIBearerTokenBackend",
     "course.exam.ExamTicketBackend",
     "django.contrib.auth.backends.ModelBackend",
     )

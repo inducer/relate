@@ -13,21 +13,22 @@
       {# {{{ student view #}
 
       {# {{{ past submissions #}
-
-      <div style="float: right; padding-top:1.5em; margin-right:0 !important;" class="navbar-right">
-        <div class="dropdown" id="past-submission-and-grades_dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
-                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-            {% trans "Past submissions/grades" %}
-            <span class="caret"></span>
-          </button>
-          <ul class="dropdown-menu" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
-            <li style="list-style:none; position:relative; left:50%;">
-              <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
-            </li>
-          </ul>
+      {% if expects_answer %}
+        <div style="float: right; padding-top:1.5em; margin-right:0 !important;" class="navbar-right">
+          <div class="dropdown" id="past-submission-and-grades_dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              {% trans "Past submissions/grades" %}
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
+              <li style="list-style:none; position:relative; left:50%;">
+                <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
+      {% endif %}
 
       {# }}} #}
       {{ body|safe }}
@@ -405,55 +406,57 @@
 
 {% block page_bottom_javascript_extra %}
 
-  <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
-  <script>
+  {% if expects_answer %}
+    <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
+    <script>
 
-    function generate_past_submission_and_grades_dropdown_content(){
-      var jqxhr = $.ajax({
-        url: "{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id ordinal %}"
-      }).done(function (result) {
-        if(result.result)
-        document.getElementById("past-submission-and-grades_dropdown_content").innerHTML = tmpl("tmpl-prev-grades", result.result);
-      });
-    }
+      function generate_past_submission_and_grades_dropdown_content(){
+        var jqxhr = $.ajax({
+          url: "{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id ordinal %}"
+        }).done(function (result) {
+          if(result.result)
+          document.getElementById("past-submission-and-grades_dropdown_content").innerHTML = tmpl("tmpl-prev-grades", result.result);
+        });
+      }
 
-    $('#past-submission-and-grades_dropdown').on('shown.bs.dropdown', generate_past_submission_and_grades_dropdown_content);
+      $('#past-submission-and-grades_dropdown').on('shown.bs.dropdown', generate_past_submission_and_grades_dropdown_content);
 
-  </script>
+    </script>
 
-  {# https://github.com/blueimp/JavaScript-Templates #}
-  <script type="text/x-tmpl" id="tmpl-prev-grades">
-    {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
-      <li>
-        <a href="#" style="pointer-events: none; display: inline-block;">
-          {% trans 'No submission/grade history' %}
-        </a>
-      </li>
-    {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-      {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
+    {# https://github.com/blueimp/JavaScript-Templates #}
+    <script type="text/x-tmpl" id="tmpl-prev-grades">
+      {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
         <li>
-          {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-            <a href="?">
-          {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-            <a href="?grade_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
-          {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            {% trans "Submission:" %} {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }} &middot; {% trans "Grade:" %} {{ JQ_OPEN }}=o[i].grade_time{{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-            {% trans "(current)" %}
-            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (!o[i].value) { {{ JQ_CLOSE }}
-              [{% trans "no grade" %}]
-            {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-              [{{ JQ_OPEN }}=o[i].value{{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].value <=1) { {{ JQ_CLOSE }}{% trans "point" %}{{ JQ_OPEN }} } else { {{ JQ_CLOSE }}{% trans "points" %}{{ JQ_OPEN }} } {{ JQ_CLOSE }}]
-            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+          <a href="#" style="pointer-events: none; display: inline-block;">
+            {% trans 'No submission/grade history' %}
           </a>
         </li>
+      {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+        {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
+          <li>
+            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+              <a href="?">
+            {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+              <a href="?grade_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
+            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {% trans "Submission:" %} {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }} &middot; {% trans "Grade:" %} {{ JQ_OPEN }}=o[i].grade_time{{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+              {% trans "(current)" %}
+              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (!o[i].value) { {{ JQ_CLOSE }}
+                [{% trans "no grade" %}]
+              {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+                [{{ JQ_OPEN }}=o[i].value{{ JQ_CLOSE }}
+                {{ JQ_OPEN }} if (o[i].value <=1) { {{ JQ_CLOSE }}{% trans "point" %}{{ JQ_OPEN }} } else { {{ JQ_CLOSE }}{% trans "points" %}{{ JQ_OPEN }} } {{ JQ_CLOSE }}]
+              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+            </a>
+          </li>
+        {{ JQ_OPEN }} } {{ JQ_CLOSE }}
       {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-    {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-  </script>
+    </script>
+  {% endif %}
   {{ block.super }}
 {% endblock %}
 
