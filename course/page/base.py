@@ -1022,17 +1022,23 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 from django.template.loader import render_to_string
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
+                use_masked_profile = will_use_masked_profile_for_email(staff_email)
+                if use_masked_profile:
+                    username = (
+                        page_context.flow_session.user.get_masked_profile())
+                else:
+                    username = (
+                        page_context.flow_session.user.get_email_appellation())
                 message = render_to_string("course/grade-internal-notes-notify.txt",
                         {
                             "page_title": self.title(page_context, page_data),
+                            "username": username,
                             "course": page_context.course,
                             "participation": page_context.flow_session.participation,
                             "notes_text": grade_data["notes"],
                             "flow_session": page_context.flow_session,
                             "review_uri": page_context.page_uri,
                             "sender": request.user,
-                            "use_masked_profile":
-                                will_use_masked_profile_for_email(staff_email)
                             })
 
                 from django.core.mail import EmailMessage
