@@ -347,12 +347,6 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
         raise NotImplementedError
 
     @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCoursePageTestMixin, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
-        cls.start_quiz(cls.flow_id)
-
-    @classmethod
     def start_quiz(cls, flow_id):
         existing_quiz_count = FlowSession.objects.all().count()
         params = {"course_identifier": cls.course.identifier,
@@ -413,6 +407,44 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
         else:
             self.assertIsNone(FlowSession.objects.all()[0].points)
 
+    def page_submit_history_url(self, flow_session_id, page_ordinal):
+        return reverse("relate-get_prev_answer_visits_dropdown_content",
+                       args=[self.course.identifier, flow_session_id, page_ordinal])
+
+    def page_grade_history_url(self, flow_session_id, page_ordinal):
+        return reverse("relate-get_prev_grades_dropdown_content",
+                       args=[self.course.identifier, flow_session_id, page_ordinal])
+
+    def get_page_submit_history(self, flow_session_id, page_ordinal):
+        resp = self.c.get(
+            self.page_submit_history_url(flow_session_id, page_ordinal),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        return resp
+
+    def get_page_grade_history(self, flow_session_id, page_ordinal):
+        resp = self.c.get(
+            self.page_grade_history_url(flow_session_id, page_ordinal),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        return resp
+
+    def assertSubmitHistoryItemsCount(  # noqa
+            self, page_ordinal, expected_count, flow_session_id=None):
+        if flow_session_id is None:
+            flow_session_id = FlowSession.objects.all().last().pk
+        resp = self.get_page_submit_history(flow_session_id, page_ordinal)
+        import json
+        result = json.loads(resp.content.decode())["result"]
+        self.assertEqual(len(result), expected_count)
+
+    def assertGradeHistoryItemsCount(  # noqa
+            self, page_ordinal, expected_count, flow_session_id=None):
+        if flow_session_id is None:
+            flow_session_id = FlowSession.objects.all().last().pk
+        resp = self.get_page_grade_history(flow_session_id, page_ordinal)
+        import json
+        result = json.loads(resp.content.decode())["result"]
+        self.assertEqual(len(result), expected_count)
+
 
 class FallBackStorageMessageTestMixin(object):
     # In case other message storage are used, the following is the default
@@ -454,6 +486,14 @@ class FallBackStorageMessageTestMixin(object):
     def assertResponseMessagesEqual(self, response, expected_messages):  # noqa
         storage = self.get_listed_storage_from_response(response)
         self.assertEqual([m.message for m in storage], expected_messages)
+
+    def assertResponseMessagesContains(self, response, expected_messages):  # noqa
+        storage = self.get_listed_storage_from_response(response)
+        if isinstance(expected_messages, str):
+            expected_messages = [expected_messages]
+        messages = [m.message for m in storage]
+        for em in expected_messages:
+            self.assertIn(em, messages)
 
     def assertResponseMessageLevelsEqual(self, response, expected_levels):  # noqa
         storage = self.get_listed_storage_from_response(response)
