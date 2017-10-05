@@ -91,7 +91,6 @@
         </form>
       </div>
     </div>
-    </div>
     <form method='post' name='existing_event_edit_form'>
       {% csrf_token %}
       <input type='Hidden' name='id_to_edit' id="id_to_edit" value=''>
@@ -117,14 +116,42 @@
         events: {{ events_json|safe }},
         {% if edit_view %}
           eventRender: function(event, element) {
-            element.find('.fc-title').append( '<span class="glyphicon glyphicon-remove-circle" style="float:right;cursor:pointer" id="remove" title="{% trans 'Remove this event'%}"></span>');
+            element.find('.fc-title').append( '<span class="glyphicon glyphicon-remove-circle" style="float:right;cursor:pointer" id="remove" title="{% trans 'Remove this event'%}" data-confirm="{% trans "Are you sure you want to delete this event?" %}" data-event-id="'+event.id+'"></span>');
             element.find('.fc-title').append( '<span class="glyphicon glyphicon-pencil" style="float:right; cursor:pointer" id="edit" title="{% trans 'Edit this event'%}"> </span>');
             element.find("#edit").click(function() {
               edit_existing_event(event.id);
             });
-            element.find("#remove").click(function() {
-              delete_existing_event(event.id);
-            })
+            element.find("span[data-confirm]").click(function() {
+              var event_id = $(this).data('event-id');
+              if (!$('#deleteConfirmModal').length) {
+                $('body').append(
+                    '<div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">' +
+                    '  <div class="modal-dialog" role="document">' +
+                    '    <div class="modal-content">' +
+                    '      <div class="modal-header">' +
+                    '        <button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
+                    '          <span aria-hidden="true">&times;</span>' +
+                    '        </button>' +
+                    '        <h3 class="modal-title" >{% trans "Please confirm" %}</h3>' +
+                    '      </div>' +
+                    '      <div class="modal-body">' +
+                    '      </div>' +
+                    '      <div class="modal-footer">' +
+                    '        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans "Cancel" %}</button>' +
+                    '        <button type="button" class="btn btn-primary" id="deleteConfirmOK">{% trans "Delete" %}</button>' +
+                    '      </div>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '</div>');
+              }
+              var $delete_confirm_modal = $('#deleteConfirmModal');
+                  $delete_confirm_modal.find('.modal-body').text($(this).attr('data-confirm'));
+                  $('#deleteConfirmOK').data('event-id', event_id).click(function() {
+                delete_existing_event($(this).data('event-id'));
+              });
+                  $delete_confirm_modal.modal({show:true});
+                  return false;
+              });
           }
         {% endif %}
       });
