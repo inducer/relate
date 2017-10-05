@@ -23,7 +23,7 @@ Python 3.5:
 Documentation:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
-  - "cp local_settings.example.py local_settings.py"
+  - export RELATE_LOCAL_TEST_SETTINGS=`pwd`/local_settings.example.py
   - ". ./build-docs.sh"
   tags:
   - python3.5
@@ -33,7 +33,6 @@ Documentation:
 Mypy:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
-  - "cp local_settings.example.py local_settings.py"
   - ". ./prepare-and-run-mypy.sh python3.6 mypy==0.521 typed-ast==1.0.4"
   tags:
   - python3.6
@@ -43,7 +42,7 @@ Mypy:
 Flake8:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
-  - ". ./prepare-and-run-flake8.sh relate course accounts test bin"
+  - ". ./prepare-and-run-flake8.sh relate course accounts tests bin"
   tags:
   - python3.5
   except:

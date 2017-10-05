@@ -78,6 +78,7 @@ PARTICIPATION_STATUS_CHOICES = (
 class participation_permission:  # noqa
     edit_course = "edit_course"
     use_admin_interface = "use_admin_interface"
+    manage_authentication_tokens = "manage_authentication_tokens"
 
     impersonate_role = "impersonate_role"
     set_fake_time = "set_fake_time"
@@ -138,6 +139,10 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Edit course")),
         (participation_permission.use_admin_interface,
             pgettext_lazy("Participation permission", "Use admin interface")),
+        (participation_permission.manage_authentication_tokens,
+            pgettext_lazy("Participation permission",
+                "Manage authentication tokens")),
+
         (participation_permission.impersonate_role,
             pgettext_lazy("Participation permission", "Impersonate role")),
         (participation_permission.set_fake_time,

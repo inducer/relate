@@ -21,7 +21,7 @@ def remove_mistakenly_added_individual_pperm(apps, schema_editor):
             permission=pperm.skip_during_manual_grading).delete()
 
 
-def add_skip_during_manul_grading_permission_to_roles(apps, schema_editor):
+def add_skip_during_manual_grading_permission_to_roles(apps, schema_editor):
     from course.constants import participation_permission as pperm
 
     ParticipationRolePermission = apps.get_model("course", "ParticipationRolePermission")  # noqa
@@ -48,5 +48,5 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(remove_mistakenly_added_individual_pperm),
-        migrations.RunPython(add_skip_during_manul_grading_permission_to_roles)
+        migrations.RunPython(add_skip_during_manual_grading_permission_to_roles)
     ]

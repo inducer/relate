@@ -64,8 +64,7 @@ before_test:
 
 test_script:
   # Run the project tests
-  - "copy local_settings.example.py local_settings.py /Y"
-  - "%CMD_IN_ENV% coverage run manage.py test test/"
+  - "%CMD_IN_ENV% coverage run manage.py test tests/"
 
 after_test:
   - "%CMD_IN_ENV% pip install codecov"

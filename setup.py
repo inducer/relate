@@ -19,7 +19,7 @@ setup(name="relate-courseware",
       url="https://github.com/inducer/relate",
       author_email="inform@tiker.net",
       license="MIT",
-      packages=find_packages(),
+      packages=find_packages(exclude=['tests']),
       install_requires=[
           "colorama",
           ])

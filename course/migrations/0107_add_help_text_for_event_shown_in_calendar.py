@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('course', '0104_add_skip_during_manual_grading_permission_to_roles'),
+        ('course', '0106_add_auth_tokens_permission'),
     ]
 
     operations = [

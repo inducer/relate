@@ -25,9 +25,12 @@ THE SOFTWARE.
 import json
 from django.test import TestCase
 from django.urls import reverse
-from course.models import Event
-from base_test_mixins import SingleCourseTestMixin
+from django.contrib import messages
 from django.utils.timezone import now
+
+from course.models import Event
+from .base_test_mixins import (
+    SingleCourseTestMixin, FallBackStorageMessageTestMixin)
 try:
     from unittest import mock
 except:
@@ -78,14 +81,14 @@ MENU_RENUMBER_EVENTS = "Renumber events"
 HTML_SWITCH_TO_STUDENT_VIEW = "Switch to Student View"
 HTML_SWITCH_TO_EDIT_VIEW = "Switch to Edit View"
 HTML_CREATE_NEW_EVENT_BUTTON_TITLE = "create a new event"
-HTML_EVENT_CREATED_MSG = "Event created."
 
-MSG_EVENT_NOT_CREATED = "No event created."
-MSG_PREFIX_EVENT_ALREADY_EXIST_FAILURE = "EventAlreadyExists:"
-MSG_PREFIX_EVENT_NOT_DELETED_FAILURE = "No event deleted:"
-MSG_HTML_EVENT_DELETED = "Event deleted."
-MSG_EVENT_UPDATED = "Event updated."
-MSG_EVENT_NOT_UPDATED = "Event not updated."
+MESSAGE_EVENT_CREATED_TEXT = "Event created."
+MESSAGE_EVENT_NOT_CREATED_TEXT = "No event created."
+MESSAGE_PREFIX_EVENT_ALREADY_EXIST_FAILURE_TEXT = "EventAlreadyExists:"
+MESSAGE_PREFIX_EVENT_NOT_DELETED_FAILURE_TEXT = "No event deleted:"
+MESSAGE_EVENT_DELETED_TEXT = "Event deleted."
+MESSAGE_EVENT_UPDATED_TEXT = "Event updated."
+MESSAGE_EVENT_NOT_UPDATED_TEXT = "Event not updated."
 
 
 def get_object_or_404_side_effect(klass, *args, **kwargs):
@@ -98,17 +101,17 @@ def get_object_or_404_side_effect(klass, *args, **kwargs):
     return obj
 
 
-class CalendarTest(SingleCourseTestMixin, TestCase):
+class CalendarTestMixin(object):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CalendarTest, cls).setUpTestData()
+        super(CalendarTestMixin, cls).setUpTestData()
 
         # superuser was previously removed from participation, now we add him back
         from course.constants import participation_status
 
         cls.create_participation(
-            course=cls.course,
-            create_user_kwargs={"id": cls.superuser.id},
+            cls.course,
+            cls.superuser,
             role_identifier="instructor",
             status=participation_status.active)
 
@@ -131,6 +134,10 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
 
     def assertTotalEventsCountEqual(self, expected_total_events_count):  # noqa
         self.assertEqual(Event.objects.count(), expected_total_events_count)
+
+
+class CalendarTest(CalendarTestMixin, SingleCourseTestMixin,
+                   FallBackStorageMessageTestMixin, TestCase):
 
     def test_superuser_instructor_calendar_get(self):
         self.c.force_login(self.superuser)
@@ -183,6 +190,7 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
         self.assertNotContains(resp, MENU_VIEW_EVENTS_CALENDAR)
         self.assertNotContains(resp, MENU_CREATE_RECURRING_EVENTS)
         self.assertNotContains(resp, MENU_RENUMBER_EVENTS)
+        self.assertRegexpMatches
 
         # rendered page html
         self.assertNotContains(resp, HTML_SWITCH_TO_STUDENT_VIEW)
@@ -254,8 +262,14 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, MSG_PREFIX_EVENT_ALREADY_EXIST_FAILURE)
-        self.assertContains(resp, MSG_EVENT_NOT_CREATED)
+        expected_regex = (
+            "%s.+%s" % (
+                MESSAGE_PREFIX_EVENT_ALREADY_EXIST_FAILURE_TEXT,
+                MESSAGE_EVENT_NOT_CREATED_TEXT))
+        self.assertResponseMessagesEqualRegex(
+            resp, [expected_regex])
+        self.assertResponseMessageLevelsEqual(
+            resp, [messages.ERROR])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS)
 
@@ -274,8 +288,14 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, MSG_PREFIX_EVENT_ALREADY_EXIST_FAILURE)
-        self.assertContains(resp, MSG_EVENT_NOT_CREATED)
+        expected_regex = (
+            "%s.+%s" % (
+                MESSAGE_PREFIX_EVENT_ALREADY_EXIST_FAILURE_TEXT,
+                MESSAGE_EVENT_NOT_CREATED_TEXT))
+        self.assertResponseMessagesEqualRegex(
+            resp, [expected_regex])
+        self.assertResponseMessageLevelsEqual(
+            resp, [messages.ERROR])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS)
 
@@ -294,7 +314,8 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertMessageContains(resp, HTML_EVENT_CREATED_MSG)
+        self.assertResponseMessagesEqual(resp, [MESSAGE_EVENT_CREATED_TEXT])
+        self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS + 1)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS + 1)
 
@@ -314,7 +335,8 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertMessageContains(resp, HTML_EVENT_CREATED_MSG)
+        self.assertResponseMessagesEqual(resp, [MESSAGE_EVENT_CREATED_TEXT])
+        self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS + 1)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS + 1)
 
@@ -331,8 +353,8 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertMessageContains(resp, MSG_HTML_EVENT_DELETED)
-        self.assertMessageContains(resp, [MSG_HTML_EVENT_DELETED])
+        self.assertResponseMessagesEqual(resp, [MESSAGE_EVENT_DELETED_TEXT])
+        self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS - 1)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS - 1)
 
@@ -350,8 +372,8 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertMessageContains(resp, MSG_HTML_EVENT_DELETED)
-        self.assertMessageContains(resp, [MSG_HTML_EVENT_DELETED])
+        self.assertResponseMessagesEqual(resp, [MESSAGE_EVENT_DELETED_TEXT])
+        self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS - 1)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS - 1)
 
@@ -384,7 +406,9 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             reverse("relate-edit_calendar", args=[self.course.identifier]),
             post_data
         )
-        self.assertContains(resp, MSG_PREFIX_EVENT_NOT_DELETED_FAILURE)
+        expectec_regex = "%s.+" % MESSAGE_PREFIX_EVENT_NOT_DELETED_FAILURE_TEXT
+        self.assertResponseMessagesEqualRegex(resp, expectec_regex)
+        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
         self.assertEqual(resp.status_code, 200)
         self.assertTotalEventsCountEqual(N_TEST_EVENTS - 1)
 
@@ -410,7 +434,8 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertMessageContains(resp, MSG_EVENT_UPDATED)
+        self.assertResponseMessagesEqual(resp, [MESSAGE_EVENT_UPDATED_TEXT])
+        self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS)
         self.assertShownEventsCountEqual(resp, N_TEST_EVENTS)
         self.assertEqual(
@@ -438,7 +463,8 @@ class CalendarTest(SingleCourseTestMixin, TestCase):
             post_data
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertMessageContains(resp, MSG_EVENT_UPDATED)
+        self.assertResponseMessagesEqual(resp, [MESSAGE_EVENT_UPDATED_TEXT])
+        self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertTotalEventsCountEqual(N_TEST_EVENTS)
 
     def test_instructor_calendar_edit_update_non_exist_id_to_edit_failure(self):

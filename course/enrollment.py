@@ -166,11 +166,34 @@ def enroll_view(request, course_identifier):
     # type: (http.HttpRequest, str) -> http.HttpResponse
 
     course = get_object_or_404(Course, identifier=course_identifier)
-    participation = get_participation_for_request(request, course)
+    user = request.user
+    participations = Participation.objects.filter(course=course, user=user)
+    if not participations.count():
+        participation = None
+    else:
+        participation = participations.first()
 
     if participation is not None:
-        messages.add_message(request, messages.ERROR,
-                _("Already enrolled. Cannot re-renroll."))
+        if participation.status == participation_status.requested:
+            messages.add_message(request, messages.ERROR,
+                                 _("You have previously sent the enrollment "
+                                   "request. Re-sending the request is not "
+                                   "allowed."))
+            return redirect("relate-course_page", course_identifier)
+        elif participation.status == participation_status.denied:
+            messages.add_message(request, messages.ERROR,
+                                 _("Your enrollment request had been denied. "
+                                   "Enrollment is not allowed."))
+            return redirect("relate-course_page", course_identifier)
+        elif participation.status == participation_status.dropped:
+            messages.add_message(request, messages.ERROR,
+                                 _("You had been dropped from the course. "
+                                   "Re-enrollment is not allowed."))
+            return redirect("relate-course_page", course_identifier)
+        else:
+            assert participation.status == participation_status.active
+            messages.add_message(request, messages.ERROR,
+                                 _("Already enrolled. Cannot re-enroll."))
         return redirect("relate-course_page", course_identifier)
 
     if not course.accepts_enrollment:
@@ -185,9 +208,7 @@ def enroll_view(request, course_identifier):
                 _("Can only enroll using POST request"))
         return redirect("relate-course_page", course_identifier)
 
-    user = request.user
-    if (course.enrollment_required_email_suffix
-            and user.status != user_status.active):
+    if user.status != user_status.active:
         messages.add_message(request, messages.ERROR,
                 _("Your email address is not yet confirmed. "
                 "Confirm your email to continue."))
@@ -210,10 +231,18 @@ def enroll_view(request, course_identifier):
                         pass
             pass
 
+    def email_suffix_matches(email, suffix):
+        # type: (Text, Text) -> bool
+        if suffix.startswith("@"):
+            return email.endswith(suffix)
+        else:
+            return email.endswith("@%s" % suffix) or email.endswith(".%s" % suffix)
+
     if (
             preapproval is None
             and course.enrollment_required_email_suffix
-            and not user.email.endswith(course.enrollment_required_email_suffix)):
+            and not email_suffix_matches(
+                user.email, course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
                 _("Enrollment not allowed. Please use your '%s' email to "
@@ -248,14 +277,19 @@ def enroll_view(request, course_identifier):
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(
-                        string_concat("[%s] ", _("New enrollment request"))
-                        % course_identifier,
-                        message,
-                        settings.ROBOT_EMAIL_FROM,
-                        [course.notify_email])
+                    string_concat("[%s] ", _("New enrollment request"))
+                    % course_identifier,
+                    message,
+                    getattr(settings, "ENROLLMENT_EMAIL_FROM",
+                            settings.ROBOT_EMAIL_FROM),
+                    [course.notify_email])
 
                 from relate.utils import get_outbound_mail_connection
-                msg.connection = get_outbound_mail_connection("robot")
+                msg.connection = (
+                    get_outbound_mail_connection("enroll")
+                    if hasattr(settings, "ENROLLMENT_EMAIL_FROM")
+                    else get_outbound_mail_connection("robot"))
+
                 msg.send()
 
             messages.add_message(request, messages.INFO,
@@ -354,16 +388,27 @@ def send_enrollment_decision(participation, approved, request=None):
             })
 
         from django.core.mail import EmailMessage
+        email_kwargs = {}
+        if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
+            from_email = course.get_from_email()
+        else:
+            from_email = getattr(settings, "ENROLLMENT_EMAIL_FROM",
+                                 settings.ROBOT_EMAIL_FROM)
+            from relate.utils import get_outbound_mail_connection
+            email_kwargs.update(
+                {"connection": (
+                    get_outbound_mail_connection("enroll")
+                    if hasattr(settings, "ENROLLMENT_EMAIL_FROM")
+                    else get_outbound_mail_connection("robot"))})
+
         msg = EmailMessage(
                 string_concat("[%s] ", _("Your enrollment request"))
                 % course.identifier,
                 message,
-                course.get_from_email(),
-                [participation.user.email])
+                from_email,
+                [participation.user.email],
+                **email_kwargs)
         msg.bcc = [course.notify_email]
-        if not settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
-            from relate.utils import get_outbound_mail_connection
-            msg.connection = get_outbound_mail_connection("robot")
         msg.send()
 
 
@@ -902,6 +947,13 @@ class EditParticipationForm(StyledModelForm):
 
         if not add_new:
             self.fields["user"].disabled = True
+        else:
+            participation_users = Participation.objects.filter(
+                course=participation.course).values_list("user__pk", flat=True)
+            self.fields["user"].queryset = (
+                get_user_model().objects.exclude(pk__in=participation_users)
+            )
+        self.add_new = add_new
 
         may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
         if not may_edit_permissions:
@@ -936,6 +988,16 @@ class EditParticipationForm(StyledModelForm):
         elif participation.status == participation_status.active:
             self.helper.add_input(
                     Submit("drop", _("Drop"), css_class="btn-danger"))
+
+    def clean_user(self):
+        user = self.cleaned_data["user"]
+        if not self.add_new:
+            return user
+        if user.status == user_status.active:
+            return user
+
+        raise forms.ValidationError(
+            _("This user has not confirmed his/her email."))
 
     def save(self):
         # type: () -> Participation

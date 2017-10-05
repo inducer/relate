@@ -34,7 +34,7 @@ except:
 class CheckRelateSettingsBase(SimpleTestCase):
     @property
     def func(self):
-        from course.checks import check_relate_settings
+        from relate.checks import check_relate_settings
         return check_relate_settings
 
 

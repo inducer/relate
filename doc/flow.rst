@@ -687,7 +687,7 @@ The following page types are predefined:
 .. |id-page-attr| replace::
 
     A short identifying name, unique within the page group. Alphanumeric
-    with dashes and underscores, no spaces.
+    with underscores, no spaces.
 
 .. |title-page-attr| replace::
 
