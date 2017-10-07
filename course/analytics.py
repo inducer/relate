@@ -151,6 +151,9 @@ class Histogram(object):
                     max_value = 1
 
             if self.num_log_bins:
+                min_value = max(min_value, 1e-15)
+                max_value = max(max_value, 2*min_value)
+
                 from math import log, exp
                 bin_width = (log(max_value) - log(min_value))/self.num_bin_count
                 num_bin_starts = [
