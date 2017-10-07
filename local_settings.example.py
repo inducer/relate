@@ -261,7 +261,8 @@ RELATE_SHOW_EDITOR_FORM = True
 # {{{ docker
 
 # A string containing the image ID of the docker image to be used to run
-# student Python code. Docker should download the image on first run.
+# student Python code. Needed to be manually downloaded if runpy is enabled,
+# by shell command: "docker pull inducer/relate-runpy-i386", or it won't pass check.
 RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
 
 # A URL pointing to the Docker command interface which RELATE should use
@@ -286,6 +287,70 @@ RELATE_DOCKER_TLS_CONFIG = None
 #         ),
 #     ca_cert=os.path.join(pki_base_dir, "ca.pem"),
 #     verify=True)
+
+# Docker configurations used by Relate. For runpy Docker (code pages), which requires
+# the "docker_image" (with previous value "RELATE_DOCKER_RUNPY_IMAGE") key, the
+# config name is default to "default". You can switch the name to other by
+# configuring "RELATE_RUNPY_DOCKER_CLIENT_CONFIG_NAME".
+# RELATE_DOCKERS = {
+#     "default": {
+#         "docker_image": RELATE_DOCKER_RUNPY_IMAGE,
+#         "client_config": {
+#             "base_url": RELATE_DOCKER_URL,
+#             "tls": RELATE_DOCKER_TLS_CONFIG,
+#             "timeout": 15,
+#             "version": "1.19"
+#         },
+#         "local_docker_machine_config": {
+#             "enabled": True,
+#             "config":{
+#                 "shell": None,
+#                 "name": "default",
+#             },
+#         },
+#
+#         # This is required to be configured for relate runpy docker for running code
+#         # quetsions (and other cases when you need to used the
+#         # get_connect_ip_and_port_by_container_from_config method),
+#         # in cases when your RELATE instance and (runpy) docker-running
+#         # instances are not on the same subnet. You must know the private ip and
+#         # a correspond public ip (by which the RElATE instance can visit the docker
+#         # instance) of each docker-running instances.
+#         # Dict format: {private_ip1: public_ip_1, private_ip2, public_ip_2}
+#         "private_public_ip_map_dict": {},
+#
+#         # This is used to display alias of execution hosts of runpy instance if
+#         # you don't want user to know the actual host name or ip address.
+#         "execution_host_alias_dict": {"some ip": "my runpy instance I"},
+#     },
+#     "other":{
+#
+#     }
+# }
+
+
+# Switch to turn on/off runpy, default to True. Setting this to False will
+# Disable the functionality of Runpy code question. A critical check error
+# will stop the server from start up unless you explicitly set
+# "SILENCE_RUNPY_DOCKER_NOT_USABLE_ERROR" (below) to True.
+#RELATE_RUNPY_DOCKER_ENABLED = True
+
+# The config name which will be used for Runpy docker. If not set, "default" will
+# be used.
+# RELATE_RUNPY_DOCKER_CLIENT_CONFIG_NAME = "default"
+
+# If True, submission of code question with RELATE_RUNPY_DOCKER_ENABLED = False
+# won't send email notifications about RunpyDockerNotUsableError. Default to False
+#SILENCE_RUNPY_DOCKER_NOT_USABLE_ERROR = False
+
+
+# # Note: The following is used to ensure unittests can be run on Windows CI and for
+# # backward compatibility, you should remove them in your local_settings.py if you
+# # want to enable runpy docker functionality.
+import sys
+if sys.platform.startswith("win") or sys.platform.startswith("darwin"):
+    SILENCE_RUNPY_DOCKER_NOT_USABLE_ERROR = True
+    #RELATE_RUNPY_DOCKER_ENABLED = False
 
 # }}}
 
