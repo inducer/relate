@@ -333,4 +333,9 @@ a .sensitive {
   text-decoration: none;
 }
 
+/* if not using  "markdown.extensions.codehilite" extension */
+div.cell.border-box-sizing.code_cell.rendered > div.input > div.inner_cell > div.input_area > pre {
+  margin: 0;
+}
+
 /* vim: set foldmethod=marker: */

@@ -41,6 +41,8 @@ from course.page.base import (
 import re
 import sys
 
+CA_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
+
 
 class TextAnswerForm(StyledForm):
     # prevents form submission with codemirror's empty textarea
@@ -960,8 +962,6 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
-
-        CA_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
 
         for matcher in self.matchers:
             unspec_correct_answer_text = matcher.correct_answer_text()

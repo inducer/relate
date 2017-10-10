@@ -392,6 +392,10 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
+NBCONVERT_WORK_ROUND_RE = re.compile(
+    '<p>(<div class="input">\n<div class="prompt input_prompt">[^<]+</div>\n'
+    '<div class="inner_cell">\n<div class="input_area">)</p>(\n<)')
+
 
 def process_yaml_for_expansion(yaml_str):
     # type: (Text) -> Text
@@ -890,8 +894,31 @@ def expand_markup(
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
+
+        def render_notebook_cells(ipynb_path, indices=None, clear_output=False,
+                                  clear_markdown=False):
+            try:
+                ipynb_source = get_repo_blob_data_cached(repo, ipynb_path,
+                                                         commit_sha).decode()
+
+                from course.utils import render_notebook_from_source
+                return render_notebook_from_source(
+                    ipynb_source,
+                    clear_output=clear_output,
+                    indices=indices,
+                    clear_markdown=clear_markdown,
+                )
+            except ObjectDoesNotExist:
+                raise
+
         template = env.from_string(text)
-        text = template.render(**jinja_env)
+        kwargs = {}
+        if jinja_env:
+            kwargs.update(jinja_env)
+
+        kwargs["render_notebook_cells"] = render_notebook_cells
+
+        text = template.render(**kwargs)
 
     # }}}
 
@@ -909,6 +936,11 @@ def markup_to_html(
         jinja_env={},  # type: Dict
         ):
     # type: (...) -> Text
+
+    disable_codehilite = bool(
+        getattr(settings,
+                "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION", True))
+
     if course is not None and not jinja_env:
         try:
             import django.core.cache as cache
@@ -916,9 +948,12 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v7:%s:%d:%s:%s"
-                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
-                        hashlib.md5(text.encode("utf-8")).hexdigest()))
+            cache_key = ("markup:v6:%s:%d:%s:%s%s"
+                    % (CACHE_KEY_ROOT,
+                       course.id, str(commit_sha),
+                       hashlib.md5(text.encode("utf-8")).hexdigest(),
+                       ":NOCODEHILITE" if disable_codehilite else ""
+                       ))
 
             def_cache = cache.caches["default"]
             result = def_cache.get(cache_key)
@@ -943,14 +978,25 @@ def markup_to_html(
 
     from course.mdx_mathjax import MathJaxExtension
     import markdown
+
+    extensions = [
+        LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
+        MathJaxExtension(),
+        "markdown.extensions.extra",
+    ]
+
+    if not disable_codehilite:
+        extensions += ["markdown.extensions.codehilite"]
+
     result = markdown.markdown(text,
-        extensions=[
-            LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
-            MathJaxExtension(),
-            "markdown.extensions.extra",
-            "markdown.extensions.codehilite",
-            ],
+        extensions=extensions,
         output_format="html5")
+
+    # The work round in course.utils.render_notebook_from_source
+    # will result in invalid HTML DOM. The following line is to
+    # remove the <p> tag added by python-markdown to make the result
+    # a valid HTML.
+    result = NBCONVERT_WORK_ROUND_RE.sub(r"\1\2", result)
 
     assert isinstance(result, six.text_type)
     if cache_key is not None:

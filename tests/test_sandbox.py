@@ -24,15 +24,33 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from .base_test_mixins import SingleCourseTestMixin
 from course.models import Participation
 from course.constants import participation_permission as pperm
 
+QUESTION_MARKUP = """
+type: TextQuestion\r
+id: half\r
+value: 5\r
+prompt: |\r
+    # A half\r
+    What's a half?\r
+answers:\r
+    - type: float\r
+      value: 0.5\r
+      rtol: 1e-4\r
+    - <plain>half\r
+    - <plain>a half
+"""
 
-class SingleCoursePageSandboxTest(SingleCourseTestMixin, TestCase):
+CORRECT_ANSWER = 0.5
+
+
+class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCoursePageSandboxTest, cls).setUpTestData()
+        super(SingleCoursePageSandboxTestBaseMixin, cls).setUpTestData()
         participation = (
             Participation.objects.filter(
                 course=cls.course,
@@ -42,30 +60,77 @@ class SingleCoursePageSandboxTest(SingleCourseTestMixin, TestCase):
         assert participation
         cls.c.force_login(participation.user)
 
+    @classmethod
+    def get_page_sandbox_post_response(cls, data):
+        """
+        Get the preview response of content in page sandbox
+        :param page_sandbox_content: :class:`String`, RELATE flavored page markdown
+        :return: :class: `http.HttpResponse`
+        """
+        return cls.c.post(
+            reverse("relate-view_page_sandbox", args=[cls.course.identifier]),
+            data)
+
+    @classmethod
+    def get_page_sandbox_preview_response(cls, markup_content):
+        """
+        Get the preview response of content in page sandbox
+        :param markup_content: :class:`String`, RELATE flavored page markdown
+        :return: :class: `http.HttpResponse`
+        """
+        data = {'content': [markup_content], 'preview': ['Preview']}
+        return cls.get_page_sandbox_post_response(data)
+
+    @classmethod
+    def get_page_sandbox_submit_answer_response(cls, markup_content,
+                                                answer_data):
+        """
+        Get the response of preview content and then post an answer, in page sandbox
+        :param markup_content: :class:`String`, RELATE flavored page markdown
+        :param answer_data: :class:`Dict`, the answer
+        :return: :class: `http.HttpResponse`
+        """
+
+        cls.get_page_sandbox_preview_response(markup_content)
+        data = {'submit': ['Submit answer']}
+        data.update(answer_data)
+        return cls.get_page_sandbox_post_response(data)
+
+
+class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_page_sandbox_get(self):
         resp = self.c.get(reverse("relate-view_page_sandbox",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
-    def test_page_sandbox_post(self):
+    def test_page_sandbox_preview(self):
         # Check one of the quiz questions
-        question_markup = ("type: TextQuestion\r\n"
-                            "id: half\r\nvalue: 5\r\n"
-                            "prompt: |\r\n  # A half\r\n"
-                            "  What's a half?\r\n"
-                            "answers:\r\n\r\n"
-                            "  - type: float\r\n"
-                            "    value: 0.5\r\n"
-                            "    rtol: 1e-4\r\n"
-                            "  - <plain>half\r\n"
-                            "  - <plain>a half")
-        data = {'content': [question_markup], 'preview': ['Preview']}
-        resp = self.c.post(reverse("relate-view_page_sandbox",
-                                   args=[self.course.identifier]), data)
+        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
         self.assertEqual(resp.status_code, 200)
 
+        result_body = resp.context.__getitem__("body")
+        result_correct_answer = resp.context.__getitem__("correct_answer")
+        self.assertIsNone(resp.context.__getitem__("feedback"))
+
+        from course.page.text import CA_PATTERN
+        expected_correct_answer = CA_PATTERN % CORRECT_ANSWER
+        expected_body = "<h1>A half</h1><p>What's a half?</p>"
+
+        self.assertInHTML(result_body, expected_body)
+        self.assertEqual(mark_safe(result_correct_answer), expected_correct_answer)
+
+    def test_page_sandbox_submit_answer(self):
         # Try to answer the rendered question
-        data = {'answer': ['0.5'], 'submit': ['Submit answer']}
-        resp = self.c.post(reverse("relate-view_page_sandbox",
-                                   args=[self.course.identifier]), data)
+        answer_data = {'answer': ['0.5']}
+        resp = self.get_page_sandbox_submit_answer_response(
+            markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertEqual(resp.status_code, 200)
+
+        result_correctness = resp.context.__getitem__("feedback").correctness
+        self.assertEquals(int(result_correctness), 1)
+
+        answer_data = {'answer': ['0.6']}
+        resp = self.get_page_sandbox_submit_answer_response(
+            markup_content=QUESTION_MARKUP, answer_data=answer_data)
+        result_correctness = resp.context.__getitem__("feedback").correctness
+        self.assertEquals(int(result_correctness), 0)
