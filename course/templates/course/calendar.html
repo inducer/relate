@@ -162,11 +162,6 @@
       {% endif %}
     });
 
-    $(function () {
-      $('#start_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
-      $('#end_time').datetimepicker({"format": "YYYY-MM-DD HH:mm", "sideBySide": true});
-    });
-
     function edit_existing_event(event_id) {
       $('#id_to_edit').val(event_id);
       document.existing_event_edit_form.submit();
