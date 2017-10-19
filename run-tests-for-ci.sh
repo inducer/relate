@@ -19,7 +19,7 @@ git submodule update --init --recursive
 
 # {{{ virtualenv
 
-VENV_VERSION="virtualenv-13.0.3"
+VENV_VERSION="virtualenv-15.1.0"
 rm -Rf "$VENV_VERSION"
 curl -k https://pypi.python.org/packages/source/v/virtualenv/$VENV_VERSION.tar.gz | tar xfz -
 
@@ -43,13 +43,13 @@ fi
 #curl -k https://ssl.tiker.net/software/ez_setup.py | python -
 #curl -k https://bootstrap.pypa.io/ez_setup.py | python -
 
-SETUPTOOLS_VERSION="setuptools-17.1.1"
+SETUPTOOLS_VERSION="setuptools-36.6.0"
 curl -k https://pypi.python.org/packages/source/s/setuptools/$SETUPTOOLS_VERSION.tar.gz | tar xfz -
 $PY_EXE $SETUPTOOLS_VERSION/setup.py install
 
 # }}}
 
-curl -k https://gitlab.tiker.net/inducer/pip/raw/7.0.3/contrib/get-pip.py | python -
+curl -k https://bootstrap.pypa.io/get-pip.py | python -
 
 # Not sure why pip ends up there, but in Py3.3, it sometimes does.
 export PATH=`pwd`/.env/local/bin:$PATH
