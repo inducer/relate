@@ -21,7 +21,7 @@ git submodule update --init --recursive
 
 VENV_VERSION="virtualenv-15.1.0"
 rm -Rf "$VENV_VERSION"
-curl -k https://pypi.python.org/packages/source/v/virtualenv/$VENV_VERSION.tar.gz | tar xfz -
+curl -k https://pypi.python.org/packages/d4/0c/9840c08189e030873387a73b90ada981885010dd9aea134d6de30cd24cb8/$VENV_VERSION.tar.gz
 
 VIRTUALENV="${PY_EXE} -m venv"
 ${VIRTUALENV} -h > /dev/null || VIRTUALENV="$VENV_VERSION/virtualenv.py --no-setuptools -p ${PY_EXE}"
@@ -44,7 +44,8 @@ fi
 #curl -k https://bootstrap.pypa.io/ez_setup.py | python -
 
 SETUPTOOLS_VERSION="setuptools-36.6.0"
-curl -k https://pypi.python.org/packages/source/s/setuptools/$SETUPTOOLS_VERSION.tar.gz | tar xfz -
+curl -L -O -k https://pypi.python.org/packages/45/29/8814bf414e7cd1031e1a3c8a4169218376e284ea2553cc0822a6ea1c2d78/$SETUPTOOLS_VERSION.zip
+unzip $SETUPTOOLS_VERSION.zip
 $PY_EXE $SETUPTOOLS_VERSION/setup.py install
 
 # }}}
