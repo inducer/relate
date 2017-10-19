@@ -21,7 +21,7 @@ git submodule update --init --recursive
 
 VENV_VERSION="virtualenv-15.1.0"
 rm -Rf "$VENV_VERSION"
-curl -k https://pypi.python.org/packages/d4/0c/9840c08189e030873387a73b90ada981885010dd9aea134d6de30cd24cb8/$VENV_VERSION.tar.gz
+curl -k https://pypi.python.org/packages/d4/0c/9840c08189e030873387a73b90ada981885010dd9aea134d6de30cd24cb8/$VENV_VERSION.tar.gz | tar xfz -
 
 VIRTUALENV="${PY_EXE} -m venv"
 ${VIRTUALENV} -h > /dev/null || VIRTUALENV="$VENV_VERSION/virtualenv.py --no-setuptools -p ${PY_EXE}"
