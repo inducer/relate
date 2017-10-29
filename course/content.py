@@ -403,34 +403,34 @@ def process_yaml_for_expansion(yaml_str):
     line_count = len(lines)
 
     while i < line_count:
-        l = lines[i].rstrip()
-        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(l)
+        ln = lines[i].rstrip()
+        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(ln)
 
         if yaml_block_scalar_match is not None:
             unprocessed_block_lines = []
             allow_jinja = bool(yaml_block_scalar_match.group(2))
-            l = YAML_BLOCK_START_SCALAR_RE.sub(
-                    r"\1\3", l)
+            ln = YAML_BLOCK_START_SCALAR_RE.sub(
+                    r"\1\3", ln)
 
-            unprocessed_block_lines.append(l)
+            unprocessed_block_lines.append(ln)
 
-            block_start_indent = len(LEADING_SPACES_RE.match(l).group(1))
+            block_start_indent = len(LEADING_SPACES_RE.match(ln).group(1))
 
             i += 1
 
             while i < line_count:
-                l = lines[i]
+                ln = lines[i]
 
-                if not l.rstrip():
-                    unprocessed_block_lines.append(l)
+                if not ln.rstrip():
+                    unprocessed_block_lines.append(ln)
                     i += 1
                     continue
 
-                line_indent = len(LEADING_SPACES_RE.match(l).group(1))
+                line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
-                    unprocessed_block_lines.append(l.rstrip())
+                    unprocessed_block_lines.append(ln.rstrip())
                     i += 1
 
             if not allow_jinja:
@@ -439,14 +439,14 @@ def process_yaml_for_expansion(yaml_str):
             if not allow_jinja:
                 jinja_lines.append("{% endraw %}")
 
-        elif GROUP_COMMENT_START.match(l):
+        elif GROUP_COMMENT_START.match(ln):
             jinja_lines.append("{% raw %}")
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             jinja_lines.append("{% endraw %}")
             i += 1
 
         else:
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             i += 1
 
     return "\n".join(jinja_lines)
@@ -966,8 +966,8 @@ def extract_title_from_markup(markup_text):
     # type: (Text) -> Optional[Text]
     lines = markup_text.split("\n")
 
-    for l in lines[:10]:
-        match = TITLE_RE.match(l)
+    for ln in lines[:10]:
+        match = TITLE_RE.match(ln)
         if match is not None:
             return match.group(1)
 

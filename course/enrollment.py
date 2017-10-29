@@ -473,27 +473,27 @@ def create_preapprovals(pctx):
             pending_approved_count = 0
 
             roles = form.cleaned_data["roles"]
-            for l in form.cleaned_data["preapproval_data"].split("\n"):
-                l = l.strip()
+            for ln in form.cleaned_data["preapproval_data"].split("\n"):
+                ln = ln.strip()
                 preapp_type = form.cleaned_data["preapproval_type"]
 
-                if not l:
+                if not ln:
                     continue
 
                 if preapp_type == "email":
 
                     try:
                         preapproval = ParticipationPreapproval.objects.get(
-                                email__iexact=l,
+                                email__iexact=ln,
                                 course=pctx.course)
                     except ParticipationPreapproval.DoesNotExist:
 
-                        # approve if l is requesting enrollment
+                        # approve if ln is requesting enrollment
                         try:
                             pending = Participation.objects.get(
                                     course=pctx.course,
                                     status=participation_status.requested,
-                                    user__email__iexact=l)
+                                    user__email__iexact=ln)
 
                         except Participation.DoesNotExist:
                             pass
@@ -511,7 +511,7 @@ def create_preapprovals(pctx):
                         continue
 
                     preapproval = ParticipationPreapproval()
-                    preapproval.email = l
+                    preapproval.email = ln
                     preapproval.course = pctx.course
                     preapproval.creator = request.user
                     preapproval.save()
@@ -523,16 +523,16 @@ def create_preapprovals(pctx):
 
                     try:
                         preapproval = ParticipationPreapproval.objects.get(
-                                course=pctx.course, institutional_id__iexact=l)
+                                course=pctx.course, institutional_id__iexact=ln)
 
                     except ParticipationPreapproval.DoesNotExist:
 
-                        # approve if l is requesting enrollment
+                        # approve if ln is requesting enrollment
                         try:
                             pending = Participation.objects.get(
                                     course=pctx.course,
                                     status=participation_status.requested,
-                                    user__institutional_id__iexact=l)
+                                    user__institutional_id__iexact=ln)
                             if (
                                     pctx.course.preapproval_require_verified_inst_id
                                     and not pending.user.institutional_id_verified):
@@ -553,7 +553,7 @@ def create_preapprovals(pctx):
                         continue
 
                     preapproval = ParticipationPreapproval()
-                    preapproval.institutional_id = l
+                    preapproval.institutional_id = ln
                     preapproval.course = pctx.course
                     preapproval.creator = request.user
                     preapproval.save()

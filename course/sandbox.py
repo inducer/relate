@@ -125,7 +125,7 @@ def view_markup_sandbox(pctx):
                 preview_text = markup_to_html(
                         pctx.course, pctx.repo, pctx.course_commit_sha,
                         form.cleaned_data["content"])
-            except:
+            except Exception:
                 import sys
                 tp, e, _ = sys.exc_info()
 
@@ -258,7 +258,7 @@ def view_page_sandbox(pctx):
 
                 page_warnings = vctx.warnings
 
-            except:
+            except Exception:
                 import sys
                 tp, e, _ = sys.exc_info()
 
@@ -304,7 +304,7 @@ def view_page_sandbox(pctx):
         try:
             page = instantiate_flow_page("sandbox", pctx.repo, page_desc,
                     pctx.course_commit_sha)
-        except:
+        except Exception:
             import sys
             tp, e, _ = sys.exc_info()
 
@@ -378,7 +378,7 @@ def view_page_sandbox(pctx):
                     page_form = page.make_form(page_context, page_data,
                             answer_data, page_behavior)
 
-                except:
+                except Exception:
                     import sys
                     tp, e, _ = sys.exc_info()
 

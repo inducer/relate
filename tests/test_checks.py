@@ -27,7 +27,7 @@ from django.test import SimpleTestCase
 from django.test.utils import override_settings
 try:
     from unittest import mock
-except:
+except Exception:
     import mock
 
 

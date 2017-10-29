@@ -86,7 +86,7 @@ def has_permission(participation, arg):
         if len(arg_list) > 1:
             argument = arg_list[1]
         has_pperm = participation.has_permission(perm, argument)
-    except:
+    except Exception:
         # fail silently
         pass
 
