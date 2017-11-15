@@ -27,11 +27,11 @@ THE SOFTWARE.
 
 import six
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext, string_concat)
+        ugettext_lazy as _, ugettext)
 from course.validation import validate_struct, ValidationError
 import django.forms as forms
 
-from relate.utils import StyledForm, Struct
+from relate.utils import StyledForm, Struct, string_concat
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer,
@@ -156,7 +156,7 @@ class RELATEPageValidator(object):
                 raise ValidationError(ugettext("page must be of type '%s'")
                         % self.validator_desc.page_type)
 
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
 
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
@@ -279,7 +279,7 @@ class RegexMatcher(TextAnswerMatcher):
     def __init__(self, vctx, location, pattern):
         try:
             self.pattern = re.compile(pattern, self.re_flags)
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
 
             raise ValidationError(
@@ -349,7 +349,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
                             "err_str": str(e)
                             })
 
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
             raise ValidationError(
                     "%(location)s: %(err_type)s: %(err_str)s"
@@ -362,7 +362,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
     def validate(self, s):
         try:
             parse_sympy(s)
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % {"err_type": tp.__name__, "err_str": str(e)})
@@ -410,7 +410,7 @@ def float_or_sympy_evalf(s):
 def _is_valid_float(s):
     try:
         float_or_sympy_evalf(s)
-    except:
+    except Exception:
         return False
     else:
         return True
@@ -441,7 +441,7 @@ class FloatMatcher(TextAnswerMatcher):
         try:
             self.matcher_desc.value = \
                     float_or_sympy_evalf(matcher_desc.value)
-        except:
+        except Exception:
             raise ValidationError(
                     string_concat(
                         "%s: 'value' ",
@@ -452,7 +452,7 @@ class FloatMatcher(TextAnswerMatcher):
             try:
                 self.matcher_desc.rtol = \
                         float_or_sympy_evalf(matcher_desc.rtol)
-            except:
+            except Exception:
                 raise ValidationError(
                         string_concat(
                             "%s: 'rtol' ",
@@ -470,7 +470,7 @@ class FloatMatcher(TextAnswerMatcher):
             try:
                 self.matcher_desc.atol = \
                         float_or_sympy_evalf(matcher_desc.atol)
-            except:
+            except Exception:
                 raise ValidationError(
                         string_concat(
                             "%s: 'atol' ",
@@ -497,7 +497,7 @@ class FloatMatcher(TextAnswerMatcher):
     def validate(self, s):
         try:
             float_or_sympy_evalf(s)
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % {"err_type": tp.__name__, "err_str": str(e)})
@@ -632,6 +632,10 @@ class TextQuestionBase(PageBaseWithTitle):
 
         ``TextQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -751,6 +755,10 @@ class SurveyTextQuestion(TextQuestionBase):
 
         ``TextQuestion``
 
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
     .. attribute:: access_rules
 
         |access-rules-page-attr|
@@ -809,6 +817,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     .. attribute:: type
 
         ``TextQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 
@@ -985,6 +997,10 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
     .. attribute:: type
 
         ``HumanGradedTextQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 

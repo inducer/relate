@@ -37,14 +37,13 @@ from django.utils.translation import (
         ugettext,
         pgettext,
         pgettext_lazy,
-        string_concat,
         )
 from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
 
 from django.db import transaction
 
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
 
 from course.models import (
@@ -66,9 +65,10 @@ from course.constants import (
 
 # {{{ for mypy
 
-from django import http  # noqa
-from typing import Tuple, List, Text, Any  # noqa
-from dulwich.client import GitClient  # noqa
+if False:
+    from django import http  # noqa
+    from typing import Tuple, List, Text, Any, Dict  # noqa
+    from dulwich.client import GitClient  # noqa
 
 # }}}
 
@@ -111,9 +111,6 @@ class DulwichParamikoSSHVendor(object):
 
     def run_command(self, host, command, username=None, port=None,
                     progress_stderr=None):
-        if not isinstance(command, bytes):
-            raise TypeError(command)
-
         if port is None:
             port = 22
 
@@ -161,20 +158,6 @@ def get_dulwich_client_and_remote_path_from_course(course):
     client, remote_path = get_transport_and_path(
             course.git_source)
 
-    try:
-        # Work around
-        # https://bugs.launchpad.net/dulwich/+bug/1025886
-        client._fetch_capabilities.remove('thin-pack')
-    except KeyError:
-        pass
-    except AttributeError:
-        pass
-
-    if not isinstance(client, dulwich.client.LocalGitClient):
-        # LocalGitClient uses Py3 Unicode path names to refer to
-        # paths, so it doesn't want an encoded path.
-        remote_path = remote_path.encode("utf-8")
-
     return client, remote_path
 
 
@@ -196,6 +179,7 @@ class CourseCreationForm(StyledModelForm):
             "course_file",
             "events_file",
             "enrollment_approval_required",
+            "preapproval_require_verified_inst_id",
             "enrollment_required_email_suffix",
             "from_email",
             "notify_email",
@@ -294,28 +278,18 @@ def set_up_new_course(request):
                         messages.add_message(request, messages.INFO,
                                 _("Course content validated, creation "
                                 "succeeded."))
-                except:
+                except Exception:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
-
-                    # Work around read-only files on Windows.
-                    # https://docs.python.org/3.5/library/shutil.html#rmtree-example
-
-                    import os
-                    import stat
-                    import shutil
 
                     # Make sure files opened for 'repo' above are actually closed.
                     if repo is not None:  # noqa
                         repo.close()  # noqa
 
-                    def remove_readonly(func, path, _):  # noqa
-                        "Clear the readonly bit and reattempt the removal"
-                        os.chmod(path, stat.S_IWRITE)
-                        func(path)
+                    from relate.utils import force_remove_path
 
                     try:
-                        shutil.rmtree(repo_path, onerror=remove_readonly)
+                        force_remove_path(repo_path)
                     except OSError:
                         messages.add_message(request, messages.WARNING,
                                 ugettext("Failed to delete unused "
@@ -323,6 +297,10 @@ def set_up_new_course(request):
                                 % repo_path)
 
                     raise
+
+                finally:
+                    if repo is not None:
+                        repo.close()
 
             except Exception as e:
                 from traceback import print_exc
@@ -488,7 +466,7 @@ class GitUpdateForm(StyledForm):
 
         self.fields["new_sha"] = forms.ChoiceField(
                 choices=([
-                    (repo_refs[ref],
+                    (repo_refs[ref].decode(),
                         "[%s] %s" % (
                             ref.decode("utf-8", errors="replace"),
                             format_sha(repo_refs[ref])))

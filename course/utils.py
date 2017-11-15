@@ -24,18 +24,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast
+
 import six
 import datetime  # noqa
-
-from typing import cast
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import (
-        ugettext as _, string_concat, pgettext_lazy)
+        ugettext as _, pgettext_lazy)
 
+from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+
+from relate.utils import string_concat
 from course.content import (
         get_course_repo, get_flow_desc,
         parse_date_spec, get_course_commit_sha)
@@ -55,7 +58,8 @@ from course.page.base import (  # noqa
 # {{{ mypy
 
 if False:
-    from typing import Tuple, List, Text, Iterable, Any, Optional, Union  # noqa
+    from typing import (  # noqa
+        Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text)
     from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,
@@ -102,7 +106,7 @@ class FlowSessionStartRule(FlowSessionRuleBase):
 class FlowSessionAccessRule(FlowSessionRuleBase):
     def __init__(
             self,
-            permissions,  # type: frozenset[Text]
+            permissions,  # type: FrozenSet[Text]
             message=None,  # type: Optional[Text]
             ):
         # type: (...) -> None
@@ -201,6 +205,38 @@ def _eval_generic_session_conditions(
     return True
 
 
+def _eval_participation_tags_conditions(
+        rule,  # type: Any
+        participation,  # type: Optional[Participation]
+        ):
+    # type: (...) -> bool
+
+    participation_tags_any_set = (
+        set(getattr(rule, "if_has_participation_tags_any", [])))
+    participation_tags_all_set = (
+        set(getattr(rule, "if_has_participation_tags_all", [])))
+
+    if participation_tags_any_set or participation_tags_all_set:
+        if not participation:
+            # Return False for anonymous users if only
+            # if_has_participation_tags_any or if_has_participation_tags_all
+            # is not empty.
+            return False
+        ptag_set = set(participation.tags.all().values_list("name", flat=True))
+        if not ptag_set:
+            return False
+        if (participation_tags_any_set
+            and
+                not participation_tags_any_set & ptag_set):
+            return False
+        if (participation_tags_all_set
+            and
+                not participation_tags_all_set <= ptag_set):
+            return False
+
+    return True
+
+
 def get_flow_rules(
         flow_desc,  # type: FlowDesc
         kind,  # type: Text
@@ -245,7 +281,7 @@ def get_session_start_rule(
         flow_id,  # type: Text
         flow_desc,  # type: FlowDesc
         now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[frozenset[Text]]
+        facilities=None,  # type: Optional[FrozenSet[Text]]
         for_rollover=False,  # type: bool
         login_exam_ticket=None,  # type: Optional[ExamTicket]
         ):
@@ -271,6 +307,9 @@ def get_session_start_rule(
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
                 login_exam_ticket=login_exam_ticket):
+            continue
+
+        if not _eval_participation_tags_conditions(rule, participation):
             continue
 
         if not for_rollover and hasattr(rule, "if_in_facility"):
@@ -335,7 +374,7 @@ def get_session_access_rule(
         session,  # type: FlowSession
         flow_desc,  # type: FlowDesc
         now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[frozenset[Text]]
+        facilities=None,  # type: Optional[FrozenSet[Text]]
         login_exam_ticket=None,  # type: Optional[ExamTicket]
         ):
     # type: (...) -> FlowSessionAccessRule
@@ -359,6 +398,9 @@ def get_session_access_rule(
                 rule, session.course, session.participation,
                 now_datetime, flow_id=session.flow_id,
                 login_exam_ticket=login_exam_ticket):
+            continue
+
+        if not _eval_participation_tags_conditions(rule, session.participation):
             continue
 
         if not _eval_generic_session_conditions(rule, session, now_datetime):
@@ -447,11 +489,30 @@ def get_session_grading_rule(
         if not _eval_generic_session_conditions(rule, session, now_datetime):
             continue
 
+        if not _eval_participation_tags_conditions(rule, session.participation):
+            continue
+
         if hasattr(rule, "if_completed_before"):
             ds = parse_date_spec(session.course, rule.if_completed_before)
-            if session.in_progress and now_datetime > ds:
-                continue
-            if not session.in_progress and session.completion_time > ds:
+
+            use_last_activity_as_completion_time = False
+            if hasattr(rule, "use_last_activity_as_completion_time"):
+                use_last_activity_as_completion_time = \
+                        rule.use_last_activity_as_completion_time
+
+            if use_last_activity_as_completion_time:
+                last_activity = session.last_activity()
+                if last_activity is not None:
+                    completion_time = last_activity
+                else:
+                    completion_time = now_datetime
+            else:
+                if session.in_progress:
+                    completion_time = now_datetime
+                else:
+                    completion_time = session.completion_time
+
+            if completion_time > ds:
                 continue
 
         due = parse_date_spec(session.course, getattr(rule, "due", None))
@@ -471,6 +532,13 @@ def get_session_grading_rule(
         max_points = getattr_with_fallback((rule, flow_desc), "max_points", None)
         max_points_enforced_cap = getattr_with_fallback(
                 (rule, flow_desc), "max_points_enforced_cap", None)
+
+        try:
+            from typing import Text  # noqa
+        except ImportError:
+            Text = None  # noqa
+
+        grade_aggregation_strategy = cast(Text, grade_aggregation_strategy)  # type: ignore  # noqa
 
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
@@ -508,7 +576,7 @@ class CoursePageContext(object):
 
         self.request = request
         self.course_identifier = course_identifier
-        self._permissions_cache = None  # type: Optional[frozenset[Tuple[Text, Optional[Text]]]]  # noqa
+        self._permissions_cache = None  # type: Optional[FrozenSet[Tuple[Text, Optional[Text]]]]  # noqa
         self._role_identifiers_cache = None  # type: Optional[List[Text]]
 
         from course.models import Course  # noqa
@@ -533,24 +601,25 @@ class CoursePageContext(object):
             if self.participation.preview_git_commit_sha:
                 preview_sha = self.participation.preview_git_commit_sha.encode()
 
-                repo = get_course_repo(self.course)
+                with get_course_repo(self.course) as repo:
+                    from relate.utils import SubdirRepoWrapper
+                    if isinstance(repo, SubdirRepoWrapper):
+                        true_repo = repo.repo
+                    else:
+                        true_repo = cast(dulwich.repo.Repo, repo)
 
-                from relate.utils import SubdirRepoWrapper
-                if isinstance(repo, SubdirRepoWrapper):
-                    true_repo = repo.repo
-                else:
-                    true_repo = cast(dulwich.repo.Repo, repo)
+                    try:
+                        true_repo[preview_sha]
+                    except KeyError:
+                        from django.contrib import messages
+                        messages.add_message(request, messages.ERROR,
+                                _("Preview revision '%s' does not exist--"
+                                "showing active course content instead.")
+                                % preview_sha.decode())
 
-                try:
-                    true_repo[preview_sha]
-                except KeyError:
-                    from django.contrib import messages
-                    messages.add_message(request, messages.ERROR,
-                            _("Preview revision '%s' does not exist--"
-                            "showing active course content instead.")
-                            % preview_sha.decode())
-
-                    preview_sha = None
+                        preview_sha = None
+                    finally:
+                        true_repo.close()
 
                 if preview_sha is not None:
                     sha = preview_sha
@@ -568,7 +637,7 @@ class CoursePageContext(object):
         return self._role_identifiers_cache
 
     def permissions(self):
-        # type: () -> frozenset[Tuple[Text, Optional[Text]]]
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
         if self.participation is None:
             if self._permissions_cache is not None:
                 return self._permissions_cache
@@ -589,6 +658,12 @@ class CoursePageContext(object):
                     for p, arg in self.permissions())
         else:
             return (perm, argument) in self.permissions()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.repo.close()
 
 
 class FlowContext(object):
@@ -708,10 +783,10 @@ def instantiate_flow_page_with_ctx(fctx, page_data):
 # {{{ utilties for course-based views
 def course_view(f):
     def wrapper(request, course_identifier, *args, **kwargs):
-        pctx = CoursePageContext(request, course_identifier)
-        response = f(pctx, *args, **kwargs)
-        pctx.repo.close()
-        return response
+        with CoursePageContext(request, course_identifier) as pctx:
+            response = f(pctx, *args, **kwargs)
+            pctx.repo.close()
+            return response
 
     from functools import update_wrapper
     update_wrapper(wrapper, f)
@@ -821,14 +896,19 @@ class PageInstanceCache(object):
 
 # {{{ codemirror config
 
-def get_codemirror_widget(language_mode, interaction_mode,
-        config=None, addon_css=(), addon_js=(), dependencies=(),
-        read_only=False):
+def get_codemirror_widget(
+        language_mode,  # type: Text
+        interaction_mode,  # type: Text
+        config=None,  # type: Optional[Dict]
+        addon_css=(),  # type: Tuple
+        addon_js=(),  # type: Tuple
+        dependencies=(),  # type: Tuple
+        read_only=False,  # type: bool
+        ):
+    # type: (...) ->  CodeMirrorTextarea
     theme = "default"
     if read_only:
         theme += " relate-readonly"
-
-    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
     from django.urls import reverse
     help_text = (_("Press F9 to toggle full-screen mode. ")
@@ -868,10 +948,19 @@ def get_codemirror_widget(language_mode, interaction_mode,
                   "Ctrl-/": "toggleComment",
                   "Tab": function(cm)
                   {
-                    var spaces = \
-                        Array(cm.getOption("indentUnit") + 1).join(" ");
-                    cm.replaceSelection(spaces);
+                    // from https://github.com/codemirror/CodeMirror/issues/988
+
+                    if (cm.doc.somethingSelected()) {
+                        return CodeMirror.Pass;
+                    }
+                    var spacesPerTab = cm.getOption("indentUnit");
+                    var spacesToInsert = (
+                        spacesPerTab
+                        - (cm.doc.getCursor("start").ch % spacesPerTab));
+                    var spaces = Array(spacesToInsert + 1).join(" ");
+                    cm.replaceSelection(spaces, "end", "+input");
                   },
+                  "Shift-Tab": "indentLess",
                   "F9": function(cm) {
                       cm.setOption("fullScreen",
                         !cm.getOption("fullScreen"));
@@ -908,7 +997,7 @@ def get_codemirror_widget(language_mode, interaction_mode,
 # {{{ facility processing
 
 def get_facilities_config(request=None):
-    # type: (Optional[http.HttpRequest]) -> Dict[Text, Dict[Text, Any]]
+    # type: (Optional[http.HttpRequest]) -> Optional[Dict[Text, Dict[Text, Any]]]
     from django.conf import settings
 
     # This is called during offline validation, where Django isn't really set up.
@@ -990,5 +1079,23 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
                     )
 
     return True, ""
+
+
+def will_use_masked_profile_for_email(recipient_email):
+    # type: (Union[Text, List[Text]]) -> bool
+    if not recipient_email:
+        return False
+    if not isinstance(recipient_email, list):
+        recipient_email = [recipient_email]
+    from course.models import Participation  # noqa
+    recepient_participations = (
+        Participation.objects.filter(
+            user__email__in=recipient_email
+        ))
+    from course.constants import participation_permission as pperm
+    for part in recepient_participations:
+        if part.has_permission(pperm.view_participant_masked_profile):
+            return True
+    return False
 
 # vim: foldmethod=marker

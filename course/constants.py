@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+if False:
+    import typing  # noqa
 
 from django.utils.translation import pgettext_lazy, ugettext
 # Allow 10x extra credit at the very most.
@@ -34,7 +36,7 @@ COURSE_ID_REGEX = "(?P<course_identifier>[-a-zA-Z0-9]+)"
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"
 GRADING_OPP_ID_REGEX = "(?P<grading_opp_id>[-_a-zA-Z0-9]+)"
 # FIXME : Support page hierarchy. Add '/' here, fix validation code.
-STATICPAGE_PATH_REGEX = "(?P<page_path>[-\w]+)"
+STATICPAGE_PATH_REGEX = r"(?P<page_path>[-\w]+)"
 
 
 class user_status:  # noqa
@@ -76,11 +78,10 @@ PARTICIPATION_STATUS_CHOICES = (
 class participation_permission:  # noqa
     edit_course = "edit_course"
     use_admin_interface = "use_admin_interface"
+    manage_authentication_tokens = "manage_authentication_tokens"
 
     impersonate_role = "impersonate_role"
-    # FIXME: Not yet used
     set_fake_time = "set_fake_time"
-    # FIXME: Not yet used
     set_pretend_facility = "set_pretend_facility"
 
     edit_course_permissions = "edit_course_permissions"
@@ -89,11 +90,13 @@ class participation_permission:  # noqa
     send_instant_message = "send_instant_message"
     access_files_for = "access_files_for"
     included_in_grade_statistics = "included_in_grade_statistics"
+    skip_during_manual_grading = "skip_during_manual_grading"
 
     edit_exam = "edit_exam"
     issue_exam_ticket = "issue_exam_ticket"
     batch_issue_exam_ticket = "batch_issue_exam_ticket"
 
+    view_participant_masked_profile = "view_participant_masked_profile"
     view_flow_sessions_from_role = "view_flow_sessions_from_role"
     view_gradebook = "view_gradebook"
     edit_grading_opportunity = "edit_grading_opportunity"
@@ -136,6 +139,10 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Edit course")),
         (participation_permission.use_admin_interface,
             pgettext_lazy("Participation permission", "Use admin interface")),
+        (participation_permission.manage_authentication_tokens,
+            pgettext_lazy("Participation permission",
+                "Manage authentication tokens")),
+
         (participation_permission.impersonate_role,
             pgettext_lazy("Participation permission", "Impersonate role")),
         (participation_permission.set_fake_time,
@@ -155,6 +162,9 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.included_in_grade_statistics,
             pgettext_lazy("Participation permission",
                 "Included in grade statistics")),
+        (participation_permission.skip_during_manual_grading,
+            pgettext_lazy("Participation permission",
+                "Skip during manual grading")),
 
         (participation_permission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),
@@ -163,9 +173,12 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (participation_permission.batch_issue_exam_ticket,
             pgettext_lazy("Participation permission", "Batch issue exam ticket")),
 
+        (participation_permission.view_participant_masked_profile,
+            pgettext_lazy("Participation permission",
+                "View participants' masked profile only")),
         (participation_permission.view_flow_sessions_from_role,
             pgettext_lazy("Participation permission",
-                "View flow sessions from role ")),
+                "View flow sessions from role")),
         (participation_permission.view_gradebook,
             pgettext_lazy("Participation permission", "View gradebook")),
         (participation_permission.edit_grading_opportunity,
@@ -280,7 +293,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(expmode, permissions):
-    # type: (str, frozenset[str]) -> bool
+    # type: (str, typing.FrozenSet[str]) -> bool
     if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
                 in permissions):
@@ -334,7 +347,7 @@ class flow_permission:  # noqa
     .. attribute:: see_answer_after_submission
 
         If present, shows the correct answer to the participant after they have
-        submitted an answer of their own.
+        submitted an answer of their own (and are no longer able to change it).
 
     .. attribute:: cannot_see_flow_result
 

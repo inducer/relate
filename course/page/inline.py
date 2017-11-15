@@ -26,13 +26,13 @@ THE SOFTWARE.
 
 
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext, string_concat)
+        ugettext_lazy as _, ugettext)
 from django.utils.safestring import mark_safe
 from course.validation import validate_struct, validate_markup, ValidationError
 from course.content import remove_prefix
 import django.forms as forms
 
-from relate.utils import Struct, StyledInlineForm
+from relate.utils import Struct, StyledInlineForm, string_concat
 from course.page.base import (
         AnswerFeedback, PageBaseWithValue, markup_to_html)
 
@@ -206,7 +206,7 @@ EM_LEN_DICT = {
         "%": ""}
 
 ALLOWED_LENGTH_UNIT = EM_LEN_DICT.keys()
-WIDTH_STR_RE = re.compile("^(\d*\.\d+|\d+)\s*(.*)$")
+WIDTH_STR_RE = re.compile(r"^(\d*\.\d+|\d+)\s*(.*)$")
 
 
 class ShortAnswer(AnswerBase):
@@ -414,7 +414,7 @@ class ChoicesAnswer(AnswerBase):
         for choice_idx, choice in enumerate(answers_desc.choices):
             try:
                 choice = str(choice)
-            except:
+            except Exception:
                 raise ValidationError(
                         string_concat(
                             "%(location)s: '%(answer_name)s' ",
@@ -520,6 +520,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     .. attribute:: type
 
         ``InlineMultiQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
 
     .. attribute:: access_rules
 
@@ -642,9 +646,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         super(InlineMultiQuestion, self).__init__(
                 vctx, location, page_desc)
 
-        self.embedded_wrapped_name_list = WRAPPED_NAME_RE.findall(
-                page_desc.question)
-        self.embedded_name_list = NAME_RE.findall(page_desc.question)
+        expanded_question = page_desc.question
+
+        self.embedded_wrapped_name_list = WRAPPED_NAME_RE.findall(expanded_question)
+        self.embedded_name_list = NAME_RE.findall(expanded_question)
 
         answer_instance_list = []
 
@@ -742,7 +747,13 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         if vctx is not None:
             validate_markup(vctx, location, page_desc.question)
 
-            remainder_html = markup_to_html(vctx, page_desc.question)
+            def reverse_func(*args, **kwargs):
+                pass
+
+            # FIXME This is a bit redundant since validate_markup already calls
+            # markup_to_html.
+            remainder_html = markup_to_html(vctx, page_desc.question,
+                    reverse_func=reverse_func)
 
             html_list = []
             for wrapped_name in self.embedded_wrapped_name_list:

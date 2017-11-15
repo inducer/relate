@@ -102,41 +102,6 @@ Setting up SAML2
 - Edit :file:`saml_config.py` using :file:`saml_config.py.example`
   as a guide.
 
-How to translate RELATE
------------------------
-
-RELATE is translatable into languages other than English. Run the
-following command::
-
-    django-admin makemessages -l de
-
-This will generate a message file for German, where the locale name ``de``
-stands for Germany. The message file located in the ``locale`` directory
-of your RELATE installation. For example, the above command will generate
-a message file ``django.po`` in ``/project/root/locale/de/LC_MESSAGES``.
-
-Edit ``django.po``. For each ``msgid`` string, put it's translation in
-``msgstr`` right below. ``msgctxt`` strings, along with the commented
-``Translators:`` strings above some ``msgid`` strings, are used to provide
-more information for better understanding of the text to be translated.
-A Simplified Chinese version (demo) of translation is included for Chinese
-users, with locale name ``zh_CN``.
-
-
-When translations are done, run the following command in root directory::
-
-    django-admin compilemessages -l de
-
-Your translations are ready for use. If you translate RELATE, please submit
-your translations for inclusion into the RELATE itself.
-
-To enable the translations, open your ``local_settings.py``, uncomment the
-``LANGUAGE_CODE`` string and change 'en-us' to the locale name of your
-language. 
-
-For more instructions, please refer to `Localization: how to create
-language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
-
 Deployment
 ----------
 
@@ -149,6 +114,7 @@ The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`::
 
     [uwsgi]
     plugins = python
+    # or plugins = python3
     socket = /tmp/uwsgi-relate.sock
     chdir=/home/andreas/relate
     virtualenv=/home/andreas/my-relate-env
@@ -247,8 +213,45 @@ Then run::
     # systemctl status relate-celery.service
     # systemctl enable relate-celery.service
 
-Tips
-====
+Enabling I18n support/Translating RELATE into other Languages
+=============================================================
+
+Creating New Translations
+-------------------------
+
+RELATE is translatable into languages other than English. Run the
+following command::
+
+    django-admin makemessages -l de
+
+This will generate a message file for German, where the locale name ``de``
+stands for Germany. The message file located in the ``locale`` directory
+of your RELATE installation. For example, the above command will generate
+a message file ``django.po`` in ``/project/root/locale/de/LC_MESSAGES``.
+
+Edit ``django.po``. For each ``msgid`` string, put it's translation in
+``msgstr`` right below. ``msgctxt`` strings, along with the commented
+``Translators:`` strings above some ``msgid`` strings, are used to provide
+more information for better understanding of the text to be translated.
+A Simplified Chinese version (demo) of translation is included for Chinese
+users, with locale name ``zh_CN``.
+
+Enabling Translations
+---------------------
+
+When translations are done, run the following command in root directory::
+
+    django-admin compilemessages -l de
+
+Your translations are ready for use. If you translate RELATE, please submit
+your translations for inclusion into the RELATE itself.
+
+To enable the translations, open your ``local_settings.py``, uncomment the
+``LANGUAGE_CODE`` string and change 'en-us' to the locale name of your
+language.
+
+For more instructions, please refer to `Localization: how to create
+language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
 
 User-visible Changes
 ====================

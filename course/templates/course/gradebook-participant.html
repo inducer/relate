@@ -22,18 +22,25 @@
         <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
       </thead>
       <tbody>
-      <tr>
-        <td>{% trans "User ID" %}</td>
-        <td><span class="sensitive">{{ grade_participation.user.username }}</span></td>
-      </tr>
-      <tr>
-        <td>{% trans "Name" context "real name of a user" %}</td>
-        <td>
-          <span class="sensitive">
-                {{ grade_participation.user.get_full_name }}
-          </span>
-        </td>
-      </tr>
+      {% if not pperm.view_participant_masked_profile %}
+          <tr>
+            <td>{% trans "User ID" %}</td>
+            <td><span class="sensitive">{{ grade_participation.user.username }}</span></td>
+          </tr>
+          <tr>
+            <td>{% trans "Name" context "real name of a user" %}</td>
+            <td>
+              <span class="sensitive">
+                    {{ grade_participation.user.get_full_name }}
+              </span>
+            </td>
+          </tr>
+      {% else %}
+          <tr>
+            <td>{% trans "User" %}</td>
+            <td><span class="sensitive">{{ grade_participation.user.get_masked_profile }}{% if grade_participation.user == request.user %}(<strong>{% trans "ME" %})</strong>{% endif %}</span></td>
+          </tr>
+      {% endif %}
       <tr>
         <td>{% trans "Tags" %}</td>
         <td>
@@ -82,7 +89,6 @@
     </tbody>
   </table>
 
-  {% load coursetags %}
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-single").dataTable({

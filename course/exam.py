@@ -29,8 +29,7 @@ import six
 from django.contrib.auth import get_user_model
 import django.forms as forms
 from django.utils.translation import (
-        ugettext, ugettext_lazy as _, string_concat,
-        pgettext)
+        ugettext, ugettext_lazy as _, pgettext)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.core.exceptions import (  # noqa
@@ -58,13 +57,14 @@ from course.constants import (
         participation_permission as pperm)
 from course.views import get_now_or_fake_time
 
-from relate.utils import StyledForm
+from relate.utils import StyledForm, string_concat
 
 
 # {{{ mypy
 
-import datetime  # noqa
-from typing import Optional, Text, Tuple, FrozenSet  # noqa
+if False:
+    import datetime  # noqa
+    from typing import Optional, Text, Tuple, FrozenSet  # noqa
 
 # }}}
 
@@ -615,7 +615,7 @@ def is_from_exams_only_facility(request):
 
 
 def get_login_exam_ticket(request):
-    # type: (http.HttpRequest) -> ExamTicket
+    # type: (http.HttpRequest) -> Optional[ExamTicket]
     exam_ticket_pk = request.session.get("relate_exam_ticket_pk_used_for_login")
 
     if exam_ticket_pk is None:
@@ -716,7 +716,7 @@ class ExamLockdownMiddleware(object):
                 msg = _("Error while processing exam lockdown: "
                         "flow session not found.")
                 messages.add_message(request, messages.ERROR, msg)
-                raise SuspiciousOperation(msg)
+                raise PermissionDenied(msg)
 
             request.relate_exam_lockdown = True
 

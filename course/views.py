@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, List
+
 import datetime
 
 from django.shortcuts import (  # noqa
@@ -40,7 +42,6 @@ from django.utils import six
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
-        string_concat,
         pgettext,
         pgettext_lazy,
         )
@@ -55,9 +56,10 @@ from django.views.decorators.cache import cache_control
 
 from crispy_forms.layout import Submit, Layout, Div
 
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 from bootstrap3_datetime.widgets import DateTimePicker
 
+from course.auth import get_pre_impersonation_user
 from course.enrollment import (
         get_participation_for_request,
         get_participation_permissions)
@@ -82,11 +84,14 @@ from course.utils import (  # noqa
 
 # {{{ for mypy
 
-from typing import Tuple, List, Text, Optional, Any, Iterable  # noqa
+if False:
+    from typing import Tuple, Text, Any, Iterable, Dict, Optional  # noqa
 
-from course.content import (  # noqa
-    FlowDesc,
-    )
+    from course.content import (  # noqa
+        FlowDesc,
+        )
+
+    from accounts.models import User  # noqa
 
 # }}}
 
@@ -249,8 +254,9 @@ def media_etag_func(request, course_identifier, commit_sha, media_path):
 def get_media(request, course_identifier, commit_sha, media_path):
     course = get_object_or_404(Course, identifier=course_identifier)
 
-    repo = get_course_repo(course)
-    return get_repo_file_response(repo, "media/" + media_path, commit_sha.encode())
+    with get_course_repo(course) as repo:
+        return get_repo_file_response(
+            repo, "media/" + media_path, commit_sha.encode())
 
 
 def repo_file_etag_func(request, course_identifier, commit_sha, path):
@@ -317,9 +323,6 @@ def get_repo_file_backend(
     # check to see if the course is hidden
     check_course_state(course, participation)
 
-    # retrieve local path for the repo for the course
-    repo = get_course_repo(course)
-
     # set access to public (or unenrolled), student, etc
     if request.relate_exam_lockdown:
         access_kinds = ["in_exam"]
@@ -332,10 +335,13 @@ def get_repo_file_backend(
                 and arg is not None]
 
     from course.content import is_repo_file_accessible_as
-    if not is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
-        raise PermissionDenied()
 
-    return get_repo_file_response(repo, path, commit_sha)
+    # retrieve local path for the repo for the course
+    with get_course_repo(course) as repo:
+        if not is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
+            raise PermissionDenied()
+
+        return get_repo_file_response(repo, path, commit_sha)
 
 
 def get_repo_file_response(repo, path, commit_sha):
@@ -403,18 +409,26 @@ def get_now_or_fake_time(request):
         return fake_time
 
 
-def set_fake_time(request):
+def may_set_fake_time(user):
+    # type: (Optional[User]) -> bool
 
-    # allow staff to set fake time when impersonating
-    def is_original_user_staff(request):
-        is_impersonating = hasattr(
-                request, "relate_impersonate_original_user")
-        if is_impersonating:
-            return request.relate_impersonate_original_user.is_staff
+    if user is None:
         return False
 
-    if not (request.user.is_staff or is_original_user_staff(request)):
-        raise PermissionDenied(_("only staff may set fake time"))
+    return Participation.objects.filter(
+            user=user,
+            roles__permissions__permission=pperm.set_fake_time
+            ).count() > 0
+
+
+def set_fake_time(request):
+    # allow staff to set fake time when impersonating
+    pre_imp_user = get_pre_impersonation_user(request)
+    if not (
+            may_set_fake_time(request.user) or (
+                pre_imp_user is not None
+                and may_set_fake_time(pre_imp_user))):
+        raise PermissionDenied(_("may not set fake time"))
 
     if request.method == "POST":
         form = FakeTimeForm(request.POST, request.FILES)
@@ -488,9 +502,26 @@ class FakeFacilityForm(StyledForm):
                 Submit("unset", _("Unset")))
 
 
+def may_set_pretend_facility(user):
+    # type: (Optional[User]) -> bool
+
+    if user is None:
+        return False
+
+    return Participation.objects.filter(
+            user=user,
+            roles__permissions__permission=pperm.set_pretend_facility
+            ).count() > 0
+
+
 def set_pretend_facilities(request):
-    if not request.user.is_staff:
-        raise PermissionDenied(_("only staff may set fake facility"))
+    # allow staff to set fake time when impersonating
+    pre_imp_user = get_pre_impersonation_user(request)
+    if not (
+            may_set_pretend_facility(request.user) or (
+                pre_imp_user is not None
+                and may_set_pretend_facility(pre_imp_user))):
+        raise PermissionDenied(_("may not set fake time"))
 
     if request.method == "POST":
         form = FakeFacilityForm(request.POST)
@@ -1006,6 +1037,9 @@ class ExceptionStage3Form(StyledForm):
                 initial=default_data.get("due"),
                 label=_("Due time"))
 
+        self.fields["generates_grade"] = forms.BooleanField(required=False,
+                initial=default_data.get("generates_grade", True),
+                label=_("Generates grade"))
         self.fields["credit_percent"] = forms.FloatField(required=False,
                 initial=default_data.get("credit_percent"),
                 label=_("Credit percent"))
@@ -1021,6 +1055,7 @@ class ExceptionStage3Form(StyledForm):
 
         layout.append(Div("create_grading_exception",
             "due_same_as_access_expiration", "due",
+            "generates_grade",
             "credit_percent", "bonus_points", "max_points",
             "max_points_enforced_cap",
             css_class="well"))
@@ -1098,9 +1133,14 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             flow_desc = get_flow_desc(pctx.repo,
                     pctx.course,
                     flow_id, pctx.course_commit_sha)
-            tags = None
+
+            tags = []  # type: List[Text]
             if hasattr(flow_desc, "rules"):
-                tags = getattr(flow_desc.rules, "tags", None)
+                try:
+                    from typing import Text  # noqa
+                except ImportError:
+                    Text = None  # noqa
+                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))  # type: ignore  # noqa
 
             # {{{ put together access rule
 
@@ -1163,17 +1203,13 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     new_grading_rule["if_completed_before"] = due_local_naive
 
                 for attr_name in ["credit_percent", "bonus_points",
-                        "max_points", "max_points_enforced_cap"]:
+                        "max_points", "max_points_enforced_cap", "generates_grade"]:
                     if form.cleaned_data[attr_name] is not None:
                         new_grading_rule[attr_name] = form.cleaned_data[attr_name]
 
                 if (form.cleaned_data.get("restrict_to_same_tag")
                         and session.access_rules_tag is not None):
                     new_grading_rule["if_has_tag"] = session.access_rules_tag
-
-                if hasattr(grading_rule, "generates_grade"):
-                    new_grading_rule["generates_grade"] = \
-                            grading_rule.generates_grade
 
                 validate_session_grading_rule(
                         vctx, ugettext("newly created exception"),
@@ -1205,9 +1241,13 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
     else:
         data = {
                 "restrict_to_same_tag": session.access_rules_tag is not None,
-                "credit_percent": grading_rule.credit_percent,
                 #"due_same_as_access_expiration": True,
                 "due": grading_rule.due,
+                "generates_grade": grading_rule.generates_grade,
+                "credit_percent": grading_rule.credit_percent,
+                "bonus_points": grading_rule.bonus_points,
+                "max_points": grading_rule.max_points,
+                "max_points_enforced_cap": grading_rule.max_points_enforced_cap,
                 }
         for perm in access_rule.permissions:
             data[perm] = True

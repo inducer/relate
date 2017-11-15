@@ -34,7 +34,8 @@ from course.models import (
         ParticipationPreapproval,
         )
 
-from typing import List, Union, Text, Optional, Tuple, Any  # noqa
+if False:
+    from typing import List, Union, Text, Optional, Tuple, Any  # noqa
 
 
 # {{{ Update enrollment status when a User/Course instance is saved

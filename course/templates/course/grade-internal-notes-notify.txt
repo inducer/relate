@@ -1,5 +1,5 @@
 {% load i18n %}
-{% blocktrans with username=participation.user.get_email_appellation flow_id=flow_session.flow_id flow_id=flow_session.flow_id course_identifier=course.identifier feedback_text=feedback_text|safe %}Hi there,
+{% blocktrans with flow_id=flow_session.flow_id flow_id=flow_session.flow_id course_identifier=course.identifier feedback_text=feedback_text|safe %}Hi there,
 I am sending you the internal grading notes regarding {{username}}'s work on the page with title '{{ page_title }}' in '{{ flow_id }}' of '{{ course_identifier }}'. The full text of the notes follows.
 -------------------------------------------------------------------
 {{ notes_text }}

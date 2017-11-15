@@ -6,7 +6,7 @@ Django settings for RELATE.
 
 if False:
     # for mypy
-    from typing import Callable, Any, Union  # noqa
+    from typing import Callable, Any, Union, Dict  # noqa
 
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
@@ -21,6 +21,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = True
 
 _local_settings_file = join(BASE_DIR, "local_settings.py")
+
+if os.environ.get("RELATE_LOCAL_TEST_SETTINGS", None):
+    # This is to make sure local_settings.py is not used for unit tests.
+    assert _local_settings_file != os.environ["RELATE_LOCAL_TEST_SETTINGS"]
+    _local_settings_file = os.environ["RELATE_LOCAL_TEST_SETTINGS"]
+
 local_settings = {
         "__file__": _local_settings_file,
         }
@@ -56,7 +62,7 @@ INSTALLED_APPS = (
     "course",
 )
 
-if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
+if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
 
 # }}}
@@ -84,12 +90,13 @@ MIDDLEWARE = (
 # {{{ django: auth
 
 AUTHENTICATION_BACKENDS = (
-    "course.auth.TokenBackend",
+    "course.auth.EmailedTokenBackend",
+    "course.auth.APIBearerTokenBackend",
     "course.exam.ExamTicketBackend",
     "django.contrib.auth.backends.ModelBackend",
     )
 
-if local_settings["RELATE_SIGN_IN_BY_SAML2_ENABLED"]:
+if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
             'course.auth.Saml2Backend',
             )
@@ -122,6 +129,7 @@ BOWER_INSTALLED_APPS = (
     "jstree#3.2.1",
     "select2#4.0.1",
     "select2-bootstrap-css",
+    "blueimp-tmpl",
     )
 
 CODEMIRROR_PATH = "codemirror"
@@ -166,6 +174,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
                 ) + RELATE_EXTRA_CONTEXT_PROCESSORS,
+            "builtins": ["course.templatetags.coursetags"],
             }
     },
 ]
@@ -234,6 +243,10 @@ RELATE_ADMIN_EMAIL_LOCALE = "en_US"
 
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
+RELATE_SIGN_IN_BY_USERNAME_ENABLED = True
+RELATE_SHOW_INST_ID_FORM = True
+RELATE_SHOW_EDITOR_FORM = True
+
 # }}}
 
 for name, val in local_settings.items():
@@ -280,13 +293,5 @@ SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
 SAML_CREATE_UNKNOWN_USER = True
 
 # }}}
-
-# This makes sure the RELATE_BASE_URL is configured.
-assert local_settings["RELATE_BASE_URL"]
-
-# This makes sure RELATE_EMAIL_APPELATION_PRIORITY_LIST is a list
-if "RELATE_EMAIL_APPELATION_PRIORITY_LIST" in local_settings:
-    assert isinstance(
-        local_settings["RELATE_EMAIL_APPELATION_PRIORITY_LIST"], list)
 
 # vim: foldmethod=marker

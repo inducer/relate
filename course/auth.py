@@ -24,8 +24,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Any, Optional, Text  # noqa
-from django.utils.translation import ugettext_lazy as _, string_concat
+import re
+from typing import cast
+from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
 from django.contrib import messages
@@ -42,7 +43,7 @@ from django.contrib.auth.forms import \
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.decorators import user_passes_test
 from django.urls import reverse
-from django.core import validators
+from django.contrib.auth.validators import ASCIIUsernameValidator
 from django.utils.http import is_safe_url
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -51,6 +52,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django import http  # noqa
 
+from bootstrap3_datetime.widgets import DateTimePicker
+
 from djangosaml2.backends import Saml2Backend as Saml2BackendBase
 
 from course.constants import (
@@ -58,39 +61,66 @@ from course.constants import (
         participation_status,
         participation_permission as pperm,
         )
-from course.models import Participation, Course  # noqa
+from course.models import Participation, ParticipationRole, AuthenticationToken  # noqa
 from accounts.models import User
+from course.utils import render_course_page, course_view
 
-
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 from django_select2.forms import ModelSelect2Widget
+
+if False:
+    from typing import Any, Text  # noqa
+    from django.db.models import query  # noqa
 
 
 # {{{ impersonation
 
-def may_impersonate(impersonator, impersonee):
-    # type: (User, User) -> bool
+def get_pre_impersonation_user(request):
+    is_impersonating = hasattr(
+            request, "relate_impersonate_original_user")
+    if is_impersonating:
+        return request.relate_impersonate_original_user
+    return None
+
+
+def get_impersonable_user_qset(impersonator):
+    # type: (User) -> query.QuerySet
     if impersonator.is_superuser:
-        return True
+        return User.objects.exclude(pk=impersonator.pk)
 
     my_participations = Participation.objects.filter(
-            user=impersonator,
-            status=participation_status.active)
+        user=impersonator,
+        status=participation_status.active)
 
+    impersonable_user_qset = User.objects.none()
     for part in my_participations:
+        # Notice: if a TA is not allowed to view participants'
+        # profile in one course, then he/she is not able to impersonate
+        # any user, even in courses he/she is allow to view profiles
+        # of all users.
+        if part.has_permission(pperm.view_participant_masked_profile):
+            return User.objects.none()
         impersonable_roles = [
-                argument
-                for perm, argument in part.permissions()
-                if perm == pperm.impersonate_role]
+            argument
+            for perm, argument in part.permissions()
+            if perm == pperm.impersonate_role]
 
-        if Participation.objects.filter(
-                course=part.course,
-                status=participation_status.active,
-                roles__identifier__in=impersonable_roles,
-                user=impersonee).count():
-            return True
+        q = (Participation.objects
+             .exclude(pk=impersonator.pk)
+             .filter(course=part.course,
+                     status=participation_status.active,
+                     roles__identifier__in=impersonable_roles)
+             .select_related("user"))
 
-    return False
+        # There can be duplicate records. Removing duplicate records is needed
+        # only when rendering ImpersonateForm
+        impersonable_user_qset = (
+            impersonable_user_qset
+            |
+            User.objects.filter(pk__in=q.values_list("user__pk", flat=True))
+        )
+
+    return impersonable_user_qset
 
 
 class ImpersonateMiddleware(object):
@@ -108,14 +138,18 @@ class ImpersonateMiddleware(object):
             except ObjectDoesNotExist:
                 pass
 
+            may_impersonate = False
             if impersonee is not None:
-                if may_impersonate(cast(User, request.user), impersonee):
-                    request.relate_impersonate_original_user = request.user
-                    request.user = impersonee
+                if request.user.is_superuser:
+                    may_impersonate = True
                 else:
-                    messages.add_message(request, messages.ERROR,
-                            _("Error while impersonating."))
+                    qset = get_impersonable_user_qset(cast(User, request.user))
+                    if qset.filter(pk=cast(User, impersonee).pk).count():
+                        may_impersonate = True
 
+            if may_impersonate:
+                request.relate_impersonate_original_user = request.user
+                request.user = impersonee
             else:
                 messages.add_message(request, messages.ERROR,
                         _("Error while impersonating."))
@@ -133,28 +167,35 @@ class UserSearchWidget(ModelSelect2Widget):
             ]
 
     def label_from_instance(self, u):
-        return (
-            (
-                # Translators: information displayed when selecting
-                # userfor impersonating. Customize how the name is
-                # shown, but leave email first to retain usability
-                # of form sorted by last name.
-                "%(full_name)s (%(username)s - %(email)s)"
-                % {
-                    "full_name": u.get_full_name(),
-                    "email": u.email,
-                    "username": u.username
-                    }))
+        if u.first_name and u.last_name:
+            return (
+                (
+                    "%(full_name)s (%(username)s - %(email)s)"
+                    % {
+                        "full_name": u.get_full_name(),
+                        "email": u.email,
+                        "username": u.username
+                        }))
+        else:
+            # for users with "None" fullname
+            return (
+                (
+                    "%(username)s (%(email)s)"
+                    % {
+                        "email": u.email,
+                        "username": u.username
+                        }))
 
 
 class ImpersonateForm(StyledForm):
     def __init__(self, *args, **kwargs):
         # type:(*Any, **Any) -> None
 
+        qset = kwargs.pop("impersonable_qset")
         super(ImpersonateForm, self).__init__(*args, **kwargs)
 
         self.fields["user"] = forms.ModelChoiceField(
-                queryset=User.objects.order_by("last_name"),
+                queryset=qset,
                 required=True,
                 help_text=_("Select user to impersonate."),
                 widget=UserSearchWidget(),
@@ -173,18 +214,30 @@ class ImpersonateForm(StyledForm):
 
 def impersonate(request):
     # type: (http.HttpRequest) -> http.HttpResponse
+    if not request.user.is_authenticated:
+        raise PermissionDenied()
+
+    impersonable_user_qset = get_impersonable_user_qset(cast(User, request.user))
+    if not impersonable_user_qset.count():
+        raise PermissionDenied()
 
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 _("Already impersonating someone."))
         return redirect("relate-stop_impersonating")
 
+    # Remove duplicate and sort
+    # order_by().distinct() directly on impersonable_user_qset will not work
+    qset = (User.objects
+            .filter(pk__in=impersonable_user_qset.values_list("pk", flat=True))
+            .order_by("last_name", "first_name", "username"))
     if request.method == 'POST':
-        form = ImpersonateForm(request.POST)
+        form = ImpersonateForm(request.POST, impersonable_qset=qset)
         if form.is_valid():
             impersonee = form.cleaned_data["user"]
 
-            if may_impersonate(cast(User, request.user), cast(User, impersonee)):
+            if impersonable_user_qset.filter(
+                    pk=cast(User, impersonee).pk).count():
                 request.session['impersonate_id'] = impersonee.id
                 request.session['relate_impersonation_header'] = form.cleaned_data[
                         "add_impersonation_header"]
@@ -196,7 +249,7 @@ def impersonate(request):
                         _("Impersonating that user is not allowed."))
 
     else:
-        form = ImpersonateForm()
+        form = ImpersonateForm(impersonable_qset=qset)
 
     return render(request, "generic-form.html", {
         "form_description": _("Impersonate user"),
@@ -271,7 +324,7 @@ def check_sign_in_key(user_id, token):
     return True
 
 
-class TokenBackend(object):
+class EmailedTokenBackend(object):
     def authenticate(self, user_id=None, token=None):
         users = get_user_model().objects.filter(
                 id=user_id, sign_in_key=token)
@@ -336,6 +389,11 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
     """
     Displays the login form and handles the login action.
     """
+    if not settings.RELATE_SIGN_IN_BY_USERNAME_ENABLED:
+        messages.add_message(request, messages.ERROR,
+                _("Username-based sign-in is not being used"))
+        return redirect("relate-sign_in_choice")
+
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))
 
@@ -376,15 +434,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
 class SignUpForm(StyledModelForm):
     username = forms.CharField(required=True, max_length=30,
             label=_("Username"),
-            validators=[
-                validators.RegexValidator('^[\\w.@+-]+$',
-                    string_concat(
-                        _('Enter a valid username.'), (' '),
-                        _('This value may contain only letters, '
-                          'numbers and @/./+/-/_ characters.')
-                        ),
-                    'invalid')
-                ])
+            validators=[ASCIIUsernameValidator()])
 
     class Meta:
         model = get_user_model()
@@ -478,7 +528,8 @@ def sign_up(request):
 
 
 class ResetPasswordFormByEmail(StyledForm):
-    email = forms.EmailField(required=True, label=_("Email"))
+    email = forms.EmailField(required=True, label=_("Email"),
+                             max_length=User._meta.get_field('email').max_length)
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordFormByEmail, self).__init__(*args, **kwargs)
@@ -687,7 +738,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
 class SignInByEmailForm(StyledForm):
     email = forms.EmailField(required=True, label=_("Email"),
             # For now, until we upgrade to a custom user model.
-            max_length=30)
+            max_length=User._meta.get_field('email').max_length)
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
@@ -850,6 +901,10 @@ class UserForm(StyledModelForm):
             else:
                 self.fields["institutional_id"].widget.\
                         attrs['disabled'] = True
+            if not settings.RELATE_SHOW_INST_ID_FORM:
+                self.helper.layout[1].css_class = 'well hidden'
+            if not settings.RELATE_SHOW_EDITOR_FORM:
+                self.helper.layout[2].css_class = 'well hidden'
 
         if self.instance.name_verified:
             self.fields["first_name"].widget.attrs['disabled'] = True
@@ -861,7 +916,11 @@ class UserForm(StyledModelForm):
                 Submit("submit_user", _("Update")))
 
     def clean_institutional_id(self):
-        inst_id = self.cleaned_data['institutional_id'].strip()
+        inst_id = self.cleaned_data['institutional_id']
+
+        if inst_id is not None:
+            inst_id = inst_id.strip()
+
         if self.is_inst_id_locked:
             # Disabled fields are not part of form submit--so simply
             # assume old value. At the same time, prevent smuggled-in
@@ -957,51 +1016,6 @@ def user_profile(request):
 # }}}
 
 
-# {{{ manage auth token
-
-class AuthenticationTokenForm(StyledForm):
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
-        super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(Submit("reset", _("Reset")))
-
-
-def manage_authentication_token(request):
-    # type: (http.HttpRequest) -> http.HttpResponse
-    if not request.user.is_authenticated:
-        raise PermissionDenied()
-
-    if request.method == 'POST':
-        form = AuthenticationTokenForm(request.POST)
-        if form.is_valid():
-            token = make_sign_in_key(request.user)
-            from django.contrib.auth.hashers import make_password
-            request.user.git_auth_token_hash = make_password(token)
-            request.user.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("A new authentication token has been set: %s.")
-                    % token)
-
-    else:
-        if request.user.git_auth_token_hash is not None:
-            messages.add_message(request, messages.INFO,
-                    _("An authentication token has previously been set."))
-        else:
-            messages.add_message(request, messages.INFO,
-                    _("No authentication token has previously been set."))
-
-        form = AuthenticationTokenForm()
-
-    return render(request, "generic-form.html", {
-        "form_description": _("Manage Git Authentication Token"),
-        "form": form
-        })
-
-# }}}
-
-
 # {{{ SAML auth backend
 
 # This ticks the 'verified' boxes once we've receive attribute assertions
@@ -1066,6 +1080,252 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect(redirect_to)
     else:
         return redirect("relate-home")
+
+# }}}
+
+
+# {{{ API auth
+
+class APIError(Exception):
+    pass
+
+
+def find_matching_token(
+        course_identifier=None, token_id=None, token_hash_str=None,
+        now_datetime=None):
+    try:
+        token = AuthenticationToken.objects.get(
+                id=token_id,
+                participation__course__identifier=course_identifier)
+    except AuthenticationToken.DoesNotExist:
+        return None
+
+    from django.contrib.auth.hashers import check_password
+    if not check_password(token_hash_str, token.token_hash):
+        return None
+
+    if token.revocation_time is not None:
+        return None
+    if token.valid_until is not None and now_datetime > token.valid_until:
+        return None
+
+    return token
+
+
+class APIBearerTokenBackend(object):
+    def authenticate(self, course_identifier=None, token_id=None,
+            token_hash_str=None, now_datetime=None):
+        token = find_matching_token(course_identifier, token_id, token_hash_str,
+                now_datetime)
+        if token is None:
+            return None
+
+        token.last_use_time = now_datetime
+        token.save()
+
+        return token.user
+
+    def get_user(self, user_id):
+        try:
+            return get_user_model().objects.get(pk=user_id)
+        except get_user_model().DoesNotExist:
+            return None
+
+
+AUTH_HEADER_RE = re.compile("^Token ([0-9]+)_([a-z0-9]+)$")
+
+
+class APIContext(object):
+    def __init__(self, request, token):
+        self.request = request
+
+        self.token = token
+        self.participation = token.participation
+        self.course = self.participation.course
+
+        restrict_to_role = token.restrict_to_participation_role
+        if restrict_to_role is not None:
+            role_restriction_ok = False
+
+            if restrict_to_role in token.participation.roles.all():
+                role_restriction_ok = True
+
+            if not role_restriction_ok and self.participation.has_permission(
+                    pperm.impersonate_role, restrict_to_role.identifier):
+                role_restriction_ok = True
+
+            if not role_restriction_ok:
+                raise PermissionDenied(
+                        "API token specifies invalid role restriction")
+
+        self.restrict_to_role = restrict_to_role
+
+    def has_permission(self, perm, argument=None):
+        if self.restrict_to_role is None:
+            return self.participation.has_permission(perm, argument)
+        else:
+            return self.restrict_to_role.has_permission(perm, argument)
+
+
+def with_course_api_auth(f):
+    def wrapper(request, course_identifier, *args, **kwargs):
+        from django.utils.timezone import now
+        now_datetime = now()
+
+        try:
+            auth_header = request.META.get("HTTP_AUTHORIZATION", None)
+            if auth_header is None:
+                raise PermissionDenied("No Authorization header provided")
+
+            match = AUTH_HEADER_RE.match(auth_header)
+            if match is None:
+                raise PermissionDenied("ill-formed Authorization header")
+
+            auth_data = dict(
+                    course_identifier=course_identifier,
+                    token_id=int(match.group(1)),
+                    token_hash_str=match.group(2),
+                    now_datetime=now_datetime)
+
+            # FIXME: Redundant db roundtrip
+            token = find_matching_token(**auth_data)
+            if token is None:
+                raise PermissionDenied("invalid authentication token")
+
+            from django.contrib.auth import authenticate, login
+            user = authenticate(**auth_data)
+
+            assert user is not None
+
+            login(request, user)
+
+            response = f(
+                    APIContext(request, token),
+                    course_identifier, *args, **kwargs)
+        except PermissionDenied as e:
+            return http.HttpResponseForbidden(
+                    "403 Forbidden: " + str(e))
+        except APIError as e:
+            return http.HttpResponseBadRequest(
+                    "400 Bad Request: " + str(e))
+
+        return response
+
+    from functools import update_wrapper
+    update_wrapper(wrapper, f)
+
+    return wrapper
+
+# }}}
+
+
+# {{{ manage API auth tokens
+
+class AuthenticationTokenForm(StyledModelForm):
+    class Meta:
+        model = AuthenticationToken
+        fields = (
+                "restrict_to_participation_role",
+                "description",
+                "valid_until",
+                )
+
+        widgets = {
+                "valid_until": DateTimePicker(options={"format": "YYYY-MM-DD"})
+                }
+
+    def __init__(self, participation, *args, **kwargs):
+        # type: (Participation, *Any, **Any) -> None
+        super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
+        self.participation = participation
+
+        self.fields["restrict_to_participation_role"].queryset = (
+                participation.roles.all()
+                | ParticipationRole.objects.filter(
+                    id__in=[
+                        prole.id
+                        for prole in ParticipationRole.objects.filter(
+                            course=participation.course)
+                        if participation.has_permission(
+                            pperm.impersonate_role, prole.identifier)
+                    ]))
+
+        self.helper.add_input(Submit("create", _("Create")))
+
+
+@course_view
+def manage_authentication_tokens(pctx):
+    # type: (http.HttpRequest) -> http.HttpResponse
+
+    request = pctx.request
+
+    if not request.user.is_authenticated:
+        raise PermissionDenied()
+
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(request)
+
+    if request.method == 'POST':
+        form = AuthenticationTokenForm(pctx.participation, request.POST)
+
+        revoke_prefix = "revoke_"
+        revoke_post_args = [key for key in request.POST if key.startswith("revoke_")]
+
+        if revoke_post_args:
+            token_id = int(revoke_post_args[0][len(revoke_prefix):])
+
+            auth_token = get_object_or_404(AuthenticationToken,
+                    id=token_id,
+                    user=request.user)
+
+            auth_token.revocation_time = now_datetime
+            auth_token.save()
+
+            form = AuthenticationTokenForm(pctx.participation)
+
+        elif "create" in request.POST:
+            if form.is_valid():
+                token = make_sign_in_key(request.user)
+
+                from django.contrib.auth.hashers import make_password
+                auth_token = AuthenticationToken(
+                        user=pctx.request.user,
+                        participation=pctx.participation,
+                        restrict_to_participation_role=form.cleaned_data[
+                            "restrict_to_participation_role"],
+                        description=form.cleaned_data["description"],
+                        valid_until=form.cleaned_data["valid_until"],
+                        token_hash=make_password(token))
+                auth_token.save()
+
+                user_token = "%d_%s" % (auth_token.id, token)
+
+                messages.add_message(request, messages.SUCCESS,
+                        _("A new authentication token has been created: %s. "
+                            "Please save this token, as you will not be able "
+                            "to retrieve it later.")
+                        % user_token)
+        else:
+            messages.add_message(request, messages.ERROR,
+                    _("Could not find which button was pressed."))
+
+    else:
+        form = AuthenticationTokenForm(pctx.participation)
+
+    from django.db.models import Q
+
+    from datetime import timedelta
+    tokens = AuthenticationToken.objects.filter(
+            user=request.user,
+            ).filter(
+                Q(revocation_time=None)
+                | Q(revocation_time__gt=now_datetime - timedelta(weeks=1)))
+
+    return render_course_page(pctx, "course/manage-auth-tokens.html", {
+        "form": form,
+        "new_token_message": "",
+        "tokens": tokens,
+        })
 
 # }}}
 

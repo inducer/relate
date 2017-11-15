@@ -28,12 +28,12 @@
     </div>
   {% endif %}
 
-  {% if total_count %}
+  {% if required_count %}
     <p>
     {% blocktrans trimmed %}
-    There were {{total_count}} questions.
+    There were {{required_count}} grading questions.
     {% endblocktrans %}
-    {% if answered_count == total_count %}
+    {% if answered_count == required_count %}
       {% blocktrans trimmed %}
       You have provided an answer for all of them.
       {% endblocktrans %}
@@ -48,8 +48,10 @@
   {% trans "If you choose to end your session, the following things will happen:" %}
   <ul>
     <li>{% trans "You will be prevented from making further changes to your answers." %}</li>
-    <li>{% trans "All your currently saved answers, if not graded already, will be graded." %}</li>
-    <li>{% trans "If possible, a final grade will be computed from all saved, graded answers." %}</li>
+    {% if session_may_generate_grade %}
+        <li>{% trans "All your currently saved answers, if not graded already, will be graded." %}</li>
+        <li>{% trans "If possible, a final grade will be computed from all saved, graded answers." %}</li>
+    {% endif %}
   </ul>
 
   <div class="well flow-well">

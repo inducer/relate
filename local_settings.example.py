@@ -85,7 +85,7 @@ ADMINS = (
     )
 
 # If your email service do not allow nonauthorized sender, uncomment the following
-# statement and change the configurations above accordingly, noticing that all 
+# statement and change the configurations above accordingly, noticing that all
 # emails will be sent using the EMAIL_ settings above.
 #RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
 
@@ -146,6 +146,15 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'port': 587,
             'use_tls': True,
         },
+
+        # For enrollment request email sent to course instructors
+        "enroll": {
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
     }
 
     # This will be used as default connection when other keys are not set.
@@ -155,6 +164,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
     NOTIFICATION_EMAIL_FROM = "Notification <notification_example@example.com>"
     GRADER_FEEDBACK_EMAIL_FROM = "Feedback <feedback_example@example.com>"
     STUDENT_INTERACT_EMAIL_FROM = "interaction <feedback_example@example.com>"
+    ENROLLMENT_EMAIL_FROM = "Enrollment <enroll@example.com>"
 
 
 # }}}
@@ -168,6 +178,7 @@ RELATE_SESSION_RESTART_COOLDOWN_SECONDS = 10
 # {{{ sign-in methods
 
 RELATE_SIGN_IN_BY_EMAIL_ENABLED = True
+RELATE_SIGN_IN_BY_USERNAME_ENABLED = True
 RELATE_REGISTRATION_ENABLED = False
 RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
 
@@ -183,6 +194,10 @@ RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 # after submission. Set to False only when you trust your students
 # or you don't want to verfiy insitutional ID they submit.
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
+
+# If set to False, these fields will be hidden in the user profile form.
+RELATE_SHOW_INST_ID_FORM = True
+RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
@@ -225,6 +240,23 @@ RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 #         "full_name", "first_name", "email", "username"]
 
 # }}}
+
+# {{{ extra checks
+
+# This allow user to add customized startup checkes for user-defined modules
+# using Django's system checks (https://docs.djangoproject.com/en/dev/ref/checks/)
+# For example, define a `my_check_func in `my_module` with
+# <code>
+#   def my_check_func(app_configs, **kwargs):
+#         return [list of error]
+#</code>
+# The configuration should be
+# RELATE_STARTUP_CHECKS_EXTRA = ["my_module.my_check_func"]
+# i.e., Each item should be the path to an importable check function.
+#RELATE_STARTUP_CHECKS_EXTRA = []
+
+# }}}
+
 
 # {{{ docker
 

@@ -32,19 +32,19 @@ import sys
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext, string_concat)
+        ugettext_lazy as _, ugettext)
 from course.constants import (
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         ATTRIBUTES_FILENAME,
         participation_permission as pperm)
 
 from course.content import get_repo_blob
-from relate.utils import Struct
+from relate.utils import Struct, string_concat
 
 # {{{ mypy
 
-from typing import Any, Tuple, Optional, Text  # noqa
 if False:
+    from typing import Any, Tuple, Optional, Text, List  # noqa
     from relate.utils import Repo_ish  # noqa
     from course.models import Course  # noqa
 
@@ -112,6 +112,33 @@ def validate_facility(vctx, location, facility):
             % {
                 "fac_name": facility,
                 "known_fac_names": ", ".join(facilities),
+                })
+
+
+def validate_participationtag(vctx, location, participationtag):
+    # type: (ValidationContext, Text, Text) -> None
+
+    if vctx.course is not None:
+        from pytools import memoize_in
+
+        @memoize_in(vctx, "available_participation_tags")
+        def get_ptag_list(vctx):
+            # type: (ValidationContext) -> List[str]
+            from course.models import ParticipationTag
+            return list(
+                ParticipationTag.objects.filter(course=vctx.course)
+                .values_list('name', flat=True))
+
+        ptag_list = get_ptag_list(vctx)
+        if participationtag not in ptag_list:
+            vctx.add_warning(
+                location,
+                _(
+                    "Name of participation tag not recognized: '%(ptag_name)s'. "
+                    "Known participation tag names: '%(known_ptag_names)s'")
+                % {
+                    "ptag_name": participationtag,
+                    "known_ptag_names": ", ".join(ptag_list),
                 })
 
 
@@ -253,7 +280,7 @@ def validate_markup(vctx, location, markup_str):
                 text=markup_str,
                 reverse_func=reverse_func,
                 validate_only=True)
-    except:
+    except Exception:
         from traceback import print_exc
         print_exc()
 
@@ -285,6 +312,8 @@ def validate_chunk_rule(vctx, location, chunk_rule):
                 ("if_before", datespec_types),
                 ("if_in_facility", str),
                 ("if_has_role", list),
+                ("if_has_participation_tags_any", list),
+                ("if_has_participation_tags_all", list),
 
                 ("start", datespec_types),
                 ("end", datespec_types),
@@ -302,6 +331,14 @@ def validate_chunk_rule(vctx, location, chunk_rule):
     if hasattr(chunk_rule, "if_has_role"):
         for role in chunk_rule.if_has_role:
             validate_role(vctx, location, role)
+
+    if hasattr(chunk_rule, "if_has_participation_tags_any"):
+        for ptag in chunk_rule.if_has_participation_tags_any:
+            validate_participationtag(vctx, location, ptag)
+
+    if hasattr(chunk_rule, "if_has_participation_tags_all"):
+        for ptag in chunk_rule.if_has_participation_tags_all:
+            validate_participationtag(vctx, location, ptag)
 
     if hasattr(chunk_rule, "if_in_facility"):
         validate_facility(vctx, location, chunk_rule.if_in_facility)
@@ -361,6 +398,8 @@ def validate_page_chunk(vctx, location, chunk):
             validate_chunk_rule(vctx,
                     "%s, rule %d" % (location, i+1),
                     rule)
+
+    validate_markup(vctx, location, chunk.content)
 
 
 def validate_staticpage_desc(vctx, location, page_desc):
@@ -424,6 +463,7 @@ def validate_staticpage_desc(vctx, location, page_desc):
 # {{{ flow validation
 
 def validate_flow_page(vctx, location, page_desc):
+    # type: (ValidationContext, Text, Any) -> None
     if not hasattr(page_desc, "id"):
         raise ValidationError(
                 string_concat(
@@ -439,7 +479,7 @@ def validate_flow_page(vctx, location, page_desc):
         class_(vctx, location, page_desc)
     except ValidationError:
         raise
-    except:
+    except Exception:
         tp, e, __ = sys.exc_info()
 
         from traceback import format_exc
@@ -451,7 +491,7 @@ def validate_flow_page(vctx, location, page_desc):
                     "%(err_str)s<br><pre>%(format_exc)s</pre>")
                 % {
                     'location': location,
-                    "err_type": tp.__name__,
+                    "err_type": tp.__name__,  # type: ignore
                     "err_str": str(e),
                     'format_exc': format_exc()})
 
@@ -522,6 +562,8 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                 ("if_after", datespec_types),
                 ("if_before", datespec_types),
                 ("if_has_role", list),
+                ("if_has_participation_tags_any", list),
+                ("if_has_participation_tags_all", list),
                 ("if_in_facility", str),
                 ("if_has_in_progress_session", bool),
                 ("if_has_session_tagged", (six.string_types, type(None))),
@@ -546,6 +588,14 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                     vctx,
                     "%s, role %d" % (location, j+1),
                     role)
+
+    if hasattr(nrule, "if_has_participation_tags_any"):
+        for ptag in nrule.if_has_participation_tags_any:
+            validate_participationtag(vctx, location, ptag)
+
+    if hasattr(nrule, "if_has_participation_tags_all"):
+        for ptag in nrule.if_has_participation_tags_all:
+            validate_participationtag(vctx, location, ptag)
 
     if hasattr(nrule, "if_in_facility"):
         validate_facility(vctx, location, nrule.if_in_facility)
@@ -607,6 +657,8 @@ def validate_session_access_rule(vctx, location, arule, tags):
                 ("if_before", datespec_types),
                 ("if_started_before", datespec_types),
                 ("if_has_role", list),
+                ("if_has_participation_tags_any", list),
+                ("if_has_participation_tags_all", list),
                 ("if_in_facility", str),
                 ("if_has_tag", (six.string_types, type(None))),
                 ("if_in_progress", bool),
@@ -631,6 +683,14 @@ def validate_session_access_rule(vctx, location, arule, tags):
                     vctx,
                     "%s, role %d" % (location, j+1),
                     role)
+
+    if hasattr(arule, "if_has_participation_tags_any"):
+        for ptag in arule.if_has_participation_tags_any:
+            validate_participationtag(vctx, location, ptag)
+
+    if hasattr(arule, "if_has_participation_tags_all"):
+        for ptag in arule.if_has_participation_tags_all:
+            validate_participationtag(vctx, location, ptag)
 
     if hasattr(arule, "if_in_facility"):
         validate_facility(vctx, location, arule.if_in_facility)
@@ -689,6 +749,8 @@ def validate_session_grading_rule(
                 ],
             allowed_attrs=[
                 ("if_has_role", list),
+                ("if_has_participation_tags_any", list),
+                ("if_has_participation_tags_all", list),
                 ("if_has_tag", (six.string_types, type(None))),
                 ("if_started_before", datespec_types),
                 ("if_completed_before", datespec_types),
@@ -740,6 +802,14 @@ def validate_session_grading_rule(
                     "%s, role %d" % (location, j+1),
                     role)
         has_conditionals = True
+
+    if hasattr(grule, "if_has_participation_tags_any"):
+        for ptag in grule.if_has_participation_tags_any:
+            validate_participationtag(vctx, location, ptag)
+
+    if hasattr(grule, "if_has_participation_tags_all"):
+        for ptag in grule.if_has_participation_tags_all:
+            validate_participationtag(vctx, location, ptag)
 
     if hasattr(grule, "if_has_tag"):
         if not (grule.if_has_tag is None or grule.if_has_tag in tags):
@@ -1101,7 +1171,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
         return get_yaml_from_repo(
                 repo=repo, full_name=full_name, commit_sha=commit_sha,
                 cached=False)
-    except:
+    except Exception:
         from traceback import print_exc
         print_exc()
 
@@ -1149,7 +1219,8 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
         from relate.utils import dict_to_struct
         from yaml import load as load_yaml
 
-        att_yml = dict_to_struct(load_yaml(true_repo[attr_blob_sha].data))
+        yaml_data = load_yaml(true_repo[attr_blob_sha].data)  # type: ignore
+        att_yml = dict_to_struct(yaml_data)
 
         if path:
             loc = path + "/" + ATTRIBUTES_FILENAME
@@ -1326,6 +1397,9 @@ def validate_course_content(repo, course_file, events_file,
                             permission=pperm.access_files_for,
                             )
                         .values_list("argument", flat=True))
+
+        access_kinds = frozenset(k for k in access_kinds if k is not None)
+
     else:
         access_kinds = ["public", "in_exam", "student", "ta",
                      "unenrolled", "instructor"]
@@ -1439,11 +1513,11 @@ def validate_course_content(repo, course_file, events_file,
                                 ))
                         % entry_path)
 
-        location = "staticpages/%s" % entry_path
-        page_desc = get_yaml_from_repo_safely(repo, location,
-                commit_sha=validate_sha)
+            location = "staticpages/%s" % entry_path
+            page_desc = get_yaml_from_repo_safely(repo, location,
+                    commit_sha=validate_sha)
 
-        validate_staticpage_desc(vctx, location, page_desc)
+            validate_staticpage_desc(vctx, location, page_desc)
 
     # }}}
 

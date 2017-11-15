@@ -30,24 +30,22 @@ import django.forms as forms
 
 from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
-from relate.utils import StyledForm, Struct
+from relate.utils import StyledForm, Struct, string_concat
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
-        string_concat,
         )
 from django.utils import translation
 from django.conf import settings
 
 # {{{ mypy
 
-from typing import Text, Optional, Any, Tuple  # noqa
-from django import http  # noqa
-
 if False:
+    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet  # noqa
+    from django import http  # noqa
     from course.models import (  # noqa
             Course,
             FlowSession
@@ -125,6 +123,7 @@ def markup_to_html(
         page_context,  # type: PageContext
         text,  # type: Text
         use_jinja=True,  # type: bool
+        reverse_func=None,  # type: Callable
         ):
     # type: (...) -> Text
     from course.content import markup_to_html as mth
@@ -134,7 +133,8 @@ def markup_to_html(
             page_context.repo,
             page_context.commit_sha,
             text,
-            use_jinja=use_jinja)
+            use_jinja=use_jinja,
+            reverse_func=reverse_func)
 
 
 # {{{ answer feedback type
@@ -143,9 +143,9 @@ def get_auto_feedback(correctness):
     # type: (Optional[float]) -> Text
     if correctness is None:
         return six.text_type(_("No information on correctness of answer."))
-    elif correctness == 0:
+    elif abs(correctness - 0) < 1e-5:
         return six.text_type(_("Your answer is not correct."))
-    elif correctness == 1:
+    elif abs(correctness - 1) < 1e-5:
         return six.text_type(_("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
@@ -216,7 +216,7 @@ class AnswerFeedback(object):
 
     @staticmethod
     def from_json(json, bulk_json):
-        # type: (Any, Any) -> AnswerFeedback
+        # type: (Any, Any) -> Optional[AnswerFeedback]
 
         if json is None:
             return json
@@ -337,6 +337,7 @@ class PageBase(object):
                     # }}}
 
             self.page_desc = page_desc
+            self.is_optional_page = getattr(page_desc, "is_optional_page", False)
 
         else:
             from warnings import warn
@@ -366,10 +367,11 @@ class PageBase(object):
 
         return (
             ("access_rules", Struct),
+            ("is_optional_page", bool),
             )
 
     def get_modified_permissions_for_page(self, permissions):
-        # type: (frozenset[Text]) -> frozenset[Text]
+        # type: (FrozenSet[Text]) -> FrozenSet[Text]
         rw_permissions = set(permissions)
 
         if hasattr(self.page_desc, "access_rules"):
@@ -385,9 +387,11 @@ class PageBase(object):
         return frozenset(rw_permissions)
 
     def make_page_data(self):
+        # type: () -> Dict
         return {}
 
     def initialize_page_data(self, page_context):
+        # type: (PageContext) -> Dict
         """Return (possibly randomly generated) data that is used to generate
         the content on this page. This is passed to methods below as the *page_data*
         argument. One possible use for this argument would be a random permutation
@@ -731,6 +735,17 @@ class PageBaseWithTitle(PageBase):
 
 
 class PageBaseWithValue(PageBase):
+    def __init__(self, vctx, location, page_desc):
+        super(PageBaseWithValue, self).__init__(vctx, location, page_desc)
+
+        if vctx is not None:
+            if hasattr(page_desc, "value") and self.is_optional_page:
+                raise ValidationError(
+                    string_concat(
+                        location,
+                        _("Attribute 'value' should be removed when "
+                          "'is_optional_page' is True.")))
+
     def allowed_attrs(self):
         return super(PageBaseWithValue, self).allowed_attrs() + (
                 ("value", (int, float)),
@@ -740,6 +755,8 @@ class PageBaseWithValue(PageBase):
         return True
 
     def max_points(self, page_data):
+        if self.is_optional_page:
+            return 0
         return getattr(self.page_desc, "value", 1)
 
 
@@ -820,7 +837,7 @@ class HumanTextFeedbackForm(StyledForm):
                     [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100]),
                 label=_("Grade percent"))
 
-        if point_value is not None:
+        if point_value is not None and point_value != 0:
             self.fields["grade_points"] = forms.FloatField(
                     min_value=0,
                     max_value=MAX_EXTRA_CREDIT_FACTOR*point_value,
@@ -893,7 +910,7 @@ class HumanTextFeedbackForm(StyledForm):
         if self.point_value is None:
             return self.cleaned_data["grade_percent"]
         elif (self.cleaned_data["grade_percent"] is not None
-                and self.cleaned_data["grade_points"] is not None):
+                and self.cleaned_data.get("grade_points") is not None):
             points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
             direct_percent = self.cleaned_data["grade_percent"]
 
@@ -905,7 +922,7 @@ class HumanTextFeedbackForm(StyledForm):
         elif self.cleaned_data["grade_percent"] is not None:
             return self.cleaned_data["grade_percent"]
 
-        elif self.cleaned_data["grade_points"] is not None:
+        elif self.cleaned_data.get("grade_points") is not None:
             if self.point_value:
                 return 100*self.cleaned_data["grade_points"]/self.point_value
             else:
@@ -965,6 +982,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
+                from course.utils import will_use_masked_profile_for_email
+                staff_email = [page_context.course.notify_email, request.user.email]
                 message = render_to_string("course/grade-notify.txt", {
                     "page_title": self.title(page_context, page_data),
                     "course": page_context.course,
@@ -972,6 +991,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                     "feedback_text": grade_data["feedback_text"],
                     "flow_session": page_context.flow_session,
                     "review_uri": page_context.page_uri,
+                    "use_masked_profile":
+                        will_use_masked_profile_for_email(staff_email)
                     })
 
                 from django.core.mail import EmailMessage
@@ -999,15 +1020,25 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 and page_context.flow_session):
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
+                from course.utils import will_use_masked_profile_for_email
+                staff_email = [page_context.course.notify_email, request.user.email]
+                use_masked_profile = will_use_masked_profile_for_email(staff_email)
+                if use_masked_profile:
+                    username = (
+                        page_context.flow_session.user.get_masked_profile())
+                else:
+                    username = (
+                        page_context.flow_session.user.get_email_appellation())
                 message = render_to_string("course/grade-internal-notes-notify.txt",
                         {
                             "page_title": self.title(page_context, page_data),
+                            "username": username,
                             "course": page_context.course,
                             "participation": page_context.flow_session.participation,
                             "notes_text": grade_data["notes"],
                             "flow_session": page_context.flow_session,
                             "review_uri": page_context.page_uri,
-                            "sender": request.user
+                            "sender": request.user,
                             })
 
                 from django.core.mail import EmailMessage

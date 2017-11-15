@@ -24,10 +24,8 @@ THE SOFTWARE.
 
 import six
 
-from typing import Any  # noqa
-
 from django.utils.translation import (
-        ugettext_lazy as _, string_concat, pgettext)
+        ugettext_lazy as _, pgettext)
 from django.contrib import admin
 
 from course.models import (
@@ -43,11 +41,15 @@ from course.models import (
         GradingOpportunity, GradeChange, InstantMessage,
         Exam, ExamTicket)
 from django import forms
+from relate.utils import string_concat
 from course.enrollment import (approve_enrollment, deny_enrollment)
 from course.constants import (
         participation_permission as pperm,
         exam_ticket_states
         )
+
+if False:
+    from typing import Any  # noqa
 
 
 # {{{ permission helpers
@@ -617,7 +619,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(
             flow_session__course__participations__user=request.user,
-            flow_session__course__participations__roles__permissions__identifier  # noqa
+            flow_session__course__participations__roles__permissions__permission  # noqa
             =pperm.use_admin_interface)
 
     # }}}

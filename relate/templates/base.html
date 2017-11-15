@@ -11,16 +11,16 @@
     <title>{% block title %}{% trans "RELATE" %}{% endblock %}</title>
 
     <link href="{% static "bootstrap/dist/css/bootstrap.css" %}" rel="stylesheet">
-    <link href="{% static "jqueryui/themes/smoothness/jquery-ui.css" %}" rel="stylesheet">
+    <link href="{% static "jquery-ui/themes/smoothness/jquery-ui.css" %}" rel="stylesheet">
 
-    <link rel="stylesheet" href="{% static "fontawesome/css/font-awesome.css" %}">
+    <link rel="stylesheet" href="{% static "font-awesome/css/font-awesome.css" %}">
     <link rel="stylesheet" href="{% static "jstree/dist/themes/default/style.min.css" %}" />
     <link rel="stylesheet" href="/static/css/style.css" >
 
     {# Don't be tempted to move all this JS stuff down to the end. #}
     {# The datepicker generates inline JS that relies on this being loaded. #}
     <script src="{% static "jquery/dist/jquery.js" %}"></script>
-    <script src="{% static "jqueryui/jquery-ui.js" %}"></script>
+    <script src="{% static "jquery-ui/jquery-ui.js" %}"></script>
     <script src="{% static "bootstrap/dist/js/bootstrap.js" %}"></script>
     <script src="{% static "jstree/dist/jstree.min.js" %}"></script>
 
@@ -34,8 +34,8 @@
       <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
 
-    <link href="{% static "videojs/dist/video-js.min.css" %}" rel="stylesheet">
-    <script src="{% static "videojs/dist/video.min.js" %}"></script>
+    <link href="{% static "video.js/dist/video-js.min.css" %}" rel="stylesheet">
+    <script src="{% static "video.js/dist/video.min.js" %}"></script>
     <script type="text/javascript">
       videojs.options.flash.swf = "{% static "videojs/dist/video-js/video-js.swf" %}"
     </script>
@@ -137,6 +137,7 @@
     </div>
     {% endblock %}
 
+    {% block page_bottom_javascript_extra %}{% endblock %}
     <!-- JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->

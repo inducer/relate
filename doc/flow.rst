@@ -304,6 +304,16 @@ Rules for starting new sessions
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
 
+    .. attribute:: if_has_participation_tags_any
+
+        (Optional) A list of participation tags. Rule applies when the
+        participation has at least one tag in this list.
+
+    .. attribute:: if_has_participation_tags_all
+
+        (Optional) A list of participation tags. Rule applies if only the
+        participation's tags include all items in this list.
+
     .. attribute:: if_in_facility
 
         (Optional) Name of a facility known to the RELATE web page. This rule allows
@@ -389,6 +399,16 @@ Rules about accessing and interacting with a flow
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
 
+    .. attribute:: if_has_participation_tags_any
+
+        (Optional) A list of participation tags. Rule applies when the
+        participation has at least one tag in this list.
+
+    .. attribute:: if_has_participation_tags_all
+
+        (Optional) A list of participation tags. Rule applies if only the
+        participation's tags include all items in this list.
+
     .. attribute:: if_in_facility
 
         (Optional) Name of a facility known to the RELATE web page. This rule allows
@@ -465,6 +485,16 @@ Determining how final (overall) grades of flows are computed
 
         (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
 
+    .. attribute:: if_has_participation_tags_any
+
+        (Optional) A list of participation tags. Rule applies when the
+        participation has at least one tag in this list.
+
+    .. attribute:: if_has_participation_tags_all
+
+        (Optional) A list of participation tags. Rule applies if only the
+        participation's tags include all items in this list.
+
     .. attribute:: if_started_before
 
         (Optional) A :ref:`datespec <datespec>`. Rule applies if the session was started before
@@ -479,6 +509,12 @@ Determining how final (overall) grades of flows are computed
 
         (Optional) A :ref:`datespec <datespec>`. Rule applies if the session was completed before
         this time.
+
+        When evaluating this condition for in-progress sessions, the current time,
+        or, if :attr:`use_last_activity_as_completion_time` is set, the time of the
+        last activity is used.
+
+        Since September 2017, this respects :attr:`use_last_activity_as_completion_time`.
 
     .. rubric:: Rules specified
 
@@ -651,7 +687,7 @@ The following page types are predefined:
 .. |id-page-attr| replace::
 
     A short identifying name, unique within the page group. Alphanumeric
-    with dashes and underscores, no spaces.
+    with underscores, no spaces.
 
 .. |title-page-attr| replace::
 
@@ -667,6 +703,16 @@ The following page types are predefined:
 
     An integer or a floating point number, representing the
     point value of the question.
+
+.. |is-optional-page-attr| replace::
+
+    Optional. A Boolean value indicating whether the page is an optional page
+    which does not require answer for fully completion of the flow.
+    If ``true``, :attr:`value` should not present. Defaults to ``false`` if not present.
+    Note that ``is_optional_page: true`` differs from ``value: 0`` in that finishing flows
+    with unanswered page(s) with the latter will be warned of "unanswered question(s)",
+    while with the former won't. When using not-for-grading page(s) to collect
+    answers from students, it's to better use ``value: 0``.
 
 .. |text-widget-page-attr| replace::
 
@@ -851,11 +897,11 @@ The rules for this can be written as follows::
             if_has_role: [student, instructor]
             if_after: exam 1 - 1 week
             if_before: end:exam 1 + 2 weeks
-            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+            permissions: [view, submit_answer, end_session, cannot_see_flow_result, lock_down_as_exam_session]
 
         -
             if_has_role: [instructor]
-            permissions: [view, submit_answer, end_sesion, cannot_see_flow_result, lock_down_as_exam_session]
+            permissions: [view, submit_answer, end_session, cannot_see_flow_result, lock_down_as_exam_session]
 
         -
             permissions: []

@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 import six
-from django.utils.translation import ugettext as _, pgettext, string_concat
+from django.utils.translation import ugettext as _, pgettext
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib.auth.decorators import login_required
@@ -151,11 +151,17 @@ class Histogram(object):
                     max_value = 1
 
             if self.num_log_bins:
+                min_value = max(min_value, 1e-15)
+                max_value = max(max_value, 1.01*min_value)
+
                 from math import log, exp
                 bin_width = (log(max_value) - log(min_value))/self.num_bin_count
                 num_bin_starts = [
                         exp(log(min_value)+bin_width*i)
                         for i in range(self.num_bin_count)]
+                # Rounding error means exp(log(min_value)) may be greater
+                # than min_value, so set start of first bin to min_value
+                num_bin_starts[0] = min_value
             else:
                 bin_width = (max_value - min_value)/self.num_bin_count
                 num_bin_starts = [
@@ -405,6 +411,7 @@ def make_time_histogram(pctx, flow_id):
             course=pctx.course,
             flow_id=flow_id)
 
+    from relate.utils import string_concat
     hist = Histogram(
             num_log_bins=True,
             num_bin_title_formatter=(

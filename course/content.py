@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -58,11 +59,10 @@ else:
 
 # {{{ mypy
 
-from typing import (  # noqa
-        cast, Union, Any, List, Tuple, Optional, Callable, Text)
-
 if False:
     # for mypy
+    from typing import (  # noqa
+        Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet)
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa
@@ -78,6 +78,8 @@ class ChunkRulesDesc(Struct):
     if_before = None  # type: Datespec
     if_after = None  # type: Datespec
     if_in_facility = None  # type: Text
+    if_has_participation_tags_any = None  # type: List[Text]
+    if_has_participation_tags_all = None  # type: List[Text]
     roles = None  # type: List[Text]
     start = None  # type: Datespec
     end = None  # type: Datespec
@@ -108,6 +110,8 @@ class FlowSessionStartRuleDesc(Struct):
     if_after = None  # type: Date_ish
     if_before = None  # type: Date_ish
     if_has_role = None  # type: list
+    if_has_participation_tags_any = None  # type: List[Text]
+    if_has_participation_tags_all = None  # type: List[Text]
     if_in_facility = None  # type: Text
     if_has_in_progress_session = None  # type: bool
     if_has_session_tagged = None  # type: Optional[Text]
@@ -127,6 +131,8 @@ class FlowSessionAccessRuleDesc(Struct):
     if_before = None  # type: Date_ish
     if_started_before = None  # type: Date_ish
     if_has_role = None  # type: List[Text]
+    if_has_participation_tags_any = None  # type: List[Text]
+    if_has_participation_tags_all = None  # type: List[Text]
     if_in_facility = None  # type: Text
     if_has_tag = None  # type: Optional[Text]
     if_in_progress = None  # type: bool
@@ -294,6 +300,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     except ImproperlyConfigured:
         cache_key = None
 
+    result = None  # type: Optional[bytes]
     if cache_key is None:
         result = get_repo_blob(repo, full_name, commit_sha,
                 allow_tree=False).data
@@ -306,17 +313,18 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     def_cache = cache.caches["default"]
 
-    result = None
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
-        result = def_cache.get(cache_key)
-    if result is not None:
-        (result,) = result
-        assert isinstance(result, six.binary_type), cache_key
-        return result
+        cached_result = def_cache.get(cache_key)
+
+        if cached_result is not None:
+            (result,) = cached_result
+            assert isinstance(result, six.binary_type), cache_key
+            return result
 
     result = get_repo_blob(repo, full_name, commit_sha,
             allow_tree=False).data
+    assert result is not None
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, (result,), None)
@@ -378,7 +386,7 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(:\s*[|>])"
     "(J?)"
     "((?:[0-9][-+]?|[-+][0-9]?)?)"
-    "(?:\s*\#.*)?"
+    r"(?:\s*\#.*)?"
     "$")
 
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
@@ -395,34 +403,34 @@ def process_yaml_for_expansion(yaml_str):
     line_count = len(lines)
 
     while i < line_count:
-        l = lines[i]
-        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(l)
+        ln = lines[i].rstrip()
+        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(ln)
 
         if yaml_block_scalar_match is not None:
             unprocessed_block_lines = []
             allow_jinja = bool(yaml_block_scalar_match.group(2))
-            l = YAML_BLOCK_START_SCALAR_RE.sub(
-                    r"\1\3", l)
+            ln = YAML_BLOCK_START_SCALAR_RE.sub(
+                    r"\1\3", ln)
 
-            unprocessed_block_lines.append(l)
+            unprocessed_block_lines.append(ln)
 
-            block_start_indent = len(LEADING_SPACES_RE.match(l).group(1))
+            block_start_indent = len(LEADING_SPACES_RE.match(ln).group(1))
 
             i += 1
 
             while i < line_count:
-                l = lines[i]
+                ln = lines[i]
 
-                if not l.rstrip():
-                    unprocessed_block_lines.append(l)
+                if not ln.rstrip():
+                    unprocessed_block_lines.append(ln)
                     i += 1
                     continue
 
-                line_indent = len(LEADING_SPACES_RE.match(l).group(1))
+                line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
-                    unprocessed_block_lines.append(l)
+                    unprocessed_block_lines.append(ln.rstrip())
                     i += 1
 
             if not allow_jinja:
@@ -431,14 +439,14 @@ def process_yaml_for_expansion(yaml_str):
             if not allow_jinja:
                 jinja_lines.append("{% endraw %}")
 
-        elif GROUP_COMMENT_START.match(l):
+        elif GROUP_COMMENT_START.match(ln):
             jinja_lines.append("{% raw %}")
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             jinja_lines.append("{% endraw %}")
             i += 1
 
         else:
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             i += 1
 
     return "\n".join(jinja_lines)
@@ -555,22 +563,27 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
-    result = None
+
+    result = None  # type: Optional[Any]
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
         result = def_cache.get(cache_key)
     if result is not None:
         return result
 
-    result = load_yaml(
-            expand_yaml_macros(
+    yaml_str = expand_yaml_macros(
                 repo, commit_sha,
                 get_repo_blob(repo, full_name, commit_sha,
-                    allow_tree=False).data))
+                    allow_tree=False).data)
+
+    result = load_yaml(yaml_str)  # type: ignore
 
     def_cache.add(cache_key, result, None)
 
     return result
+
+
+LINE_HAS_INDENTING_TABS_RE = re.compile("^\s*\t\s*", re.MULTILINE)
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
@@ -599,12 +612,19 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         if result is not None:
             return result
 
-    expanded = expand_yaml_macros(
-            repo, commit_sha,
-            get_repo_blob(repo, full_name, commit_sha,
-                allow_tree=False).data)
+    yaml_bytestream = get_repo_blob(
+            repo, full_name, commit_sha, allow_tree=False).data
+    yaml_text = yaml_bytestream.decode("utf-8")
 
-    result = dict_to_struct(load_yaml(expanded))
+    if LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
+        raise ValueError("File uses tabs in indentation. "
+                "This is not allowed.")
+
+    expanded = expand_yaml_macros(
+            repo, commit_sha, yaml_bytestream)
+
+    yaml_data = load_yaml(expanded)  # type:ignore
+    result = dict_to_struct(yaml_data)
 
     if cached:
         def_cache.add(cache_key, result, None)
@@ -775,7 +795,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_tag(self, tag_name, attrs):
         changed_attrs = {}
 
-        if tag_name == "table":
+        if tag_name == "table" and attrs.get("bootstrap") != "no":
             changed_attrs["class"] = "table table-condensed"
 
         if tag_name in ["a", "link"] and "href" in attrs:
@@ -850,43 +870,15 @@ def remove_prefix(prefix, s):
 JINJA_PREFIX = "[JINJA]"
 
 
-def markup_to_html(
+def expand_markup(
         course,  # type: Optional[Course]
         repo,  # type: Repo_ish
         commit_sha,  # type: bytes
         text,  # type: Text
-        reverse_func=None,  # type: Callable
-        validate_only=False,  # type: bool
         use_jinja=True,  # type: bool
         jinja_env={},  # type: Dict
         ):
     # type: (...) -> Text
-
-    if reverse_func is None:
-        from django.urls import reverse
-        reverse_func = reverse
-
-    if course is not None and not jinja_env:
-        try:
-            import django.core.cache as cache
-        except ImproperlyConfigured:
-            cache_key = None
-        else:
-            import hashlib
-            cache_key = ("markup:v6:%s:%d:%s:%s"
-                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
-                        hashlib.md5(text.encode("utf-8")).hexdigest()))
-
-            def_cache = cache.caches["default"]
-            result = def_cache.get(cache_key)
-            if result is not None:
-                assert isinstance(result, six.text_type)
-                return result
-
-        if text.lstrip().startswith(JINJA_PREFIX):
-            text = remove_prefix(JINJA_PREFIX, text.lstrip())
-    else:
-        cache_key = None
 
     if not isinstance(text, six.text_type):
         text = six.text_type(text)
@@ -902,6 +894,49 @@ def markup_to_html(
         text = template.render(**jinja_env)
 
     # }}}
+
+    return text
+
+
+def markup_to_html(
+        course,  # type: Optional[Course]
+        repo,  # type: Repo_ish
+        commit_sha,  # type: bytes
+        text,  # type: Text
+        reverse_func=None,  # type: Callable
+        validate_only=False,  # type: bool
+        use_jinja=True,  # type: bool
+        jinja_env={},  # type: Dict
+        ):
+    # type: (...) -> Text
+    if course is not None and not jinja_env:
+        try:
+            import django.core.cache as cache
+        except ImproperlyConfigured:
+            cache_key = None
+        else:
+            import hashlib
+            cache_key = ("markup:v7:%s:%d:%s:%s"
+                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
+                        hashlib.md5(text.encode("utf-8")).hexdigest()))
+
+            def_cache = cache.caches["default"]
+            result = def_cache.get(cache_key)
+            if result is not None:
+                assert isinstance(result, six.text_type)
+                return result
+
+        if text.lstrip().startswith(JINJA_PREFIX):
+            text = remove_prefix(JINJA_PREFIX, text.lstrip())
+    else:
+        cache_key = None
+
+    text = expand_markup(
+            course, repo, commit_sha, text, use_jinja=use_jinja, jinja_env=jinja_env)
+
+    if reverse_func is None:
+        from django.urls import reverse
+        reverse_func = reverse
 
     if validate_only:
         return ""
@@ -931,8 +966,8 @@ def extract_title_from_markup(markup_text):
     # type: (Text) -> Optional[Text]
     lines = markup_text.split("\n")
 
-    for l in lines[:10]:
-        match = TITLE_RE.match(l)
+    for ln in lines[:10]:
+        match = TITLE_RE.match(ln)
         if match is not None:
             return match.group(1)
 
@@ -1075,7 +1110,11 @@ def parse_date_spec(
         return localize_if_needed(
                 datetime.datetime.combine(datespec, datetime.time.min))
 
-    datespec_str = cast(Text, datespec).strip()
+    try:
+        from typing import Text
+    except ImportError:
+        Text = None  # noqa
+    datespec_str = cast(Text, datespec).strip()  # type: ignore
 
     # {{{ parse postprocessors
 
@@ -1181,7 +1220,7 @@ def compute_chunk_weight_and_shown(
         chunk,  # type: ChunkDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> Tuple[float, bool]
     if not hasattr(chunk, "rules"):
@@ -1240,7 +1279,7 @@ def get_processed_page_chunks(
         page_desc,  # type: StaticPageDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> List[ChunkDesc]
     for chunk in page_desc.chunks:
@@ -1445,14 +1484,14 @@ def get_course_commit_sha(course, participation):
         if participation.preview_git_commit_sha:
             preview_sha = participation.preview_git_commit_sha
 
-            repo = get_course_repo(course)
-            if isinstance(repo, SubdirRepoWrapper):
-                repo = repo.repo
+            with get_course_repo(course) as repo:
+                if isinstance(repo, SubdirRepoWrapper):
+                    repo = repo.repo
 
-            try:
-                repo[preview_sha.encode()]
-            except KeyError:
-                preview_sha = None
+                try:
+                    repo[preview_sha.encode()]
+                except KeyError:
+                    preview_sha = None
 
             if preview_sha is not None:
                 sha = preview_sha

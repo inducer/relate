@@ -46,6 +46,9 @@ import sleekxmpp
 
 import threading
 
+if False:
+    from typing import List, Dict  # noqa
+
 
 # {{{ instant message
 

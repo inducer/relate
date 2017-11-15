@@ -28,8 +28,7 @@ from six.moves import intern
 
 from django.utils.translation import (
         ugettext_lazy as _,
-        pgettext,
-        string_concat)
+        pgettext)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -65,14 +64,15 @@ from course.auth import UserSearchWidget
 
 from course.utils import course_view, render_course_page
 
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 
 from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 
-from typing import Any, Tuple, Text, Optional  # noqa
-from course.utils import CoursePageContext  # noqa
+if False:
+    from typing import Any, Tuple, Text, Optional, List, FrozenSet  # noqa
+    from course.utils import CoursePageContext  # noqa
 
 # }}}
 
@@ -137,7 +137,7 @@ def get_participation_permissions(
         course,  # type: Course
         participation,  # type: Optional[Participation]
         ):
-    # type: (...) -> frozenset[Tuple[Text, Optional[Text]]]
+    # type: (...) -> FrozenSet[Tuple[Text, Optional[Text]]]
 
     if participation is not None:
         return participation.permissions()
@@ -166,11 +166,34 @@ def enroll_view(request, course_identifier):
     # type: (http.HttpRequest, str) -> http.HttpResponse
 
     course = get_object_or_404(Course, identifier=course_identifier)
-    participation = get_participation_for_request(request, course)
+    user = request.user
+    participations = Participation.objects.filter(course=course, user=user)
+    if not participations.count():
+        participation = None
+    else:
+        participation = participations.first()
 
     if participation is not None:
-        messages.add_message(request, messages.ERROR,
-                _("Already enrolled. Cannot re-renroll."))
+        if participation.status == participation_status.requested:
+            messages.add_message(request, messages.ERROR,
+                                 _("You have previously sent the enrollment "
+                                   "request. Re-sending the request is not "
+                                   "allowed."))
+            return redirect("relate-course_page", course_identifier)
+        elif participation.status == participation_status.denied:
+            messages.add_message(request, messages.ERROR,
+                                 _("Your enrollment request had been denied. "
+                                   "Enrollment is not allowed."))
+            return redirect("relate-course_page", course_identifier)
+        elif participation.status == participation_status.dropped:
+            messages.add_message(request, messages.ERROR,
+                                 _("You had been dropped from the course. "
+                                   "Re-enrollment is not allowed."))
+            return redirect("relate-course_page", course_identifier)
+        else:
+            assert participation.status == participation_status.active
+            messages.add_message(request, messages.ERROR,
+                                 _("Already enrolled. Cannot re-enroll."))
         return redirect("relate-course_page", course_identifier)
 
     if not course.accepts_enrollment:
@@ -185,9 +208,7 @@ def enroll_view(request, course_identifier):
                 _("Can only enroll using POST request"))
         return redirect("relate-course_page", course_identifier)
 
-    user = request.user
-    if (course.enrollment_required_email_suffix
-            and user.status != user_status.active):
+    if user.status != user_status.active:
         messages.add_message(request, messages.ERROR,
                 _("Your email address is not yet confirmed. "
                 "Confirm your email to continue."))
@@ -210,10 +231,18 @@ def enroll_view(request, course_identifier):
                         pass
             pass
 
+    def email_suffix_matches(email, suffix):
+        # type: (Text, Text) -> bool
+        if suffix.startswith("@"):
+            return email.endswith(suffix)
+        else:
+            return email.endswith("@%s" % suffix) or email.endswith(".%s" % suffix)
+
     if (
             preapproval is None
             and course.enrollment_required_email_suffix
-            and not user.email.endswith(course.enrollment_required_email_suffix)):
+            and not email_suffix_matches(
+                user.email, course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
                 _("Enrollment not allowed. Please use your '%s' email to "
@@ -233,6 +262,8 @@ def enroll_view(request, course_identifier):
                     course, user, participation_status.requested,
                     roles, request)
 
+            assert participation is not None
+
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
                 from django.template.loader import render_to_string
                 message = render_to_string("course/enrollment-request-email.txt", {
@@ -246,14 +277,19 @@ def enroll_view(request, course_identifier):
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(
-                        string_concat("[%s] ", _("New enrollment request"))
-                        % course_identifier,
-                        message,
-                        settings.ROBOT_EMAIL_FROM,
-                        [course.notify_email])
+                    string_concat("[%s] ", _("New enrollment request"))
+                    % course_identifier,
+                    message,
+                    getattr(settings, "ENROLLMENT_EMAIL_FROM",
+                            settings.ROBOT_EMAIL_FROM),
+                    [course.notify_email])
 
                 from relate.utils import get_outbound_mail_connection
-                msg.connection = get_outbound_mail_connection("robot")
+                msg.connection = (
+                    get_outbound_mail_connection("enroll")
+                    if hasattr(settings, "ENROLLMENT_EMAIL_FROM")
+                    else get_outbound_mail_connection("robot"))
+
                 msg.send()
 
             messages.add_message(request, messages.INFO,
@@ -352,16 +388,27 @@ def send_enrollment_decision(participation, approved, request=None):
             })
 
         from django.core.mail import EmailMessage
+        email_kwargs = {}
+        if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
+            from_email = course.get_from_email()
+        else:
+            from_email = getattr(settings, "ENROLLMENT_EMAIL_FROM",
+                                 settings.ROBOT_EMAIL_FROM)
+            from relate.utils import get_outbound_mail_connection
+            email_kwargs.update(
+                {"connection": (
+                    get_outbound_mail_connection("enroll")
+                    if hasattr(settings, "ENROLLMENT_EMAIL_FROM")
+                    else get_outbound_mail_connection("robot"))})
+
         msg = EmailMessage(
                 string_concat("[%s] ", _("Your enrollment request"))
                 % course.identifier,
                 message,
-                course.get_from_email(),
-                [participation.user.email])
+                from_email,
+                [participation.user.email],
+                **email_kwargs)
         msg.bcc = [course.notify_email]
-        if not settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
-            from relate.utils import get_outbound_mail_connection
-            msg.connection = get_outbound_mail_connection("robot")
         msg.send()
 
 
@@ -426,27 +473,27 @@ def create_preapprovals(pctx):
             pending_approved_count = 0
 
             roles = form.cleaned_data["roles"]
-            for l in form.cleaned_data["preapproval_data"].split("\n"):
-                l = l.strip()
+            for ln in form.cleaned_data["preapproval_data"].split("\n"):
+                ln = ln.strip()
                 preapp_type = form.cleaned_data["preapproval_type"]
 
-                if not l:
+                if not ln:
                     continue
 
                 if preapp_type == "email":
 
                     try:
                         preapproval = ParticipationPreapproval.objects.get(
-                                email__iexact=l,
+                                email__iexact=ln,
                                 course=pctx.course)
                     except ParticipationPreapproval.DoesNotExist:
 
-                        # approve if l is requesting enrollment
+                        # approve if ln is requesting enrollment
                         try:
                             pending = Participation.objects.get(
                                     course=pctx.course,
                                     status=participation_status.requested,
-                                    user__email__iexact=l)
+                                    user__email__iexact=ln)
 
                         except Participation.DoesNotExist:
                             pass
@@ -464,7 +511,7 @@ def create_preapprovals(pctx):
                         continue
 
                     preapproval = ParticipationPreapproval()
-                    preapproval.email = l
+                    preapproval.email = ln
                     preapproval.course = pctx.course
                     preapproval.creator = request.user
                     preapproval.save()
@@ -476,16 +523,16 @@ def create_preapprovals(pctx):
 
                     try:
                         preapproval = ParticipationPreapproval.objects.get(
-                                course=pctx.course, institutional_id__iexact=l)
+                                course=pctx.course, institutional_id__iexact=ln)
 
                     except ParticipationPreapproval.DoesNotExist:
 
-                        # approve if l is requesting enrollment
+                        # approve if ln is requesting enrollment
                         try:
                             pending = Participation.objects.get(
                                     course=pctx.course,
                                     status=participation_status.requested,
-                                    user__institutional_id__iexact=l)
+                                    user__institutional_id__iexact=ln)
                             if (
                                     pctx.course.preapproval_require_verified_inst_id
                                     and not pending.user.institutional_id_verified):
@@ -506,7 +553,7 @@ def create_preapprovals(pctx):
                         continue
 
                     preapproval = ParticipationPreapproval()
-                    preapproval.institutional_id = l
+                    preapproval.institutional_id = ln
                     preapproval.course = pctx.course
                     preapproval.creator = request.user
                     preapproval.save()
@@ -552,6 +599,8 @@ _email = intern("email")
 _email_contains = intern("email_contains")
 _user = intern("user")
 _user_contains = intern("user_contains")
+_institutional_id = intern("institutional_id")
+_institutional_id_contains = intern("institutional_id__contains")
 _tagged = intern("tagged")
 _role = intern("role")
 _status = intern("status")
@@ -582,6 +631,9 @@ _LEX_TABLE = [
     (_email_contains, RE(r"email-contains:([^ \t\n\r\f\v)]+)")),
     (_user, RE(r"username:([^ \t\n\r\f\v)]+)")),
     (_user_contains, RE(r"username-contains:([^ \t\n\r\f\v)]+)")),
+    (_institutional_id, RE(r"institutional-id:([^ \t\n\r\f\v)]+)")),
+    (_institutional_id_contains,
+            RE(r"institutional-id-contains:([^ \t\n\r\f\v)]+)")),
     (_tagged, RE(r"tagged:([-\w]+)")),
     (_role, RE(r"role:(\w+)")),
     (_status, RE(r"status:(\w+)")),
@@ -593,7 +645,9 @@ _LEX_TABLE = [
 
 
 _TERMINALS = ([
-    _id, _email, _email_contains, _user, _user_contains, _tagged, _role, _status])
+    _id, _email, _email_contains, _user, _user_contains, _tagged, _role, _status,
+    _institutional_id, _institutional_id_contains
+])
 
 # {{{ operator precedence
 
@@ -633,6 +687,18 @@ def parse_query(course, expr_str):
 
         elif next_tag is _user_contains:
             result = Q(user__username__contains=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _institutional_id:
+            result = Q(
+                user__institutional_id__iexact=pstate.next_match_obj().group(1))
+            pstate.advance()
+            return result
+
+        elif next_tag is _institutional_id_contains:
+            result = Q(
+                user__institutional_id__icontains=pstate.next_match_obj().group(1))
             pstate.advance()
             return result
 
@@ -752,6 +818,8 @@ class ParticipationQueryForm(StyledForm):
                 "<code>email-contains:abc</code>, "
                 "<code>username:abc</code>, "
                 "<code>username-contains:abc</code>, "
+                "<code>institutional-id:2015abcd</code>, "
+                "<code>institutional-id-contains:2015</code>, "
                 "<code>tagged:abc</code>, "
                 "<code>role:instructor|teaching_assistant|"
                 "student|observer|auditor</code>, "
@@ -785,7 +853,9 @@ class ParticipationQueryForm(StyledForm):
 @transaction.atomic
 @course_view
 def query_participations(pctx):
-    if not pctx.has_permission(pperm.query_participation):
+    if (not pctx.has_permission(pperm.query_participation)
+        or
+            pctx.has_permission(pperm.view_participant_masked_profile)):
         raise PermissionDenied(_("may not query participations"))
 
     request = pctx.request
@@ -877,6 +947,13 @@ class EditParticipationForm(StyledModelForm):
 
         if not add_new:
             self.fields["user"].disabled = True
+        else:
+            participation_users = Participation.objects.filter(
+                course=participation.course).values_list("user__pk", flat=True)
+            self.fields["user"].queryset = (
+                get_user_model().objects.exclude(pk__in=participation_users)
+            )
+        self.add_new = add_new
 
         may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
         if not may_edit_permissions:
@@ -893,7 +970,7 @@ class EditParticipationForm(StyledModelForm):
         self.fields["individual_permissions"] = forms.MultipleChoiceField(
                 choices=PARTICIPATION_PERMISSION_CHOICES,
                 disabled=not may_edit_permissions,
-                #widget=forms.CheckboxSelectMultiple,
+                widget=forms.CheckboxSelectMultiple,
                 help_text=_("Permissions for this participant in addition to those "
                     "granted by their role"),
                 initial=self.instance.individual_permissions.values_list(
@@ -912,10 +989,20 @@ class EditParticipationForm(StyledModelForm):
             self.helper.add_input(
                     Submit("drop", _("Drop"), css_class="btn-danger"))
 
-    def save(self):
-        # type: () -> None
+    def clean_user(self):
+        user = self.cleaned_data["user"]
+        if not self.add_new:
+            return user
+        if user.status == user_status.active:
+            return user
 
-        super(EditParticipationForm, self).save()
+        raise forms.ValidationError(
+            _("This user has not confirmed his/her email."))
+
+    def save(self):
+        # type: () -> Participation
+
+        inst = super(EditParticipationForm, self).save()
 
         (ParticipationPermission.objects
                 .filter(participation=self.instance)
@@ -929,6 +1016,8 @@ class EditParticipationForm(StyledModelForm):
             pp.save()
             pps.append(pp)
         self.instance.individual_permissions.set(pps)
+
+        return inst
 
     class Meta:
         model = Participation
@@ -965,43 +1054,61 @@ def edit_participation(pctx, participation_id):
         raise SuspiciousOperation("may not edit participation in different course")
 
     if request.method == 'POST':
-        form = None  # type: Optional[EditParticipationForm]
+        form = EditParticipationForm(
+                add_new, pctx, request.POST, instance=participation)
+        reset_form = False
 
-        if "submit" in request.POST:
+        try:
+            if form.is_valid():
+                if "submit" in request.POST:
+                    form.save()
+
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Changes saved."))
+
+                elif "approve" in request.POST:
+                    send_enrollment_decision(participation, True, pctx.request)
+
+                    # FIXME: Double-saving
+                    participation = form.save()
+                    participation.status = participation_status.active
+                    participation.save()
+                    reset_form = True
+
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Successfully enrolled."))
+
+                elif "deny" in request.POST:
+                    send_enrollment_decision(participation, False, pctx.request)
+
+                    # FIXME: Double-saving
+                    participation = form.save()
+                    participation.status = participation_status.denied
+                    participation.save()
+                    reset_form = True
+
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Successfully denied."))
+
+                elif "drop" in request.POST:
+                    # FIXME: Double-saving
+                    participation = form.save()
+                    participation.status = participation_status.dropped
+                    participation.save()
+                    reset_form = True
+
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Successfully dropped."))
+        except IntegrityError as e:
+            messages.add_message(request, messages.ERROR,
+                    _("A data integrity issue was detected when saving "
+                        "this participation. Maybe a participation for "
+                        "this user already exists? (%s)")
+                    % str(e))
+
+        if reset_form:
             form = EditParticipationForm(
-                    add_new, pctx, request.POST, instance=participation)
-
-            if form.is_valid():  # type: ignore
-                form.save()  # type: ignore
-        elif "approve" in request.POST:
-
-            send_enrollment_decision(participation, True, pctx.request)
-
-            participation.status = participation_status.active
-            participation.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("Successfully enrolled."))
-
-        elif "deny" in request.POST:
-            send_enrollment_decision(participation, False, pctx.request)
-
-            participation.status = participation_status.denied
-            participation.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("Successfully denied."))
-
-        elif "drop" in request.POST:
-            participation.status = participation_status.dropped
-            participation.save()
-
-            messages.add_message(request, messages.SUCCESS,
-                    _("Successfully dropped."))
-
-        if form is None:
-            form = EditParticipationForm(add_new, pctx, instance=participation)
-
+                    add_new, pctx, instance=participation)
     else:
         form = EditParticipationForm(add_new, pctx, instance=participation)
 

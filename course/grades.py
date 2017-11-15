@@ -27,8 +27,10 @@ THE SOFTWARE.
 import re
 import six
 
+from typing import cast
+
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy, ugettext, string_concat)
+        ugettext_lazy as _, pgettext_lazy, ugettext)
 from django.shortcuts import (  # noqa
         render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -41,7 +43,7 @@ from django.utils.timezone import now
 from django import http
 
 from django.urls import reverse
-from relate.utils import StyledForm, StyledModelForm
+from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
 from bootstrap3_datetime.widgets import DateTimePicker
 
@@ -59,10 +61,11 @@ from course.constants import (
 
 # {{{ for mypy
 
-from typing import cast, Tuple, Text, Optional, Any, Iterable  # noqa
-from course.utils import CoursePageContext  # noqa
-from course.content import FlowDesc  # noqa
-from course.models import Course, FlowPageVisitGrade  # noqa
+if False:
+    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+    from course.utils import CoursePageContext  # noqa
+    from course.content import FlowDesc  # noqa
+    from course.models import Course, FlowPageVisitGrade  # noqa
 
 # }}}
 
@@ -652,6 +655,11 @@ class ReopenSessionForm(StyledForm):
                     else NONE_SESSION_TAG),
                 label=_("Set access rules tag"))
 
+        self.fields["unsubmit_pages"] = forms.BooleanField(
+                initial=True,
+                required=False,
+                label=_("Re-allow changes to already-submitted questions"))
+
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
                 label=_("Comment"))
@@ -700,11 +708,13 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
             from relate.utils import (
                     local_now, as_local_time,
                     format_datetime_local)
+            now_datetime = local_now()
+
             session.append_comment(
                     ugettext("Session reopened at %(now)s by %(user)s, "
                         "previous completion time was '%(completion_time)s': "
                         "%(comment)s.") % {
-                            "now": format_datetime_local(local_now()),
+                            "now": format_datetime_local(now_datetime),
                             "user": pctx.request.user,
                             "completion_time": format_datetime_local(
                                 as_local_time(session.completion_time)),
@@ -713,7 +723,8 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
             session.save()
 
             from course.flow import reopen_session
-            reopen_session(session, suppress_log=True)
+            reopen_session(now_datetime, session, suppress_log=True,
+                    unsubmit_pages=form.cleaned_data["unsubmit_pages"])
 
             return redirect("relate-view_single_grade",
                     pctx.course.identifier,

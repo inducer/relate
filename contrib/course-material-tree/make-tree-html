@@ -129,6 +129,14 @@ def get_section_id_and_display_name(trunk, include_extension):
     return section_id, display_name
 
 
+def blacklisted_glob(basedir, pattern, blacklist_regexps):
+    return sorted(
+            name
+            for name in glob(join(basedir, pattern))
+            if not any(bl_re.match(name[len(basedir)+1:])
+                for bl_re in blacklist_regexps))
+
+
 def main():
     import argparse
 
@@ -143,6 +151,11 @@ def main():
     parser.add_argument("--ipynb-as-py", action="store_true")
     parser.add_argument("--ipynb-as-ipynb", action="store_true")
 
+    parser.add_argument("--binder-urlroot", metavar="URL",
+            help="(without the trailing slash)")
+    parser.add_argument("--ipynb-main-link", choices=["static", "binder"],
+            default="static")
+
     parser.add_argument("--py-dir", metavar="DIRECTORY")
     parser.add_argument("--py-urlroot", metavar="URL",
             help="(without the trailing slash)")
@@ -156,10 +169,19 @@ def main():
     parser.add_argument("--text-icon", metavar="ICON_STR",
             default="fa fa-file-o")
     parser.add_argument("--number-sections", action="store_true")
+    parser.add_argument("--blacklist-file", metavar="PATTERN_FILE")
 
     parser.add_argument("input_file", metavar="FILE")
 
     args = parser.parse_args()
+
+    blacklist_regexps = []
+    if args.blacklist_file is not None:
+        with open(args.blacklist_file, "rt") as bl_file:
+            import fnmatch
+            for pattern in bl_file:
+                blacklist_regexps.append(
+                        re.compile(fnmatch.translate(pattern.strip())))
 
     from yaml import load
     with open(args.input_file, "rb") as inf:
@@ -173,7 +195,8 @@ def main():
     # {{{ demos
 
     if args.ipynb_dir is not None:
-        for fn in sorted(glob(join(args.ipynb_dir, "*", "*.ipynb"))):
+        for fn in blacklisted_glob(args.ipynb_dir, join("*", "*.ipynb"),
+                blacklist_regexps):
             trunk = fn[len(args.ipynb_dir)+1:]
 
             section_id, display_name = get_section_id_and_display_name(
@@ -181,12 +204,24 @@ def main():
 
             link_ipynb = args.ipynb_urlroot + "/" + trunk
             link_html = link_ipynb.replace(".ipynb", ".html")
+            main_link = link_html
 
             sub_nodes = [{
                         "text": "View on the web",
                         "link": link_html,
                         "icon": "fa fa-newspaper-o",
                         }]
+
+            if args.binder_urlroot:
+                binder_url = args.binder_urlroot + "/" + trunk
+
+                sub_nodes.append({
+                    "text": "Run interactively (on mybinder.org)",
+                    "link": binder_url,
+                    "icon": "fa fa-keyboard-o",
+                    })
+                if args.ipynb_main_link == "binder":
+                    main_link = binder_url
 
             if args.ipynb_as_py:
                 link_py = link_ipynb.replace(".ipynb", ".py")
@@ -205,7 +240,7 @@ def main():
 
             demo_node = {
                 "text": "Demo: " + display_name,
-                "link": link_html,
+                "link": main_link,
                 "icon": "fa fa-keyboard-o",
                 "nodes": sub_nodes,
                 }
@@ -218,7 +253,8 @@ def main():
     # {{{ python source
 
     if args.py_dir is not None:
-        for fn in sorted(glob(join(args.py_dir, "*", "*.py"))):
+        for fn in blacklisted_glob(args.py_dir, join("*", "*.py"),
+                blacklist_regexps):
             trunk = fn[len(args.py_dir)+1:]
             section_id, display_name = get_section_id_and_display_name(
                     trunk, include_extension=True)
@@ -236,7 +272,8 @@ def main():
     # {{{ notes
 
     if args.pdf_dir is not None:
-        for fn in sorted(glob(join(args.pdf_dir, "*.pdf"))):
+        for fn in blacklisted_glob(args.pdf_dir, join("*.pdf"),
+                blacklist_regexps):
             if "autosave" in fn:
                 continue
 

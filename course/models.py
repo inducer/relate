@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Any, Optional, Text, Iterable  # noqa
+from typing import cast
 
 import six
 
@@ -33,13 +33,14 @@ from django.utils.timezone import now
 from django.urls import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy, string_concat)
+        ugettext_lazy as _, pgettext_lazy)
 from django.core.validators import RegexValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from django.conf import settings
 
+from relate.utils import string_concat
 from course.constants import (  # noqa
         user_status, USER_STATUS_CHOICES,
         participation_status, PARTICIPATION_STATUS_CHOICES,
@@ -60,7 +61,9 @@ from course.page.base import AnswerFeedback
 # {{{ mypy
 
 if False:
+    from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet  # noqa
     from course.content import FlowDesc  # noqa
+    import datetime # noqa
 
 # }}}
 
@@ -232,7 +235,9 @@ class Course(models.Model):
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
             return self.from_email
         else:
-            return settings.DEFAULT_FROM_EMAIL
+            return getattr(
+                settings, "NOTIFICATION_EMAIL_FROM",
+                settings.ROBOT_EMAIL_FROM)
 
     def get_reply_to_email(self):
         # this functionality need more fields in Course model,
@@ -366,6 +371,32 @@ class ParticipationRole(models.Model):
             "identifier": self.identifier,
             "course": self.course}
 
+    # {{{ permissions handling
+
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
+    def permission_tuples(self):
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+
+        if self._permissions_cache is not None:
+            return self._permissions_cache
+
+        perm = list(
+                    ParticipationRolePermission.objects.filter(role=self)
+                    .values_list("permission", "argument"))
+
+        fset_perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm)
+
+        self._permissions_cache = fset_perm
+        return fset_perm
+
+    def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
+        return (perm, argument) in self.permission_tuples()
+
+    # }}}
     if six.PY3:
         __str__ = __unicode__
 
@@ -466,11 +497,13 @@ class Participation(models.Model):
 
     # {{{ permissions handling
 
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
     def permissions(self):
-        try:
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+
+        if self._permissions_cache is not None:
             return self._permissions_cache
-        except AttributeError:
-            pass
 
         perm = (
                 list(
@@ -484,14 +517,15 @@ class Participation(models.Model):
                         participation=self)
                     .values_list("permission", "argument")))
 
-        perm = frozenset(
+        fset_perm = frozenset(
                 (permission, argument) if argument else (permission, None)
                 for permission, argument in perm)
 
-        self._permissions_cache = perm
-        return perm
+        self._permissions_cache = fset_perm
+        return fset_perm
 
     def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
         return (perm, argument) in self.permissions()
 
     # }}}
@@ -585,7 +619,9 @@ def add_default_roles_and_permissions(course,
                 argument="student").save()
         rpm(role=role, permission=pp.view_gradebook).save()
         rpm(role=role, permission=pp.assign_grade).save()
+        rpm(role=role, permission=pp.skip_during_manual_grading).save()
         rpm(role=role, permission=pp.view_grader_stats).save()
+        rpm(role=role, permission=pp.batch_download_submission).save()
 
         rpm(role=role, permission=pp.impose_flow_session_deadline).save()
         rpm(role=role, permission=pp.end_flow_session).save()
@@ -606,11 +642,12 @@ def add_default_roles_and_permissions(course,
         add_student_permissions(role)
 
     def add_instructor_permissions(role):
-        rpm(role=role, permission=pp.use_admin_interface)
+        rpm(role=role, permission=pp.use_admin_interface).save()
         rpm(role=role, permission=pp.impersonate_role,
                 argument="ta").save()
         rpm(role=role, permission=pp.edit_course_permissions).save()
         rpm(role=role, permission=pp.edit_course).save()
+        rpm(role=role, permission=pp.manage_authentication_tokens).save()
         rpm(role=role, permission=pp.access_files_for,
                 argument="instructor").save()
 
@@ -622,7 +659,6 @@ def add_default_roles_and_permissions(course,
         rpm(role=role, permission=pp.edit_grading_opportunity).save()
         rpm(role=role, permission=pp.batch_import_grade).save()
         rpm(role=role, permission=pp.batch_export_grade).save()
-        rpm(role=role, permission=pp.batch_download_submission).save()
 
         rpm(role=role, permission=pp.batch_impose_flow_session_deadline).save()
         rpm(role=role, permission=pp.batch_end_flow_session).save()
@@ -669,6 +705,43 @@ def _set_up_course_permissions(sender, instance, created, raw, using, update_fie
         **kwargs):
     if created:
         add_default_roles_and_permissions(instance)
+
+# }}}
+
+
+# {{{ auth token
+
+class AuthenticationToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
+
+    participation = models.ForeignKey(Participation,
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    restrict_to_participation_role = models.ForeignKey(ParticipationRole,
+            verbose_name=_('Restrict to role'), on_delete=models.CASCADE,
+            blank=True, null=True)
+
+    description = models.CharField(max_length=200,
+            verbose_name=_('Description'))
+
+    creation_time = models.DateTimeField(
+            default=now, verbose_name=_('Creation time'))
+    last_use_time = models.DateTimeField(
+            verbose_name=_('Last use time'),
+            blank=True, null=True)
+    valid_until = models.DateTimeField(
+            default=None, verbose_name=_('Valid until'),
+            blank=True, null=True)
+    revocation_time = models.DateTimeField(
+            default=None, verbose_name=_('Revocation time'),
+            blank=True, null=True)
+
+    token_hash = models.CharField(max_length=200,
+            help_text=_("A hash of the authentication token to be "
+                "used for direct git access."),
+            null=True, blank=True, unique=True,
+            verbose_name=_('Hash of git authentication token'))
 
 # }}}
 
@@ -790,7 +863,7 @@ class FlowSession(models.Model):
         __str__ = __unicode__
 
     def append_comment(self, s):
-        # type: (Text) -> None
+        # type: (Optional[Text]) -> None
         if s is None:
             return
 
@@ -813,6 +886,7 @@ class FlowSession(models.Model):
         return assemble_answer_visits(self)
 
     def last_activity(self):
+        # type: () -> Optional[datetime.datetime]
         for visit in (FlowPageVisit.objects
                 .filter(
                     flow_session=self,
@@ -1277,16 +1351,16 @@ class FlowRuleException(models.Model):
         from relate.utils import dict_to_struct
         rule = dict_to_struct(self.rule)
 
-        repo = get_course_repo(self.participation.course)
-        commit_sha = get_course_commit_sha(
-                self.participation.course, self.participation)
-        ctx = ValidationContext(
-                repo=repo,
-                commit_sha=commit_sha)
+        with get_course_repo(self.participation.course) as repo:
+            commit_sha = get_course_commit_sha(
+                    self.participation.course, self.participation)
+            ctx = ValidationContext(
+                    repo=repo,
+                    commit_sha=commit_sha)
 
-        flow_desc = get_flow_desc(repo,
-                self.participation.course,
-                self.flow_id, commit_sha)
+            flow_desc = get_flow_desc(repo,
+                    self.participation.course,
+                    self.flow_id, commit_sha)
 
         tags = None
         grade_identifier = None

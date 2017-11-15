@@ -10,6 +10,24 @@
 {% endblock %}
 
 {% block content %}
+  {% if user != flow_session.participation.user %}
+    <div id="other-user-alert" class="alert alert-info">
+      <div style="float:right">
+        <a onclick='$("#other-user-alert").hide()'>
+          <i class="fa fa-times-circle" aria-hidden="true"></i><Paste>
+        </a>
+      </div>
+
+      <i class="fa fa-user" aria-hidden="true"></i>
+      {% trans "Viewing session for participant" %}
+      {% if flow_session.participation != None %}
+        <a href="{% url "relate-view_participant_grades" course.identifier flow_session.participation.id %}">{% if not pperm.view_participant_masked_profile %}{{ flow_session.participation.user.username }}{% else %}{{ flow_session.participation.user.get_masked_profile }}{% endif %}</a>.
+      {% else %}
+        {% trans "(unspecified participant)" %}.
+      {% endif %}
+    </div>
+  {% endif %}
+
   {# {{{ navigation #}
   <form
     action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
@@ -88,16 +106,20 @@
             <i class="fa fa-bars"></i>
           </button>
           <ul class="dropdown-menu" aria-labelledby="menu_dropdown">
+            <li class="dropdown-header">
+              <b>{{ flow_desc.title }}</b>
+            </li>
             <li>
               <a href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
                 >{% trans "Return to flow start page" %}</a>
             </li>
             {% if page_expect_answer_and_gradable %}
+              <li role="separator" class="divider"></li>
               {% if pperm.reopen_flow_session and not flow_session.in_progress and opportunity.id != None %}
                 <li>
                   <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
                      target="_blank">
-                    {% trans "Reopen" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                    {% trans "Reopen" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
                 </li>
               {% endif %}
@@ -105,7 +127,7 @@
                 <li>
                   <a href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                     target="_blank">
-                      {% trans "Grant exception" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                      {% trans "Grant exception" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
                 </li>
               {% endif %}
@@ -113,10 +135,18 @@
                 <li>
                   <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id ordinal %}"
                      target="_blank">
-                      {% trans "View in grading interface" %} <i class="fa fa-lock" aria-hidden="true"></i>
+                      {% trans "View in grading interface" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
                 </li>
               {% endif %}
+            {% endif %}
+            {% if pperm.reopen_flow_session and flow_session.in_progress and expects_answer and not may_change_answer %}
+              <li role="separator" class="divider"></li>
+              <li>
+                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id ordinal %}">
+                    {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                </a>
+              </li>
             {% endif %}
           </ul>
         </div>
@@ -125,47 +155,30 @@
       {# }}} #}
 
       {# {{{ past submissions #}
-
-      {% if prev_answer_visits|length > 1 %}
-      <div class="navbar-right relate-flow-page-past-submissions"
-        style="padding-right: 0.4em; margin-right:0;">
-        <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
-            title='{% trans "Submission history for this page" %}'>
-            <i class="fa fa-history"></i>
-            <span class="caret"></span>
-          </button>
-          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown">
-            {% for pvisit in prev_answer_visits %}
-            <li>
-              {% if forloop.first %}
-                <a href="?">
-              {% else %}
-                <a href="?visit_id={{ pvisit.id }}">
-              {% endif %}
-
-              {% if prev_visit_id == pvisit.id %}<b>{% endif %}
-                {{ pvisit.visit_time }}
-              {% if prev_visit_id == pvisit.id %}</b>{% endif %}
-              {% if forloop.first %}
-                {% trans "(current)" %}
-              {% endif %}
-              {% if pvisit.is_submitted_answer %}
-                {% trans "(submitted)" %}
-              {% endif %}
-            </a></li>
-            {% endfor %}
-          </ul>
+      {% if expects_answer %}
+        <div class="navbar-right relate-flow-page-past-submissions"
+          style="padding-right: 0.4em; margin-right:0;">
+          <div class="dropdown" id="past-submission_dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown_button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+              title='{% trans "Submission history for this page" %}'>
+              <i class="fa fa-history"></i>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
+              <li style="list-style:none; position:relative; left:50%;">
+                <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
       {% endif %}
-
       {# }}} #}
 
       {# {{{ 'finish' button #}
 
       <div class="navbar-right relate-flow-submit"
         style="padding-right: 0.4em;">
+      {% if not viewing_prior_version %}
         <button type="submit" name="finish" class="btn btn-default relate-nav-button
         {% if flow_session.in_progress %}
           {% if not interaction_kind == flow_session_interaction_kind.noninteractive %}
@@ -179,7 +192,7 @@
           {% if interaction_kind == flow_session_interaction_kind.ungraded %}
             {% trans "Submit" %}
           {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
-            {% trans "Submit assignment" %}
+          {% blocktrans with flow_title=flow_desc.title %}Submit {{ flow_title }}{% endblocktrans %}
           {% else %}
             {% trans "Finish" %}
           {% endif %}
@@ -201,13 +214,14 @@
             <i class="fa fa-sign-out" aria-hidden="true"></i>
         {% endif %}
         </button>
+      {% endif %}
       </div>
 
       {# }}} #}
 
       {# {{{ expiration mode #}
 
-      {% if flow_session.in_progress and expiration_mode_choice_count > 1 %}
+      {% if flow_session.in_progress and expiration_mode_choice_count > 1 and not viewing_prior_version %}
         <div class="flow-session-expiration-panel">
           <span id="expiration_mode_change_progress">
           </span>
@@ -317,6 +331,10 @@
       {{ max_points }} points
     {% endblocktrans %}
     </div>
+  {% elif is_optional_page %}
+    <div style="float:right" class="well">
+    {% trans "Optional question" %}
+    </div>
   {% endif %}
 
   {# }}} #}
@@ -406,6 +424,7 @@
       $(":checkbox").on("change", on_input_change);
       $(":radio").on("change", on_input_change);
       $(":text").on("change", on_input_change);
+      $(":file").on("change", on_input_change);
       $("textarea").on("change", on_input_change);
 
       // }}}
@@ -586,4 +605,56 @@
 
 {% endblock %}
 
+{% block page_bottom_javascript_extra %}
+
+  {% if expects_answer %}
+    <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
+    <script>
+      function generate_past_submission_dropdown_content(){
+        var jqxhr = $.ajax({
+          url: "{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id ordinal %}"
+        }).done(function (result) {
+          if(result.result)
+            document.getElementById("past-submission_dropdown_content").innerHTML = tmpl("tmpl-prev-answer-visits", result.result);
+        });
+      }
+
+      $('#past-submission_dropdown').on('shown.bs.dropdown', generate_past_submission_dropdown_content);
+
+
+    </script>
+
+    {# https://github.com/blueimp/JavaScript-Templates #}
+    <script type="text/x-tmpl" id="tmpl-prev-answer-visits">
+      {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
+        <li>
+          <a href="#" style="pointer-events: none; display: inline-block;">
+            {% trans 'No submission history' %}
+          </a>
+        </li>
+      {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+        {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
+          <li>
+            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+              <a href="?">
+            {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+              <a href="?visit_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
+            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+                {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+              {% trans "(current)" %}
+              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].is_submitted_answer) { {{ JQ_CLOSE }}
+                {% trans "(submitted)" %}
+              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+            </a>
+          </li>
+        {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+      {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+    </script>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
 {# vim: set foldmethod=marker: #}

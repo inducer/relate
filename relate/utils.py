@@ -26,11 +26,39 @@ THE SOFTWARE.
 
 
 import six
-from typing import Text, Union, List, Dict, Tuple, Optional, Any  # noqa
-import datetime  # noqa
+import datetime
 
 import django.forms as forms
 import dulwich.repo
+
+from typing import Union
+
+if False:
+    from typing import Text, List, Dict, Tuple, Optional, Any  # noqa
+
+# {{{ string_concat compatibility for Django >= 1.11
+
+try:
+    from django.utils.text import format_lazy
+except ImportError:
+    def _format_lazy(format_string, *args, **kwargs):
+        # type(Text, *Any, **Any) -> Text
+        """
+        Apply str.format() on 'format_string' where format_string, args,
+        and/or kwargs might be lazy.
+        """
+        return format_string.format(*args, **kwargs)
+
+    from django.utils.functional import lazy
+    format_lazy = lazy(_format_lazy, str)
+
+try:
+    from django.utils.translation import string_concat
+except ImportError:
+    def string_concat(*strings):
+        return format_lazy("{}" * len(strings), *strings)
+
+# }}}
 
 
 class StyledForm(forms.Form):
@@ -87,6 +115,12 @@ class SubdirRepoWrapper(object):
     def close(self):
         self.repo.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
 
 Repo_ish = Union[dulwich.repo.Repo, SubdirRepoWrapper]
 
@@ -135,6 +169,8 @@ def settings_context_processor(request):
         "student_sign_in_view": "relate-sign_in_choice",
         "relate_sign_in_by_email_enabled":
         settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED,
+        "relate_sign_in_by_username_enabled":
+        settings.RELATE_SIGN_IN_BY_USERNAME_ENABLED,
         "relate_registration_enabled":
         settings.RELATE_REGISTRATION_ENABLED,
         "relate_sign_in_by_exam_tickets_enabled":
@@ -393,6 +429,24 @@ def ignore_no_such_table(f, *args):
             local_rollback()
         else:
             raise
+
+
+def force_remove_path(path):
+    # type: (Text) -> None
+    """
+    Work around deleting read-only path on Windows.
+    Ref: https://docs.python.org/3.5/library/shutil.html#rmtree-example
+    """
+    import os
+    import stat
+    import shutil
+
+    def remove_readonly(func, path, _):  # noqa
+        "Clear the readonly bit and reattempt the removal"
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    shutil.rmtree(path, onerror=remove_readonly)
 
 
 # vim: foldmethod=marker

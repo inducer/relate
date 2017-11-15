@@ -28,7 +28,9 @@ THE SOFTWARE.
 from django.utils.translation import ugettext as _
 from django.shortcuts import (  # noqa
         get_object_or_404, redirect)
-from relate.utils import retry_transaction_decorator
+from relate.utils import (
+        retry_transaction_decorator,
+        as_local_time, format_datetime_local)
 from django.contrib import messages
 from django.core.exceptions import (  # noqa
         PermissionDenied, SuspiciousOperation,
@@ -55,14 +57,69 @@ from course.constants import (
 
 # {{{ for mypy
 
-from typing import Text, Any, Optional  # noqa
-from course.models import (  # noqa
-        GradingOpportunity)
-from course.utils import (  # noqa
-        CoursePageContext)
-import datetime  # noqa
+if False:
+    from typing import Text, Any, Optional, Dict, List  # noqa
+    from course.models import (  # noqa
+            GradingOpportunity)
+    from course.utils import (  # noqa
+            CoursePageContext)
+    import datetime  # noqa
+    from django.db.models import query  # noqa
 
 # }}}
+
+
+def get_prev_visit_grades(
+            flow_session_id,  # type: int
+            page_ordinal,  # type: int
+            reversed_on_visit_time_and_grade_time=False  # type: Optional[bool]
+        ):
+    # type: (...) -> query.QuerySet
+    order_by_args = []  # type: List[Text]
+    if reversed_on_visit_time_and_grade_time:
+        order_by_args = ["-visit__visit_time", "-grade_time"]
+    return (FlowPageVisitGrade.objects
+            .filter(
+                visit__flow_session_id=flow_session_id,
+                visit__page_data__ordinal=page_ordinal,
+                visit__is_submitted_answer=True)
+            .order_by(*order_by_args)
+            .select_related("visit"))
+
+
+@course_view
+def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
+    """
+    :return: serialized prev_grades items for rendering past-grades-dropdown
+    """
+    request = pctx.request
+    if not request.is_ajax() or request.method != "GET":
+        raise PermissionDenied()
+
+    try:
+        page_ordinal = int(page_ordinal)
+        flow_session_id = int(flow_session_id)
+    except ValueError:
+        raise http.Http404()
+
+    if not pctx.participation:
+        raise PermissionDenied(_("may not view grade book"))
+    if not pctx.participation.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
+
+    prev_grades = get_prev_visit_grades(flow_session_id, page_ordinal, True)
+
+    def serialize(obj):
+        return {
+            "id": obj.id,
+            "visit_time": (
+                format_datetime_local(as_local_time(obj.visit.visit_time))),
+            "grade_time": format_datetime_local(as_local_time(obj.grade_time)),
+            "value": obj.value(),
+        }
+
+    return http.JsonResponse(
+        {"result": [serialize(pgrade) for pgrade in prev_grades]})
 
 
 # {{{ grading driver
@@ -135,13 +192,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # }}}
 
-    prev_grades = (FlowPageVisitGrade.objects
-            .filter(
-                visit__flow_session=flow_session,
-                visit__page_data__ordinal=page_ordinal,
-                visit__is_submitted_answer=True)
-            .order_by("-visit__visit_time", "-grade_time")
-            .select_related("visit"))
+    prev_grades = get_prev_visit_grades(flow_session_id, page_ordinal)
 
     # {{{ reproduce student view
 
@@ -151,7 +202,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     grade_data = None
     shown_grade = None
 
-    if fpctx.page.expects_answer():
+    page_expects_answer = fpctx.page.expects_answer()
+
+    if page_expects_answer:
         if fpctx.prev_answer_visit is not None and prev_grade_id is None:
             answer_data = fpctx.prev_answer_visit.answer
 
@@ -212,7 +265,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # {{{ grading form
 
-    if (fpctx.page.expects_answer()
+    if (page_expects_answer
             and fpctx.page.is_answer_gradable()
             and fpctx.prev_answer_visit is not None
             and not flow_session.in_progress
@@ -260,7 +313,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         correctness=correctness,
                         feedback=feedback_json)
 
-                _save_grade(fpctx, flow_session, most_recent_grade,
+                prev_grade_id = _save_grade(fpctx, flow_session, most_recent_grade,
                         bulk_feedback_json, now_datetime)
         else:
             grading_form = fpctx.page.make_grading_form(
@@ -268,6 +321,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     else:
         grading_form = None
+
+    grading_form_html = None  # type: Optional[Text]
 
     if grading_form is not None:
         from crispy_forms.layout import Submit
@@ -281,16 +336,13 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         grading_form_html = fpctx.page.grading_form_to_html(
                 pctx.request, fpctx.page_context, grading_form, grade_data)
 
-    else:
-        grading_form_html = None
-
     # }}}
 
     # {{{ compute points_awarded
 
     max_points = None
     points_awarded = None
-    if (fpctx.page.expects_answer()
+    if (page_expects_answer
             and fpctx.page.is_answer_gradable()):
         max_points = fpctx.page.max_points(fpctx.page_data)
         if feedback is not None and feedback.correctness is not None:
@@ -328,8 +380,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "max_points": max_points,
                 "points_awarded": points_awarded,
                 "shown_grade": shown_grade,
-                "prev_grades": prev_grades,
                 "prev_grade_id": prev_grade_id,
+                "expects_answer": page_expects_answer,
 
                 "grading_opportunity": grading_opportunity,
 
@@ -341,6 +393,12 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "correct_answer": fpctx.page.correct_answer(
                     fpctx.page_context, fpctx.page_data.data,
                     answer_data, grade_data),
+
+
+                # Wrappers used by JavaScript template (tmpl) so as not to
+                # conflict with Django template's tag wrapper
+                "JQ_OPEN": '{%',
+                'JQ_CLOSE': '%}',
             })
 
 
@@ -352,8 +410,9 @@ def _save_grade(
         bulk_feedback_json,  # type: Any
         now_datetime,  # type: datetime.datetime
         ):
-    # type: (...) -> None
+    # type: (...) -> int
     most_recent_grade.save()
+    most_recent_grade_id = most_recent_grade.id
 
     update_bulk_feedback(
             fpctx.prev_answer_visit.page_data,
@@ -365,6 +424,8 @@ def _save_grade(
 
     from course.flow import grade_flow_session
     grade_flow_session(fpctx, flow_session, grading_rule)
+
+    return most_recent_grade_id
 
 # }}}
 
