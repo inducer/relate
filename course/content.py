@@ -420,11 +420,14 @@ def process_yaml_for_expansion(yaml_str):
 
             while i < line_count:
                 ln = lines[i]
-
+                
                 if not ln.rstrip():
                     unprocessed_block_lines.append(ln)
                     i += 1
                     continue
+
+                if '{% endraw %}' in ln:
+                    ln = ln.replace( '{% endraw %}','{% endraw %}\n{{ \'{% endraw %}\' }}\n{% raw %}' )
 
                 line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
