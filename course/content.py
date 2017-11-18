@@ -427,7 +427,8 @@ def process_yaml_for_expansion(yaml_str):
                     continue
 
                 if '{% endraw %}' in ln:
-                    ln = ln.replace('{% endraw %}', '{% endraw %}\n{{ \'{% endraw %}\' }}\n{% raw %}')
+                    endraw_ = "{% endraw %}\n{{ '{% endraw %}' }}\n{% raw %}"
+                    ln = ln.replace('{% endraw %}', endraw_)
 
                 line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
