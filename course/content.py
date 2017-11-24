@@ -1510,7 +1510,7 @@ def list_flow_ids(repo, commit_sha):
     else:
         for entry in flows_tree.items():
             if entry.path.endswith(b".yml"):
-                flow_ids.append(entry.path[:-4])
+                flow_ids.append(entry.path[:-4].decode("utf-8"))
 
     return sorted(flow_ids)
 
