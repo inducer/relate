@@ -43,6 +43,9 @@ from course.page.base import (
         get_editor_interaction_mode)
 from course.constants import flow_permission
 
+# DEBUGGING SWITCH: False for 'spawn container', True for 'a faked container'
+USE_FAKED_CONTAINER = False
+
 
 # {{{ python code question
 
@@ -95,8 +98,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
     docker_timeout = 15
 
-    # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
-    if 1:
+    if not USE_FAKED_CONTAINER:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",

@@ -30,7 +30,8 @@ from django.core import mail
 from django.contrib.auth import get_user_model
 from course.models import FlowPageVisit, Course, FlowSession
 from .base_test_mixins import (
-    SingleCoursePageTestMixin, FallBackStorageMessageTestMixin)
+    SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
+    FakedRunpyContainerMixin)
 from .utils import LocmemBackendTestsMixin
 
 QUIZ_FLOW_ID = "quiz-test"
@@ -77,14 +78,14 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertSessionScoreEqual(0)
 
     def test_quiz_text(self):
-        resp = self.client_post_answer_by_ordinal(1, {"answer": ['0.5']})
+        resp = self.post_answer_by_ordinal(1, {"answer": ['0.5']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertEqual(self.end_quiz().status_code, 200)
         self.assertSessionScoreEqual(5)
 
     def test_quiz_choice(self):
-        resp = self.client_post_answer_by_ordinal(2, {"choice": ['0']})
+        resp = self.post_answer_by_ordinal(2, {"choice": ['0']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertEqual(self.end_quiz().status_code, 200)
@@ -92,7 +93,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_quiz_choice_failed_no_answer(self):
         self.assertSubmitHistoryItemsCount(page_ordinal=2, expected_count=0)
-        resp = self.client_post_answer_by_ordinal(2, {"choice": []})
+        resp = self.post_answer_by_ordinal(2, {"choice": []})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
@@ -104,7 +105,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_quiz_multi_choice_exact_correct(self):
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
-        resp = self.client_post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
+        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
@@ -113,7 +114,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_quiz_multi_choice_exact_wrong(self):
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
-        resp = self.client_post_answer_by_ordinal(3, {"choice": ['0', '1']})
+        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
@@ -124,13 +125,13 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         # Note: this page doesn't have permission to change_answer
         # submit a wrong answer
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
-        resp = self.client_post_answer_by_ordinal(3, {"choice": ['0', '1']})
+        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
 
         # try to change answer to a correct one
-        resp = self.client_post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
+        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(
@@ -140,14 +141,14 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_proportion_partial(self):
-        resp = self.client_post_answer_by_ordinal(4, {"choice": ['0']})
+        resp = self.post_answer_by_ordinal(4, {"choice": ['0']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertEqual(self.end_quiz().status_code, 200)
         self.assertSessionScoreEqual(0.8)
 
     def test_quiz_multi_choice_proportion_correct(self):
-        resp = self.client_post_answer_by_ordinal(4, {"choice": ['0', '3']})
+        resp = self.post_answer_by_ordinal(4, {"choice": ['0', '3']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertEqual(self.end_quiz().status_code, 200)
@@ -158,7 +159,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             'blank1': ['Bar'], 'blank_2': ['0.2'], 'blank3': ['1'],
             'blank4': ['5'], 'blank5': ['Bar'], 'choice2': ['0'],
             'choice_a': ['0']}
-        resp = self.client_post_answer_by_ordinal(5, answer_data)
+        resp = self.post_answer_by_ordinal(5, answer_data)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertEqual(self.end_quiz().status_code, 200)
@@ -170,7 +171,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_quiz_survey_text(self):
         self.assertSubmitHistoryItemsCount(page_ordinal=6, expected_count=0)
-        resp = self.client_post_answer_by_ordinal(
+        resp = self.post_answer_by_ordinal(
                             6, {"answer": ["NOTHING!!!"]})
         self.assertSubmitHistoryItemsCount(page_ordinal=6, expected_count=1)
         self.assertEqual(resp.status_code, 200)
@@ -190,10 +191,10 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
 
         # no answer thus no history
-        self.client_post_answer_by_ordinal(7, {"choice": []})
+        self.post_answer_by_ordinal(7, {"choice": []})
         self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
 
-        resp = self.client_post_answer_by_ordinal(7, {"choice": ['8']})
+        resp = self.post_answer_by_ordinal(7, {"choice": ['8']})
         self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=1)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.end_quiz().status_code, 200)
@@ -216,7 +217,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         with open(
                 os.path.join(os.path.dirname(__file__),
                              'fixtures', 'test_file.txt'), 'rb') as fp:
-            resp = self.client_post_answer_by_page_id(
+            resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             fp.seek(0)
             expected_result = b64encode(fp.read()).decode()
@@ -241,7 +242,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         with open(
                 os.path.join(os.path.dirname(__file__),
                              'fixtures', 'test_file.txt'), 'rb') as fp:
-            resp = self.client_post_answer_by_page_id(
+            resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             fp.seek(0)
             expected_result1 = b64encode(fp.read()).decode()
@@ -253,7 +254,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         with open(
                 os.path.join(os.path.dirname(__file__),
                              'fixtures', 'test_file.pdf'), 'rb') as fp:
-            resp = self.client_post_answer_by_page_id(
+            resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             self.assertEqual(resp.status_code, 200)
             fp.seek(0)
@@ -279,7 +280,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         with open(
                 os.path.join(os.path.dirname(__file__),
                              'fixtures', 'test_file.txt'), 'rb') as fp:
-            resp = self.client_post_answer_by_page_id(
+            resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             self.assertEqual(resp.status_code, 200)
 
@@ -291,7 +292,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         with open(
                 os.path.join(os.path.dirname(__file__),
                              'fixtures', 'test_file.pdf'), 'rb') as fp:
-            resp = self.client_post_answer_by_page_id(
+            resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             self.assertEqual(resp.status_code, 200)
             fp.seek(0)
@@ -310,7 +311,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     # {{{ tests on submission history dropdown
     def test_submit_history_failure_not_ajax(self):
-        self.client_post_answer_by_ordinal(1, {"answer": ['0.5']})
+        self.post_answer_by_ordinal(1, {"answer": ['0.5']})
         resp = self.c.get(
             self.page_submit_history_url(
                 flow_session_id=FlowSession.objects.all().last().pk,
@@ -318,7 +319,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
-        self.client_post_answer_by_ordinal(1, {"answer": ['0.5']})
+        self.post_answer_by_ordinal(1, {"answer": ['0.5']})
         resp = self.c.post(
             self.page_submit_history_url(
                 flow_session_id=FlowSession.objects.all().last().pk,
@@ -326,20 +327,23 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_authenticated(self):
-        self.client_post_answer_by_ordinal(1, {"answer": ['0.5']})
-        self.c.logout()
-        resp = self.c.post(
-            self.page_submit_history_url(
-                flow_session_id=FlowSession.objects.all().last().pk,
-                page_ordinal=1))
+        self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+
+        # anonymous user has not pperm to view submit history
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.post(
+                self.page_submit_history_url(
+                    flow_session_id=FlowSession.objects.all().last().pk,
+                    page_ordinal=1))
+
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_no_perm(self):
-        self.c.force_login(self.ta_participation.user)
-        self.start_quiz(self.flow_id)
-        self.client_post_answer_by_ordinal(1, {"answer": ['0.5']})
-        self.c.logout()
-        self.c.force_login(self.student_participation.user)
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            self.start_quiz(self.flow_id)
+            self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+
+        # student have no pperm to view ta's submit history
         resp = self.c.post(
             self.page_submit_history_url(
                 flow_session_id=FlowSession.objects.all().last().pk,
@@ -360,42 +364,24 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.start_quiz(self.flow_id)
         self.submit_any_upload_question()
 
-    def get_grading_page_url_by_page_id(self, flow_session_id, page_id):
-        return reverse(
-            "relate-grade_flow_page",
-            kwargs={"course_identifier": self.course.identifier,
-                    "flow_session_id": flow_session_id,
-                    "page_ordinal": self.get_ordinal_via_page_id(page_id)})
-
     def submit_any_upload_question_null_failure(self):
-        self.client_post_answer_by_page_id(
+        self.post_answer_by_page_id(
             "anyup", {"uploaded_file": []})
 
     def submit_any_upload_question(self):
         with open(
                 os.path.join(os.path.dirname(__file__),
                              'fixtures', 'test_file.txt'), 'rb') as fp:
-            self.client_post_answer_by_page_id(
+            self.post_answer_by_page_id(
                 "anyup", {"uploaded_file": fp})
-
-    def post_grade(self, flow_session_id, page_id, grade_data):
-        post_data = {"submit": [""]}
-        post_data.update(grade_data)
-        resp = self.c.post(
-            self.get_grading_page_url_by_page_id(flow_session_id, page_id),
-            data=post_data,
-            follow=True)
-        return resp
 
     def test_post_grades(self):
         self.end_quiz()
-        last_session = FlowSession.objects.all().last()
         grade_data = {
             "grade_percent": ["100"],
             "released": ["on"]
         }
-        self.c.force_login(self.ta_participation.user)
-        resp = self.post_grade(last_session.pk, "anyup", grade_data)
+        resp = self.post_grade_by_page_id("anyup", grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertSessionScoreEqual(5)
 
@@ -403,7 +389,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
             "grade_points": ["4"],
             "released": []
         }
-        resp = self.post_grade(last_session.pk, "anyup", grade_data)
+        resp = self.post_grade_by_page_id("anyup", grade_data)
         self.assertTrue(resp.status_code, 200)
 
         self.assertSessionScoreEqual(None)
@@ -412,13 +398,12 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
             "grade_points": ["4"],
             "released": ["on"]
         }
-        resp = self.post_grade(last_session.pk, "anyup", grade_data)
+        resp = self.post_grade_by_page_id("anyup", grade_data)
         self.assertTrue(resp.status_code, 200)
 
         self.assertSessionScoreEqual(4)
 
     def test_post_grades_history(self):
-        self.c.force_login(self.student_participation.user)
         page_id = "anyup"
         page_ordinal = self.get_ordinal_via_page_id(page_id)
 
@@ -429,13 +414,11 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.submit_any_upload_question()
         self.end_quiz()
 
-        last_session = FlowSession.objects.all().last()
         grade_data = {
             "grade_percent": ["100"],
             "released": ["on"]
         }
-        self.c.force_login(self.ta_participation.user)
-        resp = self.post_grade(last_session.pk, page_id, grade_data)
+        resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertSessionScoreEqual(5)
         self.assertGradeHistoryItemsCount(page_ordinal=page_ordinal,
@@ -445,7 +428,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
             "grade_points": ["4"],
             "released": []
         }
-        resp = self.post_grade(last_session.pk, page_id, grade_data)
+        resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertSessionScoreEqual(None)
         self.assertGradeHistoryItemsCount(page_ordinal=page_ordinal,
@@ -455,7 +438,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
             "grade_points": ["4"],
             "released": ["on"]
         }
-        resp = self.post_grade(last_session.pk, page_id, grade_data)
+        resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertSessionScoreEqual(4)
         self.assertGradeHistoryItemsCount(page_ordinal=page_ordinal,
@@ -464,16 +447,12 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
     def test_post_grades_success(self):
         self.end_quiz()
 
-        last_session = FlowSession.objects.all().last()
-
         grade_data = {
             "grade_percent": ["100"],
             "released": ['on']
         }
 
-        self.c.force_login(self.ta_participation.user)
-
-        resp = self.post_grade(last_session.pk, "anyup", grade_data)
+        resp = self.post_grade_by_page_id("anyup", grade_data)
         self.assertTrue(resp.status_code, 200)
 
         self.assertSessionScoreEqual(5)
@@ -481,7 +460,6 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
     def test_post_grades_forbidden(self):
         page_id = "anyup"
         self.end_quiz()
-        last_session = FlowSession.objects.all().last()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -489,7 +467,8 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         }
 
         # with self.student_participation.user logged in
-        resp = self.post_grade(last_session.pk, page_id, grade_data)
+        resp = self.post_grade_by_page_id(page_id, grade_data,
+                                          force_login_instructor=False)
         self.assertTrue(resp.status_code, 403)
 
         self.assertSessionScoreEqual(None)
@@ -497,7 +476,6 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
     def test_feedback_and_notify(self):
         page_id = "anyup"
         self.end_quiz()
-        last_session = FlowSession.objects.all().last()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -505,20 +483,17 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
             "feedback_text": ['test feedback']
         }
 
-        self.c.force_login(self.ta_participation.user)
-        self.post_grade(last_session.pk, page_id, grade_data)
+        self.post_grade_by_page_id(page_id, grade_data)
         self.assertEqual(len(mail.outbox), 0)
 
         grade_data["notify"] = ["on"]
-        self.post_grade(last_session.pk, page_id, grade_data)
+        self.post_grade_by_page_id(page_id, grade_data)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].reply_to, [])
 
     def test_feedback_email_may_reply(self):
         page_id = "anyup"
         self.end_quiz()
-
-        last_session = FlowSession.objects.all().last()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -529,7 +504,8 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         }
 
         self.c.force_login(self.ta_participation.user)
-        self.post_grade(last_session.pk, page_id, grade_data)
+        self.post_grade_by_page_id(page_id, grade_data,
+                                   force_login_instructor=False)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].reply_to, [self.ta_participation.user.email])
 
@@ -537,27 +513,23 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         page_id = "anyup"
         self.end_quiz()
 
-        last_session = FlowSession.objects.all().last()
-
         grade_data = {
             "grade_percent": ["100"],
             "released": ['on'],
             "notes": ['test notes']
         }
 
-        self.c.force_login(self.ta_participation.user)
-        self.post_grade(last_session.pk, page_id, grade_data)
+        self.post_grade_by_page_id(page_id, grade_data)
         self.assertEqual(len(mail.outbox), 0)
 
         grade_data["notify_instructor"] = ["on"]
-        self.post_grade(last_session.pk, page_id, grade_data)
+        self.post_grade_by_page_id(page_id, grade_data)
         self.assertEqual(len(mail.outbox), 1)
 
     # {{{ tests on grading history dropdown
     def test_grade_history_failure_not_ajax(self):
         self.end_quiz()
 
-        self.c.force_login(self.ta_participation.user)
         resp = self.c.get(
             self.page_grade_history_url(
                 flow_session_id=FlowSession.objects.all().last().pk,
@@ -567,29 +539,28 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
     def test_submit_history_failure_not_get(self):
         self.end_quiz()
 
-        self.c.force_login(self.ta_participation.user)
         resp = self.c.post(
             self.page_grade_history_url(
                 flow_session_id=FlowSession.objects.all().last().pk,
                 page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
-    def test_submit_history_failure_not_authenticated(self):
+    def test_grade_history_failure_not_authenticated(self):
         self.end_quiz()
 
-        self.c.logout()
-        resp = self.c.post(
-            self.page_grade_history_url(
-                flow_session_id=FlowSession.objects.all().last().pk,
-                page_ordinal=1))
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.post(
+                self.page_grade_history_url(
+                    flow_session_id=FlowSession.objects.all().last().pk,
+                    page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
-    def test_submit_history_failure_no_perm(self):
-        self.c.force_login(self.ta_participation.user)
-        self.start_quiz(self.flow_id)
-        self.end_quiz()
+    def test_grade_history_failure_no_perm(self):
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            self.start_quiz(self.flow_id)
+            self.end_quiz()
 
-        self.c.force_login(self.student_participation.user)
+        # no pperm to view other's grade_history
         resp = self.c.post(
             self.page_grade_history_url(
                 flow_session_id=FlowSession.objects.all().last().pk,
@@ -597,5 +568,106 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertEqual(resp.status_code, 403)
 
     # }}}
+
+
+class SingleCourseQuizPageCodeQuestionTest(
+            SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
+            FakedRunpyContainerMixin, TestCase):
+    flow_id = QUIZ_FLOW_ID
+
+    def setUp(self):  # noqa
+        super(SingleCourseQuizPageCodeQuestionTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+        self.start_quiz(self.flow_id)
+
+    def test_code_page_correct(self):
+        page_id = "addition"
+        page_ordinal = self.get_ordinal_via_page_id(page_id)
+        resp = self.post_answer_by_ordinal(
+            page_ordinal, {"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(1)
+
+    def test_code_page_wrong(self):
+        page_id = "addition"
+        page_ordinal = self.get_ordinal_via_page_id(page_id)
+        resp = self.post_answer_by_ordinal(
+            page_ordinal, {"answer": ['c = a - b\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(0)
+
+    def test_code_page_identical_to_reference(self):
+        page_id = "addition"
+        page_ordinal = self.get_ordinal_via_page_id(page_id)
+        resp = self.post_answer_by_ordinal(
+            page_ordinal, {"answer": ['c = a + b\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp,
+                ("It looks like you submitted code "
+                 "that is identical to the reference "
+                 "solution. This is not allowed."))
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(1)
+
+    def test_code_human_feedback_page_submit(self):
+        page_id = "pymult"
+        page_ordinal = self.get_ordinal_via_page_id(page_id)
+        resp = self.post_answer_by_ordinal(
+            page_ordinal, {"answer": ['c = a * b\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertEqual(self.end_quiz().status_code, 200)
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade1(self):
+        page_id = "pymult"
+        page_ordinal = self.get_ordinal_via_page_id(page_id)
+        resp = self.post_answer_by_ordinal(
+            page_ordinal, {"answer": ['c = b * a\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "'c' looks good")
+        self.assertEqual(self.end_quiz().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 2/2 points.")
+
+        # since the test_code didn't do a feedback.set_points() after
+        # check_scalar()
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade2(self):
+        page_id = "pymult"
+        page_ordinal = self.get_ordinal_via_page_id(page_id)
+        resp = self.post_answer_by_ordinal(
+            page_ordinal, {"answer": ['c = a / b\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "'c' is inaccurate")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The autograder assigned 0/1 points.")
+
+        self.assertEqual(self.end_quiz().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 2/2 points.")
+        self.assertSessionScoreEqual(2)
 
 # vim: fdm=marker
