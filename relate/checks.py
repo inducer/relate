@@ -32,7 +32,7 @@ from django.core.exceptions import ImproperlyConfigured
 REQUIRED_CONF_ERROR_PATTERN = (
     "You must configure %(location)s for RELATE to run properly.")
 INSTANCE_ERROR_PATTERN = "%(location)s must be an instance of %(types)s."
-GENERIC_ERROR_PATTERN = "Error in '%(location)s': %(error_type)s: %(error_str)s"
+GENERIC_ERROR_PATTERN = "Error at %(location)s: %(error_type)s: %(error_str)s"
 
 EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
@@ -45,15 +45,23 @@ GIT_ROOT = "GIT_ROOT"
 RELATE_STARTUP_CHECKS = "RELATE_STARTUP_CHECKS"
 RELATE_STARTUP_CHECKS_EXTRA = "RELATE_STARTUP_CHECKS_EXTRA"
 
-RELATE_STARTUP_CHECKS_TAG = "start_up_check"
+RELATE_STARTUP_CHECKS_TAG = "start_up_checks"
 RELATE_STARTUP_CHECKS_EXTRA_TAG = "startup_checks_extra"
+
+# {{{ for mypy
+
+if False:
+    from typing import Any  # noqa
+
+# }}}
 
 
 class RelateCriticalCheckMessage(Critical):
     def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
         super(RelateCriticalCheckMessage, self).__init__(*args, **kwargs)
-        if not self.obj:
-            self.obj = ImproperlyConfigured.__name__
+        if not self.obj:  # type: ignore
+            self.obj = ImproperlyConfigured  # type: Any
 
 
 class DeprecatedException(Exception):

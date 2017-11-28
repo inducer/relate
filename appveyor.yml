@@ -4,6 +4,7 @@
 #
 
 version: 1.0.{build}
+image: Visual Studio 2017
 
 build: off
 
@@ -40,6 +41,10 @@ install:
   # the parent CMD process).
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
+#  # We are not using docker-machine, because it need Hardware Virtualization Technology
+#  # to be enabled, which can't be done for Appveyor.
+#  # Ref: https://docs.docker.com/toolbox/toolbox_install_windows/#step-1-check-your-version
+
   - ECHO "Filesystem root:"
   - ps: "ls \"C:/\""
 
@@ -54,10 +59,14 @@ install:
   - "git submodule update --init --recursive"
 
   # Install requirements
+  - ps: >-
+      if ($env:PYTHON -like '*Python2*') {
+        $env:VS90COMNTOOLS=$env:VS140COMNTOOLS
+        pip install dulwich
+      }
   - ps: "cat requirements.txt | ?{$_ -notmatch 'dnspython'} > req.txt"
   - "%CMD_IN_ENV% pip install -r req.txt"
   - ps: "if ($env:PYTHON -like '*Python2*') { pip install dnspython mock} else { pip install dnspython3 }"
-
 
 before_test:
   - "%CMD_IN_ENV% pip install coverage"

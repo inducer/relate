@@ -43,6 +43,8 @@ from course.page.base import (
         get_editor_interaction_mode)
 from course.constants import flow_permission
 
+from traceback import format_exc
+
 
 # {{{ python code question
 
@@ -80,7 +82,6 @@ class InvalidPingResponse(RuntimeError):
 def request_python_run(run_req, run_timeout, image=None):
     import json
     from six.moves import http_client
-    import docker
     import socket
     import errno
     from docker.errors import APIError as DockerAPIError
@@ -95,65 +96,49 @@ def request_python_run(run_req, run_timeout, image=None):
 
     docker_timeout = 15
 
+    container_id = None
+    connect_host_ip = 'localhost'
+    port = RUNPY_PORT
+
+    client_config = None
+
     # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
     if 1:
-        docker_url = getattr(settings, "RELATE_DOCKER_URL",
-                "unix://var/run/docker.sock")
-        docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
-                None)
-        docker_cnx = docker.Client(
-                base_url=docker_url,
-                tls=docker_tls,
-                timeout=docker_timeout,
-                version="1.19")
-
-        if image is None:
-            image = settings.RELATE_DOCKER_RUNPY_IMAGE
-
-        dresult = docker_cnx.create_container(
-                image=image,
-                command=[
-                    "/opt/runpy/runpy",
-                    "-1"],
-                host_config={
-                    "Memory": 384*10**6,
-                    "MemorySwap": -1,
-                    "PublishAllPorts": True,
-                    # Do not enable: matplotlib stops working if enabled.
-                    # "ReadonlyRootfs": True,
-                    },
-                user="runpy")
-
-        container_id = dresult["Id"]
-    else:
-        container_id = None
-
-    connect_host_ip = 'localhost'
+        from course.docker.config import get_relate_runpy_docker_client_config
+        silence_for_not_usable = getattr(
+            settings, "SILENCE_RUNPY_DOCKER_NOT_USABLE_ERROR", False)
+        try:
+            client_config = get_relate_runpy_docker_client_config(
+                silence_if_not_usable=silence_for_not_usable)
+            if not client_config:
+                debug_print("DOCKER RUNPY IS NOT ENABLED")
+                return {"result": "docker_runpy_not_enabled"}
+        except Exception:
+            debug_print("FAILED TO GET DOCKER RUNPY CLIENT CONFIG")
+            from course.docker.config import DEFAULT_DOCKER_RUNPY_CONFIG_ALIAS
+            config_name = (
+                getattr(settings,
+                        "RELATE_RUNPY_DOCKER_CLIENT_CONFIG_NAME",
+                        DEFAULT_DOCKER_RUNPY_CONFIG_ALIAS))
+            return {
+                "result": "uncaught_error",
+                "message":
+                    "Failed to get runpy docker client config '%s'"
+                    % config_name,
+                "traceback": "".join(format_exc()),
+                "exec_host": connect_host_ip,
+            }
 
     try:
-        # FIXME: Prohibit networking
-
-        if container_id is not None:
-            docker_cnx.start(container_id)
-
-            container_props = docker_cnx.inspect_container(container_id)
-            (port_info,) = (container_props
-                    ["NetworkSettings"]["Ports"]["%d/tcp" % RUNPY_PORT])
-            port_host_ip = port_info.get("HostIp")
-
-            if port_host_ip != "0.0.0.0":
-                connect_host_ip = port_host_ip
-
-            port = int(port_info["HostPort"])
-        else:
-            port = RUNPY_PORT
+        if client_config:
+            docker_cnx, container_id, connect_host_ip, port = (
+                client_config.get_client_and_container_connection_info(
+                    default_port=port, default_connect_host_ip=connect_host_ip))
 
         from time import time, sleep
         start_time = time()
 
         # {{{ ping until response received
-
-        from traceback import format_exc
 
         def check_timeout():
                 if time() - start_time < docker_timeout:
@@ -751,6 +736,14 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         if response.result == "success":
             pass
+        elif response.result == "docker_runpy_not_enabled":
+            feedback_bits = (
+                ["".join([
+                    "<p class='alert alert-warning'>"
+                    "<i class='fa fa-warning'></i>",
+                    _("This page is not gradable right now, as "
+                      "Docker runpy is currently not enabled for this site."),
+                    "</p>"])])
         elif response.result in [
                 "uncaught_error",
                 "setup_compile_error",
@@ -825,6 +818,19 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         response.exec_host)
             except socket.error:
                 exec_host_name = response.exec_host
+
+            from course.docker.config import get_relate_runpy_docker_client_config
+            silence_for_not_usable = getattr(
+                settings, "SILENCE_RUNPY_DOCKER_NOT_USABLE_ERROR", False)
+            try:
+                client_config = get_relate_runpy_docker_client_config(
+                    silence_if_not_usable=silence_for_not_usable)
+            except:
+                client_config = None
+
+            if client_config:
+                exec_host_name = (
+                    client_config.get_execution_host_alias(exec_host_name))
 
             feedback_bits.append("".join([
                 "<p>",
