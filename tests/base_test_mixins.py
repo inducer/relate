@@ -778,7 +778,7 @@ class FakedRunpyContainerMixin(object):
 
         super(FakedRunpyContainerMixin, cls).setUpClass()
         cls.faked_container_patch = mock.patch(
-            "course.page.code.USE_FAKED_CONTAINER", True)
+            "course.page.code.SPAWN_CONTAINERS_FOR_RUNPY", False)
         cls.faked_container_patch.start()
 
         python_executable = os.getenv("PY_EXE")
