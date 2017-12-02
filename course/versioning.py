@@ -278,7 +278,7 @@ def set_up_new_course(request):
                         messages.add_message(request, messages.INFO,
                                 _("Course content validated, creation "
                                 "succeeded."))
-                except:
+                except Exception:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
 

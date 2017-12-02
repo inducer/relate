@@ -94,7 +94,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
         for choice_idx, choice in enumerate(page_desc.choices):
             try:
                 choice = str(choice)
-            except:
+            except Exception:
                 raise ValidationError(
                         string_concat(
                             "%(location)s, ",
@@ -653,7 +653,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
         for choice_idx, choice in enumerate(page_desc.choices):
             try:
                 choice = str(choice)
-            except:
+            except Exception:
                 raise ValidationError(
                     string_concat(
                         "%(location)s, ",

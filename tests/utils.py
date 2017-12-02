@@ -6,7 +6,7 @@ from django.core import mail
 
 try:
     from unittest import mock  # noqa
-except:
+except Exception:
     import mock  # noqa
 
 

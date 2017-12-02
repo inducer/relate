@@ -159,7 +159,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         try:
             full_name = format_method(
                 verbose_blank(self.first_name), verbose_blank(self.last_name))
-        except:
+        except Exception:
             full_name = default_fullname(
                 verbose_blank(self.first_name), verbose_blank(self.last_name))
 

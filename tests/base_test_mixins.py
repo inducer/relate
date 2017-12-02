@@ -250,7 +250,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             try:
                 # TODO: why pop failed here?
                 password = create_user_kwargs["password"]
-            except:
+            except Exception:
                 raise
             user.set_password(password)
             user.save()
