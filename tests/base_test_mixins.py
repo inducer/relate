@@ -763,7 +763,7 @@ class FallBackStorageMessageTestMixin(object):
             print("\n-------no message----------")
 
 
-class FakedRunpyContainerMixin(object):
+class SubprocessRunpyContainerMixin(object):
     """
     This mixin is used to fake a runpy container, only needed when
     the TestCase include test(s) for code questions
@@ -776,7 +776,7 @@ class FakedRunpyContainerMixin(object):
                            "PY3 only, since currently runpy docker only "
                            "provide PY3 envrionment")
 
-        super(FakedRunpyContainerMixin, cls).setUpClass()
+        super(SubprocessRunpyContainerMixin, cls).setUpClass()
         cls.faked_container_patch = mock.patch(
             "course.page.code.SPAWN_CONTAINERS_FOR_RUNPY", False)
         cls.faked_container_patch.start()
@@ -806,6 +806,6 @@ class FakedRunpyContainerMixin(object):
 
     @classmethod
     def tearDownClass(cls):  # noqa
-        super(FakedRunpyContainerMixin, cls).tearDownClass()
+        super(SubprocessRunpyContainerMixin, cls).tearDownClass()
         cls.faked_container_patch.stop()
         cls.faked_container_process.kill()

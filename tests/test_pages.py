@@ -31,7 +31,7 @@ from django.contrib.auth import get_user_model
 from course.models import FlowPageVisit, Course, FlowSession
 from .base_test_mixins import (
     SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
-    FakedRunpyContainerMixin)
+    SubprocessRunpyContainerMixin)
 from .utils import LocmemBackendTestsMixin
 
 QUIZ_FLOW_ID = "quiz-test"
@@ -572,7 +572,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
 
 class SingleCourseQuizPageCodeQuestionTest(
             SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
-            FakedRunpyContainerMixin, TestCase):
+            SubprocessRunpyContainerMixin, TestCase):
     flow_id = QUIZ_FLOW_ID
 
     def setUp(self):  # noqa
