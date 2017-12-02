@@ -29,7 +29,21 @@ import socketserver
 import json
 import sys
 import io
-from code_runpy_backend import Struct, run_code, package_exception
+try:
+    from code_runpy_backend import Struct, run_code, package_exception
+except ImportError:
+    try:
+        # When faking a container for unittest
+        from course.page.code_runpy_backend import (
+            Struct, run_code, package_exception)
+    except ImportError:
+        # When debugging, i.e., run "python runpy" command line
+        import os
+        sys.path.insert(0, os.path.abspath(
+            os.path.join(os.path.dirname(__file__), os.pardir)))
+        from course.page.code_runpy_backend import (
+            Struct, run_code, package_exception)
+
 from http.server import BaseHTTPRequestHandler
 
 PORT = 9941
