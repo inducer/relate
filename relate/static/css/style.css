@@ -338,4 +338,14 @@ div.cell.border-box-sizing.code_cell.rendered > div.input > div.inner_cell > div
   margin: 0;
 }
 
+div.rendered_html div.highlight {
+    border: 1px solid #cfcfcf;
+    border-radius: 2px;
+    background: #f7f7f7;
+}
+
+div.rendered_html div.highlight > pre{
+    margin: 0.4em;
+    background-color: transparent;
+}
 /* vim: set foldmethod=marker: */

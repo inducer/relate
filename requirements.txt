@@ -114,5 +114,9 @@ typing
 
 # For rendering ipython notebook
 nbconvert>=5.2.1
+IPython
+
+# For parsing and edit html
+lxml
 
 # vim: foldmethod=marker

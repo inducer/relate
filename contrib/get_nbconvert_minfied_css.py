@@ -7,6 +7,8 @@ Generate minified stylesheet for ipython notebook
 
 import os
 
+REPLACE_HIGHLIGHT_WITH_CODEHILITE = False
+
 NOTEBOOK_CSS_VERSION = '4.3.0'
 CSS_URL = ("https://cdn.jupyter.org/notebook/%s/style/style.min.css"
            % NOTEBOOK_CSS_VERSION)
@@ -29,8 +31,8 @@ IPYTHON_NOTEBOOK_WEBAPP_DECLARE_STR = """
 */
 """
 
-ORIGINAL_CSS_HIGHLIGHT_CLASS = ".highlight"
-CSS_HIGHLIGHT_CLASS = ".codehilite"
+HIGHLIGHT_CSS_CLASS = ".highlight"
+CODEHILITE_CSS_CLASS = ".codehilite"
 PYGMENTS_STYLE = "default"
 
 HIGHLIGT_DECLARE_STR = """
@@ -39,7 +41,9 @@ HIGHLIGT_DECLARE_STR = """
 * Pygments "%s" style with "%s" css_class
 *
 */
-""" %(PYGMENTS_STYLE, CSS_HIGHLIGHT_CLASS)
+""" %(PYGMENTS_STYLE,
+      CODEHILITE_CSS_CLASS
+      if REPLACE_HIGHLIGHT_WITH_CODEHILITE else HIGHLIGHT_CSS_CLASS)
 
 DEST_DIR = (
     os.path.abspath(
@@ -133,9 +137,12 @@ class GenerateCSS(object):
         except IndexError:
             raise ValueError("Bad splitter for notebook css %s"
                              % IPYTHON_NOTEBOOK_DECLARE_STR)
+
         print("Done.")
-        return css.replace(ORIGINAL_CSS_HIGHLIGHT_CLASS.encode() + b" ",
-                              CSS_HIGHLIGHT_CLASS.encode() + b" ")
+        if not REPLACE_HIGHLIGHT_WITH_CODEHILITE:
+            return css
+        return css.replace(HIGHLIGHT_CSS_CLASS.encode() + b" ",
+                              CODEHILITE_CSS_CLASS.encode() + b" ")
 
     def process_highlight_style_defs(self, style=PYGMENTS_STYLE):
         print("Processing Pygments code highlight CSS.")
@@ -146,8 +153,12 @@ class GenerateCSS(object):
 
         style_defs = get_highlight_style_defs()
         print("Done.")
+        if REPLACE_HIGHLIGHT_WITH_CODEHILITE:
+            css_class = CODEHILITE_CSS_CLASS
+        else:
+            css_class = HIGHLIGHT_CSS_CLASS
         return (HIGHLIGT_DECLARE_STR +
-            "\n".join(["%s %s" % (CSS_HIGHLIGHT_CLASS, line)
+            "\n".join(["%s %s" % (css_class, line)
                        for line in style_defs.splitlines()]))
 
     def get_assembled_css(self):

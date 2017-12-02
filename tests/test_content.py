@@ -23,7 +23,6 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
-from django.test.utils import override_settings
 import json
 
 try:
@@ -36,63 +35,63 @@ from .test_sandbox import SingleCoursePageSandboxTestBaseMixin
 # {{{ Test Nbconvert for rendering ipynb notebook
 
 QUESTION_MARKUP_FULL = """
-type: Page\r
-id: ipynb\r
-content: |\r
+type: Page
+id: ipynb
+content: |
 
-  # Ipython notebook Examples\r
+  # Ipython notebook Examples
 
-  {{ render_notebook_cells("test.ipynb") }}\r
+  {{ render_notebook_cells("test.ipynb") }}
 """
 
 QUESTION_MARKUP_SLICED1 = """
-type: Page\r
-id: ipynb\r
-content: |\r
+type: Page
+id: ipynb
+content: |
 
-  # Ipython notebook Examples\r
+  # Ipython notebook Examples
 
-  {{ render_notebook_cells("test.ipynb", indices=[0, 1, 2]) }}\r
+  {{ render_notebook_cells("test.ipynb", indices=[0, 1, 2]) }}
 """
 
 QUESTION_MARKUP_SLICED2 = """
-type: Page\r
-id: ipynb\r
-content: |\r
+type: Page
+id: ipynb
+content: |
 
-  # Ipython notebook Examples\r
+  # Ipython notebook Examples
 
-  {{ render_notebook_cells("test.ipynb", indices=[1, 2]) }}\r
+  {{ render_notebook_cells("test.ipynb", indices=[1, 2]) }}
 """
 
 QUESTION_MARKUP_CLEAR_MARKDOWN = """
-type: Page\r
-id: ipynb\r
-content: |\r
+type: Page
+id: ipynb
+content: |
 
-  # Ipython notebook Examples\r
+  # Ipython notebook Examples
 
-  {{ render_notebook_cells("test.ipynb", clear_markdown=True) }}\r
+  {{ render_notebook_cells("test.ipynb", clear_markdown=True) }}
 """
 
 QUESTION_MARKUP_CLEAR_OUTPUT = """
-type: Page\r
-id: ipynb\r
-content: |\r
+type: Page
+id: ipynb
+content: |
 
-  # Ipython notebook Examples\r
+  # Ipython notebook Examples
 
-  {{ render_notebook_cells("test.ipynb", clear_output=True) }}\r
+  {{ render_notebook_cells("test.ipynb", clear_output=True) }}
 """
 
 QUESTION_MARKUP_CLEAR_ALL = """
-type: Page\r
-id: ipynb\r
-content: |\r
+type: Page
+id: ipynb
+content: |
 
-  # Ipython notebook Examples\r
+  # Ipython notebook Examples
 
-  {{ render_notebook_cells("test.ipynb", clear_markdown=True, clear_output=True) }}\r
+  {{ render_notebook_cells("test.ipynb", clear_markdown=True, clear_output=True) }}
 """
 
 MARKDOWN_PLACEHOLDER = "wzxhzdk"
@@ -163,6 +162,17 @@ TEST_IPYNB_BYTES = json.dumps({
             "source": [
                 "function2()"
             ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {
+                "collapsed": True
+            },
+            "outputs": [],
+            "source": [
+                "print(`5**18`)"
+            ]
         }
     ],
     "metadata": {
@@ -198,8 +208,9 @@ CODE_CELL_PRINT_STR2 = "This is function2"
 
 
 def strip_nbsp(s):
-    """Returns the given HTML with &nbsp; (which is introduced in nbconvert)
-     stripped."""
+    """
+    Returns the given HTML with '&nbsp;' (introduced by nbconvert) stripped
+    """
     from django.utils.encoding import force_text
     return force_text(s).replace('&nbsp;', '').replace(u'\xa0', '')
 
@@ -224,24 +235,29 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
         self.addCleanup(patcher.stop)
 
 
-@override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=True,
-                   CACHE_BACKEND='dummy:///')
-class NbconvertRenderTestWithoutCodeHilite(NbconvertRenderTestMixin, TestCase):
+class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(NbconvertRenderTestWithoutCodeHilite, cls).setUpTestData()
+        super(NbconvertRenderTest, cls).setUpTestData()
         cls.c.force_login(cls.instructor_participation.user)
 
     def test_full_notebook_render(self):
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_FULL)
+
         self.assertIsValidNbConversion(resp)
         self.assertContains(resp, TEXT_CELL_HTML_CLASS, count=2)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=3)
+        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
         self.assertContains(resp, FIRST_TITLE_TEXT, count=1)
         self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
         self.assertContains(resp, CODE_CELL_PRINT_STR1, count=2)
         self.assertContains(resp, CODE_CELL_PRINT_STR2, count=2)
+
+        # backtick is properly rendered with highlight
+        # for "`5**18`". though this syntax is not allowed in PY3
+        self.assertContains(
+            resp,
+            '<span class="err">`</span><span class="mi">5</span>')
 
         nb_html = get_nb_html_from_response(resp)
         for i in range(1, 4):
@@ -271,8 +287,16 @@ class NbconvertRenderTestWithoutCodeHilite(NbconvertRenderTestMixin, TestCase):
         self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
         self.assertContains(resp, CODE_CELL_PRINT_STR1, count=2)
         self.assertNotContains(resp, CODE_CELL_PRINT_STR2)
-        self.assertNotContains(resp, "class=\"codehilite\"")
-        self.assertContains(resp, "print(")
+
+        # code highlight functions (in terms of rendered ipynb notebook cells only)
+        import six
+        if six.PY3:
+            self.assertRegex(resp.context["body"], 'class="\w*\s*highlight[^\w]')
+        self.assertContains(resp, " highlight hl-ipython3")
+        self.assertContains(resp,
+                            '<span class="nb">print</span>'
+                            '<span class="p">(</span>',
+                            count=1)
 
         nb_html = get_nb_html_from_response(resp)
         self.assertInHTML(CODE_CELL_IN_STR_PATTERN % 1, nb_html, count=1)
@@ -283,7 +307,7 @@ class NbconvertRenderTestWithoutCodeHilite(NbconvertRenderTestMixin, TestCase):
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_CLEAR_MARKDOWN)
         self.assertIsValidNbConversion(resp)
         self.assertNotContains(resp, TEXT_CELL_HTML_CLASS)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=3)
+        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
         self.assertNotContains(resp, FIRST_TITLE_TEXT)
         self.assertNotContains(resp, SECOND_TITLE_TEXT)
 
@@ -295,7 +319,7 @@ class NbconvertRenderTestWithoutCodeHilite(NbconvertRenderTestMixin, TestCase):
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_CLEAR_OUTPUT)
         self.assertIsValidNbConversion(resp)
         self.assertContains(resp, TEXT_CELL_HTML_CLASS, count=2)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=3)
+        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
         self.assertContains(resp, FIRST_TITLE_TEXT, count=1)
         self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
         self.assertContains(resp, CODE_CELL_PRINT_STR1, count=1)
@@ -304,13 +328,13 @@ class NbconvertRenderTestWithoutCodeHilite(NbconvertRenderTestMixin, TestCase):
         nb_html = get_nb_html_from_response(resp)
         for i in range(1, 4):
             self.assertInHTML(CODE_CELL_IN_STR_PATTERN % i, nb_html, count=0)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % "", nb_html, count=3)
+        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % "", nb_html, count=4)
 
     def test_notebook_clear_markdown_and_output(self):
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_CLEAR_ALL)
         self.assertIsValidNbConversion(resp)
         self.assertNotContains(resp, TEXT_CELL_HTML_CLASS)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=3)
+        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
         self.assertNotContains(resp, FIRST_TITLE_TEXT)
         self.assertNotContains(resp, SECOND_TITLE_TEXT)
         self.assertContains(resp, CODE_CELL_PRINT_STR1, count=1)
@@ -319,34 +343,7 @@ class NbconvertRenderTestWithoutCodeHilite(NbconvertRenderTestMixin, TestCase):
         nb_html = get_nb_html_from_response(resp)
         for i in range(1, 4):
             self.assertInHTML(CODE_CELL_IN_STR_PATTERN % i, nb_html, count=0)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % "", nb_html, count=3)
+        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % "", nb_html, count=4)
 
-
-@override_settings(
-    RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=False,
-    CACHE_BACKEND='dummy:///')
-class NbconvertRenderTestCodeHilite(NbconvertRenderTestMixin, TestCase):
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(NbconvertRenderTestCodeHilite, cls).setUpTestData()
-        cls.c.force_login(cls.instructor_participation.user)
-
-    def test_notebook_render_with_codehilite_extension(self):
-        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_FULL)
-        self.assertIsValidNbConversion(resp)
-        self.assertContains(resp, TEXT_CELL_HTML_CLASS, count=2)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=3)
-        self.assertContains(resp, FIRST_TITLE_TEXT, count=1)
-        self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
-        self.assertContains(resp, "class=\"codehilite\"", count=3)
-        self.assertContains(resp,
-                            '<span class="k">print</span>'
-                            '<span class="p">(</span><span class="s2">',
-                            count=2)
-        self.assertNotContains(resp, 'print(')
-
-        nb_html = get_nb_html_from_response(resp)
-        for i in range(1, 4):
-            self.assertInHTML(CODE_CELL_IN_STR_PATTERN % i, nb_html, count=1)
 
 # }}}

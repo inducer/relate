@@ -925,6 +925,18 @@ def expand_markup(
     return text
 
 
+def unwrap_relate_tmp_pre_tag(html_string):
+    # type: (Text) -> (Text)
+
+    from lxml.html import fromstring, tostring
+    tree = fromstring(html_string)
+
+    for node in tree.iterdescendants("pre"):
+        if "relate_tmp_pre" in node.attrib.get("class", ""):
+            node.drop_tag()
+    return tostring(tree, encoding="unicode")
+
+
 def markup_to_html(
         course,  # type: Optional[Course]
         repo,  # type: Repo_ish
@@ -986,17 +998,21 @@ def markup_to_html(
     ]
 
     if not disable_codehilite:
-        extensions += ["markdown.extensions.codehilite"]
+        # Note: no matter whether disable_codehilite, the code in
+        # the rendered ipython notebook will be highlighted.
+        # "css_class=highlight" is to ensure that, when codehilite extension
+        # is enabled, code out side of notebook uses the same html class
+        # attribute as the default highlight class (i.e., `highlight`)
+        # used by rendered ipynb notebook cells, Thus we don't need to
+        # make 2 copies of css for the highlight.
+        extensions += ["markdown.extensions.codehilite(css_class=highlight)"]
 
     result = markdown.markdown(text,
         extensions=extensions,
         output_format="html5")
 
-    # The work round in course.utils.render_notebook_from_source
-    # will result in invalid HTML DOM. The following line is to
-    # remove the <p> tag added by python-markdown to make the result
-    # a valid HTML.
-    result = NBCONVERT_WORK_ROUND_RE.sub(r"\1\2", result)
+    if result.strip():
+        result = unwrap_relate_tmp_pre_tag(result)
 
     assert isinstance(result, six.text_type)
     if cache_key is not None:

@@ -108,15 +108,14 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
         self.assertEqual(resp.status_code, 200)
 
-        result_body = resp.context.__getitem__("body")
         result_correct_answer = resp.context.__getitem__("correct_answer")
         self.assertIsNone(resp.context.__getitem__("feedback"))
 
         from course.page.text import CA_PATTERN
         expected_correct_answer = CA_PATTERN % CORRECT_ANSWER
-        expected_body = "<h1>A half</h1><p>What's a half?</p>"
+        expected_body = "<h1>A half</h1>\n<p>What's a half?</p>"
 
-        self.assertInHTML(result_body, expected_body)
+        self.assertContains(resp, expected_body)
         self.assertEqual(mark_safe(result_correct_answer), expected_correct_answer)
 
     def test_page_sandbox_submit_answer(self):

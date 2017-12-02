@@ -1167,10 +1167,6 @@ def render_notebook_from_source(
 
     (body, resources) = html_exporter.from_notebook_node(notebook)
 
-    # Added "markdown=1" to code_cell div to avoid known issue
-    # https://github.com/waylan/Python-Markdown/issues/458
-    body = CODE_CELL_DIV_ATTRS_RE.sub(r"\1 markdown=1\2", body)
-
     return body
 
 # }}}
