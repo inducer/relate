@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 import six
 import os
+import datetime
 from django.conf import settings
 from django.test import Client, override_settings
 from django.urls import reverse, resolve
@@ -221,6 +222,59 @@ class SuperuserCreateMixin(ResponseContextMixin):
     def create_superuser(cls):
         return get_user_model().objects.create_superuser(
                                                 **cls.create_superuser_kwargs)
+
+    def get_fake_time_url(self):
+        return reverse("relate-set_fake_time")
+
+    # todo: impersonate test
+
+    def get_set_fake_time(self):
+        return self.c.get(self.get_fake_time_url())
+
+    def post_set_fake_time(self, data, follow=True):
+        return self.c.post(self.get_fake_time_url(), data, follow=follow)
+
+    def assertSessionFakeTimeEqual(self, session, expected_date_time):  # noqa
+        fake_time_timestamp = session.get("relate_fake_time", None)
+        if fake_time_timestamp is None:
+            faked_time = None
+            if expected_date_time is not None:
+                raise AssertionError(
+                    "the session doesn't have 'relate_fake_time' attribute")
+        else:
+            faked_time = datetime.datetime.fromtimestamp(fake_time_timestamp)
+        self.assertEqual(faked_time, expected_date_time)
+
+    def assertSessionFakeTimeIsNone(self, session):  # noqa
+        self.assertSessionFakeTimeEqual(session, None)
+
+    def get_set_pretend_facilities_url(self):
+        return reverse("relate-set_pretend_facilities")
+
+    def get_set_pretend_facilities(self):
+        return self.c.get(self.get_set_pretend_facilities_url())
+
+    def post_set_pretend_facilities(self, data, follow=True):
+        return self.c.post(self.get_set_pretend_facilities_url(), data,
+                           follow=follow)
+
+    def assertSessionPretendFacilitiesContains(self, session, expected_facilities):  # noqa
+        pretended = session.get("relate_pretend_facilities", None)
+        if expected_facilities is None:
+            return self.assertIsNone(pretended)
+        if pretended is None:
+            raise AssertionError(
+                "the session doesn't have "
+                "'relate_pretend_facilities' attribute")
+
+        if isinstance(expected_facilities, (list, tuple)):
+            self.assertTrue(set(expected_facilities).issubset(set(pretended)))
+        else:
+            self.assertTrue(expected_facilities in pretended)
+
+    def assertSessionPretendFacilitiesIsNone(self, session):  # noqa
+        pretended = session.get("relate_pretend_facilities", None)
+        self.assertIsNone(pretended)
 
 
 class CoursesTestMixinBase(SuperuserCreateMixin):
