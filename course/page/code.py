@@ -46,7 +46,7 @@ from course.constants import flow_permission
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
 # False for 'just connect to localhost:RUNPY_PORT' for runpy'
-SPAWN_CONTAINERS_FOR_RUNPY = False
+SPAWN_CONTAINERS_FOR_RUNPY = True
 
 
 # {{{ python code question
