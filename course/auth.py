@@ -266,6 +266,9 @@ class StopImpersonatingForm(forms.Form):
 
 
 def stop_impersonating(request):
+    if not request.user.is_authenticated:
+        raise PermissionDenied()
+
     if not hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 _("Not currently impersonating anyone."))
