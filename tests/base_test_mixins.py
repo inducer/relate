@@ -29,6 +29,8 @@ from django.conf import settings
 from django.test import Client, override_settings
 from django.urls import reverse, resolve
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
+
 from relate.utils import force_remove_path
 from course.models import (
     Course, Participation, ParticipationRole, FlowSession, FlowPageData)
@@ -526,6 +528,17 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             cls.course.__dict__.update(attrs)
             cls.course.save()
 
+
+    def setUp(self):  # noqa
+        super(SingleCourseTestMixin, self).setUp()
+
+        # reload objects created during setUpTestData in case they were modified in
+        # tests. Ref: https://goo.gl/AuzJRC#django.test.TestCase.setUpTestData
+        self.course.refresh_from_db()
+        self.instructor_participation.refresh_from_db()
+        self.student_participation.refresh_from_db()
+        self.ta_participation.refresh_from_db()
+
     @classmethod
     def tearDownClass(cls):
         super(SingleCourseTestMixin, cls).tearDownClass()
@@ -730,6 +743,7 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
 
         with self.temporarily_switch_to_user(force_login_user):
             response = self.c.post(self.get_update_course_url(), data)
+            self.course.refresh_from_db()
 
         return response
 
@@ -863,3 +877,22 @@ class SubprocessRunpyContainerMixin(object):
         super(SubprocessRunpyContainerMixin, cls).tearDownClass()
         cls.faked_container_patch.stop()
         cls.faked_container_process.kill()
+
+
+def improperly_configured_cache_patch():
+    # can be used as context manager or decorator
+    if six.PY3:
+        built_in_import_path = "builtins.__import__"
+        import builtins  # noqa
+    else:
+        built_in_import_path = "__builtin__.__import__"
+        import __builtin__ as builtins  # noqa
+    built_in_import = builtins.__import__
+
+    def my_disable_cache_import(name, globals=None, locals=None, fromlist=(),
+                                level=0):
+        if name == "django.core.cache":
+            raise ImproperlyConfigured()
+        return built_in_import(name, globals, locals, fromlist, level)
+
+    return mock.patch(built_in_import_path, side_effect=my_disable_cache_import)
