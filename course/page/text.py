@@ -41,7 +41,7 @@ from course.page.base import (
 import re
 import sys
 
-CA_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
+CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
 
 
 class TextAnswerForm(StyledForm):
@@ -970,7 +970,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         assert unspec_correct_answer_text
 
-        result = CA_PATTERN % unspec_correct_answer_text
+        result = CORRECT_ANSWER_PATTERN % unspec_correct_answer_text
 
         if hasattr(self.page_desc, "answer_explanation"):
             result += markup_to_html(page_context, self.page_desc.answer_explanation)

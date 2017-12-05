@@ -392,10 +392,6 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
-NBCONVERT_WORK_ROUND_RE = re.compile(
-    '<p>(<div class="input">\n<div class="prompt input_prompt">[^<]+</div>\n'
-    '<div class="inner_cell">\n<div class="input_area">)</p>(\n<)')
-
 
 def process_yaml_for_expansion(yaml_str):
     # type: (Text) -> Text

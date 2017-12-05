@@ -24,41 +24,33 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 from .base_test_mixins import SingleCourseTestMixin
-from course.models import Participation
-from course.constants import participation_permission as pperm
 
 QUESTION_MARKUP = """
-type: TextQuestion\r
-id: half\r
-value: 5\r
-prompt: |\r
-    # A half\r
-    What's a half?\r
-answers:\r
-    - type: float\r
-      value: 0.5\r
-      rtol: 1e-4\r
-    - <plain>half\r
+type: TextQuestion
+id: half
+value: 5
+prompt: |
+    # A half
+    What's a half?
+answers:
+    - type: float
+      value: 0.5
+      rtol: 1e-4
+    - <plain>half
     - <plain>a half
 """
 
 CORRECT_ANSWER = 0.5
+PAGE_WARNINGS = "page_warnings"
+PAGE_ERRORS = "page_errors"
+HAVE_VALID_PAGE = "have_valid_page"
 
 
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCoursePageSandboxTestBaseMixin, cls).setUpTestData()
-        participation = (
-            Participation.objects.filter(
-                course=cls.course,
-                roles__permissions__permission=pperm.use_page_sandbox
-            ).first()
-        )
-        assert participation
-        cls.c.force_login(participation.user)
+    def setUp(self):  # noqa
+        super(SingleCoursePageSandboxTestBaseMixin, self).setUp()
+        self.c.force_login(self.instructor_participation.user)
 
     @classmethod
     def get_page_sandbox_post_response(cls, data):
@@ -96,6 +88,29 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         data.update(answer_data)
         return cls.get_page_sandbox_post_response(data)
 
+    def get_sandbox_data_by_key(self, key):
+        return self.c.session.get("%s:%s" % (key, self.course.identifier))
+
+    def get_sandbox_page_data(self):
+        return self.get_sandbox_data_by_key("cf_page_sandbox_page_data")
+
+    def get_sandbox_answer_data(self):
+        return self.get_sandbox_data_by_key("cf_page_sandbox_answer_data")
+
+    def get_sandbox_page_session(self):
+        return self.get_sandbox_data_by_key("cf_validated_sandbox_page")
+
+    def assertSandboxHaveValidPage(self, resp):  # noqa
+        self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, True)
+
+    def assertSandboxWarningTextContain(self, resp, expected_text):  # noqa
+        warnings = self.get_response_context_value_by_name(resp, PAGE_WARNINGS)
+        warnings_text = [w.text for w in warnings]
+        self.assertIn(expected_text, warnings_text)
+
+    def assertSandboxNotHaveValidPage(self, resp):  # noqa
+        self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, False)
+
 
 class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_page_sandbox_get(self):
@@ -107,16 +122,17 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
         # Check one of the quiz questions
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
         self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextIsNone(resp, "feedback")
 
-        result_correct_answer = resp.context.__getitem__("correct_answer")
-        self.assertIsNone(resp.context.__getitem__("feedback"))
+        from course.page.text import CORRECT_ANSWER_PATTERN
+        expected_correct_answer = CORRECT_ANSWER_PATTERN % CORRECT_ANSWER
+        expected_body_string = "<h1>A half</h1>\n<p>What's a half?</p>"
 
-        from course.page.text import CA_PATTERN
-        expected_correct_answer = CA_PATTERN % CORRECT_ANSWER
-        expected_body = "<h1>A half</h1>\n<p>What's a half?</p>"
-
-        self.assertContains(resp, expected_body)
-        self.assertEqual(mark_safe(result_correct_answer), expected_correct_answer)
+        self.assertResponseContextContains(
+                    resp, "body", expected_body_string)
+        self.assertResponseContextEqual(
+                    resp, "correct_answer", expected_correct_answer)
 
     def test_page_sandbox_submit_answer(self):
         # Try to answer the rendered question
@@ -124,12 +140,9 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertEqual(resp.status_code, 200)
-
-        result_correctness = resp.context.__getitem__("feedback").correctness
-        self.assertEquals(int(result_correctness), 1)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
         answer_data = {'answer': ['0.6']}
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
-        result_correctness = resp.context.__getitem__("feedback").correctness
-        self.assertEquals(int(result_correctness), 0)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
