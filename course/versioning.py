@@ -473,7 +473,7 @@ class GitUpdateForm(StyledForm):
                     for ref in repo_refs
                     ] +
                     [
-                    (entry.commit.id, format_commit(entry.commit))
+                    (entry.commit.id.decode(), format_commit(entry.commit))
                     for entry in commit_iter
                     ]),
                 required=True,
