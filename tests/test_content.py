@@ -22,15 +22,50 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
 import json
-
-try:
-    from mock import patch
-except ImportError:
-    from unittest.mock import patch
-
+from django.test import TestCase
+from tests.base_test_mixins import (
+    improperly_configured_cache_patch, SingleCoursePageTestMixin,
+    mock
+)
 from .test_sandbox import SingleCoursePageSandboxTestBaseMixin
+from .test_pages import QUIZ_FLOW_ID
+
+
+class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
+
+    flow_id = QUIZ_FLOW_ID
+
+    def setUp(self):  # noqa
+        super(SingleCoursePageCacheTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+        self.start_quiz(self.flow_id)
+
+    @improperly_configured_cache_patch()
+    def test_disable_cache(self, mock_cache):
+        from django.core.exceptions import ImproperlyConfigured
+        with self.assertRaises(ImproperlyConfigured):
+            from django.core.cache import cache  # noqa
+
+    def test_view_flow_with_cache(self):
+        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        self.assertEqual(resp.status_code, 200)
+        self.c.get(self.get_page_url_by_ordinal(1))
+
+        with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
+            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(mock_get_repo_blob.call_count, 0)
+
+    def test_view_flow_with_cache_improperly_configured(self):
+        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        self.assertEqual(resp.status_code, 200)
+        self.c.get(self.get_page_url_by_ordinal(1))
+
+        with improperly_configured_cache_patch():
+            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            self.assertEqual(resp.status_code, 200)
+
 
 # {{{ Test Nbconvert for rendering ipynb notebook
 
@@ -229,7 +264,7 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
 
     def setUp(self):
         super(NbconvertRenderTestMixin, self).setUp()
-        patcher = patch("course.content.get_repo_blob_data_cached")
+        patcher = mock.patch("course.content.get_repo_blob_data_cached")
         self.mock_func = patcher.start()
         self.mock_func.return_value = TEST_IPYNB_BYTES
         self.addCleanup(patcher.stop)
@@ -347,3 +382,5 @@ class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
 
 
 # }}}
+
+# vim: foldmethod=marker
