@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.urls import reverse, resolve
-from .base_test_mixins import SingleCourseTestMixin
+from django.urls import reverse
+from .base_test_mixins import SingleCoursePageTestMixin
 
 from django.test import TestCase
 from course.models import (
@@ -32,19 +32,15 @@ from course.models import (
 )
 
 
-class GradeTestMixin(SingleCourseTestMixin):
+class GradeTestMixin(SingleCoursePageTestMixin):
     # This serve as a base test cases for other grade tests to subclass
     # Nice little tricks :)
+    flow_id = "quiz-test"
 
     @classmethod
     def setUpTestData(cls):  # noqa
         super(GradeTestMixin, cls).setUpTestData()
-
-        # Some classwise sharing data
-        cls.data = {"course_identifier": cls.course.identifier,
-                    "flow_id": "quiz-test"}
-        cls.data["flow_session_id"] = []
-
+        cls.flow_session_ids = []
         cls.do_quiz(cls.student_participation)
 
     @classmethod
@@ -56,21 +52,10 @@ class GradeTestMixin(SingleCourseTestMixin):
     def do_quiz(cls, participation):
         # Login user first
         cls.c.force_login(participation.user)
-
-        params = cls.data.copy()
-        del params["flow_session_id"]
-        resp = cls.c.post(reverse("relate-view_start_flow", kwargs=params))
-
-        # Yep, no regex!
-        _, _, kwargs = resolve(resp.url)
-        # Store flow_session_id
-        cls.data["flow_session_id"].append(int(kwargs["flow_session_id"]))
-
-        # Let it raise error
-        # Use pop() will not
-        del kwargs["ordinal"]
-        cls.c.post(reverse("relate-finish_flow_session_view",
-                                kwargs=kwargs), {'submit': ['']})
+        cls.start_flow(cls.flow_id)
+        cls.end_flow(**cls.default_flow_params)
+        cls.flow_session_ids.append(
+            int(cls.default_flow_params["flow_session_id"]))
 
     # Seperate the test here
     def test_grading_opportunity(self):
@@ -116,7 +101,7 @@ class GradeTestMixin(SingleCourseTestMixin):
         self.assertEqual(GradingOpportunity.objects.all().count(), 1)
         opportunity = GradingOpportunity.objects.first()
         self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.data["flow_id"], opportunity.flow_id)
+        self.assertEqual(self.flow_id, opportunity.flow_id)
 
         # Check page
         params = {"course_identifier": self.course.identifier,
@@ -130,7 +115,7 @@ class GradeTestMixin(SingleCourseTestMixin):
         self.assertEqual(GradingOpportunity.objects.all().count(), 1)
         opportunity = GradingOpportunity.objects.first()
         self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.data["flow_id"], opportunity.flow_id)
+        self.assertEqual(self.flow_id, opportunity.flow_id)
 
         # Check page
         params = {"course_identifier": self.course.identifier,
@@ -144,11 +129,11 @@ class GradeTestMixin(SingleCourseTestMixin):
         self.assertEqual(len(GradingOpportunity.objects.all()), 1)
         opportunity = GradingOpportunity.objects.all()[0]
         self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.data["flow_id"], opportunity.flow_id)
+        self.assertEqual(self.flow_id, opportunity.flow_id)
 
         all_session = FlowSession.objects.all()
         # Check flow numbers
-        self.assertEqual(len(all_session), len(self.data["flow_session_id"]))
+        self.assertEqual(len(all_session), len(self.flow_session_ids))
 
         # Check each flow session
         for session in all_session:
@@ -156,7 +141,7 @@ class GradeTestMixin(SingleCourseTestMixin):
 
         # Check flow numbers again
         self.assertEqual(FlowSession.objects.all().count(),
-                         len(self.data["flow_session_id"]))
+                         len(self.flow_session_ids))
 
     def test_view_import_grades_without_header(self):
         csv_data = [(self.instructor_participation.user.username,
@@ -176,23 +161,29 @@ class GradeTestMixin(SingleCourseTestMixin):
     # Seems just show the answer
     def test_view_grade_flow_page(self):
         params = {"course_identifier": self.course.identifier,
-                  "flow_session_id": self.data["flow_session_id"][0]}
-        for i in range(18):
-            params["page_ordinal"] = str(i)
-            resp = self.c.get(reverse("relate-grade_flow_page",
-                                                kwargs=params))
+                  "flow_session_id": self.flow_session_ids[0]}
+
+        page_count = FlowSession.objects.get(id=self.flow_session_ids[0]).page_count
+        for i in range(page_count):
+            resp = self.c.get(
+                self.get_page_grading_url_by_ordinal(ordinal=i, **params))
             self.assertEqual(resp.status_code, 200)
+
+        # test PageOrdinalOutOfRange
+        resp = self.c.get(
+            self.get_page_grading_url_by_ordinal(ordinal=page_count+1, **params))
+        self.assertEqual(resp.status_code, 404)
 
     def test_view_grader_statistics(self):
         params = {"course_identifier": self.course.identifier,
-                    "flow_id": self.data["flow_id"]}
+                    "flow_id": self.flow_id}
         resp = self.c.get(reverse("relate-show_grader_statistics",
                                             kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_download_submissions(self):
         params = {"course_identifier": self.course.identifier,
-                    "flow_id": self.data["flow_id"]}
+                    "flow_id": self.flow_id}
 
         # Check download form first
         resp = self.c.get(reverse("relate-download_all_submissions",
@@ -214,7 +205,7 @@ class GradeTestMixin(SingleCourseTestMixin):
         zip_file_name = zip_file.replace('"', '').split('_')
         self.assertEqual(zip_file_name[0], "submissions")
         self.assertEqual(zip_file_name[1], self.course.identifier)
-        self.assertEqual(zip_file_name[2], self.data["flow_id"])
+        self.assertEqual(zip_file_name[2], self.flow_id)
         self.assertEqual(zip_file_name[3], "intro")
         self.assertEqual(zip_file_name[4], "welcome")
         self.assertTrue(zip_file_name[5].endswith(".zip"))
@@ -224,7 +215,7 @@ class GradeTestMixin(SingleCourseTestMixin):
         self.assertEqual(len(GradingOpportunity.objects.all()), 1)
         opportunity = GradingOpportunity.objects.all()[0]
         self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.data["flow_id"], opportunity.flow_id)
+        self.assertEqual(self.flow_id, opportunity.flow_id)
 
         params = {"course_identifier": self.course.identifier,
                     "opportunity_id": opportunity.id}
@@ -253,7 +244,7 @@ class GradeTestMixin(SingleCourseTestMixin):
         self.assertEqual(len(GradingOpportunity.objects.all()), 1)
         opportunity = GradingOpportunity.objects.all()[0]
         self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.data["flow_id"], opportunity.flow_id)
+        self.assertEqual(self.flow_id, opportunity.flow_id)
         # Check changes
         self.assertEqual(opportunity.page_scores_in_participant_gradebook, True)
 
@@ -264,7 +255,7 @@ class GradeTestMixin(SingleCourseTestMixin):
 
     def test_view_flow_analytics(self):
         params = {"course_identifier": self.course.identifier,
-                    "flow_id": self.data["flow_id"]}
+                    "flow_id": self.flow_id}
         resp = self.c.get(reverse("relate-flow_analytics",
                                             kwargs=params))
         self.assertEqual(resp.status_code, 200)
@@ -278,11 +269,11 @@ class GradeTestMixin(SingleCourseTestMixin):
     def test_view_grant_exception_new_session(self):
         all_session = FlowSession.objects.all()
         # Check number of flow sessions and ids
-        self.assertEqual(all_session.count(), len(self.data["flow_session_id"]))
+        self.assertEqual(all_session.count(), len(self.flow_session_ids))
         for session in all_session:
             # Perform all checking before moving to stage three
             params = self.check_stage_one_and_two(session.participation)
-            self.assertTrue(session.id in self.data["flow_session_id"])
+            self.assertTrue(session.id in self.flow_session_ids)
             self.check_grant_new_exception(params)
 
         self.assertEqual(FlowSession.objects.all().count(),
@@ -290,7 +281,7 @@ class GradeTestMixin(SingleCourseTestMixin):
 
     def test_view_grant_exception_exist_session(self):
         # Store numbers to reuse
-        session_nums = len(self.data["flow_session_id"])
+        session_nums = len(self.flow_session_ids)
 
         all_session = FlowSession.objects.all()
         # Check session numbers
@@ -339,7 +330,7 @@ class GradeTestMixin(SingleCourseTestMixin):
         self.assertEqual(GradingOpportunity.objects.all().count(), 1)
         opportunity = GradingOpportunity.objects.all().first()
         self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.data["flow_id"], opportunity.flow_id)
+        self.assertEqual(self.flow_id, opportunity.flow_id)
 
         # Prepare data
         # Prepare csv
@@ -376,7 +367,7 @@ class GradeTestMixin(SingleCourseTestMixin):
     def check_grant_exist_exception(self, session_id, parameters):
         params = parameters.copy()
         flow_session = FlowSession.objects.filter(id=session_id)[0]
-        self.assertTrue(flow_session.id in self.data["flow_session_id"])
+        self.assertTrue(flow_session.id in self.flow_session_ids)
 
         # Grant an existing one
         data = {'session': [str(flow_session.id)], 'next': ['Next \xbb']}
@@ -448,7 +439,7 @@ class GradeTestMixin(SingleCourseTestMixin):
 
         data = {"next": ["Next \xbb"],
                 "participation": [str(participation.id)],
-                "flow_id": [self.data["flow_id"]]}
+                "flow_id": [self.flow_id]}
         resp = self.c.post(reverse("relate-grant_exception",
                                    args=[self.course.identifier]), data)
         self.assertEqual(resp.status_code, 302)

@@ -2089,7 +2089,7 @@ def view_flow_page(pctx, flow_session_id, ordinal):
 
 
 @course_view
-def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal):
+def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, ordinal):
     """
     :return: serialized prev_answer_visits items for past-submission-dropdown
     """
@@ -2098,7 +2098,7 @@ def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal)
         raise PermissionDenied()
 
     try:
-        page_ordinal = int(page_ordinal)
+        ordinal = int(ordinal)
         flow_session_id = int(flow_session_id)
     except ValueError:
         raise http.Http404()
@@ -2106,7 +2106,7 @@ def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal)
     flow_session = get_and_check_flow_session(pctx, int(flow_session_id))
 
     page_data = get_object_or_404(
-        FlowPageData, flow_session=flow_session, ordinal=page_ordinal)
+        FlowPageData, flow_session=flow_session, ordinal=ordinal)
     prev_answer_visits = get_prev_answer_visits_qset(page_data)
 
     def serialize(obj):

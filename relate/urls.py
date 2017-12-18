@@ -229,7 +229,7 @@ urlpatterns = [
         "/grading"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
-        "/(?P<page_ordinal>[0-9]+)"
+        "/(?P<ordinal>[0-9]+)"
         "/$",
         course.grading.grade_flow_page,
         name="relate-grade_flow_page"),
@@ -239,7 +239,7 @@ urlpatterns = [
         "/prev_grades"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
-        "/(?P<page_ordinal>[0-9]+)"
+        "/(?P<ordinal>[0-9]+)"
         "/$",
         course.grading.get_prev_grades_dropdown_content,
         name="relate-get_prev_grades_dropdown_content"),
@@ -388,7 +388,7 @@ urlpatterns = [
         "/prev_answers"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
-        "/(?P<page_ordinal>[0-9]+)"
+        "/(?P<ordinal>[0-9]+)"
         "/$",
         course.flow.get_prev_answer_visits_dropdown_content,
         name="relate-get_prev_answer_visits_dropdown_content"),

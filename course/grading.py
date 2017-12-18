@@ -88,7 +88,7 @@ def get_prev_visit_grades(
 
 
 @course_view
-def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
+def get_prev_grades_dropdown_content(pctx, flow_session_id, ordinal):
     """
     :return: serialized prev_grades items for rendering past-grades-dropdown
     """
@@ -97,7 +97,7 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
         raise PermissionDenied()
 
     try:
-        page_ordinal = int(page_ordinal)
+        ordinal = int(ordinal)
         flow_session_id = int(flow_session_id)
     except ValueError:
         raise http.Http404()
@@ -107,7 +107,7 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
     if not pctx.participation.has_permission(pperm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
-    prev_grades = get_prev_visit_grades(flow_session_id, page_ordinal, True)
+    prev_grades = get_prev_visit_grades(flow_session_id, ordinal, True)
 
     def serialize(obj):
         return {
@@ -125,11 +125,11 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
 # {{{ grading driver
 
 @course_view
-def grade_flow_page(pctx, flow_session_id, page_ordinal):
+def grade_flow_page(pctx, flow_session_id, ordinal):
     # type: (CoursePageContext, int, int) -> http.HttpResponse
     now_datetime = get_now_or_fake_time(pctx.request)
 
-    page_ordinal = int(page_ordinal)
+    ordinal = int(ordinal)
 
     viewing_prev_grade = False
     prev_grade_id = pctx.request.GET.get("grade_id")
@@ -157,8 +157,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             pctx.course.identifier, respect_preview=False)
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
-            page_ordinal, participation=flow_session.participation,
-            flow_session=flow_session, request=pctx.request)
+                            ordinal, participation=flow_session.participation,
+                            flow_session=flow_session, request=pctx.request)
 
     if fpctx.page_desc is None:
         raise http.Http404()
@@ -192,7 +192,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # }}}
 
-    prev_grades = get_prev_visit_grades(flow_session_id, page_ordinal)
+    prev_grades = get_prev_visit_grades(flow_session_id, ordinal)
 
     # {{{ reproduce student view
 
