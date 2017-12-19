@@ -235,10 +235,10 @@
                     {% for visit in flow_session.answer_visits %}
                       {% if visit %}
                         <tr>
-                          <td>{{ visit.page_data.ordinal }}</td>
+                          <td>{{ visit.page_data.page_ordinal }}</td>
                           <td>
                             {% if show_privileged_info %}
-                              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
+                              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.page_ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
                             {% else %}
                               {% if visit.page_data.title %}
                                 {% if visit.page_data.bookmarked %}

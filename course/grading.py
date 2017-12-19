@@ -81,14 +81,14 @@ def get_prev_visit_grades(
     return (FlowPageVisitGrade.objects
             .filter(
                 visit__flow_session_id=flow_session_id,
-                visit__page_data__ordinal=page_ordinal,
+                visit__page_data__page_ordinal=page_ordinal,
                 visit__is_submitted_answer=True)
             .order_by(*order_by_args)
             .select_related("visit"))
 
 
 @course_view
-def get_prev_grades_dropdown_content(pctx, flow_session_id, ordinal):
+def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
     """
     :return: serialized prev_grades items for rendering past-grades-dropdown
     """
@@ -97,7 +97,7 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, ordinal):
         raise PermissionDenied()
 
     try:
-        ordinal = int(ordinal)
+        page_ordinal = int(page_ordinal)
         flow_session_id = int(flow_session_id)
     except ValueError:
         raise http.Http404()
@@ -107,7 +107,7 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, ordinal):
     if not pctx.participation.has_permission(pperm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
-    prev_grades = get_prev_visit_grades(flow_session_id, ordinal, True)
+    prev_grades = get_prev_visit_grades(flow_session_id, page_ordinal, True)
 
     def serialize(obj):
         return {
@@ -125,11 +125,11 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, ordinal):
 # {{{ grading driver
 
 @course_view
-def grade_flow_page(pctx, flow_session_id, ordinal):
+def grade_flow_page(pctx, flow_session_id, page_ordinal):
     # type: (CoursePageContext, int, int) -> http.HttpResponse
     now_datetime = get_now_or_fake_time(pctx.request)
 
-    ordinal = int(ordinal)
+    page_ordinal = int(page_ordinal)
 
     viewing_prev_grade = False
     prev_grade_id = pctx.request.GET.get("grade_id")
@@ -157,7 +157,7 @@ def grade_flow_page(pctx, flow_session_id, ordinal):
             pctx.course.identifier, respect_preview=False)
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
-                            ordinal, participation=flow_session.participation,
+                            page_ordinal, participation=flow_session.participation,
                             flow_session=flow_session, request=pctx.request)
 
     if fpctx.page_desc is None:
@@ -192,7 +192,7 @@ def grade_flow_page(pctx, flow_session_id, ordinal):
 
     # }}}
 
-    prev_grades = get_prev_visit_grades(flow_session_id, ordinal)
+    prev_grades = get_prev_visit_grades(flow_session_id, page_ordinal)
 
     # {{{ reproduce student view
 
@@ -369,7 +369,7 @@ def grade_flow_page(pctx, flow_session_id, ordinal):
                 "flow_identifier": fpctx.flow_id,
                 "flow_session": flow_session,
                 "flow_desc": fpctx.flow_desc,
-                "ordinal": fpctx.ordinal,
+                "page_ordinal": fpctx.page_ordinal,
                 "page_data": fpctx.page_data,
 
                 "body": fpctx.page.body(
@@ -454,7 +454,7 @@ def show_grader_statistics(pctx, flow_id):
 
     graders = set()
 
-    # tuples: (ordinal, id)
+    # tuples: (page_ordinal, id)
     pages = set()
 
     counts = {}
@@ -463,7 +463,7 @@ def show_grader_statistics(pctx, flow_id):
 
     def commit_grade_info(grade):
         grader = grade.grader
-        page = (grade.visit.page_data.ordinal,
+        page = (grade.visit.page_data.page_ordinal,
                 grade.visit.page_data.group_id + "/" + grade.visit.page_data.page_id)
 
         graders.add(grader)

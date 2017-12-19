@@ -86,16 +86,16 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             id=self.default_flow_params["flow_session_id"]).page_count
         for i in range(page_count):
             resp = self.c.get(
-                self.get_page_url_by_ordinal(ordinal=i))
+                self.get_page_url_by_ordinal(page_ordinal=i))
             self.assertEqual(resp.status_code, 200)
 
         # test PageOrdinalOutOfRange
         resp = self.c.get(
-            self.get_page_url_by_ordinal(ordinal=page_count+1))
+            self.get_page_url_by_ordinal(page_ordinal=page_count+1))
         self.assertEqual(resp.status_code, 302)
         _, _, params = resolve(resp.url)
         #  ensure redirected to last page
-        self.assertEqual(int(params["ordinal"]), page_count-1)
+        self.assertEqual(int(params["page_ordinal"]), page_count-1)
 
     # {{{ auto graded questions
     def test_quiz_no_answer(self):
@@ -117,47 +117,47 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertSessionScoreEqual(2)
 
     def test_quiz_choice_failed_no_answer(self):
-        self.assertSubmitHistoryItemsCount(ordinal=2, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=2, expected_count=0)
         resp = self.post_answer_by_ordinal(2, {"choice": []})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
         # There should be no submission history
         # https://github.com/inducer/relate/issues/351
-        self.assertSubmitHistoryItemsCount(ordinal=2, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=2, expected_count=0)
         self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_exact_correct(self):
-        self.assertSubmitHistoryItemsCount(ordinal=3, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
         resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(ordinal=3, expected_count=1)
+        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
         self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
         self.assertSessionScoreEqual(1)
 
     def test_quiz_multi_choice_exact_wrong(self):
-        self.assertSubmitHistoryItemsCount(ordinal=3, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
         resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(ordinal=3, expected_count=1)
+        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
         self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_failed_change_answer(self):
         # Note: this page doesn't have permission to change_answer
         # submit a wrong answer
-        self.assertSubmitHistoryItemsCount(ordinal=3, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
         resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(ordinal=3, expected_count=1)
+        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
 
         # try to change answer to a correct one
         resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
-        self.assertSubmitHistoryItemsCount(ordinal=3, expected_count=1)
+        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(
                     resp, ["Already have final answer.",
@@ -195,10 +195,10 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
     # {{{ survey questions
 
     def test_quiz_survey_text(self):
-        self.assertSubmitHistoryItemsCount(ordinal=6, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=6, expected_count=0)
         resp = self.post_answer_by_ordinal(
                             6, {"answer": ["NOTHING!!!"]})
-        self.assertSubmitHistoryItemsCount(ordinal=6, expected_count=1)
+        self.assertSubmitHistoryItemsCount(page_ordinal=6, expected_count=1)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
 
@@ -208,14 +208,14 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(last_answer_visit.answer["answer"], "NOTHING!!!")
 
     def test_quiz_survey_choice(self):
-        self.assertSubmitHistoryItemsCount(ordinal=7, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
 
         # no answer thus no history
         self.post_answer_by_ordinal(7, {"choice": []})
-        self.assertSubmitHistoryItemsCount(ordinal=7, expected_count=0)
+        self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
 
         resp = self.post_answer_by_ordinal(7, {"choice": ['8']})
-        self.assertSubmitHistoryItemsCount(ordinal=7, expected_count=1)
+        self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=1)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
 
@@ -227,8 +227,8 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_fileupload_any(self):
         page_id = "anyup"
-        ordinal = self.get_ordinal_via_page_id(page_id)
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=0)
         with open(
                 os.path.join(os.path.dirname(__file__),
@@ -240,7 +240,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             self.assertEqual(resp.status_code, 200)
 
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=1)
         last_answer_visit = self.get_last_answer_visit()
         self.assertEqual(last_answer_visit.answer["base64_data"], expected_result)
@@ -248,8 +248,8 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_fileupload_any_change_answer(self):
         page_id = "anyup"
-        ordinal = self.get_ordinal_via_page_id(page_id)
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=0)
         with open(
                 os.path.join(os.path.dirname(__file__),
@@ -260,7 +260,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             expected_result1 = b64encode(fp.read()).decode()
             self.assertEqual(resp.status_code, 200)
 
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=1)
 
         with open(
@@ -272,7 +272,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             fp.seek(0)
             expected_result2 = b64encode(fp.read()).decode()
 
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=2)
 
         answer_visits_qset = (
@@ -286,8 +286,8 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_fileupload_pdf(self):
         page_id = "proof"
-        ordinal = self.get_ordinal_via_page_id(page_id)
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=0)
         # wrong MIME type
         with open(
@@ -300,7 +300,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertResponseMessagesContains(resp, [MESSAGE_ANSWER_FAILED_SAVE_TEXT])
 
         # There should be no submission history
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=0)
         with open(
                 os.path.join(os.path.dirname(__file__),
@@ -312,7 +312,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             expected_result = b64encode(fp.read()).decode()
 
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(ordinal=ordinal,
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=1)
         last_answer_visit = self.get_last_answer_visit()
         self.assertEqual(last_answer_visit.answer["base64_data"], expected_result)
@@ -322,13 +322,13 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
     def test_submit_history_failure_not_ajax(self):
         self.post_answer_by_ordinal(1, {"answer": ['0.5']})
         resp = self.c.get(
-            self.get_page_submit_history_url_by_ordinal(ordinal=1))
+            self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
         self.post_answer_by_ordinal(1, {"answer": ['0.5']})
         resp = self.c.post(
-            self.get_page_submit_history_url_by_ordinal(ordinal=1))
+            self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_authenticated(self):
@@ -337,7 +337,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         # anonymous user has not pperm to view submit history
         with self.temporarily_switch_to_user(None):
             resp = self.c.post(
-                self.get_page_submit_history_url_by_ordinal(ordinal=1))
+                self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
 
@@ -363,13 +363,13 @@ class SingleCourseQuizPageTestExtra(SingleCoursePageTestMixin,
         # no pperm to view other's grade_history
         resp = self.c.post(
             self.get_page_grade_history_url_by_ordinal(
-                ordinal=1))
+                page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_no_perm(self):
         # student have no pperm to view ta's submit history
         resp = self.c.post(
-            self.get_page_submit_history_url_by_ordinal(ordinal=1))
+            self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     # }}}
@@ -451,8 +451,8 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertTrue(resp.status_code, 200)
         self.assertSessionScoreEqual(5)
 
-        ordinal = self.get_ordinal_via_page_id(self.any_up_page_id)
-        self.assertGradeHistoryItemsCount(ordinal=ordinal, expected_count=3)
+        ordinal = self.get_page_ordinal_via_page_id(self.any_up_page_id)
+        self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=3)
 
         grade_data = {
             "grade_points": ["4"],
@@ -461,7 +461,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertSessionScoreEqual(None)
-        self.assertGradeHistoryItemsCount(ordinal=ordinal, expected_count=4)
+        self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=4)
 
         grade_data = {
             "grade_points": ["4"],
@@ -470,7 +470,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertSessionScoreEqual(4)
-        self.assertGradeHistoryItemsCount(ordinal=ordinal,
+        self.assertGradeHistoryItemsCount(page_ordinal=ordinal,
                                           expected_count=5)
 
     def test_post_grades_success(self):
@@ -557,7 +557,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
 
         resp = self.c.get(
             self.get_page_grade_history_url_by_ordinal(
-                ordinal=1))
+                page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
@@ -565,7 +565,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
 
         resp = self.c.post(
             self.get_page_grade_history_url_by_ordinal(
-                ordinal=1))
+                page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_grade_history_failure_not_authenticated(self):
@@ -574,7 +574,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         with self.temporarily_switch_to_user(None):
             resp = self.c.post(
                 self.get_page_grade_history_url_by_ordinal(
-                    ordinal=1))
+                    page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     # }}}

@@ -166,12 +166,13 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         page_count = FlowSession.objects.get(id=self.flow_session_ids[0]).page_count
         for i in range(page_count):
             resp = self.c.get(
-                self.get_page_grading_url_by_ordinal(ordinal=i, **params))
+                self.get_page_grading_url_by_ordinal(page_ordinal=i, **params))
             self.assertEqual(resp.status_code, 200)
 
         # test PageOrdinalOutOfRange
         resp = self.c.get(
-            self.get_page_grading_url_by_ordinal(ordinal=page_count+1, **params))
+            self.get_page_grading_url_by_ordinal(page_ordinal=page_count+1,
+                                                 **params))
         self.assertEqual(resp.status_code, 404)
 
     def test_view_grader_statistics(self):

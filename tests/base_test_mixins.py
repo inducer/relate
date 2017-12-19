@@ -342,13 +342,13 @@ def get_flow_page_ordinal_from_page_id(flow_session_id, page_id):
         flow_session__id=flow_session_id,
         page_id=page_id
     )
-    return flow_page_data.ordinal
+    return flow_page_data.page_ordinal
 
 
-def get_flow_page_id_from_page_ordinal(flow_session_id, ordinal):
+def get_flow_page_id_from_page_ordinal(flow_session_id, page_ordinal):
     flow_page_data = FlowPageData.objects.get(
         flow_session__id=flow_session_id,
-        ordinal=ordinal
+        page_ordinal=page_ordinal
     )
     return flow_page_data.page_id
 
@@ -595,7 +595,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         new_session_count = FlowSession.objects.all().count()
         assert new_session_count == existing_session_count + 1
         _, _, params = resolve(resp.url)
-        del params["ordinal"]
+        del params["page_ordinal"]
         cls.default_flow_params = params
         cls.update_default_flow_session_id(course_identifier)
         return resp
@@ -624,14 +624,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         }
 
     def get_page_params(self, course_identifier=None, flow_session_id=None,
-                        ordinal=None):
+                        page_ordinal=None):
         page_params = self.get_flow_params(course_identifier, flow_session_id)
-        if ordinal is None:
-            ordinal = 0
-        page_params.update({"ordinal": ordinal})
+        if page_ordinal is None:
+            page_ordinal = 0
+        page_params.update({"page_ordinal": page_ordinal})
         return page_params
 
-    def get_ordinal_via_page_id(
+    def get_page_ordinal_via_page_id(
             self, page_id, course_identifier=None, flow_session_id=None):
         flow_params = self.get_flow_params(course_identifier, flow_session_id)
         return (
@@ -639,71 +639,72 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 flow_params["flow_session_id"], page_id))
 
     def get_page_view_url_by_ordinal(
-            self, viewname, ordinal, course_identifier=None, flow_session_id=None):
+            self, viewname, page_ordinal, course_identifier=None,
+            flow_session_id=None):
         page_params = self.get_page_params(
-            course_identifier, flow_session_id, ordinal)
+            course_identifier, flow_session_id, page_ordinal)
         return reverse(viewname, kwargs=page_params)
 
     def get_page_view_url_by_page_id(
             self, viewname, page_id, course_identifier=None, flow_session_id=None):
-        ordinal = self.get_ordinal_via_page_id(
+        page_ordinal = self.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
         return self.get_page_view_url_by_ordinal(
-            viewname, ordinal, course_identifier, flow_session_id)
+            viewname, page_ordinal, course_identifier, flow_session_id)
 
     def get_page_url_by_ordinal(
-            self, ordinal, course_identifier=None, flow_session_id=None):
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
         return self.get_page_view_url_by_ordinal(
             "relate-view_flow_page",
-            ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id)
 
     def get_page_url_by_page_id(
             self, page_id, course_identifier=None, flow_session_id=None):
-        ordinal = self.get_ordinal_via_page_id(
+        page_ordinal = self.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
         return self.get_page_url_by_ordinal(
-            ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id)
 
     def get_page_grading_url_by_ordinal(
-            self, ordinal, course_identifier=None, flow_session_id=None):
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
         return self.get_page_view_url_by_ordinal(
             "relate-grade_flow_page",
-            ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id)
 
     def get_page_grading_url_by_page_id(
             self, page_id, course_identifier=None, flow_session_id=None):
-        ordinal = self.get_ordinal_via_page_id(
+        page_ordinal = self.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
         return self.get_page_grading_url_by_ordinal(
-            ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id)
 
     def post_answer_by_ordinal(
-            self, ordinal, answer_data,
+            self, page_ordinal, answer_data,
             course_identifier=None, flow_session_id=None):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
         resp = self.c.post(
             self.get_page_url_by_ordinal(
-                ordinal, course_identifier, flow_session_id),
+                page_ordinal, course_identifier, flow_session_id),
             submit_data)
         return resp
 
     def post_answer_by_page_id(self, page_id, answer_data,
                                course_identifier=None, flow_session_id=None):
-        page_ordinal = self.get_ordinal_via_page_id(
+        page_ordinal = self.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
         return self.post_answer_by_ordinal(
             page_ordinal, answer_data, course_identifier, flow_session_id)
 
     @classmethod
-    def post_answer_by_ordinal_class(cls, ordinal, answer_data,
+    def post_answer_by_ordinal_class(cls, page_ordinal, answer_data,
                                      course_identifier, flow_session_id):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
         page_params = {
             "course_identifier": course_identifier,
             "flow_session_id": flow_session_id,
-            "ordinal": ordinal
+            "page_ordinal": page_ordinal
         }
         page_url = reverse("relate-view_flow_page", kwargs=page_params)
         resp = cls.c.post(page_url, submit_data)
@@ -712,18 +713,18 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def post_answer_by_page_id_class(cls, page_id, answer_data,
                                      course_identifier, flow_session_id):
-        ordinal = get_flow_page_ordinal_from_page_id(flow_session_id, page_id)
-        return cls.post_answer_by_ordinal_class(ordinal, answer_data,
+        page_ordinal = get_flow_page_ordinal_from_page_id(flow_session_id, page_id)
+        return cls.post_answer_by_ordinal_class(page_ordinal, answer_data,
                                                 course_identifier, flow_session_id)
 
-    def post_grade_by_ordinal(self, ordinal, grade_data,
+    def post_grade_by_ordinal(self, page_ordinal, grade_data,
                               course_identifier=None, flow_session_id=None,
                               force_login_instructor=True):
         post_data = {"submit": [""]}
         post_data.update(grade_data)
 
         page_params = self.get_page_params(
-            course_identifier, flow_session_id, ordinal)
+            course_identifier, flow_session_id, page_ordinal)
 
         force_login_user = self.get_logged_in_user()
         if force_login_instructor:
@@ -740,11 +741,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     def post_grade_by_page_id(self, page_id, grade_data,
                               course_identifier=None, flow_session_id=None,
                               force_login_instructor=True):
-        ordinal = self.get_ordinal_via_page_id(
+        page_ordinal = self.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
 
         return self.post_grade_by_ordinal(
-            ordinal, grade_data, course_identifier,
+            page_ordinal, grade_data, course_identifier,
             flow_session_id, force_login_instructor)
 
     def assertSessionScoreEqual(  # noqa
@@ -760,44 +761,44 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             self.assertIsNone(flow_session.points)
 
     def get_page_submit_history_url_by_ordinal(
-            self, ordinal, course_identifier=None, flow_session_id=None):
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
         return self.get_page_view_url_by_ordinal(
             "relate-get_prev_answer_visits_dropdown_content",
-            ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id)
 
     def get_page_grade_history_url_by_ordinal(
-            self, ordinal, course_identifier=None, flow_session_id=None):
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
         return self.get_page_view_url_by_ordinal(
             "relate-get_prev_grades_dropdown_content",
-            ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id)
 
     def get_page_submit_history_by_ordinal(
-            self, ordinal, course_identifier=None, flow_session_id=None):
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
         resp = self.c.get(
             self.get_page_submit_history_url_by_ordinal(
-                ordinal, course_identifier, flow_session_id),
+                page_ordinal, course_identifier, flow_session_id),
             HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         return resp
 
     def get_page_grade_history_by_ordinal(
-            self, ordinal, course_identifier=None, flow_session_id=None):
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
         resp = self.c.get(
             self.get_page_grade_history_url_by_ordinal(
-                ordinal, course_identifier, flow_session_id),
+                page_ordinal, course_identifier, flow_session_id),
             HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         return resp
 
     def assertSubmitHistoryItemsCount(  # noqa
-            self, ordinal, expected_count, course_identifier=None,
+            self, page_ordinal, expected_count, course_identifier=None,
             flow_session_id=None):
         resp = self.get_page_submit_history_by_ordinal(
-            ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id)
         import json
         result = json.loads(resp.content.decode())["result"]
         self.assertEqual(len(result), expected_count)
 
     def assertGradeHistoryItemsCount(  # noqa
-            self, ordinal, expected_count,
+            self, page_ordinal, expected_count,
             course_identifier=None,
             flow_session_id=None,
             force_login_instructor=True):
@@ -812,7 +813,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
         with self.temporarily_switch_to_user(switch_to):
             resp = self.get_page_grade_history_by_ordinal(
-                ordinal, course_identifier, flow_session_id)
+                page_ordinal, course_identifier, flow_session_id)
 
         import json
         result = json.loads(resp.content.decode())["result"]
@@ -867,25 +868,25 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             flow_session_id=flow_params["flow_session_id"], page_id=page_id)
 
     def get_page_visits(self, course_identifier=None,
-                        flow_session_id=None, ordinal=None, page_id=None,
+                        flow_session_id=None, page_ordinal=None, page_id=None,
                         **kwargs):
         query_kwargs = {}
         if kwargs.get("answer_visit", False):
             query_kwargs.update({"answer__isnull": False})
         flow_params = self.get_flow_params(course_identifier, flow_session_id)
         query_kwargs.update({"flow_session_id": flow_params["flow_session_id"]})
-        if ordinal is not None:
-            query_kwargs.update({"page_data__ordinal": ordinal})
+        if page_ordinal is not None:
+            query_kwargs.update({"page_data__page_ordinal": page_ordinal})
         elif page_id is not None:
             query_kwargs.update({"page_data__page_id": page_id})
         return FlowPageVisit.objects.filter(**query_kwargs)
 
     def get_last_answer_visit(self, course_identifier=None,
-                              flow_session_id=None, ordinal=None,
+                              flow_session_id=None, page_ordinal=None,
                               page_id=None, assert_not_none=True):
         result_qset = self.get_page_visits(course_identifier,
-                             flow_session_id, ordinal, page_id,
-                             answer_visit=True).order_by('-pk')[:1]
+                                           flow_session_id, page_ordinal, page_id,
+                                           answer_visit=True).order_by('-pk')[:1]
         if result_qset:
             result = result_qset[0]
         else:

@@ -242,14 +242,14 @@ class ImpersonateTest(SingleCoursePageTestMixin,
     def test_impersonator_flow_page_visit(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
             self.start_flow("quiz-test")
-            self.c.get(self.get_page_url_by_ordinal(ordinal=0))
+            self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(FlowPageVisit.objects.count(), 1)
             first_visit = FlowPageVisit.objects.first()
             self.assertFalse(first_visit.is_impersonated())
             self.assertIsNone(first_visit.impersonated_by)
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.get(self.get_page_url_by_ordinal(ordinal=0))
+            resp = self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(FlowPageVisit.objects.count(), 2)
             second_visit = FlowPageVisit.objects.all().order_by('-pk')[0]
@@ -260,7 +260,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
             # this visit is not impersonated
             self.post_impersonate(impersonatee=self.student_participation.user)
-            resp = self.c.get(self.get_page_url_by_ordinal(ordinal=0))
+            resp = self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(FlowPageVisit.objects.count(), 3)
             second_visit = FlowPageVisit.objects.all().order_by('-pk')[0]
