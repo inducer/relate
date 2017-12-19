@@ -910,8 +910,8 @@ class FlowSession(models.Model):
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
             verbose_name=_('Flow session'), on_delete=models.CASCADE)
-    ordinal = models.IntegerField(null=True, blank=True,
-            verbose_name=_('Ordinal'))
+    page_ordinal = models.IntegerField(null=True, blank=True,
+            verbose_name=_('Page ordinal'))
 
     # This exists to catch changing page types in course content,
     # which will generally lead to an inconsistency disaster.
@@ -943,10 +943,10 @@ class FlowPageData(models.Model):
     def __unicode__(self):
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
-                "(ordinal %(ordinal)s) in %(flow_session)s") % {
+                "(page ordinal %(page_ordinal)s) in %(flow_session)s") % {
                     'group_id': self.group_id,
                     'page_id': self.page_id,
-                    'ordinal': self.ordinal,
+                    'page_ordinal': self.page_ordinal,
                     'flow_session': self.flow_session})
 
     if six.PY3:
@@ -954,13 +954,13 @@ class FlowPageData(models.Model):
 
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
-        return self.ordinal - 1
+        return self.page_ordinal - 1
 
     def next_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
     def human_readable_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
 # }}}
 

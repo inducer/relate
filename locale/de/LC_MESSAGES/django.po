@@ -2351,7 +2351,7 @@ msgstr "Flow-Seiten-Daten"
 
 #, python-format
 msgid ""
-"Data for page '%(group_id)s/%(page_id)s' (ordinal %(ordinal)s) in %"
+"Data for page '%(group_id)s/%(page_id)s' (page_ordinal %(page_ordinal)s) in %"
 "(flow_session)s"
 msgstr ""
 

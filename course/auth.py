@@ -270,6 +270,24 @@ def stop_impersonating(request):
         raise PermissionDenied()
 
     if not hasattr(request, "relate_impersonate_original_user"):
+        # prevent user without pperm to stop_impersonating
+        my_participations = Participation.objects.filter(
+            user=request.user,
+            status=participation_status.active)
+
+        may_impersonate = False
+        for part in my_participations:
+            perms = [
+                perm
+                for perm, argument in part.permissions()
+                if perm == pperm.impersonate_role]
+            if any(perms):
+                may_impersonate = True
+                break
+
+        if not may_impersonate:
+            raise PermissionDenied()
+
         messages.add_message(request, messages.ERROR,
                 _("Not currently impersonating anyone."))
         return redirect("relate-home")

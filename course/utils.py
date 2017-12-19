@@ -707,7 +707,7 @@ class FlowPageContext(FlowContext):
             repo,  # type: Repo_ish
             course,  # type: Course
             flow_id,  # type: Text
-            ordinal,  # type: int
+            page_ordinal,  # type: int
             participation,  # type: Optional[Participation]
             flow_session,  # type: FlowSession
             request=None,  # type: Optional[http.HttpRequest]
@@ -715,12 +715,12 @@ class FlowPageContext(FlowContext):
         # type: (...) -> None
         super(FlowPageContext, self).__init__(repo, course, flow_id, participation)
 
-        if ordinal >= flow_session.page_count:
+        if page_ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()
 
         from course.models import FlowPageData  # noqa
         page_data = self.page_data = get_object_or_404(
-                FlowPageData, flow_session=flow_session, ordinal=ordinal)
+                FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
 
         from course.content import get_flow_page_desc
         try:
@@ -738,8 +738,9 @@ class FlowPageContext(FlowContext):
             if request is not None:
                 from django.urls import reverse
                 page_uri = request.build_absolute_uri(
-                        reverse("relate-view_flow_page",
-                            args=(course.identifier, flow_session.id, ordinal)))
+                    reverse(
+                        "relate-view_flow_page",
+                        args=(course.identifier, flow_session.id, page_ordinal)))
 
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
@@ -758,8 +759,8 @@ class FlowPageContext(FlowContext):
         return self._prev_answer_visit
 
     @property
-    def ordinal(self):
-        return self.page_data.ordinal
+    def page_ordinal(self):
+        return self.page_data.page_ordinal
 
 
 def instantiate_flow_page_with_ctx(fctx, page_data):
