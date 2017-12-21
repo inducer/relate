@@ -22,11 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, mock
 from tests.base_test_mixins import (
-    improperly_configured_cache_patch, SingleCoursePageTestMixin,
-    mock
-)
+    improperly_configured_cache_patch, SingleCoursePageTestMixin)
 from .test_pages import QUIZ_FLOW_ID
 
 

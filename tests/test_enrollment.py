@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, mock
 from django.conf import settings
 from django.test.utils import override_settings
 from django.core import mail
@@ -44,7 +44,7 @@ from .base_test_mixins import (
     NONE_PARTICIPATION_USER_CREATE_KWARG_LIST,
     FallBackStorageMessageTestMixin
 )
-from .utils import LocmemBackendTestsMixin, mock
+from .utils import LocmemBackendTestsMixin
 
 
 TEST_EMAIL_SUFFIX1 = "@suffix.com"

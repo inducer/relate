@@ -23,20 +23,19 @@ THE SOFTWARE.
 """
 
 import six
+import tempfile
 import os
 import datetime
-from django.conf import settings
-from django.test import Client, override_settings
+from copy import deepcopy
+from django.test import Client, override_settings, mock
 from django.urls import reverse, resolve
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 
-from relate.utils import force_remove_path
 from course.models import (
     Course, Participation, ParticipationRole, FlowSession, FlowPageData,
     FlowPageVisit)
 from course.constants import participation_status, user_status
-from .utils import mock
 
 CREATE_SUPERUSER_KWARGS = {
     "username": "test_admin",
@@ -98,6 +97,10 @@ SINGLE_COURSE_SETUP_LIST = [
     }
 ]
 
+TWO_COURSE_SETUP_LIST = deepcopy(SINGLE_COURSE_SETUP_LIST)
+TWO_COURSE_SETUP_LIST[0]["course"]["identifier"] = "test-course1"
+TWO_COURSE_SETUP_LIST += deepcopy(SINGLE_COURSE_SETUP_LIST)
+TWO_COURSE_SETUP_LIST[1]["course"]["identifier"] = "test-course2"
 
 NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
     {
@@ -141,6 +144,10 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "status": user_status.unconfirmed
     }
 ]
+
+
+class CourseCreateFailure(Exception):
+    pass
 
 
 class ResponseContextMixin(object):
@@ -248,6 +255,9 @@ class SuperuserCreateMixin(ResponseContextMixin):
         # create user, course and participation.
         cls.superuser = cls.create_superuser()
         cls.c = Client()
+        cls.settings_git_root_override = (
+            override_settings(GIT_ROOT=tempfile.mkdtemp()))
+        cls.settings_git_root_override.enable()
         super(SuperuserCreateMixin, cls).setUpTestData()
 
     @classmethod
@@ -362,6 +372,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     courses_setup_list = []
     none_participation_user_create_kwarg_list = []
     courses_attributes_extra_list = None
+    override_settings_at_post_create_course = {}
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -380,13 +391,16 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
             cls.n_courses += 1
             course_identifier = course_setup["course"]["identifier"]
-            cls.remove_exceptionally_undelete_course_repos(course_identifier)
             course_setup_kwargs = course_setup["course"]
             if cls.courses_attributes_extra_list:
                 extra_attrs = cls.courses_attributes_extra_list[i]
                 assert isinstance(extra_attrs, dict)
                 course_setup_kwargs.update(extra_attrs)
-            cls.create_course(**course_setup_kwargs)
+            try:
+                cls.post_create_course(**course_setup_kwargs)
+            except Exception:
+                raise
+
             course = Course.objects.get(identifier=course_identifier)
             if "participations" in course_setup:
                 for participation in course_setup["participations"]:
@@ -427,32 +441,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         cls.course_qset = Course.objects.all()
 
     @classmethod
-    def remove_exceptionally_undelete_course_repos(cls, course_identifier):
-        """
-        Remove existing course repo folders resulted in unexpected
-        exceptions in previous tests.
-        """
-        repo_path = os.path.join(settings.GIT_ROOT, course_identifier)
-        try:
-            force_remove_path(repo_path)
-        except OSError:
-            if not os.path.isdir(repo_path):
-                # The repo path does not exist, that's good!
-                return
-            raise
-
-    @classmethod
-    def remove_course_repo(cls, course):
-        from course.content import get_course_repo_path
-        repo_path = get_course_repo_path(course)
-        force_remove_path(repo_path)
-
-    @classmethod
     def tearDownClass(cls):
         cls.c.logout()
-        # Remove repo folder for all courses
-        for course in Course.objects.all():
-            cls.remove_course_repo(course)
         super(CoursesTestMixinBase, cls).tearDownClass()
 
     @classmethod
@@ -494,9 +484,36 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return participation
 
     @classmethod
-    def create_course(cls, **create_course_kwargs):
+    def post_create_course(cls, raise_error=True, **create_course_kwargs):
         cls.c.force_login(cls.superuser)
-        cls.c.post(reverse("relate-set_up_new_course"), create_course_kwargs)
+        existing_course_count = Course.objects.count()
+        with override_settings(**cls.override_settings_at_post_create_course):
+            resp = cls.c.post(
+                reverse("relate-set_up_new_course"), create_course_kwargs)
+        if raise_error:
+            if not Course.objects.count() == existing_course_count + 1:
+                error_string = None
+                # most probably the reason course creation form error
+                form_context = resp.context.__getitem__("form")
+                assert form_context
+                error_list = []
+                if form_context.errors:
+                    error_list = [
+                        "%s: %s"
+                        % (field,
+                           "\n".join(["%s:%s" % (type(e).__name__, str(e))
+                                      for e in errs]))
+                        for field, errs
+                        in six.iteritems(form_context.errors.as_data())]
+                non_field_errors = form_context.non_field_errors()
+                if non_field_errors:
+                    error_list.append(repr(non_field_errors))
+                if error_list:
+                    error_string = "\n".join(error_list)
+                if not error_string:
+                    error_string = ("course creation failed for unknown errors")
+                raise CourseCreateFailure(error_string)
+        return resp
 
     @classmethod
     def get_course_page_url(cls, course_identifier=None):
@@ -550,10 +567,18 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return ClientUserSwitcher(switch_to)
 
     @classmethod
+    def get_default_course(cls):
+        if Course.objects.count() > 1:
+            raise AttributeError(
+                "'course' arg can not be omitted for "
+                "testcases with more than one courses")
+        raise NotImplementedError
+
+    @classmethod
     def get_default_course_identifier(cls):
         if Course.objects.count() > 1:
             raise AttributeError(
-                "course_identifier can not be omitted for "
+                "'course_identifier' arg can not be omitted for "
                 "testcases with more than one courses")
         raise NotImplementedError
 
@@ -578,6 +603,17 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             roles__identifier="instructor",
             status=participation_status.active
         ).first().user
+
+    @classmethod
+    def update_course_attribute(cls, attrs, course=None):
+        # course instead of course_identifier because we need to do
+        # refresh_from_db
+        assert isinstance(attrs, dict)
+        course = course or cls.get_default_course()
+        if attrs:
+            course.__dict__.update(attrs)
+            course.save()
+            course.refresh_from_db()
 
     @classmethod
     def start_flow(cls, flow_id, course_identifier=None):
@@ -824,15 +860,15 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             course_identifier = self.get_default_course_identifier()
         return reverse("relate-update_course", args=[course_identifier])
 
-    def update_course_content(self, commit_sha,
-                              fetch_update=False,
-                              prevent_discarding_revisions=True,
-                              force_login_instructor=True,
-                              course_identifier=None,
-                              ):
-
-        if course_identifier is None:
-            course_identifier = self.get_default_course_identifier()
+    def post_update_course_content(self, commit_sha,
+                                   fetch_update=False,
+                                   prevent_discarding_revisions=True,
+                                   force_login_instructor=True,
+                                   course=None,
+                                   ):
+        # course instead of course_identifier because we need to do
+        # refresh_from_db
+        course = course or self.get_default_course()
 
         try:
             commit_sha = commit_sha.decode()
@@ -851,13 +887,12 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
         force_login_user = None
         if force_login_instructor:
-            force_login_user = self.get_default_instructor_user(course_identifier)
+            force_login_user = self.get_default_instructor_user(course.identifier)
 
         with self.temporarily_switch_to_user(force_login_user):
             response = self.c.post(
-                self.get_update_course_url(course_identifier), data)
-            updated_course = Course.objects.get(identifier=course_identifier)
-            updated_course.refresh_from_db()
+                self.get_update_course_url(course.identifier), data)
+            course.refresh_from_db()
 
         return response
 
@@ -938,8 +973,12 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         self.ta_participation.refresh_from_db()
 
     @classmethod
+    def get_default_course(cls):
+        return cls.course
+
+    @classmethod
     def get_default_course_identifier(cls):
-        return cls.course.identifier
+        return cls.get_default_course().identifier
 
 
 class TwoCourseTestMixin(CoursesTestMixinBase):

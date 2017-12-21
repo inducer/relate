@@ -26,11 +26,10 @@ from django.test import TestCase
 from django.contrib import messages
 from course.auth import get_impersonable_user_qset
 from course.models import FlowPageVisit, ParticipationPermission
-from copy import deepcopy
 
 from .base_test_mixins import (
     SingleCoursePageTestMixin, TwoCourseTestMixin,
-    FallBackStorageMessageTestMixin, SINGLE_COURSE_SETUP_LIST,
+    FallBackStorageMessageTestMixin, TWO_COURSE_SETUP_LIST,
     NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
 
 NOT_IMPERSONATING_MESSAGE = "Not currently impersonating anyone."
@@ -40,11 +39,6 @@ ERROR_WHILE_IMPERSONATING_MESSAGE = "Error while impersonating."
 IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG = (
     "Select a valid choice. That choice is "
     "not one of the available choices.")
-
-TWO_COURSE_SETUP_LIST = deepcopy(SINGLE_COURSE_SETUP_LIST)
-TWO_COURSE_SETUP_LIST[0]["course"]["identifier"] = "test-course1"
-TWO_COURSE_SETUP_LIST += deepcopy(SINGLE_COURSE_SETUP_LIST)
-TWO_COURSE_SETUP_LIST[1]["course"]["identifier"] = "test-course2"
 
 
 class ImpersonateTest(SingleCoursePageTestMixin,
