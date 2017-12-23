@@ -53,7 +53,7 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         # Login user first
         cls.c.force_login(participation.user)
         cls.start_flow(cls.flow_id)
-        cls.end_flow(**cls.default_flow_params)
+        cls.end_flow()
         cls.flow_session_ids.append(
             int(cls.default_flow_params["flow_session_id"]))
 

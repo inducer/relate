@@ -106,7 +106,6 @@ def get_impersonable_user_qset(impersonator):
             if perm == pperm.impersonate_role]
 
         q = (Participation.objects
-             .exclude(pk=impersonator.pk)
              .filter(course=part.course,
                      status=participation_status.active,
                      roles__identifier__in=impersonable_roles)

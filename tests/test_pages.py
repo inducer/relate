@@ -99,21 +99,21 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     # {{{ auto graded questions
     def test_quiz_no_answer(self):
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
     def test_quiz_text(self):
         resp = self.post_answer_by_ordinal(1, {"answer": ['0.5']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(5)
 
     def test_quiz_choice(self):
         resp = self.post_answer_by_ordinal(2, {"choice": ['0']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(2)
 
     def test_quiz_choice_failed_no_answer(self):
@@ -125,7 +125,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         # There should be no submission history
         # https://github.com/inducer/relate/issues/351
         self.assertSubmitHistoryItemsCount(page_ordinal=2, expected_count=0)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_exact_correct(self):
@@ -134,7 +134,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(1)
 
     def test_quiz_multi_choice_exact_wrong(self):
@@ -143,7 +143,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_failed_change_answer(self):
@@ -162,21 +162,21 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertResponseMessagesContains(
                     resp, ["Already have final answer.",
                            "Failed to submit answer."])
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_proportion_partial(self):
         resp = self.post_answer_by_ordinal(4, {"choice": ['0']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0.8)
 
     def test_quiz_multi_choice_proportion_correct(self):
         resp = self.post_answer_by_ordinal(4, {"choice": ['0', '3']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(1)
 
     def test_quiz_inline(self):
@@ -187,7 +187,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         resp = self.post_answer_by_ordinal(5, answer_data)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(10)
 
     # }}}
@@ -200,7 +200,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                             6, {"answer": ["NOTHING!!!"]})
         self.assertSubmitHistoryItemsCount(page_ordinal=6, expected_count=1)
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
 
         # Survey question won't be counted into final score
         self.assertSessionScoreEqual(0)
@@ -217,7 +217,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         resp = self.post_answer_by_ordinal(7, {"choice": ['8']})
         self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=1)
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
 
         # Survey question won't be counted into final score
         self.assertSessionScoreEqual(0)
@@ -358,7 +358,7 @@ class SingleCourseQuizPageTestExtra(SingleCoursePageTestMixin,
         self.c.force_login(self.student_participation.user)
 
     def test_grade_history_failure_no_perm(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         # no pperm to view other's grade_history
         resp = self.c.post(
@@ -408,7 +408,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
                 cls.any_up_page_id, answer_data, **cls.default_flow_params)
 
     def test_post_grades(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
         grade_data = {
             "grade_percent": ["100"],
             "released": ["on"]
@@ -441,7 +441,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
 
         # 2nd success
         self.submit_any_upload_question()
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -474,7 +474,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
                                           expected_count=5)
 
     def test_post_grades_success(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -487,7 +487,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertSessionScoreEqual(5)
 
     def test_post_grades_forbidden(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -502,7 +502,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertSessionScoreEqual(None)
 
     def test_feedback_and_notify(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -519,7 +519,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertEqual(mail.outbox[0].reply_to, [])
 
     def test_feedback_email_may_reply(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -536,7 +536,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertEqual(mail.outbox[0].reply_to, [self.ta_participation.user.email])
 
     def test_notes_and_notify(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         grade_data = {
             "grade_percent": ["100"],
@@ -553,7 +553,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
 
     # {{{ tests on grading history dropdown
     def test_grade_history_failure_not_ajax(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         resp = self.c.get(
             self.get_page_grade_history_url_by_ordinal(
@@ -561,7 +561,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         resp = self.c.post(
             self.get_page_grade_history_url_by_ordinal(
@@ -569,7 +569,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertEqual(resp.status_code, 403)
 
     def test_grade_history_failure_not_authenticated(self):
-        self.end_flow(**self.default_flow_params)
+        self.end_flow()
 
         with self.temporarily_switch_to_user(None):
             resp = self.c.post(
@@ -602,7 +602,7 @@ class SingleCourseQuizPageCodeQuestionTest(
             page_id, {"answer": ['c = b + a\r']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(1)
 
     def test_code_page_wrong(self):
@@ -611,7 +611,7 @@ class SingleCourseQuizPageCodeQuestionTest(
             page_id, {"answer": ['c = a - b\r']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
     def test_code_page_identical_to_reference(self):
@@ -625,7 +625,7 @@ class SingleCourseQuizPageCodeQuestionTest(
                 ("It looks like you submitted code "
                  "that is identical to the reference "
                  "solution. This is not allowed."))
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(1)
 
     def test_code_human_feedback_page_submit(self):
@@ -634,7 +634,7 @@ class SingleCourseQuizPageCodeQuestionTest(
             page_id, {"answer": ['c = a * b\r']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(None)
 
     def test_code_human_feedback_page_grade1(self):
@@ -643,7 +643,7 @@ class SingleCourseQuizPageCodeQuestionTest(
             page_id, {"answer": ['c = b * a\r']})
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "'c' looks good")
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
 
         grade_data = {
             "grade_percent": ["100"],
@@ -668,7 +668,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "The autograder assigned 0/1 points.")
 
-        self.assertEqual(self.end_flow(**self.default_flow_params).status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
 
         grade_data = {
             "grade_percent": ["100"],
