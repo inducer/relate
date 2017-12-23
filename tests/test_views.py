@@ -22,9 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, RequestFactory, mock
 from django.test.utils import override_settings
 import datetime
+from course import views
 
 from .base_test_mixins import (
     SingleCourseTestMixin,
@@ -129,3 +130,143 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
                 self.unset_pretend_facilities_data)
             self.assertEqual(resp.status_code, 200)
             self.assertSessionPretendFacilitiesIsNone(self.c.session)
+
+
+class TestEditCourse(SingleCourseTestMixin, TestCase):
+    def setUp(self):
+        self.rf = RequestFactory()
+
+    def copy_course_dict_and_set_lang_for_post(self, lang):
+        from course.models import Course
+        kwargs = Course.objects.first().__dict__
+        kwargs["force_lang"] = lang
+
+        import six
+        for k, v in six.iteritems(kwargs):
+            if v is None:
+                kwargs[k] = ""
+        return kwargs
+
+    def test_non_auth_edit_get(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.get_edit_course()
+        self.assertTrue(resp.status_code, 404)
+
+    def test_non_auth_edit_post(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.post_edit_course(data={})
+        self.assertTrue(resp.status_code, 404)
+
+    def test_student_edit_get(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.get_edit_course()
+        self.assertTrue(resp.status_code, 404)
+
+    def test_student_edit_post(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.post_edit_course(data={})
+        self.assertTrue(resp.status_code, 404)
+
+    def test_instructor_edit_get(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_edit_course()
+        self.assertTrue(resp.status_code, 200)
+
+    def test_instructor_edit_post_unchanged(self):
+        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
+            mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
+            mock.patch('course.views.messages') as mock_messages,\
+            mock.patch("course.views.render_course_page"),\
+                mock.patch("course.views._") as mock_gettext:
+
+            mock_is_valid.return_value = True
+            mock_changed.return_value = False
+            mock_gettext.side_effect = lambda x: x
+            request = self.rf.post(self.get_edit_course_url(),
+                                   data=mock.MagicMock())
+            request.user = self.instructor_participation.user
+            course_identifier = self.get_default_course_identifier()
+            resp = views.edit_course(request, course_identifier)
+            self.assertTrue(resp.status_code, 200)
+            self.assertTrue(mock_messages.add_message.call_count, 1)
+            self.assertIn("No change was made on the settings.",
+                          mock_messages.add_message.call_args[0])
+
+    def test_instructor_edit_post_saved(self):
+        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
+            mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
+            mock.patch('course.views.EditCourseForm.save'), \
+            mock.patch('course.views.messages') as mock_messages,\
+            mock.patch("course.views.render_course_page"),\
+                mock.patch("course.views._") as mock_gettext:
+
+            mock_is_valid.return_value = True
+            mock_changed.return_value = True
+            mock_gettext.side_effect = lambda x: x
+            request = self.rf.post(self.get_edit_course_url(),
+                                   data=mock.MagicMock())
+            request.user = self.instructor_participation.user
+            course_identifier = self.get_default_course_identifier()
+            resp = views.edit_course(request, course_identifier)
+            self.assertTrue(resp.status_code, 200)
+            self.assertTrue(mock_messages.add_message.call_count, 1)
+            self.assertIn("Successfully updated course settings.",
+                          mock_messages.add_message.call_args[0])
+
+    def test_instructor_edit_post_saved_default(self):
+        data = self.copy_course_dict_and_set_lang_for_post("")
+        with mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
+            mock.patch('course.views.EditCourseForm.save'), \
+            mock.patch('course.views.messages') as mock_messages,\
+            mock.patch("course.views.render_course_page"),\
+                mock.patch("course.views._") as mock_gettext:
+
+            mock_changed.return_value = True
+            mock_gettext.side_effect = lambda x: x
+            request = self.rf.post(self.get_edit_course_url(),
+                                   data=data)
+            request.user = self.instructor_participation.user
+            course_identifier = self.get_default_course_identifier()
+            resp = views.edit_course(request, course_identifier)
+            self.assertTrue(resp.status_code, 200)
+            self.assertTrue(mock_messages.add_message.call_count, 1)
+            self.assertIn("Successfully updated course settings.",
+                          mock_messages.add_message.call_args[0])
+
+    def test_instructor_edit_post_saved_spaces_as_lang(self):
+        data = self.copy_course_dict_and_set_lang_for_post("   ")
+        with mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
+            mock.patch('course.views.EditCourseForm.save'), \
+            mock.patch('course.views.messages') as mock_messages,\
+            mock.patch("course.views.render_course_page"),\
+                mock.patch("course.views._") as mock_gettext:
+
+            mock_changed.return_value = True
+            mock_gettext.side_effect = lambda x: x
+            request = self.rf.post(self.get_edit_course_url(),
+                                   data=data)
+            request.user = self.instructor_participation.user
+            course_identifier = self.get_default_course_identifier()
+            resp = views.edit_course(request, course_identifier)
+            self.assertTrue(resp.status_code, 200)
+            self.assertTrue(mock_messages.add_message.call_count, 1)
+            self.assertIn("Successfully updated course settings.",
+                          mock_messages.add_message.call_args[0])
+
+    def test_instructor_edit_post_form_invalid(self):
+        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
+            mock.patch('course.views.messages') as mock_messages,\
+            mock.patch("course.views.render_course_page"),\
+                mock.patch("course.views._") as mock_gettext:
+
+            mock_is_valid.return_value = False
+            mock_gettext.side_effect = lambda x: x
+            request = self.rf.post(self.get_edit_course_url(),
+                                   data=mock.MagicMock())
+            request.user = self.instructor_participation.user
+            course_identifier = self.get_default_course_identifier()
+            resp = views.edit_course(request, course_identifier)
+            self.assertTrue(resp.status_code, 200)
+            self.assertTrue(mock_messages.add_message.call_count, 1)
+            self.assertIn("Failed to update course settings.",
+                          mock_messages.add_message.call_args[0])

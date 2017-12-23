@@ -23,12 +23,9 @@ THE SOFTWARE.
 """
 
 import os
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, mock
 from django.test.utils import override_settings
-try:
-    from unittest import mock
-except Exception:
-    import mock
+from django.utils.translation import ugettext_lazy as _
 
 
 class CheckRelateSettingsBase(SimpleTestCase):
@@ -466,3 +463,109 @@ class CheckGitRoot(CheckRelateSettingsBase):
         self.assertEqual(len(result), 2)
         self.assertEqual([r.id for r in result],
                          ["git_root.E004", "git_root.E005"])
+
+
+class CheckRelateCourseLanguages(CheckRelateSettingsBase):
+    # For this tests to pass, LANGUAGE_CODE, LANGUAGES, USE_I18N in
+    # local_settings.example.py should not be configured
+
+    VALID_CONF1 = [
+        ('en', _('my English')),
+        ('zh-hans', _('Simplified Chinese')),
+        ('de', _('German'))]
+    VALID_CONF2 = (
+        ('en', _('English')),
+        ('zh-hans', _('Simplified Chinese')),
+        ('de', _('German')))
+    VALID_CONF3 = (
+        ('en', 'English'),
+        ('zh-hans', 'Simplified Chinese'),
+        ('de', _('German')))
+
+    VALID_WITH_WARNNING_CONF = (
+        ('en', 'English'),
+        ('zh-hans', 'Simplified Chinese'),
+        ('zh-hans', 'my Simplified Chinese'),
+        ('de', _('German')))
+
+    VALID_CONF4 = [('en', ('English',)), ]
+    VALID_CONF5 = (['en', 'English'],)
+    VALID_CONF6 = [(('en',), _('English')), ]
+
+    INVALID_CONF1 = {
+        'en': 'English',
+        'zh-hans': 'Simplified Chinese',
+        'de': _('German')}
+    INVALID_CONF2 = (('en',),)
+    INVALID_CONF3 = [('en',), ([], 'English'), ["1", "2"]]
+    INVALID_CONF4 = "some thing"
+
+    def test_valid(self):
+        with override_settings(LANGUAGES=self.VALID_CONF1):
+            self.assertEqual(self.func(None), [])
+
+        with override_settings(LANGUAGES=self.VALID_CONF2):
+            self.assertEqual(self.func(None), [])
+
+        with override_settings(LANGUAGES=self.VALID_CONF3):
+            self.assertEqual(self.func(None), [])
+
+        with override_settings(LANGUAGES=self.VALID_CONF4):
+            self.assertEqual(self.func(None), [])
+
+        with override_settings(LANGUAGES=self.VALID_CONF5):
+            self.assertEqual(self.func(None), [])
+
+        with override_settings(LANGUAGES=self.VALID_CONF6):
+            self.assertEqual(self.func(None), [])
+
+    def test_lang_not_list_or_tuple(self):
+        with override_settings(LANGUAGES=self.INVALID_CONF1):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_languages.E002"])
+
+    def test_lang_item_not_2_tuple(self):
+        with override_settings(LANGUAGES=self.INVALID_CONF2):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_languages.E002"])
+
+    def test_lang_multiple_error(self):
+        with override_settings(LANGUAGES=self.INVALID_CONF3):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ['relate_languages.E002'])
+
+    def test_lang_type_string(self):
+        with override_settings(LANGUAGES=self.INVALID_CONF4):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_languages.E001"])
+
+    def test_item_having_same_lang_code_with_settings_language_code(self):
+        with override_settings(LANGUAGES=self.VALID_CONF1, LANGUAGE_CODE="en"):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_languages.W001"])
+
+            # 'my English' is used for language description of 'en'
+            # instead of 'English'
+            self.assertEqual([r.msg for r in self.func(None)],
+                             ["Duplicate language entries were found in "
+                             "settings.LANGUAGES for 'en', 'my English' "
+                             "will be used as its language_description"])
+
+    def test_item_duplicated_inside_settings_languages(self):
+        with override_settings(LANGUAGES=self.VALID_WITH_WARNNING_CONF):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_languages.W001"])
+            # 'my Simplified Chinese' is used for language description of 'zh-hans'
+            # instead of 'Simplified Chinese'
+            self.assertEqual([r.msg for r in self.func(None)],
+                             ["Duplicate language entries were found in "
+                             "settings.LANGUAGES for 'zh-hans', 'my Simplified "
+                              "Chinese' will be used as its "
+                              "language_description"])
+
+    def test_item_duplicated_mixed(self):
+        with override_settings(LANGUAGES=self.VALID_WITH_WARNNING_CONF,
+                               LANGUAGE_CODE="en"):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_languages.W001",
+                              "relate_languages.W001"])

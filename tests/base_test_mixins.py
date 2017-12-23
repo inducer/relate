@@ -574,9 +574,29 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         assert Course.objects.count() == existing_course_count + 1
 
     @classmethod
+    def get_course_view_url(cls, view_name, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        return reverse(view_name, args=[course_identifier])
+
+    @classmethod
+    def get_edit_course_url(cls, course_identifier=None):
+        return cls.get_course_view_url("relate-edit_course", course_identifier)
+
+    @classmethod
+    def post_edit_course(cls, data, course=None):
+        course = course or cls.get_default_course()
+        edit_course_url = cls.get_edit_course_url(course.identifier)
+        return cls.c.post(edit_course_url, data)
+
+    @classmethod
+    def get_edit_course(cls, course=None):
+        course = course or cls.get_default_course()
+        return cls.c.get(cls.get_edit_course_url())
+
+    @classmethod
     def get_course_page_url(cls, course_identifier=None):
-        course_identifier = course_identifier or cls.get_default_course_identifier()
-        return reverse("relate-course_page", args=[course_identifier])
+        return cls.get_course_view_url("relate-course_page", course_identifier)
 
     def get_logged_in_user(self):
         try:

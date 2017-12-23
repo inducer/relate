@@ -80,7 +80,8 @@ from course.content import get_course_repo
 from course.utils import (  # noqa
         course_view,
         render_course_page,
-        CoursePageContext)
+        CoursePageContext,
+        get_course_specific_language_choices)
 
 # {{{ for mypy
 
@@ -1361,7 +1362,9 @@ class EditCourseForm(StyledModelForm):
                 )
         widgets = {
                 "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
-                "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"})
+                "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                "force_lang": forms.Select(
+                    choices=get_course_specific_language_choices()),
                 }
 
 
@@ -1375,7 +1378,19 @@ def edit_course(pctx):
     if request.method == 'POST':
         form = EditCourseForm(request.POST, instance=pctx.course)
         if form.is_valid():
-            form.save()
+            if form.has_changed():
+                form.save()
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    _("Successfully updated course settings."))
+            else:
+                messages.add_message(
+                    request, messages.INFO,
+                    _("No change was made on the settings."))
+
+        else:
+            messages.add_message(request, messages.ERROR,
+                                 _("Failed to update course settings."))
 
     else:
         form = EditCourseForm(instance=pctx.course)

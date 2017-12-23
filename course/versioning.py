@@ -51,7 +51,9 @@ from course.models import (
         Participation,
         ParticipationRole)
 
-from course.utils import course_view, render_course_page
+from course.utils import (
+    course_view, render_course_page,
+    get_course_specific_language_choices)
 import paramiko
 import paramiko.client
 
@@ -183,10 +185,13 @@ class CourseCreationForm(StyledModelForm):
             "enrollment_required_email_suffix",
             "from_email",
             "notify_email",
+            "force_lang",
             )
         widgets = {
                 "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
                 "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                "force_lang": forms.Select(
+                    choices=get_course_specific_language_choices()),
                 }
 
     def __init__(self, *args, **kwargs):

@@ -305,7 +305,19 @@ RELATE_SITE_ANNOUNCEMENT = None
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language 'en-us'.
 
-#LANGUAGE_CODE='en-us'
+#LANGUAGE_CODE = 'en-us'
+
+# It's recommended to configure LANGUAGES if you want to filter languages allowed
+# for course-specific languages. The format of languages should be a list/tuple of
+# 2-tuples: (language_code, language_description). If there are entries with the
+# same language_code, its language_description will use the one presents latest.
+# If LANGUAGE is not configured, django.conf.global_settings.LANGUAGES will be used.
+
+# LANGUAGES = [
+#     ('en', 'English'),
+#     ('zh-hans', 'Simplified Chinese'),
+#     ('de', 'German'),
+# ]
 
 # {{{ exams and testing
 
