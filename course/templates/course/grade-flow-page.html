@@ -143,13 +143,13 @@
         <tr>
           <td>
             {% if prev_flow_session_id != None %}
-              <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.page_ordinal %}"
                  accesskey="p" class="btn btn-default" title="Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
             {% else %}
               <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
             {% endif %}
             {% if next_flow_session_id %}
-              <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}"
                  accesskey="n" class="btn btn-default" title="Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
             {% else %}
               <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-right"></i></a>
@@ -165,7 +165,7 @@
         </tr>
         <tr>
           <td>
-            {% if page_data.ordinal > 0 %}
+            {% if page_data.page_ordinal > 0 %}
               <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
                   class="btn btn-default"><i class="fa fa-chevron-left"></i></a>
             {% else %}
@@ -180,9 +180,9 @@
             {% trans "Page number" %}
           </td>
           <td>
-            {{ ordinal }}
+            {{ page_ordinal }}
             &middot;
-            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id ordinal %}">{% trans "View in flow" %}</a>
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_ordinal %}">{% trans "View in flow" %}</a>
           </td>
         </tr>
       </table>
@@ -360,7 +360,7 @@
     {% endif %}
 
     {% if next_flow_session_id %}
-      var next_session_url = "{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.ordinal %}";
+      var next_session_url = "{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}";
     {% else %}
       var next_session_url = null;
     {% endif %}
@@ -412,7 +412,7 @@
 
       function generate_past_submission_and_grades_dropdown_content(){
         var jqxhr = $.ajax({
-          url: "{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id ordinal %}"
+          url: "{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id page_ordinal %}"
         }).done(function (result) {
           if(result.result)
           document.getElementById("past-submission-and-grades_dropdown_content").innerHTML = tmpl("tmpl-prev-grades", result.result);

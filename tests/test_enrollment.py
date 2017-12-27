@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, mock
 from django.conf import settings
 from django.test.utils import override_settings
 from django.core import mail
@@ -44,7 +44,7 @@ from .base_test_mixins import (
     NONE_PARTICIPATION_USER_CREATE_KWARG_LIST,
     FallBackStorageMessageTestMixin
 )
-from .utils import LocmemBackendTestsMixin, mock
+from .utils import LocmemBackendTestsMixin
 
 
 TEST_EMAIL_SUFFIX1 = "@suffix.com"
@@ -213,7 +213,7 @@ class EnrollmentTestBaseMixin(SingleCourseTestMixin,
 class EnrollmentRequestTest(
         LocmemBackendTestsMixin, EnrollmentTestBaseMixin, TestCase):
 
-    course_attributes_extra = {"enrollment_approval_required": True}
+    courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
     def test_enroll_request_non_participation(self):
         with self.temporarily_switch_to_user(self.non_participation_user1):
@@ -477,7 +477,7 @@ class EnrollmentRequestTest(
 
 class EnrollRequireEmailSuffixTest(LocmemBackendTestsMixin,
                                    EnrollmentTestBaseMixin, TestCase):
-    course_attributes_extra = {"enrollment_approval_required": True}
+    courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
     # {{{ email suffix "@suffix.com"
 
@@ -633,7 +633,7 @@ class EnrollRequireEmailSuffixTest(LocmemBackendTestsMixin,
 
 
 class EnrollmentDecisionTestMixin(LocmemBackendTestsMixin, EnrollmentTestBaseMixin):
-    course_attributes_extra = {"enrollment_approval_required": True}
+    courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -659,7 +659,7 @@ class EnrollmentDecisionTestMixin(LocmemBackendTestsMixin, EnrollmentTestBaseMix
 
 
 class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
-    course_attributes_extra = {"enrollment_approval_required": True}
+    courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
     @property
     def add_new_url(self):
@@ -926,9 +926,9 @@ class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
 
 
 class EnrollmentPreapprovalTest(EnrollmentPreapprovalTestMixin, TestCase):
-    course_attributes_extra = {
+    courses_attributes_extra_list = [{
         "enrollment_approval_required": True,
-        "preapproval_require_verified_inst_id": True}
+        "preapproval_require_verified_inst_id": True}]
 
     def test_preapproval_url_get(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
@@ -1083,9 +1083,9 @@ class EnrollmentPreapprovalInstIdNotRequireVerifiedTest(
 
     # We'll have to mock course at two place if use mock, so I separate this
     # test out of EnrollmentPreapprovalTest
-    course_attributes_extra = {
+    courses_attributes_extra_list = [{
         "enrollment_approval_required": True,
-        "preapproval_require_verified_inst_id": False}
+        "preapproval_require_verified_inst_id": False}]
 
     def test_preapproval_inst_id_type_approve_pending_not_require_id_verified(self):
         assert self.course.preapproval_require_verified_inst_id is False
@@ -1125,7 +1125,7 @@ class EnrollmentPreapprovalInstIdNotRequireVerifiedTest(
 class EnrollmentEmailConnectionsTestMixin(LocmemBackendTestsMixin):
     #  Ensure request/decision mail will be sent with/without EmailConnection
     # settings. https://github.com/inducer/relate/pull/366
-    course_attributes_extra = {"enrollment_approval_required": True}
+    courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
     email_connections = {
         "enroll": {

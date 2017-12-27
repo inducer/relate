@@ -22,11 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, mock
 from tests.base_test_mixins import (
-    improperly_configured_cache_patch, SingleCoursePageTestMixin,
-    mock
-)
+    improperly_configured_cache_patch, SingleCoursePageTestMixin)
 from .test_pages import QUIZ_FLOW_ID
 
 
@@ -34,10 +32,11 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
 
     flow_id = QUIZ_FLOW_ID
 
-    def setUp(self):  # noqa
-        super(SingleCoursePageCacheTest, self).setUp()
-        self.c.force_login(self.student_participation.user)
-        self.start_quiz(self.flow_id)
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(SingleCoursePageCacheTest, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_flow(cls.flow_id)
 
     @improperly_configured_cache_patch()
     def test_disable_cache(self, mock_cache):
