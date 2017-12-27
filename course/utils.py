@@ -1049,6 +1049,13 @@ class FacilityFindingMiddleware(object):
 # }}}
 
 
+def get_col_contents_or_empty(row, index):
+    if index >= len(row):
+        return ""
+    else:
+        return row[index]
+
+
 def csv_data_importable(file_contents, column_idx_list, header_count):
     import csv
     spamreader = csv.reader(file_contents)
@@ -1060,7 +1067,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
         try:
             for column_idx in column_idx_list:
                 if column_idx is not None:
-                    six.text_type(row[column_idx-1])
+                    six.text_type(get_col_contents_or_empty(row, column_idx-1))
         except UnicodeDecodeError:
             return False, (
                     _("Error: Columns to be imported contain "

@@ -1174,6 +1174,8 @@ def csv_to_grade_changes(
 
     import csv
 
+    from course.utils import get_col_contents_or_empty
+
     total_count = 0
     spamreader = csv.reader(file_contents)
     for row in spamreader:
@@ -1186,10 +1188,10 @@ def csv_to_grade_changes(
         try:
             if attr_type == "email_or_id":
                 gchange.participation = find_participant_from_id(
-                        course, row[attr_column-1])
+                        course, get_col_contents_or_empty(row, attr_column-1))
             elif attr_type == "inst_id":
                 gchange.participation = find_participant_from_inst_id(
-                        course, row[attr_column-1])
+                        course, get_col_contents_or_empty(row, attr_column-1))
             else:
                 raise ParticipantNotFound(
                     _("Unknown user attribute '%(attr_type)s'") % {
@@ -1201,7 +1203,7 @@ def csv_to_grade_changes(
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = attempt_id
 
-        points_str = row[points_column-1].strip()
+        points_str = get_col_contents_or_empty(row, points_column-1).strip()
         # Moodle's "NULL" grades look like this.
         if points_str in ["-", ""]:
             gchange.points = None
@@ -1210,7 +1212,7 @@ def csv_to_grade_changes(
 
         gchange.max_points = max_points
         if feedback_column is not None:
-            gchange.comment = row[feedback_column-1]
+            gchange.comment = get_col_contents_or_empty(row, feedback_column-1)
 
         gchange.creator = creator
         gchange.grade_time = grade_time
