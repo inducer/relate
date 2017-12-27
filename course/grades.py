@@ -1559,6 +1559,7 @@ class EditGradingOpportunityForm(StyledModelForm):
         if not add_new:
             self.fields["identifier"].disabled = True
 
+        self.fields["course"].disabled = True
         self.fields["flow_id"].disabled = True
         self.fields["creation_time"].disabled = True
 
@@ -1568,7 +1569,7 @@ class EditGradingOpportunityForm(StyledModelForm):
     class Meta:
         model = GradingOpportunity
         exclude = (
-                "course",
+                # do not exclude 'course', used in unique_together checking
                 # not used
                 "due_time",
                 )
