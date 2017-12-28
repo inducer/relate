@@ -601,20 +601,24 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     """
 
     if cached:
-        from six.moves.urllib.parse import quote_plus
-        cache_key = "%%%2".join(
-                (CACHE_KEY_ROOT,
-                    quote_plus(repo.controldir()), quote_plus(full_name),
-                    commit_sha.decode()))
+        try:
+            import django.core.cache as cache
+        except ImproperlyConfigured:
+            cached = False
+        else:
+            from six.moves.urllib.parse import quote_plus
+            cache_key = "%%%2".join(
+                    (CACHE_KEY_ROOT,
+                        quote_plus(repo.controldir()), quote_plus(full_name),
+                        commit_sha.decode()))
 
-        import django.core.cache as cache
-        def_cache = cache.caches["default"]
-        result = None
-        # Memcache is apparently limited to 250 characters.
-        if len(cache_key) < 240:
-            result = def_cache.get(cache_key)
-        if result is not None:
-            return result
+            def_cache = cache.caches["default"]
+            result = None
+            # Memcache is apparently limited to 250 characters.
+            if len(cache_key) < 240:
+                result = def_cache.get(cache_key)
+            if result is not None:
+                return result
 
     yaml_bytestream = get_repo_blob(
             repo, full_name, commit_sha, allow_tree=False).data
@@ -1514,7 +1518,7 @@ def list_flow_ids(repo, commit_sha):
     else:
         for entry in flows_tree.items():
             if entry.path.endswith(b".yml"):
-                flow_ids.append(entry.path[:-4])
+                flow_ids.append(entry.path[:-4].decode("utf-8"))
 
     return sorted(flow_ids)
 

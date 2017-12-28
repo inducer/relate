@@ -43,6 +43,11 @@ from course.page.base import (
         get_editor_interaction_mode)
 from course.constants import flow_permission
 
+# DEBUGGING SWITCH:
+# True for 'spawn containers' (normal operation)
+# False for 'just connect to localhost:RUNPY_PORT' for runpy'
+SPAWN_CONTAINERS_FOR_RUNPY = True
+
 
 # {{{ python code question
 
@@ -95,8 +100,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
     docker_timeout = 15
 
-    # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
-    if 1:
+    if SPAWN_CONTAINERS_FOR_RUNPY:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",

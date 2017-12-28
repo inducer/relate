@@ -31,6 +31,8 @@ try:
     from .code_feedback import Feedback, GradingComplete
 except SystemError:
     from code_feedback import Feedback, GradingComplete  # type: ignore
+except ImportError:
+    from code_feedback import Feedback, GradingComplete  # type: ignore
 
 
 __doc__ = """

@@ -4,11 +4,6 @@ from __future__ import division
 from django.test import override_settings
 from django.core import mail
 
-try:
-    from unittest import mock  # noqa
-except Exception:
-    import mock  # noqa
-
 
 class BaseEmailBackendTestsMixin(object):
     email_backend = None
