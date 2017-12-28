@@ -532,7 +532,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
     get_flow_id.admin_order_field = "flow_session__flow_id"  # type: ignore
 
     def get_page_id(self, obj):
-        if obj.page_data.ordinal is None:
+        if obj.page_data.page_ordinal is None:
             return string_concat("%s/%s (", _("not in use"), ")") % (
                     obj.page_data.group_id,
                     obj.page_data.page_id)
@@ -540,7 +540,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             return "%s/%s (%s)" % (
                     obj.page_data.group_id,
                     obj.page_data.page_id,
-                    obj.page_data.ordinal)
+                    obj.page_data.page_ordinal)
 
     get_page_id.short_description = _("Page ID")  # type: ignore
     get_page_id.admin_order_field = "page_data__page_id"  # type: ignore

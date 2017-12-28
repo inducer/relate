@@ -25,47 +25,124 @@ THE SOFTWARE.
 from django.test import TestCase
 from django.urls import reverse
 from .base_test_mixins import SingleCourseTestMixin
-from course.models import Participation
-from course.constants import participation_permission as pperm
+
+QUESTION_MARKUP = """
+type: TextQuestion
+id: half
+value: 5
+prompt: |
+    # A half
+    What's a half?
+answers:
+    - type: float
+      value: 0.5
+      rtol: 1e-4
+    - <plain>half
+    - <plain>a half
+"""
+
+CORRECT_ANSWER = 0.5
+PAGE_WARNINGS = "page_warnings"
+PAGE_ERRORS = "page_errors"
+HAVE_VALID_PAGE = "have_valid_page"
 
 
-class SingleCoursePageSandboxTest(SingleCourseTestMixin, TestCase):
+class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
+    def setUp(self):  # noqa
+        super(SingleCoursePageSandboxTestBaseMixin, self).setUp()
+        self.c.force_login(self.instructor_participation.user)
+
     @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCoursePageSandboxTest, cls).setUpTestData()
-        participation = (
-            Participation.objects.filter(
-                course=cls.course,
-                roles__permissions__permission=pperm.use_page_sandbox
-            ).first()
-        )
-        assert participation
-        cls.c.force_login(participation.user)
+    def get_page_sandbox_post_response(cls, data):
+        """
+        Get the preview response of content in page sandbox
+        :param page_sandbox_content: :class:`String`, RELATE flavored page markdown
+        :return: :class: `http.HttpResponse`
+        """
+        return cls.c.post(
+            reverse("relate-view_page_sandbox", args=[cls.course.identifier]),
+            data)
 
+    @classmethod
+    def get_page_sandbox_preview_response(cls, markup_content):
+        """
+        Get the preview response of content in page sandbox
+        :param markup_content: :class:`String`, RELATE flavored page markdown
+        :return: :class: `http.HttpResponse`
+        """
+        data = {'content': [markup_content], 'preview': ['Preview']}
+        return cls.get_page_sandbox_post_response(data)
+
+    @classmethod
+    def get_page_sandbox_submit_answer_response(cls, markup_content,
+                                                answer_data):
+        """
+        Get the response of preview content and then post an answer, in page sandbox
+        :param markup_content: :class:`String`, RELATE flavored page markdown
+        :param answer_data: :class:`Dict`, the answer
+        :return: :class: `http.HttpResponse`
+        """
+
+        cls.get_page_sandbox_preview_response(markup_content)
+        data = {'submit': ['Submit answer']}
+        data.update(answer_data)
+        return cls.get_page_sandbox_post_response(data)
+
+    def get_sandbox_data_by_key(self, key):
+        return self.c.session.get("%s:%s" % (key, self.course.identifier))
+
+    def get_sandbox_page_data(self):
+        return self.get_sandbox_data_by_key("cf_page_sandbox_page_data")
+
+    def get_sandbox_answer_data(self):
+        return self.get_sandbox_data_by_key("cf_page_sandbox_answer_data")
+
+    def get_sandbox_page_session(self):
+        return self.get_sandbox_data_by_key("cf_validated_sandbox_page")
+
+    def assertSandboxHaveValidPage(self, resp):  # noqa
+        self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, True)
+
+    def assertSandboxWarningTextContain(self, resp, expected_text):  # noqa
+        warnings = self.get_response_context_value_by_name(resp, PAGE_WARNINGS)
+        warnings_text = [w.text for w in warnings]
+        self.assertIn(expected_text, warnings_text)
+
+    def assertSandboxNotHaveValidPage(self, resp):  # noqa
+        self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, False)
+
+
+class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_page_sandbox_get(self):
         resp = self.c.get(reverse("relate-view_page_sandbox",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
-    def test_page_sandbox_post(self):
+    def test_page_sandbox_preview(self):
         # Check one of the quiz questions
-        question_markup = ("type: TextQuestion\r\n"
-                            "id: half\r\nvalue: 5\r\n"
-                            "prompt: |\r\n  # A half\r\n"
-                            "  What's a half?\r\n"
-                            "answers:\r\n\r\n"
-                            "  - type: float\r\n"
-                            "    value: 0.5\r\n"
-                            "    rtol: 1e-4\r\n"
-                            "  - <plain>half\r\n"
-                            "  - <plain>a half")
-        data = {'content': [question_markup], 'preview': ['Preview']}
-        resp = self.c.post(reverse("relate-view_page_sandbox",
-                                   args=[self.course.identifier]), data)
+        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
         self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextIsNone(resp, "feedback")
 
+        from course.page.text import CORRECT_ANSWER_PATTERN
+        expected_correct_answer = CORRECT_ANSWER_PATTERN % CORRECT_ANSWER
+        expected_body_html = "<h1>A half</h1><p>What's a half?</p>"
+
+        self.assertResponseContextContains(
+                    resp, "body", expected_body_html, html=True)
+        self.assertResponseContextEqual(
+                    resp, "correct_answer", expected_correct_answer)
+
+    def test_page_sandbox_submit_answer(self):
         # Try to answer the rendered question
-        data = {'answer': ['0.5'], 'submit': ['Submit answer']}
-        resp = self.c.post(reverse("relate-view_page_sandbox",
-                                   args=[self.course.identifier]), data)
+        answer_data = {'answer': ['0.5']}
+        resp = self.get_page_sandbox_submit_answer_response(
+            markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+        answer_data = {'answer': ['0.6']}
+        resp = self.get_page_sandbox_submit_answer_response(
+            markup_content=QUESTION_MARKUP, answer_data=answer_data)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)

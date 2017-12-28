@@ -389,6 +389,7 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(?:\s*\#.*)?"
     "$")
 
+IN_BLOCK_END_RAW_RE = re.compile(r"(.*)({%-?\s*endraw\s*-?%})(.*)")
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
@@ -426,14 +427,12 @@ def process_yaml_for_expansion(yaml_str):
                     i += 1
                     continue
 
-                if '{% endraw %}' in ln:
-                    endraw_ = "{% endraw %}\n{{ '{% endraw %}' }}\n{% raw %}"
-                    ln = ln.replace('{% endraw %}', endraw_)
-
                 line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
+                    ln = IN_BLOCK_END_RAW_RE.sub(
+                        r"\1{% endraw %}{{ '\2' }}{% raw %}\3", ln)
                     unprocessed_block_lines.append(ln.rstrip())
                     i += 1
 
@@ -452,7 +451,6 @@ def process_yaml_for_expansion(yaml_str):
         else:
             jinja_lines.append(ln)
             i += 1
-
     return "\n".join(jinja_lines)
 
 
@@ -601,20 +599,24 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     """
 
     if cached:
-        from six.moves.urllib.parse import quote_plus
-        cache_key = "%%%2".join(
-                (CACHE_KEY_ROOT,
-                    quote_plus(repo.controldir()), quote_plus(full_name),
-                    commit_sha.decode()))
+        try:
+            import django.core.cache as cache
+        except ImproperlyConfigured:
+            cached = False
+        else:
+            from six.moves.urllib.parse import quote_plus
+            cache_key = "%%%2".join(
+                    (CACHE_KEY_ROOT,
+                        quote_plus(repo.controldir()), quote_plus(full_name),
+                        commit_sha.decode()))
 
-        import django.core.cache as cache
-        def_cache = cache.caches["default"]
-        result = None
-        # Memcache is apparently limited to 250 characters.
-        if len(cache_key) < 240:
-            result = def_cache.get(cache_key)
-        if result is not None:
-            return result
+            def_cache = cache.caches["default"]
+            result = None
+            # Memcache is apparently limited to 250 characters.
+            if len(cache_key) < 240:
+                result = def_cache.get(cache_key)
+            if result is not None:
+                return result
 
     yaml_bytestream = get_repo_blob(
             repo, full_name, commit_sha, allow_tree=False).data
@@ -1514,7 +1516,7 @@ def list_flow_ids(repo, commit_sha):
     else:
         for entry in flows_tree.items():
             if entry.path.endswith(b".yml"):
-                flow_ids.append(entry.path[:-4])
+                flow_ids.append(entry.path[:-4].decode("utf-8"))
 
     return sorted(flow_ids)
 
