@@ -26,6 +26,7 @@ from django.test import TestCase, mock
 from tests.base_test_mixins import (
     improperly_configured_cache_patch, SingleCoursePageTestMixin)
 from .test_pages import QUIZ_FLOW_ID
+from .test_sandbox import SingleCoursePageSandboxTestBaseMixin
 
 
 class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
@@ -62,3 +63,95 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
         with improperly_configured_cache_patch():
             resp = self.c.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 200)
+
+
+TEST_SANDBOX_MARK_DOWN_PATTERN = r"""
+type: Page
+id: test_endraw
+content: |
+    # Title
+    {%% raw %%}\newcommand{\superscript}[1] {\ensuremath{^{\textrm{#1}}}}{%% endraw %%}
+    [example1](http://example1.com)
+    {%% raw %%}
+    value=${#1}
+    %s
+    [example2](http://example2.com)
+"""  # noqa
+
+
+class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+
+    # {{{ test https://github.com/inducer/relate/pull/376 which
+    # fixed https://github.com/inducer/relate/issues/373
+
+    def test_embedded_raw_block1(self):
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{% endraw %}"
+        expected_literal = (
+            r'<p>\newcommand{\superscript}[1] {\ensuremath{^{\textrm{#1}}}}'
+            '\n'
+            '<a href="http://example1.com">example1</a></p>\n'
+            '<p>value=${#1}</p>\n'
+            '<p><a href="http://example2.com">example2</a></p>')
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%endraw%}"
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%  endraw  %}"
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+    def test_embedded_raw_block2(self):
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%- endraw %}"
+
+        expected_literal = (
+            r'<p>\newcommand{\superscript}[1] {\ensuremath{^{\textrm{#1}}}}'
+            '\n'
+            '<a href="http://example1.com">example1</a></p>\n'
+            '<p>value=${#1}\n'
+            '<a href="http://example2.com">example2</a></p>')
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%-endraw%}"
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+    def test_embedded_raw_block3(self):
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%- endraw -%}"
+        expected_literal = (
+            r'<p>\newcommand{\superscript}[1] {\ensuremath{^{\textrm{#1}}}}'
+            '\n'
+            '<a href="http://example1.com">example1</a></p>\n'
+            '<p>value=${#1}<a href="http://example2.com">example2</a></p>')
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%-endraw-%}"
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+    def test_embedded_raw_block4(self):
+        markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{% endraw -%}"
+        expected_literal = (
+            r'<p>\newcommand{\superscript}[1] {\ensuremath{^{\textrm{#1}}}}'
+            '\n'
+            '<a href="http://example1.com">example1</a></p>\n'
+            '<p>value=${#1}\n'
+            '<a href="http://example2.com">example2</a></p>')
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxHaveValidPage(resp)
+        self.assertResponseContextContains(resp, "body", expected_literal)
+
+    # }}}
+
+# vim: fdm=marker

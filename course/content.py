@@ -389,6 +389,7 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(?:\s*\#.*)?"
     "$")
 
+IN_BLOCK_END_RAW_RE = re.compile(r"(.*)({%-?\s*endraw\s*-?%})(.*)")
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
@@ -426,14 +427,12 @@ def process_yaml_for_expansion(yaml_str):
                     i += 1
                     continue
 
-                if '{% endraw %}' in ln:
-                    endraw_ = "{% endraw %}\n{{ '{% endraw %}' }}\n{% raw %}"
-                    ln = ln.replace('{% endraw %}', endraw_)
-
                 line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
+                    ln = IN_BLOCK_END_RAW_RE.sub(
+                        r"\1{% endraw %}{{ '\2' }}{% raw %}\3", ln)
                     unprocessed_block_lines.append(ln.rstrip())
                     i += 1
 
@@ -452,7 +451,6 @@ def process_yaml_for_expansion(yaml_str):
         else:
             jinja_lines.append(ln)
             i += 1
-
     return "\n".join(jinja_lines)
 
 
