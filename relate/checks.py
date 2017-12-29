@@ -34,6 +34,9 @@ REQUIRED_CONF_ERROR_PATTERN = (
 INSTANCE_ERROR_PATTERN = "%(location)s must be an instance of %(types)s."
 GENERIC_ERROR_PATTERN = "Error in '%(location)s': %(error_type)s: %(error_str)s"
 
+USE_I18N = "USE_I18N"
+LANGUAGES = "LANGUAGES"
+
 EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
 RELATE_EMAIL_APPELATION_PRIORITY_LIST = "RELATE_EMAIL_APPELATION_PRIORITY_LIST"
@@ -340,6 +343,51 @@ def check_relate_settings(app_configs, **kwargs):
                          % {"path": git_root, "location": GIT_ROOT}),
                     id="git_root.E005"
                 ))
+
+    # }}}
+
+    # {{{ check LANGUAGES, why this is not done in django?
+
+    languages = settings.LANGUAGES
+
+    from django.utils.itercompat import is_iterable
+
+    if (isinstance(languages, six.string_types) or
+            not is_iterable(languages)):
+        errors.append(RelateCriticalCheckMessage(
+            msg=(INSTANCE_ERROR_PATTERN
+                 % {"location": LANGUAGES,
+                    "types": "an iterable (e.g., a list or tuple)."}),
+            id="relate_languages.E001")
+        )
+    else:
+        if any(isinstance(choice, six.string_types) or
+                       not is_iterable(choice) or len(choice) != 2
+               for choice in languages):
+            errors.append(RelateCriticalCheckMessage(
+                msg=("'%s' must be an iterable containing "
+                     "(language code, language description) tuples, just "
+                     "like the format of LANGUAGES setting ("
+                     "https://docs.djangoproject.com/en/dev/ref/settings/"
+                     "#languages)" % LANGUAGES),
+                id="relate_languages.E002")
+            )
+        else:
+            from collections import OrderedDict
+            all_options = (
+                ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES))
+            filtered_options_dict = OrderedDict(all_options)
+            all_lang_codes = [lang_code for lang_code, lang_descr in all_options]
+            for lang_code in filtered_options_dict.keys():
+                if all_lang_codes.count(lang_code) > 1:
+                    errors.append(Warning(
+                        msg=(
+                            "Duplicate language entries were found in "
+                            "settings.LANGUAGES for '%s', '%s' will be used "
+                            "as its language_description"
+                            % (lang_code, filtered_options_dict[lang_code])),
+                        id="relate_languages.W001"
+                    ))
 
     # }}}
 

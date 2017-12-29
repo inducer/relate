@@ -74,6 +74,19 @@ from yamlfield.fields import YAMLField
 
 # {{{ course
 
+def validate_course_specific_language(value):
+    # type: (Text) -> None
+    if not value.strip():
+        # the default value is ""
+        return
+    if value not in (
+                [lang_code for lang_code, lang_descr in settings.LANGUAGES]
+                + [settings.LANGUAGE_CODE]):
+        raise ValidationError(
+            _("'%s' is currently not supported as a course specific "
+              "language at this site.") % value)
+
+
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
             help_text=_("A course identifier. Alphanumeric with dashes, "
@@ -191,6 +204,13 @@ class Course(models.Model):
             help_text=_("This email address will receive "
             "notifications about the course."),
             verbose_name=_('Notify email'))
+
+    force_lang = models.CharField(max_length=200, blank=True, null=True,
+            default="",
+            validators=[validate_course_specific_language],
+            help_text=_(
+                "Which language is forced to be used for this course."),
+            verbose_name=_('Course language forcibly used'))
 
     # {{{ XMPP
 
