@@ -202,13 +202,6 @@ class CourseCreationForm(StyledModelForm):
         self.helper.add_input(
                 Submit("submit", _("Validate and create")))
 
-    def clean_git_source(self):
-        if not self.cleaned_data["git_source"]:
-            from django.forms import ValidationError as FormValidationError
-            raise FormValidationError(_("Git source must be specified"))
-
-        return self.cleaned_data["git_source"]
-
 
 @permission_required("course.add_course")
 def set_up_new_course(request):

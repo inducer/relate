@@ -142,7 +142,7 @@ class Course(models.Model):
             default=True,
             verbose_name=_('Accepts enrollment'))
 
-    git_source = models.CharField(max_length=200, blank=True,
+    git_source = models.CharField(max_length=200, blank=False,
             help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
             "<tt>git://github.com/inducer/relate-sample</tt> "
@@ -248,6 +248,10 @@ class Course(models.Model):
     if six.PY3:
         __str__ = __unicode__
 
+    def clean(self):
+        if self.force_lang:
+            self.force_lang = self.force_lang.strip()
+
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
@@ -266,6 +270,10 @@ class Course(models.Model):
             return self.from_email
         else:
             return self.notify_email
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # performs regular validation then clean()
+        super(Course, self).save(*args, **kwargs)
 
 # }}}
 
