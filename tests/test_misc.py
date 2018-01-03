@@ -24,9 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import datetime
-from django.test import TestCase
+from django.test import TestCase, mock
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 
@@ -184,41 +183,58 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
             ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
         )
 
-    def set_course_lang_to_zh_hans(self):
+    def set_course_lang_to_ko(self):
         self.course.force_lang = "ko"
         self.course.save()
         self.course.refresh_from_db()
 
-    def test_recsl_configured_true_lang_not_configured(self):
+    def test_languages_not_configured(self):
         self.assertResponseBehaveLikeUnconfigured()
 
-    def test_recsl_configured_true_lang_not_configured_course_has_force_lang(self):
-        self.set_course_lang_to_zh_hans()
+    def test_languages_not_configured_course_has_force_lang(self):
+        self.set_course_lang_to_ko()
         self.assertResponseBehaveAsExpectedForCourseWithForceLang()
 
     @override_settings(LANGUAGES=LANGUAGES)
-    def test_recsl_configured_true_lang_configured(self):
+    def test_languages_configured(self):
         # because self.course.force_lang is None
         self.assertResponseBehaveLikeUnconfigured()
 
     @override_settings(LANGUAGES=LANGUAGES)
-    def test_recsl_configured_true_lang_configured_course_has_force_lang(self):
-        self.set_course_lang_to_zh_hans()
+    def test_languages_configured_course_has_force_lang(self):
+        self.set_course_lang_to_ko()
         self.assertResponseBehaveAsExpectedForCourseWithForceLang()
+
+    @override_settings(LANGUAGES=LANGUAGES)
+    def test_languages_configured_course_has_force_lang_get_language_none(self):
+        self.set_course_lang_to_ko()
+        with mock.patch("course.utils.translation.get_language")\
+                as mock_get_language,\
+                mock.patch("course.utils.translation.deactivate_all")\
+                        as mock_deactivate_all:
+            mock_get_language.return_value = None
+            home_visit_result = self.home_resp_contains_korean_with_diff_settings()
+            self.assertEqual(
+                # Display Korean according to i18n, language_code and browser
+                home_visit_result[0], [False, True, False, True])
+            self.assertEqual(mock_deactivate_all.call_count, 0)
+
+            mock_deactivate_all.reset_mock()
+            course_page_visit_result = (
+                self.course_resp_contains_korean_with_diff_settings())
+            self.assertEqual(
+                # All display Korean
+                course_page_visit_result[0], [True, True, True, True])
+
+            # There are 4 visit, each will call deactivate_all()
+            self.assertEqual(mock_deactivate_all.call_count, 4)
 
 
 class CourseSpecificLangFormTest(SingleCourseTestMixin, TestCase):
 
-    def copy_course_dict_and_set_lang_for_post(self, lang):
-        kwargs = Course.objects.first().__dict__
-        kwargs["force_lang"] = lang
-        for k, v in six.iteritems(kwargs):
-            if v is None:
-                kwargs[k] = ""
-        return kwargs
-
     def test_edit_course_force_lang_invalid(self):
-        course_kwargs = self.copy_course_dict_and_set_lang_for_post("foo")
+        course_kwargs = self.copy_course_dict_and_set_attrs_for_post(
+            {"force_lang": "foo"})
         form = EditCourseForm(course_kwargs, instance=self.course)
         self.assertTrue("force_lang" in form.fields)
         self.assertFalse(form.is_valid())
@@ -226,12 +242,14 @@ class CourseSpecificLangFormTest(SingleCourseTestMixin, TestCase):
                          VALIDATION_ERROR_LANG_NOT_SUPPORTED_PATTERN % "foo")
 
     def test_edit_course_force_lang_valid(self):
-        course_kwargs = self.copy_course_dict_and_set_lang_for_post("de")
+        course_kwargs = self.copy_course_dict_and_set_attrs_for_post(
+            {"force_lang": "de"})
         form = EditCourseForm(course_kwargs, instance=self.course)
         self.assertTrue(form.is_valid())
 
     def test_create_course_force_lang_invalid(self):
-        course_kwargs = self.copy_course_dict_and_set_lang_for_post("foo")
+        course_kwargs = self.copy_course_dict_and_set_attrs_for_post(
+            {"force_lang": "foo"})
         course_kwargs["identifier"] = "another-test-course"
         expected_course_count = Course.objects.count()
         form = CourseCreationForm(course_kwargs)

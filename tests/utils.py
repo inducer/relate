@@ -1,10 +1,13 @@
-# These are copied (and maybe modified) from django official unit tests
-
 from __future__ import division
+
+import sys
+from six import StringIO
+from functools import wraps
 from django.test import override_settings
 from django.core import mail
 
 
+# {{{ These are copied (and maybe modified) from django official unit tests
 class BaseEmailBackendTestsMixin(object):
     email_backend = None
 
@@ -96,3 +99,35 @@ class BaseEmailBackendTestsMixin(object):
 
     def tearDown(self):  # noqa
         self.settings_override.disable()
+
+# }}}
+
+
+class suppress_stdout_decorator(object):  # noqa
+    def __init__(self, suppress_stderr=False):
+        self.original_stdout = None
+        self.suppress_stderr = None
+        self.suppress_stderr = suppress_stderr
+
+    def __enter__(self):
+        self.original_stdout = sys.stdout
+        sys.stdout = StringIO()
+
+        if self.suppress_stderr:
+            self.original_stderr = sys.stderr
+            sys.stderr = StringIO()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout = self.original_stdout
+        if self.suppress_stderr:
+            sys.stderr = self.original_stderr
+
+    def __call__(self, func):
+        @wraps(func)
+        def wrapper(*args, **kw):
+            with self:
+                return func(*args, **kw)
+
+        return wrapper
+
+# vim: fdm=marker

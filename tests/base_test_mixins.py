@@ -345,6 +345,14 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return self.c.post(self.get_set_pretend_facilities_url(), data,
                            follow=follow)
 
+    def force_remove_all_course_dir(self):
+        # This is only necessary for courses which are created test wise,
+        # not class wise.
+        from relate.utils import force_remove_path
+        from course.content import get_course_repo_path
+        for c in Course.objects.all():
+            force_remove_path(get_course_repo_path(c))
+
     def assertSessionPretendFacilitiesContains(self, session, expected_facilities):  # noqa
         pretended = session.get("relate_pretend_facilities", None)
         if expected_facilities is None:
@@ -417,7 +425,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 assert isinstance(extra_attrs, dict)
                 course_setup_kwargs.update(extra_attrs)
             try:
-                cls.create_course(**course_setup_kwargs)
+                cls.create_course(course_setup_kwargs)
             except Exception:
                 raise
 
@@ -504,13 +512,15 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return participation
 
     @classmethod
-    def post_create_course(cls, raise_error=True, **create_course_kwargs):
+    def post_create_course(cls, create_course_kwargs, raise_error=True,
+                           login_superuser=True):
         # To speed up, use create_course instead, this is better used for tests
-        cls.c.force_login(cls.superuser)
+        if login_superuser:
+            cls.c.force_login(cls.superuser)
         existing_course_count = Course.objects.count()
         with override_settings(**cls.override_settings_at_post_create_course):
-            resp = cls.c.post(
-                reverse("relate-set_up_new_course"), create_course_kwargs)
+            resp = cls.c.post(cls.get_set_up_new_course_url(),
+                              data=create_course_kwargs)
         if raise_error:
             all_courses = Course.objects.all()
             if not all_courses.count() == existing_course_count + 1:
@@ -546,7 +556,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return resp
 
     @classmethod
-    def create_course(cls, raise_error=True, **create_course_kwargs):
+    def create_course(cls, create_course_kwargs, raise_error=True):
         has_cached_repo = False
         repo_cache_key, commit_sha_cach_key = (
             git_source_url_to_cache_keys(create_course_kwargs["git_source"]))
@@ -563,7 +573,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         if not has_cached_repo:
             # fall back to post create
             return cls.post_create_course(
-                raise_error=raise_error, **create_course_kwargs)
+                create_course_kwargs, raise_error=raise_error)
         existing_course_count = Course.objects.count()
         new_course_repo_path = os.path.join(settings.GIT_ROOT,
                                         create_course_kwargs["identifier"])
@@ -580,6 +590,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse(view_name, args=[course_identifier])
 
     @classmethod
+    def get_set_up_new_course_url(cls):
+        return reverse("relate-set_up_new_course")
+
+    @classmethod
+    def get_set_up_new_course(cls):
+        return cls.c.get(cls.get_update_course_url)
+
+    @classmethod
     def get_edit_course_url(cls, course_identifier=None):
         return cls.get_course_view_url("relate-edit_course", course_identifier)
 
@@ -592,7 +610,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def get_edit_course(cls, course=None):
         course = course or cls.get_default_course()
-        return cls.c.get(cls.get_edit_course_url())
+        return cls.c.get(cls.get_edit_course_url(course.identifier))
 
     @classmethod
     def get_course_page_url(cls, course_identifier=None):
@@ -1060,6 +1078,17 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
     @classmethod
     def get_default_course_identifier(cls):
         return cls.get_default_course().identifier
+
+    def copy_course_dict_and_set_attrs_for_post(self, attrs_dict={}):
+        from course.models import Course
+        kwargs = Course.objects.first().__dict__
+        kwargs.update(attrs_dict)
+
+        import six
+        for k, v in six.iteritems(kwargs):
+            if v is None:
+                kwargs[k] = ""
+        return kwargs
 
 
 class TwoCourseTestMixin(CoursesTestMixinBase):

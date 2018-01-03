@@ -667,12 +667,16 @@ class CoursePageContext(object):
     def _set_course_lang(self, action):
         # type: (Text) -> None
         if self.course.force_lang and self.course.force_lang.strip():
-                if action == "activate":
-                    self.old_language = translation.get_language()
-                    translation.activate(self.course.force_lang)
+            if action == "activate":
+                self.old_language = translation.get_language()
+                translation.activate(self.course.force_lang)
+            else:
+                if self.old_language is None:
+                    # This should be a rare case, but get_language() can be None.
+                    # See django.utils.translation.override.__exit__()
+                    translation.deactivate_all()
                 else:
-                    if self.old_language is not None:
-                        translation.activate(self.old_language)
+                    translation.activate(self.old_language)
 
     def __enter__(self):
         if self._is_in_context_manager:
