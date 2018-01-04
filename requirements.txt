@@ -78,7 +78,7 @@ git+https://github.com/knaperek/djangosaml2.git
 # Note: djangosaml2 uses a non-Py3 version of python-memcached directly.  #
 # Override that. Also: Don't be tempted to use this for Django caching--it's
 # broken.
-python-memcached==1.58
+python-memcached==1.59
 
 # }}}
 
