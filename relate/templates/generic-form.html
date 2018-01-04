@@ -4,15 +4,19 @@
 {% load crispy_forms_tags %}
 
 {% block title %}
-  {{ form_description }} - {% trans "RELATE" %}
+  {{ form_description }} - {{ RELATE }}
 {% endblock %}
 
 {% block content %}
+  {% block form_description %}
   {% if form_description %}
     <h1>{{ form_description }}</h1>
-  {% endif %}
   {{ form_text|safe }}
+  {% endif %}
+  {% endblock %}
+  {% block form %}
   <div class="well">
     {% crispy form %}
   </div>
+  {% endblock %}
 {% endblock %}

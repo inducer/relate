@@ -981,10 +981,10 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
-                message = render_to_string("course/grade-notify.txt", {
+                message = render_email_template("course/grade-notify.txt", {
                     "page_title": self.title(page_context, page_data),
                     "course": page_context.course,
                     "participation": page_context.flow_session.participation,
@@ -1019,7 +1019,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 and grading_form.cleaned_data["notify_instructor"]
                 and page_context.flow_session):
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
                 use_masked_profile = will_use_masked_profile_for_email(staff_email)
@@ -1029,17 +1029,18 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 else:
                     username = (
                         page_context.flow_session.user.get_email_appellation())
-                message = render_to_string("course/grade-internal-notes-notify.txt",
-                        {
-                            "page_title": self.title(page_context, page_data),
-                            "username": username,
-                            "course": page_context.course,
-                            "participation": page_context.flow_session.participation,
-                            "notes_text": grade_data["notes"],
-                            "flow_session": page_context.flow_session,
-                            "review_uri": page_context.page_uri,
-                            "sender": request.user,
-                            })
+                message = render_email_template(
+                    "course/grade-internal-notes-notify.txt",
+                    {
+                        "page_title": self.title(page_context, page_data),
+                        "username": username,
+                        "course": page_context.course,
+                        "participation": page_context.flow_session.participation,
+                        "notes_text": grade_data["notes"],
+                        "flow_session": page_context.flow_session,
+                        "review_uri": page_context.page_uri,
+                        "sender": request.user,
+                    })
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(

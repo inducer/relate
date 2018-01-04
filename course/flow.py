@@ -2379,7 +2379,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
 
             from django.utils import translation
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 use_masked_profile_for_email = (
                     will_use_masked_profile_for_email(recipient_list)
@@ -2388,7 +2388,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
                     username = pctx.participation.user.get_masked_profile()
                 else:
                     username = pctx.participation.user.get_full_name()
-                message = render_to_string(
+                message = render_email_template(
                     "course/flow-page-interaction-email.txt", {
                         "page_id": page_id,
                         "flow_session_id": flow_session_id,
@@ -2647,9 +2647,9 @@ def finish_flow_session_view(pctx, flow_session_id):
                             0))
 
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+                from relate.utils import render_email_template
                 participation = flow_session.participation
-                message = render_to_string("course/submit-notify.txt", {
+                message = render_email_template("course/submit-notify.txt", {
                     "course": fctx.course,
                     "flow_session": flow_session,
                     "use_masked_profile": use_masked_profile,

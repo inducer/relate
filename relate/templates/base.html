@@ -8,8 +8,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>{% block title %}{% trans "RELATE" %}{% endblock %}</title>
+    <title>{% block title %}{{ RELATE }}{% endblock %}</title>
 
+    {% block header_main %}
     <link href="{% static "bootstrap/dist/css/bootstrap.css" %}" rel="stylesheet">
     <link href="{% static "jquery-ui/themes/smoothness/jquery-ui.css" %}" rel="stylesheet">
 
@@ -23,10 +24,11 @@
     <script src="{% static "jquery-ui/jquery-ui.js" %}"></script>
     <script src="{% static "bootstrap/dist/js/bootstrap.js" %}"></script>
     <script src="{% static "jstree/dist/jstree.min.js" %}"></script>
+    {% endblock %}
 
     {{ form.media }}
 
-    {%block header_extra %}{% endblock %}
+    {% block header_extra %}{% endblock %}
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -42,7 +44,7 @@
   </head>
 
   <body>
-
+    {% block fixed_navbar %}
     <!-- Fixed navbar -->
     <div class="navbar navbar-default" role="navigation">
       <div class="container">
@@ -53,7 +55,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="{%block brand_link %}/{% endblock %}">{%block brand %}{% trans "RELATE" %}{% endblock %}</a>
+          <a class="navbar-brand" href="{%block brand_link %}/{% endblock %}">{%block brand %}{{ RELATE }}{% endblock %}</a>
         </div>
         <div class="navbar-collapse collapse">
           {% if not maintenance_mode %}
@@ -123,20 +125,28 @@
         </div><!--/.nav-collapse -->
       </div>
     </div>
+    {% endblock %}
+
+    {% block pre_root_container %}{% endblock %}
 
     {% block root_container %}
     <div class="container">
-      {% include "base-page-top.html" %}
+      {% block base_page_top %}{% include "base-page-top.html" %}{% endblock %}
 
       {% block nav_recommendations %}
       {% endblock %}
 
       {% block content %}
+        {% block cover %}{% endblock %}
+        {% block course_list %}{% endblock %}
       {% endblock %}
 
     </div>
     {% endblock %}
 
+    {% block post_root_container %}{% endblock %}
+
+    {% block footer %}{% endblock %}
     {% block page_bottom_javascript_extra %}{% endblock %}
     <!-- JavaScript
     ================================================== -->

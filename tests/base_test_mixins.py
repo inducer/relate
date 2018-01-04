@@ -288,6 +288,27 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return get_user_model().objects.create_superuser(
                                                 **cls.create_superuser_kwargs)
 
+    def get_sign_up_view_url(self):
+        return reverse("relate-sign_up")
+
+    def get_sign_up(self, follow=True):
+        return self.c.get(self.get_sign_up_view_url(), follow=follow)
+
+    def post_sign_up(self, data, follow=True):
+        return self.c.post(self.get_sign_up_view_url(), data, follow=follow)
+
+    def get_profile_view_url(self):
+        return reverse("relate-user_profile")
+
+    def get_profile(self, follow=True):
+        return self.c.get(self.get_profile_view_url(), follow=follow)
+
+    def post_profile(self, data, follow=True):
+        return self.c.post(self.get_profile_view_url(), data, follow=follow)
+
+    def post_signout(self, data, follow=True):
+        return self.c.post(self.get_sign_up_view_url(), data, follow=follow)
+
     def get_impersonate_view_url(self):
         return reverse("relate-impersonate")
 
@@ -552,7 +573,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 git_source_url_to_cache_keys(last_course.git_source))
             mc.set_multi({url_cache_key: get_course_repo_path(last_course),
                           commit_sha_cach_key: last_course.active_git_commit_sha},
-                         time=120)
+                         time=120
+                         )
         return resp
 
     @classmethod

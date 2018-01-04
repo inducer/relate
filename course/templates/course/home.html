@@ -2,16 +2,18 @@
 {% load i18n %}
 
 {% block content %}
+  {% block cover %}
   <div class="jumbotron">
-    {% trans "RELATE" as RELATE %}
     <h1>{% blocktrans %} Welcome to {{ RELATE }} {% endblocktrans %}</h1>
     <p>{% trans "RELATE is an Environment for Learning And TEaching" %}</p>
     <p>
     <a class="btn btn-lg btn-primary" href="https://github.com/inducer/relate" role="button">{% trans "Learn more" %} &raquo;</a>
     </p>
   </div>
-
+  {% endblock %}
+  {% block course_list %}
   {% if current_courses or past_courses %}
+    {% block current_course_list %}
     {% if current_courses %}
       <div class="row">
         {% for course in current_courses %}
@@ -23,7 +25,9 @@
         {% endfor %}
       </div>
     {% endif %}
+    {% endblock %}
     {% if past_courses %}
+      {% block past_course_list %}
       <h3>{% trans "Past Courses" %}</h3>
       <table class="table table-condensed">
         <tr>
@@ -45,9 +49,9 @@
           </tr>
         {% endfor %}
       </table>
+      {% endblock %}
     {% endif %}
   {% else %}
-    {% trans "RELATE" as RELATE %}
     {% blocktrans trimmed %} There are no courses hosted on this {{ RELATE }} site. {% endblocktrans %}
     {% if not user.is_authenticated %}
       {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}
@@ -60,4 +64,5 @@
     <hr>
     <a class="btn btn-primary" href="{% url 'relate-set_up_new_course' %}"" role="button">{% trans "Set up new course" %} &raquo;</a></p>
   {% endif %}
+  {% endblock %}
 {% endblock %}
