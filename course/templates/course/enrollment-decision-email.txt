@@ -1,4 +1,4 @@
-{% load i18n %}{% blocktrans trimmed with username=user.get_email_appellation %}Dear {{username}},{% endblocktrans %}
+{% load i18n %}{% trans relate_site_name as RELATE %}{% blocktrans trimmed with username=user.get_email_appellation %}Dear {{username}},{% endblocktrans %}
 {% if approved %}
 {% blocktrans with course_identifier=course.identifier course_uri=course_uri %}Welcome! Your request to join the course '{{course_identifier}}' has been approved.
 Find the course web page here:
@@ -9,4 +9,4 @@ Welcome, and we hope you have a productive class!{% endblocktrans %}
 One common reason for this may be that you may have used your personal email (such as a GMail or Yahoo account) rather than your official university account to sign in. If that is the case, please use the official account and try again.{% endblocktrans %}
 {% endif %}
 
-- {% blocktrans %}{{ relate_site_name }} staff{% endblocktrans %}
+- {% blocktrans %}{{ RELATE }} staff{% endblocktrans %}

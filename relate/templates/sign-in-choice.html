@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% block content %}
-  <h1>{% blocktrans %}Sign in to {{ relate_site_name }}{% endblocktrans %}</h1>
+  <h1>{% blocktrans %}Sign in to {{ RELATE }}{% endblocktrans %}</h1>
 
   <ul class="list-sign-in-methods">
     {% if relate_sign_in_by_saml2_enabled %}
@@ -47,7 +48,7 @@
         class="btn btn-primary"
         href="{% url 'relate-sign_in_by_user_pw' %}{{next_uri}}"
         role="button"><i class="fa fa-key"></i>
-        {% blocktrans %}Sign in with a {{ relate_site_name }}-specific user name and password{% endblocktrans %} &raquo;</a>
+        {% blocktrans %}Sign in with a {{ RELATE }}-specific user name and password{% endblocktrans %} &raquo;</a>
     </li>
     {% endif %}
   </ul>

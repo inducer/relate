@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-01-08 15:43+0800\n"
+"POT-Creation-Date: 2018-01-09 02:06+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -356,8 +356,8 @@ msgid "Email-based sign-in is not being used"
 msgstr "Email-basierte Anmeldung wird nicht verwendet"
 
 #, python-format
-msgid "Your %(RELATE)s sign-in link"
-msgstr "Ihr %(RELATE)s Amelde-Link"
+msgid "Your %(relate_site_name)s sign-in link"
+msgstr "Ihr %(relate_site_name)s Amelde-Link"
 
 #, fuzzy
 #| msgid "Institutional ID"
@@ -3487,7 +3487,7 @@ msgid ""
 msgstr ""
 
 #, python-format
-msgid "%(relate_site_name)s staff"
+msgid "%(RELATE)s staff"
 msgstr ""
 
 #, python-format
@@ -4255,9 +4255,8 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-#, fuzzy, python-format
-#| msgid " Welcome to %(RELATE)s "
-msgid " Welcome to %(relate_site_name)s "
+#, python-format
+msgid " Welcome to %(RELATE)s "
 msgstr "Willkommen bei %(RELATE)s "
 
 msgid "RELATE is an Environment for Learning And TEaching"
@@ -4275,7 +4274,7 @@ msgid "Past Courses"
 msgstr "Vergangene Kurse"
 
 #, python-format
-msgid "There are no courses hosted on this %(relate_site_name)s site."
+msgid "There are no courses hosted on this %(RELATE)s site."
 msgstr ""
 
 #, python-format
@@ -4315,8 +4314,7 @@ msgstr ""
 
 #, python-format
 msgid ""
-"Copy and paste this block of text into the 'private key' field in %"
-"(relate_site_name)s."
+"Copy and paste this block of text into the 'private key' field in %(RELATE)s."
 msgstr ""
 
 msgid "Public key:"
@@ -4360,9 +4358,9 @@ msgstr ""
 
 #, python-format
 msgid ""
-"If you cannot or would not like to sign in using a %(relate_site_name)s-"
-"specific user name or password, <a href='%(relate-sign_in_choice)s%(next_uri)"
-"s'>please choose a different method to sign in</a>."
+"If you cannot or would not like to sign in using a %(RELATE)s-specific user "
+"name or password, <a href='%(relate-sign_in_choice)s%(next_uri)s'>please "
+"choose a different method to sign in</a>."
 msgstr ""
 
 msgid ""
@@ -4431,9 +4429,9 @@ msgstr "(klicken zum Ansehen)"
 msgid ""
 "This is the code that is used to set up the problem and produce test data "
 "for your submission. It is reproduced here for your information, or if you "
-"would like to run your submission outside of %(relate_site_name)s. You "
-"should <em>not</em> copy/paste this code into the code box below. This code "
-"is run automatically 'behind the scenes' before your submitted code."
+"would like to run your submission outside of %(RELATE)s. You should <em>not</"
+"em> copy/paste this code into the code box below. This code is run "
+"automatically 'behind the scenes' before your submitted code."
 msgstr ""
 
 #, fuzzy
@@ -4445,9 +4443,9 @@ msgstr "Benotungs-Code"
 msgid ""
 "This is the code that is used to generate feedback for your submission. It "
 "is reproduced here for your information, or if you would like to run your "
-"submission outside of %(relate_site_name)s. You should <em>not</em> copy/"
-"paste this code into the code box below. This code is run automatically "
-"'behind the scenes' after your submitted code."
+"submission outside of %(RELATE)s. You should <em>not</em> copy/paste this "
+"code into the code box below. This code is run automatically 'behind the "
+"scenes' after your submitted code."
 msgstr ""
 
 #. Translators: starter code for code question
@@ -4480,11 +4478,11 @@ msgstr "(Seitenvorschau erscheint hier)"
 #, python-format
 msgid ""
 "\n"
-"Welcome to %(relate_site_name)s! Please click this link to sign in:\n"
+"Welcome to %(RELATE)s! Please click this link to sign in:\n"
 "%(sign_in_uri)s\n"
 "\n"
 "You have received this email because someone (maybe you) entered your email "
-"address into the %(relate_site_name)s web site at\n"
+"address into the %(RELATE)s web site at\n"
 "%(home_uri)s\n"
 "\n"
 "If this was not you, it is safe to disregard this email.\n"
@@ -5109,35 +5107,7 @@ msgstr ""
 msgid "Edit Course"
 msgstr "Kurs bearbeiten"
 
-#, fuzzy
-#| msgid "Counts"
-msgid "About Us"
-msgstr "Anzahlen"
-
 msgid "RELATE"
-msgstr ""
-
-#, python-format
-msgid " Welcome to %(RELATE)s "
-msgstr "Willkommen bei %(RELATE)s "
-
-#, fuzzy
-#| msgid "Courses"
-msgid "Open courses"
-msgstr "Kurse"
-
-#, fuzzy
-#| msgid "in progress"
-msgid "My Courses in Progress"
-msgstr "im Gange"
-
-#, fuzzy
-#| msgid "Past Courses"
-msgid "My past Courses"
-msgstr "Vergangene Kurse"
-
-msgctxt "The start and end time of a course"
-msgid "Time"
 msgstr ""
 
 msgid "403 Forbidden"
@@ -5192,7 +5162,7 @@ msgid ""
 msgstr ""
 
 #, python-format
-msgid "%(relate_site_name)s Administration"
+msgid "%(RELATE)s Administration"
 msgstr ""
 
 #, python-format
@@ -5247,14 +5217,12 @@ msgstr "Bitte wählen Sie Ihren Identity Provider aus der folgenden Liste:"
 
 #, python-format
 msgid ""
-"%(relate_site_name)s is currently in maintenance mode. Sorry for the "
-"interruption, we'll be back shortly."
+"%(RELATE)s is currently in maintenance mode. Sorry for the interruption, "
+"we'll be back shortly."
 msgstr ""
 
-#, fuzzy, python-format
-#| msgid "Signed in as %(username)s"
-msgid "Sign in to %(relate_site_name)s"
-msgstr "Als %(username)s angemeldet"
+msgid "Sign in to %(RELATE)s"
+msgstr "Bei %(RELATE)s Anmelden"
 
 msgid "Sign in using your institution's login"
 msgstr "Via Institutions-Login anmelden"
@@ -5268,10 +5236,8 @@ msgstr "Neues Konto erstellen"
 msgid "Sign in using an exam ticket"
 msgstr "Mit Prüfungsticket anmelden"
 
-#, fuzzy, python-format
-#| msgid "Sign in with a RELATE-specific user name and password"
-msgid "Sign in with a %(relate_site_name)s-specific user name and password"
-msgstr "Mit einem RELATE-spezifischen Benutzernamen anmelden"
+msgid "Sign in with a %(RELATE)s-specific user name and password"
+msgstr "Mit einem %(RELATE)s-spezifischen Benutzernamen anmelden"
 
 msgid "You're already signed in"
 msgstr ""
@@ -5284,30 +5250,6 @@ msgstr "Abmelden"
 
 msgid "User Profile"
 msgstr "Benutzerprofil"
-
-msgid "my English"
-msgstr ""
-
-msgid "Simplified Chinese"
-msgstr ""
-
-#, fuzzy
-#| msgid "Grading"
-msgid "German"
-msgstr "Benotung"
-
-#, fuzzy
-#| msgid "Finish"
-msgid "English"
-msgstr "Beenden"
-
-msgid "Korean"
-msgstr ""
-
-#, fuzzy
-#| msgid "Fetch"
-msgid "French"
-msgstr "Abholen"
 
 #~ msgid ""
 #~ "Enter a valid username. This value may contain only letters, numbers and "
@@ -5332,9 +5274,6 @@ msgstr "Abholen"
 
 #~ msgid "Git source must be specified"
 #~ msgstr "Git-Quelle muss angegeben werden"
-
-#~ msgid "Sign in to RELATE"
-#~ msgstr "Bei RELATE Anmelden"
 
 #~ msgid "only instructors and TAs may do that"
 #~ msgstr "Nur Instruktoren und Assistenten dürfen das"
@@ -5376,6 +5315,9 @@ msgstr "Abholen"
 #~| msgid "Submit answer"
 #~ msgid "Submit assignment"
 #~ msgstr "Antwort einreichen"
+
+#~ msgid "in progress"
+#~ msgstr "im Gange"
 
 #, fuzzy
 #~| msgid ""

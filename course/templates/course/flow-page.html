@@ -1,12 +1,13 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% load crispy_forms_tags %}
 {% load static %}
 
 {% block title %}
   [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
-  {{title}} - {{ flow_desc.title}} - {{ relate_site_name }}
+  {{title}} - {{ flow_desc.title}} - {{ RELATE }}
 {% endblock %}
 
 {% block content %}

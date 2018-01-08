@@ -1,9 +1,10 @@
 {% extends "course/course-base.html" %}
 
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% block title %}
-  {{flow_desc.title}} - {{ relate_site_name }}
+  {{flow_desc.title}} - {{ RELATE }}
 {% endblock %}
 
 {% block content %}

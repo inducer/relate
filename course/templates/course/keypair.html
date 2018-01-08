@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% block content %}
   <h1>{% trans "SSH Key Pair" %}</h1>
 
   <p><b>{% trans "Private key:" %}</b></p>
   <p>{% blocktrans trimmed %}
-    Copy and paste this block of text into the 'private key' field in {{ relate_site_name }}.
+    Copy and paste this block of text into the 'private key' field in {{ RELATE }}.
   {% endblocktrans %}</p>
   <pre>{{ public_key }}</pre>
 

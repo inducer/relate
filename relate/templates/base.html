@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load i18n %}
 {% load static %}
+{% trans relate_site_name as RELATE %}
 
 <html lang="en">
   <head>
@@ -8,7 +9,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>{% block title %}{{ relate_site_name }}{% endblock %}</title>
+    <title>{% block title %}{{ RELATE }}{% endblock %}</title>
 
     {% block header_main %}
     <link href="{% static "bootstrap/dist/css/bootstrap.css" %}" rel="stylesheet">
@@ -55,7 +56,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="{%block brand_link %}/{% endblock %}">{%block brand %}{{ relate_site_name }}{% endblock %}</a>
+          <a class="navbar-brand" href="{%block brand_link %}/{% endblock %}">{%block brand %}{{ RELATE }}{% endblock %}</a>
         </div>
         <div class="navbar-collapse collapse">
           {% if not maintenance_mode %}

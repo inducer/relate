@@ -1,10 +1,11 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% load static %}
 
 {% block title %}
-  {% trans "My Grades" %} - {{ relate_site_name }}
+  {% trans "My Grades" %} - {{ RELATE }}
 {% endblock %}
 
 {% block header_extra %}

@@ -1,10 +1,11 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% load crispy_forms_tags %}
 
 {% block title %}
-  {% trans "Manage Authentication Tokens" %}: - {{ relate_site_name }}
+  {% trans "Manage Authentication Tokens" %}: - {{ RELATE }}
 {% endblock %}
 
 {% block content %}

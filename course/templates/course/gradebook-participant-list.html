@@ -1,10 +1,11 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% load static %}
 
 {% block title %}
-  {% trans "List of Participants" %} - {{ relate_site_name }}
+  {% trans "List of Participants" %} - {{ RELATE }}
 {% endblock %}
 
 {% block header_extra %}

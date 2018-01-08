@@ -1,11 +1,12 @@
 {% extends "course/course-base.html" %}
 
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% load static %}
 
 {% block title %}
-  {% trans "List of Grading Opportunities" %} - {{ relate_site_name }}
+  {% trans "List of Grading Opportunities" %} - {{ RELATE }}
 {% endblock %}
 
 {% block header_extra %}

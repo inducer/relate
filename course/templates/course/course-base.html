@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% trans relate_site_name as RELATE %}
 
 {% block title %}
   {{ course.number}}:
   {{ course.time_period}}
   -
-  {{ relate_site_name }}
+  {{ RELATE }}
 {% endblock %}
 
 {% block brand %}
