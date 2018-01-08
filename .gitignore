@@ -26,3 +26,5 @@ saml_config.py
 git-roots
 
 .mypy_cache
+
+/.idea
