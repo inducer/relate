@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-09 23:42+0800\n"
+"POT-Creation-Date: 2018-01-08 15:43+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -28,13 +28,6 @@ msgstr "Benutzername"
 
 msgid "Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only."
 msgstr ""
-
-msgid ""
-"Enter a valid username. This value may contain only letters, numbers and @/./"
-"+/-/_ characters."
-msgstr ""
-"Geben Sie einen gültigen Benutzernamen ein. Dieser Wert darf nur Buchstaben, "
-"Zahlen und die Zeichen @/./+/-/_ enthalten."
 
 msgid "A user with that username already exists."
 msgstr "Ein Benutzer mit diesem Benutzernamen existiert bereits"
@@ -114,12 +107,6 @@ msgstr ""
 msgid "Editor mode"
 msgstr "Editor-Modus"
 
-msgid "A hash of the authentication token to be used for direct git access."
-msgstr ""
-
-msgid "Hash of git authentication token"
-msgstr ""
-
 msgid "user"
 msgstr "Benutzer"
 
@@ -128,6 +115,9 @@ msgstr "Benutzer"
 
 msgid "(blank)"
 msgstr "(leer)"
+
+msgid "User"
+msgstr "Benutzer"
 
 msgid "Tags must belong to same course as participation."
 msgstr "Tags müssen zum selben Kurs gehören wie die Teilnahme"
@@ -223,9 +213,6 @@ msgstr "Fehler beim sich-ausgeben-als"
 msgid "Select user to impersonate."
 msgstr "Benutzer auswählen, als den/die Sie sich ausgeben möchten"
 
-msgid "User"
-msgstr "Benutzer"
-
 #, fuzzy
 #| msgid "Stop impersonating user"
 msgid "Add impersonation header"
@@ -263,15 +250,13 @@ msgstr "Nicht mehr als jemand anders ausgeben"
 msgid "Sign in"
 msgstr "Anmelden"
 
+#, fuzzy
+#| msgid "email-based sign-in is not being used"
+msgid "Username-based sign-in is not being used"
+msgstr "Email-basierte Anmeldung wird nicht verwendet"
+
 msgid "Username"
 msgstr "Benutzername"
-
-msgid "Enter a valid username."
-msgstr "Geben Sie einen gültigen Benutzernamen ein."
-
-msgid "This value may contain only letters, numbers and @/./+/-/_ characters."
-msgstr ""
-"Dieser Wert darf nur Buchstaben, Zahlen und die Zeichen @/./+/-/_ enthalten."
 
 msgid "Send email"
 msgstr "Email senden"
@@ -286,9 +271,6 @@ msgid ""
 msgstr ""
 "Diese Emailadresse wird bereits verwendet. Möchten Sie statt dessen Ihr <a "
 "href='%s'>Passwort zurücksetzen</a>?"
-
-msgid "RELATE"
-msgstr ""
 
 msgid "Verify your email"
 msgstr "Email bestätigen"
@@ -414,22 +396,16 @@ msgstr "Eingaben stimmen nicht überein."
 msgid "Profile data saved."
 msgstr "Profildaten gesichert."
 
-#, fuzzy
-#| msgid "Result"
-msgid "Reset"
-msgstr "Ergebnis"
+msgid "Create"
+msgstr "Erstellen"
 
 #, python-format
-msgid "A new authentication token has been set: %s."
+msgid ""
+"A new authentication token has been created: %s. Please save this token, as "
+"you will not be able to retrieve it later."
 msgstr ""
 
-msgid "An authentication token has previously been set."
-msgstr ""
-
-msgid "No authentication token has previously been set."
-msgstr ""
-
-msgid "Manage Git Authentication Token"
+msgid "Could not find which button was pressed."
 msgstr ""
 
 #. Translators: format of event kind in Event model
@@ -481,9 +457,6 @@ msgstr "Start-Ordnungszahl"
 msgctxt "Count of recurring events"
 msgid "Count"
 msgstr "Anzahl"
-
-msgid "Create"
-msgstr "Erstellen"
 
 #, python-format
 msgid "'%(event_kind)s %(event_ordinal)d' already exists"
@@ -561,6 +534,10 @@ msgctxt "Participation permission"
 msgid "Use admin interface"
 msgstr "Die niedrigste erzielte Note verwenden"
 
+msgctxt "Participation permission"
+msgid "Manage authentication tokens"
+msgstr ""
+
 #, fuzzy
 #| msgid "Impersonate"
 msgctxt "Participation permission"
@@ -615,6 +592,10 @@ msgctxt "Participation permission"
 msgid "Included in grade statistics"
 msgstr "Benotungsstatistik"
 
+msgctxt "Participation permission"
+msgid "Skip during manual grading"
+msgstr ""
+
 #, fuzzy
 #| msgid "Edit exams"
 msgctxt "Participation permission"
@@ -634,7 +615,11 @@ msgid "Batch issue exam ticket"
 msgstr "Prüfungstickets en masse ausgeben"
 
 msgctxt "Participation permission"
-msgid "View flow sessions from role "
+msgid "View participants' masked profile only"
+msgstr ""
+
+msgctxt "Participation permission"
+msgid "View flow sessions from role"
 msgstr ""
 
 #, fuzzy
@@ -982,7 +967,20 @@ msgstr ""
 msgid "repo page class must conist of two dotted components (invalid: '%s')"
 msgstr ""
 
-msgid "Already enrolled. Cannot re-renroll."
+msgid ""
+"You have previously sent the enrollment request. Re-sending the request is "
+"not allowed."
+msgstr ""
+
+msgid "Your enrollment request had been denied. Enrollment is not allowed."
+msgstr ""
+
+msgid "You had been dropped from the course. Re-enrollment is not allowed."
+msgstr ""
+
+#, fuzzy
+#| msgid "Already enrolled. Cannot re-renroll."
+msgid "Already enrolled. Cannot re-enroll."
 msgstr "Bereits geingeschrieben. Kann nicht erneut einschreiben."
 
 msgid "Course is not accepting enrollments."
@@ -1118,6 +1116,9 @@ msgstr "Vorab bestätigen"
 msgid "Deny"
 msgstr ""
 
+msgid "This user has not confirmed his/her email."
+msgstr ""
+
 #, fuzzy
 #| msgid "Answer saved."
 msgid "Changes saved."
@@ -1132,6 +1133,12 @@ msgstr "Erfolgreich eingeschrieben"
 #| msgid "Successfully enrolled."
 msgid "Successfully dropped."
 msgstr "Erfolgreich eingeschrieben"
+
+#, python-format
+msgid ""
+"A data integrity issue was detected when saving this participation. Maybe a "
+"participation for this user already exists? (%s)"
+msgstr ""
 
 #, fuzzy
 #| msgid "Participation"
@@ -1490,9 +1497,17 @@ msgstr ""
 msgid "not permitted to end session"
 msgstr ""
 
+#. Translators: displayed format of Participation: some user in some
+#. course as some role
 #, python-format
-msgid "Submission by %(participation)s"
-msgstr ""
+msgid "%(user)s in %(course)s as %(role)s"
+msgstr "%(user)s in %(course)s als %(role)s"
+
+#, fuzzy, python-format
+#| msgctxt "menu item"
+#| msgid "Query participations"
+msgid "Submission by %(participation_desc)s"
+msgstr "Teilnahmen durchsuchen"
 
 msgid ""
 "If non-empty, limit the regrading to sessions started under this access "
@@ -1541,6 +1556,9 @@ msgstr "Noten-Änderungen"
 #| msgid "Cancel all"
 msgid "Cancel"
 msgstr "Alle abbrechen"
+
+msgid "No prior answers found that could be un-submitted."
+msgstr ""
 
 #, fuzzy
 #| msgid "flow page has no ID"
@@ -1901,6 +1919,11 @@ msgstr ""
 msgid "Send instant message"
 msgstr ""
 
+#, python-format
+msgid ""
+"'%s' is currently not supported as a course specific language at this site."
+msgstr ""
+
 msgid ""
 "A course identifier. Alphanumeric with dashes, no spaces. This is visible in "
 "URLs and determines the location on your file system where the course's git "
@@ -2036,6 +2059,12 @@ msgid "This email address will receive notifications about the course."
 msgstr ""
 
 msgid "Notify email"
+msgstr ""
+
+msgid "Which language is forced to be used for this course."
+msgstr ""
+
+msgid "Course language forcibly used"
 msgstr ""
 
 msgid ""
@@ -2193,12 +2222,6 @@ msgstr ""
 msgid "Notes"
 msgstr ""
 
-#. Translators: displayed format of Participation: some user in some
-#. course as some role
-#, python-format
-msgid "%(user)s in %(course)s as %(role)s"
-msgstr "%(user)s in %(course)s als %(role)s"
-
 msgid "Participation"
 msgstr "Teilnahme"
 
@@ -2263,6 +2286,33 @@ msgstr "Student/Schüler"
 msgid "Unenrolled"
 msgstr "Einschreibung verweigern"
 
+msgid "Restrict to role"
+msgstr ""
+
+msgid "Description"
+msgstr "Beschreibung"
+
+#, fuzzy
+#| msgid "Last Name"
+msgid "Last use time"
+msgstr "Nachname"
+
+#, fuzzy
+#| msgid "Valid"
+msgid "Valid until"
+msgstr "Gültig"
+
+#, fuzzy
+#| msgid "Creation time"
+msgid "Revocation time"
+msgstr "Erstellungszeitpunkt"
+
+msgid "A hash of the authentication token to be used for direct git access."
+msgstr ""
+
+msgid "Hash of git authentication token"
+msgstr ""
+
 msgid "Cancelled"
 msgstr ""
 
@@ -2321,8 +2371,11 @@ msgstr ""
 msgid "%(user)s's session %(session_id)d on '%(flow_id)s'"
 msgstr ""
 
-msgid "Ordinal"
-msgstr ""
+#, fuzzy
+#| msgctxt "Starting ordinal of recurring events"
+#| msgid "Starting ordinal"
+msgid "Page ordinal"
+msgstr "Start-Ordnungszahl"
 
 msgid "Page type as indicated in course content"
 msgstr ""
@@ -2351,7 +2404,7 @@ msgstr "Flow-Seiten-Daten"
 
 #, python-format
 msgid ""
-"Data for page '%(group_id)s/%(page_id)s' (page_ordinal %(page_ordinal)s) in %"
+"Data for page '%(group_id)s/%(page_id)s' (page ordinal %(page_ordinal)s) in %"
 "(flow_session)s"
 msgstr ""
 
@@ -2646,9 +2699,6 @@ msgstr "Sofortnachricht"
 msgid "Instant messages"
 msgstr "Sofortnachrichten"
 
-msgid "Description"
-msgstr "Beschreibung"
-
 #, fuzzy
 #| msgctxt "User status"
 #| msgid "Active"
@@ -2930,6 +2980,11 @@ msgid ""
 msgstr ""
 
 msgid "The original failure message follows:"
+msgstr ""
+
+msgid ""
+"It looks like you submitted code that is identical to the reference "
+"solution. This is not allowed."
 msgstr ""
 
 msgid ""
@@ -3282,9 +3337,11 @@ msgid ""
 msgstr ""
 
 #. Translators: The following are names for menu items in course page
+#, fuzzy
+#| msgid "Participant"
 msgctxt "menu item"
-msgid "Student"
-msgstr ""
+msgid "Participant"
+msgstr "Teilnehmer"
 
 msgid "View grades"
 msgstr "Noten ansehen"
@@ -3294,6 +3351,9 @@ msgstr "Kalender ansehen"
 
 msgid "Back to course page"
 msgstr "Zurück zur Kursseite"
+
+msgid "Manage Authentication Tokens"
+msgstr ""
 
 msgctxt "menu item"
 msgid "Grading"
@@ -3426,7 +3486,8 @@ msgid ""
 "try again."
 msgstr ""
 
-msgid "- RELATE staff "
+#, python-format
+msgid "%(relate_site_name)s staff"
 msgstr ""
 
 #, python-format
@@ -3612,7 +3673,7 @@ msgstr ""
 #, fuzzy
 #| msgctxt "Flow expiration mode"
 #| msgid "Submit session for grading"
-msgid "Viewing session for partipant"
+msgid "Viewing session for participant"
 msgstr "Sitzung zur Benotung einreichen"
 
 #, fuzzy
@@ -3663,12 +3724,6 @@ msgstr ""
 msgid "Submission history for this page"
 msgstr ""
 
-msgid "(current)"
-msgstr ""
-
-msgid "(submitted)"
-msgstr ""
-
 msgid "Go to end"
 msgstr "Zum Ende gehen"
 
@@ -3715,6 +3770,17 @@ msgid "Saved."
 msgstr "Gespeichert."
 
 msgid "Error--not saved."
+msgstr ""
+
+#, fuzzy
+#| msgid "Past submissions"
+msgid "No submission history"
+msgstr "Vergangene Sitzungen"
+
+msgid "(current)"
+msgstr ""
+
+msgid "(submitted)"
 msgstr ""
 
 #, fuzzy
@@ -3830,30 +3896,20 @@ msgstr "Benotung"
 msgid "Past submissions/grades"
 msgstr "Vergangene Sitzungen"
 
-#, fuzzy
-#| msgid "Past submissions"
-msgid "Submission:"
-msgstr "Vergangene Sitzungen"
-
-#, fuzzy
-#| msgid "Grade"
-msgid "Grade:"
-msgstr "Note"
-
-#, fuzzy
-#| msgid "(no grade)"
-msgid "no grade"
-msgstr "(keine Note)"
-
 msgid "Property"
 msgstr "Eigenschaft"
 
 msgid "Value"
 msgstr "Wert"
 
-#. Translators: the grade information "for" a participant with fullname + (username)
+#. Translators: the grade information "for" a participant
 #, python-format
 msgid "for %(full_name)s (%(username)s)"
+msgstr ""
+
+#. Translators: the grade information "for" a participant
+#, python-format
+msgid "for %(masked_user_profile)s"
 msgstr ""
 
 msgid "Points awarded"
@@ -3917,6 +3973,26 @@ msgstr "Abschicken und nächste Seite"
 msgid "Submit and next session"
 msgstr "Abschicken und nächste Sitzung"
 
+#, fuzzy
+#| msgid "Past submissions"
+msgid "No submission/grade history"
+msgstr "Vergangene Sitzungen"
+
+#, fuzzy
+#| msgid "Past submissions"
+msgid "Submission:"
+msgstr "Vergangene Sitzungen"
+
+#, fuzzy
+#| msgid "Grade"
+msgid "Grade:"
+msgstr "Note"
+
+#, fuzzy
+#| msgid "(no grade)"
+msgid "no grade"
+msgstr "(keine Note)"
+
 #, python-format
 msgid ""
 "Hi there,\n"
@@ -3930,6 +4006,11 @@ msgid ""
 "%(review_uri)s\n"
 "\n"
 msgstr ""
+
+#, fuzzy
+#| msgid "user"
+msgid "Dear user"
+msgstr "Benutzer"
 
 #, python-format
 msgid ""
@@ -4028,6 +4109,9 @@ msgstr "Sitzungs-Start"
 msgid "Session grade"
 msgstr "Sitzung neu benotet."
 
+msgid "Me"
+msgstr ""
+
 msgid "Rules tag"
 msgstr ""
 
@@ -4058,6 +4142,9 @@ msgstr "Meine Noten"
 
 msgid "Grades"
 msgstr "Noten"
+
+msgid "ME"
+msgstr ""
 
 msgid "Date"
 msgstr "Datum"
@@ -4168,8 +4255,9 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-#, python-format
-msgid " Welcome to %(RELATE)s "
+#, fuzzy, python-format
+#| msgid " Welcome to %(RELATE)s "
+msgid " Welcome to %(relate_site_name)s "
 msgstr "Willkommen bei %(RELATE)s "
 
 msgid "RELATE is an Environment for Learning And TEaching"
@@ -4187,7 +4275,7 @@ msgid "Past Courses"
 msgstr "Vergangene Kurse"
 
 #, python-format
-msgid "There are no courses hosted on this %(RELATE)s site."
+msgid "There are no courses hosted on this %(relate_site_name)s site."
 msgstr ""
 
 #, python-format
@@ -4225,8 +4313,10 @@ msgstr ""
 msgid "Private key:"
 msgstr ""
 
+#, python-format
 msgid ""
-"Copy and paste this block of text into the 'private key' field in RELATE."
+"Copy and paste this block of text into the 'private key' field in %"
+"(relate_site_name)s."
 msgstr ""
 
 msgid "Public key:"
@@ -4270,9 +4360,9 @@ msgstr ""
 
 #, python-format
 msgid ""
-"If you cannot or would not like to sign in using a RELATE-specific user name "
-"or password, <a href='%(relate-sign_in_choice)s%(next_uri)s'>please choose a "
-"different method to sign in</a>."
+"If you cannot or would not like to sign in using a %(relate_site_name)s-"
+"specific user name or password, <a href='%(relate-sign_in_choice)s%(next_uri)"
+"s'>please choose a different method to sign in</a>."
 msgstr ""
 
 msgid ""
@@ -4294,6 +4384,38 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+#| msgid "No events created."
+msgid "(No tokens have been created yet.)"
+msgstr "Keine Ereignisse erstellt."
+
+msgid "Token ID"
+msgstr ""
+
+#, fuzzy
+#| msgid "(no description)"
+msgid "Role Restriction"
+msgstr "(keine Beschreibung)"
+
+#, fuzzy
+#| msgid "Create"
+msgid "Created"
+msgstr "Erstellen"
+
+#, fuzzy
+#| msgid "List"
+msgid "Last used"
+msgstr "Liste"
+
+#, fuzzy
+#| msgctxt "Exam ticket state"
+#| msgid "Revoked"
+msgid "Revoked"
+msgstr "Widerrufen"
+
+msgid "Indefinitely"
+msgstr ""
+
+#, fuzzy
 #| msgid "State"
 msgid "Status"
 msgstr "Zustand"
@@ -4305,12 +4427,13 @@ msgstr ""
 msgid "(click to view)"
 msgstr "(klicken zum Ansehen)"
 
+#, python-format
 msgid ""
 "This is the code that is used to set up the problem and produce test data "
 "for your submission. It is reproduced here for your information, or if you "
-"would like to run your submission outside of RELATE. You should <em>not</em> "
-"copy/paste this code into the code box below. This code is run automatically "
-"'behind the scenes' before your submitted code."
+"would like to run your submission outside of %(relate_site_name)s. You "
+"should <em>not</em> copy/paste this code into the code box below. This code "
+"is run automatically 'behind the scenes' before your submitted code."
 msgstr ""
 
 #, fuzzy
@@ -4318,12 +4441,13 @@ msgstr ""
 msgid "Testing code"
 msgstr "Benotungs-Code"
 
+#, python-format
 msgid ""
 "This is the code that is used to generate feedback for your submission. It "
 "is reproduced here for your information, or if you would like to run your "
-"submission outside of RELATE. You should <em>not</em> copy/paste this code "
-"into the code box below. This code is run automatically 'behind the scenes' "
-"after your submitted code."
+"submission outside of %(relate_site_name)s. You should <em>not</em> copy/"
+"paste this code into the code box below. This code is run automatically "
+"'behind the scenes' after your submitted code."
 msgstr ""
 
 #. Translators: starter code for code question
@@ -4356,11 +4480,11 @@ msgstr "(Seitenvorschau erscheint hier)"
 #, python-format
 msgid ""
 "\n"
-"Welcome to %(RELATE)s! Please click this link to sign in:\n"
+"Welcome to %(relate_site_name)s! Please click this link to sign in:\n"
 "%(sign_in_uri)s\n"
 "\n"
 "You have received this email because someone (maybe you) entered your email "
-"address into the %(RELATE)s web site at\n"
+"address into the %(relate_site_name)s web site at\n"
 "%(home_uri)s\n"
 "\n"
 "If this was not you, it is safe to disregard this email.\n"
@@ -4417,6 +4541,11 @@ msgid ""
 "CSV file as utf-8 encoded and import again."
 msgstr ""
 
+msgid ""
+"disabled (i.e., displayed language is determined by user's browser "
+"preference)"
+msgstr ""
+
 msgid "invalid identifier"
 msgstr ""
 
@@ -4428,6 +4557,12 @@ msgstr ""
 msgid ""
 "Name of facility not recognized: '%(fac_name)s'. Known facility names: '%"
 "(known_fac_names)s'"
+msgstr ""
+
+#, python-format
+msgid ""
+"Name of participation tag not recognized: '%(ptag_name)s'. Known "
+"participation tag names: '%(known_ptag_names)s'"
 msgstr ""
 
 #, python-format
@@ -4637,9 +4772,6 @@ msgstr "WARNUNGEN: "
 
 msgid "Validate and create"
 msgstr "Validieren und Erstellen"
-
-msgid "Git source must be specified"
-msgstr "Git-Quelle muss angegeben werden"
 
 msgid ""
 "No refs found in remote repository (i.e. no master branch, no HEAD). This "
@@ -4962,9 +5094,51 @@ msgid "%(current)d out of %(total)d items processed."
 msgstr ""
 
 #, fuzzy
+#| msgid "Successfully signed in."
+msgid "Successfully updated course settings."
+msgstr "Erfolgreich angemeldet."
+
+msgid "No change was made on the settings."
+msgstr ""
+
+msgid "Failed to update course settings."
+msgstr ""
+
+#, fuzzy
 #| msgid "Edit course"
 msgid "Edit Course"
 msgstr "Kurs bearbeiten"
+
+#, fuzzy
+#| msgid "Counts"
+msgid "About Us"
+msgstr "Anzahlen"
+
+msgid "RELATE"
+msgstr ""
+
+#, python-format
+msgid " Welcome to %(RELATE)s "
+msgstr "Willkommen bei %(RELATE)s "
+
+#, fuzzy
+#| msgid "Courses"
+msgid "Open courses"
+msgstr "Kurse"
+
+#, fuzzy
+#| msgid "in progress"
+msgid "My Courses in Progress"
+msgstr "im Gange"
+
+#, fuzzy
+#| msgid "Past Courses"
+msgid "My past Courses"
+msgstr "Vergangene Kurse"
+
+msgctxt "The start and end time of a course"
+msgid "Time"
+msgstr ""
 
 msgid "403 Forbidden"
 msgstr ""
@@ -5018,7 +5192,7 @@ msgid ""
 msgstr ""
 
 #, python-format
-msgid "%(RELATE)s Administration"
+msgid "%(relate_site_name)s Administration"
 msgstr ""
 
 #, python-format
@@ -5073,12 +5247,14 @@ msgstr "Bitte wählen Sie Ihren Identity Provider aus der folgenden Liste:"
 
 #, python-format
 msgid ""
-"%(RELATE)s is currently in maintenance mode. Sorry for the interruption, "
-"we'll be back shortly."
+"%(relate_site_name)s is currently in maintenance mode. Sorry for the "
+"interruption, we'll be back shortly."
 msgstr ""
 
-msgid "Sign in to RELATE"
-msgstr "Bei RELATE Anmelden"
+#, fuzzy, python-format
+#| msgid "Signed in as %(username)s"
+msgid "Sign in to %(relate_site_name)s"
+msgstr "Als %(username)s angemeldet"
 
 msgid "Sign in using your institution's login"
 msgstr "Via Institutions-Login anmelden"
@@ -5092,7 +5268,9 @@ msgstr "Neues Konto erstellen"
 msgid "Sign in using an exam ticket"
 msgstr "Mit Prüfungsticket anmelden"
 
-msgid "Sign in with a RELATE-specific user name and password"
+#, fuzzy, python-format
+#| msgid "Sign in with a RELATE-specific user name and password"
+msgid "Sign in with a %(relate_site_name)s-specific user name and password"
 msgstr "Mit einem RELATE-spezifischen Benutzernamen anmelden"
 
 msgid "You're already signed in"
@@ -5106,6 +5284,57 @@ msgstr "Abmelden"
 
 msgid "User Profile"
 msgstr "Benutzerprofil"
+
+msgid "my English"
+msgstr ""
+
+msgid "Simplified Chinese"
+msgstr ""
+
+#, fuzzy
+#| msgid "Grading"
+msgid "German"
+msgstr "Benotung"
+
+#, fuzzy
+#| msgid "Finish"
+msgid "English"
+msgstr "Beenden"
+
+msgid "Korean"
+msgstr ""
+
+#, fuzzy
+#| msgid "Fetch"
+msgid "French"
+msgstr "Abholen"
+
+#~ msgid ""
+#~ "Enter a valid username. This value may contain only letters, numbers and "
+#~ "@/./+/-/_ characters."
+#~ msgstr ""
+#~ "Geben Sie einen gültigen Benutzernamen ein. Dieser Wert darf nur "
+#~ "Buchstaben, Zahlen und die Zeichen @/./+/-/_ enthalten."
+
+#~ msgid "Enter a valid username."
+#~ msgstr "Geben Sie einen gültigen Benutzernamen ein."
+
+#~ msgid ""
+#~ "This value may contain only letters, numbers and @/./+/-/_ characters."
+#~ msgstr ""
+#~ "Dieser Wert darf nur Buchstaben, Zahlen und die Zeichen @/./+/-/_ "
+#~ "enthalten."
+
+#, fuzzy
+#~| msgid "Result"
+#~ msgid "Reset"
+#~ msgstr "Ergebnis"
+
+#~ msgid "Git source must be specified"
+#~ msgstr "Git-Quelle muss angegeben werden"
+
+#~ msgid "Sign in to RELATE"
+#~ msgstr "Bei RELATE Anmelden"
 
 #~ msgid "only instructors and TAs may do that"
 #~ msgstr "Nur Instruktoren und Assistenten dürfen das"
@@ -5148,9 +5377,6 @@ msgstr "Benutzerprofil"
 #~ msgid "Submit assignment"
 #~ msgstr "Antwort einreichen"
 
-#~ msgid "in progress"
-#~ msgstr "im Gange"
-
 #, fuzzy
 #~| msgid ""
 #~| "Now impersonating %(last_name)s, %(first_name)s (user: %(username)s, "
@@ -5170,9 +5396,6 @@ msgstr "Benutzerprofil"
 #~ msgid "at %(grade_time)s"
 #~ msgstr "am %(grade_time)s"
 
-#~ msgid "Last Name"
-#~ msgstr "Nachname"
-
 #~ msgid "First Name"
 #~ msgstr "Vorname"
 
@@ -5191,9 +5414,6 @@ msgstr "Benutzerprofil"
 
 #~ msgid "Whether the course content has passed validation."
 #~ msgstr "Ob der Kurs die Validierung bestanden hat"
-
-#~ msgid "Valid"
-#~ msgstr "Gültig"
 
 #~ msgctxt "Flow expiration mode"
 #~ msgid "End session and grade"

@@ -175,7 +175,7 @@ def render_email_template(template_name, context=None, request=None, using=None)
     # type: (Text, Optional[Dict], Optional[HttpRequest], Optional[bool]) -> Text
     if context is None:
         context = {}
-    context.update({"RELATE": _(get_site_name())})
+    context.update({"relate_site_name": _(get_site_name())})
     from django.template.loader import render_to_string
     return render_to_string(template_name, context, request, using)
 
@@ -196,7 +196,7 @@ def settings_context_processor(request):
         settings.RELATE_SIGN_IN_BY_SAML2_ENABLED,
         "maintenance_mode": is_maintenance_mode(request),
         "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
-        "RELATE": _(get_site_name())
+        "relate_site_name": _(get_site_name())
         }
 
 

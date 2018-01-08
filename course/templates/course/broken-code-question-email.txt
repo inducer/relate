@@ -12,6 +12,6 @@ Details of the problem are below:
 ----------------
 {% endif %}
 
-- {{ RELATE }}
+- {{ relate_site_name }}
 
 

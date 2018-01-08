@@ -40,7 +40,6 @@ from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
         login as auth_login, logout as auth_logout)
 from django.contrib.auth.forms import \
         AuthenticationForm as AuthenticationFormBase
-from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.decorators import user_passes_test
 from django.urls import reverse
 from django.contrib.auth.validators import ASCIIUsernameValidator
@@ -434,8 +433,6 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
     else:
         form = LoginForm(request)
 
-    current_site = get_current_site(request)
-
     next_uri = ""
     if redirect_to:
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
@@ -443,10 +440,6 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
     context = {
         'form': form,
         redirect_field_name: redirect_to,
-
-        # Todo: test if the following are two items are redundant
-        'site': current_site,
-        'site_name': current_site.name,
         'next_uri': next_uri,
     }
 
@@ -804,8 +797,8 @@ def sign_in_by_email(request):
                 })
             from django.core.mail import EmailMessage
             msg = EmailMessage(
-                    _("Your %(RELATE)s sign-in link")
-                    % {"RELATE": _(get_site_name())},
+                    _("Your %(relate_site_name)s sign-in link")
+                    % {"relate_site_name": _(get_site_name())},
                     message,
                     getattr(settings, "NO_REPLY_EMAIL_FROM",
                             settings.ROBOT_EMAIL_FROM),

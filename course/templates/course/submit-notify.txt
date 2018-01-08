@@ -5,4 +5,4 @@
 Click here to review it:
 {{ review_uri }}
 {% endblocktrans %}
-- {{ RELATE }} {% trans "staff" %}
+- {% blocktrans %}{{ relate_site_name }} staff{% endblocktrans %}

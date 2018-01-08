@@ -9,4 +9,4 @@ Welcome, and we hope you have a productive class!{% endblocktrans %}
 One common reason for this may be that you may have used your personal email (such as a GMail or Yahoo account) rather than your official university account to sign in. If that is the case, please use the official account and try again.{% endblocktrans %}
 {% endif %}
 
-- {{ RELATE }} {% trans "staff" %}
+- {% blocktrans %}{{ relate_site_name }} staff{% endblocktrans %}
