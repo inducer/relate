@@ -282,9 +282,10 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
             self.assertEqual(resp.status_code, 200)
             self.assertContains(resp, "<title>%s</title>" % my_site_name, html=True)
 
-            # Translated twice, once in home.html, once in base.html
+            # Three translations in nav_bar brand, html title and
+            # "Welcome to RELATE", respectively
             self.assertEqual(
-                self.get_translation_count(mock_trans, my_site_name), 2)
+                self.get_translation_count(mock_trans, my_site_name), 3)
             mock_trans.reset_mock()
 
             # course page
@@ -297,7 +298,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
 
             # One translation in html title
             self.assertEqual(
-                self.get_translation_count(mock_trans, my_site_name), 2)
+                self.get_translation_count(mock_trans, my_site_name), 1)
 
         # email
         with override_settings(RELATE_REGISTRATION_ENABLED=True, USE_I18N=True):
@@ -322,7 +323,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
 
                     # Three RELATE in the email template
                     self.assertEqual(
-                        self.get_translation_count(mock_trans, my_site_name), 1)
+                        self.get_translation_count(mock_trans, my_site_name), 3)
 
     @override_settings()
     def test_default_configure(self):

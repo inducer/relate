@@ -1,9 +1,8 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
-{% trans relate_site_name as RELATE %}
 
 {% block title %}
-  {% trans "Grade book" %} - {{ RELATE }}
+  {% trans "Grade book" %} - {{ relate_site_name }}
 {% endblock %}
 
 {% block header_extra %}

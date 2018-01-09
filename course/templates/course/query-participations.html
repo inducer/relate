@@ -1,11 +1,10 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
-{% trans relate_site_name as RELATE %}
 {% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}
-  {% trans "Query Participations" %} - {{ RELATE }}
+  {% trans "Query Participations" %} - {{ relate_site_name }}
 {% endblock %}
 
 {% block header_extra %}

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-01-09 02:05+0800\n"
+"POT-Creation-Date: 2018-01-08 15:43+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -3317,8 +3317,8 @@ msgstr ""
 "系, 例如回复此邮件来说明您的情况. "
 
 #, python-format
-msgid "%(RELATE)s staff"
-msgstr "%(RELATE)s站务"
+msgid "%(relate_site_name)s staff"
+msgstr "%(relate_site_name)s站务"
 
 #, python-format
 msgid ""
@@ -4044,8 +4044,8 @@ msgid "Total"
 msgstr "总计"
 
 #, python-format
-msgid " Welcome to %(RELATE)s "
-msgstr "欢迎来到%(RELATE)s "
+msgid " Welcome to %(relate_site_name)s "
+msgstr "欢迎来到%(relate_site_name)s "
 
 msgid "RELATE is an Environment for Learning And TEaching"
 msgstr ""
@@ -4060,8 +4060,8 @@ msgid "Past Courses"
 msgstr "以往的课程"
 
 #, python-format
-msgid "There are no courses hosted on this %(RELATE)s site."
-msgstr "本(%(RELATE)s)网站还没有挂载课程. "
+msgid "There are no courses hosted on this %(relate_site_name)s site."
+msgstr "本(%(relate_site_name)s)网站还没有挂载课程. "
 
 #, python-format
 msgid "<a href=\"%(relate-sign_in_by_user_pw)s\">Sign in</a> to get started."
@@ -4100,8 +4100,9 @@ msgstr "私有密钥:"
 
 #, python-format
 msgid ""
-"Copy and paste this block of text into the 'private key' field in %(RELATE)s."
-msgstr "将这块文本复制粘贴到%(RELATE)s网站的\"私有密钥\"字段中."
+"Copy and paste this block of text into the 'private key' field in %"
+"(relate_site_name)s."
+msgstr "将这块文本复制粘贴到%(relate_site_name)s网站的\"私有密钥\"字段中."
 
 msgid "Public key:"
 msgstr "公共密钥:"
@@ -4150,12 +4151,12 @@ msgstr ""
 
 #, python-format
 msgid ""
-"If you cannot or would not like to sign in using a %(RELATE)s-specific user "
-"name or password, <a href='%(relate-sign_in_choice)s%(next_uri)s'>please "
-"choose a different method to sign in</a>."
+"If you cannot or would not like to sign in using a %(relate_site_name)s-"
+"specific user name or password, <a href='%(relate-sign_in_choice)s%(next_uri)"
+"s'>please choose a different method to sign in</a>."
 msgstr ""
-"如果你不能或者不想使用%(RELATE)s特有的用户名密码方式登入，请<a href='%"
-"(relate-sign_in_choice)s%(next_uri)s'>尝试使用别的方式登录</a>."
+"如果你不能或者不想使用%(relate_site_name)s特有的用户名密码方式登入，请<a "
+"href='%(relate-sign_in_choice)s%(next_uri)s'>尝试使用别的方式登录</a>."
 
 msgid ""
 "Note that the user name and password needed to use this form is <em>not</em> "
@@ -4211,14 +4212,14 @@ msgstr "(点击查看)"
 msgid ""
 "This is the code that is used to set up the problem and produce test data "
 "for your submission. It is reproduced here for your information, or if you "
-"would like to run your submission outside of %(RELATE)s. You should <em>not</"
-"em> copy/paste this code into the code box below. This code is run "
-"automatically 'behind the scenes' before your submitted code."
+"would like to run your submission outside of %(relate_site_name)s. You "
+"should <em>not</em> copy/paste this code into the code box below. This code "
+"is run automatically 'behind the scenes' before your submitted code."
 msgstr ""
 "这部分代码是用来设定问题以及产生您提交结果测试数据的代码。将其展示在这里是为"
-"了向您提供信息，或者您想在%(RELATE)s网站之外时使用这部分代码。请您 <strong>不"
-"要</strong> 把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码时，这部分代"
-"码会自动在后台运行。"
+"了向您提供信息，或者您想在%(relate_site_name)s网站之外时使用这部分代码。请您 "
+"<strong>不要</strong> 把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码"
+"时，这部分代码会自动在后台运行。"
 
 msgid "Testing code"
 msgstr "测试代码"
@@ -4227,14 +4228,14 @@ msgstr "测试代码"
 msgid ""
 "This is the code that is used to generate feedback for your submission. It "
 "is reproduced here for your information, or if you would like to run your "
-"submission outside of %(RELATE)s. You should <em>not</em> copy/paste this "
-"code into the code box below. This code is run automatically 'behind the "
-"scenes' after your submitted code."
+"submission outside of %(relate_site_name)s. You should <em>not</em> copy/"
+"paste this code into the code box below. This code is run automatically "
+"'behind the scenes' after your submitted code."
 msgstr ""
 "这部分代码是用来产生您提交的代码所得到的反馈信息。将其展示在这里是为了向您提"
-"供信息，或者您想在%(RELATE)s网站之外时使用这部分代码。请您 <strong>不要</"
-"strong> 把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码时，这部分代码会"
-"自动在后台运行。"
+"供信息，或者您想在%(relate_site_name)s网站之外时使用这部分代码。请您 <strong>"
+"不要</strong> 把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码时，这部分"
+"代码会自动在后台运行。"
 
 #. Translators: starter code for code question
 msgid "Starter code"
@@ -4266,20 +4267,20 @@ msgstr "(在这里预览Page)"
 #, python-format
 msgid ""
 "\n"
-"Welcome to %(RELATE)s! Please click this link to sign in:\n"
+"Welcome to %(relate_site_name)s! Please click this link to sign in:\n"
 "%(sign_in_uri)s\n"
 "\n"
 "You have received this email because someone (maybe you) entered your email "
-"address into the %(RELATE)s web site at\n"
+"address into the %(relate_site_name)s web site at\n"
 "%(home_uri)s\n"
 "\n"
 "If this was not you, it is safe to disregard this email.\n"
 msgstr ""
 "\n"
-"    欢迎来到%(RELATE)s! 请点击以下链接以登录网站:\n"
+"    欢迎来到%(relate_site_name)s! 请点击以下链接以登录网站:\n"
 "%(sign_in_uri)s\n"
 "\n"
-"    您收到了这封邮件是因为有人（可能是您）在%(RELATE)s网站\n"
+"    您收到了这封邮件是因为有人（可能是您）在%(relate_site_name)s网站\n"
 "%(home_uri)s\n"
 "输入了您的电子邮件. 如果不是您操作的, 可忽略此邮件. \n"
 
@@ -4928,8 +4929,24 @@ msgstr "课程设置更新失败."
 msgid "Edit Course"
 msgstr "编辑课程"
 
+msgid "About Us"
+msgstr "关于我们"
+
 msgid "RELATE"
 msgstr ""
+
+msgid "Open courses"
+msgstr "开放课程"
+
+msgid "My Courses in Progress"
+msgstr "我正在学习的课程"
+
+msgid "My past Courses"
+msgstr "我以往学习的课程"
+
+msgctxt "The start and end time of a course"
+msgid "Time"
+msgstr "时间"
 
 msgid "403 Forbidden"
 msgstr "403 禁止访问"
@@ -4991,8 +5008,8 @@ msgstr ""
 "谢谢！"
 
 #, python-format
-msgid "%(RELATE)s Administration"
-msgstr "%(RELATE)s管理"
+msgid "%(relate_site_name)s Administration"
+msgstr "%(relate_site_name)s管理"
 
 #, python-format
 msgid ""
@@ -5042,15 +5059,15 @@ msgstr "请从以下列表选择你的ID提供者: "
 
 #, python-format
 msgid ""
-"%(RELATE)s is currently in maintenance mode. Sorry for the interruption, "
-"we'll be back shortly."
+"%(relate_site_name)s is currently in maintenance mode. Sorry for the "
+"interruption, we'll be back shortly."
 msgstr ""
-"%(RELATE)s网站目前正在维护. 我们对因此为你带来不便深表抱歉, 我们很快将会恢"
-"复. "
+"%(relate_site_name)s网站目前正在维护. 我们对因此为你带来不便深表抱歉, 我们很"
+"快将会恢复. "
 
 #, python-format
-msgid "Sign in to %(RELATE)s"
-msgstr "登录%(RELATE)s"
+msgid "Sign in to %(relate_site_name)s"
+msgstr "登录用户： %(username)s"
 
 msgid "Sign in using your institution's login"
 msgstr "使用你所属机构的登录方式"
@@ -5065,8 +5082,8 @@ msgid "Sign in using an exam ticket"
 msgstr "使用测验ticket登录"
 
 #, python-format
-msgid "Sign in with a %(RELATE)s-specific user name and password"
-msgstr "使用%(RELATE)s用户名密码登录"
+msgid "Sign in with a %(relate_site_name)s-specific user name and password"
+msgstr "使用%(relate_site_name)s用户名密码登录"
 
 msgid "You're already signed in"
 msgstr "您已经登录. "

@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% trans relate_site_name as RELATE %}
 
 {% load crispy_forms_tags %}
 
 {% block title %}
-  {{ form_description }} - {{ RELATE }}
+  {{ form_description }} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}

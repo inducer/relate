@@ -1,9 +1,8 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
-{% trans relate_site_name as RELATE %}
 
 {% block title %}
-  {% trans "Grader Statistics" %}: {{ flow_id }} - {{ RELATE }}
+  {% trans "Grader Statistics" %}: {{ flow_id }} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}

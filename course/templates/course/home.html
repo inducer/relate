@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% trans relate_site_name as RELATE %}
 
 {% block content %}
   {% block cover %}
   <div class="jumbotron">
-    <h1>{% blocktrans %} Welcome to {{ RELATE }} {% endblocktrans %}</h1>
+    <h1>{% blocktrans %} Welcome to {{ relate_site_name }} {% endblocktrans %}</h1>
     <p>{% trans "RELATE is an Environment for Learning And TEaching" %}</p>
     <p>
     <a class="btn btn-lg btn-primary" href="https://github.com/inducer/relate" role="button">{% trans "Learn more" %} &raquo;</a>
@@ -53,7 +52,7 @@
       {% endblock %}
     {% endif %}
   {% else %}
-    {% blocktrans trimmed %} There are no courses hosted on this {{ RELATE }} site. {% endblocktrans %}
+    {% blocktrans trimmed %} There are no courses hosted on this {{ relate_site_name }} site. {% endblocktrans %}
     {% if not user.is_authenticated %}
       {% url "relate-sign_in_by_user_pw" as relate-sign_in_by_user_pw %}
       {% blocktrans trimmed %}

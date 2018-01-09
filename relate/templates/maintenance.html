@@ -1,12 +1,11 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% trans relate_site_name as RELATE %}
 
 {% block content %}
   <div class="alert alert-info">
     <i class="fa fa-info-circle"></i>
     {% blocktrans trimmed %}
-    {{ RELATE }} is currently in maintenance mode. Sorry for the interruption,
+    {{ relate_site_name }} is currently in maintenance mode. Sorry for the interruption,
     we'll be back shortly.
     {% endblocktrans %}
   </div>

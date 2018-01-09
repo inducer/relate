@@ -1,8 +1,8 @@
-{% load i18n %}{% trans relate_site_name as RELATE %}{% blocktrans with course_identifier=course.identifier %}Dear course staff of {{ course_identifier }},{% endblocktrans %}
+{% load i18n %}{% blocktrans with course_identifier=course.identifier %}Dear course staff of {{ course_identifier }},{% endblocktrans %}
  
 {% if flow_session.participation and not use_masked_profile %}{% blocktrans with participant=flow_session.participation.user %}Participant '{{ participant }}'{% endblocktrans %}{% else %}{% trans "A participant" %}{% endif %}{% blocktrans with flow_id=flow_session.flow_id course_identifier=course.identifier %} has just submitted his/her work on '{{ flow_id }}'.
 
 Click here to review it:
 {{ review_uri }}
 {% endblocktrans %}
-- {% blocktrans %}{{ RELATE }} staff{% endblocktrans %}
+- {% blocktrans %}{{ relate_site_name }} staff{% endblocktrans %}

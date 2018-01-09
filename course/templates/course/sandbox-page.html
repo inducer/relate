@@ -1,6 +1,5 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
-{% trans relate_site_name as RELATE %}
 
 {% load crispy_forms_tags %}
 {% load static %}
@@ -15,7 +14,7 @@
     {% blocktrans %}Page Sandbox{% endblocktrans %}
   {% endif %}
   -
-  {{ RELATE }}
+  {{ relate_site_name }}
 {% endblock %}
 
 {% block root_container %}
