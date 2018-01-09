@@ -26,6 +26,7 @@ import os
 from django.test import SimpleTestCase, mock
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 
 class CheckRelateSettingsBase(SimpleTestCase):
@@ -569,3 +570,71 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
             self.assertEqual([r.id for r in self.func(None)],
                              ["relate_languages.W001",
                               "relate_languages.W001"])
+
+
+class CheckRelateSiteName(CheckRelateSettingsBase):
+    VALID_CONF = "My RELATE"
+    INVALID_CONF = ["My RELATE"]
+
+    def test_site_name_not_configured(self):
+        with override_settings():
+            del settings.RELATE_SITE_NAME
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_site_name.E001"])
+
+    def test_site_name_none(self):
+        with override_settings(RELATE_SITE_NAME=None):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_site_name.E002"])
+
+    def test_site_name_invalid_instance_error(self):
+        with override_settings(RELATE_SITE_NAME=self.INVALID_CONF):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_site_name.E003"])
+
+    def test_site_name_blank_string(self):
+        with override_settings(RELATE_SITE_NAME="  "):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_site_name.E004"])
+
+
+TEST_MY_OVERRIDING_TEMPLATES_DIR = os.path.join(os.path.dirname(__file__),
+                                "resources", "my_templates")
+
+
+class CheckRelateTemplatesDirs(CheckRelateSettingsBase):
+    VALID_CONF = [TEST_MY_OVERRIDING_TEMPLATES_DIR]
+    INVALID_CONF1 = TEST_MY_OVERRIDING_TEMPLATES_DIR  # string
+    INVALID_CONF2 = [(TEST_MY_OVERRIDING_TEMPLATES_DIR,)]  # items not string
+    INVALID_CONF3 = [TEST_MY_OVERRIDING_TEMPLATES_DIR,
+                     "some/where/does/not/exist",
+                     "yet/another/invalid/path"]
+
+    def test_valid_conf(self):
+        with override_settings(RELATE_OVERRIDE_TEMPLATES_DIRS=self.VALID_CONF):
+            self.assertEqual(self.func(None), [])
+
+    def test_not_configured(self):
+        with override_settings():
+            del settings.RELATE_OVERRIDE_TEMPLATES_DIRS
+            self.assertEqual(self.func(None), [])
+
+    def test_configured_none(self):
+        with override_settings(RELATE_OVERRIDE_TEMPLATES_DIRS=None):
+            self.assertEqual(self.func(None), [])
+
+    def test_invalid_instance_error(self):
+        with override_settings(RELATE_OVERRIDE_TEMPLATES_DIRS=self.INVALID_CONF1):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_override_templates_dirs.E001"])
+
+    def test_invalid_item_instance_error(self):
+        with override_settings(RELATE_OVERRIDE_TEMPLATES_DIRS=self.INVALID_CONF2):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_override_templates_dirs.E002"])
+
+    def test_invalid_path(self):
+        with override_settings(RELATE_OVERRIDE_TEMPLATES_DIRS=self.INVALID_CONF3):
+            self.assertEqual([r.id for r in self.func(None)],
+                             ["relate_override_templates_dirs.W001",
+                              "relate_override_templates_dirs.W001"])

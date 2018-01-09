@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import re
 import datetime
 from django.test import TestCase, mock
 from django.test.utils import override_settings
@@ -34,6 +35,7 @@ from course.views import EditCourseForm
 from course.versioning import CourseCreationForm
 
 from .base_test_mixins import SingleCourseTestMixin
+from .utils import LocmemBackendTestsMixin, mail
 from .test_views import DATE_TIME_PICKER_TIME_FORMAT
 
 LANGUAGES = [
@@ -258,5 +260,77 @@ class CourseSpecificLangFormTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(form.errors["force_lang"][0],
                          VALIDATION_ERROR_LANG_NOT_SUPPORTED_PATTERN % "foo")
         self.assertEqual(Course.objects.count(), expected_course_count)
+
+
+class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCase):
+    def setUp(self):
+        super(RelateSiteNameTest, self).setUp()
+
+    def get_translation_count(self, mocked_method, literal):
+
+        return len(
+            [arg[0] for arg, kwarg in [
+                args for args in mocked_method.call_args_list]
+             if arg[0] == literal])
+
+    def verify_result_with_configure(self, my_site_name):
+        # home page
+        with mock.patch("django.utils.translation.trans_real.do_translate")\
+                as mock_trans:
+            mock_trans.side_effect = lambda x, y: x
+            resp = self.c.get("/")
+            self.assertEqual(resp.status_code, 200)
+            self.assertContains(resp, "<title>%s</title>" % my_site_name, html=True)
+
+            # Three translations in nav_bar brand, html title and
+            # "Welcome to RELATE", respectively
+            self.assertEqual(
+                self.get_translation_count(mock_trans, my_site_name), 3)
+            mock_trans.reset_mock()
+
+            # course page
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+
+            test_site_name_re = re.compile(
+                ".+<title>.+-.+%s.+</title>.+" % my_site_name, re.DOTALL)
+            self.assertRegex(resp.content.decode(), test_site_name_re)
+
+            # One translation in html title
+            self.assertEqual(
+                self.get_translation_count(mock_trans, my_site_name), 1)
+
+        # email
+        with override_settings(RELATE_REGISTRATION_ENABLED=True, USE_I18N=True):
+            # render() is mocked so as to count string translated in email rendering
+            with mock.patch("django.utils.translation.trans_real.do_translate")\
+                    as mock_trans,\
+                    mock.patch("course.auth._") as mock_ugettext,\
+                    mock.patch('course.auth.messages'),\
+                    mock.patch('course.auth.render'):
+                mock_trans.return_value = "foo"
+                with self.temporarily_switch_to_user(None):
+                    resp = self.post_sign_up(
+                        data={"username": "Jack", "email": "jack@exmaple.com"},
+                        follow=False
+                    )
+                    self.assertTrue(resp.status_code, 200)
+                    self.assertEqual(len(mail.outbox), 1)
+
+                    # In the view, tranlating RELATE for email title.
+                    self.assertEqual(
+                        self.get_translation_count(mock_ugettext, my_site_name), 1)
+
+                    # Three RELATE in the email template
+                    self.assertEqual(
+                        self.get_translation_count(mock_trans, my_site_name), 3)
+
+    @override_settings()
+    def test_default_configure(self):
+        self.verify_result_with_configure("RELATE")
+
+    @override_settings(RELATE_SITE_NAME="My RELATE")
+    def test_custom_configure(self):
+        self.verify_result_with_configure("My RELATE")
 
 # vim: foldmethod=marker

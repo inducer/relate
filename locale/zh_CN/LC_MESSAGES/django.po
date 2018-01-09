@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-10 00:22+0800\n"
+"POT-Creation-Date: 2018-01-09 11:03+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -24,11 +24,6 @@ msgid "username"
 msgstr "用户名"
 
 msgid "Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only."
-msgstr ""
-
-msgid ""
-"Enter a valid username. This value may contain only letters, numbers and @/./"
-"+/-/_ characters."
 msgstr ""
 
 msgid "A user with that username already exists."
@@ -111,12 +106,6 @@ msgstr "默认"
 msgid "Editor mode"
 msgstr "编辑器模式"
 
-msgid "A hash of the authentication token to be used for direct git access."
-msgstr "直接用于访问git时使用的验证token的哈希值"
-
-msgid "Hash of git authentication token"
-msgstr "验证token的哈希值"
-
 msgid "user"
 msgstr "用户"
 
@@ -125,6 +114,9 @@ msgstr "用户"
 
 msgid "(blank)"
 msgstr "(空)"
+
+msgid "User"
+msgstr "用户"
 
 msgid "Tags must belong to same course as participation."
 msgstr "Tags必须与同一课程中的participation一致. "
@@ -215,9 +207,6 @@ msgstr "虚拟用户时出现错误. "
 msgid "Select user to impersonate."
 msgstr "选择您想模拟的用户. "
 
-msgid "User"
-msgstr "用户"
-
 msgid "Add impersonation header"
 msgstr "添加模拟用户header"
 
@@ -253,14 +242,11 @@ msgstr "停止模拟用户"
 msgid "Sign in"
 msgstr "登录"
 
+msgid "Username-based sign-in is not being used"
+msgstr "基于用户名登录的方式未启用"
+
 msgid "Username"
 msgstr "用户名"
-
-msgid "Enter a valid username."
-msgstr ""
-
-msgid "This value may contain only letters, numbers and @/./+/-/_ characters."
-msgstr ""
 
 msgid "Send email"
 msgstr "发送邮件"
@@ -273,9 +259,6 @@ msgid ""
 "That email address is already in use. Would you like to <a href='%s'>reset "
 "your password</a> instead?"
 msgstr "该电子邮件已经注册, 您是否需要 <a href='%s'>重置密码</a> ？"
-
-msgid "RELATE"
-msgstr ""
 
 msgid "Verify your email"
 msgstr "验证您的电子邮件"
@@ -347,8 +330,8 @@ msgid "Email-based sign-in is not being used"
 msgstr "基于邮件链接登录的方式未启用"
 
 #, python-format
-msgid "Your %(RELATE)s sign-in link"
-msgstr "您的%(RELATE)s登录链接"
+msgid "Your %(relate_site_name)s sign-in link"
+msgstr "您的%(relate_site_name)s登录链接"
 
 msgid "Institutional ID Confirmation"
 msgstr "学号(再次输入)"
@@ -385,21 +368,17 @@ msgstr "您的输入不匹配."
 msgid "Profile data saved."
 msgstr "用户信息已更新. "
 
-msgid "Reset"
-msgstr "重置"
+msgid "Create"
+msgstr "创建"
 
 #, python-format
-msgid "A new authentication token has been set: %s."
-msgstr "一个新的git认证token已设定: %s."
+msgid ""
+"A new authentication token has been created: %s. Please save this token, as "
+"you will not be able to retrieve it later."
+msgstr "创建了一个新的认证token: %s. 请将它保存下来，您以后都不会再收到它."
 
-msgid "An authentication token has previously been set."
-msgstr "之前已经设定了一个git认证token."
-
-msgid "No authentication token has previously been set."
-msgstr "之前尚未设定了git认证token."
-
-msgid "Manage Git Authentication Token"
-msgstr "管理Git认证token"
+msgid "Could not find which button was pressed."
+msgstr "无法找到哪一个按钮被按下"
 
 #. Translators: format of event kind in Event model
 msgid "Should be lower_case_with_underscores, no spaces allowed."
@@ -446,9 +425,6 @@ msgstr "开始的序号"
 msgctxt "Count of recurring events"
 msgid "Count"
 msgstr "次数"
-
-msgid "Create"
-msgstr "创建"
 
 #, python-format
 msgid "'%(event_kind)s %(event_ordinal)d' already exists"
@@ -518,6 +494,10 @@ msgid "Use admin interface"
 msgstr "使用管理界面"
 
 msgctxt "Participation permission"
+msgid "Manage authentication tokens"
+msgstr "管理身份认证token"
+
+msgctxt "Participation permission"
 msgid "Impersonate role"
 msgstr "用户模拟"
 
@@ -554,6 +534,10 @@ msgid "Included in grade statistics"
 msgstr "包含在得分统计中"
 
 msgctxt "Participation permission"
+msgid "Skip during manual grading"
+msgstr "在手动评分时跳过"
+
+msgctxt "Participation permission"
 msgid "Edit exam"
 msgstr "编辑测验"
 
@@ -566,12 +550,16 @@ msgid "Batch issue exam ticket"
 msgstr "批量发布测验ticket"
 
 msgctxt "Participation permission"
-msgid "View flow sessions from role "
-msgstr "查看flow session"
+msgid "View participants' masked profile only"
+msgstr "只能查看用户的脱敏信息"
+
+msgctxt "Participation permission"
+msgid "View flow sessions from role"
+msgstr "从自己的角色查看其它用户的flow session"
 
 msgctxt "Participation permission"
 msgid "View gradebook"
-msgstr "查看得分"
+msgstr "查看所有用户的成绩册"
 
 msgctxt "Participation permission"
 msgid "Edit grading opportunity"
@@ -858,7 +846,18 @@ msgstr "page \"%(group_id)s/%(page_id)s\" (在flow \"%(flow_id)s\"中)"
 msgid "repo page class must conist of two dotted components (invalid: '%s')"
 msgstr "repo类型的page必须包括两个dotted组件 (无效: \"%s\")"
 
-msgid "Already enrolled. Cannot re-renroll."
+msgid ""
+"You have previously sent the enrollment request. Re-sending the request is "
+"not allowed."
+msgstr "您之前已经发送过加入课程的申请. 重新发送申请将不被受理."
+
+msgid "Your enrollment request had been denied. Enrollment is not allowed."
+msgstr "您的加入课程申请已经被拒绝, 再次申请将不被受理. "
+
+msgid "You had been dropped from the course. Re-enrollment is not allowed."
+msgstr "您已经从课程中被移除. 重新申请将不被受理."
+
+msgid "Already enrolled. Cannot re-enroll."
 msgstr "已经加入课程, 不能再次申请加入. "
 
 msgid "Course is not accepting enrollments."
@@ -982,6 +981,9 @@ msgstr "批准"
 msgid "Deny"
 msgstr "拒绝"
 
+msgid "This user has not confirmed his/her email."
+msgstr "该用户还未确定其email."
+
 msgid "Changes saved."
 msgstr "变更保存成功. "
 
@@ -990,6 +992,14 @@ msgstr "成功地拒绝了."
 
 msgid "Successfully dropped."
 msgstr "成功地剔除了."
+
+#, python-format
+msgid ""
+"A data integrity issue was detected when saving this participation. Maybe a "
+"participation for this user already exists? (%s)"
+msgstr ""
+"在保存该participation时发生了一个数据完整性错误. 可能该user的participation已"
+"经存在了？ (%s)"
 
 msgid "Edit Participation"
 msgstr "编辑课程参与"
@@ -1268,12 +1278,17 @@ msgid ""
 "incompatible way (say, by adding an option to a choice question) without "
 "changing the question ID. The precise error encountered was the following: "
 msgstr ""
+"该页面存储在数据库中的数据对于目前的课程内容来说已经被视为无效. 可能课程的内"
+"容发生了无法兼容的更新(比如，在一个选择题的可选项中添加了选项)，而没有更改问"
+"题的ID. 导致该错误的具体原因是: "
 
 msgid ""
 "Changes to this session are being prevented because this session yields a "
 "permanent grade, but you have not completed your enrollment process in this "
 "course."
 msgstr ""
+"对这个session的改变已经被阻止，因为该session已经生成一个永久的成绩, 而且您还"
+"未完成本课程的注册."
 
 msgid "could not find which button was pressed"
 msgstr "无法找到哪一个按钮被按下"
@@ -1341,9 +1356,15 @@ msgstr "无法结束已经结束的session"
 msgid "not permitted to end session"
 msgstr "不允许结束session"
 
+#. Translators: displayed format of Participation: some user in some
+#. course as some role
 #, python-format
-msgid "Submission by %(participation)s"
-msgstr "提交，来自%(participation)s"
+msgid "%(user)s in %(course)s as %(role)s"
+msgstr "%(user)s在课程%(course)s中(作为%(role)s)"
+
+#, python-format
+msgid "Submission by %(participation_desc)s"
+msgstr "提交，来自%(participation_desc)s"
 
 msgid ""
 "If non-empty, limit the regrading to sessions started under this access "
@@ -1389,6 +1410,9 @@ msgstr "重新允许修改回答"
 
 msgid "Cancel"
 msgstr "放弃"
+
+msgid "No prior answers found that could be un-submitted."
+msgstr "找不到可以取消提交的回答."
 
 msgid "Flow page changes reallowed. "
 msgstr "flow页面的回答变更已重新批准"
@@ -1726,6 +1750,11 @@ msgstr "信息已发送. "
 msgid "Send instant message"
 msgstr "发送即时信息"
 
+#, python-format
+msgid ""
+"'%s' is currently not supported as a course specific language at this site."
+msgstr "'本站目前不支持'%s'作为课程专用语言."
+
 msgid ""
 "A course identifier. Alphanumeric with dashes, no spaces. This is visible in "
 "URLs and determines the location on your file system where the course's git "
@@ -1870,6 +1899,12 @@ msgstr "这个电子邮件地址用于接收关于本课程的事务通知. "
 
 msgid "Notify email"
 msgstr "接收通知的邮箱"
+
+msgid "Which language is forced to be used for this course."
+msgstr "本课程的页面将强制使用哪种语言. "
+
+msgid "Course language forcibly used"
+msgstr "课程强制使用的语言"
 
 msgid ""
 "(Required only if the instant message feature is desired.) The Jabber/XMPP "
@@ -2019,12 +2054,6 @@ msgstr "标签"
 msgid "Notes"
 msgstr "注释"
 
-#. Translators: displayed format of Participation: some user in some
-#. course as some role
-#, python-format
-msgid "%(user)s in %(course)s as %(role)s"
-msgstr "%(user)s在课程%(course)s中(作为%(role)s)"
-
 msgid "Participation"
 msgstr "课程参与"
 
@@ -2072,6 +2101,27 @@ msgstr "学员"
 
 msgid "Unenrolled"
 msgstr "未加入"
+
+msgid "Restrict to role"
+msgstr "限制在role"
+
+msgid "Description"
+msgstr "描述"
+
+msgid "Last use time"
+msgstr "上一次使用的时间"
+
+msgid "Valid until"
+msgstr "有效至"
+
+msgid "Revocation time"
+msgstr "撤销时间"
+
+msgid "A hash of the authentication token to be used for direct git access."
+msgstr "直接用于访问git时使用的验证token的哈希值"
+
+msgid "Hash of git authentication token"
+msgstr "验证token的哈希值"
 
 msgid "Cancelled"
 msgstr "已取消的"
@@ -2127,8 +2177,8 @@ msgstr "flow \"%(flow_id)s\"中匿名的session %(session_id)d "
 msgid "%(user)s's session %(session_id)d on '%(flow_id)s'"
 msgstr "%(user)s在flow \"%(flow_id)s\"的session %(session_id)d"
 
-msgid "Ordinal"
-msgstr "序号"
+msgid "Page ordinal"
+msgstr "页面序号"
 
 msgid "Page type as indicated in course content"
 msgstr "课程内容中所确定的Page类型"
@@ -2157,7 +2207,7 @@ msgstr "flow page的数据"
 
 #, python-format
 msgid ""
-"Data for page '%(group_id)s/%(page_id)s' (page_ordinal %(page_ordinal)s) in %"
+"Data for page '%(group_id)s/%(page_id)s' (page ordinal %(page_ordinal)s) in %"
 "(flow_session)s"
 msgstr ""
 "%(flow_session)s中page %(group_id)s/%(page_id)s(序号为%(page_ordinal)s)的数据"
@@ -2456,9 +2506,6 @@ msgstr "即时信息"
 msgid "Instant messages"
 msgstr "即时信息"
 
-msgid "Description"
-msgstr "描述"
-
 msgid "Active"
 msgstr "正常"
 
@@ -2743,6 +2790,11 @@ msgid "The original failure message follows:"
 msgstr "错误发生时的信息如下:"
 
 msgid ""
+"It looks like you submitted code that is identical to the reference "
+"solution. This is not allowed."
+msgstr "看上去您所提交的代码与参考答案一致. 这是不被允许的."
+
+msgid ""
 "The grading code failed. Sorry about that. The staff has been informed, and "
 "if this problem is due to an issue with the grading code, it will be fixed "
 "as soon as possible. In the meantime, you'll see a traceback below that may "
@@ -2774,7 +2826,7 @@ msgstr "这是exception traceback"
 
 #, python-format
 msgid "Your code ran on %s."
-msgstr ""
+msgstr "运行你的代码的主机实例为: %s"
 
 msgid "Your code printed the following output"
 msgstr "你的代码打印出以下的输出结果"
@@ -3114,7 +3166,7 @@ msgstr "<b>注释:</b> 一些日历的条目是可点击的, 且与其下方的�
 
 #. Translators: The following are names for menu items in course page
 msgctxt "menu item"
-msgid "Student"
+msgid "Participant"
 msgstr "学员"
 
 msgid "View grades"
@@ -3125,6 +3177,9 @@ msgstr "查看日历"
 
 msgid "Back to course page"
 msgstr "返回课程主页面"
+
+msgid "Manage Authentication Tokens"
+msgstr "管理身份认证token"
 
 msgctxt "menu item"
 msgid "Grading"
@@ -3261,8 +3316,9 @@ msgstr ""
 "很抱歉地告知您, 您参加课程%(course_identifier)s的申请被拒绝. 请与课务人员联"
 "系, 例如回复此邮件来说明您的情况. "
 
-msgid "- RELATE staff "
-msgstr "- RELATE站务"
+#, python-format
+msgid "%(relate_site_name)s staff"
+msgstr "%(relate_site_name)s站务"
 
 #, python-format
 msgid ""
@@ -3446,7 +3502,7 @@ msgstr ""
 "%(review_uri)s\n"
 "\n"
 
-msgid "Viewing session for partipant"
+msgid "Viewing session for participant"
 msgstr "正在查看session的学员为: "
 
 msgid "(unspecified participant)"
@@ -3480,12 +3536,6 @@ msgstr "重新允许修改回答"
 
 msgid "Submission history for this page"
 msgstr "本页面的提交历史"
-
-msgid "(current)"
-msgstr "(当前的)"
-
-msgid "(submitted)"
-msgstr "(已提交的)"
 
 msgid "Go to end"
 msgstr "跳转至最末"
@@ -3534,6 +3584,15 @@ msgstr "已保存"
 msgid "Error--not saved."
 msgstr "错误--未保存."
 
+msgid "No submission history"
+msgstr "无提交记录"
+
+msgid "(current)"
+msgstr "(当前的)"
+
+msgid "(submitted)"
+msgstr "(已提交的)"
+
 msgid "unfinished"
 msgstr "未完成"
 
@@ -3580,11 +3639,11 @@ msgstr "您的session将采取\"<b>%(description)s</b>\"的评分规则. "
 
 #, python-format
 msgid "Your session will be due on <b>%(due)s</b>."
-msgstr "您的session将在<b>%(due)s</b>过期."
+msgstr "该session将于\"<b>%(due)s</b>\"截止. "
 
 #, python-format
 msgid "You will receive <b>%(credit_percent)s%% credit</b> for your work."
-msgstr "您的得分将为应得分数的<b>%(credit_percent)s%%</b>. "
+msgstr "该session的得分将为应得分数的<b>%(credit_percent)s%%</b>. "
 
 #, python-format
 msgid ""
@@ -3646,25 +3705,21 @@ msgstr "评分"
 msgid "Past submissions/grades"
 msgstr "过往的提交记录/评分记录"
 
-msgid "Submission:"
-msgstr "权限:"
-
-msgid "Grade:"
-msgstr "得分:"
-
-msgid "no grade"
-msgstr "无评分"
-
 msgid "Property"
 msgstr "属性"
 
 msgid "Value"
 msgstr "值"
 
-#. Translators: the grade information "for" a participant with fullname + (username)
+#. Translators: the grade information "for" a participant
 #, python-format
 msgid "for %(full_name)s (%(username)s)"
 msgstr "%(full_name)s (%(username)s)"
+
+#. Translators: the grade information "for" a participant
+#, python-format
+msgid "for %(masked_user_profile)s"
+msgstr "%(masked_user_profile)s"
 
 msgid "Points awarded"
 msgstr "给予的分数"
@@ -3718,10 +3773,22 @@ msgid "Add phrase"
 msgstr "添加常用评语"
 
 msgid "Submit and next page"
-msgstr "提交并转到下一页"
+msgstr "并翻下一页"
 
 msgid "Submit and next session"
-msgstr "提交并转到下一个session"
+msgstr "并转下一个session"
+
+msgid "No submission/grade history"
+msgstr "无提交记录/评分记录"
+
+msgid "Submission:"
+msgstr "提交:"
+
+msgid "Grade:"
+msgstr "得分:"
+
+msgid "no grade"
+msgstr "无评分"
 
 #, python-format
 msgid ""
@@ -3745,6 +3812,9 @@ msgstr ""
 "点击以下链在flow页面中查看反馈:\n"
 "%(review_uri)s\n"
 "\n"
+
+msgid "Dear user"
+msgstr "尊敬的用户: "
 
 #, python-format
 msgid ""
@@ -3843,6 +3913,9 @@ msgstr "session状态"
 msgid "Session grade"
 msgstr "session得分 "
 
+msgid "Me"
+msgstr "我"
+
 msgid "Rules tag"
 msgstr "规则tag"
 
@@ -3867,6 +3940,9 @@ msgstr "我的成绩"
 
 msgid "Grades"
 msgstr "得分"
+
+msgid "ME"
+msgstr "我"
 
 msgid "Date"
 msgstr "日期"
@@ -3985,7 +4061,7 @@ msgstr "以往的课程"
 
 #, python-format
 msgid "There are no courses hosted on this %(RELATE)s site."
-msgstr "本(%(RELATE)s)网站还没有挂载课程. "
+msgstr "本%(RELATE)s网站还没有挂载课程. "
 
 #, python-format
 msgid "<a href=\"%(relate-sign_in_by_user_pw)s\">Sign in</a> to get started."
@@ -4022,9 +4098,11 @@ msgstr ""
 msgid "Private key:"
 msgstr "私有密钥:"
 
+#, python-format
 msgid ""
-"Copy and paste this block of text into the 'private key' field in RELATE."
-msgstr "将这块文本复制粘贴到网站的\"私有密钥\"字段中."
+"Copy and paste this block of text into the 'private key' field in %"
+"(relate_site_name)s."
+msgstr "将这块文本复制粘贴到%(relate_site_name)s网站的\"私有密钥\"字段中."
 
 msgid "Public key:"
 msgstr "公共密钥:"
@@ -4073,12 +4151,12 @@ msgstr ""
 
 #, python-format
 msgid ""
-"If you cannot or would not like to sign in using a RELATE-specific user name "
-"or password, <a href='%(relate-sign_in_choice)s%(next_uri)s'>please choose a "
-"different method to sign in</a>."
+"If you cannot or would not like to sign in using a %(relate_site_name)s-"
+"specific user name or password, <a href='%(relate-sign_in_choice)s%(next_uri)"
+"s'>please choose a different method to sign in</a>."
 msgstr ""
-"如果你不能或者不喜欢使用RELATE用户名密码方式登入，请<a href='%(relate-"
-"sign_in_choice)s%(next_uri)s'>尝试使用别的方式登录</a>."
+"如果你不能或者不想使用%(relate_site_name)s特有的用户名密码方式登入，请<a "
+"href='%(relate-sign_in_choice)s%(next_uri)s'>尝试使用别的方式登录</a>."
 
 msgid ""
 "Note that the user name and password needed to use this form is <em>not</em> "
@@ -4099,6 +4177,27 @@ msgstr ""
 "如果您不记得您的密码，请 <a href=\"%(relate-reset_password)s\">重置密码</"
 "a> . "
 
+msgid "(No tokens have been created yet.)"
+msgstr "(尚未创建任何token.) "
+
+msgid "Token ID"
+msgstr ""
+
+msgid "Role Restriction"
+msgstr "Role限制"
+
+msgid "Created"
+msgstr "已创建的"
+
+msgid "Last used"
+msgstr "最后使用的"
+
+msgid "Revoked"
+msgstr "已撤回的"
+
+msgid "Indefinitely"
+msgstr "无限制的"
+
 msgid "Status"
 msgstr "状态"
 
@@ -4109,32 +4208,34 @@ msgstr "问题设置代码"
 msgid "(click to view)"
 msgstr "(点击查看)"
 
+#, python-format
 msgid ""
 "This is the code that is used to set up the problem and produce test data "
 "for your submission. It is reproduced here for your information, or if you "
-"would like to run your submission outside of RELATE. You should <em>not</em> "
-"copy/paste this code into the code box below. This code is run automatically "
-"'behind the scenes' before your submitted code."
+"would like to run your submission outside of %(relate_site_name)s. You "
+"should <em>not</em> copy/paste this code into the code box below. This code "
+"is run automatically 'behind the scenes' before your submitted code."
 msgstr ""
 "这部分代码是用来设定问题以及产生您提交结果测试数据的代码。将其展示在这里是为"
-"了向您提供信息，或者您想在RELATE网站之外时使用这部分代码。请您 <strong>不要</"
-"strong> 把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码时，这部分代码会"
-"自动在后台运行。"
+"了向您提供信息，或者您想在%(relate_site_name)s网站之外时使用这部分代码。请您 "
+"<strong>不要</strong> 把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码"
+"时，这部分代码会自动在后台运行。"
 
 msgid "Testing code"
 msgstr "测试代码"
 
+#, python-format
 msgid ""
 "This is the code that is used to generate feedback for your submission. It "
 "is reproduced here for your information, or if you would like to run your "
-"submission outside of RELATE. You should <em>not</em> copy/paste this code "
-"into the code box below. This code is run automatically 'behind the scenes' "
-"after your submitted code."
+"submission outside of %(relate_site_name)s. You should <em>not</em> copy/"
+"paste this code into the code box below. This code is run automatically "
+"'behind the scenes' after your submitted code."
 msgstr ""
 "这部分代码是用来产生您提交的代码所得到的反馈信息。将其展示在这里是为了向您提"
-"供信息，或者您想在RELATE网站之外时使用这部分代码。请您 <strong>不要</strong> "
-"把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码时，这部分代码会自动在后"
-"台运行。"
+"供信息，或者您想在%(relate_site_name)s网站之外时使用这部分代码。请您 <strong>"
+"不要</strong> 把这部分代码 复制/粘贴 到下面的代码框中。当您提交代码时，这部分"
+"代码会自动在后台运行。"
 
 #. Translators: starter code for code question
 msgid "Starter code"
@@ -4239,6 +4340,11 @@ msgid ""
 msgstr ""
 "错误: 需导入的列中含有非ASCII字符. 请将CSV文件转换为utf8格式后再尝试导入."
 
+msgid ""
+"disabled (i.e., displayed language is determined by user's browser "
+"preference)"
+msgstr "未启用(即，页面显示的语言取决于用户的浏览器偏好)"
+
 msgid "invalid identifier"
 msgstr "无效的identifier"
 
@@ -4253,6 +4359,14 @@ msgid ""
 msgstr ""
 "教学设施名称无法识别: '%(fac_name)s'. 已知的教学设施名包括: '%"
 "(known_fac_names)s'"
+
+#, python-format
+msgid ""
+"Name of participation tag not recognized: '%(ptag_name)s'. Known "
+"participation tag names: '%(known_ptag_names)s'"
+msgstr ""
+"participation tag名无法识别: '%(ptag_name)s'. 已知的participation tag名包括: "
+"'%(known_ptag_names)s'"
 
 #, python-format
 msgid "attribute '%(attr)s' missing"
@@ -4483,9 +4597,6 @@ msgstr "警告："
 
 msgid "Validate and create"
 msgstr "验证并创建课程"
-
-msgid "Git source must be specified"
-msgstr "必须设定git源"
 
 msgid ""
 "No refs found in remote repository (i.e. no master branch, no HEAD). This "
@@ -4806,8 +4917,20 @@ msgstr "只有课务人员可以使用这个工具"
 msgid "%(current)d out of %(total)d items processed."
 msgstr "%(current)d个(共计%(total)d个)已经处理."
 
+msgid "Successfully updated course settings."
+msgstr "成功更新课程设置."
+
+msgid "No change was made on the settings."
+msgstr "课程设置未变化."
+
+msgid "Failed to update course settings."
+msgstr "课程设置更新失败."
+
 msgid "Edit Course"
 msgstr "编辑课程"
+
+msgid "RELATE"
+msgstr ""
 
 msgid "403 Forbidden"
 msgstr "403 禁止访问"
@@ -4926,8 +5049,9 @@ msgstr ""
 "%(RELATE)s网站目前正在维护. 我们对因此为你带来不便深表抱歉, 我们很快将会恢"
 "复. "
 
-msgid "Sign in to RELATE"
-msgstr "登录RELATE"
+#, python-format
+msgid "Sign in to %(relate_site_name)s"
+msgstr "登录%(relate_site_name)s"
 
 msgid "Sign in using your institution's login"
 msgstr "使用你所属机构的登录方式"
@@ -4941,8 +5065,9 @@ msgstr "注册新帐号"
 msgid "Sign in using an exam ticket"
 msgstr "使用测验ticket登录"
 
-msgid "Sign in with a RELATE-specific user name and password"
-msgstr "使用RELATE用户名密码登录"
+#, python-format
+msgid "Sign in with a %(relate_site_name)s-specific user name and password"
+msgstr "使用%(relate_site_name)s用户名密码登录"
 
 msgid "You're already signed in"
 msgstr "您已经登录. "
