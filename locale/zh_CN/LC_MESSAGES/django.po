@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-01-08 15:43+0800\n"
+"POT-Creation-Date: 2018-01-09 11:03+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -4044,8 +4044,8 @@ msgid "Total"
 msgstr "总计"
 
 #, python-format
-msgid " Welcome to %(relate_site_name)s "
-msgstr "欢迎来到%(relate_site_name)s "
+msgid " Welcome to %(RELATE)s "
+msgstr "欢迎来到%(RELATE)s "
 
 msgid "RELATE is an Environment for Learning And TEaching"
 msgstr ""
@@ -4060,8 +4060,8 @@ msgid "Past Courses"
 msgstr "以往的课程"
 
 #, python-format
-msgid "There are no courses hosted on this %(relate_site_name)s site."
-msgstr "本(%(relate_site_name)s)网站还没有挂载课程. "
+msgid "There are no courses hosted on this %(RELATE)s site."
+msgstr "本%(RELATE)s网站还没有挂载课程. "
 
 #, python-format
 msgid "<a href=\"%(relate-sign_in_by_user_pw)s\">Sign in</a> to get started."
@@ -4267,20 +4267,20 @@ msgstr "(在这里预览Page)"
 #, python-format
 msgid ""
 "\n"
-"Welcome to %(relate_site_name)s! Please click this link to sign in:\n"
+"Welcome to %(RELATE)s! Please click this link to sign in:\n"
 "%(sign_in_uri)s\n"
 "\n"
 "You have received this email because someone (maybe you) entered your email "
-"address into the %(relate_site_name)s web site at\n"
+"address into the %(RELATE)s web site at\n"
 "%(home_uri)s\n"
 "\n"
 "If this was not you, it is safe to disregard this email.\n"
 msgstr ""
 "\n"
-"    欢迎来到%(relate_site_name)s! 请点击以下链接以登录网站:\n"
+"    欢迎来到%(RELATE)s! 请点击以下链接以登录网站:\n"
 "%(sign_in_uri)s\n"
 "\n"
-"    您收到了这封邮件是因为有人（可能是您）在%(relate_site_name)s网站\n"
+"    您收到了这封邮件是因为有人（可能是您）在%(RELATE)s网站\n"
 "%(home_uri)s\n"
 "输入了您的电子邮件. 如果不是您操作的, 可忽略此邮件. \n"
 
@@ -4929,24 +4929,8 @@ msgstr "课程设置更新失败."
 msgid "Edit Course"
 msgstr "编辑课程"
 
-msgid "About Us"
-msgstr "关于我们"
-
 msgid "RELATE"
 msgstr ""
-
-msgid "Open courses"
-msgstr "开放课程"
-
-msgid "My Courses in Progress"
-msgstr "我正在学习的课程"
-
-msgid "My past Courses"
-msgstr "我以往学习的课程"
-
-msgctxt "The start and end time of a course"
-msgid "Time"
-msgstr "时间"
 
 msgid "403 Forbidden"
 msgstr "403 禁止访问"
@@ -5008,8 +4992,8 @@ msgstr ""
 "谢谢！"
 
 #, python-format
-msgid "%(relate_site_name)s Administration"
-msgstr "%(relate_site_name)s管理"
+msgid "%(RELATE)s Administration"
+msgstr "%(RELATE)s管理"
 
 #, python-format
 msgid ""
@@ -5059,15 +5043,15 @@ msgstr "请从以下列表选择你的ID提供者: "
 
 #, python-format
 msgid ""
-"%(relate_site_name)s is currently in maintenance mode. Sorry for the "
-"interruption, we'll be back shortly."
+"%(RELATE)s is currently in maintenance mode. Sorry for the interruption, "
+"we'll be back shortly."
 msgstr ""
-"%(relate_site_name)s网站目前正在维护. 我们对因此为你带来不便深表抱歉, 我们很"
-"快将会恢复. "
+"%(RELATE)s网站目前正在维护. 我们对因此为你带来不便深表抱歉, 我们很快将会恢"
+"复. "
 
 #, python-format
 msgid "Sign in to %(relate_site_name)s"
-msgstr "登录用户： %(username)s"
+msgstr "登录%(relate_site_name)s"
 
 msgid "Sign in using your institution's login"
 msgstr "使用你所属机构的登录方式"

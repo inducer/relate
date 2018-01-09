@@ -4,8 +4,8 @@
 {% block content %}
   <div class="alert alert-info">
     <i class="fa fa-info-circle"></i>
-    {% blocktrans trimmed %}
-    {{ relate_site_name }} is currently in maintenance mode. Sorry for the interruption,
+    {% blocktrans trimmed with RELATE=relate_site_name %}
+    {{ RELATE }} is currently in maintenance mode. Sorry for the interruption,
     we'll be back shortly.
     {% endblocktrans %}
   </div>

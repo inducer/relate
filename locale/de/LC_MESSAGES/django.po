@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-01-08 15:43+0800\n"
+"POT-Creation-Date: 2018-01-09 11:03+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -356,8 +356,8 @@ msgid "Email-based sign-in is not being used"
 msgstr "Email-basierte Anmeldung wird nicht verwendet"
 
 #, python-format
-msgid "Your %(RELATE)s sign-in link"
-msgstr "Ihr %(RELATE)s Amelde-Link"
+msgid "Your %(relate_site_name)s sign-in link"
+msgstr "Ihr %(relate_site_name)s Amelde-Link"
 
 #, fuzzy
 #| msgid "Institutional ID"
@@ -4255,9 +4255,8 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-#, fuzzy, python-format
-#| msgid " Welcome to %(RELATE)s "
-msgid " Welcome to %(relate_site_name)s "
+#, python-format
+msgid " Welcome to %(RELATE)s "
 msgstr "Willkommen bei %(RELATE)s "
 
 msgid "RELATE is an Environment for Learning And TEaching"
@@ -4275,7 +4274,7 @@ msgid "Past Courses"
 msgstr "Vergangene Kurse"
 
 #, python-format
-msgid "There are no courses hosted on this %(relate_site_name)s site."
+msgid "There are no courses hosted on this %(RELATE)s site."
 msgstr ""
 
 #, python-format
@@ -4480,11 +4479,11 @@ msgstr "(Seitenvorschau erscheint hier)"
 #, python-format
 msgid ""
 "\n"
-"Welcome to %(relate_site_name)s! Please click this link to sign in:\n"
+"Welcome to %(RELATE)s! Please click this link to sign in:\n"
 "%(sign_in_uri)s\n"
 "\n"
 "You have received this email because someone (maybe you) entered your email "
-"address into the %(relate_site_name)s web site at\n"
+"address into the %(RELATE)s web site at\n"
 "%(home_uri)s\n"
 "\n"
 "If this was not you, it is safe to disregard this email.\n"
@@ -5109,35 +5108,7 @@ msgstr ""
 msgid "Edit Course"
 msgstr "Kurs bearbeiten"
 
-#, fuzzy
-#| msgid "Counts"
-msgid "About Us"
-msgstr "Anzahlen"
-
 msgid "RELATE"
-msgstr ""
-
-#, python-format
-msgid " Welcome to %(RELATE)s "
-msgstr "Willkommen bei %(RELATE)s "
-
-#, fuzzy
-#| msgid "Courses"
-msgid "Open courses"
-msgstr "Kurse"
-
-#, fuzzy
-#| msgid "in progress"
-msgid "My Courses in Progress"
-msgstr "im Gange"
-
-#, fuzzy
-#| msgid "Past Courses"
-msgid "My past Courses"
-msgstr "Vergangene Kurse"
-
-msgctxt "The start and end time of a course"
-msgid "Time"
 msgstr ""
 
 msgid "403 Forbidden"
@@ -5192,7 +5163,7 @@ msgid ""
 msgstr ""
 
 #, python-format
-msgid "%(relate_site_name)s Administration"
+msgid "%(RELATE)s Administration"
 msgstr ""
 
 #, python-format
@@ -5247,8 +5218,8 @@ msgstr "Bitte wählen Sie Ihren Identity Provider aus der folgenden Liste:"
 
 #, python-format
 msgid ""
-"%(relate_site_name)s is currently in maintenance mode. Sorry for the "
-"interruption, we'll be back shortly."
+"%(RELATE)s is currently in maintenance mode. Sorry for the interruption, "
+"we'll be back shortly."
 msgstr ""
 
 #, fuzzy, python-format
@@ -5284,30 +5255,6 @@ msgstr "Abmelden"
 
 msgid "User Profile"
 msgstr "Benutzerprofil"
-
-msgid "my English"
-msgstr ""
-
-msgid "Simplified Chinese"
-msgstr ""
-
-#, fuzzy
-#| msgid "Grading"
-msgid "German"
-msgstr "Benotung"
-
-#, fuzzy
-#| msgid "Finish"
-msgid "English"
-msgstr "Beenden"
-
-msgid "Korean"
-msgstr ""
-
-#, fuzzy
-#| msgid "Fetch"
-msgid "French"
-msgstr "Abholen"
 
 #~ msgid ""
 #~ "Enter a valid username. This value may contain only letters, numbers and "
