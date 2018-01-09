@@ -64,6 +64,9 @@ $PIP install -r req.txt
 
 cp local_settings.example.py local_settings.py
 
+# Make sure i18n literals marked correctly
+${PY_EXE} manage.py makemessages --no-location
+
 $PIP install codecov
 coverage run manage.py test tests/
 coverage report -m

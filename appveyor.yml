@@ -67,6 +67,9 @@ install:
 before_test:
   - "%CMD_IN_ENV% pip install coverage"
 
+  # Make sure i18n literals marked correctly
+  - "python manage.py makemessages --no-location"
+
 test_script:
   # Run the project tests
   - "%CMD_IN_ENV% coverage run manage.py test tests/"
