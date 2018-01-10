@@ -337,8 +337,9 @@ def logout_confirmation_required(
         func, redirect_field_name=REDIRECT_FIELD_NAME,
         logout_confirmation_url='relate-logout-confirmation'):
     """
-    Decorator for views that checks that no user is logged in, or redirecting
-    to the logout_confirmation_url
+    Decorator for views that checks that no user is logged in.
+    If a user is currently logged in, redirect him/her to the logout
+    confirmation page.
     """
     actual_decorator = user_passes_test(
         lambda u: u.is_anonymous(),
