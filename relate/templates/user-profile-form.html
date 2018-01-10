@@ -1,19 +1,6 @@
-{% extends "base.html" %}
-{% load i18n %}
+{% extends "generic-form.html" %}
 
-{% load crispy_forms_tags %}
-
-{% block content %}
-  <h1>{% trans "User Profile" %}</h1>
-  <div class="well">
-    {% crispy user_form %}
-  </div>
-  <div class="well">
-    <a href="{% url 'relate-logout' %}" class="btn btn-default col-lg-offset-2">{% trans "Sign out" %}</a>
-    <a href="{% url 'relate-logout' %}" class="btn btn-default col-lg-offset-2">{% trans "Sign out" %}</a>
-  </div>
-
-
+{% block page_bottom_javascript_extra %}
 <script type="text/javascript">
 
     {# show/hide/disabled of fields #}

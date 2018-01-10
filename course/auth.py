@@ -34,7 +34,7 @@ import django.forms as forms
 from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
         ObjectDoesNotExist)
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Div
+from crispy_forms.layout import Submit, Layout, Div, Button
 from django.conf import settings
 from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
         login as auth_login, logout as auth_logout)
@@ -872,10 +872,6 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 # {{{ user profile
 
-EDITABLE_INST_ID_BEFORE_VERIFICATION = \
-        settings.RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION
-
-
 class UserForm(StyledModelForm):
     institutional_id_confirm = forms.CharField(
             max_length=100,
@@ -911,7 +907,9 @@ class UserForm(StyledModelForm):
                     "<b>Once %(submitted_or_verified)s, it cannot be "
                     "changed</b>.")
                 % {"submitted_or_verified":
-                    EDITABLE_INST_ID_BEFORE_VERIFICATION
+                    getattr(settings,
+                            "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION",
+                            True)
                     and _("verified") or _("submitted")})
 
         def adjust_layout(is_inst_id_locked):
@@ -936,6 +934,28 @@ class UserForm(StyledModelForm):
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
+
+        self.helper.add_input(
+                Button("signout", _("Sign out"), css_class="btn btn-danger",
+                       onclick=(
+                           "window.location.href=%s"
+                           % reverse("relate-logout"))))
+
+    @property
+    def changed_data(self):
+        data = super(UserForm, self).changed_data
+        may_not_change_field = []
+        if self.instance.name_verified:
+            may_not_change_field += ["first_name", "last_name"]
+
+        if self.is_inst_id_locked:
+            may_not_change_field.append("institutional_id")
+
+        changed_data = []
+        for name in self.Meta.fields:
+            if name in data and name not in may_not_change_field:
+                changed_data.append(name)
+        return changed_data
 
     def clean_institutional_id(self):
         inst_id = self.cleaned_data['institutional_id']
@@ -979,7 +999,7 @@ class UserForm(StyledModelForm):
             inst_id = self.cleaned_data.get("institutional_id")
             if inst_id and not inst_id_confirmed:
                 raise forms.ValidationError(_("This field is required."))
-            if not inst_id == inst_id_confirmed:
+            if any([inst_id, inst_id_confirmed]) and inst_id != inst_id_confirmed:
                 raise forms.ValidationError(_("Inputs do not match."))
         return inst_id_confirmed
 
@@ -991,7 +1011,8 @@ def user_profile(request):
     user_form = None
 
     def is_inst_id_locked(user):
-        if EDITABLE_INST_ID_BEFORE_VERIFICATION:
+        if getattr(settings,
+                   "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION", True):
             return True if (user.institutional_id
                     and user.institutional_id_verified) else False
         else:
@@ -1005,14 +1026,20 @@ def user_profile(request):
                     is_inst_id_locked=is_inst_id_locked(request.user),
             )
             if user_form.is_valid():
-                user_form.save()
+                if user_form.has_changed():
+                    user_form.save()
+                    messages.add_message(request, messages.SUCCESS,
+                            _("Profile data updated."))
+                    request.user.refresh_from_db()
 
-                messages.add_message(request, messages.INFO,
-                        _("Profile data saved."))
+                else:
+                    messages.add_message(request, messages.INFO,
+                            _("No change was made on your profile."))
+
                 if request.GET.get("first_login"):
                     return redirect("relate-home")
                 if (request.GET.get("set_inst_id")
-                        and request.GET["referer"]):
+                        and request.GET.get("referer")):
                     return redirect(request.GET["referer"])
 
                 user_form = UserForm(
@@ -1020,19 +1047,24 @@ def user_profile(request):
                         is_inst_id_locked=is_inst_id_locked(request.user))
 
     if user_form is None:
-            user_form = UserForm(
-                    instance=request.user,
-                    is_inst_id_locked=is_inst_id_locked(request.user),
-            )
+        request.user.refresh_from_db()
+        user_form = UserForm(
+            instance=request.user,
+            is_inst_id_locked=is_inst_id_locked(request.user),
+        )
+    if is_inst_id_locked(request.user):
+        user_form.fields['institutional_id'].widget.attrs['disabled'] = True
+        user_form.fields['institutional_id_confirm'].widget.attrs['disabled'] = True
 
     return render(request, "user-profile-form.html", {
+        "form": user_form,
+        "form_description": _("User Profile"),
         "is_inst_id_locked": is_inst_id_locked(request.user),
         "enable_inst_id_if_not_locked": (
             request.GET.get("first_login")
             or (request.GET.get("set_inst_id")
-                and request.GET["referer"])
+                and request.GET.get("referer"))
             ),
-        "user_form": user_form,
         })
 
 # }}}
