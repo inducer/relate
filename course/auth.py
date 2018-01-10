@@ -332,15 +332,22 @@ def make_sign_in_key(user):
     return m.hexdigest()
 
 
-def check_sign_in_key(user_id, token):
-    users = get_user_model().objects.filter(
-            id=user_id, sign_in_key=token)
-
-    assert users.count() <= 1
-    if users.count() == 0:
-        return False
-
-    return True
+def logout_confirmation_required(
+        func, redirect_field_name=REDIRECT_FIELD_NAME,
+        logout_confirmation_url='relate-logout-confirmation'):
+    """
+    Decorator for views that checks that no user is logged in.
+    If a user is currently logged in, redirect him/her to the logout
+    confirmation page.
+    """
+    actual_decorator = user_passes_test(
+        lambda u: u.is_anonymous(),
+        login_url=logout_confirmation_url,
+        redirect_field_name=redirect_field_name
+    )
+    if func:
+        return actual_decorator(func)
+    return actual_decorator
 
 
 class EmailedTokenBackend(object):
@@ -369,9 +376,7 @@ class EmailedTokenBackend(object):
 
 # {{{ choice
 
-@user_passes_test(
-        lambda user: not user.username,
-        login_url='relate-logout-confirmation')
+@logout_confirmation_required
 def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))
@@ -401,9 +406,7 @@ class LoginForm(AuthenticationFormBase):
 @sensitive_post_parameters()
 @csrf_protect
 @never_cache
-@user_passes_test(
-        lambda user: not user.username,
-        login_url='relate-logout-confirmation')
+@logout_confirmation_required
 def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
     """
     Displays the login form and handles the login action.
@@ -421,7 +424,8 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         if form.is_valid():
 
             # Ensure the user-originating redirection url is safe.
-            if not is_safe_url(url=redirect_to, host=request.get_host()):
+            if not is_safe_url(url=redirect_to, host=request.get_host(),
+                               require_https=request.is_secure()):
                 redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
 
             user = form.get_user()
@@ -464,9 +468,7 @@ class SignUpForm(StyledModelForm):
                 Submit("submit", _("Send email")))
 
 
-@user_passes_test(
-        lambda user: not user.username,
-        login_url='relate-logout-confirmation')
+@logout_confirmation_required
 def sign_up(request):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
@@ -571,9 +573,7 @@ def masked_email(email):
     return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
 
 
-@user_passes_test(
-        lambda user: not user.username,
-        login_url='relate-logout-confirmation')
+@logout_confirmation_required
 def reset_password(request, field="email"):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
@@ -690,18 +690,24 @@ class ResetPasswordStage2Form(StyledForm):
                     _("The two password fields didn't match."))
 
 
-@user_passes_test(
-        lambda user: not user.username,
-        login_url='relate-logout-confirmation')
+@logout_confirmation_required
 def reset_password_stage2(request, user_id, sign_in_key):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
 
-    if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
-        messages.add_message(request, messages.ERROR,
-                _("Invalid sign-in token. Perhaps you've used an old token "
-                "email?"))
+    def check_sign_in_key(user_id, token):
+        user = get_user_model().objects.get(id=user_id)
+        return user.sign_in_key == token
+
+    try:
+        if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
+            messages.add_message(request, messages.ERROR,
+                    _("Invalid sign-in token. Perhaps you've used an old token "
+                    "email?"))
+            raise PermissionDenied(_("invalid sign-in token"))
+    except get_user_model().DoesNotExist:
+        messages.add_message(request, messages.ERROR, _("Account does not exist."))
         raise PermissionDenied(_("invalid sign-in token"))
 
     if request.method == 'POST':
@@ -762,9 +768,7 @@ class SignInByEmailForm(StyledForm):
                 Submit("submit", _("Send sign-in email")))
 
 
-@user_passes_test(
-        lambda user: not user.username,
-        login_url='relate-logout-confirmation')
+@logout_confirmation_required
 def sign_in_by_email(request):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
@@ -824,9 +828,7 @@ def sign_in_by_email(request):
         })
 
 
-@user_passes_test(
-        lambda user: not user.username,
-        login_url='relate-logout-confirmation')
+@logout_confirmation_required
 def sign_in_stage2_with_token(request, user_id, sign_in_key):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
@@ -836,9 +838,13 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
     from django.contrib.auth import authenticate, login
     user = authenticate(user_id=int(user_id), token=sign_in_key)
     if user is None:
-        messages.add_message(request, messages.ERROR,
-                _("Invalid sign-in token. Perhaps you've used an old "
-                "token email?"))
+        if not get_user_model().objects.filter(pk=int(user_id)).count():
+            messages.add_message(request, messages.ERROR,
+                _("Account does not exist."))
+        else:
+            messages.add_message(request, messages.ERROR,
+                    _("Invalid sign-in token. Perhaps you've used an old "
+                    "token email?"))
         raise PermissionDenied(_("invalid sign-in token"))
 
     if not user.is_active:
@@ -1065,6 +1071,11 @@ class Saml2Backend(Saml2BackendBase):
 # {{{ sign-out
 
 def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
+    if not request.user.is_authenticated:
+        messages.add_message(request, messages.ERROR,
+                             _("You've already signed out."))
+        return redirect("relate-home")
+
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))
 
@@ -1078,6 +1089,10 @@ def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
 @never_cache
 def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
+    if not request.user.is_authenticated:
+        messages.add_message(request, messages.ERROR,
+                             _("You've already signed out."))
+        return redirect("relate-home")
 
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ''))

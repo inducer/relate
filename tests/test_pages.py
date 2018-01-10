@@ -25,10 +25,9 @@ THE SOFTWARE.
 import os
 from base64 import b64encode
 from django.test import TestCase
-from django.urls import reverse, resolve
+from django.urls import resolve
 from django.core import mail
-from django.contrib.auth import get_user_model
-from course.models import Course, FlowSession
+from course.models import FlowSession
 from .base_test_mixins import (
     SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
     SubprocessRunpyContainerMixin)
@@ -56,29 +55,6 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         super(SingleCourseQuizPageTest, self).setUp()
         # This is needed to ensure student is logged in
         self.c.force_login(self.student_participation.user)
-
-    # TODO: This should be moved to tests for auth module
-    def test_user_creation(self):
-        # Should have 4 users
-        self.assertEqual(get_user_model().objects.all().count(), 4)
-        self.c.logout()
-
-        self.assertTrue(
-            self.c.login(
-                username=self.instructor_participation.user.username,
-                password=(
-                    self.courses_setup_list[0]
-                    ["participations"][0]
-                    ["user"]["password"])))
-
-    # TODO: This should move to tests for course.view module
-    def test_course_creation(self):
-        # Should only have one course
-        self.assertEqual(Course.objects.all().count(), 1)
-        resp = self.c.get(reverse("relate-course_page",
-                                  args=[self.course.identifier]))
-        # 200 != 302 is better than False is not True
-        self.assertEqual(resp.status_code, 200)
 
     # view all pages
     def test_view_all_flow_pages(self):

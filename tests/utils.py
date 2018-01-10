@@ -1,8 +1,16 @@
 from __future__ import division
 
 import sys
+try:
+    from importlib import reload
+except ImportError:
+    pass  # PY2
+from importlib import import_module
 from six import StringIO
 from functools import wraps
+
+from django.urls import clear_url_caches
+from django.conf import settings
 from django.test import override_settings
 from django.core import mail
 
@@ -129,5 +137,30 @@ class suppress_stdout_decorator(object):  # noqa
                 return func(*args, **kw)
 
         return wrapper
+
+
+def load_url_pattern_names(patterns):
+    """Retrieve a list of urlpattern names"""
+    url_names = []
+    for pat in patterns:
+        if pat.__class__.__name__ == 'RegexURLResolver':
+            load_url_pattern_names(pat.url_patterns)
+        elif pat.__class__.__name__ == 'RegexURLPattern':
+            if pat.name is not None and pat.name not in url_names:
+                url_names.append(pat.name)
+    return url_names
+
+
+def reload_urlconf(urlconf=None):
+    """Reload urlconf, this should be used when some urlpatterns are included
+    according to settings
+    """
+    clear_url_caches()
+    if urlconf is None:
+        urlconf = settings.ROOT_URLCONF
+    if urlconf in sys.modules:
+        reload(sys.modules[urlconf])
+    else:
+        import_module(urlconf)
 
 # vim: fdm=marker
