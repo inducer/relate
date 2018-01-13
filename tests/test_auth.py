@@ -1405,35 +1405,45 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
                         mock_add_msg.reset_mock()
 
     def test_profile_page_hide_institutional_id_or_editor_mode(self):
-        with override_settings(
-                RELATE_SHOW_INST_ID_FORM=True, RELATE_SHOW_EDITOR_FORM=True):
+        """
+        Test whether the response content contains <input type="hidden"
+        for specific field
+        """
+        field_div_with_id_pattern = (
+            ".*(<div\s+[^\>]*id\s*=\s*['\"]div_id_%s['\"][^>]*\/?>).*")
 
+        def assertFieldDiv(field_name, exist=True):  # noqa
             resp = self.get_profile_by_request_factory()
             self.assertEqual(resp.status_code, 200)
-            try:
-                self.assertContains(resp, 'class="well hidden"', count=0)
-            except AssertionError:
-                from unittest import SkipTest
-                raise SkipTest(
-                    "Template had changed, the test is no longer valid")
+            pattern = field_div_with_id_pattern % field_name
+            if exist:
+                self.assertRegex(resp.content.decode(), pattern,
+                                 msg=("Field Div of '%s' is expected to exist."
+                                      % field_name))
+            else:
+                self.assertNotRegex(resp.content.decode(), pattern,
+                                    msg=("Field Div of '%s' is not expected "
+                                         "to exist." % field_name))
+
+        with override_settings(
+                RELATE_SHOW_INST_ID_FORM=True, RELATE_SHOW_EDITOR_FORM=True):
+            assertFieldDiv("institutional_id", True)
+            assertFieldDiv("editor_mode", True)
 
         with override_settings(
                 RELATE_SHOW_INST_ID_FORM=False, RELATE_SHOW_EDITOR_FORM=True):
-            resp = self.get_profile_by_request_factory()
-            self.assertEqual(resp.status_code, 200)
-            self.assertContains(resp, 'class="well hidden"', count=1)
+            assertFieldDiv("institutional_id", False)
+            assertFieldDiv("editor_mode", True)
 
         with override_settings(
                 RELATE_SHOW_INST_ID_FORM=True, RELATE_SHOW_EDITOR_FORM=False):
-            resp = self.get_profile_by_request_factory()
-            self.assertEqual(resp.status_code, 200)
-            self.assertContains(resp, 'class="well hidden"', count=1)
+            assertFieldDiv("institutional_id", True)
+            assertFieldDiv("editor_mode", False)
 
         with override_settings(
                 RELATE_SHOW_INST_ID_FORM=False, RELATE_SHOW_EDITOR_FORM=False):
-            resp = self.get_profile_by_request_factory()
-            self.assertEqual(resp.status_code, 200)
-            self.assertContains(resp, 'class="well hidden"', count=2)
+            assertFieldDiv("institutional_id", False)
+            assertFieldDiv("editor_mode", False)
 
     def test_update_profile_for_first_login(self):
         data = self.generate_profile_data(first_name="foo")
