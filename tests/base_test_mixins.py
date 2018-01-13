@@ -304,6 +304,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return self.c.get(self.get_profile_view_url(), follow=follow)
 
     def post_profile(self, data, follow=True):
+        data.update({"submit_user": [""]})
         return self.c.post(self.get_profile_view_url(), data, follow=follow)
 
     def post_signout(self, data, follow=True):

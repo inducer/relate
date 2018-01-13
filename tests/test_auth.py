@@ -26,7 +26,7 @@ import six
 import itertools
 from six.moves.urllib.parse import ParseResult, quote, urlparse
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
-from django.test import TestCase, override_settings, mock
+from django.test import TestCase, override_settings, mock, RequestFactory
 from django.contrib import messages
 from django.conf import settings
 from django.core import mail
@@ -46,6 +46,11 @@ from .base_test_mixins import (
 
 from .utils import (
     LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf)
+
+# settings names
+EDITABLE_INST_ID_BEFORE_VERI = "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION"
+SHOW_INST_ID_FORM = "RELATE_SHOW_INST_ID_FORM"
+SHOW_EDITOR_FORM = "RELATE_SHOW_EDITOR_FORM"
 
 NOT_IMPERSONATING_MESSAGE = "Not currently impersonating anyone."
 NO_LONGER_IMPERSONATING_MESSAGE = "No longer impersonating anyone."
@@ -333,6 +338,10 @@ class AuthTestMixin(object):
         cls.test_user = (
             get_user_model().objects.create_user(**cls._user_create_kwargs))
         cls.existing_user_count = get_user_model().objects.count()
+
+    def setUp(self):
+        super(AuthTestMixin, self).setUp()
+        self.test_user.refresh_from_db()
 
     def get_sign_in_data(self):
         return self._user_create_kwargs.copy()
@@ -1048,3 +1057,428 @@ class SignOutTest(CoursesTestMixinBase,
                     self.get_sign_out_view_url(), redirect_to
                 ),
                 resp.content.decode())
+
+
+class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
+                      FallBackStorageMessageTestMixin, TestCase):
+
+    def setUp(self):
+        super(UserProfileTest, self).setUp()
+        self.rf = RequestFactory()
+
+    def generate_profile_data(self, **kwargs):
+        profile_data = {
+            "first_name": "",
+            "last_name": "",
+            "institutional_id": "",
+            "editor_mode": "default"}
+        profile_data.update(kwargs)
+        return profile_data
+
+    def post_profile_by_request_factory(self, data, query_string_dict=None):
+        data.update({"submit_user": [""]})
+        url = self.get_profile_view_url()
+        if query_string_dict is not None:
+            url = (
+                "%s?%s" % (
+                    url,
+                    "&".join(["%s=%s" % (k, v)
+                              for k, v in six.iteritems(query_string_dict)])))
+        request = self.rf.post(url, data)
+        request.user = self.test_user
+        request.session = mock.MagicMock()
+
+        from course.auth import user_profile
+        response = user_profile(request)
+        return response
+
+    def get_profile_by_request_factory(self):
+        request = self.rf.get(self.get_profile_view_url())
+        request.user = self.test_user
+        request.session = mock.MagicMock()
+
+        from course.auth import user_profile
+        response = user_profile(request)
+        return response
+
+    def generate_profile_form_data(self, **kwargs):
+        form_data = {
+            "first_name": "",
+            "last_name": "",
+            "institutional_id": "",
+            "institutional_id_confirm": "",
+            "no_institutional_id": True,
+            "editor_mode": "default"}
+        form_data.update(kwargs)
+        return form_data
+
+    def test_not_authenticated(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.get_profile()
+            self.assertTrue(resp.status_code, 403)
+
+            data = self.generate_profile_form_data()
+            resp = self.post_profile(data)
+            self.assertTrue(resp.status_code, 403)
+
+    def test_get_profile(self):
+        with self.temporarily_switch_to_user(self.test_user):
+            resp = self.get_profile()
+            self.assertTrue(resp.status_code, 200)
+
+    def test_post_profile_without_submit_user(self):
+        # Only POST with 'submit_user' works
+        with self.temporarily_switch_to_user(self.test_user):
+            resp = self.get_profile()
+            self.assertTrue(resp.status_code, 200)
+            data = self.generate_profile_form_data(first_name="foo")
+
+            # No 'submit_user' in POST
+            resp = self.c.post(self.get_profile_view_url(), data)
+            self.test_user.refresh_from_db()
+            self.assertEqual(self.test_user.first_name, "")
+
+    def update_profile_by_post_form(self, user_profile_dict=None,
+                                    update_profile_dict=None,
+                                    query_string_dict=None):
+        if user_profile_dict:
+            assert isinstance(user_profile_dict, dict)
+        else:
+            user_profile_dict = {}
+
+        if update_profile_dict:
+            assert isinstance(update_profile_dict, dict)
+        else:
+            update_profile_dict = {}
+
+        user_profile = self.generate_profile_data(**user_profile_dict)
+        get_user_model().objects.filter(pk=self.test_user.pk).update(**user_profile)
+        self.test_user.refresh_from_db()
+        form_data = self.generate_profile_form_data(**update_profile_dict)
+        return self.post_profile_by_request_factory(form_data, query_string_dict)
+
+    @skipIf(six.PY2, "Python2 doesn't support subTest")
+    def test_update_profile_with_different_settings(self):
+        disabled_inst_id_html_pattern = (
+            '<input type="text" name="institutional_id" value="%s" '
+            'class="textinput textInput form-control" id="id_institutional_id" '
+            'maxlength="100" disabled />')
+
+        enabled_inst_id_html_pattern = (
+            '<input type="text" name="institutional_id" value="%s" '
+            'class="textinput textInput form-control" id="id_institutional_id" '
+            'maxlength="100" />')
+
+        expected_success_msg = "Profile data updated."
+        expected_unchanged_msg = "No change was made on your profile."
+        from collections import namedtuple
+        Conf = namedtuple(
+            'Conf', [
+                'id',
+                'override_settings_dict',
+                'user_profile_dict',
+                'update_profile_dict',
+                'expected_result_dict',
+                'assert_in_html_kwargs_list',
+                'expected_msg',
+            ])
+
+        test_confs = (
+            # {{{ basic test
+            Conf("basic_1",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True}, {},
+                 {}, {}, [], expected_unchanged_msg),
+
+            Conf("basic_2",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: False}, {},
+                 {}, {}, [], expected_unchanged_msg),
+
+            Conf("basic_3",
+                 {EDITABLE_INST_ID_BEFORE_VERI: False, SHOW_INST_ID_FORM: True}, {},
+                 {}, {}, [], expected_unchanged_msg),
+
+            Conf("basic_4",
+                 {EDITABLE_INST_ID_BEFORE_VERI: False, SHOW_INST_ID_FORM: False},
+                 {}, {}, {}, [], expected_unchanged_msg),
+            # }}}
+
+            # {{{ update first_name
+            Conf("first_name_1",
+                 {},
+                 {"first_name": "foo", "name_verified": False},
+                 {"first_name": "bar"},
+                 {"first_name": "bar"},
+                 [],
+                 expected_success_msg),
+
+            Conf("first_name_2", {},
+                 {"first_name": "foo", "name_verified": True},
+                 {"first_name": "bar"},
+                 {"first_name": "foo"},
+                 [],
+                 expected_unchanged_msg),
+
+            # test strip
+            Conf("first_name_3", {},
+                 {"first_name": "foo", "name_verified": False},
+                 {"first_name": "   bar  "},
+                 {"first_name": "bar"},
+                 [],
+                 expected_success_msg),
+
+            # }}}
+
+            # {{{ update last_name
+            Conf("last_name_1", {},
+                 {"last_name": "foo", "name_verified": False},
+                 {"last_name": "bar"},
+                 {"last_name": "bar"},
+                 [],
+                 expected_success_msg),
+
+            Conf("last_name_2", {},
+                 {"last_name": "foo", "name_verified": True},
+                 {"last_name": "bar"},
+                 {"last_name": "foo"},
+                 [],
+                 expected_unchanged_msg),
+
+            # test strip
+            Conf("last_name_3", {},
+                 {"last_name": "foo", "name_verified": False},
+                 {"last_name": "  bar  "},
+                 {"last_name": "bar"},
+                 [],
+                 expected_success_msg),
+
+            # }}}
+
+            # {{{ update institutional_id update
+            Conf("institutional_id_update_1",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "1234", "institutional_id_confirm": "1234"},
+                 {"institutional_id": "1234"},
+                 [{"needle": enabled_inst_id_html_pattern % "1234", "count": 1}],
+                 expected_unchanged_msg),
+
+            Conf("institutional_id_update_2",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "123", "institutional_id_confirm": "123"},
+                 {"institutional_id": "123"},
+                 [{"needle": enabled_inst_id_html_pattern % "123", "count": 1}],
+                 expected_success_msg),
+
+            Conf("institutional_id_update_3",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: False},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "1234", "institutional_id_confirm": "1234"},
+                 {"institutional_id": "1234"},
+                 [],
+                 expected_unchanged_msg),
+
+            Conf("institutional_id_update_4",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: False},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "123", "institutional_id_confirm": "123"},
+                 {"institutional_id": "123"},
+                 [],
+                 expected_success_msg),
+
+            Conf("institutional_id_update_5",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": True},
+                 {"institutional_id": "1234", "institutional_id_confirm": "1234"},
+                 {"institutional_id": "1234"},
+                 [{"needle": disabled_inst_id_html_pattern % "1234", "count": 1}],
+                 expected_unchanged_msg),
+
+            Conf("institutional_id_update_6",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": True},
+                 {"institutional_id": "123", "institutional_id_confirm": "123"},
+                 {"institutional_id": "1234"},
+                 [{"needle": disabled_inst_id_html_pattern % "1234", "count": 1}],
+                 expected_unchanged_msg),
+
+            Conf("institutional_id_update_7",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: False},
+                 {"institutional_id": "1234", "institutional_id_verified": True},
+                 {"institutional_id": "1234", "institutional_id_confirm": "1234"},
+                 {"institutional_id": "1234"},
+                 [],
+                 expected_unchanged_msg),
+
+            Conf("institutional_id_update_8",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: False},
+                 {"institutional_id": "1234", "institutional_id_verified": True},
+                 {"institutional_id": "123", "institutional_id_confirm": "123"},
+                 {"institutional_id": "1234"},
+                 [{"needle": enabled_inst_id_html_pattern % "1234", "count": 0}],
+                 expected_unchanged_msg),
+
+            Conf("institutional_id_update_9",
+                 {EDITABLE_INST_ID_BEFORE_VERI: False, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "1234", "institutional_id_confirm": "1234"},
+                 {"institutional_id": "1234"},
+                 [{"needle": disabled_inst_id_html_pattern % "1234", "count": 1}],
+                 expected_unchanged_msg),
+
+            Conf("institutional_id_update_10",
+                 {EDITABLE_INST_ID_BEFORE_VERI: False, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "123", "institutional_id_confirm": "123"},
+                 {"institutional_id": "1234"},
+                 [{"needle": disabled_inst_id_html_pattern % "1234", "count": 1}],
+                 expected_unchanged_msg),
+            # }}}
+
+            # {{{ institutional_id clean
+            Conf("institutional_id_clean_1",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "123", "institutional_id_confirm": "1234"},
+                 {"institutional_id": "1234"},
+                 [{"needle": "Inputs do not match.", "count": 1}],
+                 None),
+
+            Conf("institutional_id_clean_2",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "123"},
+                 {"institutional_id": "1234"},
+                 [{"needle": "This field is required.", "count": 1}],
+                 None),
+            # }}}
+
+            # Update with blank value
+            # https://github.com/inducer/relate/pull/145
+            Conf("clear_institutional_id",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {"institutional_id": "1234", "institutional_id_verified": False},
+                 {"institutional_id": "", "institutional_id_confirm": ""},
+                 {"institutional_id": None},
+                 [],
+                 expected_success_msg),
+
+            # test post value with leading/trailing spaces (striped when saving)
+            Conf("strip_institutional_id",
+                 {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
+                 {},
+                 {"institutional_id": "123   ",
+                    "institutional_id_confirm": "   123"},
+                 {"institutional_id": "123"},
+                 [],
+                 expected_success_msg),
+
+        )
+
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+            for conf in test_confs:
+                with self.subTest(conf.id):
+                    with override_settings(**conf.override_settings_dict):
+                        resp = self.update_profile_by_post_form(
+                            conf.user_profile_dict,
+                            conf.update_profile_dict)
+
+                        self.assertTrue(resp.status_code, 200)
+                        self.test_user.refresh_from_db()
+                        for k, v in six.iteritems(conf.expected_result_dict):
+                            self.assertEqual(self.test_user.__dict__[k], v)
+
+                        if conf.assert_in_html_kwargs_list:
+                            kwargs_list = conf.assert_in_html_kwargs_list
+                            for kwargs in kwargs_list:
+                                self.assertInHTML(haystack=resp.content.decode(),
+                                                  **kwargs)
+
+                        if conf.expected_msg is not None:
+                            self.assertIn(conf.expected_msg,
+                                          mock_add_msg.call_args[0])
+                        else:
+                            if mock_add_msg.call_count > 0:
+                                self.fail("Message was actually called with %s."
+                                          % repr(mock_add_msg.call_args[0][2]))
+
+                        mock_add_msg.reset_mock()
+
+    def test_profile_page_hide_institutional_id_or_editor_mode(self):
+        """
+        Test whether the response content contains <input type="hidden"
+        for specific field
+        """
+        field_div_with_id_pattern = (
+            ".*(<div\s+[^\>]*id\s*=\s*['\"]div_id_%s['\"][^>]*\/?>).*")
+
+        def assertFieldDiv(field_name, exist=True):  # noqa
+            resp = self.get_profile_by_request_factory()
+            self.assertEqual(resp.status_code, 200)
+            pattern = field_div_with_id_pattern % field_name
+            if exist:
+                self.assertRegex(resp.content.decode(), pattern,
+                                 msg=("Field Div of '%s' is expected to exist."
+                                      % field_name))
+            else:
+                self.assertNotRegex(resp.content.decode(), pattern,
+                                    msg=("Field Div of '%s' is not expected "
+                                         "to exist." % field_name))
+
+        with override_settings(
+                RELATE_SHOW_INST_ID_FORM=True, RELATE_SHOW_EDITOR_FORM=True):
+            assertFieldDiv("institutional_id", True)
+            assertFieldDiv("editor_mode", True)
+
+        with override_settings(
+                RELATE_SHOW_INST_ID_FORM=False, RELATE_SHOW_EDITOR_FORM=True):
+            assertFieldDiv("institutional_id", False)
+            assertFieldDiv("editor_mode", True)
+
+        with override_settings(
+                RELATE_SHOW_INST_ID_FORM=True, RELATE_SHOW_EDITOR_FORM=False):
+            assertFieldDiv("institutional_id", True)
+            assertFieldDiv("editor_mode", False)
+
+        with override_settings(
+                RELATE_SHOW_INST_ID_FORM=False, RELATE_SHOW_EDITOR_FORM=False):
+            assertFieldDiv("institutional_id", False)
+            assertFieldDiv("editor_mode", False)
+
+    def test_update_profile_for_first_login(self):
+        data = self.generate_profile_data(first_name="foo")
+        expected_msg = "Profile data updated."
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+            resp = self.post_profile_by_request_factory(
+                data, query_string_dict={"first_login": "1"})
+            self.assertRedirects(resp, reverse("relate-home"),
+                                 fetch_redirect_response=False)
+            self.assertIn(expected_msg,
+                          mock_add_msg.call_args[0])
+
+    def test_update_profile_for_referer(self):
+        data = self.generate_profile_data(first_name="foo")
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+            expected_msg = "Profile data updated."
+            resp = self.post_profile_by_request_factory(
+                data, query_string_dict={"referer": "/some/where/",
+                                         "set_inst_id": "1"})
+            self.assertRedirects(resp, "/some/where/",
+                                 fetch_redirect_response=False)
+            self.assertIn(expected_msg,
+                          mock_add_msg.call_args[0])
+
+    def test_update_profile_for_referer_wrong_spell(self):
+        data = self.generate_profile_data(first_name="foo")
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+            expected_msg = "Profile data updated."
+
+            # "Wrong" spell of referer, no redirect
+            resp = self.post_profile_by_request_factory(
+                data, query_string_dict={"referrer": "/some/where/",
+                                         "set_inst_id": "1"})
+            self.assertTrue(resp.status_code, 200)
+            self.assertIn(expected_msg,
+                          mock_add_msg.call_args[0])
+
+# vim: foldmethod=marker
