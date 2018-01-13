@@ -44,8 +44,8 @@
       {% endblock %}
 
       {% block head_assets_after_form_media %}
-        <link href="{% static 'video.js/dist/video-js.min.css' %}" rel="stylesheet">
-        <script src="{% static 'video.js/dist/video.min.js' %}"></script>
+        <link href="{% static 'videojs/dist/video-js.min.css' %}" rel="stylesheet">
+        <script src="{% static 'videojs/dist/video.min.js' %}"></script>
         <script type="text/javascript">
             videojs.options.flash.swf = "{% static 'videojs/dist/video-js/video-js.swf' %}"
         </script>
