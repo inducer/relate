@@ -460,7 +460,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
               rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
           # returns True if accurate
 
-          feedback.call_user(self, f, *args, **kwargs)
+          feedback.call_user(f, *args, **kwargs)
           # Calls a user-supplied function and prints an appropriate
           # feedback message in case of failure.
 
