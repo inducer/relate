@@ -636,8 +636,14 @@ class CheckRelateSiteName(CheckRelateSettingsBase):
             self.assertCheckMessages(["relate_site_name.E004"])
 
 
-TEST_MY_OVERRIDING_TEMPLATES_DIR = os.path.join(os.path.dirname(__file__),
-                                "resources", "my_templates")
+TEST_MY_OVERRIDING_TEMPLATES_DIR = "/path/to/my_template/"
+
+
+def is_dir_side_effect(*args, **kwargs):
+    if TEST_MY_OVERRIDING_TEMPLATES_DIR in args:
+        return True
+    else:
+        return False
 
 
 class CheckRelateTemplatesDirs(CheckRelateSettingsBase):
@@ -652,7 +658,9 @@ class CheckRelateTemplatesDirs(CheckRelateSettingsBase):
 
     def test_valid_conf(self):
         with override_settings(RELATE_OVERRIDE_TEMPLATES_DIRS=self.VALID_CONF):
-            self.assertCheckMessages([])
+            with mock.patch("relate.checks.os.path.isdir",
+                            side_effect=is_dir_side_effect):
+                self.assertCheckMessages([])
 
     def test_not_configured(self):
         with override_settings():
@@ -673,6 +681,8 @@ class CheckRelateTemplatesDirs(CheckRelateSettingsBase):
 
     def test_invalid_path(self):
         with override_settings(RELATE_OVERRIDE_TEMPLATES_DIRS=self.INVALID_CONF3):
-            self.assertCheckMessages(
-                ["relate_override_templates_dirs.W001",
-                 "relate_override_templates_dirs.W001"])
+            with mock.patch("relate.checks.os.path.isdir",
+                            side_effect=is_dir_side_effect):
+                self.assertCheckMessages(
+                    ["relate_override_templates_dirs.W001",
+                     "relate_override_templates_dirs.W001"])
