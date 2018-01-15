@@ -542,6 +542,12 @@ urlpatterns = [
         course.api.get_flow_sessions,
         name="relate-course_get_flow_session"),
 
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/api/v1/get-flow-session-content$",
+        course.api.get_flow_session_content,
+        name="relate-course_get_flow_session_content"),
+
     url(r'^admin/', admin.site.urls),
 ]
 
