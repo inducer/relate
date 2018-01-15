@@ -92,6 +92,7 @@ if False:
     from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet  # noqa
     import datetime  # noqa
     from course.models import Course  # noqa
+    from accounts.models import User
     from course.utils import (  # noqa
             CoursePageContext,
             FlowSessionStartRule,
@@ -2917,6 +2918,7 @@ def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
 # {{{ purge page view data
 
 def get_pv_purgeable_courses_for_user_qs(user):
+    # type: (User) -> query.QuerySet
     course_qs = Course.objects.all()
     if user.is_superuser:
         # do not filter queryset
@@ -2932,7 +2934,7 @@ def get_pv_purgeable_courses_for_user_qs(user):
 
 class PurgePageViewData(StyledForm):
     def __init__(self, user, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+        # type: (User, *Any, **Any) -> None
         self.helper = FormHelper()
         super(PurgePageViewData, self).__init__(*args, **kwargs)
 
