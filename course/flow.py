@@ -92,7 +92,7 @@ if False:
     from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet  # noqa
     import datetime  # noqa
     from course.models import Course  # noqa
-    from accounts.models import User
+    from accounts.models import User  # noqa
     from course.utils import (  # noqa
             CoursePageContext,
             FlowSessionStartRule,
