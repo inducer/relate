@@ -68,7 +68,7 @@ from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_na
 from django_select2.forms import ModelSelect2Widget
 
 if False:
-    from typing import Any, Text  # noqa
+    from typing import Any, Text, Optional  # noqa
     from django.db.models import query  # noqa
 
 
@@ -1178,6 +1178,7 @@ class APIContext(object):
         self.restrict_to_role = restrict_to_role
 
     def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
         if self.restrict_to_role is None:
             return self.participation.has_permission(perm, argument)
         else:
