@@ -55,8 +55,7 @@ INSTALLED_APPS = (
     "django_select2",
 
     # message queue
-    "djcelery",
-    "kombu.transport.django",
+     'django_celery_results',
 
     "accounts",
     "course",
@@ -75,7 +74,6 @@ MIDDLEWARE = (
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.auth.middleware.SessionAuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "course.auth.ImpersonateMiddleware",
@@ -285,10 +283,10 @@ if "CELERY_RESULT_BACKEND" not in globals():
         # transaction. But if we're using the in-memory cache, using
         # cache as a results backend doesn't make much sense.
 
-        CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
+        CELERY_RESULT_BACKEND = 'django-cache'
 
     else:
-        CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
+        CELERY_RESULT_BACKEND = 'django-db'
 
 # }}}
 
