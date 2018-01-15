@@ -38,8 +38,6 @@ from course.page.base import (
 
         get_editor_interaction_mode)
 
-from typing import cast
-
 import re
 import sys
 
@@ -310,7 +308,7 @@ class RegexMatcher(TextAnswerMatcher):
 
 class CaseSensitiveRegexMatcher(RegexMatcher):
     type = "case_sens_regex"
-    re_flags = cast(re.RegexFlag, 0)
+    re_flags = 0  # type:ignore
     is_case_sensitive = True
     pattern_type = "string"
 
