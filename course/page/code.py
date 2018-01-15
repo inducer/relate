@@ -894,9 +894,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     if name in ["type"]:
                         return True
                     elif name == "src":
-                        return is_allowed_data_uri([
-                            "audio/wav",
-                            ], value)
+                        if is_allowed_data_uri([
+                                "audio/wav",
+                                ], value):
+                            return bleach.sanitizer.VALUE_SAFE
+                        else:
+                            return False
                     else:
                         return False
 
