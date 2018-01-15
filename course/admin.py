@@ -60,7 +60,6 @@ def _filter_courses_for_user(queryset, user):
     z = queryset.filter(
             participations__user=user,
             participations__roles__permissions__permission=pperm.use_admin_interface)
-    print(z.query)
     return z
 
 
