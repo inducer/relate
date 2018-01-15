@@ -1256,16 +1256,20 @@ class AuthenticationTokenForm(StyledModelForm):
         super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
         self.participation = participation
 
-        self.fields["restrict_to_participation_role"].queryset = (
-                participation.roles.all()
-                | ParticipationRole.objects.filter(
-                    id__in=[
+        allowable_role_ids = (
+                set(role.id for role in participation.roles.all())
+                | set(
                         prole.id
                         for prole in ParticipationRole.objects.filter(
                             course=participation.course)
                         if participation.has_permission(
-                            pperm.impersonate_role, prole.identifier)
-                    ]))
+                            pperm.impersonate_role, prole.identifier))
+                )
+
+        self.fields["restrict_to_participation_role"].queryset = (
+                ParticipationRole.objects.filter(
+                    id__in=list(allowable_role_ids)
+                    ))
 
         self.helper.add_input(Submit("create", _("Create")))
 
