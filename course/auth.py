@@ -1338,6 +1338,7 @@ def manage_authentication_tokens(pctx):
     from datetime import timedelta
     tokens = AuthenticationToken.objects.filter(
             user=request.user,
+            participation__course=pctx.course,
             ).filter(
                 Q(revocation_time=None)
                 | Q(revocation_time__gt=now_datetime - timedelta(weeks=1)))

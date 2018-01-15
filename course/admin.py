@@ -34,6 +34,7 @@ from course.models import (
         Participation, ParticipationPermission,
         ParticipationRole, ParticipationRolePermission,
         ParticipationPreapproval,
+        AuthenticationToken,
         InstantFlowRequest,
         FlowSession, FlowPageData,
         FlowPageVisit, FlowPageVisitGrade,
@@ -393,6 +394,20 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
 admin.site.register(ParticipationPreapproval, ParticipationPreapprovalAdmin)
 
 # }}}
+
+
+class AuthenticationTokenAdmin(admin.ModelAdmin):
+    list_display = ("id", "participation", "restrict_to_participation_role",
+            "description", "valid_until", "revocation_time")
+
+    date_hierarchy = "creation_time"
+
+    search_fields = (
+            "id", "description", "participation__user__username"
+            )
+
+
+admin.site.register(AuthenticationToken, AuthenticationTokenAdmin)
 
 
 class InstantFlowRequestAdmin(admin.ModelAdmin):
