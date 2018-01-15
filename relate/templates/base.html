@@ -84,6 +84,10 @@
                         <li><a href="/admin" target="_blank">{% trans "Admin site" %}</a></li>
                         <li role="presentation" class="divider"></li>
                       {% endif %}
+                      {% if user.is_superuser or pperm.use_admin_interface %}
+                        <li><a href="{% url 'relate-purge_page_view_data' %}" target="_blank">{% trans "Purge page view data" %}</a></li>
+                        <li role="presentation" class="divider"></li>
+                      {% endif %}
                       {% if perms.course.can_issue_exam_tickets %}
                         <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
                         <li><a href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>

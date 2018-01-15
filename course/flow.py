@@ -64,6 +64,7 @@ from course.constants import (
         )
 from course.models import (
         Participation,
+        Course,
         FlowSession, FlowPageData, FlowPageVisit,
         FlowPageVisitGrade,
         get_feedback_for_grade,
@@ -2907,6 +2908,63 @@ def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form_description": _("Re-allow Changes to Flow Page"),
+        "form": form
+        })
+
+# }}}
+
+
+# {{{ purge page view data
+
+def get_pv_purgeable_courses_for_user_qs(user):
+    course_qs = Course.objects.all()
+    if user.is_superuser:
+        # do not filter queryset
+        pass
+    else:
+        course_qs = course_qs.filter(
+                participations__user=user,
+                participations__roles__permissions__permission=(
+                    pperm.use_admin_interface))
+
+    return course_qs
+
+
+class PurgePageViewData(StyledForm):
+    def __init__(self, user, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        self.helper = FormHelper()
+        super(PurgePageViewData, self).__init__(*args, **kwargs)
+
+        self.fields["course"] = forms.ModelChoiceField(
+                queryset=get_pv_purgeable_courses_for_user_qs(user),
+                required=True)
+
+        self.helper.add_input(
+                Submit("submit", _("Purge Page View Data"),
+                    css_class="btn btn-danger"))
+
+
+def purge_page_view_data(request):
+    if request.method == 'POST':
+        form = PurgePageViewData(request.user, request.POST)
+        if form.is_valid():
+            if "submit" in request.POST:
+                course = form.cleaned_data["course"]
+
+                if course not in list(get_pv_purgeable_courses_for_user_qs(
+                        request.user)):
+                    raise PermissionDenied()
+
+                from course.tasks import purge_page_view_data
+                async_res = purge_page_view_data.delay(course.id)
+
+                return redirect("relate-monitor_task", async_res.id)
+    else:
+        form = PurgePageViewData(request.user)
+
+    return render(request, "generic-form.html", {
+        "form_description": _("Purge Page View Data"),
         "form": form
         })
 

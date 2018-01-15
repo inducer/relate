@@ -156,6 +156,10 @@ urlpatterns = [
         course.sandbox.view_page_sandbox,
         name="relate-view_page_sandbox"),
 
+    url("^purge-pageview-data/$",
+        course.flow.purge_page_view_data,
+        name="relate-purge_page_view_data"),
+
     # }}}
 
     # {{{ grading
