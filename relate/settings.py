@@ -11,7 +11,7 @@ if False:
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import STATICFILES_FINDERS, gettext_noop
+from django.conf.global_settings import gettext_noop
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -51,7 +51,6 @@ INSTALLED_APPS = (
     "crispy_forms",
     "jsonfield",
     "bootstrap3_datetime",
-    "djangobower",
     "django_select2",
 
     # message queue
@@ -105,36 +104,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # }}}
 
-# {{{ bower packages
-
-BOWER_COMPONENTS_ROOT = os.path.join(BASE_DIR, "components")
-
-STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
-    "djangobower.finders.BowerFinder",
-    )
-
-BOWER_INSTALLED_APPS = (
-    "bootstrap#3.3.4",
-    "fontawesome#4.4.0",
-    "videojs#5.6.0",
-    "MathJax",
-    "codemirror#5.2.0",
-    "fullcalendar#2.3.1",
-    "jqueryui",
-    "datatables.net",
-    "datatables-i18n",
-    "datatables.net-bs",
-    "datatables.net-fixedcolumns",
-    "datatables.net-fixedcolumns-bs",
-    "jstree#3.2.1",
-    "select2#4.0.1",
-    "select2-bootstrap-css",
-    "blueimp-tmpl",
-    )
-
 CODEMIRROR_PATH = "codemirror"
-
-# }}}
 
 ROOT_URLCONF = 'relate.urls'
 

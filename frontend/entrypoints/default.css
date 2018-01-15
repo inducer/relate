@@ -1,0 +1,7 @@
+/* could also import customized bootstrap
+ * See https://getbootstrap.com/docs/4.0/getting-started/webpack/
+ */
+@import '~bootstrap/dist/css/bootstrap.min.css';
+@import '~font-awesome/css/font-awesome.css';
+@import '~jstree/dist/themes/default/style.min.css';
+@import './style.css';
