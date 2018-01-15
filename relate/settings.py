@@ -55,7 +55,7 @@ INSTALLED_APPS = (
     "django_select2",
 
     # message queue
-     'django_celery_results',
+    "django_celery_results",
 
     "accounts",
     "course",
