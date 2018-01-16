@@ -264,12 +264,18 @@ if RELATE_CUTOMIZED_SITE_NAME is not None and RELATE_CUTOMIZED_SITE_NAME.strip()
 
 # {{{ celery config
 
-if "BROKER_URL" not in globals():
-    BROKER_URL = 'django://'
+if "CELERY_BROKER_URL" not in globals():
+    from warnings import warn
+    warn("CELERY_BROKER_URL not set in local_settings.py: defaulting to amqp://. "
+            "If there is no queue server installed, long-running tasks will "
+            "appear to hang.")
 
-CELERY_ACCEPT_CONTENT = ['pickle']
-CELERY_TASK_SERIALIZER = 'pickle'
-CELERY_RESULT_SERIALIZER = 'pickle'
+    CELERY_BROKER_URL = 'amqp://'
+
+# (pickle is buggy in django-celery-results 1.0.1)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TRACK_STARTED = True
 
 if "CELERY_RESULT_BACKEND" not in globals():

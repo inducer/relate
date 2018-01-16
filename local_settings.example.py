@@ -57,6 +57,18 @@ DEBUG = True
 
 TIME_ZONE = "America/Chicago"
 
+# RELATE needs a message broker for long-running tasks.
+#
+# See here for options:
+# http://docs.celeryproject.org/en/latest/userguide/configuration.html#broker-url
+#
+# The dev server will run fine without this, but any tasks that require
+# queueing will just appear to hang. On Debian/Ubuntu, the following line
+# should be enough to satisfy this requirement.
+#
+# apt-get install rabbitmq-server
+CELERY_BROKER_URL = 'amqp://'
+
 # }}}
 
 # {{{ git storage
