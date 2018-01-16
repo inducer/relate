@@ -1601,6 +1601,23 @@ class GradeChange(models.Model):
         return dict(GRADE_STATE_CHANGE_CHOICES).get(
                 self.state)
 
+    # Compare GradeChange objects in terms of time, in order to correctly sort
+    # objects, fixing #236 and #417
+    def __eq__(self, other):
+        if not (self.flow_session and other.flow_session):
+            # at least one object has flow_session, then compare them by grade_time
+            return self.grade_time == other.grade_time
+        else:
+            # if both objects have a flow_session
+            return self.flow_session.completion_time == other.completion_time
+
+    def __gt__(self, other):
+        if not (self.flow_session and other.flow_session):
+            return self.grade_time > other.grade_time
+        else:
+            return self.flow_session.completion_time > other.completion_time
+    # }}}
+
 # }}}
 
 
@@ -1707,8 +1724,7 @@ class GradeStateMachine(object):
         valid_grade_changes = sorted(
                 (gchange
                 for gchange in self.attempt_id_to_gchange.values()
-                if gchange.percentage() is not None),
-                key=lambda gchange: gchange.grade_time)
+                if gchange.percentage() is not None))
 
         self.valid_percentages.extend(
                 cast(GradeChange, gchange.percentage())
