@@ -1603,19 +1603,20 @@ class GradeChange(models.Model):
 
     # Compare GradeChange objects in terms of time, in order to correctly sort
     # objects, fixing #236 and #417
-    def __eq__(self, other):
-        if not (self.flow_session and other.flow_session):
-            # at least one object has flow_session, then compare them by grade_time
-            return self.grade_time == other.grade_time
-        else:
-            # if both objects have a flow_session
-            return self.flow_session.completion_time == other.completion_time
-
     def __gt__(self, other):
         if not (self.flow_session and other.flow_session):
-            return self.grade_time > other.grade_time
+            # at least one object has no flow_session,
+            # then compare them by grade_time
+            if self.grade_time != other.grade_time:
+                return self.grade_time > other.grade_time
         else:
-            return self.flow_session.completion_time > other.completion_time
+            if (self.flow_session.completion_time
+                    != other.flow_session.completion_time):
+                return (self.flow_session.completion_time
+                        > other.flow_session.completion_time)
+        # if the two GradeChange objects have the same time attribute
+        # though it's rare, compare their pks.
+        return self.pk > other.pk
     # }}}
 
 # }}}
