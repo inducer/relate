@@ -339,11 +339,15 @@ RELATE_SITE_ANNOUNCEMENT = None
 
 #LANGUAGE_CODE = 'en-us'
 
-# It's recommended to configure LANGUAGES if you want to filter languages allowed
-# for course-specific languages. The format of languages should be a list/tuple of
-# 2-tuples: (language_code, language_description). If there are entries with the
-# same language_code, its language_description will use the one presents latest.
-# If LANGUAGE is not configured, django.conf.global_settings.LANGUAGES will be used.
+# You can (and it's recommended to) override Django's built-in LANGUAGES settings
+# if you want to filter languages allowed for course-specific languages.
+# The format of languages should be a list/tuple of 2-tuples:
+# (language_code, language_description). If there are entries with the same
+# language_code, language_description will be using the one which comes latest.
+#.If LANGUAGES is not configured, django.conf.global_settings.LANGUAGES will be
+# used.
+# Note: make sure LANGUAGE_CODE you used is also in LANGUAGES, if it is not
+# the default "en-us". Otherwise translation of that language will not work.
 
 # LANGUAGES = [
 #     ('en', 'English'),
