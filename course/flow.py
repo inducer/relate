@@ -1017,10 +1017,11 @@ def expire_flow_session(
 
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
-    if (past_due_only
-            and grading_rule.due is not None
-            and now_datetime < grading_rule.due):
-        return False
+    if past_due_only:
+        if grading_rule.due is None:
+            return False
+        elif now_datetime < grading_rule.due:
+            return False
 
     adjust_flow_session_page_data(fctx.repo, flow_session,
             flow_session.course.identifier, fctx.flow_desc,
