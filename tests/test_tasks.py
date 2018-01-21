@@ -24,8 +24,9 @@ THE SOFTWARE.
 
 from django.utils.timezone import now, timedelta
 from django.test import TestCase, override_settings, mock
-from .base_test_mixins import (
-    SingleCourseTestMixin)
+from .base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
+from tests.test_flow.test_purge_page_view_data import (
+    PURGE_VIEW_TWO_COURSE_SETUP_LIST)
 from course import models
 from . import factories
 
@@ -33,7 +34,9 @@ from course.tasks import (
     expire_in_progress_sessions,
     finish_in_progress_sessions,
     regrade_flow_sessions,
-    recalculate_ended_sessions)
+    recalculate_ended_sessions,
+    purge_page_view_data,
+)
 
 
 def check_celery_version():
@@ -79,19 +82,21 @@ class FactoryTest(SingleCourseTestMixin, TestCase):
                          exist_flowsession_count+10)
 
 
-class GradesTasksTest(SingleCourseTestMixin, TestCase):
+class TaskTestMixin(object):
     @classmethod
     def setUpClass(cls):  # noqa
-        super(GradesTasksTest, cls).setUpClass()
+        super(TaskTestMixin, cls).setUpClass()
         cls.update_state_patcher = mock.patch(
             "celery.app.task.Task.update_state", side_effect=mock.MagicMock)
         cls.update_state_patcher.start()
 
     @classmethod
     def tearDownClass(cls):  # noqa
-        super(GradesTasksTest, cls).tearDownClass()
+        super(TaskTestMixin, cls).tearDownClass()
         cls.update_state_patcher.stop()
 
+
+class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
     def setUp(self):
         super(GradesTasksTest, self).setUp()
         self.gopp = factories.GradingOpportunityFactory()
@@ -112,6 +117,9 @@ class GradesTasksTest(SingleCourseTestMixin, TestCase):
 
         assert self.in_progress_sessions_count == 3
         assert self.ended_sessions_count == 5
+
+        # reset the user_name format sequence
+        self.addCleanup(factories.UserFactory.reset_sequence)
 
     # {{{ test expire_in_progress_sessions
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -398,7 +406,123 @@ class GradesTasksTest(SingleCourseTestMixin, TestCase):
             models.FlowPageVisitGrade.objects.filter(
                 visit__flow_session__in=self.in_progress_sessions).count() == 0
         )
+    # }}}
 
+
+class PurgePageViewDataTaskTest(TwoCoursePageTestMixin, TaskTestMixin, TestCase):
+    # {{{ test purge_page_view_data
+
+    courses_setup_list = PURGE_VIEW_TWO_COURSE_SETUP_LIST
+
+    def setUp(self):
+        super(PurgePageViewDataTaskTest, self).setUp()
+
+        # {{{ create flow page visits
+        # all 40, null answer 25, answerd 15
+        result1 = self.create_flow_page_visit(self.course1)
+
+        (self.course1_n_all_fpv, self.course1_n_null_answer_fpv,
+         self.course1_n_non_null_answer_fpv) = result1
+
+        # all 30, null answer 24, answerd 6
+        result2 = self.create_flow_page_visit(
+            self.course2,
+            n_participations_per_course=3, n_sessions_per_participation=2,
+            n_null_answer_visits_per_session=4,
+            n_non_null_answer_visits_per_session=1)
+
+        (self.course2_n_all_fpv, self.course2_n_null_answer_fpv,
+         self.course2_n_non_null_answer_fpv) = result2
+
+        # }}}
+
+        # reset the user_name format sequence
+        self.addCleanup(factories.UserFactory.reset_sequence)
+
+    def create_flow_page_visit(self, course,
+                               n_participations_per_course=5,
+                               n_sessions_per_participation=1,
+                               n_null_answer_visits_per_session=5,
+                               n_non_null_answer_visits_per_session=3):
+        """
+        :param course::class:`Course`
+        :param n_participations_per_course: number of participation created for
+        each course
+        :param n_sessions_per_participation: number of session created for
+        each participation
+        :param n_null_answer_visits_per_session: number of flowpagevisit, which does
+        not have an answer, created for each session
+        :param n_non_null_answer_visits_per_session: number of flowpagevisit, which
+        has an answer, created for each session
+        :return::class:`Tuple`: number of all flow_page_visits, number of null
+        answer flow_page_visits, and number of non-null answer flow_page_visits.
+        """
+        my_course = factories.CourseFactory(identifier=course.identifier)
+        participations = factories.ParticipationFactory.create_batch(
+            size=n_participations_per_course, course=my_course)
+        for participation in participations:
+            flow_sessions = factories.FlowSessionFactory.create_batch(
+                size=n_sessions_per_participation, participation=participation)
+            for flow_session in flow_sessions:
+                null_anaswer_fpds = factories.FlowPageDataFactory.create_batch(
+                    size=n_null_answer_visits_per_session, flow_session=flow_session
+                )
+                for fpd in null_anaswer_fpds:
+                    factories.FlowPageVisitFactory.create(page_data=fpd)
+                non_null_anaswer_fpds = factories.FlowPageDataFactory.create_batch(
+                    size=n_non_null_answer_visits_per_session,
+                    flow_session=flow_session
+                )
+                for fpd in non_null_anaswer_fpds:
+                    factories.FlowPageVisitFactory.create(
+                        page_data=fpd,
+                        answer={"answer": "abcd"})
+
+        n_null_answer_fpv = (
+                n_participations_per_course
+                * n_sessions_per_participation
+                * n_null_answer_visits_per_session)
+
+        n_non_null_answer_fpv = (
+                n_participations_per_course
+                * n_sessions_per_participation
+                * n_non_null_answer_visits_per_session)
+
+        n_all_fpv = n_null_answer_fpv + n_non_null_answer_fpv
+
+        return n_all_fpv, n_null_answer_fpv, n_non_null_answer_fpv
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_purge_page_view_data(self):
+        purge_page_view_data(self.course1.pk)
+
+        # Expected counts of course 1
+        self.assertEqual(
+            models.FlowPageVisit.objects.filter(
+                flow_session__course=self.course1).count(),
+            self.course1_n_non_null_answer_fpv
+        )
+        self.assertEqual(
+            models.FlowPageVisit.objects.filter(
+                flow_session__course=self.course1,
+                answer__isnull=True,
+            ).count(),
+            0
+        )
+
+        # Counts for course 2 are not affected
+        self.assertEqual(
+            models.FlowPageVisit.objects.filter(
+                flow_session__course=self.course2).count(),
+            self.course2_n_all_fpv
+        )
+        self.assertEqual(
+            models.FlowPageVisit.objects.filter(
+                flow_session__course=self.course2,
+                answer__isnull=True,
+            ).count(),
+            self.course2_n_null_answer_fpv
+        )
     # }}}
 
 # vim: foldmethod=marker

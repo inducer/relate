@@ -62,7 +62,7 @@ class CourseFactory(factory.django.DjangoModelFactory):
 class ParticipationRoleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ParticipationRole
-        django_get_or_create = ('identifier',)
+        django_get_or_create = ('course', 'identifier',)
 
     course = factory.SubFactory(CourseFactory)
     identifier = "student"
@@ -82,7 +82,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
             # Simple build, do nothing.
             return
         else:
-            role = ParticipationRoleFactory()
+            role = ParticipationRoleFactory(course=self.course)
             self.roles.set([role])
 
 
@@ -90,7 +90,7 @@ class FlowSessionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.FlowSession
 
-    course = factory.SubFactory(CourseFactory)
+    course = factory.lazy_attribute(lambda x: x.participation.course)
     participation = factory.SubFactory(ParticipationFactory)
     user = factory.lazy_attribute(lambda x: x.participation.user)
     active_git_commit_sha = factory.lazy_attribute(
@@ -110,3 +110,28 @@ class GradingOpportunityFactory(factory.django.DjangoModelFactory):
     name = get_default_gopp_name()
     flow_id = DEFAULT_FLOW_ID
     aggregation_strategy = DEFAULT_GRADE_AGGREGATION_STRATEGY
+
+
+class FlowPageDataFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.FlowPageData
+
+    flow_session = factory.SubFactory(FlowSessionFactory)
+    page_ordinal = 1
+    page_type = "TestPageType"
+    group_id = "TestGroupId"
+    page_id = "TestPageId"
+    data = {}
+    title = "TestPageTitle"
+
+
+class FlowPageVisitFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.FlowPageVisit
+
+    page_data = factory.SubFactory(FlowPageDataFactory)
+    flow_session = factory.lazy_attribute(lambda x: x.page_data.flow_session)
+    visit_time = factory.LazyFunction(now)
+    user = factory.lazy_attribute(
+        lambda x: x.page_data.flow_session.participation.user)
+    answer = None
