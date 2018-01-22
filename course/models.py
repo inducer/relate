@@ -771,6 +771,20 @@ class AuthenticationToken(models.Model):
             null=True, blank=True, unique=True,
             verbose_name=_('Hash of git authentication token'))
 
+    def __unicode__(self):
+        return _("Token %(id)d for %(participation)s: %(description)s") % {
+                "id": self.id,
+                "participation": self.participation,
+                "description": self.description}
+
+    if six.PY3:
+        __str__ = __unicode__
+
+    class Meta:
+        verbose_name = _("Authentication token")
+        verbose_name_plural = _("Authentication tokens")
+        ordering = ("participation", "creation_time")
+
 # }}}
 
 

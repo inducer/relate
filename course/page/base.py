@@ -664,13 +664,25 @@ class PageBase(object):
         """
         return None
 
-    def normalized_answer(self, page_context, page_data, answer_data):
+    def normalized_answer(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data  # type: Any
+            ):
+        # type: (...) -> Optional[Text]
         """An HTML-formatted answer to be used for summarization and
         display in analytics.
         """
         return None
 
-    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+    def normalized_bytes_answer(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            ):
+        # type: (...) -> Optional[Tuple[Text, bytes]]
         """An answer to be used for batch download, given as a batch of bytes
         to be stuffed in a zip file.
 

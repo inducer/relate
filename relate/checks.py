@@ -377,18 +377,17 @@ def check_relate_settings(app_configs, **kwargs):
             )
         else:
             from collections import OrderedDict
-            all_options = (
-                ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES))
-            filtered_options_dict = OrderedDict(all_options)
-            all_lang_codes = [lang_code for lang_code, lang_descr in all_options]
-            for lang_code in filtered_options_dict.keys():
+            options_dict = OrderedDict(tuple(settings.LANGUAGES))
+            all_lang_codes = [lang_code for lang_code, lang_descr
+                              in tuple(settings.LANGUAGES)]
+            for lang_code in options_dict.keys():
                 if all_lang_codes.count(lang_code) > 1:
                     errors.append(Warning(
                         msg=(
                             "Duplicate language entries were found in "
                             "settings.LANGUAGES for '%s', '%s' will be used "
                             "as its language_description"
-                            % (lang_code, filtered_options_dict[lang_code])),
+                            % (lang_code, options_dict[lang_code])),
                         id="relate_languages.W001"
                     ))
 
