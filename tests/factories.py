@@ -29,7 +29,7 @@ from django.utils.translation import ugettext_lazy as _
 from course import models
 from course import constants
 
-from .base_test_mixins import SINGLE_COURSE_SETUP_LIST
+from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
 DEFAULT_FLOW_ID = "quiz-test"

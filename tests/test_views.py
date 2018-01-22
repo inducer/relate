@@ -22,14 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase, RequestFactory, mock
+from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
 import datetime
 from course import views
 
-from .base_test_mixins import (
+from tests.base_test_mixins import (
     SingleCourseTestMixin,
 )
+from tests.utils import mock
 
 DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
 

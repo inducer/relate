@@ -23,7 +23,7 @@ THE SOFTWARE.
 """
 
 from django.urls import reverse
-from .base_test_mixins import SingleCoursePageTestMixin
+from tests.base_test_mixins import SingleCoursePageTestMixin
 
 from django.test import TestCase
 from course.models import (

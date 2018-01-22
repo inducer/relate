@@ -28,10 +28,10 @@ from django.test import TestCase
 from django.urls import resolve
 from django.core import mail
 from course.models import FlowSession
-from .base_test_mixins import (
+from tests.base_test_mixins import (
     SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
     SubprocessRunpyContainerMixin)
-from .utils import LocmemBackendTestsMixin
+from tests.utils import LocmemBackendTestsMixin
 
 QUIZ_FLOW_ID = "quiz-test"
 

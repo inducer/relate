@@ -14,12 +14,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='course',
             name='from_email',
-            field=models.EmailField(help_text=b"This email address will be used in the 'From' line of automated emails sent by RELATE.", max_length=254),
+            field=models.EmailField(help_text="This email address will be used in the 'From' line of automated emails sent by RELATE.", max_length=254),
         ),
         migrations.AlterField(
             model_name='course',
             name='notify_email',
-            field=models.EmailField(help_text=b'This email address will receive notifications about the course.', max_length=254),
+            field=models.EmailField(help_text='This email address will receive notifications about the course.', max_length=254),
         ),
         migrations.AlterField(
             model_name='flowaccessexceptionentry',

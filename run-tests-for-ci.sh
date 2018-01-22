@@ -52,11 +52,13 @@ export PATH=`pwd`/.env/local/bin:$PATH
 
 PIP="${PY_EXE} $(which pip)"
 
-grep -v dnspython requirements.txt > req.txt
 if [[ "$PY_EXE" = python2* ]]; then
+  grep -Ev "django>|django=|dnspython" requirements.txt > req.txt
+  $PIP install "django<2"
   $PIP install dnspython
   $PIP install mock
 else
+  grep -v dnspython requirements.txt > req.txt
   $PIP install dnspython3
 fi
 
