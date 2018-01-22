@@ -34,7 +34,7 @@ from .base_test_mixins import (
 DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
 
 RELATE_FACILITIES = {
-    # intentionally to be different from local_settings.example.py
+    # intentionally to be different from local_settings_example.py
     "test_center1": {
         "ip_ranges": [
             "192.168.100.0/24",

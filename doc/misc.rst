@@ -27,7 +27,7 @@ the dependencies::
 
 Copy (and, optionally, edit) the example configuration::
 
-    cp local_settings.example.py local_settings.py
+    cp local_settings_example.py local_settings.py
     vi local_settings.py
 
 Initialize the database::

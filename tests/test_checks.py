@@ -508,7 +508,7 @@ class CheckGitRoot(CheckRelateSettingsBase):
 class CheckRelateCourseLanguages(CheckRelateSettingsBase):
     """
     For this tests to pass, LANGUAGE_CODE, LANGUAGES, USE_I18N in
-    local_settings.example.py should not be configured"""
+    local_settings_example.py should not be configured"""
 
     msg_id_prefix = "relate_languages"
 
