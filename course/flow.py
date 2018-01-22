@@ -27,6 +27,7 @@ THE SOFTWARE.
 from django.utils import six
 from django.utils.translation import (
         ugettext, ugettext_lazy as _)
+from django.contrib.auth.decorators import login_required
 from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -2948,15 +2949,21 @@ class PurgePageViewData(StyledForm):
                     css_class="btn btn-danger"))
 
 
+@login_required
 def purge_page_view_data(request):
+    purgeable_courses = get_pv_purgeable_courses_for_user_qs(request.user)
+    if not purgeable_courses.count():
+        raise PermissionDenied()
     if request.method == 'POST':
         form = PurgePageViewData(request.user, request.POST)
         if form.is_valid():
             if "submit" in request.POST:
                 course = form.cleaned_data["course"]
 
-                if course not in list(get_pv_purgeable_courses_for_user_qs(
-                        request.user)):
+                # This actually won't happen, because it will fail at
+                # form validation stage. We leave it here as a double
+                # check for data security.
+                if course not in list(purgeable_courses):
                     raise PermissionDenied()
 
                 from course.tasks import purge_page_view_data
