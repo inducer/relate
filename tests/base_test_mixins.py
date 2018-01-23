@@ -30,12 +30,13 @@ import hashlib
 import datetime
 import memcache
 from copy import deepcopy
-from django.test import Client, override_settings, mock
+from django.test import Client, override_settings
 from django.urls import reverse, resolve
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 
+from tests.utils import mock
 from course.models import (
     Course, Participation, ParticipationRole, FlowSession, FlowPageData,
     FlowPageVisit)

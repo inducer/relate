@@ -23,10 +23,11 @@ THE SOFTWARE.
 """
 
 import os
-from django.test import SimpleTestCase, mock
+from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
+from tests.utils import mock
 
 
 class CheckRelateSettingsBase(SimpleTestCase):
@@ -580,19 +581,13 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
 
     def test_item_having_same_lang_code_with_settings_language_code(self):
         with override_settings(LANGUAGES=self.VALID_CONF1, LANGUAGE_CODE="en"):
-            self.assertCheckMessages(
-                expected_ids=["relate_languages.W001"],
-
-                # 'my English' is used for language description of 'en'
-                # instead of 'English'
-                expected_msgs=[
-                    "Duplicate language entries were found in "
-                    "settings.LANGUAGES for 'en', 'my English' "
-                    "will be used as its language_description"]
-            )
+            # This should not generate warning of duplicate language entries
+            # since that is how Django works.
+            self.assertCheckMessages([])
 
     def test_item_duplicated_inside_settings_languages(self):
-        with override_settings(LANGUAGES=self.VALID_WITH_WARNNING_CONF):
+        with override_settings(LANGUAGES=self.VALID_WITH_WARNNING_CONF,
+                               LANGUAGE_CODE="en-us"):
             self.assertCheckMessages(
                 expected_ids=["relate_languages.W001"],
 
@@ -604,12 +599,6 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
                     "Chinese' will be used as its "
                     "language_description"]
             )
-
-    def test_item_duplicated_mixed(self):
-        with override_settings(LANGUAGES=self.VALID_WITH_WARNNING_CONF,
-                               LANGUAGE_CODE="en"):
-            self.assertCheckMessages(
-                ["relate_languages.W001", "relate_languages.W001"])
 
 
 class CheckRelateSiteName(CheckRelateSettingsBase):

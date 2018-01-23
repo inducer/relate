@@ -68,7 +68,7 @@ from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_na
 from django_select2.forms import ModelSelect2Widget
 
 if False:
-    from typing import Any, Text  # noqa
+    from typing import Any, Text, Optional  # noqa
     from django.db.models import query  # noqa
 
 
@@ -341,7 +341,7 @@ def logout_confirmation_required(
     confirmation page.
     """
     actual_decorator = user_passes_test(
-        lambda u: u.is_anonymous(),
+        lambda u: u.is_anonymous,
         login_url=logout_confirmation_url,
         redirect_field_name=redirect_field_name
     )
@@ -1178,6 +1178,7 @@ class APIContext(object):
         self.restrict_to_role = restrict_to_role
 
     def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
         if self.restrict_to_role is None:
             return self.participation.has_permission(perm, argument)
         else:
@@ -1256,16 +1257,20 @@ class AuthenticationTokenForm(StyledModelForm):
         super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
         self.participation = participation
 
-        self.fields["restrict_to_participation_role"].queryset = (
-                participation.roles.all()
-                | ParticipationRole.objects.filter(
-                    id__in=[
+        allowable_role_ids = (
+                set(role.id for role in participation.roles.all())
+                | set(
                         prole.id
                         for prole in ParticipationRole.objects.filter(
                             course=participation.course)
                         if participation.has_permission(
-                            pperm.impersonate_role, prole.identifier)
-                    ]))
+                            pperm.impersonate_role, prole.identifier))
+                )
+
+        self.fields["restrict_to_participation_role"].queryset = (
+                ParticipationRole.objects.filter(
+                    id__in=list(allowable_role_ids)
+                    ))
 
         self.helper.add_input(Submit("create", _("Create")))
 
@@ -1334,6 +1339,7 @@ def manage_authentication_tokens(pctx):
     from datetime import timedelta
     tokens = AuthenticationToken.objects.filter(
             user=request.user,
+            participation__course=pctx.course,
             ).filter(
                 Q(revocation_time=None)
                 | Q(revocation_time__gt=now_datetime - timedelta(weeks=1)))

@@ -27,6 +27,7 @@ THE SOFTWARE.
 from django.utils import six
 from django.utils.translation import (
         ugettext, ugettext_lazy as _)
+from django.contrib.auth.decorators import login_required
 from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -64,6 +65,7 @@ from course.constants import (
         )
 from course.models import (
         Participation,
+        Course,
         FlowSession, FlowPageData, FlowPageVisit,
         FlowPageVisitGrade,
         get_feedback_for_grade,
@@ -91,6 +93,7 @@ if False:
     from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet  # noqa
     import datetime  # noqa
     from course.models import Course  # noqa
+    from accounts.models import User  # noqa
     from course.utils import (  # noqa
             CoursePageContext,
             FlowSessionStartRule,
@@ -1017,10 +1020,11 @@ def expire_flow_session(
 
     assert isinstance(grading_rule, FlowSessionGradingRule)
 
-    if (past_due_only
-            and grading_rule.due is not None
-            and now_datetime < grading_rule.due):
-        return False
+    if past_due_only:
+        if grading_rule.due is None:
+            return False
+        elif now_datetime < grading_rule.due:
+            return False
 
     adjust_flow_session_page_data(fctx.repo, flow_session,
             flow_session.course.identifier, fctx.flow_desc,
@@ -1243,10 +1247,10 @@ def finish_flow_session_standalone(
     grading_rule = get_session_grading_rule(session, fctx.flow_desc,
             now_datetime_filled)
 
-    if grading_rule.due is not None:
-        if (
-                past_due_only
-                and now_datetime_filled < grading_rule.due):
+    if past_due_only:
+        if grading_rule.due is None:
+            return False
+        elif now_datetime_filled < grading_rule.due:
             return False
 
     finish_flow_session(fctx, session, grading_rule,
@@ -2907,6 +2911,70 @@ def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form_description": _("Re-allow Changes to Flow Page"),
+        "form": form
+        })
+
+# }}}
+
+
+# {{{ purge page view data
+
+def get_pv_purgeable_courses_for_user_qs(user):
+    # type: (User) -> query.QuerySet
+    course_qs = Course.objects.all()
+    if user.is_superuser:
+        # do not filter queryset
+        pass
+    else:
+        course_qs = course_qs.filter(
+                participations__user=user,
+                participations__roles__permissions__permission=(
+                    pperm.use_admin_interface))
+
+    return course_qs
+
+
+class PurgePageViewData(StyledForm):
+    def __init__(self, user, *args, **kwargs):
+        # type: (User, *Any, **Any) -> None
+        self.helper = FormHelper()
+        super(PurgePageViewData, self).__init__(*args, **kwargs)
+
+        self.fields["course"] = forms.ModelChoiceField(
+                queryset=get_pv_purgeable_courses_for_user_qs(user),
+                required=True)
+
+        self.helper.add_input(
+                Submit("submit", _("Purge Page View Data"),
+                    css_class="btn btn-danger"))
+
+
+@login_required
+def purge_page_view_data(request):
+    purgeable_courses = get_pv_purgeable_courses_for_user_qs(request.user)
+    if not purgeable_courses.count():
+        raise PermissionDenied()
+    if request.method == 'POST':
+        form = PurgePageViewData(request.user, request.POST)
+        if form.is_valid():
+            if "submit" in request.POST:
+                course = form.cleaned_data["course"]
+
+                # This actually won't happen, because it will fail at
+                # form validation stage. We leave it here as a double
+                # check for data security.
+                if course not in list(purgeable_courses):
+                    raise PermissionDenied()
+
+                from course.tasks import purge_page_view_data
+                async_res = purge_page_view_data.delay(course.id)
+
+                return redirect("relate-monitor_task", async_res.id)
+    else:
+        form = PurgePageViewData(request.user)
+
+    return render(request, "generic-form.html", {
+        "form_description": _("Purge Page View Data"),
         "form": form
         })
 

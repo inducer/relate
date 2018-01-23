@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='editor_mode',
-            field=models.CharField(choices=[(b'default', 'Default'), (b'sublime', b'Sublime text'), (b'emacs', b'Emacs'), (b'vim', b'Vim')], default=b'default', help_text="Which key bindings you prefer when editing larger amounts of text or code. (If you do not understand what this means, leave it as 'Default'.)", max_length=20, verbose_name='Editor mode'),
+            field=models.CharField(choices=[('default', 'Default'), ('sublime', 'Sublime text'), ('emacs', 'Emacs'), ('vim', 'Vim')], default='default', help_text="Which key bindings you prefer when editing larger amounts of text or code. (If you do not understand what this means, leave it as 'Default'.)", max_length=20, verbose_name='Editor mode'),
         ),
         migrations.AddField(
             model_name='user',
@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='status',
-            field=models.CharField(choices=[(b'unconfirmed', 'Unconfirmed'), (b'active', 'Active')], max_length=50, null=True, verbose_name='User status'),
+            field=models.CharField(choices=[('unconfirmed', 'Unconfirmed'), ('active', 'Active')], max_length=50, null=True, verbose_name='User status'),
         ),
         migrations.AlterField(
             model_name='user',

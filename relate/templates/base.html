@@ -35,17 +35,11 @@
         {{ form.media }}
       {% endblock %}
 
-      {% block le_ie9_fallback %}
-        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
-        <!--[if lt IE 9]>
-          <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-          <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-        <![endif]-->
-      {% endblock %}
+      {% block header_extra %}{% endblock %}
 
       {% block head_assets_after_form_media %}
-        <link href="{% static 'videojs/dist/video-js.min.css' %}" rel="stylesheet">
-        <script src="{% static 'videojs/dist/video.min.js' %}"></script>
+        <link href="{% static 'video.js/dist/video-js.min.css' %}" rel="stylesheet">
+        <script src="{% static 'video.js/dist/video.min.js' %}"></script>
         <script type="text/javascript">
             videojs.options.flash.swf = "{% static 'videojs/dist/video-js/video-js.swf' %}"
         </script>
@@ -57,6 +51,13 @@
   </head>
 
   <body>
+    {% block lte_ie9_warning %}
+      <!--[if lte IE 9]>
+        <div class="browser alert alert-danger warning"><i class="fa fa-warning"></i>
+          {% trans "This website may not be compatible with your outdated Internet Explorer version. If you want use Internet Explorer, please install one with version 10 or higher." %}
+        </div>
+      <![endif]-->
+    {% endblock %}
     {% block fixed_navbar %}
       <!-- Fixed navbar -->
       <div class="navbar navbar-default" role="navigation">
@@ -82,6 +83,10 @@
                     <ul class="dropdown-menu">
                       {% if user.is_staff %}
                         <li><a href="/admin" target="_blank">{% trans "Admin site" %}</a></li>
+                        <li role="presentation" class="divider"></li>
+                      {% endif %}
+                      {% if user.is_superuser or pperm.use_admin_interface %}
+                        <li><a href="{% url 'relate-purge_page_view_data' %}" target="_blank">{% trans "Purge page view data" %}</a></li>
                         <li role="presentation" class="divider"></li>
                       {% endif %}
                       {% if perms.course.can_issue_exam_tickets %}

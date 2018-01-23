@@ -308,7 +308,7 @@ class RegexMatcher(TextAnswerMatcher):
 
 class CaseSensitiveRegexMatcher(RegexMatcher):
     type = "case_sens_regex"
-    re_flags = 0
+    re_flags = 0  # type:ignore
     is_case_sensitive = True
     pattern_type = "string"
 

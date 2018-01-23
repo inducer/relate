@@ -65,6 +65,7 @@ Table of Contents
 
     content.rst
     flow.rst
+    api.rst
     faq.rst
     misc.rst
 

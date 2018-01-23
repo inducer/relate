@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Dong Zhuang"
+__copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,7 +26,7 @@ import six
 import itertools
 from six.moves.urllib.parse import ParseResult, quote, urlparse
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
-from django.test import TestCase, override_settings, mock, RequestFactory
+from django.test import TestCase, override_settings, RequestFactory
 from django.contrib import messages
 from django.conf import settings
 from django.core import mail
@@ -39,13 +39,13 @@ from unittest import skipIf
 from course.auth import get_impersonable_user_qset, get_user_model
 from course.models import FlowPageVisit, ParticipationPermission
 
-from .base_test_mixins import (
+from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCoursePageTestMixin, TwoCourseTestMixin,
     FallBackStorageMessageTestMixin, TWO_COURSE_SETUP_LIST,
     NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
 
-from .utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf)
+from tests.utils import (
+    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
 
 # settings names
 EDITABLE_INST_ID_BEFORE_VERI = "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION"
