@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='course',
             name='events_file',
-            field=models.CharField(default=b'events.yml', help_text=b'Name of a YAML file in the git repository that contains calendar information.', max_length=200),
+            field=models.CharField(default='events.yml', help_text='Name of a YAML file in the git repository that contains calendar information.', max_length=200),
             preserve_default=True,
         ),
     ]

@@ -23,8 +23,9 @@ THE SOFTWARE.
 """
 
 import copy
-from django.test import TestCase, mock
+from django.test import TestCase
 from django.urls import reverse
+from tests.utils import mock
 
 from tests.base_test_mixins import (
     TwoCoursePageTestMixin, TWO_COURSE_SETUP_LIST)

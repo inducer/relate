@@ -341,7 +341,7 @@ def logout_confirmation_required(
     confirmation page.
     """
     actual_decorator = user_passes_test(
-        lambda u: u.is_anonymous(),
+        lambda u: u.is_anonymous,
         login_url=logout_confirmation_url,
         redirect_field_name=redirect_field_name
     )

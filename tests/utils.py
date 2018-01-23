@@ -13,6 +13,12 @@ from django.urls import clear_url_caches
 from django.conf import settings
 from django.test import override_settings
 from django.core import mail
+try:
+    # for Django < 2.0
+    from django.test import mock  # noqa
+except ImportError:
+    # Since Django >= 2.0 only support PY3
+    from unittest import mock  # noqa
 
 
 # {{{ These are copied (and maybe modified) from django official unit tests

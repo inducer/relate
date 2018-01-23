@@ -649,7 +649,7 @@ class ReopenSessionForm(StyledForm):
 
         tags = [NONE_SESSION_TAG] + tags
         self.fields["set_access_rules_tag"] = forms.ChoiceField(
-                [(tag, tag) for tag in tags],
+                choices=[(tag, tag) for tag in tags],
                 initial=(current_tag
                     if current_tag is not None
                     else NONE_SESSION_TAG),

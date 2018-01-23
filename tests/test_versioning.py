@@ -23,14 +23,14 @@ THE SOFTWARE.
 """
 
 from copy import deepcopy
-from django.test import TestCase, RequestFactory, mock
+from django.test import TestCase, RequestFactory
 from course.models import Course, Participation
 from course import versioning
 
-from .base_test_mixins import (
+from tests.base_test_mixins import (
     CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST,
     FallBackStorageMessageTestMixin)
-from .utils import suppress_stdout_decorator
+from tests.utils import suppress_stdout_decorator, mock
 
 
 class CourseCreationTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,

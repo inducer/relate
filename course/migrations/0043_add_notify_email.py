@@ -22,13 +22,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='course',
             name='notify_email',
-            field=models.EmailField(help_text=b'This email address will receive notifications about the course.', max_length=75, null=True),
+            field=models.EmailField(help_text='This email address will receive notifications about the course.', max_length=75, null=True),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='course',
             name='from_email',
-            field=models.EmailField(help_text=b"This email address will be used in the 'From' line of automated emails sent by RELATE.", max_length=75),
+            field=models.EmailField(help_text="This email address will be used in the 'From' line of automated emails sent by RELATE.", max_length=75),
             preserve_default=True,
         ),
         migrations.RunPython(set_notify_email),

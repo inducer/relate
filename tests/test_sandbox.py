@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
-from .base_test_mixins import SingleCourseTestMixin
+from tests.base_test_mixins import SingleCourseTestMixin
 
 QUESTION_MARKUP = """
 type: TextQuestion
