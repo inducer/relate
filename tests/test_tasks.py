@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Zesheng Wang"
+__copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
