@@ -24,9 +24,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import SimpleTestCase, mock
+from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from course.utils import get_course_specific_language_choices
+from tests.utils import mock
+from django import VERSION as DJANGO_VERSION
+
+if DJANGO_VERSION < (2, 0):
+    REAL_TRANSLATION_FUNCTION_TO_MOCK = (
+        "django.utils.translation.trans_real.do_translate")
+    real_trans_side_effect = lambda x, y: x  # noqa
+else:
+    # "do_translate(message, translation_function)" was refactored to
+    # "gettext(message)" since Django >= 2.0
+    REAL_TRANSLATION_FUNCTION_TO_MOCK = (
+        "django.utils.translation._trans.gettext")
+    real_trans_side_effect = lambda x: x  # noqa
 
 
 class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
@@ -130,10 +143,8 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
                 # because there's no file named "user_customized_lang_code.mo"
                 get_course_specific_language_choices()
 
-            with mock.patch(
-                    "django.utils.translation.trans_real.do_translate"
-            ) as mock_do_translate:
-                mock_do_translate.side_effect = lambda x, y: x
+            with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext:
+                mock_gettext.side_effect = real_trans_side_effect
                 choices = get_course_specific_language_choices()
 
                 # The language description is the language_code, because it can't
@@ -142,10 +153,8 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
 
         with override_settings(USE_I18N=False, LANGUAGES=self.LANGUAGES_CONF2,
                                LANGUAGE_CODE='user_customized_lang_code'):
-            with mock.patch(
-                    "django.utils.translation.trans_real.do_translate"
-            ) as mock_do_translate:
-                mock_do_translate.side_effect = lambda x, y: x
+            with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext:
+                mock_gettext.side_effect = real_trans_side_effect
                 choices = get_course_specific_language_choices()
 
                 # The language description is the language_code, because it can't

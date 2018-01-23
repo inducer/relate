@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='course',
             name='listed',
-            field=models.BooleanField(default=True, help_text=b'Should the course be listed on the main page?'),
+            field=models.BooleanField(default=True, help_text='Should the course be listed on the main page?'),
             preserve_default=True,
         ),
     ]

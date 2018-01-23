@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='event',
             name='all_day',
-            field=models.BooleanField(default=False, help_text=b'Only affects the rendering in the class calendar, in that a start time is not shown'),
+            field=models.BooleanField(default=False, help_text='Only affects the rendering in the class calendar, in that a start time is not shown'),
             preserve_default=True,
         ),
     ]

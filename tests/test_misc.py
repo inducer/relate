@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 import datetime
-from django.test import TestCase, mock
+from django.test import TestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 
@@ -34,9 +34,11 @@ from course.models import Course
 from course.views import EditCourseForm
 from course.versioning import CourseCreationForm
 
-from .base_test_mixins import SingleCourseTestMixin
-from .utils import LocmemBackendTestsMixin, mail
-from .test_views import DATE_TIME_PICKER_TIME_FORMAT
+from tests.base_test_mixins import SingleCourseTestMixin
+from tests.utils import LocmemBackendTestsMixin, mail, mock
+from tests.test_views import DATE_TIME_PICKER_TIME_FORMAT
+from tests.test_utils import (
+    REAL_TRANSLATION_FUNCTION_TO_MOCK, real_trans_side_effect)
 
 LANGUAGES = [
     ('en', _('English')),
@@ -275,9 +277,8 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
 
     def verify_result_with_configure(self, my_site_name):
         # home page
-        with mock.patch("django.utils.translation.trans_real.do_translate")\
-                as mock_trans:
-            mock_trans.side_effect = lambda x, y: x
+        with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext:
+            mock_gettext.side_effect = real_trans_side_effect
             resp = self.c.get("/")
             self.assertEqual(resp.status_code, 200)
             self.assertContains(resp, "<title>%s</title>" % my_site_name, html=True)
@@ -285,8 +286,8 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
             # Three translations in nav_bar brand, html title and
             # "Welcome to RELATE", respectively
             self.assertEqual(
-                self.get_translation_count(mock_trans, my_site_name), 3)
-            mock_trans.reset_mock()
+                self.get_translation_count(mock_gettext, my_site_name), 3)
+            mock_gettext.reset_mock()
 
             # course page
             resp = self.c.get(self.get_course_page_url())
@@ -298,17 +299,16 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
 
             # One translation in html title
             self.assertEqual(
-                self.get_translation_count(mock_trans, my_site_name), 1)
+                self.get_translation_count(mock_gettext, my_site_name), 1)
 
         # email
         with override_settings(RELATE_REGISTRATION_ENABLED=True, USE_I18N=True):
             # render() is mocked so as to count string translated in email rendering
-            with mock.patch("django.utils.translation.trans_real.do_translate")\
-                    as mock_trans,\
+            with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext,\
                     mock.patch("course.auth._") as mock_ugettext,\
                     mock.patch('course.auth.messages'),\
                     mock.patch('course.auth.render'):
-                mock_trans.return_value = "foo"
+                mock_gettext.return_value = "foo"
                 with self.temporarily_switch_to_user(None):
                     resp = self.post_sign_up(
                         data={"username": "Jack", "email": "jack@exmaple.com"},
@@ -323,7 +323,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
 
                     # Three RELATE in the email template
                     self.assertEqual(
-                        self.get_translation_count(mock_trans, my_site_name), 3)
+                        self.get_translation_count(mock_gettext, my_site_name), 3)
 
     @override_settings()
     def test_default_configure(self):
