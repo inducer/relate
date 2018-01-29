@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
+import six
 from six.moves import range
 import django.forms as forms
 from django.utils.safestring import mark_safe
@@ -96,26 +96,41 @@ class ChoiceInfo(object):
                     _("%(location)s: unable to convert to string")
                     % {'location': location})
 
+        tag_mode_dict = {
+            cls.CORRECT_TAG: ChoiceModes.CORRECT,
+            cls.DISREGARD_TAG: ChoiceModes.DISREGARD,
+            cls.ALWAYS_CORRECT_TAG: ChoiceModes.ALWAYS_CORRECT
+        }
+
         s = node
 
         item_mode = [None]
 
-        def mode_from_prefix(mode, prefix, s):
-            if s.startswith(prefix):
-                s = s[len(prefix):].strip()
+        def find_tag_by_mode(mode):
+            for k, v in six.iteritems(tag_mode_dict):
+                if v == mode:
+                    return k
 
-                if item_mode[0] is not None:
-                    raise ValidationError(
-                            _("%(location)s: more than one choice mode set")
-                            % {'location': location})
+        def mode_from_prefix(s):
+            for prefix in tag_mode_dict.keys():
+                if s.startswith(prefix):
+                    s = s[len(prefix):].strip()
 
-                item_mode[0] = mode
+                    if item_mode[0] is not None:
+                        raise ValidationError(
+                                _("%(location)s: more than one choice modes "
+                                  "set: '%(modes)s'")
+                                % {'location': location,
+                                   'modes':
+                                       "".join([find_tag_by_mode(item_mode[0]),
+                                                  prefix])
+                                   })
 
+                    item_mode[0] = tag_mode_dict[prefix]
+                    s = mode_from_prefix(s)
             return s
 
-        s = mode_from_prefix(ChoiceModes.CORRECT, cls.CORRECT_TAG, s)
-        s = mode_from_prefix(ChoiceModes.DISREGARD, cls.DISREGARD_TAG, s)
-        s = mode_from_prefix(ChoiceModes.ALWAYS_CORRECT, cls.ALWAYS_CORRECT_TAG, s)
+        s = mode_from_prefix(s)
 
         if item_mode[0] is None:
             item_mode[0] = ChoiceModes.INCORRECT
@@ -154,7 +169,9 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
         for choice_idx, choice_desc in enumerate(page_desc.choices):
             choice = ChoiceInfo.parse_from_yaml(
                     vctx,
-                    _("%s, choice %d") % (location, choice_idx+1),
+                    _("%(location)s, choice %(idx)d") %
+                    {"location": location,
+                     "idx": choice_idx+1},
                     choice_desc)
             self.choices.append(choice)
 
@@ -387,7 +404,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
         permutation = page_data["permutation"]
 
         if answer_data is None:
-            unpermuted_choice = None
+            return None
         else:
             unpermuted_choice = permutation[answer_data["choice"]]
 
@@ -442,7 +459,15 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         Choices marked with the prefix ``~DISREGARD~`` are
         ignored when determining the correctness of an answer.
         Choices marked with the prefix ``~ALWAYS_CORRECT~`` are
-        marked as correct whether they are selected or not.
+        marked as correct whether they are selected or not. The latter two
+        exist to ensure fair scoring of a multi-select question in which one
+        option has turned out to be flawed. The net effect of ``~DISREGARD~``
+        is to score the question as if that option didn't exist.
+        But some students may have received points from the broken option,
+        so ``~DISREGARD~`` would take those points away. Cue lots of
+        (somewhat justified) complaints from grumpy students.
+        ``~ALWAYS_CORRECT~`` prevents that by grading any answer as
+        a correct one, therefore never leading to a point decrease.
 
     .. attribute:: shuffle
 
@@ -501,7 +526,8 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                 credit_mode = "proportional"
             elif not partial and partial_subset:
                 credit_mode = "proportional_correct"
-            elif partial and partial_subset:
+            else:
+                assert partial and partial_subset
                 raise ValidationError(
                         string_concat(
                             "%(location)s: ",
@@ -509,8 +535,6 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                             "'allow_partial_credit_subset_only' are not allowed to "
                             "coexist when both attribute are 'True'"))
                         % {'location': location})
-            else:
-                assert False
 
         if credit_mode not in [
                 "exact",
@@ -599,7 +623,8 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                     /
                     num_choices)
 
-        elif self.credit_mode == "proportional_correct":
+        else:
+            assert self.credit_mode == "proportional_correct"
 
             correctness = (
                     (
@@ -669,7 +694,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         permutation = page_data["permutation"]
 
         if answer_data is None:
-            unpermuted_choices = None
+            return None
         else:
             unpermuted_choices = [permutation[ch] for ch in answer_data["choice"]]
 
