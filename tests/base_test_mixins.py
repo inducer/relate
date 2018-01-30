@@ -42,6 +42,7 @@ from course.models import (
 from course.constants import participation_status, user_status
 from course.content import get_course_repo_path
 
+ATOL = 1e-05
 
 CREATE_SUPERUSER_KWARGS = {
     "username": "test_admin",
@@ -233,9 +234,12 @@ class ResponseContextMixin(object):
             else:
                 self.assertIsNone(answer_feedback.correctness)
         else:
-            from decimal import Decimal
-            self.assertEqual(answer_feedback.correctness,
-                                    Decimal(str(expected_correctness)))
+            self.assertTrue(
+                abs(float(answer_feedback.correctness)
+                    - float(str(expected_correctness))) < ATOL,
+                "%s does not equal %s"
+                % (str(answer_feedback.correctness)[:5],
+                   str(expected_correctness)[:5]))
 
     def get_response_body(self, response):
         return self.get_response_context_value_by_name(response, "body")
@@ -1051,6 +1055,55 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         if assert_not_none:
             self.assertIsNotNone(result, "The query returns None")
         return result
+
+    def download_all_submissions_url(self, flow_id, course_identifier):
+        params = {"course_identifier": course_identifier,
+                  "flow_id": flow_id}
+        return reverse("relate-download_all_submissions", kwargs=params)
+
+    def get_download_all_submissions(self, flow_id, course_identifier=None):
+        if course_identifier is None:
+            course_identifier = self.get_default_course_identifier()
+
+        return self.c.get(
+            self.download_all_submissions_url(flow_id, course_identifier))
+
+    def post_download_all_submissions_by_group_page_id(
+            self, group_page_id, flow_id, course_identifier=None, **kwargs):
+        """
+        :param group_page_id: format: group_id/page_id
+        :param flow_id:
+        :param course_identifier:
+        :param kwargs: for updating the default post_data
+        :return: response
+        """
+        if course_identifier is None:
+            course_identifier = self.get_default_course_identifier()
+
+        data = {'restrict_to_rules_tag': '<<<ALL>>>',
+                'which_attempt': 'last',
+                'extra_file': '', 'download': 'Download',
+                'page_id': group_page_id,
+                'non_in_progress_only': 'on'}
+
+        data.update(kwargs)
+
+        return self.c.post(
+            self.download_all_submissions_url(flow_id, course_identifier),
+            data=data
+        )
+
+    def get_flow_page_analytics(self, flow_id, group_id, page_id,
+                                course_identifier=None):
+        if course_identifier is None:
+            course_identifier = self.get_default_course_identifier()
+
+        params = {"course_identifier": course_identifier,
+                  "flow_id": flow_id,
+                  "group_id": group_id,
+                  "page_id": page_id}
+
+        return self.c.get(reverse("relate-page_analytics", kwargs=params))
 
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
