@@ -171,6 +171,14 @@ class Feedback:
             return f(*args, **kwargs)
         except Exception as e:
             if callable(f):
+                try:
+                    callable_name = f.__name__
+                except Exception as e_name:
+                    callable_name = (
+                                "<unable to retrieve name; encountered %s: %s>"
+                                % (
+                                    type(e_name).__name__,
+                                    str(e_name)))
                 from traceback import format_exc
                 self.add_feedback(
                         "<p>"
@@ -180,7 +188,7 @@ class Feedback:
                         "</p>"
                         "<pre>%s</pre>"
                         % (
-                            f.__name__,
+                            callable_name,
                             "".join(format_exc())))
             else:
                 self.add_feedback(
