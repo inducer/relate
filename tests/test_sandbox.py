@@ -24,7 +24,8 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
-from .base_test_mixins import SingleCourseTestMixin
+from tests.base_test_mixins import SingleCourseTestMixin
+
 from course.sandbox import (
     PAGE_SESSION_KEY_PREFIX, PAGE_DATA_SESSION_KEY_PREFIX,
     ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
