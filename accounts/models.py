@@ -220,7 +220,30 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return _("user")
 
+    def clean(self):
+        super(User, self).clean()
+        qset = self.__class__.objects.filter(email__iexact=self.email)
+        if self.pk is not None:
+            # In case editing an existing user object
+            qset = qset.exclude(pk=self.pk)
+        if qset.exists():
+            from django.core.exceptions import ValidationError
+            raise ValidationError(
+                {"email": _("That email address is already in use.")})
+
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+
+        # This is for backward compatibility.
+        # Because user instances are frequently updated when auth_login,
+        # reset_password. Without this, no user will be able to login.
+        if ((update_fields is not None and "email" in update_fields)
+                or self.pk is None):
+            self.clean()
+
+        if self.institutional_id is not None:
+            self.institutional_id = self.institutional_id.strip()
+
         # works around https://code.djangoproject.com/ticket/4136#comment:33
         self.institutional_id = self.institutional_id or None
         super(User, self).save(*args, **kwargs)

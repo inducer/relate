@@ -335,6 +335,19 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return self.c.post(
             self.get_stop_impersonate_view_url(), data, follow=follow)
 
+    def get_reset_password_url(self, use_instid=False):
+        kwargs = {}
+        if use_instid:
+            kwargs["field"] = "instid"
+        return reverse("relate-reset_password", kwargs=kwargs)
+
+    def get_reset_password(self, use_instid=False):
+        return self.c.get(self.get_reset_password_url(use_instid))
+
+    def post_reset_password(self, data, use_instid=False):
+        return self.c.post(self.get_reset_password_url(use_instid),
+                           data=data)
+
     def get_fake_time_url(self):
         return reverse("relate-set_fake_time")
 
@@ -393,6 +406,13 @@ class SuperuserCreateMixin(ResponseContextMixin):
     def assertSessionPretendFacilitiesIsNone(self, session):  # noqa
         pretended = session.get("relate_pretend_facilities", None)
         self.assertIsNone(pretended)
+
+    def assertFormErrorLoose(self, response, error):  # noqa
+        """Assert that error is found in response.context['form'] errors"""
+        import itertools
+        form_errors = list(
+            itertools.chain(*response.context['form'].errors.values()))
+        self.assertIn(str(error), form_errors)
 
 
 # {{{ defined here so that they can be used by in classmethod and instance method

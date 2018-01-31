@@ -49,6 +49,9 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = get_user_model()
 
     username = factory.Sequence(lambda n: "testuser_%03d" % n)
+    email = factory.Sequence(lambda n: "test_factory_%03d@exmaple.com" % n)
+    status = constants.user_status.active
+    password = factory.Sequence(lambda n: "password_%03d" % n)
 
 
 class CourseFactory(factory.django.DjangoModelFactory):
