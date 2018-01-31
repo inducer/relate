@@ -183,23 +183,18 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(resp.status_code, 200)
 
     def test_view_download_submissions(self):
-        params = {"course_identifier": self.course.identifier,
-                    "flow_id": self.flow_id}
-
         # Check download form first
-        resp = self.c.get(reverse("relate-download_all_submissions",
-                                            kwargs=params))
+        resp = self.get_download_all_submissions(flow_id=self.flow_id)
         self.assertEqual(resp.status_code, 200)
 
         # Check download here, only test intro page
         # Maybe we should include an "all" option in the future?
-        data = {'restrict_to_rules_tag': ['<<<ALL>>>'],
-                'which_attempt': ['last'],
-                'extra_file': [''], 'download': ['Download'],
-                'page_id': ['intro/welcome'],
-                'non_in_progress_only': ['on']}
-        resp = self.c.post(reverse("relate-download_all_submissions",
-                                            kwargs=params), data)
+        resp = (
+            self.post_download_all_submissions_by_group_page_id(
+                flow_id=self.flow_id,
+                group_page_id="intro/welcome")
+        )
+
         self.assertEqual(resp.status_code, 200)
         prefix, zip_file = resp["Content-Disposition"].split('=')
         self.assertEqual(prefix, "attachment; filename")
