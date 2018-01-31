@@ -1556,7 +1556,7 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
                     "Failed to send an email: multiple users were "
                     "unexpectedly using that same "
                     "email address. Please "
-                    "contact site staffs.")
+                    "contact site staff.")
                 resp = self.post_reset_password(
                     data={"email": "some_email@example.com"})
                 self.assertTrue(resp.status_code, 200)

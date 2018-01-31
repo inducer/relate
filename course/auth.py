@@ -611,7 +611,7 @@ def reset_password(request, field="email"):
                         _("Failed to send an email: multiple users were "
                           "unexpectedly using that same "
                           "email address. Please "
-                          "contact site staffs."))
+                          "contact site staff."))
             else:
                 if user is None:
                     FIELD_DICT = {  # noqa

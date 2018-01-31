@@ -236,7 +236,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         # This is for backward compatibility.
         # Because user instances are frequently updated when auth_login,
-        # reset_password. Without this, all user won't be able to login.
+        # reset_password. Without this, no user will be able to login.
         if ((update_fields is not None and "email" in update_fields)
                 or self.pk is None):
             self.clean()
