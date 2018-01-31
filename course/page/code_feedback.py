@@ -170,17 +170,25 @@ class Feedback:
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            from traceback import format_exc
-            self.add_feedback(
-                    "<p>"
-                    "The callable '%s' supplied in your code failed with "
-                    "an exception while it was being called by the grading "
-                    "code:"
-                    "</p>"
-                    "<pre>%s</pre>"
-                    % (
-                        f.__name__,
-                        "".join(format_exc())))
+            if callable(f):
+                from traceback import format_exc
+                self.add_feedback(
+                        "<p>"
+                        "The callable '%s' supplied in your code failed with "
+                        "an exception while it was being called by the grading "
+                        "code:"
+                        "</p>"
+                        "<pre>%s</pre>"
+                        % (
+                            f.__name__,
+                            "".join(format_exc())))
+            else:
+                self.add_feedback(
+                        "<p>"
+                        "Your code was supposed to supply a function or "
+                        "callable, but the variable you supplied was not "
+                        "callable."
+                        "</p>")
 
             self.set_points(0)
             raise GradingComplete()
