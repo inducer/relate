@@ -138,3 +138,13 @@ class FlowPageVisitFactory(factory.django.DjangoModelFactory):
     user = factory.lazy_attribute(
         lambda x: x.page_data.flow_session.participation.user)
     answer = None
+
+
+class EventFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.Event
+
+    course = factory.SubFactory(CourseFactory)
+    kind = "default_kind"
+    ordinal = factory.Sequence(lambda n: n)
+    time = factory.LazyFunction(now)
