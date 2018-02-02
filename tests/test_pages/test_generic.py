@@ -683,7 +683,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "'c' is inaccurate")
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0/1 points.")
+                resp, "The autograder assigned 0/2 points.")
 
         self.assertEqual(self.end_flow().status_code, 200)
 
@@ -705,7 +705,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         # this is testing feedback.finish(0.3, feedback_msg)
         # 2 * 0.3 = 0.6
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0.6/2 points.")
+                resp, "The autograder assigned 0.9/3 points.")
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "The elements in b have wrong values")
         self.assertEqual(self.end_flow().status_code, 200)
@@ -731,6 +731,6 @@ class SingleCourseQuizPageCodeQuestionTest(
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "The human grader assigned 1/1 points.")
 
-        self.assertSessionScoreEqual(3)
+        self.assertSessionScoreEqual(4)
 
 # vim: fdm=marker
