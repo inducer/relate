@@ -43,6 +43,7 @@ from course.models import (
 from course.constants import participation_status, user_status
 from course.content import get_course_repo_path
 
+ATOL = 1e-05
 
 CREATE_SUPERUSER_KWARGS = {
     "username": "test_admin",
@@ -234,9 +235,12 @@ class ResponseContextMixin(object):
             else:
                 self.assertIsNone(answer_feedback.correctness)
         else:
-            from decimal import Decimal
-            self.assertEqual(answer_feedback.correctness,
-                                    Decimal(str(expected_correctness)))
+            self.assertTrue(
+                abs(float(answer_feedback.correctness)
+                    - float(str(expected_correctness))) < ATOL,
+                "%s does not equal %s"
+                % (str(answer_feedback.correctness)[:5],
+                   str(expected_correctness)[:5]))
 
     def get_response_body(self, response):
         return self.get_response_context_value_by_name(response, "body")
