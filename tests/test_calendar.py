@@ -33,7 +33,7 @@ from .base_test_mixins import (
     SingleCourseTestMixin, FallBackStorageMessageTestMixin)
 try:
     from unittest import mock
-except:
+except ImportError:
     import mock
 
 DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"

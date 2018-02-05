@@ -111,7 +111,9 @@
           center: 'title',
           right: 'month,agendaWeek,agendaDay'
         },
+        contentHeight: "auto",
         defaultDate: '{{ default_date }}',
+        defaultView: $(window).width() < 765 ? 'agendaWeek':'month',
         timezone: "local",
         events: {{ events_json|safe }},
         {% if edit_view %}
