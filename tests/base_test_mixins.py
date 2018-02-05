@@ -411,11 +411,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         pretended = session.get("relate_pretend_facilities", None)
         self.assertIsNone(pretended)
 
-    def assertFormErrorLoose(self, response, error):  # noqa
+    def assertFormErrorLoose(self, response, error, form_name="form"):  # noqa
         """Assert that error is found in response.context['form'] errors"""
         import itertools
         form_errors = list(
-            itertools.chain(*response.context['form'].errors.values()))
+            itertools.chain(*response.context[form_name].errors.values()))
         self.assertIn(str(error), form_errors)
 
 
@@ -1457,5 +1457,99 @@ def improperly_configured_cache_patch():
         return built_in_import(name, globals, locals, fromlist, level)
 
     return mock.patch(built_in_import_path, side_effect=my_disable_cache_import)
+
+
+# {{{ admin
+
+ADMIN_TWO_COURSE_SETUP_LIST = deepcopy(TWO_COURSE_SETUP_LIST)
+# switch roles
+ADMIN_TWO_COURSE_SETUP_LIST[1]["participations"][0]["role_identifier"] = "ta"
+ADMIN_TWO_COURSE_SETUP_LIST[1]["participations"][1]["role_identifier"] = "instructor"  # noqa
+
+
+class AdminTestMixin(TwoCourseTestMixin):
+    courses_setup_list = ADMIN_TWO_COURSE_SETUP_LIST
+    none_participation_user_create_kwarg_list = (
+        NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(AdminTestMixin, cls).setUpTestData()  # noqa
+
+        # create 2 participation (with new user) for course1
+        from tests.factories import ParticipationFactory
+
+        cls.course1_student_participation2 = (
+            ParticipationFactory.create(course=cls.course1))
+        cls.course1_student_participation3 = (
+            ParticipationFactory.create(course=cls.course1))
+        cls.instructor1 = cls.course1_instructor_participation.user
+        cls.instructor2 = cls.course2_instructor_participation.user
+        assert cls.instructor1 != cls.instructor2
+
+        # grant all admin permissions to instructors
+        from django.contrib.auth.models import Permission
+
+        for user in [cls.instructor1, cls.instructor2]:
+            user.is_staff = True
+            user.save()
+            for perm in Permission.objects.all():
+                user.user_permissions.add(perm)
+
+    @classmethod
+    def get_admin_change_list_view_url(cls, app_name, model_name):
+        return reverse("admin:%s_%s_changelist" % (app_name, model_name))
+
+    @classmethod
+    def get_admin_change_view_url(cls, app_name, model_name, args=None):
+        if args is None:
+            args = []
+        return reverse("admin:%s_%s_change" % (app_name, model_name), args=args)
+
+    def get_admin_form_fields(self, response):
+        """
+        Return a list of AdminFields for the AdminForm in the response.
+        """
+        admin_form = response.context['adminform']
+        fieldsets = list(admin_form)
+
+        field_lines = []
+        for fieldset in fieldsets:
+            field_lines += list(fieldset)
+
+        fields = []
+        for field_line in field_lines:
+            fields += list(field_line)
+
+        return fields
+
+    def get_admin_form_fields_names(self, response):
+        return [f.field.name for f in self.get_admin_form_fields(response)]
+
+    def get_changelist(self, request, model, modeladmin):
+        from django.contrib.admin.views.main import ChangeList
+        return ChangeList(
+            request, model, modeladmin.list_display,
+            modeladmin.list_display_links, modeladmin.list_filter,
+            modeladmin.date_hierarchy, modeladmin.search_fields,
+            modeladmin.list_select_related, modeladmin.list_per_page,
+            modeladmin.list_max_show_all, modeladmin.list_editable, modeladmin,
+        )
+
+    def get_filterspec_list(self, request, changelist=None, model=None,
+                            modeladmin=None):
+        if changelist is None:
+            assert request and model and modeladmin
+            changelist = self.get_changelist(request, model, modeladmin)
+
+        filterspecs = changelist.get_filters(request)[0]
+        filterspec_list = []
+        for filterspec in filterspecs:
+            choices = tuple(c['display'] for c in filterspec.choices(changelist))
+            filterspec_list.append(choices)
+
+        return filterspec_list
+
+# }}}
 
 # vim: fdm=marker

@@ -222,14 +222,20 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def clean(self):
         super(User, self).clean()
-        qset = self.__class__.objects.filter(email__iexact=self.email)
-        if self.pk is not None:
-            # In case editing an existing user object
-            qset = qset.exclude(pk=self.pk)
-        if qset.exists():
-            from django.core.exceptions import ValidationError
-            raise ValidationError(
-                {"email": _("That email address is already in use.")})
+
+        # email can be None in Django admin when create new user
+        if self.email is not None:
+            self.email = self.email.strip()
+
+        if self.email:
+            qset = self.__class__.objects.filter(email__iexact=self.email)
+            if self.pk is not None:
+                # In case editing an existing user object
+                qset = qset.exclude(pk=self.pk)
+            if qset.exists():
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    {"email": _("That email address is already in use.")})
 
     def save(self, *args, **kwargs):
         update_fields = kwargs.get("update_fields")
