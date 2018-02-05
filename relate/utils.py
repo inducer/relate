@@ -29,12 +29,14 @@ import six
 import datetime
 
 import django.forms as forms
+from django.utils.translation import ugettext_lazy as _
 import dulwich.repo
 
 from typing import Union
 
 if False:
     from typing import Text, List, Dict, Tuple, Optional, Any  # noqa
+    from django.http import HttpRequest  # noqa
 
 # {{{ string_concat compatibility for Django >= 1.11
 
@@ -163,6 +165,21 @@ class MaintenanceMiddleware(object):
 # }}}
 
 
+def get_site_name():
+    # type: () -> Text
+    from django.conf import settings
+    return getattr(settings, "RELATE_SITE_NAME", "RELATE")
+
+
+def render_email_template(template_name, context=None, request=None, using=None):
+    # type: (Text, Optional[Dict], Optional[HttpRequest], Optional[bool]) -> Text
+    if context is None:
+        context = {}
+    context.update({"relate_site_name": _(get_site_name())})
+    from django.template.loader import render_to_string
+    return render_to_string(template_name, context, request, using)
+
+
 def settings_context_processor(request):
     from django.conf import settings
     return {
@@ -179,6 +196,7 @@ def settings_context_processor(request):
         settings.RELATE_SIGN_IN_BY_SAML2_ENABLED,
         "maintenance_mode": is_maintenance_mode(request),
         "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
+        "relate_site_name": _(get_site_name())
         }
 
 
@@ -447,6 +465,5 @@ def force_remove_path(path):
         func(path)
 
     shutil.rmtree(path, onerror=remove_readonly)
-
 
 # vim: foldmethod=marker

@@ -6,7 +6,7 @@
 
 {% block title %}
   [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
-  {{title}} - {{ flow_desc.title}} - {% trans "RELATE" %}
+  {{title}} - {{ flow_desc.title}} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}
@@ -30,7 +30,7 @@
 
   {# {{{ navigation #}
   <form
-    action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
+    action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.page_ordinal %}"
     class="navigation-form"
     method="POST">
 
@@ -40,7 +40,7 @@
       {# {{{ prev/next buttons #}
 
       <div class="flow-nav">
-        {% if page_data.ordinal > 0 %}
+        {% if page_data.page_ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
             title='{% trans "Previous page" context "Previous page/item in a flow" %}'
@@ -85,7 +85,7 @@
       {% if may_send_email_about_flow_page %}
         <div class="navbar-right relate-flow-page-send-email"
              style="padding-right: 0.4em;">
-            <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id ordinal %}"
+            <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id page_ordinal %}"
                class="btn btn-default relate-nav-button btn-info"
                title="{% trans 'Send an email about this page to course staff' %}"
                target="_blank"
@@ -133,7 +133,7 @@
               {% endif %}
               {% if pperm.view_gradebook %}
                 <li>
-                  <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id ordinal %}"
+                  <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id page_ordinal %}"
                      target="_blank">
                       {% trans "View in grading interface" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
@@ -143,7 +143,7 @@
             {% if pperm.reopen_flow_session and flow_session.in_progress and expects_answer and not may_change_answer %}
               <li role="separator" class="divider"></li>
               <li>
-                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id ordinal %}">
+                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id page_ordinal %}">
                     {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                 </a>
               </li>
@@ -248,7 +248,7 @@
 
       <div class="relate-flow-page-toc">
         {% for other_page_data in all_page_data %}
-          {% if other_page_data.ordinal == page_data.ordinal %}
+          {% if other_page_data.page_ordinal == page_data.page_ordinal %}
             <span class="relate-flow-page-toc-item btn btn-default btn-xs disabled
               relate-current
               {% if other_page_data.bookmarked %}
@@ -256,10 +256,10 @@
               {% endif %}
               ">{{ other_page_data.human_readable_ordinal }}</span>
           {% else %}
-            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}"
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}"
                title="{{ other_page_data.title }}">
             <span class="relate-flow-page-toc-item btn btn-default btn-xs
-              {% if page_nr < page_data.ordinal %}
+              {% if page_nr < page_data.page_ordinal %}
                 relate-prior
               {% else %}
                 relate-subsequent
@@ -267,7 +267,7 @@
               {% if other_page_data.bookmarked %}
                 relate-bookmarked
               {% endif %}
-              {% if other_page_data.ordinal in flow_page_ordinals_with_answers %}
+              {% if other_page_data.page_ordinal in flow_page_ordinals_with_answers %}
                 relate-answered
               {% endif %}
               ">{{ other_page_data.human_readable_ordinal }}
@@ -284,7 +284,7 @@
             <ul class="dropdown-menu" aria-labelledby="toc-dropdown">
               {% for other_page_data in all_page_data %}
               <li>
-                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}">
+                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}">
                   {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title }}
                   {% if other_page_data.bookmarked %}
                     <i class="fa fa-star" aria-hidden="true"></i>
@@ -552,7 +552,7 @@
             }
 
             var jqxhr = $.ajax(
-                "{% url "relate-update_page_bookmark_state" course.identifier flow_session.id page_data.ordinal %}",
+                "{% url "relate-update_page_bookmark_state" course.identifier flow_session.id page_data.page_ordinal %}",
                 {
                   type: "POST",
                   data: {
@@ -612,7 +612,7 @@
     <script>
       function generate_past_submission_dropdown_content(){
         var jqxhr = $.ajax({
-          url: "{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id ordinal %}"
+          url: "{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id page_ordinal %}"
         }).done(function (result) {
           if(result.result)
             document.getElementById("past-submission_dropdown_content").innerHTML = tmpl("tmpl-prev-answer-visits", result.result);

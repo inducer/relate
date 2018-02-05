@@ -11,7 +11,7 @@ if False:
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import STATICFILES_FINDERS
+from django.conf.global_settings import STATICFILES_FINDERS, gettext_noop
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -179,6 +179,12 @@ TEMPLATES = [
     },
 ]
 
+RELATE_OVERRIDE_TEMPLATES_DIRS = (
+    local_settings.get("RELATE_OVERRIDE_TEMPLATES_DIRS", []))
+if RELATE_OVERRIDE_TEMPLATES_DIRS:
+    TEMPLATES[0]["DIRS"] = (
+        tuple(RELATE_OVERRIDE_TEMPLATES_DIRS) + TEMPLATES[0]["DIRS"])   # type: ignore  # noqa
+
 # }}}
 
 # {{{ database
@@ -253,9 +259,15 @@ for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
 
+RELATE_SITE_NAME = gettext_noop("RELATE")
+RELATE_CUTOMIZED_SITE_NAME = local_settings.get("RELATE_CUTOMIZED_SITE_NAME")
+if RELATE_CUTOMIZED_SITE_NAME is not None and RELATE_CUTOMIZED_SITE_NAME.strip():
+    RELATE_SITE_NAME = RELATE_CUTOMIZED_SITE_NAME
+
 # {{{ celery config
 
-BROKER_URL = 'django://'
+if "BROKER_URL" not in globals():
+    BROKER_URL = 'django://'
 
 CELERY_ACCEPT_CONTENT = ['pickle']
 CELERY_TASK_SERIALIZER = 'pickle'

@@ -265,14 +265,15 @@ def enroll_view(request, course_identifier):
             assert participation is not None
 
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
-                message = render_to_string("course/enrollment-request-email.txt", {
-                    "user": user,
-                    "course": course,
-                    "admin_uri": mark_safe(
-                        request.build_absolute_uri(
-                            reverse("relate-edit_participation",
-                                args=(course.identifier, participation.id))))
+                from relate.utils import render_email_template
+                message = render_email_template(
+                    "course/enrollment-request-email.txt", {
+                        "user": user,
+                        "course": course,
+                        "admin_uri": mark_safe(
+                            request.build_absolute_uri(
+                                reverse("relate-edit_participation",
+                                        args=(course.identifier, participation.id))))
                     })
 
                 from django.core.mail import EmailMessage
@@ -379,8 +380,8 @@ def send_enrollment_decision(participation, approved, request=None):
             course_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
                                  course.get_absolute_url())
 
-        from django.template.loader import render_to_string
-        message = render_to_string("course/enrollment-decision-email.txt", {
+        from relate.utils import render_email_template
+        message = render_email_template("course/enrollment-decision-email.txt", {
             "user": participation.user,
             "approved": approved,
             "course": course,

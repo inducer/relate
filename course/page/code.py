@@ -460,7 +460,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
               rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
           # returns True if accurate
 
-          feedback.call_user(self, f, *args, **kwargs)
+          feedback.call_user(f, *args, **kwargs)
           # Calls a user-supplied function and prints an appropriate
           # feedback message in case of failure.
 
@@ -670,14 +670,15 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             from relate.utils import local_now, format_datetime_local
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
-                message = render_to_string("course/broken-code-question-email.txt", {
-                    "site": getattr(settings, "RELATE_BASE_URL"),
-                    "page_id": self.page_desc.id,
-                    "course": page_context.course,
-                    "error_message": error_msg,
-                    "review_uri": page_context.page_uri,
-                    "time": format_datetime_local(local_now())
+                from relate.utils import render_email_template
+                message = render_email_template(
+                    "course/broken-code-question-email.txt", {
+                        "site": getattr(settings, "RELATE_BASE_URL"),
+                        "page_id": self.page_desc.id,
+                        "course": page_context.course,
+                        "error_message": error_msg,
+                        "review_uri": page_context.page_uri,
+                        "time": format_datetime_local(local_now())
                     })
 
                 if (
@@ -893,9 +894,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     if name in ["type"]:
                         return True
                     elif name == "src":
-                        return is_allowed_data_uri([
-                            "audio/wav",
-                            ], value)
+                        if is_allowed_data_uri([
+                                "audio/wav",
+                                ], value):
+                            return bleach.sanitizer.VALUE_SAFE
+                        else:
+                            return False
                     else:
                         return False
 
@@ -1142,8 +1146,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and code_feedback.correctness is not None):
             code_feedback_points = code_feedback.correctness*code_points
 
-        from django.template.loader import render_to_string
-        feedback = render_to_string(
+        from relate.utils import render_email_template
+        feedback = render_email_template(
                 "course/feedback-code-with-human.html",
                 {
                     "percentage": percentage,

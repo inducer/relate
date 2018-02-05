@@ -51,7 +51,9 @@ from course.models import (
         Participation,
         ParticipationRole)
 
-from course.utils import course_view, render_course_page
+from course.utils import (
+    course_view, render_course_page,
+    get_course_specific_language_choices)
 import paramiko
 import paramiko.client
 
@@ -183,10 +185,13 @@ class CourseCreationForm(StyledModelForm):
             "enrollment_required_email_suffix",
             "from_email",
             "notify_email",
+            "force_lang",
             )
         widgets = {
                 "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
                 "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                "force_lang": forms.Select(
+                    choices=get_course_specific_language_choices()),
                 }
 
     def __init__(self, *args, **kwargs):
@@ -196,13 +201,6 @@ class CourseCreationForm(StyledModelForm):
 
         self.helper.add_input(
                 Submit("submit", _("Validate and create")))
-
-    def clean_git_source(self):
-        if not self.cleaned_data["git_source"]:
-            from django.forms import ValidationError as FormValidationError
-            raise FormValidationError(_("Git source must be specified"))
-
-        return self.cleaned_data["git_source"]
 
 
 @permission_required("course.add_course")

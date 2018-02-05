@@ -52,19 +52,29 @@ export PATH=`pwd`/.env/local/bin:$PATH
 
 PIP="${PY_EXE} $(which pip)"
 
-grep -v dnspython requirements.txt > req.txt
 if [[ "$PY_EXE" = python2* ]]; then
-  $PIP install dnspython
+  grep -Ev "django>|django=" requirements.txt > req.txt
+  $PIP install "django<2"
   $PIP install mock
 else
-  $PIP install dnspython3
+  cp requirements.txt req.txt
 fi
 
 $PIP install -r req.txt
 
 cp local_settings.example.py local_settings.py
 
-$PIP install codecov
+# Make sure i18n literals marked correctly
+${PY_EXE} manage.py makemessages --no-location --ignore=req.txt > output.txt
+
+if [[ -n $(grep "msgid" output.txt) ]]; then
+    echo "Command 'python manage.py makemessages' failed with the following info:"
+    echo ""
+    grep --color -E '^|warning: ' output.txt
+    exit 1;
+fi
+
+$PIP install codecov factory_boy
 coverage run manage.py test tests/
 coverage report -m
 codecov

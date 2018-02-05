@@ -33,6 +33,7 @@ from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import translation
 from django.utils.translation import (
         ugettext as _, pgettext_lazy)
 
@@ -581,6 +582,10 @@ class CoursePageContext(object):
         self.course_identifier = course_identifier
         self._permissions_cache = None  # type: Optional[FrozenSet[Tuple[Text, Optional[Text]]]]  # noqa
         self._role_identifiers_cache = None  # type: Optional[List[Text]]
+        self.old_language = None
+
+        # using this to prevent nested using as context manager
+        self._is_in_context_manager = False
 
         from course.models import Course  # noqa
         self.course = get_object_or_404(Course, identifier=course_identifier)
@@ -662,10 +667,32 @@ class CoursePageContext(object):
         else:
             return (perm, argument) in self.permissions()
 
+    def _set_course_lang(self, action):
+        # type: (Text) -> None
+        if self.course.force_lang and self.course.force_lang.strip():
+            if action == "activate":
+                self.old_language = translation.get_language()
+                translation.activate(self.course.force_lang)
+            else:
+                if self.old_language is None:
+                    # This should be a rare case, but get_language() can be None.
+                    # See django.utils.translation.override.__exit__()
+                    translation.deactivate_all()
+                else:
+                    translation.activate(self.old_language)
+
     def __enter__(self):
+        if self._is_in_context_manager:
+            raise RuntimeError(
+                "Nested use of 'course_view' as context manager "
+                "is not allowed.")
+        self._is_in_context_manager = True
+        self._set_course_lang(action="activate")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self._is_in_context_manager = False
+        self._set_course_lang(action="deactivate")
         self.repo.close()
 
 
@@ -710,7 +737,7 @@ class FlowPageContext(FlowContext):
             repo,  # type: Repo_ish
             course,  # type: Course
             flow_id,  # type: Text
-            ordinal,  # type: int
+            page_ordinal,  # type: int
             participation,  # type: Optional[Participation]
             flow_session,  # type: FlowSession
             request=None,  # type: Optional[http.HttpRequest]
@@ -718,12 +745,12 @@ class FlowPageContext(FlowContext):
         # type: (...) -> None
         super(FlowPageContext, self).__init__(repo, course, flow_id, participation)
 
-        if ordinal >= flow_session.page_count:
+        if page_ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()
 
         from course.models import FlowPageData  # noqa
         page_data = self.page_data = get_object_or_404(
-                FlowPageData, flow_session=flow_session, ordinal=ordinal)
+                FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
 
         from course.content import get_flow_page_desc
         try:
@@ -741,8 +768,9 @@ class FlowPageContext(FlowContext):
             if request is not None:
                 from django.urls import reverse
                 page_uri = request.build_absolute_uri(
-                        reverse("relate-view_flow_page",
-                            args=(course.identifier, flow_session.id, ordinal)))
+                    reverse(
+                        "relate-view_flow_page",
+                        args=(course.identifier, flow_session.id, page_ordinal)))
 
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
@@ -761,8 +789,8 @@ class FlowPageContext(FlowContext):
         return self._prev_answer_visit
 
     @property
-    def ordinal(self):
-        return self.page_data.ordinal
+    def page_ordinal(self):
+        return self.page_data.page_ordinal
 
 
 def instantiate_flow_page_with_ctx(fctx, page_data):
@@ -1051,6 +1079,13 @@ class FacilityFindingMiddleware(object):
 # }}}
 
 
+def get_col_contents_or_empty(row, index):
+    if index >= len(row):
+        return ""
+    else:
+        return row[index]
+
+
 def csv_data_importable(file_contents, column_idx_list, header_count):
     import csv
     spamreader = csv.reader(file_contents)
@@ -1062,7 +1097,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
         try:
             for column_idx in column_idx_list:
                 if column_idx is not None:
-                    six.text_type(row[column_idx-1])
+                    six.text_type(get_col_contents_or_empty(row, column_idx-1))
         except UnicodeDecodeError:
             return False, (
                     _("Error: Columns to be imported contain "
@@ -1100,6 +1135,54 @@ def will_use_masked_profile_for_email(recipient_email):
         if part.has_permission(pperm.view_participant_masked_profile):
             return True
     return False
+
+
+def get_course_specific_language_choices():
+    # type: () -> Tuple[Tuple[str, Any], ...]
+
+    from django.conf import settings
+    from collections import OrderedDict
+
+    all_options = ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES)
+    filtered_options_dict = OrderedDict(all_options)
+
+    def get_default_option():
+        # type: () -> Tuple[Text, Text]
+        # For the default language used, if USE_I18N is True, display
+        # "Disabled". Otherwise display its lang info.
+        if not settings.USE_I18N:
+            formatted_descr = (
+                get_formatted_options(settings.LANGUAGE_CODE, None)[1])
+        else:
+            formatted_descr = _("disabled (i.e., displayed language is "
+                                "determined by user's browser preference)")
+        return "", string_concat("%s: " % _("Default"), formatted_descr)
+
+    def get_formatted_options(lang_code, lang_descr):
+        # type: (Text, Optional[Text]) -> Tuple[Text, Text]
+        if lang_descr is None:
+            lang_descr = OrderedDict(settings.LANGUAGES).get(lang_code)
+            if lang_descr is None:
+                try:
+                    lang_info = translation.get_language_info(lang_code)
+                    lang_descr = lang_info["name_translated"]
+                except KeyError:
+                    return (lang_code.strip(), lang_code)
+
+        return (lang_code.strip(),
+                string_concat(_(lang_descr), " (%s)" % lang_code))
+
+    filtered_options = (
+        [get_default_option()]
+        + [get_formatted_options(k, v)
+           for k, v in six.iteritems(filtered_options_dict)])
+
+    # filtered_options[1] is the option for settings.LANGUAGE_CODE
+    # it's already displayed when settings.USE_I18N is False
+    if not settings.USE_I18N:
+        filtered_options.pop(1)
+
+    return tuple(filtered_options)
 
 
 # {{{ ipynb utilities
