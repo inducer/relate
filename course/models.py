@@ -74,6 +74,19 @@ from yamlfield.fields import YAMLField
 
 # {{{ course
 
+def validate_course_specific_language(value):
+    # type: (Text) -> None
+    if not value.strip():
+        # the default value is ""
+        return
+    if value not in (
+                [lang_code for lang_code, lang_descr in settings.LANGUAGES]
+                + [settings.LANGUAGE_CODE]):
+        raise ValidationError(
+            _("'%s' is currently not supported as a course specific "
+              "language at this site.") % value)
+
+
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
             help_text=_("A course identifier. Alphanumeric with dashes, "
@@ -129,7 +142,7 @@ class Course(models.Model):
             default=True,
             verbose_name=_('Accepts enrollment'))
 
-    git_source = models.CharField(max_length=200, blank=True,
+    git_source = models.CharField(max_length=200, blank=False,
             help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
             "<tt>git://github.com/inducer/relate-sample</tt> "
@@ -192,6 +205,13 @@ class Course(models.Model):
             "notifications about the course."),
             verbose_name=_('Notify email'))
 
+    force_lang = models.CharField(max_length=200, blank=True, null=True,
+            default="",
+            validators=[validate_course_specific_language],
+            help_text=_(
+                "Which language is forced to be used for this course."),
+            verbose_name=_('Course language forcibly used'))
+
     # {{{ XMPP
 
     course_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
@@ -228,6 +248,10 @@ class Course(models.Model):
     if six.PY3:
         __str__ = __unicode__
 
+    def clean(self):
+        if self.force_lang:
+            self.force_lang = self.force_lang.strip()
+
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
@@ -246,6 +270,10 @@ class Course(models.Model):
             return self.from_email
         else:
             return self.notify_email
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # performs regular validation then clean()
+        super(Course, self).save(*args, **kwargs)
 
 # }}}
 
@@ -756,6 +784,20 @@ class AuthenticationToken(models.Model):
             null=True, blank=True, unique=True,
             verbose_name=_('Hash of git authentication token'))
 
+    def __unicode__(self):
+        return _("Token %(id)d for %(participation)s: %(description)s") % {
+                "id": self.id,
+                "participation": self.participation,
+                "description": self.description}
+
+    if six.PY3:
+        __str__ = __unicode__
+
+    class Meta:
+        verbose_name = _("Authentication token")
+        verbose_name_plural = _("Authentication tokens")
+        ordering = ("participation", "creation_time")
+
 # }}}
 
 
@@ -923,8 +965,8 @@ class FlowSession(models.Model):
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
             verbose_name=_('Flow session'), on_delete=models.CASCADE)
-    ordinal = models.IntegerField(null=True, blank=True,
-            verbose_name=_('Ordinal'))
+    page_ordinal = models.IntegerField(null=True, blank=True,
+            verbose_name=_('Page ordinal'))
 
     # This exists to catch changing page types in course content,
     # which will generally lead to an inconsistency disaster.
@@ -956,10 +998,10 @@ class FlowPageData(models.Model):
     def __unicode__(self):
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
-                "(ordinal %(ordinal)s) in %(flow_session)s") % {
+                "(page ordinal %(page_ordinal)s) in %(flow_session)s") % {
                     'group_id': self.group_id,
                     'page_id': self.page_id,
-                    'ordinal': self.ordinal,
+                    'page_ordinal': self.page_ordinal,
                     'flow_session': self.flow_session})
 
     if six.PY3:
@@ -967,13 +1009,13 @@ class FlowPageData(models.Model):
 
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
-        return self.ordinal - 1
+        return self.page_ordinal - 1
 
     def next_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
     def human_readable_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
 # }}}
 

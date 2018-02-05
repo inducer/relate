@@ -389,6 +389,7 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(?:\s*\#.*)?"
     "$")
 
+IN_BLOCK_END_RAW_RE = re.compile(r"(.*)({%-?\s*endraw\s*-?%})(.*)")
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
@@ -403,34 +404,36 @@ def process_yaml_for_expansion(yaml_str):
     line_count = len(lines)
 
     while i < line_count:
-        l = lines[i].rstrip()
-        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(l)
+        ln = lines[i].rstrip()
+        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(ln)
 
         if yaml_block_scalar_match is not None:
             unprocessed_block_lines = []
             allow_jinja = bool(yaml_block_scalar_match.group(2))
-            l = YAML_BLOCK_START_SCALAR_RE.sub(
-                    r"\1\3", l)
+            ln = YAML_BLOCK_START_SCALAR_RE.sub(
+                    r"\1\3", ln)
 
-            unprocessed_block_lines.append(l)
+            unprocessed_block_lines.append(ln)
 
-            block_start_indent = len(LEADING_SPACES_RE.match(l).group(1))
+            block_start_indent = len(LEADING_SPACES_RE.match(ln).group(1))
 
             i += 1
 
             while i < line_count:
-                l = lines[i]
+                ln = lines[i]
 
-                if not l.rstrip():
-                    unprocessed_block_lines.append(l)
+                if not ln.rstrip():
+                    unprocessed_block_lines.append(ln)
                     i += 1
                     continue
 
-                line_indent = len(LEADING_SPACES_RE.match(l).group(1))
+                line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
-                    unprocessed_block_lines.append(l.rstrip())
+                    ln = IN_BLOCK_END_RAW_RE.sub(
+                        r"\1{% endraw %}{{ '\2' }}{% raw %}\3", ln)
+                    unprocessed_block_lines.append(ln.rstrip())
                     i += 1
 
             if not allow_jinja:
@@ -439,16 +442,15 @@ def process_yaml_for_expansion(yaml_str):
             if not allow_jinja:
                 jinja_lines.append("{% endraw %}")
 
-        elif GROUP_COMMENT_START.match(l):
+        elif GROUP_COMMENT_START.match(ln):
             jinja_lines.append("{% raw %}")
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             jinja_lines.append("{% endraw %}")
             i += 1
 
         else:
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             i += 1
-
     return "\n".join(jinja_lines)
 
 
@@ -597,20 +599,24 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     """
 
     if cached:
-        from six.moves.urllib.parse import quote_plus
-        cache_key = "%%%2".join(
-                (CACHE_KEY_ROOT,
-                    quote_plus(repo.controldir()), quote_plus(full_name),
-                    commit_sha.decode()))
+        try:
+            import django.core.cache as cache
+        except ImproperlyConfigured:
+            cached = False
+        else:
+            from six.moves.urllib.parse import quote_plus
+            cache_key = "%%%2".join(
+                    (CACHE_KEY_ROOT,
+                        quote_plus(repo.controldir()), quote_plus(full_name),
+                        commit_sha.decode()))
 
-        import django.core.cache as cache
-        def_cache = cache.caches["default"]
-        result = None
-        # Memcache is apparently limited to 250 characters.
-        if len(cache_key) < 240:
-            result = def_cache.get(cache_key)
-        if result is not None:
-            return result
+            def_cache = cache.caches["default"]
+            result = None
+            # Memcache is apparently limited to 250 characters.
+            if len(cache_key) < 240:
+                result = def_cache.get(cache_key)
+            if result is not None:
+                return result
 
     yaml_bytestream = get_repo_blob(
             repo, full_name, commit_sha, allow_tree=False).data
@@ -966,8 +972,8 @@ def extract_title_from_markup(markup_text):
     # type: (Text) -> Optional[Text]
     lines = markup_text.split("\n")
 
-    for l in lines[:10]:
-        match = TITLE_RE.match(l)
+    for ln in lines[:10]:
+        match = TITLE_RE.match(ln)
         if match is not None:
             return match.group(1)
 
@@ -1510,7 +1516,7 @@ def list_flow_ids(repo, commit_sha):
     else:
         for entry in flows_tree.items():
             if entry.path.endswith(b".yml"):
-                flow_ids.append(entry.path[:-4])
+                flow_ids.append(entry.path[:-4].decode("utf-8"))
 
     return sorted(flow_ids)
 

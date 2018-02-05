@@ -3,17 +3,19 @@
   - "PY_EXE=python2.7 bash ./run-tests-for-ci.sh"
   tags:
   - python2.7
+  - linux
   except:
   - tags
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
   variables:
     CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
 
-Python 3.5:
+Python 3.6:
   script:
-  - "PY_EXE=python3.5 bash ./run-tests-for-ci.sh"
+  - "PY_EXE=python3.6 bash ./run-tests-for-ci.sh"
   tags:
-  - python3.5
+  - python3.6
+  - linux
   except:
   - tags
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
@@ -33,7 +35,7 @@ Documentation:
 Mypy:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
-  - ". ./prepare-and-run-mypy.sh python3.6 mypy==0.521 typed-ast==1.0.4"
+  - ". ./prepare-and-run-mypy.sh python3.6 mypy==0.560"
   tags:
   - python3.6
   except:

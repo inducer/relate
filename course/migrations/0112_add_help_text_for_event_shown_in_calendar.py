@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('course', '0106_add_auth_tokens_permission'),
+        ('course', '0111_alter_git_source_in_course_to_a_required_field'),
     ]
 
     operations = [

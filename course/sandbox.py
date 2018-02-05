@@ -49,6 +49,14 @@ if False:
 
 # }}}
 
+# {{{ sandbox session key prefix
+
+PAGE_SESSION_KEY_PREFIX = "cf_validated_sandbox_page"
+ANSWER_DATA_SESSION_KEY_PREFIX = "cf_page_sandbox_answer_data"
+PAGE_DATA_SESSION_KEY_PREFIX = "cf_page_sandbox_page_data"
+
+# }}}
+
 
 # {{{ sandbox form
 
@@ -125,7 +133,7 @@ def view_markup_sandbox(pctx):
                 preview_text = markup_to_html(
                         pctx.course, pctx.repo, pctx.course_commit_sha,
                         form.cleaned_data["content"])
-            except:
+            except Exception:
                 import sys
                 tp, e, _ = sys.exc_info()
 
@@ -191,6 +199,11 @@ class PageSandboxForm(SandboxForm):
 
 # {{{ page sandbox
 
+def make_sandbox_session_key(prefix, course_identifier):
+    # type: (Text, Text) -> Text
+    return "%s:%s" % (prefix, course_identifier)
+
+
 @course_view
 def view_page_sandbox(pctx):
     # type: (CoursePageContext) -> http.HttpResponse
@@ -202,12 +215,12 @@ def view_page_sandbox(pctx):
     from relate.utils import dict_to_struct, Struct
     import yaml
 
-    PAGE_SESSION_KEY = (  # noqa
-            "cf_validated_sandbox_page:" + pctx.course.identifier)
-    ANSWER_DATA_SESSION_KEY = (  # noqa
-        "cf_page_sandbox_answer_data:" + pctx.course.identifier)
-    PAGE_DATA_SESSION_KEY = (  # noqa
-        "cf_page_sandbox_page_data:" + pctx.course.identifier)
+    PAGE_SESSION_KEY = make_sandbox_session_key(  # noqa
+        PAGE_SESSION_KEY_PREFIX, pctx.course.identifier)
+    ANSWER_DATA_SESSION_KEY = make_sandbox_session_key(  # noqa
+        ANSWER_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
+    PAGE_DATA_SESSION_KEY = make_sandbox_session_key(  # noqa
+        PAGE_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
 
     request = pctx.request
     page_source = pctx.request.session.get(PAGE_SESSION_KEY)
@@ -258,7 +271,7 @@ def view_page_sandbox(pctx):
 
                 page_warnings = vctx.warnings
 
-            except:
+            except Exception:
                 import sys
                 tp, e, _ = sys.exc_info()
 
@@ -304,7 +317,7 @@ def view_page_sandbox(pctx):
         try:
             page = instantiate_flow_page("sandbox", pctx.repo, page_desc,
                     pctx.course_commit_sha)
-        except:
+        except Exception:
             import sys
             tp, e, _ = sys.exc_info()
 
@@ -378,7 +391,7 @@ def view_page_sandbox(pctx):
                     page_form = page.make_form(page_context, page_data,
                             answer_data, page_behavior)
 
-                except:
+                except Exception:
                     import sys
                     tp, e, _ = sys.exc_info()
 

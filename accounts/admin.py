@@ -27,29 +27,43 @@ THE SOFTWARE.
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
+from django.db.models import Q
+
 from . models import User
+from course.models import Course, Participation
+from course.admin import (
+    _filter_courses_for_user, _filter_course_linked_obj_for_user)
 
 
-def _remove_from_fieldsets(fs, field_name):
-    return tuple(
-        (heading, {"fields":
-            tuple(
-                f for f in props["fields"]
-                if f != field_name)})
-        for heading, props in fs)
+def _get_filter_participations_for_user(user):
+    participations = Participation.objects.all()
+    if not user.is_superuser:
+        participations = _filter_course_linked_obj_for_user(participations, user)
+    return participations
+
+
+class CourseListFilter(admin.SimpleListFilter):
+    title = _("Course")
+    parameter_name = "course__identifier"
+
+    def lookups(self, request, model_admin):
+        course_identifiers = (
+            _filter_courses_for_user(Course.objects, request.user)
+            .values_list("identifier", flat=True))
+        return zip(course_identifiers, course_identifiers)
+
+    def queryset(self, request, queryset):
+        if self.value():
+            participations = (
+                _get_filter_participations_for_user(request.user)
+                .filter(course__identifier=self.value()))
+            return queryset.filter(pk__in=participations.values_list("user__pk"))
+        else:
+            return queryset
 
 
 class UserAdmin(UserAdminBase):
-    # list_display = tuple(
-    #         f for f in UserAdminBase.list_display
-    #         if f != "is_staff")
-    # list_filter = tuple(
-    #         f for f in UserAdminBase.list_filter
-    #         if f != "is_staff")
-    # fieldsets = _remove_from_fieldsets(
-    #         UserAdminBase.fieldsets, "is_staff")
-
     save_on_top = True
 
     list_display = tuple(UserAdminBase.list_display) + (
@@ -63,7 +77,7 @@ class UserAdmin(UserAdminBase):
             "institutional_id", "institutional_id_verified",
             "name_verified",)
     list_filter = tuple(UserAdminBase.list_filter) + (
-            "status", "participations__course")
+            "status", CourseListFilter)  # type: ignore
     search_fields = tuple(UserAdminBase.search_fields) + (
             "institutional_id",)
 
@@ -79,6 +93,56 @@ class UserAdmin(UserAdminBase):
                 "editor_mode",)
                 }),
             ) + UserAdminBase.fieldsets[2:]
+    ordering = ["-date_joined"]
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super(UserAdmin, self).get_fieldsets(request, obj)
+        if request is not None and request.user.is_superuser:
+            return fieldsets
+        return tuple(
+            [fields for fields in fieldsets
+             if "is_superuser" not in fields[1]["fields"]
+             and "is_staff" not in fields[1]["fields"]
+             and "user_permissions" not in fields[1]["fields"]])
+
+    def get_list_display(self, request):
+        list_display = super(UserAdmin, self).get_list_display(request)
+        if request is not None and request.user.is_superuser:
+            return list_display
+        return tuple([f for f in list_display if f != "is_staff"])
+
+    def get_list_filter(self, request):
+        list_filter = super(UserAdmin, self).get_list_filter(request)
+        if request is not None and request.user.is_superuser:
+            return list_filter
+        return tuple([f for f in list_filter if f != "is_staff"])
+
+    def get_queryset(self, request):
+        qs = super(UserAdmin, self).get_queryset(request)
+
+        if request is not None and request.user.is_superuser:
+            return qs
+
+        user_courses = _filter_courses_for_user(Course.objects, request.user)
+
+        # Prevent users which attended other courses from being
+        # deleted or edited.
+        users_from_other_course = (
+            Participation.objects.exclude(course__in=user_courses)
+            .values_list("user", flat=True))
+
+        return (
+            qs.filter(is_superuser=False)
+            .filter(
+                # add the request.user back
+                Q(pk=request.user.pk)
+                | ~Q(
+                    # remove users who is_staff from the queryset
+                    Q(is_staff=True)
+                    |
+                    # remove users who attended other courses
+                    Q(pk__in=users_from_other_course))
+            ))
 
 
 admin.site.register(User, UserAdmin)

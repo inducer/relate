@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import os
 import six
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
@@ -34,6 +35,12 @@ REQUIRED_CONF_ERROR_PATTERN = (
 INSTANCE_ERROR_PATTERN = "%(location)s must be an instance of %(types)s."
 GENERIC_ERROR_PATTERN = "Error in '%(location)s': %(error_type)s: %(error_str)s"
 
+USE_I18N = "USE_I18N"
+LANGUAGES = "LANGUAGES"
+
+RELATE_SITE_NAME = "RELATE_SITE_NAME"
+RELATE_CUTOMIZED_SITE_NAME = "RELATE_CUTOMIZED_SITE_NAME"
+RELATE_OVERRIDE_TEMPLATES_DIRS = "RELATE_OVERRIDE_TEMPLATES_DIRS"
 EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
 RELATE_EMAIL_APPELATION_PRIORITY_LIST = "RELATE_EMAIL_APPELATION_PRIORITY_LIST"
@@ -318,7 +325,6 @@ def check_relate_settings(app_configs, **kwargs):
             id="git_root.E002"
         ))
     else:
-        import os
         if not os.path.isdir(git_root):
             errors.append(RelateCriticalCheckMessage(
                 msg=("`%(path)s` connfigured in %(location)s is not a valid path"
@@ -343,6 +349,113 @@ def check_relate_settings(app_configs, **kwargs):
 
     # }}}
 
+    # {{{ check LANGUAGES, why this is not done in django?
+
+    languages = settings.LANGUAGES
+
+    from django.utils.itercompat import is_iterable
+
+    if (isinstance(languages, six.string_types) or
+            not is_iterable(languages)):
+        errors.append(RelateCriticalCheckMessage(
+            msg=(INSTANCE_ERROR_PATTERN
+                 % {"location": LANGUAGES,
+                    "types": "an iterable (e.g., a list or tuple)."}),
+            id="relate_languages.E001")
+        )
+    else:
+        if any(isinstance(choice, six.string_types) or
+                       not is_iterable(choice) or len(choice) != 2
+               for choice in languages):
+            errors.append(RelateCriticalCheckMessage(
+                msg=("'%s' must be an iterable containing "
+                     "(language code, language description) tuples, just "
+                     "like the format of LANGUAGES setting ("
+                     "https://docs.djangoproject.com/en/dev/ref/settings/"
+                     "#languages)" % LANGUAGES),
+                id="relate_languages.E002")
+            )
+        else:
+            from collections import OrderedDict
+            options_dict = OrderedDict(tuple(settings.LANGUAGES))
+            all_lang_codes = [lang_code for lang_code, lang_descr
+                              in tuple(settings.LANGUAGES)]
+            for lang_code in options_dict.keys():
+                if all_lang_codes.count(lang_code) > 1:
+                    errors.append(Warning(
+                        msg=(
+                            "Duplicate language entries were found in "
+                            "settings.LANGUAGES for '%s', '%s' will be used "
+                            "as its language_description"
+                            % (lang_code, options_dict[lang_code])),
+                        id="relate_languages.W001"
+                    ))
+
+    # }}}
+
+    # {{{ check RELATE_SITE_NAME
+    try:
+        site_name = settings.RELATE_SITE_NAME
+        if site_name is None:
+            errors.append(
+                RelateCriticalCheckMessage(
+                    msg=("%s must not be None" % RELATE_SITE_NAME),
+                    id="relate_site_name.E002")
+            )
+        else:
+            if not isinstance(site_name, six.string_types):
+                errors.append(RelateCriticalCheckMessage(
+                    msg=(INSTANCE_ERROR_PATTERN
+                         % {"location": "%s/%s" % (RELATE_SITE_NAME,
+                                                   RELATE_CUTOMIZED_SITE_NAME),
+                            "types": "string"}),
+                    id="relate_site_name.E003"))
+            elif not site_name.strip():
+                errors.append(RelateCriticalCheckMessage(
+                    msg=("%s must not be an empty string" % RELATE_SITE_NAME),
+                    id="relate_site_name.E004"))
+    except AttributeError:
+        # This happens when RELATE_SITE_NAME is DELETED from settings.
+        errors.append(
+            RelateCriticalCheckMessage(
+                msg=(REQUIRED_CONF_ERROR_PATTERN
+                     % {"location": RELATE_SITE_NAME}),
+                id="relate_site_name.E001")
+        )
+    # }}}
+
+    # {{{ check RELATE_OVERRIDE_TEMPLATES_DIRS
+
+    relate_override_templates_dirs = getattr(settings,
+                                             RELATE_OVERRIDE_TEMPLATES_DIRS, None)
+    if relate_override_templates_dirs is not None:
+        if (isinstance(relate_override_templates_dirs, six.string_types) or
+                not is_iterable(relate_override_templates_dirs)):
+            errors.append(RelateCriticalCheckMessage(
+                msg=(INSTANCE_ERROR_PATTERN
+                     % {"location": RELATE_OVERRIDE_TEMPLATES_DIRS,
+                        "types": "an iterable (e.g., a list or tuple)."}),
+                id="relate_override_templates_dirs.E001"))
+        else:
+            if any(not isinstance(directory, six.string_types)
+                   for directory in relate_override_templates_dirs):
+                errors.append(RelateCriticalCheckMessage(
+                    msg=("'%s' must contain only string of paths."
+                         % RELATE_OVERRIDE_TEMPLATES_DIRS),
+                    id="relate_override_templates_dirs.E002"))
+            else:
+                for directory in relate_override_templates_dirs:
+                    if not os.path.isdir(directory):
+                        errors.append(
+                            Warning(
+                                msg=(
+                                    "Invalid Templates Dirs item '%s' in '%s', "
+                                    "it will be ignored."
+                                    % (directory, RELATE_OVERRIDE_TEMPLATES_DIRS)),
+                                id="relate_override_templates_dirs.W001"
+                            ))
+
+    # }}}
     return errors
 
 

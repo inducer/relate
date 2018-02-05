@@ -31,6 +31,8 @@ try:
     from .code_feedback import Feedback, GradingComplete
 except SystemError:
     from code_feedback import Feedback, GradingComplete  # type: ignore
+except ImportError:
+    from code_feedback import Feedback, GradingComplete  # type: ignore
 
 
 __doc__ = """
@@ -176,7 +178,7 @@ def run_code(result, run_req):
         try:
             setup_code = compile(
                     run_req.setup_code, "[setup code]", 'exec')
-        except:
+        except Exception:
             package_exception(result, "setup_compile_error")
             return
     else:
@@ -185,7 +187,7 @@ def run_code(result, run_req):
     try:
         user_code = compile(
                 run_req.user_code, "[user code]", 'exec')
-    except:
+    except Exception:
         package_exception(result, "user_compile_error")
         return
 
@@ -193,7 +195,7 @@ def run_code(result, run_req):
         try:
             test_code = compile(
                     run_req.test_code, "[test code]", 'exec')
-        except:
+        except Exception:
             package_exception(result, "test_compile_error")
             return
     else:
@@ -231,7 +233,7 @@ def run_code(result, run_req):
     if setup_code is not None:
         try:
             exec(setup_code, maint_ctx)
-        except:
+        except Exception:
             package_exception(result, "setup_error")
             return
 
@@ -249,7 +251,7 @@ def run_code(result, run_req):
 
     try:
         exec(user_code, user_ctx)
-    except:
+    except Exception:
         package_exception(result, "user_error")
         return
 
@@ -269,7 +271,7 @@ def run_code(result, run_req):
             bio = BytesIO()
             try:
                 pt.savefig(bio, format=format)
-            except:
+            except Exception:
                 pass
             else:
                 figures.append(
@@ -294,7 +296,7 @@ def run_code(result, run_req):
             exec(test_code, maint_ctx)
         except GradingComplete:
             pass
-        except:
+        except Exception:
             package_exception(result, "test_error")
             return
 

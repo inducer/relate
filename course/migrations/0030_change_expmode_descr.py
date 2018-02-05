@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowsession',
             name='expiration_mode',
-            field=models.CharField(default=b'end', max_length=20, null=True, choices=[(b'end', b'End session and grade'), (b'roll_over', b'Keep session and apply new rules')]),
+            field=models.CharField(default='end', max_length=20, null=True, choices=[(b'end', b'End session and grade'), (b'roll_over', b'Keep session and apply new rules')]),
         ),
     ]

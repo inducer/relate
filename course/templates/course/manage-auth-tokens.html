@@ -4,7 +4,7 @@
 {% load crispy_forms_tags %}
 
 {% block title %}
-  {% trans "Manage Authentication Tokens" %}: - {% trans "RELATE" %}
+  {% trans "Manage Authentication Tokens" %}: - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}
@@ -54,7 +54,13 @@
             {% else %}
               <td>{{ token.valid_until }}</td>
             {% endif %}
-            <td>{{ token.last_used }}</td>
+            <td>
+              {% if token.last_use_time %}
+                {{ token.last_use_time }}
+              {% else %}
+                {% trans "(never used)" %}
+              {% endif %}
+            </td>
             <td>
               {% if token.revocation_time == None %}
                 <form method="POST">

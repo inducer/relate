@@ -2,9 +2,9 @@
 {% load i18n %}
 
 {% block content %}
-  <h1>{% trans "You're already signed in" %}</h1>
+  <h1>{% trans "You've already signed in" %}</h1>
     <h4>{% trans "Would you like to sign out and proceed with your previous operation?" %}</h4>
-    <a href="{% url 'relate-logout' %}{{next_uri}}" class="btn btn-default">{% trans "Sign out" %}</a>
-    <a href="{% url 'relate-home' %}" class="btn btn-default">{% trans "Cancel" %}</a>
+    <a href="{% url 'relate-logout' %}{{next_uri}}" class="btn btn-danger">{% trans "Sign out" %}</a>
+    <button class="btn btn-default" onclick="window.history.back()">{% trans "Cancel" %}</button>
 
 {% endblock %}

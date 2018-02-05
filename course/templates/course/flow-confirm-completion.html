@@ -3,7 +3,7 @@
 {% load i18n %}
 
 {% block title %}
-  {{flow_desc.title}} - {% trans "RELATE" %}
+  {{flow_desc.title}} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}
@@ -16,7 +16,7 @@
           <ul>
             {% for page_data in unanswered_page_data_list %}
               <li>
-                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}">
+                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.page_ordinal %}">
                   {{ page_data.human_readable_ordinal }}: {{ page_data.title }}
                   {% if page_data.bookmarked %}
                     <i class="fa fa-star" aria-hidden="true"></i>
