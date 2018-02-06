@@ -896,12 +896,33 @@ def expand_markup(
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
+
         template = env.from_string(text)
-        text = template.render(**jinja_env)
+        kwargs = {}
+        if jinja_env:
+            kwargs.update(jinja_env)
+
+        from course.utils import (
+            IpythonNotebookCellsJinjaExpansionContext as IpynbContext)
+        kwargs[IpynbContext.context_name] = IpynbContext(course, repo, commit_sha)
+
+        text = template.render(**kwargs)
 
     # }}}
 
     return text
+
+
+def unwrap_relate_tmp_pre_tag(html_string):
+    # type: (Text) -> (Text)
+
+    from lxml.html import fromstring, tostring
+    tree = fromstring(html_string)
+
+    for node in tree.iterdescendants("pre"):
+        if "relate_tmp_pre" in node.attrib.get("class", ""):
+            node.drop_tag()
+    return tostring(tree, encoding="unicode")
 
 
 def markup_to_html(
@@ -915,6 +936,11 @@ def markup_to_html(
         jinja_env={},  # type: Dict
         ):
     # type: (...) -> Text
+
+    disable_codehilite = bool(
+        getattr(settings,
+                "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION", True))
+
     if course is not None and not jinja_env:
         try:
             import django.core.cache as cache
@@ -922,9 +948,12 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v7:%s:%d:%s:%s"
-                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
-                        hashlib.md5(text.encode("utf-8")).hexdigest()))
+            cache_key = ("markup:v7:%s:%d:%s:%s%s"
+                    % (CACHE_KEY_ROOT,
+                       course.id, str(commit_sha),
+                       hashlib.md5(text.encode("utf-8")).hexdigest(),
+                       ":NOCODEHILITE" if disable_codehilite else ""
+                       ))
 
             def_cache = cache.caches["default"]
             result = def_cache.get(cache_key)
@@ -949,14 +978,29 @@ def markup_to_html(
 
     from course.mdx_mathjax import MathJaxExtension
     import markdown
+
+    extensions = [
+        LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
+        MathJaxExtension(),
+        "markdown.extensions.extra",
+    ]
+
+    if not disable_codehilite:
+        # Note: no matter whether disable_codehilite, the code in
+        # the rendered ipython notebook will be highlighted.
+        # "css_class=highlight" is to ensure that, when codehilite extension
+        # is enabled, code out side of notebook uses the same html class
+        # attribute as the default highlight class (i.e., `highlight`)
+        # used by rendered ipynb notebook cells, Thus we don't need to
+        # make 2 copies of css for the highlight.
+        extensions += ["markdown.extensions.codehilite(css_class=highlight)"]
+
     result = markdown.markdown(text,
-        extensions=[
-            LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
-            MathJaxExtension(),
-            "markdown.extensions.extra",
-            "markdown.extensions.codehilite",
-            ],
+        extensions=extensions,
         output_format="html5")
+
+    if result.strip():
+        result = unwrap_relate_tmp_pre_tag(result)
 
     assert isinstance(result, six.text_type)
     if cache_key is not None:

@@ -69,8 +69,12 @@ if False:
             FlowSession,
             FlowPageData,
             )
+    from course.content import Repo_ish  # noqa
 
 # }}}
+
+import re
+CODE_CELL_DIV_ATTRS_RE = re.compile('(<div class="[^>]*code_cell[^>"]*")(>)')
 
 
 def getattr_with_fallback(aggregates, attr_name, default=None):
@@ -1180,5 +1184,111 @@ def get_course_specific_language_choices():
         filtered_options.pop(1)
 
     return tuple(filtered_options)
+
+
+class RelateJinjaExpansionContextBase(object):
+    def __init__(self, course, repo, commit_sha):
+        # type: (Optional[Course], Repo_ish, bytes) -> None
+        self.course = course
+        self.repo = repo
+        self.commit_sha = commit_sha
+
+    @property
+    def context_name(self):
+        raise NotImplementedError()
+
+    def __call__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> Text
+        raise NotImplementedError()
+
+
+# {{{ ipynb utilities
+
+class IpythonNotebookCellsJinjaExpansionContext(RelateJinjaExpansionContextBase):
+    context_name = "render_notebook_cells"
+
+    def render_notebook_cells(self, ipynb_path, indices=None, clear_output=False,
+                 clear_markdown=False):
+        # type: (Text, Optional[Any], Optional[bool], Optional[bool]) -> Text
+        from course.content import get_repo_blob_data_cached
+        try:
+            ipynb_source = get_repo_blob_data_cached(self.repo, ipynb_path,
+                                                     self.commit_sha).decode()
+
+            return self.render_notebook_from_source(
+                ipynb_source,
+                clear_output=clear_output,
+                indices=indices,
+                clear_markdown=clear_markdown,
+            )
+        except ObjectDoesNotExist:
+            raise
+
+    __call__ = render_notebook_cells  # type: ignore
+
+    def render_notebook_from_source(self, ipynb_source, clear_output=False,
+                                    indices=None, clear_markdown=False):
+        # type: (Text, Optional[bool], Optional[Any], Optional[bool]) -> Text
+        """
+        Get HTML format of ipython notebook so as to be rendered in RELATE flow
+        pages.
+        :param ipynb_source: the :class:`text` read from a ipython notebook.
+        :param clear_output: a :class:`bool` instance, indicating whether existing
+        execution output of code cells should be removed.
+        :param indices: a :class:`list` instance, 0-based indices of notebook cells
+        which are expected to be rendered.
+        :param clear_markdown: a :class:`bool` instance, indicating whether markdown
+        cells will be ignored..
+        :return:
+        """
+        import nbformat
+        from nbformat.reader import parse_json
+        nb_source_dict = parse_json(ipynb_source)
+
+        if indices:
+            nb_source_dict.update(
+                {"cells": [nb_source_dict["cells"][idx] for idx in indices]})
+
+        if clear_markdown:
+            nb_source_dict.update(
+                {"cells": [cell for cell in nb_source_dict["cells"]
+                           if cell['cell_type'] != "markdown"]})
+
+        nb_source_dict.update({"cells": nb_source_dict["cells"]})
+
+        import json
+        ipynb_source = json.dumps(nb_source_dict)
+        notebook = nbformat.reads(ipynb_source, as_version=4)
+
+        from traitlets.config import Config
+        c = Config()
+
+        # This is to prevent execution of arbitrary code from note book
+        c.ExecutePreprocessor.enabled = False
+        if clear_output:
+            c.ClearOutputPreprocessor.enabled = True
+
+        c.CSSHTMLHeaderPreprocessor.enabled = False
+        c.HighlightMagicsPreprocessor.enabled = False
+
+        import os
+        from django.conf import settings
+
+        # Place the template in course template dir
+        template_path = os.path.join(
+            settings.BASE_DIR, "course", "templates", "course", "jinja2")
+        c.TemplateExporter.template_path.append(template_path)
+
+        from nbconvert import HTMLExporter
+        html_exporter = HTMLExporter(
+            config=c,
+            template_file="nbconvert_template.tpl"
+        )
+
+        (body, resources) = html_exporter.from_notebook_node(notebook)
+
+        return body
+
+# }}}
 
 # vim: foldmethod=marker
