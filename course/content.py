@@ -897,28 +897,14 @@ def expand_markup(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
 
-        def render_notebook_cells(ipynb_path, indices=None, clear_output=False,
-                                  clear_markdown=False):
-            try:
-                ipynb_source = get_repo_blob_data_cached(repo, ipynb_path,
-                                                         commit_sha).decode()
-
-                from course.utils import render_notebook_from_source
-                return render_notebook_from_source(
-                    ipynb_source,
-                    clear_output=clear_output,
-                    indices=indices,
-                    clear_markdown=clear_markdown,
-                )
-            except ObjectDoesNotExist:
-                raise
-
         template = env.from_string(text)
         kwargs = {}
         if jinja_env:
             kwargs.update(jinja_env)
 
-        kwargs["render_notebook_cells"] = render_notebook_cells
+        from course.utils import (
+            IpythonNotebookCellsJinjaExpansionContext as IpynbContext)
+        kwargs[IpynbContext.context_name] = IpynbContext(course, repo, commit_sha)
 
         text = template.render(**kwargs)
 
@@ -962,7 +948,7 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v6:%s:%d:%s:%s%s"
+            cache_key = ("markup:v7:%s:%d:%s:%s%s"
                     % (CACHE_KEY_ROOT,
                        course.id, str(commit_sha),
                        hashlib.md5(text.encode("utf-8")).hexdigest(),
