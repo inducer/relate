@@ -324,12 +324,11 @@ Ipython notebook to HTML
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 RELATE provides the functionality of rendering `Ipython Notebooks
-<https://ipython.org/ipython-doc/3/notebook/>`_ in course pages.
+<https://ipython.org/ipython-doc/3/notebook/>`_ in course pages, by using
+`nbconvert <http://nbconvert.readthedocs.io>`_.
 
 .. function:: render_notebook_cells(ipynb_path, indices=None, clear_output=False,
                                   clear_markdown=False)
-    Convert an ipython notebook to markdown via nbconvert
-    (see http://nbconvert.readthedocs.io).
 
     :param ipynb_path: :class:`string`, the path of the ipython notebook in
         the repo.
@@ -341,7 +340,7 @@ RELATE provides the functionality of rendering `Ipython Notebooks
     :param clear_markdown: :class:`bool`, indicating whether all text cells
         will be removed. Default: `False`.
     :rtype: :class:`string`, rendered markdown which will be consequently
-        converted to HTML.
+     converted to HTML.
 
 For example, the following snippet shows the HTML version of ``test.ipynb`` in repo
 folder ``code``, with markdown (``text_cells``) and output (execution result of
