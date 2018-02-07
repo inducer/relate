@@ -1186,7 +1186,7 @@ def get_course_specific_language_choices():
     return tuple(filtered_options)
 
 
-class RelateJinjaExpansionContextBase(object):
+class RelateJinjaMacroBase(object):
     def __init__(self, course, repo, commit_sha):
         # type: (Optional[Course], Repo_ish, bytes) -> None
         self.course = course
@@ -1194,7 +1194,8 @@ class RelateJinjaExpansionContextBase(object):
         self.commit_sha = commit_sha
 
     @property
-    def context_name(self):
+    def name(self):
+        # The name of the method used in the template
         raise NotImplementedError()
 
     def __call__(self, *args, **kwargs):
@@ -1204,39 +1205,41 @@ class RelateJinjaExpansionContextBase(object):
 
 # {{{ ipynb utilities
 
-class IpythonNotebookCellsJinjaExpansionContext(RelateJinjaExpansionContextBase):
-    context_name = "render_notebook_cells"
+class IpynbJinjaMacro(RelateJinjaMacroBase):
+    name = "render_notebook_cells"
 
-    def render_notebook_cells(self, ipynb_path, indices=None, clear_output=False,
-                 clear_markdown=False):
-        # type: (Text, Optional[Any], Optional[bool], Optional[bool]) -> Text
+    def _render_notebook_cells(self, ipynb_path, indices=None, clear_output=False,
+                 clear_markdown=False, **kwargs):
+        # type: (Text, Optional[Any], Optional[bool], Optional[bool], **Any) -> Text
         from course.content import get_repo_blob_data_cached
         try:
             ipynb_source = get_repo_blob_data_cached(self.repo, ipynb_path,
                                                      self.commit_sha).decode()
 
-            return self.render_notebook_from_source(
+            return self._render_notebook_from_source(
                 ipynb_source,
-                clear_output=clear_output,
                 indices=indices,
+                clear_output=clear_output,
                 clear_markdown=clear_markdown,
+                **kwargs
             )
         except ObjectDoesNotExist:
             raise
 
-    __call__ = render_notebook_cells  # type: ignore
+    __call__ = _render_notebook_cells  # type: ignore
 
-    def render_notebook_from_source(self, ipynb_source, clear_output=False,
-                                    indices=None, clear_markdown=False):
-        # type: (Text, Optional[bool], Optional[Any], Optional[bool]) -> Text
+    def _render_notebook_from_source(
+            self, ipynb_source, indices=None,
+            clear_output=False, clear_markdown=False, **kwargs):
+        # type: (Text, Optional[Any], Optional[bool], Optional[bool], **Any) -> Text
         """
         Get HTML format of ipython notebook so as to be rendered in RELATE flow
         pages.
         :param ipynb_source: the :class:`text` read from a ipython notebook.
-        :param clear_output: a :class:`bool` instance, indicating whether existing
-        execution output of code cells should be removed.
         :param indices: a :class:`list` instance, 0-based indices of notebook cells
         which are expected to be rendered.
+        :param clear_output: a :class:`bool` instance, indicating whether existing
+        execution output of code cells should be removed.
         :param clear_markdown: a :class:`bool` instance, indicating whether markdown
         cells will be ignored..
         :return:

@@ -902,9 +902,8 @@ def expand_markup(
         if jinja_env:
             kwargs.update(jinja_env)
 
-        from course.utils import (
-            IpythonNotebookCellsJinjaExpansionContext as IpynbContext)
-        kwargs[IpynbContext.context_name] = IpynbContext(course, repo, commit_sha)
+        from course.utils import IpynbJinjaMacro
+        kwargs[IpynbJinjaMacro.name] = IpynbJinjaMacro(course, repo, commit_sha)
 
         text = template.render(**kwargs)
 
