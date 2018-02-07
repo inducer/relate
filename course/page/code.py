@@ -426,6 +426,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         based on its :attr:`access_rules` (not the ones of the flow), a warning
         is shown. Setting this attribute to True will silence the warning.
 
+    .. attribute:: max_auto_feedback_points
+
+        Optional, A non-negative :class:`float` value, default to 1,
+        and it can be increased to 10 (`course.constants.MAX_EXTRA_CREDIT_FACTOR`).
+        It indicates the maximum allowed correctness for auto feedback.
+
     The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
 
     * ``GradingComplete``: An exception class that can be raised to indicated
@@ -482,8 +488,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     from course.content import get_repo_blob
                     get_repo_blob(vctx.repo, data_file, vctx.commit_sha)
                 except ObjectDoesNotExist:
-                    raise ValidationError("%s: data file '%s' not found"
-                            % (location, data_file))
+                    raise ValidationError(
+                        string_concat(
+                            "%(location)s: ",
+                            _("data file '%(file)s' not found"))
+                        % {"location": location, "file": data_file})
 
         if not getattr(page_desc, "single_submission", False) and vctx is not None:
             is_multi_submit = False
@@ -502,6 +511,22 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "for only a single submission to be allowed. "
                     "While you're at it, consider adding "
                     "access_rules/add_permssions/see_correctness."))
+
+        if (getattr(page_desc, "max_auto_feedback_points", None)
+                and vctx is not None):
+            from course.constants import MAX_EXTRA_CREDIT_FACTOR
+            if (not 0 <= page_desc.max_auto_feedback_points
+                    <= MAX_EXTRA_CREDIT_FACTOR):
+                raise ValidationError(
+                    string_concat(
+                        "%(location)s: ",
+                        _("'max_auto_feedback_points' is invalid: expecting "
+                          "a value within [0, %(max_extra_credit_factor)s], "
+                          "got %(invalid_value)s."))
+                    % {"location": location,
+                       "max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
+                       "invalid_value": page_desc.max_auto_feedback_points
+                       })
 
     def required_attrs(self):
         return super(PythonCodeQuestion, self).required_attrs() + (
@@ -522,6 +547,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("initial_code", str),
                 ("data_files", list),
                 ("single_submission", bool),
+                ("max_auto_feedback_points", (int, float))
                 )
 
     def _initial_code(self):
@@ -611,6 +637,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         transfer_attr("setup_code")
         transfer_attr("names_for_user")
         transfer_attr("names_from_user")
+        transfer_attr("max_auto_feedback_points")
 
         if hasattr(self.page_desc, "test_code"):
             run_req["test_code"] = self.get_test_code()

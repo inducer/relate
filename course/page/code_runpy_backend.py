@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import math
 import sys
 import traceback
 
@@ -35,6 +34,7 @@ except SystemError:
 except ImportError:
     from code_feedback import Feedback, GradingComplete  # type: ignore
 
+ATOL = 1e-08
 
 __doc__ = """
 PROTOCOL
@@ -301,12 +301,19 @@ def run_code(result, run_req):
             package_exception(result, "test_error")
             return
 
-    if feedback.points is not None and math.isclose(feedback.points, 1):
-        feedback.points = 1
+    max_points = getattr(run_req, "max_auto_feedback_points", 1)
 
-    if not (feedback.points is None or 0 <= feedback.points <= 1):
-        raise ValueError("grade point value is invalid: %s"
-                % feedback.points)
+    if feedback.points is not None and abs(feedback.points - max_points) < ATOL:
+        feedback.points = max_points
+
+    if feedback.points is not None and abs(feedback.points) < ATOL:
+        feedback.points = 0
+
+    if not (feedback.points is None or 0 <= feedback.points <= max_points):
+        raise ValueError(
+            "grade point value is invalid: expecting within [0, %s], "
+            "got %s."
+            % (max_points, feedback.points))
 
     result["points"] = feedback.points
     result["feedback"] = feedback.feedback_items
