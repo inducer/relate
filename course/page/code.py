@@ -428,7 +428,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     .. attribute:: max_auto_feedback_points
 
-        Optional, A :class:`float` a non-negative value, default to 1,
+        Optional, A non-negative :class:`float` value, default to 1,
         and it can be increased to 10 (`course.constants.MAX_EXTRA_CREDIT_FACTOR`).
         It indicates the maximum allowed correctness for auto feedback.
 

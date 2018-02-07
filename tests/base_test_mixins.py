@@ -1436,8 +1436,14 @@ class SubprocessRunpyContainerMixin(object):
     @classmethod
     def tearDownClass(cls):  # noqa
         super(SubprocessRunpyContainerMixin, cls).tearDownClass()
-        cls.faked_container_patch.stop()
-        cls.faked_container_process.kill()
+        import sys
+        if sys.platform.startswith("win"):
+            # Without these lines, tests on Appveyor hanged when all tests
+            # finished. However, On nix platforms, these lines resulted in test
+            # failure when there were more than one TestCases which were using
+            # this mixin.
+            cls.faked_container_patch.stop()
+            cls.faked_container_process.kill()
 
 
 def improperly_configured_cache_patch():
