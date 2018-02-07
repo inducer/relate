@@ -39,20 +39,21 @@ MESSAGE_ANSWER_SAVED_TEXT = "Answer saved."
 MESSAGE_ANSWER_FAILED_SAVE_TEXT = "Failed to submit answer."
 
 
-class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
-                               FallBackStorageMessageTestMixin, TestCase):
+class A_SingleCourseQuizPageTest(SingleCoursePageTestMixin,  # noqa
+                                 FallBackStorageMessageTestMixin, TestCase):
+    # The naming is to ensure this is the first TestCase tested
     flow_id = QUIZ_FLOW_ID
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageTest, cls).setUpTestData()
+        super(A_SingleCourseQuizPageTest, cls).setUpTestData()
         cls.c.force_login(cls.student_participation.user)
 
         # cls.default_flow_params will only be available after a flow is started
         cls.start_flow(cls.flow_id)
 
     def setUp(self):  # noqa
-        super(SingleCourseQuizPageTest, self).setUp()
+        super(A_SingleCourseQuizPageTest, self).setUp()
         # This is needed to ensure student is logged in
         self.c.force_login(self.student_participation.user)
 
