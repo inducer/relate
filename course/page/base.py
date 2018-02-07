@@ -171,8 +171,10 @@ class AnswerFeedback(object):
     """
     .. attribute:: correctness
 
-        A :class:`float` between 0 and 1 (inclusive),
-        indicating the degree of correctness of the
+        A :class:`float` a non-negative value, normally
+        between 0 and 1 (inclusive), and it can be increased to at most 10
+        (`course.constants.MAX_EXTRA_CREDIT_FACTOR`).
+        It indicates the degree of correctness of the
         answer. May be *None*.
 
     .. attribute:: feedback
