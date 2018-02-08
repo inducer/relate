@@ -22,14 +22,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from unittest import skipIf
+
+from django.test import TestCase, override_settings
 
 from tests.base_test_mixins import (
     SubprocessRunpyContainerMixin,
-)
+    SingleCoursePageTestMixin)
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
 )
+
+from tests.test_pages import QUIZ_FLOW_ID
+from tests.test_pages.utils import (
+    skip_real_docker_test, SKIP_REAL_DOCKER_REASON,
+    REAL_RELATE_DOCKER_URL, REAL_RELATE_DOCKER_RUNPY_IMAGE,
+    REAL_RELATE_DOCKER_TLS_CONFIG
+)
+
 from tests.utils import LocmemBackendTestsMixin, mock, mail
 
 from . import markdowns
@@ -57,6 +67,87 @@ GRADE_CODE_FAILING_MSG = (
 )
 
 RUNPY_WITH_RETRIES_PATH = "course.page.code.request_python_run_with_retries"
+
+
+class RealDockerTestMixin(object):
+    @classmethod
+    def setUpClass(cls):  # noqa
+        from unittest import SkipTest
+        if skip_real_docker_test:
+            raise SkipTest(SKIP_REAL_DOCKER_REASON)
+
+        super(RealDockerTestMixin, cls).setUpClass()
+        cls.override_docker_settings = override_settings(
+            RELATE_DOCKER_URL=REAL_RELATE_DOCKER_URL,
+            RELATE_DOCKER_RUNPY_IMAGE=REAL_RELATE_DOCKER_RUNPY_IMAGE,
+            RELATE_DOCKER_TLS_CONFIG=REAL_RELATE_DOCKER_TLS_CONFIG
+        )
+        cls.override_docker_settings.enable()
+        cls.make_sure_docker_image_pulled()
+
+    @classmethod
+    def tearDownClass(cls):  # noqa
+        super(RealDockerTestMixin, cls).tearDownClass()
+        cls.override_docker_settings.disable()
+
+    @classmethod
+    def make_sure_docker_image_pulled(cls):
+        import docker
+        cli = docker.Client(
+            base_url=REAL_RELATE_DOCKER_URL,
+            tls=None,
+            timeout=15,
+            version="1.19")
+
+        if not bool(cli.images(REAL_RELATE_DOCKER_RUNPY_IMAGE)):
+            # This should run only once and get cached on Travis-CI
+            cli.pull(REAL_RELATE_DOCKER_RUNPY_IMAGE)
+
+
+@skipIf(skip_real_docker_test, SKIP_REAL_DOCKER_REASON)
+class RealDockerCodePageTest(SingleCoursePageTestMixin,
+                             RealDockerTestMixin, TestCase):
+    flow_id = QUIZ_FLOW_ID
+    page_id = "addition"
+
+    def setUp(self):  # noqa
+        super(RealDockerCodePageTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+        self.start_flow(self.flow_id)
+
+    def test_code_page_correct_answer(self):
+        answer_data = {"answer": "c = a + b"}
+        expected_str = (
+            "It looks like you submitted code that is identical to "
+            "the reference solution. This is not allowed.")
+        resp = self.post_answer_by_page_id(self.page_id, answer_data)
+        self.assertContains(resp, expected_str, count=1)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(1)
+
+    def test_code_page_wrong_answer(self):
+        answer_data = {"answer": "c = a - b"}
+        resp = self.post_answer_by_page_id(self.page_id, answer_data)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(0)
+
+    def test_code_page_user_code_exception_raise(self):
+        answer_data = {"answer": "c = a ^ b"}
+        from django.utils.html import escape
+        expected_error_str1 = escape(
+            "Your code failed with an exception. "
+            "A traceback is below.")
+        expected_error_str2 = escape(
+            "TypeError: unsupported operand type(s) for ^: "
+            "'float' and 'float'")
+        resp = self.post_answer_by_page_id(self.page_id, answer_data)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, expected_error_str1, count=1)
+        self.assertContains(resp, expected_error_str2, count=1)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(0)
 
 
 class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
