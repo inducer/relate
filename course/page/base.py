@@ -44,7 +44,7 @@ from django.conf import settings
 # {{{ mypy
 
 if False:
-    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet  # noqa
+    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union  # noqa
     from django import http  # noqa
     from course.models import (  # noqa
             Course,
@@ -139,15 +139,57 @@ def markup_to_html(
 
 # {{{ answer feedback type
 
+
+class InvalidFeedbackPointsError(ValueError):
+    pass
+
+
+CORRECTNESS_ATOL = 1e-5
+
+
+def get_close_value(correctness):
+    # type: (Optional[float]) -> (Optional[Union[float, int]])
+
+    if correctness is None:
+        return None
+    elif abs(correctness - 0) < CORRECTNESS_ATOL:
+        return 0
+    elif abs(correctness - 1) < CORRECTNESS_ATOL:
+        return 1
+    elif abs(correctness - MAX_EXTRA_CREDIT_FACTOR) < CORRECTNESS_ATOL:
+        return MAX_EXTRA_CREDIT_FACTOR
+    else:
+        return correctness
+
+
 def get_auto_feedback(correctness):
     # type: (Optional[float]) -> Text
+
+    correctness = get_close_value(correctness)
+
     if correctness is None:
         return six.text_type(_("No information on correctness of answer."))
-    elif abs(correctness - 0) < 1e-5:
+
+    error_msg_pattern = _(
+        "'correctness' is invalid: expecting "
+        "a value within [0, %(max_extra_credit_factor)s] or None, "
+        "got %(invalid_value)s.")
+
+    if correctness < -CORRECTNESS_ATOL:
+        raise InvalidFeedbackPointsError(
+            error_msg_pattern
+            % {"max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
+               "invalid_value": correctness})
+    elif correctness == 0:
         return six.text_type(_("Your answer is not correct."))
-    elif abs(correctness - 1) < 1e-5:
+    elif correctness == 1:
         return six.text_type(_("Your answer is correct."))
     elif correctness > 1:
+        if correctness > MAX_EXTRA_CREDIT_FACTOR:
+            raise InvalidFeedbackPointsError(
+                error_msg_pattern
+                % {"max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
+                   "invalid_value": correctness})
         return six.text_type(
                 string_concat(
                     _("Your answer is correct and earned bonus points."),
@@ -190,6 +232,7 @@ class AnswerFeedback(object):
     def __init__(self, correctness, feedback=None, bulk_feedback=None):
         # type: (Optional[float], Optional[Text], Optional[Text]) -> None
 
+        correctness = get_close_value(correctness)
         if correctness is not None:
             # allow for extra credit
             if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
