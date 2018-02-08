@@ -110,10 +110,15 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
 
     def assertSandboxWarningTextContain(self, resp, expected_text, loose=False):  # noqa
         warnings = self.get_response_context_value_by_name(resp, PAGE_WARNINGS)
-        warnings_text = [w.text for w in warnings]
+        warnings_strs = [w.text for w in warnings]
+        if expected_text is None:
+            return self.assertEqual(
+                warnings_strs, [],
+                "Page validatioin warning is not None, but %s."
+                % repr(warnings_strs))
         if loose:
-            warnings_text = "".join(warnings_text)
-        self.assertIn(expected_text, warnings_text)
+            warnings_strs = "".join(warnings_strs)
+        self.assertIn(expected_text, warnings_strs)
 
     def assertSandboxNotHaveValidPage(self, resp):  # noqa
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, False)
