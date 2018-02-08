@@ -225,6 +225,12 @@ class ResponseContextMixin(object):
         self.assertTrue(hasattr(answer_feedback, "feedback"))
         self.assertIn(expected_feedback, answer_feedback.feedback)
 
+    def assertResponseContextAnswerFeedbackNotContainsFeedback(  # noqa
+                                        self, response, expected_feedback):
+        answer_feedback = self.get_response_context_answer_feedback(response)
+        self.assertTrue(hasattr(answer_feedback, "feedback"))
+        self.assertNotIn(expected_feedback, answer_feedback.feedback)
+
     def assertResponseContextAnswerFeedbackCorrectnessEquals(  # noqa
                                         self, response, expected_correctness):
         answer_feedback = self.get_response_context_answer_feedback(response)

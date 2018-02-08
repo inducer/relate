@@ -24,10 +24,16 @@ THE SOFTWARE.
 
 import os
 from base64 import b64encode
+
+import unittest
 from django.test import TestCase
 from django.urls import resolve
 from django.core import mail
+
 from course.models import FlowSession
+from course.constants import MAX_EXTRA_CREDIT_FACTOR
+from course.page.base import AnswerFeedback
+
 from tests.base_test_mixins import (
     SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
     SubprocessRunpyContainerMixin)
@@ -503,6 +509,24 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
 
         self.assertSessionScoreEqual(5)
 
+    def test_post_grades_huge_points_failure(self):
+        self.end_flow()
+
+        grade_data = {
+            "grade_percent": ["2000"],
+            "released": ['on']
+        }
+
+        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+
+        # value exceeded allowed
+        self.assertResponseContextContains(
+            resp, "grading_form_html",
+            "Ensure this value is less than or equal to")
+
+        self.assertSessionScoreEqual(None)
+
     def test_post_grades_forbidden(self):
         self.end_flow()
 
@@ -732,5 +756,36 @@ class SingleCourseQuizPageCodeQuestionTest(
                 resp, "The human grader assigned 1.00/1.00 points.")
 
         self.assertSessionScoreEqual(4)
+
+
+class AnswerFeedBackTest(unittest.TestCase):
+    # TODO: more tests
+    def test_correctness_negative(self):
+        correctness = -0.1
+        with self.assertRaises(ValueError):
+            AnswerFeedback(correctness)
+
+    def test_correctness_exceed_max_extra_credit_factor(self):
+        correctness = MAX_EXTRA_CREDIT_FACTOR + 0.1
+        with self.assertRaises(ValueError):
+            AnswerFeedback(correctness)
+
+    def test_correctness_can_be_none(self):
+        af = AnswerFeedback(None)
+        self.assertIsNone(af.correctness)
+
+    def test_from_json(self):
+        json = {
+            "correctness": 0.5,
+            "feedback": "what ever"
+        }
+        af = AnswerFeedback.from_json(json, None)
+        self.assertEqual(af.correctness, 0.5)
+        self.assertEqual(af.feedback, "what ever")
+        self.assertEqual(af.bulk_feedback, None)
+
+    def test_from_json_none(self):
+        af = AnswerFeedback.from_json(None, None)
+        self.assertIsNone(af)
 
 # vim: fdm=marker
