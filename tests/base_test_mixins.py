@@ -614,7 +614,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 git_source_url_to_cache_keys(last_course.git_source))
             mc.set_multi({url_cache_key: get_course_repo_path(last_course),
                           commit_sha_cach_key: last_course.active_git_commit_sha},
-                         time=120
+                         time=120000
                          )
         return resp
 
