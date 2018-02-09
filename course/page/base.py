@@ -56,6 +56,7 @@ if False:
 
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
+ATOL = 1e-5
 
 
 class PageContext(object):
@@ -144,52 +145,60 @@ class InvalidFeedbackPointsError(ValueError):
     pass
 
 
-CORRECTNESS_ATOL = 1e-5
+def get_close(value):
+    # type: (float) -> Union[float, int]
+    """
+    If 'value' is close to an int, a half or quarter, return the close value,
+    otherwise return the original value.
+    """
+
+    if abs(value - int(value)) < ATOL:
+        return int(value)
+
+    import math
+    _atol = ATOL * 4
+    v = value * 4
+    if abs(v - math.floor(v)) < _atol:
+        v = math.floor(v)
+    elif abs(v - math.ceil(v)) < _atol:
+        v = math.ceil(v)
+    else:
+        return value
+
+    return round(v / 4, 2)
 
 
-def get_close_value(correctness):
+def validate_point_count(correctness):
     # type: (Optional[float]) -> (Optional[Union[float, int]])
 
     if correctness is None:
         return None
-    elif abs(correctness - 0) < CORRECTNESS_ATOL:
-        return 0
-    elif abs(correctness - 1) < CORRECTNESS_ATOL:
-        return 1
-    elif abs(correctness - MAX_EXTRA_CREDIT_FACTOR) < CORRECTNESS_ATOL:
-        return MAX_EXTRA_CREDIT_FACTOR
-    else:
-        return correctness
+
+    if correctness < -ATOL or correctness > MAX_EXTRA_CREDIT_FACTOR + ATOL:
+        raise InvalidFeedbackPointsError(
+            _("'correctness' is invalid: expecting "
+              "a value within [0, %(max_extra_credit_factor)s] or None, "
+              "got %(invalid_value)s.")
+            % {"max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
+               "invalid_value": correctness}
+        )
+
+    return get_close(correctness)
 
 
 def get_auto_feedback(correctness):
     # type: (Optional[float]) -> Text
 
-    correctness = get_close_value(correctness)
+    correctness = validate_point_count(correctness)
 
     if correctness is None:
         return six.text_type(_("No information on correctness of answer."))
 
-    error_msg_pattern = _(
-        "'correctness' is invalid: expecting "
-        "a value within [0, %(max_extra_credit_factor)s] or None, "
-        "got %(invalid_value)s.")
-
-    if correctness < -CORRECTNESS_ATOL:
-        raise InvalidFeedbackPointsError(
-            error_msg_pattern
-            % {"max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
-               "invalid_value": correctness})
-    elif correctness == 0:
+    if correctness == 0:
         return six.text_type(_("Your answer is not correct."))
     elif correctness == 1:
         return six.text_type(_("Your answer is correct."))
     elif correctness > 1:
-        if correctness > MAX_EXTRA_CREDIT_FACTOR:
-            raise InvalidFeedbackPointsError(
-                error_msg_pattern
-                % {"max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
-                   "invalid_value": correctness})
         return six.text_type(
                 string_concat(
                     _("Your answer is correct and earned bonus points."),
@@ -232,11 +241,7 @@ class AnswerFeedback(object):
     def __init__(self, correctness, feedback=None, bulk_feedback=None):
         # type: (Optional[float], Optional[Text], Optional[Text]) -> None
 
-        correctness = get_close_value(correctness)
-        if correctness is not None:
-            # allow for extra credit
-            if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
-                raise ValueError(_("Invalid correctness value"))
+        correctness = validate_point_count(correctness)
 
         if feedback is None:
             feedback = get_auto_feedback(correctness)
