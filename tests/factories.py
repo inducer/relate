@@ -148,3 +148,20 @@ class EventFactory(factory.django.DjangoModelFactory):
     kind = "default_kind"
     ordinal = factory.Sequence(lambda n: n)
     time = factory.LazyFunction(now)
+
+
+class GradeChangeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.GradeChange
+
+    opportunity = factory.SubFactory(GradingOpportunityFactory)
+    participation = factory.SubFactory(ParticipationFactory)
+    state = constants.grade_state_change_types.graded
+    attempt_id = None
+    points = None
+    max_points = 10
+    comment = None
+    due_time = None
+    creator = None
+    grade_time = now()
+    flow_session = factory.SubFactory(FlowSessionFactory)
