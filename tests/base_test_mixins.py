@@ -429,8 +429,15 @@ class SuperuserCreateMixin(ResponseContextMixin):
     def assertFormErrorLoose(self, response, error, form_name="form"):  # noqa
         """Assert that error is found in response.context['form'] errors"""
         import itertools
-        form_errors = list(
-            itertools.chain(*response.context[form_name].errors.values()))
+        try:
+            form_errors = list(
+                itertools.chain(*response.context[form_name].errors.values()))
+        except TypeError:
+            form_errors = None
+        if error is not None and form_errors is None:
+            self.fail("%(form_name)s have no errors")
+        elif error is None and form_errors is None:
+            return
         self.assertIn(str(error), form_errors)
 
 

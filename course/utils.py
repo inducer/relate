@@ -36,6 +36,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import translation
 from django.utils.translation import (
         ugettext as _, pgettext_lazy)
+from django.conf import settings
+from django.utils.functional import cached_property
+from django.contrib.auth import get_user_model
+from django.utils.encoding import force_text
 
 from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
 
@@ -1091,7 +1095,33 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
     import csv
     spamreader = csv.reader(file_contents)
     n_header_row = 0
-    for row in spamreader:
+    try:
+        if six.PY2:
+            row0 = spamreader.next()
+        else:
+            row0 = spamreader.__next__()
+    except Exception as e:
+        err_msg = type(e).__name__
+        err_str = str(e)
+        if err_msg == "Error":
+            err_msg = ""
+        else:
+            err_msg += ": "
+        err_msg += err_str
+
+        if "line contains NULL byte" in err_str:
+            err_msg = err_msg.rstrip(".") + ". "
+            err_msg += _("Are you sure the file is a CSV file other "
+                         "than a Microsoft Excel file?")
+
+        return False, (
+            string_concat(
+                pgettext_lazy("Starting of Error message", "Error"),
+                ": %s" % err_msg))
+
+    from itertools import chain
+
+    for row in chain([row0], spamreader):
         n_header_row += 1
         if n_header_row <= header_count:
             continue
@@ -1293,5 +1323,216 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
         return body
 
 # }}}
+
+
+class RelateCsvHandler(object):
+    # Tests ref tests.template_backends.test_django.DjangoTemplatesTests
+
+    @cached_property
+    def _csv_settings(self):
+        csv_settings = getattr(settings, "RELATE_CSV_SETTINGS", None)
+        if csv_settings is None:
+            csv_settings = {}
+        csv_settings = self._update_gradebook_csv_export_setting(csv_settings)
+
+        from relate.utils import dict_to_struct
+        return dict_to_struct(csv_settings)
+
+    def _update_gradebook_csv_export_setting(self, setting):
+        setting = setting.copy()
+        gradebook_export_settings = setting.get("GRADEBOOK_EXPORT")
+        if gradebook_export_settings is None:
+            setting["GRADEBOOK_EXPORT"] = gradebook_export_settings = {}
+
+        for attr in ["fields_choices", "encodings"]:
+            if gradebook_export_settings.get(attr) is None:
+                try:
+                    del gradebook_export_settings[attr]
+                except KeyError:
+                    pass
+
+        gradebook_export_settings.setdefault(
+            "fields_choices", (
+                (['username', 'last_name', 'first_name'],)))
+
+        default_encoding = "utf-8"
+        gradebook_export_settings.setdefault("encodings", [default_encoding])
+
+        setting.setdefault(
+            "GRADEBOOK_EXPORT", gradebook_export_settings)
+        return setting
+
+    @cached_property
+    def export_csv_fields_options(self):
+        options = []
+        for fields_choice in self._csv_settings.GRADEBOOK_EXPORT.fields_choices:
+            fields_verbose_names = (
+                self.get_user_fields_verbose_names(fields_choice))
+
+            assert len(fields_choice) == len(fields_verbose_names)
+            options.append(
+                (",".join(fields_choice), ", ".join(fields_verbose_names)))
+
+        return tuple(options)
+
+    def _get_user_field_verbose_name(self, field):
+        # type: (Text) -> Text
+        return force_text(
+            get_user_model()._meta.get_field(field).verbose_name)
+
+    def get_user_fields_verbose_names(self, fields):
+        # type: (Iterable[Text]) -> List[Text]
+        return [self._get_user_field_verbose_name(field) for field in fields]
+
+    def _get_csv_encoding_options(self, encodings, default_encoding="utf-8"):
+        encoding_values = [ecd if isinstance(ecd, six.string_types) else ecd[0]
+                     for ecd in encodings]
+        if default_encoding not in encoding_values:
+            encodings.append(default_encoding)
+
+        options = []
+        for i, ecd in enumerate(encodings):
+            desc = ecd
+            if isinstance(ecd, six.string_types):
+                if i == 0:
+                    desc = string_concat(_("Default"), " ('%s')" % ecd)
+                options.append((ecd, desc))
+            else:
+                # ecd itself is a 2-tuple containing the description
+                if ecd[0] not in ecd[1]:
+                    # Better description for the encoding, if the value
+                    # of the encoding is not included in the description.
+                    ecd = (ecd[0], "%s (%s)" % (ecd[0], _(ecd[1])))
+                options.append(ecd)
+
+        return options
+
+    @cached_property
+    def export_csv_encodings_options(self):
+        return self._get_csv_encoding_options(
+            self._csv_settings.GRADEBOOK_EXPORT.encodings)
+
+    def _check_gradebook_export_user_fields(self, user_fields):
+        from relate.checks import (
+            RelateCriticalCheckMessage, Warning)
+
+        inst_id_form_shown = getattr(settings, "RELATE_SHOW_INST_ID_FORM", True)
+
+        errors = []
+        for i, fields_choice in enumerate(user_fields):
+            if "institutional_id" in fields_choice and not inst_id_form_shown:
+                errors.append(
+                    Warning(
+                        msg=("%(location)s: 'institutional_id' is redundant "
+                             "because settings.RELATE_SHOW_INST_ID_FORM is "
+                             "configured 'False'."
+                             % {"location":
+                                    "Item %s in RELATE_CSV_SETTINGS"
+                                    "['GRADEBOOK_EXPORT']['fields_choices']"
+                                    % (i,)}
+                             ),
+                        id="relate_csv_setting.W001"
+                    )
+                )
+            for field in fields_choice:
+                try:
+                    assert isinstance(field, six.string_types), (
+                            "%s is not a string" % force_text(field))
+                    self._get_user_field_verbose_name(field)
+                except Exception as e:
+                    errors.append(
+                        RelateCriticalCheckMessage(
+                            msg=("%(location)s: %(field)s is not a valid User "
+                                 "attribute."
+                                 % {"location":
+                                        "Item %s in RELATE_CSV_SETTINGS"
+                                        "['GRADEBOOK_EXPORT']['fields_choices']: "
+                                        "%s: %s"
+                                        % (i, type(e).__name__, str(e)),
+                                    "field": field}
+                                 ),
+                            id="relate_csv_setting.E002_02"
+                        )
+                    )
+        return errors
+
+    def check(self):
+        errors = []
+
+        from relate.checks import (
+            RelateCriticalCheckMessage, INSTANCE_ERROR_PATTERN)
+        from django.utils.itercompat import is_iterable
+
+        def is_iterable_contains_only_string_or_2_tuple_of_string(l):
+            if not isinstance(l, (list, tuple)):
+                return False
+            for item in l:
+                if isinstance(item, six.string_types):
+                    continue
+                else:
+                    if not isinstance(item, (list, tuple)):
+                        return False
+                    if len(item) != 2:
+                        return False
+                    if any(not isinstance(i, six.string_types) for i in item):
+                        return False
+            return True
+
+        csv_settings = getattr(settings, "RELATE_CSV_SETTINGS", None)
+        if csv_settings is None:
+            return errors
+        if not isinstance(csv_settings, dict):
+            errors.append(RelateCriticalCheckMessage(
+                msg=INSTANCE_ERROR_PATTERN % {
+                    "location": "RELATE_CSV_SETTINGS", "types": "dict"},
+                id="relate_csv_setting.E001"
+            ))
+            return errors
+
+        gradebook_export = csv_settings.get("GRADEBOOK_EXPORT")
+        if gradebook_export is None:
+            gradebook_export = {}
+        if not isinstance(gradebook_export, dict):
+            errors.append(RelateCriticalCheckMessage(
+                msg=INSTANCE_ERROR_PATTERN % {
+                    "location": "RELATE_CSV_SETTINGS['GRADEBOOK_EXPORT']",
+                    "types": "dict"},
+                id="relate_csv_setting.E002"
+            ))
+        else:
+            gradebook_export_user_fields = gradebook_export.get("fields_choices",
+                                                                [])
+
+            if gradebook_export_user_fields is not None:
+                if any(isinstance(fields, six.string_types)
+                       or not is_iterable(fields)
+                       for fields in gradebook_export_user_fields):
+                    errors.append(RelateCriticalCheckMessage(
+                        msg=("'%s' must be an iterable containing "
+                             "iterables of user attributes)" %
+                             "RELATE_CSV_SETTINGS['GRADEBOOK_EXPORT']"
+                             "['fields_choices']"),
+                        id="relate_csv_setting.E002_01")
+                    )
+                else:
+                    errors.extend(
+                        self._check_gradebook_export_user_fields(
+                            gradebook_export_user_fields))
+
+            gradebook_export_encodings = gradebook_export.get("encodings", [])
+            if gradebook_export_encodings is not None:
+                if not is_iterable_contains_only_string_or_2_tuple_of_string(
+                        gradebook_export_encodings):
+                    errors.append(RelateCriticalCheckMessage(
+                        msg=("%s must be an iterable containing "
+                             "strings or (encoding_string, encoding_description) "
+                             "2-tuples (which also contain strings)" %
+                             "RELATE_CSV_SETTINGS['GRADEBOOK_EXPORT']"
+                             "['encodings']"),
+                        id="relate_csv_setting.E002_03")
+                    )
+
+        return errors
+
 
 # vim: foldmethod=marker
