@@ -678,6 +678,7 @@ class CheckRelateTemplatesDirs(CheckRelateSettingsBase):
 
 
 class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
+    msg_id_prefix = "relate_disable_codehilite_markdown_extension"
     VALID_CONF = None
     VALID_CONF_NO_WARNING = True
 
@@ -687,27 +688,27 @@ class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
 
     @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=VALID_CONF)
     def test_valid_conf(self):
-        self.assertEqual(self.func(None), [])
+        self.assertCheckMessages([])
 
     @override_settings(
         RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=VALID_CONF_NO_WARNING)
     def test_valid_conf_no_warning(self):
-        self.assertEqual(self.func(None), [])
+        self.assertCheckMessages([])
 
     @override_settings(
         RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=WARNING_CONF_NOT_BOOL1)
     def test_warning_conf_not_bool1(self):
-        self.assertEqual([r.id for r in self.func(None)],
-                         ["relate_disable_codehilite_markdown_extension.W001"])
+        self.assertCheckMessages(
+            ["relate_disable_codehilite_markdown_extension.W001"])
 
     @override_settings(
         RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=WARNING_CONF_NOT_BOOL2)
     def test_warning_conf_not_bool2(self):
-        self.assertEqual([r.id for r in self.func(None)],
-                         ["relate_disable_codehilite_markdown_extension.W001"])
+        self.assertCheckMessages(
+            ["relate_disable_codehilite_markdown_extension.W001"])
 
     @override_settings(
         RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=WARNING_CONF_FALSE)
     def test_warning_conf_false(self):
-        self.assertEqual([r.id for r in self.func(None)],
-                         ["relate_disable_codehilite_markdown_extension.W002"])
+        self.assertCheckMessages(
+            ["relate_disable_codehilite_markdown_extension.W002"])
