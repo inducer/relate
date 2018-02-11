@@ -22,10 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.urls import reverse
+import six
+from django.urls import reverse, NoReverseMatch
+from django.test import TestCase
+from unittest import skipIf
 from tests.base_test_mixins import SingleCoursePageTestMixin
 
-from django.test import TestCase
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
     FlowRuleException, GradeChange
@@ -483,3 +485,116 @@ class GradeThreeQuizTakerTest(GradeTestMixin, TestCase):
         cls.n_participations = 3
 
         cls.c.force_login(cls.instructor_participation.user)
+
+
+@skipIf(six.PY2, "PY2 doesn't support subTest")
+class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
+    flow_id = "quiz-test"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(GradePermissionsTests, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_flow(flow_id=cls.flow_id)
+        cls.end_flow()
+
+    def view_grades_permission(self, user, status_codes):
+        try:
+            participation = Participation.objects.get(user=user)
+        except Participation.DoesNotExist:
+            participation = self.student_participation
+
+        urlname_views = ([
+            ("relate-view_gradebook",
+             {"course_identifier": self.course.identifier}),
+            ("relate-view_grades_by_opportunity",
+             {"course_identifier": self.course.identifier, "opp_id": 1}),
+            ("relate-view_grading_opportunity_list",
+             {"course_identifier": self.course.identifier}),
+            ("relate-view_participant_grades",
+             {"course_identifier": self.course.identifier,
+              "participation_id": participation.pk}),
+            ("relate-view_participant_list",
+             {"course_identifier": self.course.identifier}),
+            ("relate-view_reopen_session",
+             {"course_identifier": self.course.identifier, "flow_session_id": 1,
+              "opportunity_id": 1}),
+            ("relate-view_single_grade",
+             {"course_identifier": self.course.identifier,
+              "participation_id": participation.pk, "opportunity_id": 1}),
+            ("relate-export_gradebook_csv",
+             {"course_identifier": self.course.identifier}),
+            ("relate-import_grades",
+             {"course_identifier": self.course.identifier}),
+            ("relate-download_all_submissions",
+             {"course_identifier": self.course.identifier,
+              "flow_id": self.flow_id}),
+            ("relate-edit_grading_opportunity",
+             {"course_identifier": self.course.identifier, "opportunity_id": 1})]
+        )
+        with self.temporarily_switch_to_user(user):
+            for (urlname, kwargs) in urlname_views:
+                try:
+                    url = reverse(urlname, kwargs=kwargs)
+                except NoReverseMatch:
+                    self.fail(
+                        "Reversal of url named '%s' failed with "
+                        "NoReverseMatch" % urlname)
+                with self.subTest(user=user, urlname=urlname, method="GET"):
+                    resp = self.c.get(url)
+                    self.assertEqual(
+                        resp.status_code,
+                        status_codes.get(
+                            urlname + "_get",
+                            status_codes.get(
+                                urlname,
+                                status_codes.get("default_status_code")
+                            )))
+
+                with self.subTest(user=user, urlname=urlname, method="POST"):
+                    postdata = {}
+                    resp = self.c.post(url, data=postdata)
+                    self.assertEqual(
+                        resp.status_code,
+                        status_codes.get(
+                            urlname + "_post",
+                            status_codes.get(
+                                urlname,
+                                status_codes.get("default_status_code")
+                            )))
+
+    def test_view_grades_instructor(self):
+        status_codes = {"default_status_code": 200,
+
+                        # no action_defined
+                        "relate-view_single_grade_post": 400,
+                        "relate-view_grades_by_opportunity_post": 400}
+        self.view_grades_permission(self.instructor_participation.user,
+                                    status_codes)
+
+    @skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_view_grades_ta(self):
+        status_codes = {"default_status_code": 200,
+                        "relate-edit_grading_opportunity": 403,
+                        "relate-import_grades": 403,
+                        "relate-export_gradebook_csv": 403,
+
+                        # no action_defined
+                        "relate-view_single_grade_post": 400,
+                        "relate-view_grades_by_opportunity": 200}
+        self.view_grades_permission(self.ta_participation.user,
+                                    status_codes)
+
+    def test_view_grades_student(self):
+        status_codes = {"default_status_code": 403,
+                        "relate-view_participant_grades": 200,
+
+                        # no action_defined
+                        "relate-view_single_grade_post": 400,
+                        "relate-view_single_grade": 200}
+        self.view_grades_permission(self.student_participation.user,
+                                    status_codes)
+
+    def test_view_grades_anonymous(self):
+        status_codes = {"default_status_code": 403}
+        self.view_grades_permission(None, status_codes)
