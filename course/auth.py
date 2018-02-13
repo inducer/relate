@@ -234,17 +234,12 @@ def impersonate(request):
         if form.is_valid():
             impersonee = form.cleaned_data["user"]
 
-            if impersonable_user_qset.filter(
-                    pk=cast(User, impersonee).pk).count():
-                request.session['impersonate_id'] = impersonee.id
-                request.session['relate_impersonation_header'] = form.cleaned_data[
-                        "add_impersonation_header"]
+            request.session['impersonate_id'] = impersonee.id
+            request.session['relate_impersonation_header'] = form.cleaned_data[
+                    "add_impersonation_header"]
 
-                # Because we'll likely no longer have access to this page.
-                return redirect("relate-home")
-            else:
-                messages.add_message(request, messages.ERROR,
-                        _("Impersonating that user is not allowed."))
+            # Because we'll likely no longer have access to this page.
+            return redirect("relate-home")
 
     else:
         form = ImpersonateForm(impersonable_qset=qset)
