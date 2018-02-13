@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='course',
             name='notify_email',
-            field=models.EmailField(help_text=b'This email address will receive notifications about the course.', max_length=75),
+            field=models.EmailField(help_text='This email address will receive notifications about the course.', max_length=75),
             preserve_default=True,
         ),
     ]

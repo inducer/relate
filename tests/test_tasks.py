@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Zesheng Wang"
+__copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,13 +23,9 @@ THE SOFTWARE.
 """
 
 from django.utils.timezone import now, timedelta
-from django.test import TestCase, override_settings, mock
-from .base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
-from tests.test_flow.test_purge_page_view_data import (
-    PURGE_VIEW_TWO_COURSE_SETUP_LIST)
-from course import models
-from . import factories
+from django.test import TestCase, override_settings
 
+from course import models
 from course.tasks import (
     expire_in_progress_sessions,
     finish_in_progress_sessions,
@@ -38,18 +34,16 @@ from course.tasks import (
     purge_page_view_data,
 )
 
+from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
+from tests.test_flow.test_purge_page_view_data import (
+    PURGE_VIEW_TWO_COURSE_SETUP_LIST)
+from tests import factories
+from tests.utils import mock
 
-def check_celery_version():
-    from pkg_resources import parse_version
-    import celery
-    celery_version_upbound = "4.0.0"
-    if parse_version(celery.__version__) >= parse_version(celery_version_upbound):
-        raise RuntimeError(
-            "This test is not expected to work for "
-            "celery version >= %s" % celery_version_upbound)
+from pkg_resources import parse_version
+import celery
 
-
-check_celery_version()
+is_celery_4_or_higher = parse_version(celery.__version__) >= parse_version("4.0.0")
 
 
 def get_session_grading_rule_1_day_due_side_effect(
@@ -83,6 +77,9 @@ class FactoryTest(SingleCourseTestMixin, TestCase):
 
 
 class TaskTestMixin(object):
+    """
+    This test is actually testing without celery dependency.
+    """
     @classmethod
     def setUpClass(cls):  # noqa
         super(TaskTestMixin, cls).setUpClass()
@@ -90,23 +87,53 @@ class TaskTestMixin(object):
             "celery.app.task.Task.update_state", side_effect=mock.MagicMock)
         cls.update_state_patcher.start()
 
+    def setUp(self):
+        super(TaskTestMixin, self).setUp()
+
+        # Emulates the behavior of AsyncResult
+        if is_celery_4_or_higher:
+            override_settings_kwargs = {"task_always_eager": True}
+        else:
+            override_settings_kwargs = {"CELERY_TASK_ALWAYS_EAGER": True}
+        celery_fake_overriding = (
+            override_settings(**override_settings_kwargs))
+        celery_fake_overriding.enable()
+        self.addCleanup(celery_fake_overriding.disable)
+
     @classmethod
     def tearDownClass(cls):  # noqa
         super(TaskTestMixin, cls).tearDownClass()
         cls.update_state_patcher.stop()
 
 
-class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
-    def setUp(self):
-        super(GradesTasksTest, self).setUp()
-        self.gopp = factories.GradingOpportunityFactory()
-        participations = factories.ParticipationFactory.create_batch(5)
+class GradesTasksTestSetUpMixin(object):
+    def create_flow_sessions(self, course,
+                             n_participations_per_course=5,
+                             n_in_progress_sessions_per_participation=1,
+                             n_ended_sessions_per_participation=3):
+        """
+        Create multiple flow_sessions with a single gopp
+        :param course::class:`Course`
+        :param n_participations_per_course: number of participation created for
+        each course
+        :param n_in_progress_sessions_per_participation: number of in_progress
+        sessions created for each participation
+        :param n_ended_sessions_per_participation: number of ended sessions
+        created for each participation
+        """
+
+        self.gopp = factories.GradingOpportunityFactory(course=course)
+        participations = factories.ParticipationFactory.create_batch(
+            n_participations_per_course)
 
         for i, p in enumerate(participations):
-            factories.FlowSessionFactory.create(participation=p)
-            if i < 3:
-                factories.FlowSessionFactory.create(
-                    participation=p, in_progress=True)
+            factories.FlowSessionFactory.create_batch(
+                size=n_in_progress_sessions_per_participation,
+                participation=p)
+            factories.FlowSessionFactory.create_batch(
+                size=n_ended_sessions_per_participation,
+                participation=p,
+                in_progress=True)
 
         all_sessions = models.FlowSession.objects.all()
         self.all_sessions_count = all_sessions.count()
@@ -115,14 +142,18 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
         self.in_progress_sessions_count = len(self.in_progress_sessions)
         self.ended_sessions_count = len(self.ended_sessions)
 
-        assert self.in_progress_sessions_count == 3
-        assert self.ended_sessions_count == 5
+
+class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
+                      TaskTestMixin, TestCase):
+
+    def setUp(self):
+        super(GradesTasksTest, self).setUp()
+        self.create_flow_sessions(self.course)
 
         # reset the user_name format sequence
         self.addCleanup(factories.UserFactory.reset_sequence)
 
     # {{{ test expire_in_progress_sessions
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_expire_in_progress_sessions_past_due_only_due_none(self):
         # grading_rule.due is None
         expire_in_progress_sessions(
@@ -138,7 +169,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.ended_sessions_count)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_expire_in_progress_sessions_past_due_only_dued(self):
         # now_datetime > grading_rule.due
         with mock.patch("course.flow.get_session_grading_rule") as \
@@ -159,7 +189,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.all_sessions_count)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_expire_in_progress_sessions_past_due_only_not_dued(self):
         # now_datetime <= grading_rule.due
         with mock.patch("course.flow.get_session_grading_rule") as \
@@ -180,7 +209,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.ended_sessions_count)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_expire_in_progress_sessions_all(self):
         expire_in_progress_sessions(
             self.gopp.course.id, self.gopp.flow_id,
@@ -200,7 +228,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
 
     # {{{ test finish_in_progress_sessions
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_finish_in_progress_sessions_past_due_only_due_none(self):
         # grading_rule.due is None
         finish_in_progress_sessions(
@@ -220,7 +247,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
             models.FlowPageVisitGrade.objects.count(), 0
         )
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_finish_in_progress_sessions_past_due_only_dued(self):
         # now_datetime > grading_rule.due
         with mock.patch("course.flow.get_session_grading_rule") as \
@@ -253,7 +279,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
                     visit__flow_session=ended_session).count() > 0
             )
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_finish_in_progress_sessions_past_due_only_not_dued(self):
         # now_datetime < grading_rule.due
         with mock.patch("course.flow.get_session_grading_rule") as \
@@ -278,7 +303,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
             models.FlowPageVisitGrade.objects.count(), 0
         )
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_finish_in_progress_sessions_all(self):
         finish_in_progress_sessions(
             self.gopp.course_id, self.gopp.flow_id,
@@ -316,7 +340,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
     # }}}
 
     # {{{ test recalculate_ended_sessions
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_recalculate_ended_sessions(self):
         recalculate_ended_sessions(self.gopp.course_id,
                                    self.gopp.flow_id,
@@ -338,7 +361,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
     # }}}
 
     # {{{ test regrade_flow_sessions
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_recalculate_ended_sessions_not_in_progress_only(self):
         regrade_flow_sessions(self.gopp.course_id,
                               self.gopp.flow_id,
@@ -364,7 +386,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
         self.assertTrue(models.FlowPageVisitGrade.objects.count()
                         > first_round_visit_grade_count)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_recalculate_ended_sessions_in_progress_only(self):
         regrade_flow_sessions(self.gopp.course_id,
                               self.gopp.flow_id,
@@ -385,7 +406,6 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
                 visit__flow_session__in=self.in_progress_sessions).count() == 0
         )
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_recalculate_ended_sessions_all(self):
         # inprog_value=None means "any" page will be regraded disregard whether
         # the session is in-progress
@@ -409,36 +429,7 @@ class GradesTasksTest(SingleCourseTestMixin, TaskTestMixin, TestCase):
     # }}}
 
 
-class PurgePageViewDataTaskTest(TwoCoursePageTestMixin, TaskTestMixin, TestCase):
-    # {{{ test purge_page_view_data
-
-    courses_setup_list = PURGE_VIEW_TWO_COURSE_SETUP_LIST
-
-    def setUp(self):
-        super(PurgePageViewDataTaskTest, self).setUp()
-
-        # {{{ create flow page visits
-        # all 40, null answer 25, answerd 15
-        result1 = self.create_flow_page_visit(self.course1)
-
-        (self.course1_n_all_fpv, self.course1_n_null_answer_fpv,
-         self.course1_n_non_null_answer_fpv) = result1
-
-        # all 30, null answer 24, answerd 6
-        result2 = self.create_flow_page_visit(
-            self.course2,
-            n_participations_per_course=3, n_sessions_per_participation=2,
-            n_null_answer_visits_per_session=4,
-            n_non_null_answer_visits_per_session=1)
-
-        (self.course2_n_all_fpv, self.course2_n_null_answer_fpv,
-         self.course2_n_non_null_answer_fpv) = result2
-
-        # }}}
-
-        # reset the user_name format sequence
-        self.addCleanup(factories.UserFactory.reset_sequence)
-
+class PurgePageViewDataTaskTestSetUpMixin(object):
     def create_flow_page_visit(self, course,
                                n_participations_per_course=5,
                                n_sessions_per_participation=1,
@@ -492,7 +483,40 @@ class PurgePageViewDataTaskTest(TwoCoursePageTestMixin, TaskTestMixin, TestCase)
 
         return n_all_fpv, n_null_answer_fpv, n_non_null_answer_fpv
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+
+class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
+                                PurgePageViewDataTaskTestSetUpMixin, TaskTestMixin,
+                                TestCase):
+    """ test purge_page_view_data
+    """
+
+    courses_setup_list = PURGE_VIEW_TWO_COURSE_SETUP_LIST
+
+    def setUp(self):
+        super(PurgePageViewDataTaskTest, self).setUp()
+
+        # {{{ create flow page visits
+        # all 40, null answer 25, answerd 15
+        result1 = self.create_flow_page_visit(self.course1)
+
+        (self.course1_n_all_fpv, self.course1_n_null_answer_fpv,
+         self.course1_n_non_null_answer_fpv) = result1
+
+        # all 30, null answer 24, answerd 6
+        result2 = self.create_flow_page_visit(
+            self.course2,
+            n_participations_per_course=3, n_sessions_per_participation=2,
+            n_null_answer_visits_per_session=4,
+            n_non_null_answer_visits_per_session=1)
+
+        (self.course2_n_all_fpv, self.course2_n_null_answer_fpv,
+         self.course2_n_non_null_answer_fpv) = result2
+
+    # }}}
+
+        # reset the user_name format sequence
+        self.addCleanup(factories.UserFactory.reset_sequence)
+
     def test_purge_page_view_data(self):
         purge_page_view_data(self.course1.pk)
 
@@ -524,5 +548,80 @@ class PurgePageViewDataTaskTest(TwoCoursePageTestMixin, TaskTestMixin, TestCase)
             self.course2_n_null_answer_fpv
         )
     # }}}
+
+
+class TasksTestsWithCeleryDependency(SingleCourseTestMixin, TestCase):
+    """
+    This test involves celery. However, Django's sqlite3 is an in-memory database,
+    and Celery is started in a separate process, it is fundamentally impossible
+    to have Celery and Django to share a test database. In this tests, we only
+    test that the serialization is working. The results are checked in other tests
+    with settings.CELERY_TASK_ALWAYS_EAGER=True.
+    """
+
+    flow_id = "quiz-test"
+
+    def test_expire_in_progress_sessions(self):
+        with mock.patch("course.tasks.Course.objects.get")\
+                as mock_course_object_get:
+
+            # This is to avoid errors
+            mock_course_object_get.return_value = self.course
+
+            expire_in_progress_sessions(
+                self.course.pk, self.flow_id,
+                rule_tag=None, now_datetime=now(),
+                past_due_only=True
+            )
+            mock_course_object_get.assert_called_once_with(id=self.course.pk)
+
+    def test_finish_in_progress_sessions(self):
+        with mock.patch("course.tasks.Course.objects.get")\
+                as mock_course_object_get:
+
+            # This is to avoid errors
+            mock_course_object_get.return_value = self.course
+
+            finish_in_progress_sessions(
+                self.course.pk, self.flow_id,
+                rule_tag=None, now_datetime=now(),
+                past_due_only=True
+            )
+            mock_course_object_get.assert_called_once_with(id=self.course.pk)
+
+    def test_regrade_flow_sessions(self):
+        with mock.patch("course.tasks.Course.objects.get")\
+                as mock_course_object_get:
+
+            # This is to avoid errors
+            mock_course_object_get.return_value = self.course
+
+            regrade_flow_sessions(
+                self.course.pk, self.flow_id,
+                access_rules_tag=None, inprog_value=None
+            )
+            mock_course_object_get.assert_called_once_with(id=self.course.pk)
+
+    def test_recalculate_ended_sessions(self):
+        with mock.patch("course.tasks.Course.objects.get")\
+                as mock_course_object_get:
+
+            # This is to avoid errors
+            mock_course_object_get.return_value = self.course
+
+            recalculate_ended_sessions(
+                self.course.pk, self.flow_id, rule_tag=None
+            )
+            mock_course_object_get.assert_called_once_with(id=self.course.pk)
+
+    def test_purge_page_view_data(self):
+        with mock.patch("course.tasks.Course.objects.get") \
+                as mock_course_object_get:
+
+            # This is to avoid errors
+            mock_course_object_get.return_value = self.course
+
+            purge_page_view_data(self.course.pk)
+            mock_course_object_get.assert_called_once_with(id=self.course.pk)
 
 # vim: foldmethod=marker

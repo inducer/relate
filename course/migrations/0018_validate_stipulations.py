@@ -16,6 +16,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowaccessexception',
             name='stipulations',
-            field=jsonfield.fields.JSONField(blank=True, help_text=b'A dictionary of the same things that can be added to a flow access rule, such as allowed_session_count or credit_percent. If not specified here, values will default to the stipulations in the course content.', null=True, validators=[course.models.validate_stipulations]),
+            field=jsonfield.fields.JSONField(blank=True, help_text='A dictionary of the same things that can be added to a flow access rule, such as allowed_session_count or credit_percent. If not specified here, values will default to the stipulations in the course content.', null=True, validators=[course.models.validate_stipulations]),
         ),
     ]

@@ -50,7 +50,7 @@ from course.constants import (
         )
 
 if False:
-    from typing import Any  # noqa
+    from typing import Any, Text, Tuple  # noqa
 
 
 # {{{ permission helpers
@@ -81,6 +81,15 @@ def _filter_participation_linked_obj_for_user(queryset, user):
         participation__course__participations__user=user,
         participation__course__participations__roles__permissions__permission  # noqa
         =pperm.use_admin_interface)
+
+# }}}
+
+
+# {{{ list filter helper
+
+def _filter_related_only(filter_arg):
+    # type: (Text) -> Tuple[Text, Any]
+    return (filter_arg, admin.RelatedOnlyFieldListFilter)
 
 # }}}
 
@@ -168,7 +177,7 @@ class EventAdmin(admin.ModelAdmin):
             "time",
             "end_time",
             "shown_in_calendar")
-    list_filter = ("course", "kind", "shown_in_calendar")
+    list_filter = (_filter_related_only("course"), "kind", "shown_in_calendar")
 
     date_hierarchy = "time"
 
@@ -209,7 +218,7 @@ admin.site.register(Event, EventAdmin)
 # {{{ participation tags
 
 class ParticipationTagAdmin(admin.ModelAdmin):
-    list_filter = ("course",)
+    list_filter = (_filter_related_only("course"),)
 
     # {{{ permissions
 
@@ -242,7 +251,7 @@ class ParticipationRolePermissionInline(admin.TabularInline):
 class ParticipationRoleAdmin(admin.ModelAdmin):
     inlines = (ParticipationRolePermissionInline,)
 
-    list_filter = ("course", "identifier")
+    list_filter = (_filter_related_only("course"), "identifier")
 
 
 admin.site.register(ParticipationRole, ParticipationRoleAdmin)
@@ -312,7 +321,7 @@ class ParticipationAdmin(admin.ModelAdmin):
             "get_roles",
             "status",
             )
-    list_filter = ("course", "roles__name", "status", "tags")
+    list_filter = (_filter_related_only("course"), "roles__name", "status", "tags")
 
     raw_id_fields = ("user",)
 
@@ -361,7 +370,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
 
     list_display = ("email", "institutional_id", "course", "get_roles",
             "creation_time", "creator")
-    list_filter = ("course", "roles")
+    list_filter = (_filter_related_only("course"), "roles")
 
     search_fields = (
             "email", "institutional_id",
@@ -412,7 +421,7 @@ admin.site.register(AuthenticationToken, AuthenticationTokenAdmin)
 
 class InstantFlowRequestAdmin(admin.ModelAdmin):
     list_display = ("course", "flow_id", "start_time", "end_time", "cancelled")
-    list_filter = ("course",)
+    list_filter = (_filter_related_only("course"),)
 
     date_hierarchy = "start_time"
 
@@ -472,7 +481,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
     date_hierarchy = "start_time"
 
     list_filter = (
-            "course",
+            _filter_related_only("course"),
             "flow_id",
             "in_progress",
             "access_rules_tag",
@@ -534,6 +543,32 @@ class HasAnswerListFilter(admin.SimpleListFilter):
         return queryset.filter(answer__isnull=self.value() != "y")
 
 
+class FlowIdListFilter(admin.SimpleListFilter):
+    """
+    This is only necessary when flow_id is only accessible by FlowSession, which is
+    a ForeignKey in the model
+    """
+    title = _("Flow ID")
+    parameter_name = "flow_id"
+
+    def lookups(self, request, model_admin):
+        qs = model_admin.get_queryset(request)
+        if not request.user.is_superuser:
+            qs = qs.filter(
+                flow_session__course__participations__user=request.user,
+                flow_session__course__participations__roles__permissions__permission  # noqa
+                =pperm.use_admin_interface)
+
+        flow_ids = qs.values_list("flow_session__flow_id", flat=True).distinct()
+        return zip(flow_ids, flow_ids)
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(flow_session__flow_id=self.value())
+        else:
+            return queryset
+
+
 class FlowPageVisitAdmin(admin.ModelAdmin):
     def get_course(self, obj):
         return obj.flow_session.course
@@ -582,8 +617,8 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             HasAnswerListFilter,
             "is_submitted_answer",
             "is_synthetic",
-            "flow_session__participation__course",
-            "flow_session__flow_id",
+            _filter_related_only("flow_session__participation__course"),
+            FlowIdListFilter,
             )
     date_hierarchy = "visit_time"
     list_display = (
@@ -678,7 +713,7 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
             "flow_id",
             )
     list_filter = (
-            "participation__course",
+            _filter_related_only("participation__course"),
             "flow_id",
             "kind",
             )
@@ -723,7 +758,7 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
             "shown_in_participant_grade_book",
             )
     list_filter = (
-            "course",
+            _filter_related_only("course"),
             "shown_in_grade_book",
             "shown_in_participant_grade_book",
             )
@@ -805,8 +840,8 @@ class GradeChangeAdmin(admin.ModelAdmin):
             )
 
     list_filter = (
-            "opportunity__course",
-            "opportunity",
+            _filter_related_only("opportunity__course"),
+            _filter_related_only("opportunity"),
             "state",
             )
 
@@ -845,7 +880,7 @@ class InstantMessageAdmin(admin.ModelAdmin):
     get_participant.short_description = _("Participant")  # type: ignore
     get_participant.admin_order_field = "participation__user"  # type: ignore
 
-    list_filter = ("participation__course",)
+    list_filter = (_filter_related_only("participation__course"),)
     list_display = (
             "get_course",
             "get_participant",
@@ -886,7 +921,7 @@ admin.site.register(InstantMessage, InstantMessageAdmin)
 
 class ExamAdmin(admin.ModelAdmin):
     list_filter = (
-            "course",
+            _filter_related_only("course"),
             "active",
             "listed",
             )
@@ -932,7 +967,7 @@ class ExamTicketAdmin(admin.ModelAdmin):
     get_course.admin_order_field = "participation__course"  # type: ignore
 
     list_filter = (
-            "participation__course",
+            _filter_related_only("participation__course"),
             "state",
             )
 

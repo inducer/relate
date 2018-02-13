@@ -32,7 +32,7 @@ from django.shortcuts import (  # noqa
 from django.contrib import messages
 import django.forms as forms
 from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
-        ObjectDoesNotExist)
+        ObjectDoesNotExist, MultipleObjectsReturned)
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Div, Button
 from django.conf import settings
@@ -341,7 +341,7 @@ def logout_confirmation_required(
     confirmation page.
     """
     actual_decorator = user_passes_test(
-        lambda u: u.is_anonymous(),
+        lambda u: u.is_anonymous,
         login_url=logout_confirmation_url,
         redirect_field_name=redirect_field_name
     )
@@ -482,14 +482,6 @@ def sign_up(request):
                 messages.add_message(request, messages.ERROR,
                         _("A user with that username already exists."))
 
-            elif get_user_model().objects.filter(
-                    email__iexact=form.cleaned_data["email"]).count():
-                messages.add_message(request, messages.ERROR,
-                        _("That email address is already in use. "
-                        "Would you like to "
-                        "<a href='%s'>reset your password</a> instead?")
-                        % reverse(
-                            "relate-reset_password")),
             else:
                 email = form.cleaned_data["email"]
                 user = get_user_model()(
@@ -534,6 +526,16 @@ def sign_up(request):
                         "the link."))
 
                 return redirect("relate-home")
+        else:
+            if ("email" in form.errors
+                    and "That email address is already in use."
+                    in form.errors["email"]):
+                messages.add_message(request, messages.ERROR,
+                        _("That email address is already in use. "
+                        "Would you like to "
+                        "<a href='%s'>reset your password</a> instead?")
+                        % reverse(
+                            "relate-reset_password"))
 
     else:
         form = SignUpForm()
@@ -583,80 +585,95 @@ def reset_password(request, field="email"):
     ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]  # noqa
     if request.method == 'POST':
         form = ResetPasswordForm(request.POST)
+        user = None
         if form.is_valid():
+            exist_users_with_same_email = False
             if field == "instid":
                 inst_id = form.cleaned_data["instid"]
                 try:
                     user = get_user_model().objects.get(
                             institutional_id__iexact=inst_id)
                 except ObjectDoesNotExist:
-                    user = None
+                    pass
 
             if field == "email":
                 email = form.cleaned_data["email"]
                 try:
                     user = get_user_model().objects.get(email__iexact=email)
                 except ObjectDoesNotExist:
-                    user = None
+                    pass
+                except MultipleObjectsReturned:
+                    exist_users_with_same_email = True
 
-            if user is None:
-                FIELD_DICT = {  # noqa
-                        "email": _("email address"),
-                        "instid": _("institutional ID")
-                        }
+            if exist_users_with_same_email:
+                # This is for backward compatibility.
                 messages.add_message(request, messages.ERROR,
-                        _("That %(field)s doesn't have an "
-                            "associated user account. Are you "
-                            "sure you've registered?")
-                        % {"field": FIELD_DICT[field]})
+                        _("Failed to send an email: multiple users were "
+                          "unexpectedly using that same "
+                          "email address. Please "
+                          "contact site staff."))
             else:
-                if not user.email:
-                    # happens when a user have an inst_id but have no email.
+                if user is None:
+                    FIELD_DICT = {  # noqa
+                            "email": _("email address"),
+                            "instid": _("institutional ID")
+                            }
                     messages.add_message(request, messages.ERROR,
-                            _("The account with that institution ID "
-                                "doesn't have an associated email."))
+                            _("That %(field)s doesn't have an "
+                                "associated user account. Are you "
+                                "sure you've registered?")
+                            % {"field": FIELD_DICT[field]})
                 else:
-                    email = user.email
-                    user.sign_in_key = make_sign_in_key(user)
-                    user.save()
+                    if not user.email:
+                        # happens when a user have an inst_id but have no email.
+                        # This is almost impossible, because the email field of
+                        # User should meet NOT NULL constraint.
+                        messages.add_message(request, messages.ERROR,
+                                _("The account with that institution ID "
+                                    "doesn't have an associated email."))
+                    else:
+                        email = user.email
+                        user.sign_in_key = make_sign_in_key(user)
+                        user.save()
 
-                    from relate.utils import render_email_template
-                    message = render_email_template("course/sign-in-email.txt", {
-                        "user": user,
-                        "sign_in_uri": request.build_absolute_uri(
-                            reverse(
-                                "relate-reset_password_stage2",
-                                args=(user.id, user.sign_in_key,))),
-                        "home_uri": request.build_absolute_uri(
-                            reverse("relate-home"))
-                        })
-                    from django.core.mail import EmailMessage
-                    msg = EmailMessage(
-                            string_concat("[%s] " % _(get_site_name()),
-                                          _("Password reset")),
-                            message,
-                            getattr(settings, "NO_REPLY_EMAIL_FROM",
-                                    settings.ROBOT_EMAIL_FROM),
-                            [email])
+                        from relate.utils import render_email_template
+                        message = render_email_template(
+                            "course/sign-in-email.txt", {
+                                "user": user,
+                                "sign_in_uri": request.build_absolute_uri(
+                                    reverse(
+                                        "relate-reset_password_stage2",
+                                        args=(user.id, user.sign_in_key,))),
+                                "home_uri": request.build_absolute_uri(
+                                    reverse("relate-home"))
+                            })
+                        from django.core.mail import EmailMessage
+                        msg = EmailMessage(
+                                string_concat("[%s] " % _(get_site_name()),
+                                              _("Password reset")),
+                                message,
+                                getattr(settings, "NO_REPLY_EMAIL_FROM",
+                                        settings.ROBOT_EMAIL_FROM),
+                                [email])
 
-                    from relate.utils import get_outbound_mail_connection
-                    msg.connection = (
-                            get_outbound_mail_connection("no_reply")
-                            if hasattr(settings, "NO_REPLY_EMAIL_FROM")
-                            else get_outbound_mail_connection("robot"))
-                    msg.send()
+                        from relate.utils import get_outbound_mail_connection
+                        msg.connection = (
+                                get_outbound_mail_connection("no_reply")
+                                if hasattr(settings, "NO_REPLY_EMAIL_FROM")
+                                else get_outbound_mail_connection("robot"))
+                        msg.send()
 
-                    if field == "instid":
+                        if field == "instid":
+                            messages.add_message(request, messages.INFO,
+                                _("The email address associated with that "
+                                  "account is %s.")
+                                % masked_email(email))
+
                         messages.add_message(request, messages.INFO,
-                            _("The email address associated with that "
-                                "account is %s.")
-                            % masked_email(email))
+                                _("Email sent. Please check your email and "
+                                  "click the link."))
 
-                    messages.add_message(request, messages.INFO,
-                            _("Email sent. Please check your email and "
-                            "click the link."))
-
-                    return redirect("relate-home")
+                        return redirect("relate-home")
     else:
         form = ResetPasswordForm()
 

@@ -24,7 +24,11 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
-from .base_test_mixins import SingleCourseTestMixin
+from tests.base_test_mixins import SingleCourseTestMixin
+
+from course.sandbox import (
+    PAGE_SESSION_KEY_PREFIX, PAGE_DATA_SESSION_KEY_PREFIX,
+    ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
 
 QUESTION_MARKUP = """
 type: TextQuestion
@@ -89,24 +93,32 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         return cls.get_page_sandbox_post_response(data)
 
     def get_sandbox_data_by_key(self, key):
-        return self.c.session.get("%s:%s" % (key, self.course.identifier))
+        return self.c.session.get(
+            make_sandbox_session_key(key, self.course.identifier))
 
     def get_sandbox_page_data(self):
-        return self.get_sandbox_data_by_key("cf_page_sandbox_page_data")
+        return self.get_sandbox_data_by_key(PAGE_DATA_SESSION_KEY_PREFIX)
 
     def get_sandbox_answer_data(self):
-        return self.get_sandbox_data_by_key("cf_page_sandbox_answer_data")
+        return self.get_sandbox_data_by_key(ANSWER_DATA_SESSION_KEY_PREFIX)
 
     def get_sandbox_page_session(self):
-        return self.get_sandbox_data_by_key("cf_validated_sandbox_page")
+        return self.get_sandbox_data_by_key(PAGE_SESSION_KEY_PREFIX)
 
     def assertSandboxHaveValidPage(self, resp):  # noqa
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, True)
 
-    def assertSandboxWarningTextContain(self, resp, expected_text):  # noqa
+    def assertSandboxWarningTextContain(self, resp, expected_text, loose=False):  # noqa
         warnings = self.get_response_context_value_by_name(resp, PAGE_WARNINGS)
-        warnings_text = [w.text for w in warnings]
-        self.assertIn(expected_text, warnings_text)
+        warnings_strs = [w.text for w in warnings]
+        if expected_text is None:
+            return self.assertEqual(
+                warnings_strs, [],
+                "Page validatioin warning is not None, but %s."
+                % repr(warnings_strs))
+        if loose:
+            warnings_strs = "".join(warnings_strs)
+        self.assertIn(expected_text, warnings_strs)
 
     def assertSandboxNotHaveValidPage(self, resp):  # noqa
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, False)

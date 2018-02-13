@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='Facility',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('identifier', models.CharField(help_text=b'Format is lower-case-with-hyphens. Do not use spaces.', unique=True, max_length=50)),
+                ('identifier', models.CharField(help_text='Format is lower-case-with-hyphens. Do not use spaces.', unique=True, max_length=50)),
                 ('description', models.CharField(max_length=100)),
             ],
         ),

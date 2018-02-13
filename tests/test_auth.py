@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Dong Zhuang"
+__copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,10 +23,9 @@ THE SOFTWARE.
 """
 
 import six
-import itertools
 from six.moves.urllib.parse import ParseResult, quote, urlparse
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
-from django.test import TestCase, override_settings, mock, RequestFactory
+from django.test import TestCase, override_settings, RequestFactory
 from django.contrib import messages
 from django.conf import settings
 from django.core import mail
@@ -39,13 +38,14 @@ from unittest import skipIf
 from course.auth import get_impersonable_user_qset, get_user_model
 from course.models import FlowPageVisit, ParticipationPermission
 
-from .base_test_mixins import (
+from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCoursePageTestMixin, TwoCourseTestMixin,
     FallBackStorageMessageTestMixin, TWO_COURSE_SETUP_LIST,
     NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
 
-from .utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf)
+from tests.utils import (
+    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
+from tests.factories import UserFactory
 
 # settings names
 EDITABLE_INST_ID_BEFORE_VERI = "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION"
@@ -418,12 +418,6 @@ class AuthTestMixin(object):
 
     def assertSessionHasNoUserLoggedIn(self):  # noqa
         self.assertNotIn(SESSION_KEY, self.c.session)
-
-    def assertFormErrorLoose(self, response, error):  # noqa
-        """Assert that error is found in response.context['form'] errors"""
-        form_errors = list(
-            itertools.chain(*response.context['form'].errors.values()))
-        self.assertIn(str(error), form_errors)
 
     def concatenate_redirect_url(self, url, redirect_to=None):
         if not redirect_to:
@@ -1480,5 +1474,127 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
             self.assertTrue(resp.status_code, 200)
             self.assertIn(expected_msg,
                           mock_add_msg.call_args[0])
+
+
+class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
+                                TestCase):
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(ResetPasswordStageOneTest, cls).setUpTestData()
+        cls.user_email = "a_very_looooooong_email@somehost.com"
+        cls.user_inst_id = "1234"
+        cls.user = UserFactory.create(email=cls.user_email,
+                                      institutional_id=cls.user_inst_id)
+
+    def setUp(self):
+        super(ResetPasswordStageOneTest, self).setUp()
+        self.registration_override_setting = override_settings(
+            RELATE_REGISTRATION_ENABLED=True)
+        self.registration_override_setting.enable()
+        self.addCleanup(self.registration_override_setting.disable)
+        self.user.refresh_from_db()
+        self.c.logout()
+
+    def test_reset_get(self):
+        resp = self.get_reset_password()
+        self.assertEqual(resp.status_code, 200)
+        resp = self.get_reset_password(use_instid=True)
+        self.assertEqual(resp.status_code, 200)
+
+    @override_settings(RELATE_REGISTRATION_ENABLED=False)
+    def test_reset_with_registration_disabled(self):
+        resp = self.get_reset_password()
+        self.assertEqual(resp.status_code, 400)
+
+        resp = self.get_reset_password(use_instid=True)
+        self.assertEqual(resp.status_code, 400)
+
+        resp = self.post_reset_password(data={})
+        self.assertEqual(resp.status_code, 400)
+
+        resp = self.post_reset_password(use_instid=True, data={})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_reset_form_invalid(self):
+        resp = self.post_reset_password(
+            data={"email": "some/email"})
+        self.assertTrue(resp.status_code, 200)
+        self.assertFormErrorLoose(resp, "Enter a valid email address.")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_reset_by_email_non_exist(self):
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+            expected_msg = (
+                "That %s doesn't have an "
+                "associated user account. Are you "
+                "sure you've registered?" % "email address")
+            resp = self.post_reset_password(
+                data={"email": "some_email@example.com"})
+            self.assertTrue(resp.status_code, 200)
+            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_reset_by_instid_non_exist(self):
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+            expected_msg = (
+                "That %s doesn't have an "
+                "associated user account. Are you "
+                "sure you've registered?" % "institutional ID")
+            resp = self.post_reset_password(
+                data={"instid": "2345"}, use_instid=True)
+            self.assertTrue(resp.status_code, 200)
+            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_reset_by_email_have_multiple_user_with_same_email(self):
+        with mock.patch("accounts.models.User.objects.get") as mock_get_user:
+            from django.core.exceptions import MultipleObjectsReturned
+            mock_get_user.side_effect = MultipleObjectsReturned()
+            with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+                expected_msg = (
+                    "Failed to send an email: multiple users were "
+                    "unexpectedly using that same "
+                    "email address. Please "
+                    "contact site staff.")
+                resp = self.post_reset_password(
+                    data={"email": "some_email@example.com"})
+                self.assertTrue(resp.status_code, 200)
+                self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertEqual(len(mail.outbox), 0)
+
+    def test_reset_by_email_post_success(self):
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg:
+            expected_msg = (
+                "Email sent. Please check your email and "
+                "click the link."
+            )
+            resp = self.post_reset_password(data={"email": self.user_email})
+            self.assertTrue(resp.status_code, 200)
+            self.assertEqual(mock_add_msg.call_count, 1)
+            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTemplateUsed("course/sign-in-email.txt", count=1)
+
+    def test_reset_by_istid_post_success(self):
+        from course.auth import masked_email
+        masked = masked_email(self.user_email)
+        self.assertNotEqual(masked, self.user_email)
+
+        with mock.patch("course.auth.messages.add_message") as mock_add_msg, \
+                mock.patch("course.auth.masked_email") as mock_mask_email:
+            expected_msg = (
+                "Email sent. Please check your email and "
+                "click the link."
+            )
+            resp = self.post_reset_password(data={"instid": self.user_inst_id},
+                                            use_instid=True)
+            self.assertTrue(resp.status_code, 200)
+            self.assertEqual(mock_add_msg.call_count, 2)
+            self.assertEqual(mock_mask_email.call_count, 1)
+            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTemplateUsed("course/sign-in-email.txt", count=1)
+
 
 # vim: foldmethod=marker

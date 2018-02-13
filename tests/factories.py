@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Dong Zhuang"
+__copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,7 +29,7 @@ from django.utils.translation import ugettext_lazy as _
 from course import models
 from course import constants
 
-from .base_test_mixins import SINGLE_COURSE_SETUP_LIST
+from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
 DEFAULT_FLOW_ID = "quiz-test"
@@ -49,6 +49,9 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = get_user_model()
 
     username = factory.Sequence(lambda n: "testuser_%03d" % n)
+    email = factory.Sequence(lambda n: "test_factory_%03d@exmaple.com" % n)
+    status = constants.user_status.active
+    password = factory.Sequence(lambda n: "password_%03d" % n)
 
 
 class CourseFactory(factory.django.DjangoModelFactory):
@@ -135,3 +138,30 @@ class FlowPageVisitFactory(factory.django.DjangoModelFactory):
     user = factory.lazy_attribute(
         lambda x: x.page_data.flow_session.participation.user)
     answer = None
+
+
+class EventFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.Event
+
+    course = factory.SubFactory(CourseFactory)
+    kind = "default_kind"
+    ordinal = factory.Sequence(lambda n: n)
+    time = factory.LazyFunction(now)
+
+
+class GradeChangeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.GradeChange
+
+    opportunity = factory.SubFactory(GradingOpportunityFactory)
+    participation = factory.SubFactory(ParticipationFactory)
+    state = constants.grade_state_change_types.graded
+    attempt_id = None
+    points = None
+    max_points = 10
+    comment = None
+    due_time = None
+    creator = None
+    grade_time = now()
+    flow_session = factory.SubFactory(FlowSessionFactory)
