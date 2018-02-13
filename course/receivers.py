@@ -31,7 +31,7 @@ from django.dispatch import receiver
 from accounts.models import User
 from course.models import (
         Course, Participation, participation_status,
-        ParticipationPreapproval,
+        ParticipationPreapproval, FlowSession,
         )
 
 if False:
@@ -108,5 +108,50 @@ def may_preapprove_role(course, user):
         return False, None
 
 # }}}
+
+
+@receiver(post_save, sender=FlowSession)
+@transaction.atomic
+def create_new_grade_change_when_reopen_session(sender, created, instance,
+        **kwargs):
+    # type: (Any, bool, FlowSession, **Any) -> None
+    """
+    Create a :class:`GradeChange` entry for reopened session,
+    with state "session_reopened". Fix # 430
+    """
+    if created:
+        return
+
+    # The session is not a reopened session
+    if (instance.previous_completion_time is None
+        or instance.completion_time is not None
+            or not instance.in_progress):
+        return
+
+    from course.models import GradeChange
+    last_gchanges = (
+        GradeChange.objects
+        .filter(flow_session=instance)
+        .order_by("-grade_time")[:1])
+
+    if not last_gchanges.count():
+        return
+
+    last_gchange, = last_gchanges
+
+    from course.models import grade_state_change_types
+
+    if last_gchange.state == grade_state_change_types.session_reopened:
+        return
+
+    last_gchange.pk = None
+    last_gchange.points = None
+    last_gchange.creator = None
+    last_gchange.comment = None
+
+    from django.utils.timezone import now
+    last_gchange.grade_time = now()
+    last_gchange.state = grade_state_change_types.session_reopened
+    last_gchange.save()
 
 # vim: foldmethod=marker

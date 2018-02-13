@@ -990,7 +990,8 @@ def finish_flow_session(fctx, flow_session, grading_rule,
         if last_activity is not None:
             completion_time = last_activity
 
-    flow_session.completion_time = completion_time
+    flow_session.completion_time = \
+        flow_session.previous_completion_time = completion_time
 
     # }}}
 
@@ -1223,6 +1224,17 @@ def reopen_session(
             for visit in answer_visits:
                 if visit is not None:
                     unsubmit_page(visit, now_datetime)
+        else:
+            gchange = GradeChange.objects.filter(flow_session=session).order_by(
+                "grade_time")
+            if gchange.count():
+                from course.models import grade_state_change_types
+                last_gchange = gchange.last()
+                last_gchange.pk = None
+                last_gchange.points = None
+                last_gchange.grade_time = now_datetime
+                last_gchange.state = grade_state_change_types.unavailable
+                last_gchange.save()
 
 
 def finish_flow_session_standalone(

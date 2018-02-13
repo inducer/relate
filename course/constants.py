@@ -504,6 +504,7 @@ class grade_state_change_types:  # noqa
     report_sent = "report_sent"
     do_over = "do_over"
     exempt = "exempt"
+    session_reopened = "session_reopened"
 
 
 GRADE_STATE_CHANGE_CHOICES = (
@@ -523,6 +524,8 @@ GRADE_STATE_CHANGE_CHOICES = (
             pgettext_lazy("Grade state change", "Do-over")),
         (grade_state_change_types.exempt,
             pgettext_lazy("Grade state change", "Exempt")),
+        (grade_state_change_types.session_reopened,
+         pgettext_lazy("Grade state change", "Session reopened")),
         )
 
 # }}}
