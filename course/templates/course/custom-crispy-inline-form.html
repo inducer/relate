@@ -9,6 +9,13 @@
         input_element.removeAttr("style");
     }
 
+    {#  hack display html before first input box as span instead of p #}
+    $('.relate-interaction-container >  form.form-inline > p:nth-child(2)').each(function(){
+      if ($(this).is("p")){
+        $(this).replaceWith($('<span>' + this.innerHTML + '</span>'));
+      }
+    });
+
     $('[use-popover="true"]').each(function(){
 
         {# enable popovers #}
