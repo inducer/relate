@@ -133,3 +133,9 @@ This is a bit of a misfeature in YAML (which relate uses), wich parses ``No`` as
 a :class:`bool` instead of a literal string. Once that has happened, relate can't
 recover the original string representation. To avoid that, just put quotes
 around the ``"No"``.
+
+How do I manually upload a file for a student, after the deadline has passed?
+------------------------------------------------------------------------------------------------------------
+
+Reopen the session (from say, the gradebook), impersonate the student,
+upload the file, and then submit the session to close it.
