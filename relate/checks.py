@@ -54,6 +54,8 @@ RELATE_STARTUP_CHECKS_EXTRA = "RELATE_STARTUP_CHECKS_EXTRA"
 
 RELATE_STARTUP_CHECKS_TAG = "start_up_check"
 RELATE_STARTUP_CHECKS_EXTRA_TAG = "startup_checks_extra"
+RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = (
+    "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION")
 
 
 class RelateCriticalCheckMessage(Critical):
@@ -349,6 +351,35 @@ def check_relate_settings(app_configs, **kwargs):
 
     # }}}
 
+    # {{{ check RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION
+    relate_disable_codehilite_markdown_extension = getattr(
+        settings, RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION, None)
+    if relate_disable_codehilite_markdown_extension is not None:
+        if not isinstance(relate_disable_codehilite_markdown_extension, bool):
+            errors.append(
+                Warning(
+                    msg="%(location)s is not a Boolean value: `%(value)s`, "
+                        "assuming True"
+                        % {"location":
+                               RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION,
+                           "value":
+                               repr(relate_disable_codehilite_markdown_extension)},
+                    id="relate_disable_codehilite_markdown_extension.W001"))
+        elif not relate_disable_codehilite_markdown_extension:
+            errors.append(
+                Warning(
+                    msg="%(location)s is set to False "
+                        "(with 'markdown.extensions.codehilite' enabled'), "
+                        "noticing that some pages with code fence markdown "
+                        "might get crashed"
+                        % {"location":
+                               RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION,
+                           "value":
+                               repr(relate_disable_codehilite_markdown_extension)},
+                    id="relate_disable_codehilite_markdown_extension.W002"))
+
+    # }}}
+
     # {{{ check LANGUAGES, why this is not done in django?
 
     languages = settings.LANGUAGES
@@ -468,7 +499,7 @@ def register_startup_checks_extra():
     Register extra checks provided by user.
     Here we will have to raise error for Exceptions, as that can not be done
     via check: all checks, including check_relate_settings, will only be
-    executed after self.ready() is done.
+    executed after AppConfig.ready() is done.
     """
     startup_checks_extra = getattr(settings, RELATE_STARTUP_CHECKS_EXTRA, None)
     if startup_checks_extra:

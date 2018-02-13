@@ -24,10 +24,16 @@ THE SOFTWARE.
 
 import os
 from base64 import b64encode
+
+import unittest
 from django.test import TestCase
 from django.urls import resolve
 from django.core import mail
+
 from course.models import FlowSession
+from course.constants import MAX_EXTRA_CREDIT_FACTOR
+from course.page.base import AnswerFeedback
+
 from tests.base_test_mixins import (
     SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
     SubprocessRunpyContainerMixin)
@@ -82,6 +88,9 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         resp = self.post_answer_by_ordinal(1, {"answer": ['0.5']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # Make sure the page is rendered with max_points
+        self.assertResponseContextEqual(resp, "max_points", 5)
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(5)
 
@@ -201,6 +210,10 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         last_answer_visit = self.get_last_answer_visit()
         self.assertEqual(last_answer_visit.answer["choice"], 8)
 
+    # }}}
+
+    # {{{ fileupload questions
+
     def test_fileupload_any(self):
         page_id = "anyup"
         ordinal = self.get_page_ordinal_via_page_id(page_id)
@@ -208,7 +221,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                                            expected_count=0)
         with open(
                 os.path.join(os.path.dirname(__file__),
-                             'fixtures', 'test_file.txt'), 'rb') as fp:
+                             '../fixtures', 'test_file.txt'), 'rb') as fp:
             resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             fp.seek(0)
@@ -229,7 +242,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                                            expected_count=0)
         with open(
                 os.path.join(os.path.dirname(__file__),
-                             'fixtures', 'test_file.txt'), 'rb') as fp:
+                             '../fixtures', 'test_file.txt'), 'rb') as fp:
             resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             fp.seek(0)
@@ -241,7 +254,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
         with open(
                 os.path.join(os.path.dirname(__file__),
-                             'fixtures', 'test_file.pdf'), 'rb') as fp:
+                             '../fixtures', 'test_file.pdf'), 'rb') as fp:
             resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             self.assertEqual(resp.status_code, 200)
@@ -268,7 +281,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         # wrong MIME type
         with open(
                 os.path.join(os.path.dirname(__file__),
-                             'fixtures', 'test_file.txt'), 'rb') as fp:
+                             '../fixtures', 'test_file.txt'), 'rb') as fp:
             resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             self.assertEqual(resp.status_code, 200)
@@ -280,7 +293,7 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                                            expected_count=0)
         with open(
                 os.path.join(os.path.dirname(__file__),
-                             'fixtures', 'test_file.pdf'), 'rb') as fp:
+                             '../fixtures', 'test_file.pdf'), 'rb') as fp:
             resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
             self.assertEqual(resp.status_code, 200)
@@ -293,6 +306,40 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         last_answer_visit = self.get_last_answer_visit()
         self.assertEqual(last_answer_visit.answer["base64_data"], expected_result)
         self.assertSessionScoreEqual(None)
+
+    # }}}
+
+    # {{{ optional page
+
+    def test_optional_page_with_correct_answer(self):
+        page_id = "quarter"
+        resp = self.post_answer_by_page_id(page_id, {"answer": ['0.25']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # Make sure the page is rendered with 0 max_points
+        self.assertResponseContextEqual(resp, "max_points", 0)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # Even the answer is correct, there should be zero score.
+        self.assertSessionScoreEqual(0)
+
+    def test_optional_page_with_wrong_answer(self):
+        page_id = "quarter"
+        resp = self.post_answer_by_page_id(page_id, {"answer": ['0.15']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # Make sure the page is rendered with 0 max_points
+        self.assertResponseContextEqual(resp, "max_points", 0)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # The answer is wrong, there should also be zero score.
+        self.assertSessionScoreEqual(0)
+
+    # }}}
 
     # {{{ tests on submission history dropdown
     def test_submit_history_failure_not_ajax(self):
@@ -315,6 +362,8 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             resp = self.c.post(
                 self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
+
+    # }}}
 
 
 class SingleCourseQuizPageTestExtra(SingleCoursePageTestMixin,
@@ -348,8 +397,6 @@ class SingleCourseQuizPageTestExtra(SingleCoursePageTestMixin,
             self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
-    # }}}
-
 
 class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
                                 SingleCoursePageTestMixin,
@@ -378,7 +425,7 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
     def submit_any_upload_question(cls):
         with open(
                 os.path.join(os.path.dirname(__file__),
-                             'fixtures', 'test_file.txt'), 'rb') as fp:
+                             '../fixtures', 'test_file.txt'), 'rb') as fp:
             answer_data = {"uploaded_file": fp}
             cls.post_answer_by_page_id_class(
                 cls.any_up_page_id, answer_data, **cls.default_flow_params)
@@ -461,6 +508,24 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
         self.assertTrue(resp.status_code, 200)
 
         self.assertSessionScoreEqual(5)
+
+    def test_post_grades_huge_points_failure(self):
+        self.end_flow()
+
+        grade_data = {
+            "grade_percent": ["2000"],
+            "released": ['on']
+        }
+
+        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+
+        # value exceeded allowed
+        self.assertResponseContextContains(
+            resp, "grading_form_html",
+            "Ensure this value is less than or equal to")
+
+        self.assertSessionScoreEqual(None)
 
     def test_post_grades_forbidden(self):
         self.end_flow()
@@ -629,7 +694,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2/2 points.")
+                resp, "The human grader assigned 2.00/2.00 points.")
 
         # since the test_code didn't do a feedback.set_points() after
         # check_scalar()
@@ -642,7 +707,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "'c' is inaccurate")
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0/1 points.")
+                resp, "The autograder assigned 0.00/2.00 points.")
 
         self.assertEqual(self.end_flow().status_code, 200)
 
@@ -653,7 +718,74 @@ class SingleCourseQuizPageCodeQuestionTest(
         resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2/2 points.")
+                resp, "The human grader assigned 2.00/2.00 points.")
         self.assertSessionScoreEqual(2)
+
+    def test_code_human_feedback_page_grade3(self):
+        page_id = "py_simple_list"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['b = [a + 1] * 50\r']})
+
+        # this is testing feedback.finish(0.3, feedback_msg)
+        # 2 * 0.3 = 0.6
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The autograder assigned 0.90/3.00 points.")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The elements in b have wrong values")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        # The page is not graded before human grading.
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade4(self):
+        page_id = "py_simple_list"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['b = [a] * 50\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "b looks good")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 1.00/1.00 points.")
+
+        self.assertSessionScoreEqual(4)
+
+
+class AnswerFeedBackTest(unittest.TestCase):
+    # TODO: more tests
+    def test_correctness_negative(self):
+        correctness = -0.1
+        with self.assertRaises(ValueError):
+            AnswerFeedback(correctness)
+
+    def test_correctness_exceed_max_extra_credit_factor(self):
+        correctness = MAX_EXTRA_CREDIT_FACTOR + 0.1
+        with self.assertRaises(ValueError):
+            AnswerFeedback(correctness)
+
+    def test_correctness_can_be_none(self):
+        af = AnswerFeedback(None)
+        self.assertIsNone(af.correctness)
+
+    def test_from_json(self):
+        json = {
+            "correctness": 0.5,
+            "feedback": "what ever"
+        }
+        af = AnswerFeedback.from_json(json, None)
+        self.assertEqual(af.correctness, 0.5)
+        self.assertEqual(af.feedback, "what ever")
+        self.assertEqual(af.bulk_feedback, None)
+
+    def test_from_json_none(self):
+        af = AnswerFeedback.from_json(None, None)
+        self.assertIsNone(af)
 
 # vim: fdm=marker

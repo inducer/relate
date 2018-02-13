@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import sys
 import six
 import tempfile
 import os
@@ -43,6 +44,7 @@ from course.models import (
 from course.constants import participation_status, user_status
 from course.content import get_course_repo_path
 
+ATOL = 1e-05
 
 CREATE_SUPERUSER_KWARGS = {
     "username": "test_admin",
@@ -218,10 +220,21 @@ class ResponseContextMixin(object):
         return self.get_response_context_value_by_name(response, "feedback")
 
     def assertResponseContextAnswerFeedbackContainsFeedback(  # noqa
+            self, response, expected_feedback,
+            include_bulk_feedback=True):
+        answer_feedback = self.get_response_context_answer_feedback(response)
+        feedback_str = answer_feedback.feedback
+        if include_bulk_feedback:
+            feedback_str += answer_feedback.bulk_feedback
+
+        self.assertTrue(hasattr(answer_feedback, "feedback"))
+        self.assertIn(expected_feedback, feedback_str)
+
+    def assertResponseContextAnswerFeedbackNotContainsFeedback(  # noqa
                                         self, response, expected_feedback):
         answer_feedback = self.get_response_context_answer_feedback(response)
         self.assertTrue(hasattr(answer_feedback, "feedback"))
-        self.assertIn(expected_feedback, answer_feedback.feedback)
+        self.assertNotIn(expected_feedback, answer_feedback.feedback)
 
     def assertResponseContextAnswerFeedbackCorrectnessEquals(  # noqa
                                         self, response, expected_correctness):
@@ -234,9 +247,15 @@ class ResponseContextMixin(object):
             else:
                 self.assertIsNone(answer_feedback.correctness)
         else:
-            from decimal import Decimal
-            self.assertEqual(answer_feedback.correctness,
-                                    Decimal(str(expected_correctness)))
+            if answer_feedback.correctness is None:
+                return self.fail("The returned correctness is None, not %s"
+                          % expected_correctness)
+            self.assertTrue(
+                abs(float(answer_feedback.correctness)
+                    - float(str(expected_correctness))) < ATOL,
+                "%s does not equal %s"
+                % (str(answer_feedback.correctness)[:5],
+                   str(expected_correctness)[:5]))
 
     def get_response_body(self, response):
         return self.get_response_context_value_by_name(response, "body")
@@ -335,6 +354,19 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return self.c.post(
             self.get_stop_impersonate_view_url(), data, follow=follow)
 
+    def get_reset_password_url(self, use_instid=False):
+        kwargs = {}
+        if use_instid:
+            kwargs["field"] = "instid"
+        return reverse("relate-reset_password", kwargs=kwargs)
+
+    def get_reset_password(self, use_instid=False):
+        return self.c.get(self.get_reset_password_url(use_instid))
+
+    def post_reset_password(self, data, use_instid=False):
+        return self.c.post(self.get_reset_password_url(use_instid),
+                           data=data)
+
     def get_fake_time_url(self):
         return reverse("relate-set_fake_time")
 
@@ -393,6 +425,13 @@ class SuperuserCreateMixin(ResponseContextMixin):
     def assertSessionPretendFacilitiesIsNone(self, session):  # noqa
         pretended = session.get("relate_pretend_facilities", None)
         self.assertIsNone(pretended)
+
+    def assertFormErrorLoose(self, response, error, form_name="form"):  # noqa
+        """Assert that error is found in response.context['form'] errors"""
+        import itertools
+        form_errors = list(
+            itertools.chain(*response.context[form_name].errors.values()))
+        self.assertIn(str(error), form_errors)
 
 
 # {{{ defined here so that they can be used by in classmethod and instance method
@@ -575,7 +614,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 git_source_url_to_cache_keys(last_course.git_source))
             mc.set_multi({url_cache_key: get_course_repo_path(last_course),
                           commit_sha_cach_key: last_course.active_git_commit_sha},
-                         time=120
+                         time=120000
                          )
         return resp
 
@@ -1053,6 +1092,55 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             self.assertIsNotNone(result, "The query returns None")
         return result
 
+    def download_all_submissions_url(self, flow_id, course_identifier):
+        params = {"course_identifier": course_identifier,
+                  "flow_id": flow_id}
+        return reverse("relate-download_all_submissions", kwargs=params)
+
+    def get_download_all_submissions(self, flow_id, course_identifier=None):
+        if course_identifier is None:
+            course_identifier = self.get_default_course_identifier()
+
+        return self.c.get(
+            self.download_all_submissions_url(flow_id, course_identifier))
+
+    def post_download_all_submissions_by_group_page_id(
+            self, group_page_id, flow_id, course_identifier=None, **kwargs):
+        """
+        :param group_page_id: format: group_id/page_id
+        :param flow_id:
+        :param course_identifier:
+        :param kwargs: for updating the default post_data
+        :return: response
+        """
+        if course_identifier is None:
+            course_identifier = self.get_default_course_identifier()
+
+        data = {'restrict_to_rules_tag': '<<<ALL>>>',
+                'which_attempt': 'last',
+                'extra_file': '', 'download': 'Download',
+                'page_id': group_page_id,
+                'non_in_progress_only': 'on'}
+
+        data.update(kwargs)
+
+        return self.c.post(
+            self.download_all_submissions_url(flow_id, course_identifier),
+            data=data
+        )
+
+    def get_flow_page_analytics(self, flow_id, group_id, page_id,
+                                course_identifier=None):
+        if course_identifier is None:
+            course_identifier = self.get_default_course_identifier()
+
+        params = {"course_identifier": course_identifier,
+                  "flow_id": flow_id,
+                  "group_id": group_id,
+                  "page_id": page_id}
+
+        return self.c.get(reverse("relate-page_analytics", kwargs=params))
+
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
@@ -1363,8 +1451,13 @@ class SubprocessRunpyContainerMixin(object):
     @classmethod
     def tearDownClass(cls):  # noqa
         super(SubprocessRunpyContainerMixin, cls).tearDownClass()
-        cls.faked_container_patch.stop()
-        cls.faked_container_process.kill()
+        if sys.platform.startswith("win"):
+            # Without these lines, tests on Appveyor hanged when all tests
+            # finished. However, On nix platforms, these lines resulted in test
+            # failure when there were more than one TestCases which were using
+            # this mixin.
+            cls.faked_container_patch.stop()
+            cls.faked_container_process.kill()
 
 
 def improperly_configured_cache_patch():
@@ -1384,5 +1477,99 @@ def improperly_configured_cache_patch():
         return built_in_import(name, globals, locals, fromlist, level)
 
     return mock.patch(built_in_import_path, side_effect=my_disable_cache_import)
+
+
+# {{{ admin
+
+ADMIN_TWO_COURSE_SETUP_LIST = deepcopy(TWO_COURSE_SETUP_LIST)
+# switch roles
+ADMIN_TWO_COURSE_SETUP_LIST[1]["participations"][0]["role_identifier"] = "ta"
+ADMIN_TWO_COURSE_SETUP_LIST[1]["participations"][1]["role_identifier"] = "instructor"  # noqa
+
+
+class AdminTestMixin(TwoCourseTestMixin):
+    courses_setup_list = ADMIN_TWO_COURSE_SETUP_LIST
+    none_participation_user_create_kwarg_list = (
+        NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(AdminTestMixin, cls).setUpTestData()  # noqa
+
+        # create 2 participation (with new user) for course1
+        from tests.factories import ParticipationFactory
+
+        cls.course1_student_participation2 = (
+            ParticipationFactory.create(course=cls.course1))
+        cls.course1_student_participation3 = (
+            ParticipationFactory.create(course=cls.course1))
+        cls.instructor1 = cls.course1_instructor_participation.user
+        cls.instructor2 = cls.course2_instructor_participation.user
+        assert cls.instructor1 != cls.instructor2
+
+        # grant all admin permissions to instructors
+        from django.contrib.auth.models import Permission
+
+        for user in [cls.instructor1, cls.instructor2]:
+            user.is_staff = True
+            user.save()
+            for perm in Permission.objects.all():
+                user.user_permissions.add(perm)
+
+    @classmethod
+    def get_admin_change_list_view_url(cls, app_name, model_name):
+        return reverse("admin:%s_%s_changelist" % (app_name, model_name))
+
+    @classmethod
+    def get_admin_change_view_url(cls, app_name, model_name, args=None):
+        if args is None:
+            args = []
+        return reverse("admin:%s_%s_change" % (app_name, model_name), args=args)
+
+    def get_admin_form_fields(self, response):
+        """
+        Return a list of AdminFields for the AdminForm in the response.
+        """
+        admin_form = response.context['adminform']
+        fieldsets = list(admin_form)
+
+        field_lines = []
+        for fieldset in fieldsets:
+            field_lines += list(fieldset)
+
+        fields = []
+        for field_line in field_lines:
+            fields += list(field_line)
+
+        return fields
+
+    def get_admin_form_fields_names(self, response):
+        return [f.field.name for f in self.get_admin_form_fields(response)]
+
+    def get_changelist(self, request, model, modeladmin):
+        from django.contrib.admin.views.main import ChangeList
+        return ChangeList(
+            request, model, modeladmin.list_display,
+            modeladmin.list_display_links, modeladmin.list_filter,
+            modeladmin.date_hierarchy, modeladmin.search_fields,
+            modeladmin.list_select_related, modeladmin.list_per_page,
+            modeladmin.list_max_show_all, modeladmin.list_editable, modeladmin,
+        )
+
+    def get_filterspec_list(self, request, changelist=None, model=None,
+                            modeladmin=None):
+        if changelist is None:
+            assert request and model and modeladmin
+            changelist = self.get_changelist(request, model, modeladmin)
+
+        filterspecs = changelist.get_filters(request)[0]
+        filterspec_list = []
+        for filterspec in filterspecs:
+            choices = tuple(c['display'] for c in filterspec.choices(changelist))
+            filterspec_list.append(choices)
+
+        return filterspec_list
+
+# }}}
 
 # vim: fdm=marker

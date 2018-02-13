@@ -221,6 +221,11 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+# Whether disable "markdown.extensions.codehilite" when rendering page markdown.
+# Default to True, as enable it sometimes crashes for some pages with code fences.
+# For this reason, there will be a warning when the attribute is set to False when
+# starting the server.
+#RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = True
 
 # {{{ user full_name format
 

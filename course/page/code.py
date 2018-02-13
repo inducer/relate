@@ -482,8 +482,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     from course.content import get_repo_blob
                     get_repo_blob(vctx.repo, data_file, vctx.commit_sha)
                 except ObjectDoesNotExist:
-                    raise ValidationError("%s: data file '%s' not found"
-                            % (location, data_file))
+                    raise ValidationError(
+                        string_concat(
+                            "%(location)s: ",
+                            _("data file '%(file)s' not found"))
+                        % {"location": location, "file": data_file})
 
         if not getattr(page_desc, "single_submission", False) and vctx is not None:
             is_multi_submit = False
