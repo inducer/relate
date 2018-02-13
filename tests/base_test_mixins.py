@@ -98,7 +98,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "username": "test_student",
                     "password": "test",
                     "email": "test_student@example.com",
-                    "first_name": "Test",
+                    "first_name": "",
                     "last_name": "Student"},
                 "status": participation_status.active
             }
@@ -353,6 +353,17 @@ class SuperuserCreateMixin(ResponseContextMixin):
         data = {"submit": ['']}
         return self.c.post(
             self.get_stop_impersonate_view_url(), data, follow=follow)
+
+    def get_confirm_stop_impersonate_view_url(self):
+        return reverse("relate-confirm_stop_impersonating")
+
+    def get_confirm_stop_impersonate(self, follow=True):
+        return self.c.get(
+            self.get_confirm_stop_impersonate_view_url(), follow=follow)
+
+    def post_confirm_stop_impersonate(self, follow=True):
+        return self.c.post(
+            self.get_confirm_stop_impersonate_view_url(), {}, follow=follow)
 
     def get_reset_password_url(self, use_instid=False):
         kwargs = {}

@@ -215,14 +215,15 @@ def impersonate(request):
     if not request.user.is_authenticated:
         raise PermissionDenied()
 
-    impersonable_user_qset = get_impersonable_user_qset(cast(User, request.user))
-    if not impersonable_user_qset.count():
-        raise PermissionDenied()
-
+    # prevent nested impersonation
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 _("Already impersonating someone."))
-        return redirect("relate-stop_impersonating")
+        return redirect("relate-confirm_stop_impersonating")
+
+    impersonable_user_qset = get_impersonable_user_qset(cast(User, request.user))
+    if not impersonable_user_qset.count():
+        raise PermissionDenied()
 
     # Remove duplicate and sort
     # order_by().distinct() directly on impersonable_user_qset will not work
@@ -250,12 +251,22 @@ def impersonate(request):
         })
 
 
-class StopImpersonatingForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        super(StopImpersonatingForm, self).__init__(*args, **kwargs)
+def confirm_stop_impersonating(request):
+    # type: (http.HttpRequest) -> http.HttpResponse
+    if not request.user.is_authenticated:
+        raise PermissionDenied()
 
-        self.helper.add_input(Submit("submit", _("Stop impersonating")))
+    if not hasattr(request, "relate_impersonate_original_user"):
+        impersonable_user_qset = (
+            get_impersonable_user_qset(cast(User, request.user)))
+        if not impersonable_user_qset.count():
+            raise PermissionDenied()
+
+        messages.add_message(request, messages.ERROR,
+                _("Not currently impersonating anyone."))
+        return redirect("relate-home")
+
+    return render(request, "stop-impersonate-confirmation.html")
 
 
 def stop_impersonating(request):
@@ -285,22 +296,13 @@ def stop_impersonating(request):
                 _("Not currently impersonating anyone."))
         return redirect("relate-home")
 
-    if request.method == 'POST':
-        form = StopImpersonatingForm(request.POST)
-        if form.is_valid():
-            messages.add_message(request, messages.INFO,
-                    _("No longer impersonating anyone."))
-            del request.session['impersonate_id']
+    messages.add_message(request, messages.INFO,
+            _("No longer impersonating anyone."))
 
-            # Because otherwise the header will show stale data.
-            return redirect("relate-home")
-    else:
-        form = StopImpersonatingForm()
+    del request.session['impersonate_id']
 
-    return render(request, "generic-form.html", {
-        "form_description": _("Stop impersonating user"),
-        "form": form
-        })
+    # Because otherwise the header will show stale data.
+    return redirect("relate-home")
 
 
 def impersonation_context_processor(request):

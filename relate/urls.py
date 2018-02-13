@@ -106,6 +106,9 @@ urlpatterns = [
     url(r'^user/stop_impersonating/$',
         course.auth.stop_impersonating,
         name="relate-stop_impersonating"),
+    url(r'^user/confirm_stop_impersonating/$',
+        course.auth.confirm_stop_impersonating,
+        name="relate-confirm_stop_impersonating"),
 
     url(r'^time/set-fake-time/$',
         course.views.set_fake_time,

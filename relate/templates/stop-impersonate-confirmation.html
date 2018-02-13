@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% trans "You are already impersonating someone." %}</h1>
+    <h4>{% trans "Would you like to stop current impersionation?" %}</h4>
+    <a href="{% url 'relate-stop_impersonating' %}" target="_blank" class="btn btn-danger">
+        {% trans "Stop impersonating" %}
+    </a>
+    <button class="btn btn-default" onclick="window.history.back()">{% trans "Cancel" %}</button>
+
+{% endblock %}
