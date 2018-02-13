@@ -1,11 +1,6 @@
 Frequently Asked Questions
 ==========================
 
-What does the 'view' permission do?
-------------------------------------
-
-If you have it (the permission), you can see the pages in the flow. If
-you don't have it, you can't.
 
 What does 'starting a session' mean?
 ------------------------------------
@@ -64,6 +59,15 @@ The first one indicates whether a student is allowed to start a new session,
 and the second one indicates whether  a list of past sessions is shown
 to resume or review.
 
+Content Creation
+================
+
+What does the 'view' permission do?
+------------------------------------
+
+If you have it (the permission), you can see the pages in the flow. If
+you don't have it, you can't.
+
 Can flows be set up to branch somehow?
 --------------------------------------
 
@@ -78,16 +82,6 @@ Yes. All work *can* be made undoable by adding the "change_answer"
 permission, but by default, once an answer is "submitted", it cannot be
 changed. (That is distinct from just "saving" an answer which makes the
 system remember it but not consider it final.)
-
-Some events happen twice or three times in a week. How can I create create recurring events for that circumstance?
-------------------------------------------------------------------------------------------------------------------
-
-What I do in that case is create two recurring (weekly) event series (or three) and then renumber the result.
-
-Sometimes we need to postpone or put in advance all the following events, which belong or not belong to the same kind of events, by a specific interval of time. How do I avoid editing events one by one?
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-"Delete one and renumber" might do the trick? That's what I do when, say, a class gets cancelled.
 
 How do I have students realistically deal with data files in code questions?
 ----------------------------------------------------------------------------
@@ -134,8 +128,22 @@ a :class:`bool` instead of a literal string. Once that has happened, relate can'
 recover the original string representation. To avoid that, just put quotes
 around the ``"No"``.
 
-How do I manually upload a file for a student, after the deadline has passed?
-------------------------------------------------------------------------------------------------------------
+Course Operations
+=================
 
-Reopen the session (from say, the gradebook), impersonate the student,
-upload the file, and then submit the session to close it.
+Some events happen twice or three times in a week. How can I create create recurring events for that circumstance?
+------------------------------------------------------------------------------------------------------------------
+
+What I do in that case is create two recurring (weekly) event series (or three) and then renumber the result.
+
+Sometimes we need to postpone or put in advance all the following events, which belong or not belong to the same kind of events, by a specific interval of time. How do I avoid editing events one by one?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+"Delete one and renumber" might do the trick? That's what I do when, say, a class gets cancelled.
+
+
+How do I manually upload a file for a student, after the deadline has passed?
+-----------------------------------------------------------------------------
+
+Typically, you can reopen the session with the appropriate access rules (from say, the gradebook), impersonate the student,
+upload the file, and then submit the session to close it. The previous steps may not work though if the flow rules are too restrictive.
