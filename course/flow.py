@@ -1074,6 +1074,11 @@ def expire_flow_session(
                     'session_id': flow_session.id})
 
 
+def get_flow_session_attempt_id(flow_session):
+    # type: (FlowSession) -> Text
+    return "flow-session-%d" % flow_session.id
+
+
 def grade_flow_session(
         fctx,  # type: FlowContext
         flow_session,  # type: FlowSession
@@ -1128,7 +1133,7 @@ def grade_flow_session(
         gchange.opportunity = gopp
         gchange.participation = flow_session.participation
         gchange.state = grade_state_change_types.graded
-        gchange.attempt_id = "flow-session-%d" % flow_session.id
+        gchange.attempt_id = get_flow_session_attempt_id(flow_session)
         gchange.points = points
         gchange.max_points = grade_info.max_points
         # creator left as NULL
