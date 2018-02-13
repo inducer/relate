@@ -730,6 +730,9 @@ def reset_password_stage2(request, user_id, sign_in_key):
             from django.contrib.auth import authenticate, login
             user = authenticate(user_id=int(user_id), token=sign_in_key)
             if user is None:
+                messages.add_message(request, messages.ERROR,
+                     _("Invalid sign-in token. Perhaps you've used an old token "
+                     "email?"))
                 raise PermissionDenied(_("invalid sign-in token"))
 
             if not user.is_active:

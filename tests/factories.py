@@ -78,6 +78,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     course = factory.SubFactory(CourseFactory)
     enroll_time = factory.LazyFunction(now)
+    status = constants.participation_status.active
 
     @factory.post_generation
     def roles(self, create, extracted, **kwargs):

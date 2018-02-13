@@ -98,7 +98,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "username": "test_student",
                     "password": "test",
                     "email": "test_student@example.com",
-                    "first_name": "",
+                    "first_name": "Test",
                     "last_name": "Student"},
                 "status": participation_status.active
             }
@@ -365,18 +365,40 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return self.c.post(
             self.get_confirm_stop_impersonate_view_url(), {}, follow=follow)
 
-    def get_reset_password_url(self, use_instid=False):
+    @classmethod
+    def get_reset_password_url(cls, use_instid=False):
         kwargs = {}
         if use_instid:
             kwargs["field"] = "instid"
         return reverse("relate-reset_password", kwargs=kwargs)
 
-    def get_reset_password(self, use_instid=False):
-        return self.c.get(self.get_reset_password_url(use_instid))
+    @classmethod
+    def get_reset_password(cls, use_instid=False):
+        return cls.c.get(cls.get_reset_password_url(use_instid))
 
-    def post_reset_password(self, data, use_instid=False):
-        return self.c.post(self.get_reset_password_url(use_instid),
-                           data=data)
+    @classmethod
+    def post_reset_password(cls, data, use_instid=False):
+        return cls.c.post(cls.get_reset_password_url(use_instid),
+                          data=data)
+
+    def get_reset_password_stage2_url(self, user_id, sign_in_key, **kwargs):
+        url = reverse("relate-reset_password_stage2", args=(user_id, sign_in_key))
+        querystring = kwargs.pop("querystring", None)
+        if querystring is not None:
+            assert isinstance(querystring, dict)
+            url += ("?%s"
+                    % "&".join(
+                        ["%s=%s" % (k, v)
+                         for (k, v) in six.iteritems(querystring)]))
+        return url
+
+    def get_reset_password_stage2(self, user_id, sign_in_key, **kwargs):
+        return self.c.get(self.get_reset_password_stage2_url(
+            user_id=user_id, sign_in_key=sign_in_key, **kwargs))
+
+    def post_reset_password_stage2(self, user_id, sign_in_key, data, **kwargs):
+        return self.c.post(self.get_reset_password_stage2_url(
+            user_id=user_id, sign_in_key=sign_in_key, **kwargs), data=data)
 
     def get_fake_time_url(self):
         return reverse("relate-set_fake_time")
