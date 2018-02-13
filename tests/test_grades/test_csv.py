@@ -26,9 +26,9 @@ import six
 import csv
 import os
 from six import StringIO
-from django.conf import settings  # noqa
+from django.conf import settings
 from django.test import TestCase
-from django.test.utils import override_settings  # noqa
+from django.test.utils import override_settings
 from django.utils.timezone import now
 from unittest import skipIf
 
@@ -91,6 +91,10 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
         self.instructor_gc.refresh_from_db()
         self.student_gc.refresh_from_db()
 
+        # clear cached_property
+        from course.grades import csv_handler
+        csv_handler.__dict__ = {}
+
     def assertResponseCsvResultEqual(self, resp, expected_result):  # noqa
         file_contents = StringIO(resp.content.decode())
         spamreader = csv.reader(file_contents)
@@ -115,8 +119,220 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
         with self.temporarily_switch_to_user(user):
             return self.c.get(self.get_export_gradebook_csv_url())
 
-    def test(self):
-        pass
+    def post_export_gradebook_csv(self, post_data=None, force_login_instructor=True,
+                                  **kwargs):
+        if post_data is None:
+            post_data = {
+                "user_info_fields": "username,last_name,first_name",
+                "exclude_instructors": True,
+                "exclude_tas": True,
+                "zero_for_state_none": False,
+                "zero_for_graded_none": True,
+                "maximum_points": 100,
+                "minimum_points": 0,
+                "round_digits": 2,
+                "encoding_used": 'utf-8'
+            }
+
+        post_data.update(kwargs)
+        if force_login_instructor:
+            user = self.instructor_participation.user
+        else:
+            user = self.get_logged_in_user()
+        with self.temporarily_switch_to_user(user):
+            return self.c.post(self.get_export_gradebook_csv_url(), data=post_data)
+
+    @override_settings()
+    def test_vew_export_gradebook_csv_no_setting(self):
+        del settings.RELATE_CSV_SETTINGS
+        resp = self.post_export_gradebook_csv()
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_student', 'Student', 'Test', '86.67']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+    @override_settings()
+    def test_vew_export_gradebook_csv_no_setting_round_digits(self):
+        del settings.RELATE_CSV_SETTINGS
+        resp = self.post_export_gradebook_csv(round_digits=0)
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_student', 'Student', 'Test', '87']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+        resp = self.post_export_gradebook_csv(round_digits=1)
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_student', 'Student', 'Test', '86.7']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+    @override_settings()
+    def test_vew_export_gradebook_csv_no_setting_export_course_staff(self):
+        del settings.RELATE_CSV_SETTINGS
+        resp = self.post_export_gradebook_csv(
+            exclude_instructors=False
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_instructor', 'Instructor', 'Test', '90.00'],
+            ['test_student', 'Student', 'Test', '86.67']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+        resp = self.post_export_gradebook_csv(
+            exclude_tas=False
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_ta', 'TA', 'Test', 'NONE'],
+            ['test_student', 'Student', 'Test', '86.67']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+        resp = self.post_export_gradebook_csv(
+            exclude_instructors=False,
+            exclude_tas=False
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_instructor', 'Instructor', 'Test', '90.00'],
+            ['test_ta', 'TA', 'Test', 'NONE'],
+            ['test_student', 'Student', 'Test', '86.67']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+    def test_vew_export_gradebook_csv_zero_for_state_none(self):
+        del settings.RELATE_CSV_SETTINGS
+
+        resp = self.post_export_gradebook_csv(
+            exclude_tas=False,
+            zero_for_state_none=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_ta', 'TA', 'Test', '0'],
+            ['test_student', 'Student', 'Test', '86.67']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+    # FIXME: this currently failed with:
+    # TypeError: '>' not supported between instances of 'NoneType' and 'float'
+    # https://github.com/inducer/relate/issues/457
+    # def test_vew_export_gradebook_csv_zero_for_graded_none(self):
+    #     del settings.RELATE_CSV_SETTINGS
+    #
+    #     gc_factory.create(
+    #         **(self.gc(
+    #             participation=self.ta_participation, flow_session=self.ta_session,
+    #             state=g_state.graded
+    #         )))
+    #     resp = self.post_export_gradebook_csv(
+    #         exclude_tas=False,
+    #         zero_for_graded_none=True,
+    #         zero_for_state_none=False,
+    #     )
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertResponseHasCsv(resp)
+    #
+    #     expected_result = [
+    #         ['username', 'last name', 'first name', 'la_quiz'],
+    #         ['test_ta', 'TA', 'Test', '0'],
+    #         ['test_student', 'Student', 'Test', '86.67']]
+    #
+    #     self.assertResponseCsvResultEqual(resp, expected_result)
+
+    @override_settings()
+    def test_vew_export_gradebook_csv_max_min_invalid(self):
+        del settings.RELATE_CSV_SETTINGS
+        resp = self.post_export_gradebook_csv(
+            maximum_points=70,
+            minimum_points=71,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertFormError(resp, "form", "maximum_points",
+                             "'maximum_points' must be greater than "
+                             "'minimum_points'.")
+
+    @override_settings()
+    def test_vew_export_gradebook_csv_max_min(self):
+        del settings.RELATE_CSV_SETTINGS
+        resp = self.post_export_gradebook_csv(
+            maximum_points=70,
+            exclude_instructors=False,
+            exclude_tas=False
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_instructor', 'Instructor', 'Test', '70.00'],
+            ['test_ta', 'TA', 'Test', 'NONE'],
+            ['test_student', 'Student', 'Test', '70.00']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+        resp = self.post_export_gradebook_csv(
+            minimum_points=95,
+            exclude_instructors=False,
+            exclude_tas=False
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_instructor', 'Instructor', 'Test', '95.00'],
+            ['test_ta', 'TA', 'Test', 'NONE'],
+            ['test_student', 'Student', 'Test', '95.00']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
+
+    @override_settings(RELATE_CSV_SETTINGS={
+        "GRADEBOOK_EXPORT": {
+            "fields_choices": (
+                    ['username', 'last_name', 'first_name'],
+                    ['username', 'last_name', 'first_name', 'institutional_id'],
+            ),
+            "encodings": ["utf_8_sig", "cp273"]}
+    })
+    def test_vew_export_gradebook_csv_customized_setting(self):
+        resp = self.post_export_gradebook_csv(
+            user_info_fields='username,last_name,first_name,institutional_id'
+        )
+        self.assertFormErrorLoose(resp, None)
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
+
+        expected_result = [
+            ['username', 'last name', 'first name', 'Institutional ID', 'la_quiz'],
+            ['test_student', 'Student', 'Test', '1234', '86.67']]
+
+        self.assertResponseCsvResultEqual(resp, expected_result)
 
 
 class ImportGradesTest(SingleCoursePageTestMixin, TestCase):

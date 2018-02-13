@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner"
+__copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner, Dong Zhuang"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -90,14 +90,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         resp = self.c.get(reverse("relate-view_gradebook",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
-
-    # todo: move to test_csv
-    def test_view_export_gradebook_csv(self):
-        resp = self.c.get(reverse("relate-export_gradebook_csv",
-                                  args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Disposition"],
-                         'attachment; filename="grades-test-course.csv"')
 
     def test_view_grades_by_opportunity(self):
         # Check attributes
