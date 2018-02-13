@@ -21,7 +21,7 @@ def get_local_test_settings_file(argv):
         raise
 
     if options.local_test_settings is None:
-        local_settings_file = "local_settings.example.py"
+        local_settings_file = "local_settings_example.py"
     else:
         local_settings_file = options.local_test_settings
 

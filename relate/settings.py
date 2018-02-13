@@ -14,6 +14,7 @@ if False:
 from django.conf.global_settings import STATICFILES_FINDERS, gettext_noop
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import sys
 import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -27,17 +28,19 @@ if os.environ.get("RELATE_LOCAL_TEST_SETTINGS", None):
     assert _local_settings_file != os.environ["RELATE_LOCAL_TEST_SETTINGS"]
     _local_settings_file = os.environ["RELATE_LOCAL_TEST_SETTINGS"]
 
-local_settings = {
-        "__file__": _local_settings_file,
-        }
-try:
-    with open(_local_settings_file) as inf:
-        local_settings_contents = inf.read()
-except IOError:
-    pass
-else:
-    exec(compile(local_settings_contents, "local_settings.py", "exec"),
-            local_settings)
+if not os.path.isfile(_local_settings_file):
+    raise RuntimeError(
+        "Management command '%(cmd_name)s' failed to run "
+        "because '%(local_settings_file)s' is missing."
+        % {"cmd_name": sys.argv[1],
+           "local_settings_file": _local_settings_file})
+
+local_settings_module_name, ext = (
+    os.path.splitext(os.path.split(_local_settings_file)[-1]))
+assert ext == ".py"
+exec("import %s as local_settings_module" % local_settings_module_name)
+
+local_settings = local_settings_module.__dict__  # type: ignore  # noqa
 
 # {{{ django: apps
 
