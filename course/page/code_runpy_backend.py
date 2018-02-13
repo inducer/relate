@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import math
 import sys
 import traceback
 
@@ -299,6 +300,9 @@ def run_code(result, run_req):
         except Exception:
             package_exception(result, "test_error")
             return
+
+    if feedback.points is not None and math.isclose(feedback.points, 1):
+        feedback.points = 1
 
     if not (feedback.points is None or 0 <= feedback.points <= 1):
         raise ValueError("grade point value is invalid: %s"

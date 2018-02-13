@@ -49,6 +49,14 @@ if False:
 
 # }}}
 
+# {{{ sandbox session key prefix
+
+PAGE_SESSION_KEY_PREFIX = "cf_validated_sandbox_page"
+ANSWER_DATA_SESSION_KEY_PREFIX = "cf_page_sandbox_answer_data"
+PAGE_DATA_SESSION_KEY_PREFIX = "cf_page_sandbox_page_data"
+
+# }}}
+
 
 # {{{ sandbox form
 
@@ -191,6 +199,11 @@ class PageSandboxForm(SandboxForm):
 
 # {{{ page sandbox
 
+def make_sandbox_session_key(prefix, course_identifier):
+    # type: (Text, Text) -> Text
+    return "%s:%s" % (prefix, course_identifier)
+
+
 @course_view
 def view_page_sandbox(pctx):
     # type: (CoursePageContext) -> http.HttpResponse
@@ -202,12 +215,12 @@ def view_page_sandbox(pctx):
     from relate.utils import dict_to_struct, Struct
     import yaml
 
-    PAGE_SESSION_KEY = (  # noqa
-            "cf_validated_sandbox_page:" + pctx.course.identifier)
-    ANSWER_DATA_SESSION_KEY = (  # noqa
-        "cf_page_sandbox_answer_data:" + pctx.course.identifier)
-    PAGE_DATA_SESSION_KEY = (  # noqa
-        "cf_page_sandbox_page_data:" + pctx.course.identifier)
+    PAGE_SESSION_KEY = make_sandbox_session_key(  # noqa
+        PAGE_SESSION_KEY_PREFIX, pctx.course.identifier)
+    ANSWER_DATA_SESSION_KEY = make_sandbox_session_key(  # noqa
+        ANSWER_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
+    PAGE_DATA_SESSION_KEY = make_sandbox_session_key(  # noqa
+        PAGE_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
 
     request = pctx.request
     page_source = pctx.request.session.get(PAGE_SESSION_KEY)
