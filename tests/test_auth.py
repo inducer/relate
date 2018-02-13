@@ -82,12 +82,6 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             resp = self.post_stop_impersonate()
             self.assertEqual(resp.status_code, 403)
 
-            resp = self.get_confirm_stop_impersonate()
-            self.assertEqual(resp.status_code, 403)
-
-            resp = self.post_confirm_stop_impersonate()
-            self.assertEqual(resp.status_code, 403)
-
     def test_impersonate_by_student(self):
         user = self.student_participation.user
         impersonatable = get_impersonable_user_qset(user)
@@ -105,12 +99,6 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             self.assertIsNone(self.c.session.get("impersonate_id"))
 
             resp = self.post_stop_impersonate()
-            self.assertEqual(resp.status_code, 403)
-
-            resp = self.get_confirm_stop_impersonate()
-            self.assertEqual(resp.status_code, 403)
-
-            resp = self.post_confirm_stop_impersonate()
             self.assertEqual(resp.status_code, 403)
 
     def test_impersonate_by_ta(self):
@@ -134,36 +122,26 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             resp = self.get_impersonate()
             self.assertEqual(resp.status_code, 200)
 
-            # not impersonating, no need to confirm
-            resp = self.get_confirm_stop_impersonate()
-            self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp, NOT_IMPERSONATING_MESSAGE)
-
-            resp = self.post_confirm_stop_impersonate()
-            self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp, NOT_IMPERSONATING_MESSAGE)
-
             resp = self.post_impersonate(
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(self.c.session["impersonate_id"],
                              self.student_participation.user.pk)
 
-            # failing nested impersonation
+            # re-impersonate without stop_impersonating
             resp = self.post_impersonate(
                 impersonatee=self.student_participation.user)
-            self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(
-                resp, ALREADY_IMPERSONATING_SOMEONE_MESSAGE)
-            self.assertTemplateUsed(resp, "stop-impersonate-confirmation.html")
+            # because the request.user is the impernatee (student)
+            # who has no pperm
+            self.assertEqual(resp.status_code, 403)
             self.assertEqual(self.c.session["impersonate_id"],
                              self.student_participation.user.pk)
+
+            resp = self.get_stop_impersonate()
+            self.assertEqual(resp.status_code, 200)
 
             # stop_impersonating
-            resp = self.get_stop_impersonate()
+            resp = self.post_stop_impersonate()
             self.assertIsNone(self.c.session.get("impersonate_id"))
             self.assertResponseMessageLevelsEqual(resp, [messages.INFO])
             self.assertResponseMessagesEqual(resp, NO_LONGER_IMPERSONATING_MESSAGE)
@@ -212,17 +190,6 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             resp = self.get_impersonate()
             self.assertEqual(resp.status_code, 200)
 
-            # not impersonating, no need to confirm
-            resp = self.get_confirm_stop_impersonate()
-            self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp, NOT_IMPERSONATING_MESSAGE)
-
-            resp = self.post_confirm_stop_impersonate()
-            self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp, NOT_IMPERSONATING_MESSAGE)
-
             # first impersonate ta who has pperm
             resp = self.post_impersonate(
                 impersonatee=self.ta_participation.user)
@@ -230,25 +197,28 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             self.assertEqual(self.c.session["impersonate_id"],
                              self.ta_participation.user.pk)
 
-            # failing nested impersonation
+            # then impersonate student without stop_impersonating,
+            # this will fail
             resp = self.post_impersonate(
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 200)
             self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
             self.assertResponseMessagesEqual(
                 resp, ALREADY_IMPERSONATING_SOMEONE_MESSAGE)
-            self.assertTemplateUsed(resp, "stop-impersonate-confirmation.html")
             self.assertEqual(self.c.session["impersonate_id"],
                              self.ta_participation.user.pk)
 
-            # stop_impersonating
             resp = self.get_stop_impersonate()
+            self.assertEqual(resp.status_code, 200)
+
+            # stop_impersonating
+            resp = self.post_stop_impersonate()
             self.assertEqual(resp.status_code, 200)
             self.assertResponseMessageLevelsEqual(resp, [messages.INFO])
             self.assertResponseMessagesEqual(resp, NO_LONGER_IMPERSONATING_MESSAGE)
 
             # re-stop_impersonating
-            resp = self.post_stop_impersonate()  # by POST, same result
+            resp = self.post_stop_impersonate()
             self.assertEqual(resp.status_code, 200)
             self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
             self.assertResponseMessagesEqual(resp, NOT_IMPERSONATING_MESSAGE)
