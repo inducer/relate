@@ -296,53 +296,109 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             self.assertEqual(second_visit.impersonated_by,
                              self.ta_participation.user)
 
-    def test_user_search_widget_works(self):
+    # {{{ ImpersonateForm select2 result test
+
+    def test_impersonate_select2_user_search_widget_instructor(self):
+
+        p = ParticipationFactory.create(course=self.course)
         # make sure user have/don't have first_name and last_name get
         # rendered in UserSearchWidget when requested.
-        p = ParticipationFactory.create(course=self.course)
         if p.user.last_name:
             p.user.last_name = ""
             p.user.save()
 
-        import json
-        from django.core import signing
-        from course.auth import ImpersonateForm
         user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
             impersonatable = get_impersonable_user_qset(user)
-            form = ImpersonateForm(impersonable_qset=impersonatable)
-            assert form.as_p()
-            field_id = signing.dumps(id(form.fields['user'].widget))
-            url = reverse('django_select2-json')
 
+            resp = self.get_impersonate()
+            field_id = self.get_select2_field_id_from_response(resp)
+
+            # With no search term, should display all impersonatable users
+            term = None
+            resp = self.select2_get_request(field_id=field_id, term=term)
+            self.assertEqual(resp.status_code, 200)
+            result = self.get_select2_response_data(resp)
+            self.assertEqual(len(result), impersonatable.count())
+            all_ids = [int(r['id']) for r in result]
+
+            # impersonator and superuser not in result
+            self.assertNotIn(user.pk, all_ids)
+            self.assertNotIn(self.superuser.pk, all_ids)
+
+            impersonatable_pks = list(impersonatable.values_list("pk", flat=True))
+            self.assertSetEqual(set(impersonatable_pks), set(all_ids))
+
+            all_text = [r['text'] for r in result]
+            for s in all_text:
+                for bad_string in ["(), None, none"]:
+                    if bad_string in s:
+                        self.fail("label_from_instance method in "
+                                  "course.auth.UserSearchWidget should not "
+                                  "return %s" % bad_string)
+
+            # Search ta by ta's last name
+            impersonatee = self.ta_participation.user
+            term = impersonatee.last_name
+            resp = self.select2_get_request(field_id=field_id, term=term)
+            self.assertEqual(resp.status_code, 200)
+            result = self.get_select2_response_data(resp)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(impersonatee.pk, int(result[0]["id"]))
+
+            # Search student by his email
             impersonatee = self.student_participation.user
-            resp = self.c.get(url, {'field_id': field_id,
-                              'term': impersonatee.last_name})
+            term = impersonatee.email
+            resp = self.select2_get_request(field_id=field_id, term=term)
             self.assertEqual(resp.status_code, 200)
+            result = self.get_select2_response_data(resp)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(impersonatee.pk, int(result[0]["id"]))
 
-            data = json.loads(resp.content.decode('utf-8'))
-            self.assertEqual(len(data['results']), 1)
+    def test_impersonate_select2_user_search_widget_ta(self):
 
-            # no input, display all options
-            resp = self.c.get(url, {'field_id': field_id,
-                              'term': ""})
+        user = self.ta_participation.user
+
+        with self.temporarily_switch_to_user(user):
+            impersonatable = get_impersonable_user_qset(user)
+
+            resp = self.get_impersonate()
+            field_id = self.get_select2_field_id_from_response(resp)
+
+            # With no search term
+            term = None
+            resp = self.select2_get_request(field_id=field_id, term=term)
             self.assertEqual(resp.status_code, 200)
+            result = self.get_select2_response_data(resp)
+            self.assertEqual(len(result), impersonatable.count())
+            all_ids = [int(r['id']) for r in result]
 
-            # This failed, because we can't dynamically filter with django-select2
-            # ref: https://github.com/applegrew/django-select2/issues/237
-            # i.e., it always return all objects.
-            #  data = json.loads(resp.content.decode('utf-8'))
-            #  self.assertEqual(len(data['results']), impersonatable.count())
+            # impersonator and superuser not in result
+            self.assertNotIn(user.pk, all_ids)
+            self.assertNotIn(self.superuser.pk, all_ids)
 
-            # when searching None, there should be no result
-            for term in ["None", "none"]:
-                resp = self.c.get(url, {'field_id': field_id,
-                                  'term': term})
-                self.assertEqual(resp.status_code, 200)
+            impersonatable_pks = list(impersonatable.values_list("pk", flat=True))
+            self.assertSetEqual(set(impersonatable_pks), set(all_ids))
 
-                data = json.loads(resp.content.decode('utf-8'))
-                self.assertEqual(len(data['results']), 0)
+            all_text = [r['text'] for r in result]
+            for s in all_text:
+                for bad_string in ["(), None, none"]:
+                    if bad_string in s:
+                        self.fail("label_from_instance method in "
+                                  "course.auth.UserSearchWidget should not "
+                                  "return %s" % bad_string)
+
+            # Search student by his email
+            impersonatee = self.student_participation.user
+            term = impersonatee.email
+            resp = self.select2_get_request(field_id=field_id, term=term)
+            self.assertEqual(resp.status_code, 200)
+            result = self.get_select2_response_data(resp)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(impersonatee.pk, int(result[0]["id"]))
+
+    # }}}
 
 
 class CrossCourseImpersonateTest(TwoCourseTestMixin,

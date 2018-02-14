@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 import sys
 import six
+import re
 import tempfile
 import os
 import shutil
@@ -160,6 +161,9 @@ except Exception:
     pass
 
 
+SELECT2_HTML_FIELD_ID_SEARCH_PATTERN = re.compile(r'data-field_id="([^"]+)"')
+
+
 def git_source_url_to_cache_keys(url):
     url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
     return (
@@ -194,9 +198,9 @@ class ResponseContextMixin(object):
         else:
             self.assertIsNone(value)
 
-    def assertResponseContextIsNotNone(self, resp, context_name):  # noqa
+    def assertResponseContextIsNotNone(self, resp, context_name, msg=""):  # noqa
         value = self.get_response_context_value_by_name(resp, context_name)
-        self.assertIsNotNone(value)
+        self.assertIsNotNone(value, msg)
 
     def assertResponseContextEqual(self, resp, context_name, expected_value):  # noqa
         value = self.get_response_context_value_by_name(resp, context_name)
@@ -283,6 +287,35 @@ class ResponseContextMixin(object):
             print("-----------context end-------------\n")
         except AssertionError:
             print("\n-------no value for context %s----------" % context_name)
+
+    def get_select2_field_id_from_response(self, response,
+                                           form_context_name="form"):
+        self.assertResponseContextIsNotNone(
+            response, form_context_name,
+            "The response doesn't contain a context named '%s'"
+            % form_context_name)
+        form_str = str(response.context[form_context_name])
+        m = SELECT2_HTML_FIELD_ID_SEARCH_PATTERN.search(form_str)
+        assert m, "pattern not found in %s" % form_str
+        return m.group(1)
+
+    def select2_get_request(self, field_id, term=None,
+                            select2_urlname='django_select2-json'):
+
+        select2_url = reverse(select2_urlname)
+        params = {"field_id": field_id}
+        if term is not None:
+            assert isinstance(term, six.string_types)
+            term = term.strip()
+            if term:
+                params["term"] = term
+
+        return self.c.get(select2_url, params,
+                          HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+    def get_select2_response_data(self, response, key="results"):
+        import json
+        return json.loads(response.content.decode('utf-8'))[key]
 
 
 class SuperuserCreateMixin(ResponseContextMixin):
