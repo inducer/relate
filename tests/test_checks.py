@@ -810,17 +810,17 @@ class CheckRelateCsvSettings(CheckRelateSettingsBase):
         super(CheckRelateCsvSettings, self).setUp()
 
         # clear cached_property
-        from course.grades import csv_handler
-        csv_handler.__dict__ = {}
+        from course.grades import csv_settings
+        csv_settings.__dict__ = {}
 
     def assertReturnedExpectedResults(self, expected_result, print_error=True):  # noqa
         assert isinstance(expected_result, dict)
         from relate.utils import struct_to_dict, Struct
-        from course.grades import RelateCsvHandler
+        from course.grades import RelateCSVSettingsInitializer
         from typing import cast
         import pprint
 
-        csv_handler = RelateCsvHandler()
+        csv_handler = RelateCSVSettingsInitializer()
         csv_handler.export_csv_encodings_options
         csv_handler.export_csv_fields_options
 

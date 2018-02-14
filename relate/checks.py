@@ -489,9 +489,9 @@ def check_relate_settings(app_configs, **kwargs):
     # }}}
 
     # check RELATE_CSV_SETTINGS
-    from course.utils import RelateCsvHandler
-    csv_handler = RelateCsvHandler()
-    errors.extend(csv_handler.check())
+    from course.utils import RelateCSVSettingsInitializer
+    csv_settings = RelateCSVSettingsInitializer()
+    errors.extend(csv_settings.check())
 
     return errors
 

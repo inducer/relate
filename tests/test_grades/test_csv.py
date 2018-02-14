@@ -92,8 +92,8 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
         self.student_gc.refresh_from_db()
 
         # clear cached_property
-        from course.grades import csv_handler
-        csv_handler.__dict__ = {}
+        from course.grades import csv_settings
+        csv_settings.__dict__ = {}
 
     def assertResponseCsvResultEqual(self, resp, expected_result):  # noqa
         file_contents = StringIO(resp.content.decode())
@@ -124,12 +124,11 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
         if post_data is None:
             post_data = {
                 "user_info_fields": "username,last_name,first_name",
-                "exclude_instructors": True,
-                "exclude_tas": True,
+                "exclude_course_staff": True,
                 "zero_for_state_none": False,
                 "zero_for_graded_none": True,
-                "maximum_points": 100,
-                "minimum_points": 0,
+                "maximum_percentage": 100,
+                "minimum_percentage": 0,
                 "round_digits": 2,
                 "encoding_used": 'utf-8'
             }
@@ -182,34 +181,7 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
     def test_vew_export_gradebook_csv_no_setting_export_course_staff(self):
         del settings.RELATE_CSV_SETTINGS
         resp = self.post_export_gradebook_csv(
-            exclude_instructors=False
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseHasCsv(resp)
-
-        expected_result = [
-            ['username', 'last name', 'first name', 'la_quiz'],
-            ['test_instructor', 'Instructor', 'Test', '90.00'],
-            ['test_student', 'Student', 'Test', '86.67']]
-
-        self.assertResponseCsvResultEqual(resp, expected_result)
-
-        resp = self.post_export_gradebook_csv(
-            exclude_tas=False
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseHasCsv(resp)
-
-        expected_result = [
-            ['username', 'last name', 'first name', 'la_quiz'],
-            ['test_ta', 'TA', 'Test', 'NONE'],
-            ['test_student', 'Student', 'Test', '86.67']]
-
-        self.assertResponseCsvResultEqual(resp, expected_result)
-
-        resp = self.post_export_gradebook_csv(
-            exclude_instructors=False,
-            exclude_tas=False
+            exclude_course_staff=False
         )
         self.assertEqual(resp.status_code, 200)
         self.assertResponseHasCsv(resp)
@@ -226,7 +198,7 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
         del settings.RELATE_CSV_SETTINGS
 
         resp = self.post_export_gradebook_csv(
-            exclude_tas=False,
+            exclude_course_staff=False,
             zero_for_state_none=True,
         )
         self.assertEqual(resp.status_code, 200)
@@ -234,6 +206,7 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
 
         expected_result = [
             ['username', 'last name', 'first name', 'la_quiz'],
+            ['test_instructor', 'Instructor', 'Test', '90.00'],
             ['test_ta', 'TA', 'Test', '0'],
             ['test_student', 'Student', 'Test', '86.67']]
 
@@ -269,21 +242,20 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
     def test_vew_export_gradebook_csv_max_min_invalid(self):
         del settings.RELATE_CSV_SETTINGS
         resp = self.post_export_gradebook_csv(
-            maximum_points=70,
-            minimum_points=71,
+            maximum_percentage=70,
+            minimum_percentage=71,
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertFormError(resp, "form", "maximum_points",
-                             "'maximum_points' must be greater than "
-                             "'minimum_points'.")
+        self.assertFormError(resp, "form", "maximum_percentage",
+                             "'maximum_percentage' must be greater than "
+                             "'minimum_percentage'.")
 
     @override_settings()
     def test_vew_export_gradebook_csv_max_min(self):
         del settings.RELATE_CSV_SETTINGS
         resp = self.post_export_gradebook_csv(
-            maximum_points=70,
-            exclude_instructors=False,
-            exclude_tas=False
+            maximum_percentage=70,
+            exclude_course_staff=False
         )
         self.assertEqual(resp.status_code, 200)
         self.assertResponseHasCsv(resp)
@@ -297,9 +269,8 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
         self.assertResponseCsvResultEqual(resp, expected_result)
 
         resp = self.post_export_gradebook_csv(
-            minimum_points=95,
-            exclude_instructors=False,
-            exclude_tas=False
+            minimum_percentage=95,
+            exclude_course_staff=False
         )
         self.assertEqual(resp.status_code, 200)
         self.assertResponseHasCsv(resp)

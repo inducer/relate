@@ -1325,8 +1325,11 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
 # }}}
 
 
-class RelateCsvHandler(object):
-    # Tests ref tests.template_backends.test_django.DjangoTemplatesTests
+class RelateCSVSettingsInitializer(object):
+    """
+    This is used to check (validate) settings.RELATE_CSV_SETTINGS (optional)
+    and initialize the settings for csv export for csv-related forms.
+    """
 
     @cached_property
     def _csv_settings(self):
@@ -1364,6 +1367,10 @@ class RelateCsvHandler(object):
 
     @cached_property
     def export_csv_fields_options(self):
+        """
+        :return: The choices for course.grades.ExportGradeBookForm
+        field "user_info_fields".
+        """
         options = []
         for fields_choice in self._csv_settings.GRADEBOOK_EXPORT.fields_choices:
             fields_verbose_names = (
@@ -1409,6 +1416,10 @@ class RelateCsvHandler(object):
 
     @cached_property
     def export_csv_encodings_options(self):
+        """
+        :return: The choices for course.grades.ExportGradeBookForm
+        field "encoding_used".
+        """
         return self._get_csv_encoding_options(
             self._csv_settings.GRADEBOOK_EXPORT.encodings)
 

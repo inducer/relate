@@ -47,7 +47,8 @@ from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
 from bootstrap3_datetime.widgets import DateTimePicker
 
-from course.utils import course_view, render_course_page, RelateCsvHandler
+from course.utils import (
+    course_view, render_course_page, RelateCSVSettingsInitializer)
 from course.models import (
         Participation, participation_status,
         GradingOpportunity, GradeChange, GradeStateMachine,
@@ -59,7 +60,7 @@ from course.constants import (
         participation_permission as pperm, MAX_EXTRA_CREDIT_FACTOR
         )
 
-csv_handler = RelateCsvHandler()
+csv_settings = RelateCSVSettingsInitializer()
 
 # {{{ for mypy
 
@@ -205,17 +206,17 @@ class GradeInfo:
         self.grade_state_machine = grade_state_machine
 
 
-def get_grade_table(course, excluded_roles=None):
+def get_grade_table(course, excluded_pperm=None):
     # type: (Course, Optional[List[Text]]) -> Tuple[List[Participation], List[GradingOpportunity], List[List[GradeInfo]]]  # noqa
 
     participations_exlcude_kwargs = {}  # type: Dict
     grade_changes_exclude_kwargs = {}  # type: Dict
-    if excluded_roles:
-        assert isinstance(excluded_roles, (list, tuple))
+    if excluded_pperm:
+        assert isinstance(excluded_pperm, (list, tuple))
         participations_exlcude_kwargs = {
-            "roles__identifier__in": excluded_roles}
+            "roles__permissions__permission__in": excluded_pperm}
         grade_changes_exclude_kwargs = {
-            "participation__roles__identifier__in": excluded_roles}
+            "participation__roles__permissions__permission__in": excluded_pperm}
 
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
@@ -314,50 +315,62 @@ class ExportGradeBookForm(StyledForm):
         super(ExportGradeBookForm, self).__init__(*args, **kwargs)
 
         self.fields["user_info_fields"] = forms.ChoiceField(
-            choices=(csv_handler.export_csv_fields_options),
-            initial=csv_handler.export_csv_fields_options[0],
-            label=_("User Fields to Export"),
+            choices=(csv_settings.export_csv_fields_options),
+            initial=csv_settings.export_csv_fields_options[0],
+            label=_("User Attributes to Export"),
         )
 
-        self.fields["exclude_instructors"] = forms.BooleanField(
+        self.fields["exclude_course_staff"] = forms.BooleanField(
             required=False,
             initial=True,
-            label=_("Exclude Grades of Instructors"),
-        )
-
-        self.fields["exclude_tas"] = forms.BooleanField(
-            required=False,
-            initial=True,
-            label=_("Exclude Grades of Teaching assistants"),
+            label=_("Exclude Course Staff"),
+            help_text=_(
+                "If selected, grades of course staff (participations who "
+                "have '%(permission)s' permissions) will be excluded."
+                % {"permission": pperm.assign_grade}),
         )
 
         self.fields["zero_for_state_none"] = forms.BooleanField(
             required=False,
             initial=False,
-            label=_("Use 0 point for grade state `NONE`, which possibly "
-                    "means the opptunity had not been graded."),
+            label=_("0 percentage for state 'NONE'"),
+            help_text=string_concat(_(
+                "Use 0 percentage for opportunities with grade state `NONE`, "
+                "'NONE' here means there're no grades generated for the "
+                "opportunity of that user."),
+                " ",
+                _("Note: this won't be affected by \"Maximum percentage value\" "
+                  "and \"Minimum percentage value\" below."))
         )
 
         self.fields["zero_for_graded_none"] = forms.BooleanField(
             required=False,
             initial=True,
-            label=_("Use 0 for graded opptunity which has `NONE` points"),
+            label=_("0 percentage for graded 'NONE'"),
+            help_text=string_concat(
+                _("Use 0 percentage for graded opportunities which have "
+                  "`NONE` points."),
+                " ",
+                _("Note: this won't be affected by \"Maximum percentage value\" "
+                  "and \"Minimum percentage value\" below."))
         )
 
-        self.fields["maximum_points"] = forms.FloatField(
+        self.fields["maximum_percentage"] = forms.FloatField(
             required=True,
             min_value=0,
             max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
             initial=100,
-            label=_("Maximum allowed points"),
+            help_text=_("Percentages which are higher than this value will "
+                        "be replaced this value"),
         )
 
-        self.fields["minimum_points"] = forms.FloatField(
+        self.fields["minimum_percentage"] = forms.FloatField(
             required=True,
             initial=0,
             min_value=0,
             max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
-            label=_("Minimum points"),
+            help_text=_("Percentages which are lower than this value will "
+                        "be replaced this value"),
         )
 
         self.fields["round_digits"] = forms.IntegerField(
@@ -365,21 +378,23 @@ class ExportGradeBookForm(StyledForm):
             min_value=0,
             initial=0,
             max_value=2,
-            label=_("Round Digits"),
+            help_text=_("Round percentages to N digits"),
         )
 
         self.fields["encoding_used"] = forms.ChoiceField(
-            choices=tuple(csv_handler.export_csv_encodings_options),
+            choices=tuple(csv_settings.export_csv_encodings_options),
             label=_("Using Encoding"),
-            initial=csv_handler.export_csv_encodings_options[0],
+            initial=csv_settings.export_csv_encodings_options[0],
             help_text=_(
-                "The encoding used for the exported file."),
+                "The <a href='https://docs.python.org/3/library/codecs.html"
+                "#encodings-and-unicode'>encoding</a> used for the exported "
+                "csv file."),
         )
 
-        if len(csv_handler.export_csv_fields_options) == 1:
+        if len(csv_settings.export_csv_fields_options) == 1:
             self.fields["user_info_fields"].widget = forms.HiddenInput()
 
-        if len(csv_handler.export_csv_encodings_options) == 1:
+        if len(csv_settings.export_csv_encodings_options) == 1:
             self.fields["encoding_used"].widget = forms.HiddenInput()
 
         self.helper.add_input(Submit("download", _("Download")))
@@ -391,14 +406,14 @@ class ExportGradeBookForm(StyledForm):
 
     def clean(self):
         data = super(ExportGradeBookForm, self).clean()
-        minimum_points = data.get("minimum_points")
-        maximum_points = data.get("maximum_points")
-        if minimum_points is not None and maximum_points is not None:
-            if maximum_points <= minimum_points:
+        minimum_percentage = data.get("minimum_percentage")
+        maximum_percentage = data.get("maximum_percentage")
+        if minimum_percentage is not None and maximum_percentage is not None:
+            if maximum_percentage <= minimum_percentage:
                 self.add_error(
-                    'maximum_points',
-                    _("'maximum_points' must be greater than "
-                      "'minimum_points'."))
+                    'maximum_percentage',
+                    _("'maximum_percentage' must be greater than "
+                      "'minimum_percentage'."))
 
 
 @course_view
@@ -412,16 +427,14 @@ def export_gradebook_csv(pctx):
         form = ExportGradeBookForm(request.POST)
 
         if form.is_valid():
-            excluded_roles = []
-            if form.cleaned_data["exclude_instructors"]:
-                excluded_roles.append("instructor")
-            if form.cleaned_data["exclude_tas"]:
-                excluded_roles.append("ta")
+            excluding_pperm = None
+            if form.cleaned_data["exclude_course_staff"]:
+                excluding_pperm = [pperm.assign_grade]
 
             encoding_used = form.cleaned_data["encoding_used"]
 
             participations, grading_opps, grade_table = (
-                get_grade_table(pctx.course, excluded_roles))
+                get_grade_table(pctx.course, excluding_pperm))
 
             from six import StringIO
             csvfile = StringIO()
@@ -434,7 +447,7 @@ def export_gradebook_csv(pctx):
             info_fields = form.cleaned_data["user_info_fields"]
 
             user_info_fields_verbose_names = (
-                csv_handler.get_user_fields_verbose_names(info_fields))
+                csv_settings.get_user_fields_verbose_names(info_fields))
 
             fieldnames = user_info_fields_verbose_names + [
                     gopp.identifier for gopp in grading_opps]
@@ -452,15 +465,15 @@ def export_gradebook_csv(pctx):
                 alias_for_graded_none = "0"
 
             def callback_for_percentage(percentage):
-                maximum_points = form.cleaned_data["maximum_points"]
-                minimum_points = form.cleaned_data["minimum_points"]
+                maximum_percentage = form.cleaned_data["maximum_percentage"]
+                minimum_percentage = form.cleaned_data["minimum_percentage"]
                 round_digits = form.cleaned_data["round_digits"]
-                assert maximum_points > minimum_points
+                assert maximum_percentage > minimum_percentage
 
-                if percentage > maximum_points:
-                    percentage = maximum_points
-                elif percentage < minimum_points:
-                    percentage = minimum_points
+                if percentage > maximum_percentage:
+                    percentage = maximum_percentage
+                elif percentage < minimum_percentage:
+                    percentage = minimum_percentage
                 if round_digits == 0:
                     return str(int(round(percentage, 0)))
                 return '{0:.{1}f}'.format(
