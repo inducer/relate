@@ -10,6 +10,9 @@ doc/_build
 components
 bower_components
 
+setuptools-[0-9]*
+virtualenv-[0-9]*
+
 *.egg-info
 build
 
@@ -21,3 +24,7 @@ saml_config.py
 *.pem
 
 git-roots
+
+.mypy_cache
+
+/.idea

@@ -44,7 +44,7 @@ from django.conf import settings
 # {{{ mypy
 
 if False:
-    from typing import Text, Optional, Any, Tuple, Dict, Callable  # noqa
+    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet  # noqa
     from django import http  # noqa
     from course.models import (  # noqa
             Course,
@@ -216,7 +216,7 @@ class AnswerFeedback(object):
 
     @staticmethod
     def from_json(json, bulk_json):
-        # type: (Any, Any) -> AnswerFeedback
+        # type: (Any, Any) -> Optional[AnswerFeedback]
 
         if json is None:
             return json
@@ -371,7 +371,7 @@ class PageBase(object):
             )
 
     def get_modified_permissions_for_page(self, permissions):
-        # type: (frozenset[Text]) -> frozenset[Text]
+        # type: (FrozenSet[Text]) -> FrozenSet[Text]
         rw_permissions = set(permissions)
 
         if hasattr(self.page_desc, "access_rules"):
@@ -387,9 +387,11 @@ class PageBase(object):
         return frozenset(rw_permissions)
 
     def make_page_data(self):
+        # type: () -> Dict
         return {}
 
     def initialize_page_data(self, page_context):
+        # type: (PageContext) -> Dict
         """Return (possibly randomly generated) data that is used to generate
         the content on this page. This is passed to methods below as the *page_data*
         argument. One possible use for this argument would be a random permutation
@@ -662,13 +664,25 @@ class PageBase(object):
         """
         return None
 
-    def normalized_answer(self, page_context, page_data, answer_data):
+    def normalized_answer(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data  # type: Any
+            ):
+        # type: (...) -> Optional[Text]
         """An HTML-formatted answer to be used for summarization and
         display in analytics.
         """
         return None
 
-    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+    def normalized_bytes_answer(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            ):
+        # type: (...) -> Optional[Tuple[Text, bytes]]
         """An answer to be used for batch download, given as a batch of bytes
         to be stuffed in a zip file.
 
@@ -979,10 +993,10 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
-                message = render_to_string("course/grade-notify.txt", {
+                message = render_email_template("course/grade-notify.txt", {
                     "page_title": self.title(page_context, page_data),
                     "course": page_context.course,
                     "participation": page_context.flow_session.participation,
@@ -1017,21 +1031,28 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 and grading_form.cleaned_data["notify_instructor"]
                 and page_context.flow_session):
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
-                message = render_to_string("course/grade-internal-notes-notify.txt",
-                        {
-                            "page_title": self.title(page_context, page_data),
-                            "course": page_context.course,
-                            "participation": page_context.flow_session.participation,
-                            "notes_text": grade_data["notes"],
-                            "flow_session": page_context.flow_session,
-                            "review_uri": page_context.page_uri,
-                            "sender": request.user,
-                            "use_masked_profile":
-                                will_use_masked_profile_for_email(staff_email)
-                            })
+                use_masked_profile = will_use_masked_profile_for_email(staff_email)
+                if use_masked_profile:
+                    username = (
+                        page_context.flow_session.user.get_masked_profile())
+                else:
+                    username = (
+                        page_context.flow_session.user.get_email_appellation())
+                message = render_email_template(
+                    "course/grade-internal-notes-notify.txt",
+                    {
+                        "page_title": self.title(page_context, page_data),
+                        "username": username,
+                        "course": page_context.course,
+                        "participation": page_context.flow_session.participation,
+                        "notes_text": grade_data["notes"],
+                        "flow_session": page_context.flow_session,
+                        "review_uri": page_context.page_uri,
+                        "sender": request.user,
+                    })
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(

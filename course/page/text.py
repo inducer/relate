@@ -41,6 +41,8 @@ from course.page.base import (
 import re
 import sys
 
+CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
+
 
 class TextAnswerForm(StyledForm):
     # prevents form submission with codemirror's empty textarea
@@ -156,7 +158,7 @@ class RELATEPageValidator(object):
                 raise ValidationError(ugettext("page must be of type '%s'")
                         % self.validator_desc.page_type)
 
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
 
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
@@ -279,7 +281,7 @@ class RegexMatcher(TextAnswerMatcher):
     def __init__(self, vctx, location, pattern):
         try:
             self.pattern = re.compile(pattern, self.re_flags)
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
 
             raise ValidationError(
@@ -306,7 +308,7 @@ class RegexMatcher(TextAnswerMatcher):
 
 class CaseSensitiveRegexMatcher(RegexMatcher):
     type = "case_sens_regex"
-    re_flags = 0
+    re_flags = 0  # type:ignore
     is_case_sensitive = True
     pattern_type = "string"
 
@@ -349,7 +351,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
                             "err_str": str(e)
                             })
 
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
             raise ValidationError(
                     "%(location)s: %(err_type)s: %(err_str)s"
@@ -362,7 +364,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
     def validate(self, s):
         try:
             parse_sympy(s)
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % {"err_type": tp.__name__, "err_str": str(e)})
@@ -410,7 +412,7 @@ def float_or_sympy_evalf(s):
 def _is_valid_float(s):
     try:
         float_or_sympy_evalf(s)
-    except:
+    except Exception:
         return False
     else:
         return True
@@ -441,7 +443,7 @@ class FloatMatcher(TextAnswerMatcher):
         try:
             self.matcher_desc.value = \
                     float_or_sympy_evalf(matcher_desc.value)
-        except:
+        except Exception:
             raise ValidationError(
                     string_concat(
                         "%s: 'value' ",
@@ -452,7 +454,7 @@ class FloatMatcher(TextAnswerMatcher):
             try:
                 self.matcher_desc.rtol = \
                         float_or_sympy_evalf(matcher_desc.rtol)
-            except:
+            except Exception:
                 raise ValidationError(
                         string_concat(
                             "%s: 'rtol' ",
@@ -470,7 +472,7 @@ class FloatMatcher(TextAnswerMatcher):
             try:
                 self.matcher_desc.atol = \
                         float_or_sympy_evalf(matcher_desc.atol)
-            except:
+            except Exception:
                 raise ValidationError(
                         string_concat(
                             "%s: 'atol' ",
@@ -497,7 +499,7 @@ class FloatMatcher(TextAnswerMatcher):
     def validate(self, s):
         try:
             float_or_sympy_evalf(s)
-        except:
+        except Exception:
             tp, e, _ = sys.exc_info()
             raise forms.ValidationError("%(err_type)s: %(err_str)s"
                     % {"err_type": tp.__name__, "err_str": str(e)})
@@ -961,8 +963,6 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
-        CA_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
-
         for matcher in self.matchers:
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:
@@ -970,7 +970,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         assert unspec_correct_answer_text
 
-        result = CA_PATTERN % unspec_correct_answer_text
+        result = CORRECT_ANSWER_PATTERN % unspec_correct_answer_text
 
         if hasattr(self.page_desc, "answer_explanation"):
             result += markup_to_html(page_context, self.page_desc.answer_explanation)

@@ -5,7 +5,7 @@
 {% load static %}
 
 {% block title %}
-  {% trans "Grade book" %}: {{ opportunity.name }} - {% trans "RELATE" %}
+  {% trans "Grade book" %}: {{ opportunity.name }} - {{ relate_site_name }}
 {% endblock %}
 
 {% block header_extra %}
@@ -170,7 +170,7 @@
           {% else %}
               <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id page_idx %}">
               {% if grade != None and grade.percentage != None %}
-                  {{ grade.percentage|floatformat:1 }}%
+                  {{ grade.percentage|floatformat:2 }}%
               {% else %}
                   - &#8709; -
               {% endif %}
@@ -194,7 +194,7 @@
         <td class="datacol" data-order="{{ grade_info.flow_session.points }}">
           {% if grade_info.flow_session %}
               {% if grade_info.flow_session.points != None %}
-                {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:1 max_points=grade_info.flow_session.max_points|floatformat:1 %}
+                {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:2 max_points=grade_info.flow_session.max_points|floatformat:2 %}
                 {{ points }}/{{ max_points }}
                 points
                 {% endblocktrans %}

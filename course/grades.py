@@ -649,7 +649,7 @@ class ReopenSessionForm(StyledForm):
 
         tags = [NONE_SESSION_TAG] + tags
         self.fields["set_access_rules_tag"] = forms.ChoiceField(
-                [(tag, tag) for tag in tags],
+                choices=[(tag, tag) for tag in tags],
                 initial=(current_tag
                     if current_tag is not None
                     else NONE_SESSION_TAG),
@@ -792,6 +792,26 @@ def average_grade(opportunity):
         return None, 0
 
 
+def get_single_grade_changes_and_state_machine(opportunity, participation):
+    # type: (GradingOpportunity, Participation) -> Tuple[List[GradeChange], GradeStateMachine]  # noqa
+
+    grade_changes = list(
+        GradeChange.objects.filter(
+            opportunity=opportunity,
+            participation=participation)
+        .order_by("grade_time")
+        .select_related("participation")
+        .select_related("participation__user")
+        .select_related("creator")
+        .select_related("flow_session")
+        .select_related("opportunity"))
+
+    state_machine = GradeStateMachine()
+    state_machine.consume(grade_changes, set_is_superseded=True)
+
+    return grade_changes, state_machine
+
+
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
     # type: (CoursePageContext, Text, Text) -> http.HttpResponse
@@ -834,6 +854,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     request = pctx.request
     if pctx.request.method == "POST":
         action_re = re.compile("^([a-z]+)_([0-9]+)$")
+        action_match = None
         for key in request.POST.keys():
             action_match = action_re.match(key)
             if action_match:
@@ -908,18 +929,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     # }}}
 
-    grade_changes = list(GradeChange.objects
-            .filter(
-                opportunity=opportunity,
-                participation=participation)
-            .order_by("grade_time")
-            .select_related("participation")
-            .select_related("participation__user")
-            .select_related("creator")
-            .select_related("opportunity"))
-
-    state_machine = GradeStateMachine()
-    state_machine.consume(grade_changes, set_is_superseded=True)
+    grade_changes, state_machine = (
+        get_single_grade_changes_and_state_machine(opportunity, participation))
 
     if opportunity.flow_id:
         flow_sessions = list(FlowSession.objects
@@ -1174,6 +1185,8 @@ def csv_to_grade_changes(
 
     import csv
 
+    from course.utils import get_col_contents_or_empty
+
     total_count = 0
     spamreader = csv.reader(file_contents)
     for row in spamreader:
@@ -1186,10 +1199,10 @@ def csv_to_grade_changes(
         try:
             if attr_type == "email_or_id":
                 gchange.participation = find_participant_from_id(
-                        course, row[attr_column-1])
+                        course, get_col_contents_or_empty(row, attr_column-1))
             elif attr_type == "inst_id":
                 gchange.participation = find_participant_from_inst_id(
-                        course, row[attr_column-1])
+                        course, get_col_contents_or_empty(row, attr_column-1))
             else:
                 raise ParticipantNotFound(
                     _("Unknown user attribute '%(attr_type)s'") % {
@@ -1201,7 +1214,7 @@ def csv_to_grade_changes(
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = attempt_id
 
-        points_str = row[points_column-1].strip()
+        points_str = get_col_contents_or_empty(row, points_column-1).strip()
         # Moodle's "NULL" grades look like this.
         if points_str in ["-", ""]:
             gchange.points = None
@@ -1210,7 +1223,7 @@ def csv_to_grade_changes(
 
         gchange.max_points = max_points
         if feedback_column is not None:
-            gchange.comment = row[feedback_column-1]
+            gchange.comment = get_col_contents_or_empty(row, feedback_column-1)
 
         gchange.creator = creator
         gchange.grade_time = grade_time
@@ -1559,6 +1572,7 @@ class EditGradingOpportunityForm(StyledModelForm):
         if not add_new:
             self.fields["identifier"].disabled = True
 
+        self.fields["course"].disabled = True
         self.fields["flow_id"].disabled = True
         self.fields["creation_time"].disabled = True
 
@@ -1568,7 +1582,7 @@ class EditGradingOpportunityForm(StyledModelForm):
     class Meta:
         model = GradingOpportunity
         exclude = (
-                "course",
+                # do not exclude 'course', used in unique_together checking
                 # not used
                 "due_time",
                 )

@@ -40,6 +40,7 @@ import course.versioning
 import course.flow
 import course.analytics
 import course.exam
+import course.api
 
 urlpatterns = [
     url(r"^login/$",
@@ -80,9 +81,12 @@ urlpatterns = [
     url(r"^profile/$",
         course.auth.user_profile,
         name="relate-user_profile"),
-    url(r"^profile/auth-token/$",
-        course.auth.manage_authentication_token,
-        name="relate-manage_authentication_token"),
+    url(
+        r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/auth-tokens/$",
+        course.auth.manage_authentication_tokens,
+        name="relate-manage_authentication_tokens"),
 
     url(r"^generate-ssh-key/$",
         course.views.generate_ssh_keypair,
@@ -151,6 +155,10 @@ urlpatterns = [
         "/sandbox/page/$",
         course.sandbox.view_page_sandbox,
         name="relate-view_page_sandbox"),
+
+    url("^purge-pageview-data/$",
+        course.flow.purge_page_view_data,
+        name="relate-purge_page_view_data"),
 
     # }}}
 
@@ -375,7 +383,7 @@ urlpatterns = [
         "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
-        "/(?P<ordinal>[0-9]+)"
+        "/(?P<page_ordinal>[0-9]+)"
         "/$",
         course.flow.view_flow_page,
         name="relate-view_flow_page"),
@@ -400,7 +408,7 @@ urlpatterns = [
         "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[-0-9]+)"
-        "/(?P<ordinal>[0-9]+)"
+        "/(?P<page_ordinal>[0-9]+)"
         "/update-bookmark-state"
         "/$",
         course.flow.update_page_bookmark_state,
@@ -417,7 +425,7 @@ urlpatterns = [
         "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
-        "/(?P<ordinal>[0-9]+)"
+        "/(?P<page_ordinal>[0-9]+)"
         "/flow-page-interaction-email"
         "/$",
         course.flow.send_email_about_flow_page,
@@ -426,7 +434,7 @@ urlpatterns = [
         "/" + COURSE_ID_REGEX +
         "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
-        "/(?P<ordinal>[0-9]+)"
+        "/(?P<page_ordinal>[0-9]+)"
         "/unsubmit/$",
         course.flow.view_unsubmit_flow_page,
         name="relate-unsubmit_flow_page"),
@@ -531,6 +539,18 @@ urlpatterns = [
     url(r'^select2/', include('django_select2.urls')),
 
     #}}}
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/api/v1/get-flow-sessions$",
+        course.api.get_flow_sessions,
+        name="relate-course_get_flow_session"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/api/v1/get-flow-session-content$",
+        course.api.get_flow_session_content,
+        name="relate-course_get_flow_session_content"),
 
     url(r'^admin/', admin.site.urls),
 ]

@@ -122,12 +122,6 @@ class User(AbstractBaseUser, PermissionsMixin):
             # Translators: the text editor used by participants
             verbose_name=_("Editor mode"))
 
-    git_auth_token_hash = models.CharField(max_length=200,
-            help_text=_("A hash of the authentication token to be "
-                "used for direct git access."),
-            null=True, blank=True,
-            verbose_name=_('Hash of git authentication token'))
-
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
 
@@ -165,7 +159,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         try:
             full_name = format_method(
                 verbose_blank(self.first_name), verbose_blank(self.last_name))
-        except:
+        except Exception:
             full_name = default_fullname(
                 verbose_blank(self.first_name), verbose_blank(self.last_name))
 
@@ -226,7 +220,36 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return _("user")
 
+    def clean(self):
+        super(User, self).clean()
+
+        # email can be None in Django admin when create new user
+        if self.email is not None:
+            self.email = self.email.strip()
+
+        if self.email:
+            qset = self.__class__.objects.filter(email__iexact=self.email)
+            if self.pk is not None:
+                # In case editing an existing user object
+                qset = qset.exclude(pk=self.pk)
+            if qset.exists():
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    {"email": _("That email address is already in use.")})
+
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+
+        # This is for backward compatibility.
+        # Because user instances are frequently updated when auth_login,
+        # reset_password. Without this, no user will be able to login.
+        if ((update_fields is not None and "email" in update_fields)
+                or self.pk is None):
+            self.clean()
+
+        if self.institutional_id is not None:
+            self.institutional_id = self.institutional_id.strip()
+
         # works around https://code.djangoproject.com/ticket/4136#comment:33
         self.institutional_id = self.institutional_id or None
         super(User, self).save(*args, **kwargs)

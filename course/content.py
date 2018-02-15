@@ -62,7 +62,7 @@ else:
 if False:
     # for mypy
     from typing import (  # noqa
-        Any, List, Tuple, Optional, Callable, Text, Dict)
+        Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet)
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa
@@ -300,6 +300,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     except ImproperlyConfigured:
         cache_key = None
 
+    result = None  # type: Optional[bytes]
     if cache_key is None:
         result = get_repo_blob(repo, full_name, commit_sha,
                 allow_tree=False).data
@@ -312,17 +313,18 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
     def_cache = cache.caches["default"]
 
-    result = None
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
-        result = def_cache.get(cache_key)
-    if result is not None:
-        (result,) = result
-        assert isinstance(result, six.binary_type), cache_key
-        return result
+        cached_result = def_cache.get(cache_key)
+
+        if cached_result is not None:
+            (result,) = cached_result
+            assert isinstance(result, six.binary_type), cache_key
+            return result
 
     result = get_repo_blob(repo, full_name, commit_sha,
             allow_tree=False).data
+    assert result is not None
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, (result,), None)
@@ -387,6 +389,7 @@ YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(?:\s*\#.*)?"
     "$")
 
+IN_BLOCK_END_RAW_RE = re.compile(r"(.*)({%-?\s*endraw\s*-?%})(.*)")
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
@@ -401,34 +404,36 @@ def process_yaml_for_expansion(yaml_str):
     line_count = len(lines)
 
     while i < line_count:
-        l = lines[i].rstrip()
-        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(l)
+        ln = lines[i].rstrip()
+        yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(ln)
 
         if yaml_block_scalar_match is not None:
             unprocessed_block_lines = []
             allow_jinja = bool(yaml_block_scalar_match.group(2))
-            l = YAML_BLOCK_START_SCALAR_RE.sub(
-                    r"\1\3", l)
+            ln = YAML_BLOCK_START_SCALAR_RE.sub(
+                    r"\1\3", ln)
 
-            unprocessed_block_lines.append(l)
+            unprocessed_block_lines.append(ln)
 
-            block_start_indent = len(LEADING_SPACES_RE.match(l).group(1))
+            block_start_indent = len(LEADING_SPACES_RE.match(ln).group(1))
 
             i += 1
 
             while i < line_count:
-                l = lines[i]
+                ln = lines[i]
 
-                if not l.rstrip():
-                    unprocessed_block_lines.append(l)
+                if not ln.rstrip():
+                    unprocessed_block_lines.append(ln)
                     i += 1
                     continue
 
-                line_indent = len(LEADING_SPACES_RE.match(l).group(1))
+                line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
-                    unprocessed_block_lines.append(l.rstrip())
+                    ln = IN_BLOCK_END_RAW_RE.sub(
+                        r"\1{% endraw %}{{ '\2' }}{% raw %}\3", ln)
+                    unprocessed_block_lines.append(ln.rstrip())
                     i += 1
 
             if not allow_jinja:
@@ -437,16 +442,15 @@ def process_yaml_for_expansion(yaml_str):
             if not allow_jinja:
                 jinja_lines.append("{% endraw %}")
 
-        elif GROUP_COMMENT_START.match(l):
+        elif GROUP_COMMENT_START.match(ln):
             jinja_lines.append("{% raw %}")
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             jinja_lines.append("{% endraw %}")
             i += 1
 
         else:
-            jinja_lines.append(l)
+            jinja_lines.append(ln)
             i += 1
-
     return "\n".join(jinja_lines)
 
 
@@ -561,18 +565,20 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 
     import django.core.cache as cache
     def_cache = cache.caches["default"]
-    result = None
+
+    result = None  # type: Optional[Any]
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
         result = def_cache.get(cache_key)
     if result is not None:
         return result
 
-    result = load_yaml(
-            expand_yaml_macros(
+    yaml_str = expand_yaml_macros(
                 repo, commit_sha,
                 get_repo_blob(repo, full_name, commit_sha,
-                    allow_tree=False).data))
+                    allow_tree=False).data)
+
+    result = load_yaml(yaml_str)  # type: ignore
 
     def_cache.add(cache_key, result, None)
 
@@ -593,20 +599,24 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     """
 
     if cached:
-        from six.moves.urllib.parse import quote_plus
-        cache_key = "%%%2".join(
-                (CACHE_KEY_ROOT,
-                    quote_plus(repo.controldir()), quote_plus(full_name),
-                    commit_sha.decode()))
+        try:
+            import django.core.cache as cache
+        except ImproperlyConfigured:
+            cached = False
+        else:
+            from six.moves.urllib.parse import quote_plus
+            cache_key = "%%%2".join(
+                    (CACHE_KEY_ROOT,
+                        quote_plus(repo.controldir()), quote_plus(full_name),
+                        commit_sha.decode()))
 
-        import django.core.cache as cache
-        def_cache = cache.caches["default"]
-        result = None
-        # Memcache is apparently limited to 250 characters.
-        if len(cache_key) < 240:
-            result = def_cache.get(cache_key)
-        if result is not None:
-            return result
+            def_cache = cache.caches["default"]
+            result = None
+            # Memcache is apparently limited to 250 characters.
+            if len(cache_key) < 240:
+                result = def_cache.get(cache_key)
+            if result is not None:
+                return result
 
     yaml_bytestream = get_repo_blob(
             repo, full_name, commit_sha, allow_tree=False).data
@@ -619,7 +629,8 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
     expanded = expand_yaml_macros(
             repo, commit_sha, yaml_bytestream)
 
-    result = dict_to_struct(load_yaml(expanded))
+    yaml_data = load_yaml(expanded)  # type:ignore
+    result = dict_to_struct(yaml_data)
 
     if cached:
         def_cache.add(cache_key, result, None)
@@ -885,12 +896,32 @@ def expand_markup(
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
+
         template = env.from_string(text)
-        text = template.render(**jinja_env)
+        kwargs = {}
+        if jinja_env:
+            kwargs.update(jinja_env)
+
+        from course.utils import IpynbJinjaMacro
+        kwargs[IpynbJinjaMacro.name] = IpynbJinjaMacro(course, repo, commit_sha)
+
+        text = template.render(**kwargs)
 
     # }}}
 
     return text
+
+
+def unwrap_relate_tmp_pre_tag(html_string):
+    # type: (Text) -> (Text)
+
+    from lxml.html import fromstring, tostring
+    tree = fromstring(html_string)
+
+    for node in tree.iterdescendants("pre"):
+        if "relate_tmp_pre" in node.attrib.get("class", ""):
+            node.drop_tag()
+    return tostring(tree, encoding="unicode")
 
 
 def markup_to_html(
@@ -904,6 +935,11 @@ def markup_to_html(
         jinja_env={},  # type: Dict
         ):
     # type: (...) -> Text
+
+    disable_codehilite = bool(
+        getattr(settings,
+                "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION", True))
+
     if course is not None and not jinja_env:
         try:
             import django.core.cache as cache
@@ -911,9 +947,12 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v7:%s:%d:%s:%s"
-                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
-                        hashlib.md5(text.encode("utf-8")).hexdigest()))
+            cache_key = ("markup:v7:%s:%d:%s:%s%s"
+                    % (CACHE_KEY_ROOT,
+                       course.id, str(commit_sha),
+                       hashlib.md5(text.encode("utf-8")).hexdigest(),
+                       ":NOCODEHILITE" if disable_codehilite else ""
+                       ))
 
             def_cache = cache.caches["default"]
             result = def_cache.get(cache_key)
@@ -938,14 +977,29 @@ def markup_to_html(
 
     from course.mdx_mathjax import MathJaxExtension
     import markdown
+
+    extensions = [
+        LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
+        MathJaxExtension(),
+        "markdown.extensions.extra",
+    ]
+
+    if not disable_codehilite:
+        # Note: no matter whether disable_codehilite, the code in
+        # the rendered ipython notebook will be highlighted.
+        # "css_class=highlight" is to ensure that, when codehilite extension
+        # is enabled, code out side of notebook uses the same html class
+        # attribute as the default highlight class (i.e., `highlight`)
+        # used by rendered ipynb notebook cells, Thus we don't need to
+        # make 2 copies of css for the highlight.
+        extensions += ["markdown.extensions.codehilite(css_class=highlight)"]
+
     result = markdown.markdown(text,
-        extensions=[
-            LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
-            MathJaxExtension(),
-            "markdown.extensions.extra",
-            "markdown.extensions.codehilite",
-            ],
+        extensions=extensions,
         output_format="html5")
+
+    if result.strip():
+        result = unwrap_relate_tmp_pre_tag(result)
 
     assert isinstance(result, six.text_type)
     if cache_key is not None:
@@ -961,8 +1015,8 @@ def extract_title_from_markup(markup_text):
     # type: (Text) -> Optional[Text]
     lines = markup_text.split("\n")
 
-    for l in lines[:10]:
-        match = TITLE_RE.match(l)
+    for ln in lines[:10]:
+        match = TITLE_RE.match(ln)
         if match is not None:
             return match.group(1)
 
@@ -1215,7 +1269,7 @@ def compute_chunk_weight_and_shown(
         chunk,  # type: ChunkDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> Tuple[float, bool]
     if not hasattr(chunk, "rules"):
@@ -1274,7 +1328,7 @@ def get_processed_page_chunks(
         page_desc,  # type: StaticPageDesc
         roles,  # type: List[Text]
         now_datetime,  # type: datetime.datetime
-        facilities,  # type: frozenset[Text]
+        facilities,  # type: FrozenSet[Text]
         ):
     # type: (...) -> List[ChunkDesc]
     for chunk in page_desc.chunks:
@@ -1479,14 +1533,14 @@ def get_course_commit_sha(course, participation):
         if participation.preview_git_commit_sha:
             preview_sha = participation.preview_git_commit_sha
 
-            repo = get_course_repo(course)
-            if isinstance(repo, SubdirRepoWrapper):
-                repo = repo.repo
+            with get_course_repo(course) as repo:
+                if isinstance(repo, SubdirRepoWrapper):
+                    repo = repo.repo
 
-            try:
-                repo[preview_sha.encode()]
-            except KeyError:
-                preview_sha = None
+                try:
+                    repo[preview_sha.encode()]
+                except KeyError:
+                    preview_sha = None
 
             if preview_sha is not None:
                 sha = preview_sha
@@ -1505,7 +1559,7 @@ def list_flow_ids(repo, commit_sha):
     else:
         for entry in flows_tree.items():
             if entry.path.endswith(b".yml"):
-                flow_ids.append(entry.path[:-4])
+                flow_ids.append(entry.path[:-4].decode("utf-8"))
 
     return sorted(flow_ids)
 

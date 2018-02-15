@@ -58,7 +58,7 @@ from course.constants import (
 # {{{ for mypy
 
 if False:
-    from typing import Text, Any, Optional, Dict  # noqa
+    from typing import Text, Any, Optional, Dict, List  # noqa
     from course.models import (  # noqa
             GradingOpportunity)
     from course.utils import (  # noqa
@@ -81,7 +81,7 @@ def get_prev_visit_grades(
     return (FlowPageVisitGrade.objects
             .filter(
                 visit__flow_session_id=flow_session_id,
-                visit__page_data__ordinal=page_ordinal,
+                visit__page_data__page_ordinal=page_ordinal,
                 visit__is_submitted_answer=True)
             .order_by(*order_by_args)
             .select_related("visit"))
@@ -157,8 +157,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             pctx.course.identifier, respect_preview=False)
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
-            page_ordinal, participation=flow_session.participation,
-            flow_session=flow_session, request=pctx.request)
+                            page_ordinal, participation=flow_session.participation,
+                            flow_session=flow_session, request=pctx.request)
 
     if fpctx.page_desc is None:
         raise http.Http404()
@@ -202,7 +202,9 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     grade_data = None
     shown_grade = None
 
-    if fpctx.page.expects_answer():
+    page_expects_answer = fpctx.page.expects_answer()
+
+    if page_expects_answer:
         if fpctx.prev_answer_visit is not None and prev_grade_id is None:
             answer_data = fpctx.prev_answer_visit.answer
 
@@ -263,7 +265,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
     # {{{ grading form
 
-    if (fpctx.page.expects_answer()
+    if (page_expects_answer
             and fpctx.page.is_answer_gradable()
             and fpctx.prev_answer_visit is not None
             and not flow_session.in_progress
@@ -320,6 +322,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     else:
         grading_form = None
 
+    grading_form_html = None  # type: Optional[Text]
+
     if grading_form is not None:
         from crispy_forms.layout import Submit
         grading_form.helper.form_class += " relate-grading-form"
@@ -332,16 +336,13 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         grading_form_html = fpctx.page.grading_form_to_html(
                 pctx.request, fpctx.page_context, grading_form, grade_data)
 
-    else:
-        grading_form_html = None
-
     # }}}
 
     # {{{ compute points_awarded
 
     max_points = None
     points_awarded = None
-    if (fpctx.page.expects_answer()
+    if (page_expects_answer
             and fpctx.page.is_answer_gradable()):
         max_points = fpctx.page.max_points(fpctx.page_data)
         if feedback is not None and feedback.correctness is not None:
@@ -368,7 +369,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "flow_identifier": fpctx.flow_id,
                 "flow_session": flow_session,
                 "flow_desc": fpctx.flow_desc,
-                "ordinal": fpctx.ordinal,
+                "page_ordinal": fpctx.page_ordinal,
                 "page_data": fpctx.page_data,
 
                 "body": fpctx.page.body(
@@ -380,6 +381,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 "points_awarded": points_awarded,
                 "shown_grade": shown_grade,
                 "prev_grade_id": prev_grade_id,
+                "expects_answer": page_expects_answer,
 
                 "grading_opportunity": grading_opportunity,
 
@@ -452,7 +454,7 @@ def show_grader_statistics(pctx, flow_id):
 
     graders = set()
 
-    # tuples: (ordinal, id)
+    # tuples: (page_ordinal, id)
     pages = set()
 
     counts = {}
@@ -461,7 +463,7 @@ def show_grader_statistics(pctx, flow_id):
 
     def commit_grade_info(grade):
         grader = grade.grader
-        page = (grade.visit.page_data.ordinal,
+        page = (grade.visit.page_data.page_ordinal,
                 grade.visit.page_data.group_id + "/" + grade.visit.page_data.page_id)
 
         graders.add(grader)

@@ -61,8 +61,9 @@ from course.page.base import AnswerFeedback
 # {{{ mypy
 
 if False:
-    from typing import List, Dict, Any, Optional, Text, Iterable  # noqa  # noqa
+    from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet  # noqa
     from course.content import FlowDesc  # noqa
+    import datetime # noqa
 
 # }}}
 
@@ -72,6 +73,19 @@ from yamlfield.fields import YAMLField
 
 
 # {{{ course
+
+def validate_course_specific_language(value):
+    # type: (Text) -> None
+    if not value.strip():
+        # the default value is ""
+        return
+    if value not in (
+                [lang_code for lang_code, lang_descr in settings.LANGUAGES]
+                + [settings.LANGUAGE_CODE]):
+        raise ValidationError(
+            _("'%s' is currently not supported as a course specific "
+              "language at this site.") % value)
+
 
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
@@ -128,7 +142,7 @@ class Course(models.Model):
             default=True,
             verbose_name=_('Accepts enrollment'))
 
-    git_source = models.CharField(max_length=200, blank=True,
+    git_source = models.CharField(max_length=200, blank=False,
             help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
             "<tt>git://github.com/inducer/relate-sample</tt> "
@@ -191,6 +205,13 @@ class Course(models.Model):
             "notifications about the course."),
             verbose_name=_('Notify email'))
 
+    force_lang = models.CharField(max_length=200, blank=True, null=True,
+            default="",
+            validators=[validate_course_specific_language],
+            help_text=_(
+                "Which language is forced to be used for this course."),
+            verbose_name=_('Course language forcibly used'))
+
     # {{{ XMPP
 
     course_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
@@ -227,6 +248,10 @@ class Course(models.Model):
     if six.PY3:
         __str__ = __unicode__
 
+    def clean(self):
+        if self.force_lang:
+            self.force_lang = self.force_lang.strip()
+
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
@@ -234,7 +259,9 @@ class Course(models.Model):
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
             return self.from_email
         else:
-            return settings.DEFAULT_FROM_EMAIL
+            return getattr(
+                settings, "NOTIFICATION_EMAIL_FROM",
+                settings.ROBOT_EMAIL_FROM)
 
     def get_reply_to_email(self):
         # this functionality need more fields in Course model,
@@ -243,6 +270,10 @@ class Course(models.Model):
             return self.from_email
         else:
             return self.notify_email
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # performs regular validation then clean()
+        super(Course, self).save(*args, **kwargs)
 
 # }}}
 
@@ -368,6 +399,32 @@ class ParticipationRole(models.Model):
             "identifier": self.identifier,
             "course": self.course}
 
+    # {{{ permissions handling
+
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
+    def permission_tuples(self):
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+
+        if self._permissions_cache is not None:
+            return self._permissions_cache
+
+        perm = list(
+                    ParticipationRolePermission.objects.filter(role=self)
+                    .values_list("permission", "argument"))
+
+        fset_perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm)
+
+        self._permissions_cache = fset_perm
+        return fset_perm
+
+    def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
+        return (perm, argument) in self.permission_tuples()
+
+    # }}}
     if six.PY3:
         __str__ = __unicode__
 
@@ -468,11 +525,13 @@ class Participation(models.Model):
 
     # {{{ permissions handling
 
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
     def permissions(self):
-        try:
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+
+        if self._permissions_cache is not None:
             return self._permissions_cache
-        except AttributeError:
-            pass
 
         perm = (
                 list(
@@ -486,14 +545,15 @@ class Participation(models.Model):
                         participation=self)
                     .values_list("permission", "argument")))
 
-        perm = frozenset(
+        fset_perm = frozenset(
                 (permission, argument) if argument else (permission, None)
                 for permission, argument in perm)
 
-        self._permissions_cache = perm
-        return perm
+        self._permissions_cache = fset_perm
+        return fset_perm
 
     def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
         return (perm, argument) in self.permissions()
 
     # }}}
@@ -615,6 +675,7 @@ def add_default_roles_and_permissions(course,
                 argument="ta").save()
         rpm(role=role, permission=pp.edit_course_permissions).save()
         rpm(role=role, permission=pp.edit_course).save()
+        rpm(role=role, permission=pp.manage_authentication_tokens).save()
         rpm(role=role, permission=pp.access_files_for,
                 argument="instructor").save()
 
@@ -672,6 +733,57 @@ def _set_up_course_permissions(sender, instance, created, raw, using, update_fie
         **kwargs):
     if created:
         add_default_roles_and_permissions(instance)
+
+# }}}
+
+
+# {{{ auth token
+
+class AuthenticationToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
+
+    participation = models.ForeignKey(Participation,
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    restrict_to_participation_role = models.ForeignKey(ParticipationRole,
+            verbose_name=_('Restrict to role'), on_delete=models.CASCADE,
+            blank=True, null=True)
+
+    description = models.CharField(max_length=200,
+            verbose_name=_('Description'))
+
+    creation_time = models.DateTimeField(
+            default=now, verbose_name=_('Creation time'))
+    last_use_time = models.DateTimeField(
+            verbose_name=_('Last use time'),
+            blank=True, null=True)
+    valid_until = models.DateTimeField(
+            default=None, verbose_name=_('Valid until'),
+            blank=True, null=True)
+    revocation_time = models.DateTimeField(
+            default=None, verbose_name=_('Revocation time'),
+            blank=True, null=True)
+
+    token_hash = models.CharField(max_length=200,
+            help_text=_("A hash of the authentication token to be "
+                "used for direct git access."),
+            null=True, blank=True, unique=True,
+            verbose_name=_('Hash of git authentication token'))
+
+    def __unicode__(self):
+        return _("Token %(id)d for %(participation)s: %(description)s") % {
+                "id": self.id,
+                "participation": self.participation,
+                "description": self.description}
+
+    if six.PY3:
+        __str__ = __unicode__
+
+    class Meta:
+        verbose_name = _("Authentication token")
+        verbose_name_plural = _("Authentication tokens")
+        ordering = ("participation", "creation_time")
 
 # }}}
 
@@ -793,7 +905,7 @@ class FlowSession(models.Model):
         __str__ = __unicode__
 
     def append_comment(self, s):
-        # type: (Text) -> None
+        # type: (Optional[Text]) -> None
         if s is None:
             return
 
@@ -816,6 +928,7 @@ class FlowSession(models.Model):
         return assemble_answer_visits(self)
 
     def last_activity(self):
+        # type: () -> Optional[datetime.datetime]
         for visit in (FlowPageVisit.objects
                 .filter(
                     flow_session=self,
@@ -839,8 +952,8 @@ class FlowSession(models.Model):
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
             verbose_name=_('Flow session'), on_delete=models.CASCADE)
-    ordinal = models.IntegerField(null=True, blank=True,
-            verbose_name=_('Ordinal'))
+    page_ordinal = models.IntegerField(null=True, blank=True,
+            verbose_name=_('Page ordinal'))
 
     # This exists to catch changing page types in course content,
     # which will generally lead to an inconsistency disaster.
@@ -872,10 +985,10 @@ class FlowPageData(models.Model):
     def __unicode__(self):
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
-                "(ordinal %(ordinal)s) in %(flow_session)s") % {
+                "(page ordinal %(page_ordinal)s) in %(flow_session)s") % {
                     'group_id': self.group_id,
                     'page_id': self.page_id,
-                    'ordinal': self.ordinal,
+                    'page_ordinal': self.page_ordinal,
                     'flow_session': self.flow_session})
 
     if six.PY3:
@@ -883,13 +996,13 @@ class FlowPageData(models.Model):
 
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
-        return self.ordinal - 1
+        return self.page_ordinal - 1
 
     def next_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
     def human_readable_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
 # }}}
 
@@ -1280,16 +1393,16 @@ class FlowRuleException(models.Model):
         from relate.utils import dict_to_struct
         rule = dict_to_struct(self.rule)
 
-        repo = get_course_repo(self.participation.course)
-        commit_sha = get_course_commit_sha(
-                self.participation.course, self.participation)
-        ctx = ValidationContext(
-                repo=repo,
-                commit_sha=commit_sha)
+        with get_course_repo(self.participation.course) as repo:
+            commit_sha = get_course_commit_sha(
+                    self.participation.course, self.participation)
+            ctx = ValidationContext(
+                    repo=repo,
+                    commit_sha=commit_sha)
 
-        flow_desc = get_flow_desc(repo,
-                self.participation.course,
-                self.flow_id, commit_sha)
+            flow_desc = get_flow_desc(repo,
+                    self.participation.course,
+                    self.flow_id, commit_sha)
 
         tags = None
         grade_identifier = None

@@ -24,15 +24,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import cast
+
 import six
 import datetime  # noqa
-
-from typing import cast
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import translation
 from django.utils.translation import (
         ugettext as _, pgettext_lazy)
 
@@ -58,7 +59,8 @@ from course.page.base import (  # noqa
 # {{{ mypy
 
 if False:
-    from typing import Tuple, List, Text, Iterable, Any, Optional, Union, Dict  # noqa
+    from typing import (  # noqa
+        Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text)
     from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,
@@ -67,8 +69,12 @@ if False:
             FlowSession,
             FlowPageData,
             )
+    from course.content import Repo_ish  # noqa
 
 # }}}
+
+import re
+CODE_CELL_DIV_ATTRS_RE = re.compile('(<div class="[^>]*code_cell[^>"]*")(>)')
 
 
 def getattr_with_fallback(aggregates, attr_name, default=None):
@@ -105,7 +111,7 @@ class FlowSessionStartRule(FlowSessionRuleBase):
 class FlowSessionAccessRule(FlowSessionRuleBase):
     def __init__(
             self,
-            permissions,  # type: frozenset[Text]
+            permissions,  # type: FrozenSet[Text]
             message=None,  # type: Optional[Text]
             ):
         # type: (...) -> None
@@ -280,7 +286,7 @@ def get_session_start_rule(
         flow_id,  # type: Text
         flow_desc,  # type: FlowDesc
         now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[frozenset[Text]]
+        facilities=None,  # type: Optional[FrozenSet[Text]]
         for_rollover=False,  # type: bool
         login_exam_ticket=None,  # type: Optional[ExamTicket]
         ):
@@ -373,7 +379,7 @@ def get_session_access_rule(
         session,  # type: FlowSession
         flow_desc,  # type: FlowDesc
         now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[frozenset[Text]]
+        facilities=None,  # type: Optional[FrozenSet[Text]]
         login_exam_ticket=None,  # type: Optional[ExamTicket]
         ):
     # type: (...) -> FlowSessionAccessRule
@@ -493,9 +499,25 @@ def get_session_grading_rule(
 
         if hasattr(rule, "if_completed_before"):
             ds = parse_date_spec(session.course, rule.if_completed_before)
-            if session.in_progress and now_datetime > ds:
-                continue
-            if not session.in_progress and session.completion_time > ds:
+
+            use_last_activity_as_completion_time = False
+            if hasattr(rule, "use_last_activity_as_completion_time"):
+                use_last_activity_as_completion_time = \
+                        rule.use_last_activity_as_completion_time
+
+            if use_last_activity_as_completion_time:
+                last_activity = session.last_activity()
+                if last_activity is not None:
+                    completion_time = last_activity
+                else:
+                    completion_time = now_datetime
+            else:
+                if session.in_progress:
+                    completion_time = now_datetime
+                else:
+                    completion_time = session.completion_time
+
+            if completion_time > ds:
                 continue
 
         due = parse_date_spec(session.course, getattr(rule, "due", None))
@@ -515,6 +537,13 @@ def get_session_grading_rule(
         max_points = getattr_with_fallback((rule, flow_desc), "max_points", None)
         max_points_enforced_cap = getattr_with_fallback(
                 (rule, flow_desc), "max_points_enforced_cap", None)
+
+        try:
+            from typing import Text  # noqa
+        except ImportError:
+            Text = None  # noqa
+
+        grade_aggregation_strategy = cast(Text, grade_aggregation_strategy)  # type: ignore  # noqa
 
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
@@ -552,8 +581,12 @@ class CoursePageContext(object):
 
         self.request = request
         self.course_identifier = course_identifier
-        self._permissions_cache = None  # type: Optional[frozenset[Tuple[Text, Optional[Text]]]]  # noqa
+        self._permissions_cache = None  # type: Optional[FrozenSet[Tuple[Text, Optional[Text]]]]  # noqa
         self._role_identifiers_cache = None  # type: Optional[List[Text]]
+        self.old_language = None
+
+        # using this to prevent nested using as context manager
+        self._is_in_context_manager = False
 
         from course.models import Course  # noqa
         self.course = get_object_or_404(Course, identifier=course_identifier)
@@ -577,24 +610,25 @@ class CoursePageContext(object):
             if self.participation.preview_git_commit_sha:
                 preview_sha = self.participation.preview_git_commit_sha.encode()
 
-                repo = get_course_repo(self.course)
+                with get_course_repo(self.course) as repo:
+                    from relate.utils import SubdirRepoWrapper
+                    if isinstance(repo, SubdirRepoWrapper):
+                        true_repo = repo.repo
+                    else:
+                        true_repo = cast(dulwich.repo.Repo, repo)
 
-                from relate.utils import SubdirRepoWrapper
-                if isinstance(repo, SubdirRepoWrapper):
-                    true_repo = repo.repo
-                else:
-                    true_repo = cast(dulwich.repo.Repo, repo)
+                    try:
+                        true_repo[preview_sha]
+                    except KeyError:
+                        from django.contrib import messages
+                        messages.add_message(request, messages.ERROR,
+                                _("Preview revision '%s' does not exist--"
+                                "showing active course content instead.")
+                                % preview_sha.decode())
 
-                try:
-                    true_repo[preview_sha]
-                except KeyError:
-                    from django.contrib import messages
-                    messages.add_message(request, messages.ERROR,
-                            _("Preview revision '%s' does not exist--"
-                            "showing active course content instead.")
-                            % preview_sha.decode())
-
-                    preview_sha = None
+                        preview_sha = None
+                    finally:
+                        true_repo.close()
 
                 if preview_sha is not None:
                     sha = preview_sha
@@ -612,7 +646,7 @@ class CoursePageContext(object):
         return self._role_identifiers_cache
 
     def permissions(self):
-        # type: () -> frozenset[Tuple[Text, Optional[Text]]]
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
         if self.participation is None:
             if self._permissions_cache is not None:
                 return self._permissions_cache
@@ -633,6 +667,34 @@ class CoursePageContext(object):
                     for p, arg in self.permissions())
         else:
             return (perm, argument) in self.permissions()
+
+    def _set_course_lang(self, action):
+        # type: (Text) -> None
+        if self.course.force_lang and self.course.force_lang.strip():
+            if action == "activate":
+                self.old_language = translation.get_language()
+                translation.activate(self.course.force_lang)
+            else:
+                if self.old_language is None:
+                    # This should be a rare case, but get_language() can be None.
+                    # See django.utils.translation.override.__exit__()
+                    translation.deactivate_all()
+                else:
+                    translation.activate(self.old_language)
+
+    def __enter__(self):
+        if self._is_in_context_manager:
+            raise RuntimeError(
+                "Nested use of 'course_view' as context manager "
+                "is not allowed.")
+        self._is_in_context_manager = True
+        self._set_course_lang(action="activate")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._is_in_context_manager = False
+        self._set_course_lang(action="deactivate")
+        self.repo.close()
 
 
 class FlowContext(object):
@@ -676,7 +738,7 @@ class FlowPageContext(FlowContext):
             repo,  # type: Repo_ish
             course,  # type: Course
             flow_id,  # type: Text
-            ordinal,  # type: int
+            page_ordinal,  # type: int
             participation,  # type: Optional[Participation]
             flow_session,  # type: FlowSession
             request=None,  # type: Optional[http.HttpRequest]
@@ -684,12 +746,12 @@ class FlowPageContext(FlowContext):
         # type: (...) -> None
         super(FlowPageContext, self).__init__(repo, course, flow_id, participation)
 
-        if ordinal >= flow_session.page_count:
+        if page_ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()
 
         from course.models import FlowPageData  # noqa
         page_data = self.page_data = get_object_or_404(
-                FlowPageData, flow_session=flow_session, ordinal=ordinal)
+                FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
 
         from course.content import get_flow_page_desc
         try:
@@ -707,8 +769,9 @@ class FlowPageContext(FlowContext):
             if request is not None:
                 from django.urls import reverse
                 page_uri = request.build_absolute_uri(
-                        reverse("relate-view_flow_page",
-                            args=(course.identifier, flow_session.id, ordinal)))
+                    reverse(
+                        "relate-view_flow_page",
+                        args=(course.identifier, flow_session.id, page_ordinal)))
 
             self.page_context = PageContext(
                     course=self.course, repo=self.repo,
@@ -727,8 +790,8 @@ class FlowPageContext(FlowContext):
         return self._prev_answer_visit
 
     @property
-    def ordinal(self):
-        return self.page_data.ordinal
+    def page_ordinal(self):
+        return self.page_data.page_ordinal
 
 
 def instantiate_flow_page_with_ctx(fctx, page_data):
@@ -752,10 +815,10 @@ def instantiate_flow_page_with_ctx(fctx, page_data):
 # {{{ utilties for course-based views
 def course_view(f):
     def wrapper(request, course_identifier, *args, **kwargs):
-        pctx = CoursePageContext(request, course_identifier)
-        response = f(pctx, *args, **kwargs)
-        pctx.repo.close()
-        return response
+        with CoursePageContext(request, course_identifier) as pctx:
+            response = f(pctx, *args, **kwargs)
+            pctx.repo.close()
+            return response
 
     from functools import update_wrapper
     update_wrapper(wrapper, f)
@@ -966,7 +1029,7 @@ def get_codemirror_widget(
 # {{{ facility processing
 
 def get_facilities_config(request=None):
-    # type: (Optional[http.HttpRequest]) -> Dict[Text, Dict[Text, Any]]
+    # type: (Optional[http.HttpRequest]) -> Optional[Dict[Text, Dict[Text, Any]]]
     from django.conf import settings
 
     # This is called during offline validation, where Django isn't really set up.
@@ -1017,18 +1080,51 @@ class FacilityFindingMiddleware(object):
 # }}}
 
 
+def get_col_contents_or_empty(row, index):
+    if index >= len(row):
+        return ""
+    else:
+        return row[index]
+
+
 def csv_data_importable(file_contents, column_idx_list, header_count):
     import csv
     spamreader = csv.reader(file_contents)
     n_header_row = 0
-    for row in spamreader:
+    try:
+        if six.PY2:
+            row0 = spamreader.next()
+        else:
+            row0 = spamreader.__next__()
+    except Exception as e:
+        err_msg = type(e).__name__
+        err_str = str(e)
+        if err_msg == "Error":
+            err_msg = ""
+        else:
+            err_msg += ": "
+        err_msg += err_str
+
+        if "line contains NULL byte" in err_str:
+            err_msg = err_msg.rstrip(".") + ". "
+            err_msg += _("Are you sure the file is a CSV file other "
+                         "than a Microsoft Excel file?")
+
+        return False, (
+            string_concat(
+                pgettext_lazy("Starting of Error message", "Error"),
+                ": %s" % err_msg))
+
+    from itertools import chain
+
+    for row in chain([row0], spamreader):
         n_header_row += 1
         if n_header_row <= header_count:
             continue
         try:
             for column_idx in column_idx_list:
                 if column_idx is not None:
-                    six.text_type(row[column_idx-1])
+                    six.text_type(get_col_contents_or_empty(row, column_idx-1))
         except UnicodeDecodeError:
             return False, (
                     _("Error: Columns to be imported contain "
@@ -1056,6 +1152,7 @@ def will_use_masked_profile_for_email(recipient_email):
         return False
     if not isinstance(recipient_email, list):
         recipient_email = [recipient_email]
+    from course.models import Participation  # noqa
     recepient_participations = (
         Participation.objects.filter(
             user__email__in=recipient_email
@@ -1065,5 +1162,162 @@ def will_use_masked_profile_for_email(recipient_email):
         if part.has_permission(pperm.view_participant_masked_profile):
             return True
     return False
+
+
+def get_course_specific_language_choices():
+    # type: () -> Tuple[Tuple[str, Any], ...]
+
+    from django.conf import settings
+    from collections import OrderedDict
+
+    all_options = ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES)
+    filtered_options_dict = OrderedDict(all_options)
+
+    def get_default_option():
+        # type: () -> Tuple[Text, Text]
+        # For the default language used, if USE_I18N is True, display
+        # "Disabled". Otherwise display its lang info.
+        if not settings.USE_I18N:
+            formatted_descr = (
+                get_formatted_options(settings.LANGUAGE_CODE, None)[1])
+        else:
+            formatted_descr = _("disabled (i.e., displayed language is "
+                                "determined by user's browser preference)")
+        return "", string_concat("%s: " % _("Default"), formatted_descr)
+
+    def get_formatted_options(lang_code, lang_descr):
+        # type: (Text, Optional[Text]) -> Tuple[Text, Text]
+        if lang_descr is None:
+            lang_descr = OrderedDict(settings.LANGUAGES).get(lang_code)
+            if lang_descr is None:
+                try:
+                    lang_info = translation.get_language_info(lang_code)
+                    lang_descr = lang_info["name_translated"]
+                except KeyError:
+                    return (lang_code.strip(), lang_code)
+
+        return (lang_code.strip(),
+                string_concat(_(lang_descr), " (%s)" % lang_code))
+
+    filtered_options = (
+        [get_default_option()]
+        + [get_formatted_options(k, v)
+           for k, v in six.iteritems(filtered_options_dict)])
+
+    # filtered_options[1] is the option for settings.LANGUAGE_CODE
+    # it's already displayed when settings.USE_I18N is False
+    if not settings.USE_I18N:
+        filtered_options.pop(1)
+
+    return tuple(filtered_options)
+
+
+class RelateJinjaMacroBase(object):
+    def __init__(self, course, repo, commit_sha):
+        # type: (Optional[Course], Repo_ish, bytes) -> None
+        self.course = course
+        self.repo = repo
+        self.commit_sha = commit_sha
+
+    @property
+    def name(self):
+        # The name of the method used in the template
+        raise NotImplementedError()
+
+    def __call__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> Text
+        raise NotImplementedError()
+
+
+# {{{ ipynb utilities
+
+class IpynbJinjaMacro(RelateJinjaMacroBase):
+    name = "render_notebook_cells"
+
+    def _render_notebook_cells(self, ipynb_path, indices=None, clear_output=False,
+                 clear_markdown=False, **kwargs):
+        # type: (Text, Optional[Any], Optional[bool], Optional[bool], **Any) -> Text
+        from course.content import get_repo_blob_data_cached
+        try:
+            ipynb_source = get_repo_blob_data_cached(self.repo, ipynb_path,
+                                                     self.commit_sha).decode()
+
+            return self._render_notebook_from_source(
+                ipynb_source,
+                indices=indices,
+                clear_output=clear_output,
+                clear_markdown=clear_markdown,
+                **kwargs
+            )
+        except ObjectDoesNotExist:
+            raise
+
+    __call__ = _render_notebook_cells  # type: ignore
+
+    def _render_notebook_from_source(
+            self, ipynb_source, indices=None,
+            clear_output=False, clear_markdown=False, **kwargs):
+        # type: (Text, Optional[Any], Optional[bool], Optional[bool], **Any) -> Text
+        """
+        Get HTML format of ipython notebook so as to be rendered in RELATE flow
+        pages.
+        :param ipynb_source: the :class:`text` read from a ipython notebook.
+        :param indices: a :class:`list` instance, 0-based indices of notebook cells
+        which are expected to be rendered.
+        :param clear_output: a :class:`bool` instance, indicating whether existing
+        execution output of code cells should be removed.
+        :param clear_markdown: a :class:`bool` instance, indicating whether markdown
+        cells will be ignored..
+        :return:
+        """
+        import nbformat
+        from nbformat.reader import parse_json
+        nb_source_dict = parse_json(ipynb_source)
+
+        if indices:
+            nb_source_dict.update(
+                {"cells": [nb_source_dict["cells"][idx] for idx in indices]})
+
+        if clear_markdown:
+            nb_source_dict.update(
+                {"cells": [cell for cell in nb_source_dict["cells"]
+                           if cell['cell_type'] != "markdown"]})
+
+        nb_source_dict.update({"cells": nb_source_dict["cells"]})
+
+        import json
+        ipynb_source = json.dumps(nb_source_dict)
+        notebook = nbformat.reads(ipynb_source, as_version=4)
+
+        from traitlets.config import Config
+        c = Config()
+
+        # This is to prevent execution of arbitrary code from note book
+        c.ExecutePreprocessor.enabled = False
+        if clear_output:
+            c.ClearOutputPreprocessor.enabled = True
+
+        c.CSSHTMLHeaderPreprocessor.enabled = False
+        c.HighlightMagicsPreprocessor.enabled = False
+
+        import os
+        from django.conf import settings
+
+        # Place the template in course template dir
+        template_path = os.path.join(
+            settings.BASE_DIR, "course", "templates", "course", "jinja2")
+        c.TemplateExporter.template_path.append(template_path)
+
+        from nbconvert import HTMLExporter
+        html_exporter = HTMLExporter(
+            config=c,
+            template_file="nbconvert_template.tpl"
+        )
+
+        (body, resources) = html_exporter.from_notebook_node(notebook)
+
+        return body
+
+# }}}
 
 # vim: foldmethod=marker

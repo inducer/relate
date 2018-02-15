@@ -11,6 +11,14 @@ ALLOWED_HOSTS = [
 # Configure the following as url as above.
 RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
+from django.conf.global_settings import gettext_noop  # noqa
+
+# Uncomment this to configure the site name of your relate instance.
+# If not configured, "RELATE" will be used as default value.
+# Use gettext_noop() if you want it to be discovered as an i18n literal
+# for translation.
+#RELATE_CUTOMIZED_SITE_NAME = gettext_noop("My RELATE")
+
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
 #
@@ -146,6 +154,15 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
             'port': 587,
             'use_tls': True,
         },
+
+        # For enrollment request email sent to course instructors
+        "enroll": {
+            'host': 'smtp.gmail.com',
+            'username': 'blah@blah.com',
+            'password': 'password',
+            'port': 587,
+            'use_tls': True,
+        },
     }
 
     # This will be used as default connection when other keys are not set.
@@ -155,6 +172,7 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
     NOTIFICATION_EMAIL_FROM = "Notification <notification_example@example.com>"
     GRADER_FEEDBACK_EMAIL_FROM = "Feedback <feedback_example@example.com>"
     STUDENT_INTERACT_EMAIL_FROM = "interaction <feedback_example@example.com>"
+    ENROLLMENT_EMAIL_FROM = "Enrollment <enroll@example.com>"
 
 
 # }}}
@@ -191,6 +209,11 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+# Whether disable "markdown.extensions.codehilite" when rendering page markdown.
+# Default to True, as enable it sometimes crashes for some pages with code fences.
+# For this reason, there will be a warning when the attribute is set to False when
+# starting the server.
+#RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = True
 
 # {{{ user full_name format
 
@@ -247,6 +270,30 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+# {{{ overriding built-in templates
+# Uncomment the following to enable templates overriding. It should be configured
+# as a list/tuple of path(s).
+# For example, if you the templates are in a folder named "my_templates" in the
+# root dir of the project, with base.html (project template), course_base.html,
+# and sign-in-email.txt (app templates) etc., are the templates you want to
+# override, the structure of the files should look like:
+#    ...
+#    relate/
+#    local_settings.py
+#    my_templates/
+#        base.html
+#        ...
+#        course/
+#            course_base.html
+#            sign-in-email.txt
+#                ...
+#
+
+# import os.path
+# RELATE_OVERRIDE_TEMPLATES_DIRS = [os.path.join(os.path.dirname(__file__), "my_templates"),
+#                      os.path.join(os.path.dirname(__file__), "my_other_templates")]
+
+# }}}
 
 # {{{ docker
 
@@ -295,7 +342,23 @@ RELATE_SITE_ANNOUNCEMENT = None
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language 'en-us'.
 
-#LANGUAGE_CODE='en-us'
+#LANGUAGE_CODE = 'en-us'
+
+# You can (and it's recommended to) override Django's built-in LANGUAGES settings
+# if you want to filter languages allowed for course-specific languages.
+# The format of languages should be a list/tuple of 2-tuples:
+# (language_code, language_description). If there are entries with the same
+# language_code, language_description will be using the one which comes latest.
+#.If LANGUAGES is not configured, django.conf.global_settings.LANGUAGES will be
+# used.
+# Note: make sure LANGUAGE_CODE you used is also in LANGUAGES, if it is not
+# the default "en-us". Otherwise translation of that language will not work.
+
+# LANGUAGES = [
+#     ('en', 'English'),
+#     ('zh-hans', 'Simplified Chinese'),
+#     ('de', 'German'),
+# ]
 
 # {{{ exams and testing
 

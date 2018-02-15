@@ -280,7 +280,7 @@ def validate_markup(vctx, location, markup_str):
                 text=markup_str,
                 reverse_func=reverse_func,
                 validate_only=True)
-    except:
+    except Exception:
         from traceback import print_exc
         print_exc()
 
@@ -479,7 +479,7 @@ def validate_flow_page(vctx, location, page_desc):
         class_(vctx, location, page_desc)
     except ValidationError:
         raise
-    except:
+    except Exception:
         tp, e, __ = sys.exc_info()
 
         from traceback import format_exc
@@ -1171,7 +1171,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
         return get_yaml_from_repo(
                 repo=repo, full_name=full_name, commit_sha=commit_sha,
                 cached=False)
-    except:
+    except Exception:
         from traceback import print_exc
         print_exc()
 
@@ -1219,7 +1219,8 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
         from relate.utils import dict_to_struct
         from yaml import load as load_yaml
 
-        att_yml = dict_to_struct(load_yaml(true_repo[attr_blob_sha].data))
+        yaml_data = load_yaml(true_repo[attr_blob_sha].data)  # type: ignore
+        att_yml = dict_to_struct(yaml_data)
 
         if path:
             loc = path + "/" + ATTRIBUTES_FILENAME

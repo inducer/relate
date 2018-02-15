@@ -43,6 +43,11 @@ from course.page.base import (
         get_editor_interaction_mode)
 from course.constants import flow_permission
 
+# DEBUGGING SWITCH:
+# True for 'spawn containers' (normal operation)
+# False for 'just connect to localhost:RUNPY_PORT' for runpy'
+SPAWN_CONTAINERS_FOR_RUNPY = True
+
 
 # {{{ python code question
 
@@ -95,8 +100,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
     docker_timeout = 15
 
-    # DEBUGGING SWITCH: 1 for 'spawn container', 0 for 'static container'
-    if 1:
+    if SPAWN_CONTAINERS_FOR_RUNPY:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
@@ -263,18 +267,18 @@ def is_nuisance_failure(result):
 
         return True
 
-    if ("traceback" in result
-            and "bind: address already in use" in result["traceback"]):
+    if "traceback" in result:
+        if "bind: address already in use" in result["traceback"]:
+            # https://github.com/docker/docker/issues/8714
 
-        # https://github.com/docker/docker/issues/8714
+            return True
 
-        return True
+        if ("requests.packages.urllib3.exceptions.NewConnectionError"
+                in result["traceback"]):
+            return True
 
-    if ("traceback" in result
-            and "requests.packages.urllib3.exceptions.NewConnectionError"
-            in result["traceback"]):
-
-        return True
+        if "http.client.RemoteDisconnected" in result["traceback"]:
+            return True
 
     return False
 
@@ -456,7 +460,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
               rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
           # returns True if accurate
 
-          feedback.call_user(self, f, *args, **kwargs)
+          feedback.call_user(f, *args, **kwargs)
           # Calls a user-supplied function and prints an appropriate
           # feedback message in case of failure.
 
@@ -478,8 +482,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     from course.content import get_repo_blob
                     get_repo_blob(vctx.repo, data_file, vctx.commit_sha)
                 except ObjectDoesNotExist:
-                    raise ValidationError("%s: data file '%s' not found"
-                            % (location, data_file))
+                    raise ValidationError(
+                        string_concat(
+                            "%(location)s: ",
+                            _("data file '%(file)s' not found"))
+                        % {"location": location, "file": data_file})
 
         if not getattr(page_desc, "single_submission", False) and vctx is not None:
             is_multi_submit = False
@@ -627,7 +634,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         try:
             response_dict = request_python_run_with_retries(run_req,
                     run_timeout=self.page_desc.timeout)
-        except:
+        except Exception:
             from traceback import format_exc
             response_dict = {
                     "result": "uncaught_error",
@@ -666,14 +673,15 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             from relate.utils import local_now, format_datetime_local
             with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
-                message = render_to_string("course/broken-code-question-email.txt", {
-                    "site": getattr(settings, "RELATE_BASE_URL"),
-                    "page_id": self.page_desc.id,
-                    "course": page_context.course,
-                    "error_message": error_msg,
-                    "review_uri": page_context.page_uri,
-                    "time": format_datetime_local(local_now())
+                from relate.utils import render_email_template
+                message = render_email_template(
+                    "course/broken-code-question-email.txt", {
+                        "site": getattr(settings, "RELATE_BASE_URL"),
+                        "page_id": self.page_desc.id,
+                        "course": page_context.course,
+                        "error_message": error_msg,
+                        "review_uri": page_context.page_uri,
+                        "time": format_datetime_local(local_now())
                     })
 
                 if (
@@ -889,9 +897,12 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     if name in ["type"]:
                         return True
                     elif name == "src":
-                        return is_allowed_data_uri([
-                            "audio/wav",
-                            ], value)
+                        if is_allowed_data_uri([
+                                "audio/wav",
+                                ], value):
+                            return bleach.sanitizer.VALUE_SAFE
+                        else:
+                            return False
                     else:
                         return False
 
@@ -1141,8 +1152,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and code_feedback.correctness is not None):
             code_feedback_points = code_feedback.correctness*code_points
 
-        from django.template.loader import render_to_string
-        feedback = render_to_string(
+        from relate.utils import render_email_template
+        feedback = render_email_template(
                 "course/feedback-code-with-human.html",
                 {
                     "percentage": percentage,

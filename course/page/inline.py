@@ -414,7 +414,7 @@ class ChoicesAnswer(AnswerBase):
         for choice_idx, choice in enumerate(answers_desc.choices):
             try:
                 choice = str(choice)
-            except:
+            except Exception:
                 raise ValidationError(
                         string_concat(
                             "%(location)s: '%(answer_name)s' ",

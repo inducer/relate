@@ -11,9 +11,10 @@ if False:
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import STATICFILES_FINDERS
+from django.conf.global_settings import STATICFILES_FINDERS, gettext_noop
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import sys
 import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -21,17 +22,25 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = True
 
 _local_settings_file = join(BASE_DIR, "local_settings.py")
-local_settings = {
-        "__file__": _local_settings_file,
-        }
-try:
-    with open(_local_settings_file) as inf:
-        local_settings_contents = inf.read()
-except IOError:
-    pass
-else:
-    exec(compile(local_settings_contents, "local_settings.py", "exec"),
-            local_settings)
+
+if os.environ.get("RELATE_LOCAL_TEST_SETTINGS", None):
+    # This is to make sure local_settings.py is not used for unit tests.
+    assert _local_settings_file != os.environ["RELATE_LOCAL_TEST_SETTINGS"]
+    _local_settings_file = os.environ["RELATE_LOCAL_TEST_SETTINGS"]
+
+if not os.path.isfile(_local_settings_file):
+    raise RuntimeError(
+        "Management command '%(cmd_name)s' failed to run "
+        "because '%(local_settings_file)s' is missing."
+        % {"cmd_name": sys.argv[1],
+           "local_settings_file": _local_settings_file})
+
+local_settings_module_name, ext = (
+    os.path.splitext(os.path.split(_local_settings_file)[-1]))
+assert ext == ".py"
+exec("import %s as local_settings_module" % local_settings_module_name)
+
+local_settings = local_settings_module.__dict__  # type: ignore  # noqa
 
 # {{{ django: apps
 
@@ -84,7 +93,8 @@ MIDDLEWARE = (
 # {{{ django: auth
 
 AUTHENTICATION_BACKENDS = (
-    "course.auth.TokenBackend",
+    "course.auth.EmailedTokenBackend",
+    "course.auth.APIBearerTokenBackend",
     "course.exam.ExamTicketBackend",
     "django.contrib.auth.backends.ModelBackend",
     )
@@ -172,6 +182,12 @@ TEMPLATES = [
     },
 ]
 
+RELATE_OVERRIDE_TEMPLATES_DIRS = (
+    local_settings.get("RELATE_OVERRIDE_TEMPLATES_DIRS", []))
+if RELATE_OVERRIDE_TEMPLATES_DIRS:
+    TEMPLATES[0]["DIRS"] = (
+        tuple(RELATE_OVERRIDE_TEMPLATES_DIRS) + TEMPLATES[0]["DIRS"])   # type: ignore  # noqa
+
 # }}}
 
 # {{{ database
@@ -246,9 +262,15 @@ for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
 
+RELATE_SITE_NAME = gettext_noop("RELATE")
+RELATE_CUTOMIZED_SITE_NAME = local_settings.get("RELATE_CUTOMIZED_SITE_NAME")
+if RELATE_CUTOMIZED_SITE_NAME is not None and RELATE_CUTOMIZED_SITE_NAME.strip():
+    RELATE_SITE_NAME = RELATE_CUTOMIZED_SITE_NAME
+
 # {{{ celery config
 
-BROKER_URL = 'django://'
+if "BROKER_URL" not in globals():
+    BROKER_URL = 'django://'
 
 CELERY_ACCEPT_CONTENT = ['pickle']
 CELERY_TASK_SERIALIZER = 'pickle'

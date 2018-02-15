@@ -15,26 +15,26 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowaccessexceptionentry',
             name='exception',
-            field=models.ForeignKey(related_name=b'entries', to='course.FlowAccessException', on_delete=models.CASCADE),
+            field=models.ForeignKey(related_name='entries', to='course.FlowAccessException', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagedata',
             name='flow_session',
-            field=models.ForeignKey(related_name=b'page_data', to='course.FlowSession', on_delete=models.CASCADE),
+            field=models.ForeignKey(related_name='page_data', to='course.FlowSession', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='flowpagevisitgrade',
             name='visit',
-            field=models.ForeignKey(related_name=b'grades', to='course.FlowPageVisit', on_delete=models.CASCADE),
+            field=models.ForeignKey(related_name='grades', to='course.FlowPageVisit', on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='gradechange',
             name='flow_session',
-            field=models.ForeignKey(related_name=b'grade_changes', blank=True, to='course.FlowSession', null=True, on_delete=models.CASCADE),
+            field=models.ForeignKey(related_name='grade_changes', blank=True, to='course.FlowSession', null=True, on_delete=models.CASCADE),
         ),
         migrations.AlterField(
             model_name='userstatus',
             name='user',
-            field=models.OneToOneField(related_name=b'user_status', to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
+            field=models.OneToOneField(related_name='user_status', to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
         ),
     ]

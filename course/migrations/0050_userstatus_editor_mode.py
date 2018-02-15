@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userstatus',
             name='editor_mode',
-            field=models.CharField(default=b'default', max_length=20, choices=[(b'default', b'Default'), (b'sublime', b'Sublime text'), (b'emacs', b'Emacs'), (b'vim', b'Vim')]),
+            field=models.CharField(default='default', max_length=20, choices=[(b'default', b'Default'), (b'sublime', b'Sublime text'), (b'emacs', b'Emacs'), (b'vim', b'Vim')]),
             preserve_default=True,
         ),
     ]
