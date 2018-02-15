@@ -917,6 +917,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     else:
                         return False
 
+                if not isinstance(s, six.text_type):
+                    return _("(Non-string in 'HTML' output filtered out)")
+
                 return bleach.clean(s,
                         tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
                         attributes={
