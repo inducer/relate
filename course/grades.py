@@ -339,12 +339,18 @@ def export_gradebook_csv(pctx):
 # {{{ grades by grading opportunity
 
 class OpportunitySessionGradeInfo(object):
-    def __init__(self, grade_state_machine, flow_session, grades=None):
-        # type: (GradeStateMachine, Optional[FlowSession], Optional[Any]) ->  None
+    def __init__(self,
+                 grade_state_machine,  # type: GradeStateMachine
+                 flow_session,  # type: Optional[FlowSession]
+                 grades=None,  # type: Optional[Any]
+                 has_completed_session=False  # type: Optional[bool]
+                 ):
+        # type: (...) ->  None
 
         self.grade_state_machine = grade_state_machine
         self.flow_session = flow_session
         self.grades = grades
+        self.has_completed_session = has_completed_session
 
 
 class ModifySessionsForm(StyledForm):
@@ -519,6 +525,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                 "grade_time")
             .select_related("participation")
             .select_related("participation__user")
+            .select_related("flow_session")
             .select_related("opportunity"))
 
     if opportunity.flow_id:
@@ -573,12 +580,22 @@ def view_grades_by_opportunity(pctx, opp_id):
                 fsess_idx += 1
 
             my_flow_sessions = []
+            has_completed_session = False
             while (
                     fsess_idx < len(flow_sessions) and
                     flow_sessions[fsess_idx].participation is not None and
                     flow_sessions[fsess_idx].participation.pk == participation.pk):
                 my_flow_sessions.append(flow_sessions[fsess_idx])
+                if not has_completed_session:
+                    if not flow_sessions[fsess_idx].in_progress:
+                        has_completed_session = True
                 fsess_idx += 1
+
+            if not my_flow_sessions:
+                grade_table.append(
+                        (participation, OpportunitySessionGradeInfo(
+                            grade_state_machine=state_machine,
+                            flow_session=None)))
 
             for fsession in my_flow_sessions:
                 total_sessions += 1
@@ -592,7 +609,8 @@ def view_grades_by_opportunity(pctx, opp_id):
                 grade_table.append(
                         (participation, OpportunitySessionGradeInfo(
                             grade_state_machine=state_machine,
-                            flow_session=fsession)))
+                            flow_session=fsession,
+                            has_completed_session=has_completed_session)))
 
     if view_page_grades and len(grade_table) > 0 and all(
             info.flow_session is not None for _dummy1, info in grade_table):
