@@ -125,94 +125,132 @@
           <th class="datacol">{{ i }}</th>
         {% endfor %}
       {% endif %}
+      <th class="datacol">{% trans "Session id" %}</th>
       <th class="datacol">{% trans "Session state" %}</th>
       <th class="datacol">{% trans "Session grade" %}</th>
       <th class="datacol">{% trans "Overall grade" %}</th>
     </thead>
     <tbody>
       {% for participation, grade_info in grade_table %}
-      <tr>
-        <th class="headcol">
-          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">
-              {% if not pperm.view_participant_masked_profile %}
-                  {{ participation.user.username }}
+          <tr
+              {% if not grade_info.flow_session %}
+                class="danger"
+              {% elif grade_info.flow_session.in_progress %}
+                {% if not grade_info.has_completed_session %}
+                  class="warning"
+                {% elif grade_info.grade_state_machine.percentage == None %}
+                  class="warning"
+                {% elif grade_info.grade_state_machine.percentage == 0 %}
+                  class="warning"
+                {% endif %}
+              {% elif grade_info.grade_state_machine.percentage == 0 %}
+                class="warning"
+              {% endif %}
+          >
+            <th class="headcol">
+              <a href="{% url "relate-view_participant_grades" participation.id %}"><span class="sensitive">
+                  {% if not pperm.view_participant_masked_profile %}
+                      {{ participation.user.username }}
+                  {% else %}
+                      {% if participation.user == user %}{% trans "Me" %}{% else %}{{ participation.user.get_masked_profile }}{% endif %}
+                  {% endif %}
+              </span></a>
+              {% if pperm.view_participant_masked_profile %}
+                  {% if participation|has_permission:"view_gradebook" %}
+                      ({{ participation.get_role_desc }})
+                  {% endif %}
+              {% endif %}
+            </th>
+            {% if not pperm.view_participant_masked_profile %}
+                <td class="datacol">
+                    <span class="sensitive">
+                        {{ participation.user.get_full_name }}
+                    </span>
+                  {% if participation|has_permission:"view_gradebook" %}
+                    ({{ participation.get_role_desc }})
+                  {% endif %}
+                </td>
+            {% endif %}
+            {% if view_page_grades %}
+            {% for page_idx, grade in grade_info.grades %}
+            <td class="datacol"
+              {% if page_idx == None or grade == None or grade.percentage == None %}
+              data-order="-1"
               {% else %}
-                  {% if participation.user == user %}{% trans "Me" %}{% else %}{{ participation.user.get_masked_profile }}{% endif %}
+              data-order="{{ grade.percentage }}"
               {% endif %}
-          </span></a>
-          {% if pperm.view_participant_masked_profile %}
-              {% if participation|has_permission:"view_gradebook" %}
-                  ({{ participation.get_role_desc }})
+              ><span class="sensitive">
+              {% if page_idx == None %}
+                  &mdash;
+              {% else %}
+                  <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id page_idx %}">
+                  {% if grade != None and grade.percentage != None %}
+                      {{ grade.percentage|floatformat:2 }}%
+                  {% else %}
+                      - &#8709; -
+                  {% endif %}
+            </a>
               {% endif %}
-          {% endif %}
-        </th>
-        {% if not pperm.view_participant_masked_profile %}
-            <td class="datacol">
-                <span class="sensitive">
-                    {{ participation.user.get_full_name }}
-                </span>
-              {% if participation|has_permission:"view_gradebook" %}
-                ({{ participation.get_role_desc }})
+              </span>
+            </td>
+            {% endfor %}
+            {% endif %}
+            <td class="datacol" data-order="{{ grade_info.flow_session.id }}">
+              {% if grade_info.flow_session %}
+                <a href="{% url "relate-view_flow_page" course.identifier grade_info.flow_session.id 0 %}" target="_blank">{{grade_info.flow_session.id}}</a>
               {% endif %}
             </td>
-        {% endif %}
-        {% if view_page_grades %}
-        {% for page_idx, grade in grade_info.grades %}
-        <td class="datacol"
-          {% if page_idx == None or grade == None or grade.percentage == None %}
-          data-order="-1"
-          {% else %}
-          data-order="{{ grade.percentage }}"
-          {% endif %}
-          ><span class="sensitive">
-          {% if page_idx == None %}
-              &mdash;
-          {% else %}
-              <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id page_idx %}">
-              {% if grade != None and grade.percentage != None %}
-                  {{ grade.percentage|floatformat:2 }}%
+            <td class="datacol"
+              {% if not grade_info.flow_session %}
+                data-order="-1"
+              {% elif grade_info.flow_session.in_progress %}
+                {% if not grade_info.has_completed_session %}
+                  data-order="0"
+                {% elif grade_info.grade_state_machine.percentage == None %}
+                  data-order="1"
+                {% elif grade_info.grade_state_machine.percentage == 0 %}
+                  data-order="2"
+                {% elif grade_info.grade_state_machine.percentage > 0 %}
+                  data-order="3"
+                {% endif %}
+              {% elif grade_info.grade_state_machine.percentage == 0 %}
+                data-order="2"
               {% else %}
-                  - &#8709; -
+                data-order="3"
               {% endif %}
-	      </a>
-          {% endif %}
-          </span>
-        </td>
-        {% endfor %}
-        {% endif %}
-        <td class="datacol" data-order="{{ grade_info.flow_session.in_progress }}">
-          {% if grade_info.flow_session %}
-          {% include "course/flow-session-state.html" with flow_session=grade_info.flow_session %}
-          {% if not grade_info.flow_session.in_progress %}
-              ({{ grade_info.flow_session.completion_time }})
-          {% endif %}
-          {% if grade_info.flow_session.access_rules_tag %}
-              ({% trans "Rules tag" %}: <tt>{{ grade_info.flow_session.access_rules_tag }}</tt>)
-          {% endif %}
-          {% endif %}
-        </td>
-        <td class="datacol" data-order="{{ grade_info.flow_session.points }}">
-          {% if grade_info.flow_session %}
-              {% if grade_info.flow_session.points != None %}
-                {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:2 max_points=grade_info.flow_session.max_points|floatformat:2 %}
-                {{ points }}/{{ max_points }}
-                points
-                {% endblocktrans %}
+            >
+              {% include "course/flow-session-state.html" with flow_session=grade_info.flow_session %}
+              {% if grade_info.flow_session %}
+                {% if not grade_info.flow_session.in_progress %}
+                  ({{ grade_info.flow_session.completion_time }})
+                {% endif %}
+                {% if grade_info.flow_session.access_rules_tag %}
+                  ({% trans "Rules tag" %}: <tt>{{ grade_info.flow_session.access_rules_tag }}</tt>)
+                {% endif %}
               {% endif %}
-           {% endif %}
-        </td>
-        <td class="datacol"
-          {% if grade_info.grade_state_machine.percentage != None %}
-            data-order="{{ grade_info.grade_state_machine.percentage }}"
-          {% else %}
-            data-order="-1"
-          {% endif %}
-          >
+            </td>
+            <td class="datacol" data-order="{{ grade_info.flow_session.points }}">
+              {% if grade_info.flow_session %}
+                  {% if grade_info.flow_session.points != None %}
+                    {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:2 max_points=grade_info.flow_session.max_points|floatformat:2 %}
+                    {{ points }}/{{ max_points }}
+                    points
+                    {% endblocktrans %}
+                  {% endif %}
+               {% endif %}
+            </td>
+            <td class="datacol"
+              {% if grade_info.grade_state_machine.percentage != None %}
+                data-order="{{ grade_info.grade_state_machine.percentage }}"
+              {% else %}
+                data-order="-1"
+              {% endif %}
+              >
 
-          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
-             ><span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
-        </td>
-      </tr>
+              <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"
+                 ><span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
+            </td>
+          </tr>
       {% endfor %}
     </tbody>
   </table>
