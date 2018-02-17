@@ -102,7 +102,7 @@
             {% if max_points != None %}
               <span class="sensitive">
               {% if points_awarded != None %}
-                {{ points_awarded|floatformat:2 }}
+                {{ points_awarded|floatformat:"-2" }}
               {% else %}
                 {% trans "(unknown)" %}
               {% endif %}

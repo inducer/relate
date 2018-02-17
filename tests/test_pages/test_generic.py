@@ -694,7 +694,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2.00/2.00 points.")
+                resp, "The human grader assigned 2/2 points.")
 
         # since the test_code didn't do a feedback.set_points() after
         # check_scalar()
@@ -707,7 +707,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "'c' is inaccurate")
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0.00/2.00 points.")
+                resp, "The autograder assigned 0/2 points.")
 
         self.assertEqual(self.end_flow().status_code, 200)
 
@@ -718,7 +718,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2.00/2.00 points.")
+                resp, "The human grader assigned 2/2 points.")
         self.assertSessionScoreEqual(2)
 
     def test_code_human_feedback_page_grade3(self):
@@ -729,7 +729,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         # this is testing feedback.finish(0.3, feedback_msg)
         # 2 * 0.3 = 0.6
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0.90/3.00 points.")
+                resp, "The autograder assigned 0.90/3 points.")
         self.assertResponseContextAnswerFeedbackContainsFeedback(
                 resp, "The elements in b have wrong values")
         self.assertEqual(self.end_flow().status_code, 200)
@@ -753,7 +753,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         resp = self.post_grade_by_page_id(page_id, grade_data)
         self.assertTrue(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 1.00/1.00 points.")
+                resp, "The human grader assigned 1/1 points.")
 
         self.assertSessionScoreEqual(4)
 
