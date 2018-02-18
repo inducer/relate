@@ -76,6 +76,7 @@ class PythonCodeForm(StyledForm):
 
 
 RUNPY_PORT = 9941
+DOCKER_TIMEOUT = 15
 
 
 class InvalidPingResponse(RuntimeError):
@@ -98,8 +99,6 @@ def request_python_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    docker_timeout = 15
-
     if SPAWN_CONTAINERS_FOR_RUNPY:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
@@ -108,7 +107,7 @@ def request_python_run(run_req, run_timeout, image=None):
         docker_cnx = docker.Client(
                 base_url=docker_url,
                 tls=docker_tls,
-                timeout=docker_timeout,
+                timeout=DOCKER_TIMEOUT,
                 version="1.19")
 
         if image is None:
@@ -160,7 +159,7 @@ def request_python_run(run_req, run_timeout, image=None):
         from traceback import format_exc
 
         def check_timeout():
-                if time() - start_time < docker_timeout:
+                if time() - start_time < DOCKER_TIMEOUT:
                     sleep(0.1)
                     # and retry
                 else:
@@ -258,16 +257,15 @@ def is_nuisance_failure(result):
     if result["result"] != "uncaught_error":
         return False
 
-    if ("traceback" in result
-            and "BadStatusLine" in result["traceback"]):
-
-        # Occasionally, we fail to send a POST to the container, even after
-        # the inital ping GET succeeded, for (for now) mysterious reasons.
-        # Just try again.
-
-        return True
-
     if "traceback" in result:
+        if "BadStatusLine" in result["traceback"]:
+
+            # Occasionally, we fail to send a POST to the container, even after
+            # the inital ping GET succeeded, for (for now) mysterious reasons.
+            # Just try again.
+
+            return True
+
         if "bind: address already in use" in result["traceback"]:
             # https://github.com/docker/docker/issues/8714
 
