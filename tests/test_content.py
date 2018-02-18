@@ -412,17 +412,17 @@ class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             '<p>value=${#1}</p>\n'
             '<p><a href="http://example2.com">example2</a></p>')
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
         markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%endraw%}"
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
         markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%  endraw  %}"
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
     def test_embedded_raw_block2(self):
@@ -435,12 +435,12 @@ class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             '<p>value=${#1}\n'
             '<a href="http://example2.com">example2</a></p>')
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
         markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%-endraw%}"
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
     def test_embedded_raw_block3(self):
@@ -451,12 +451,12 @@ class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             '<a href="http://example1.com">example1</a></p>\n'
             '<p>value=${#1}<a href="http://example2.com">example2</a></p>')
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
         markdown = TEST_SANDBOX_MARK_DOWN_PATTERN % "{%-endraw-%}"
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
     def test_embedded_raw_block4(self):
@@ -468,7 +468,7 @@ class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             '<p>value=${#1}\n'
             '<a href="http://example2.com">example2</a></p>')
         resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "body", expected_literal)
 
     # }}}

@@ -225,20 +225,27 @@ class ResponseContextMixin(object):
 
     def assertResponseContextAnswerFeedbackContainsFeedback(  # noqa
             self, response, expected_feedback,
-            include_bulk_feedback=True):
+            include_bulk_feedback=True, html=False):
         answer_feedback = self.get_response_context_answer_feedback(response)
         feedback_str = answer_feedback.feedback
         if include_bulk_feedback:
             feedback_str += answer_feedback.bulk_feedback
 
         self.assertTrue(hasattr(answer_feedback, "feedback"))
-        self.assertIn(expected_feedback, feedback_str)
+        if not html:
+            self.assertIn(expected_feedback, feedback_str)
+        else:
+            self.assertInHTML(expected_feedback, feedback_str)
 
     def assertResponseContextAnswerFeedbackNotContainsFeedback(  # noqa
-                                        self, response, expected_feedback):
+                                        self, response, expected_feedback,
+                                        html=False):
         answer_feedback = self.get_response_context_answer_feedback(response)
         self.assertTrue(hasattr(answer_feedback, "feedback"))
-        self.assertNotIn(expected_feedback, answer_feedback.feedback)
+        if not html:
+            self.assertNotIn(expected_feedback, answer_feedback.feedback)
+        else:
+            self.assertInHTML(expected_feedback, answer_feedback.feedback, count=0)
 
     def assertResponseContextAnswerFeedbackCorrectnessEquals(  # noqa
                                         self, response, expected_correctness):
@@ -488,19 +495,26 @@ class SuperuserCreateMixin(ResponseContextMixin):
         pretended = session.get("relate_pretend_facilities", None)
         self.assertIsNone(pretended)
 
-    def assertFormErrorLoose(self, response, error, form_name="form"):  # noqa
-        """Assert that error is found in response.context['form'] errors"""
+    def assertFormErrorLoose(self, response, errors, form_name="form"):  # noqa
+        """Assert that errors is found in response.context['form'] errors"""
         import itertools
+        if errors is None:
+            errors = []
+        if not isinstance(errors, (list, tuple)):
+            errors = [errors]
         try:
             form_errors = list(
                 itertools.chain(*response.context[form_name].errors.values()))
         except TypeError:
             form_errors = None
-        if error is not None and form_errors is None:
-            self.fail("%(form_name)s have no errors")
-        elif error is None and form_errors is None:
-            return
-        self.assertIn(str(error), form_errors)
+
+        if form_errors is None or not form_errors:
+            if errors:
+                self.fail("%(form_name)s have no errors")
+            else:
+                return
+        for err in errors:
+            self.assertIn(err, form_errors)
 
 
 # {{{ defined here so that they can be used by in classmethod and instance method

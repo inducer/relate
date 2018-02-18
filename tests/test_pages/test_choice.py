@@ -231,7 +231,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
         page_data = self.get_sandbox_page_data()[2]
@@ -253,7 +253,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN_WITHOUT_CORRECT_ANSWER
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
             "one or more correct answer(s) "
@@ -263,7 +263,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN_WITH_DISREGARD
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
             "ChoiceQuestion does not allow any choices "
@@ -273,7 +273,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN_WITH_ALWAYS_CORRECT
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
             "ChoiceQuestion does not allow any choices "
@@ -284,7 +284,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "correct_answer",
                                            "This is the explanation.")
 
@@ -296,7 +296,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         resp = self.get_page_sandbox_preview_response(
             MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         expected_page_error = ("ValidationError: sandbox, choice 1: "
                                "more than one choice modes set: "
                                "'~CORRECT~~CORRECT~'")
@@ -306,7 +306,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         resp = self.get_page_sandbox_preview_response(
             MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         expected_page_error = ("ValidationError: sandbox, choice 1: "
                                "more than one choice modes set: "
                                "'~DISREGARD~~CORRECT~'")
@@ -321,7 +321,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
         page_data = self.get_sandbox_page_data()[2]
         self.assertTrue("permutation" in page_data)
@@ -345,7 +345,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
 
         # This is to make sure page_data exists and is ordered
@@ -373,7 +373,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
 
         resp = self.get_page_sandbox_submit_answer_response(
@@ -395,7 +395,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     % {"credit_mode": "proportional_correct"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
             answer_data={"choice": ['2', '5']})
@@ -419,7 +419,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     % {"credit_mode": "proportional_correct"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -461,7 +461,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         self.assertResponseContextContains(resp, "correct_answer",
                                            "This is the explanation.")
@@ -476,7 +476,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_error)
 
     def test_with_both_credit_mode_and_allow_partial_credit(self):
@@ -499,12 +499,12 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_error)
 
         resp = self.get_page_sandbox_preview_response(markdown2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_error)
 
     def test_without_credit_mode_but_allow_partial_credit(self):
@@ -558,51 +558,51 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown_exact1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_exact2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_exact3)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_exact4)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_proportional1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_proportional2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional", loose=True)
 
         resp = (
             self.get_page_sandbox_preview_response(markdown_proportional_correct1))
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional_correct", loose=True)
 
         resp = (
             self.get_page_sandbox_preview_response(markdown_proportional_correct2))
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional_correct", loose=True)
 
@@ -622,7 +622,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         resp = (
             self.get_page_sandbox_preview_response(markdown))
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_page_error)
 
 
@@ -706,11 +706,11 @@ class NormalizedAnswerTest(SingleCoursePageTestMixin, TestCase):
         buf = BytesIO(resp.content)
         with zipfile.ZipFile(buf, 'r') as zf:
             self.assertIsNone(zf.testzip())
-            self.assertEqual(len(zf.filelist), 1)
+            # todo: make more assertions in terms of file content
+            self.assertEqual(
+                len([f for f in zf.filelist if f.filename.endswith('.json')]), 1)
             for f in zf.filelist:
                 self.assertGreater(f.file_size, 0)
-            # todo: make more assertions in terms of file content
-            self.assertIn('.json', zf.filelist[0].filename)
 
     def test_multiple_choice_page_analytics(self):
         # todo: make more assertions in terms of content
