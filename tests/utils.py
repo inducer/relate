@@ -26,11 +26,10 @@ class BaseEmailBackendTestsMixin(object):
     email_backend = None
 
     def setUp(self):  # noqa
-        self.settings_override = override_settings(EMAIL_BACKEND=self.email_backend)
-        self.settings_override.enable()
-
-    def tearDown(self):  # noqa
-        self.settings_override.disable()
+        self.email_backend_settings_override = (
+            override_settings(EMAIL_BACKEND=self.email_backend))
+        self.email_backend_settings_override.enable()
+        self.addCleanup(self.email_backend_settings_override.disable)
 
     def assertStartsWith(self, first, second):  # noqa
         if not first.startswith(second):
@@ -103,16 +102,6 @@ class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
         super(LocmemBackendTestsMixin, self).tearDown()
         mail.outbox = []
 
-
-class BaseEmailBackendTestsMixin(object):
-    email_backend = None
-
-    def setUp(self):  # noqa
-        self.settings_override = override_settings(EMAIL_BACKEND=self.email_backend)
-        self.settings_override.enable()
-
-    def tearDown(self):  # noqa
-        self.settings_override.disable()
 
 # }}}
 

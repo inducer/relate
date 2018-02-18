@@ -333,10 +333,6 @@ class SuperuserCreateMixin(ResponseContextMixin):
         super(SuperuserCreateMixin, cls).setUpTestData()
 
     @classmethod
-    def tearDownClass(cls):  # noqa
-        super(SuperuserCreateMixin, cls).tearDownClass()
-
-    @classmethod
     def create_superuser(cls):
         return get_user_model().objects.create_superuser(
                                                 **cls.create_superuser_kwargs)
@@ -602,11 +598,6 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     get_user_model().objects.filter(pk__in=pks))
 
         cls.course_qset = Course.objects.all()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.c.logout()
-        super(CoursesTestMixinBase, cls).tearDownClass()
 
     @classmethod
     def create_user(cls, create_user_kwargs):
@@ -1405,11 +1396,9 @@ class FallBackStorageMessageTestMixin(object):
 
     def setUp(self):  # noqa
         super(FallBackStorageMessageTestMixin, self).setUp()
-        self.settings_override = override_settings(MESSAGE_STORAGE=self.storage)
-        self.settings_override.enable()
-
-    def tearDown(self):  # noqa
-        self.settings_override.disable()
+        self.msg_settings_override = override_settings(MESSAGE_STORAGE=self.storage)
+        self.msg_settings_override.enable()
+        self.addCleanup(self.msg_settings_override.disable)
 
     def get_listed_storage_from_response(self, response):
         return list(self.get_response_context_value_by_name(response, 'messages'))
@@ -1494,14 +1483,10 @@ class SubprocessRunpyContainerMixin(object):
                            "provide PY3 envrionment")
 
         super(SubprocessRunpyContainerMixin, cls).setUpClass()
-        cls.faked_container_patch = mock.patch(
-            "course.page.code.SPAWN_CONTAINERS_FOR_RUNPY", False)
-        cls.faked_container_patch.start()
 
         python_executable = os.getenv("PY_EXE")
 
         if not python_executable:
-            import sys
             python_executable = sys.executable
 
         import subprocess
@@ -1519,17 +1504,27 @@ class SubprocessRunpyContainerMixin(object):
             stderr=subprocess.DEVNULL
         )
 
-        cls.faked_container_patch.start()
+    def setUp(self):
+        super(SubprocessRunpyContainerMixin, self).setUp()
+        self.faked_container_patch = mock.patch(
+            "course.page.code.SPAWN_CONTAINERS_FOR_RUNPY", False)
+        self.faked_container_patch.start()
+        self.addCleanup(self.faked_container_patch.stop)
 
     @classmethod
     def tearDownClass(cls):  # noqa
         super(SubprocessRunpyContainerMixin, cls).tearDownClass()
+
+        from course.page.code import SPAWN_CONTAINERS_FOR_RUNPY
+        # Make sure SPAWN_CONTAINERS_FOR_RUNPY is reset to True
+        assert SPAWN_CONTAINERS_FOR_RUNPY
         if sys.platform.startswith("win"):
             # Without these lines, tests on Appveyor hanged when all tests
-            # finished. However, On nix platforms, these lines resulted in test
+            # finished.
+            # However, On nix platforms, these lines resulted in test
             # failure when there were more than one TestCases which were using
-            # this mixin.
-            cls.faked_container_patch.stop()
+            # this mixin. So we don't kill the subprocess, and it won't bring
+            # bad side effects to remainder tests.
             cls.faked_container_process.kill()
 
 

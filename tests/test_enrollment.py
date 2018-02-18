@@ -157,9 +157,7 @@ class BaseEmailConnectionMixin:
         self.settings_email_connection_override = (
             override_settings(**kwargs))
         self.settings_email_connection_override.enable()
-
-    def tearDown(self):
-        self.settings_email_connection_override.disable()
+        self.addCleanup(self.settings_email_connection_override.stop)
 
 
 class EnrollmentTestBaseMixin(SingleCourseTestMixin,
