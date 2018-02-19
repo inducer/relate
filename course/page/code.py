@@ -894,12 +894,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     if name in ["type"]:
                         return True
                     elif name == "src":
-                        if is_allowed_data_uri([
-                                "audio/wav",
-                                ], value):
-                            return bleach.sanitizer.VALUE_SAFE
-                        else:
-                            return False
+                        return is_allowed_data_uri([
+                            "audio/wav",
+                            ], value)
                     else:
                         return False
 
@@ -907,11 +904,10 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     if name in ["alt", "title"]:
                         return True
                     elif name == "src":
-                        if is_allowed_data_uri([
-                                "image/png",
-                                "image/jpeg",
-                                ], value):
-                            return bleach.sanitizer.VALUE_SAFE
+                        return is_allowed_data_uri([
+                            "image/png",
+                            "image/jpeg",
+                            ], value)
                     else:
                         return False
 
@@ -925,7 +921,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                             "audio": filter_audio_attributes,
                             "source": filter_source_attributes,
                             "img": filter_img_attributes,
-                            })
+                            },
+
+                        # Fixed https://github.com/inducer/relate/issues/435
+                        # Ref: https://github.com/mozilla/bleach/issues/348
+                        protocols=["data"])
 
             bulk_feedback_bits.extend(
                     sanitize(snippet) for snippet in response.html)

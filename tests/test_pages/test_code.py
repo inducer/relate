@@ -783,36 +783,38 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_html_audio(self):
         b64_data = "T2dnUwACAAAAAAAAAAA+HAAAAAAAAGyawCEBQGZpc2h"
-        audio1 = (
+        audio_valid = (
             '<audio controls><source src="data:audio/wav;base64,'
             '%s" type="audio/wav">'
             '</audio>' % b64_data)
-        audio1_1 = (
+        audio_invalid1 = (
             '<audio control><source src="data:audio/wav;base64,'
             '%s" type="audio/wav">'
             '</audio>' % b64_data)
-        audio1_2 = (
+        audio_invalid2 = (
             '<audio controls><source href="data:audio/wav;base64,'
             '%s" type="audio/wav">'
             '</audio>' % b64_data)
-        audio2 = (
+        audio_invalid3 = (
             '<audio><source src="data:audio/wav;base64,'
             '%s" type="audio/wav">'
             '</audio>' % b64_data)
-        audio3 = (
+        audio_invalid4 = (
             '<audio controls><source src="data:audio/ogg;base64,'
             '%s" type="audio/ogg">'
             '</audio>' % b64_data)
-        audio4 = (
+        audio_invalid5 = (
             '<audio controls><source src="hosse.wav" type="audio/wav">'
             '</audio>')
 
-        html = [audio1, audio1_1, audio1_2, audio2, audio3, audio4]
+        html = [audio_valid, audio_invalid1, audio_invalid2, audio_invalid3,
+                audio_invalid4, audio_invalid5]
 
         self.assert_runpy_result_and_response(
             "user_error",
-            expected_msgs=[audio1],
-            not_execpted_msgs=[audio1_1, audio1_2, audio2, audio3, audio4],
+            expected_msgs=[audio_valid],
+            not_execpted_msgs=[audio_invalid1, audio_invalid2, audio_invalid3,
+                               audio_invalid4, audio_invalid5],
             html=html,
             in_html=True
         )
@@ -823,31 +825,60 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             "6XZn90AAAAJcEhZcwAADsIAAA7CARUoSoAAAAAMSURBVBjTYzjAcAAAAwQBgXn"
             "6PNcAAAAASUVORK5CYII=")
 
-        img1 = (
+        img_valid = (
             '<img src="data:image/png;base64,%s" alt="test img" '
             'title="test image">' % b64_data)
 
-        img1_1 = (
+        img_invalid1 = (
             '<img src="data:image/png;base64,%s" '
             'alt="test img" '
             'width="126" '
             'height="44">' % b64_data)
 
-        img1_2 = (
+        img_invalid2 = (
             '<img href="data:image/png;base64,%s" '
             'alt="test img" title="test image">' % b64_data)
 
-        img2 = (
+        img_invalid3 = (
             '<img src="data:image/bmp;base64,%s" '
             'alt="test img" title="test image">' % b64_data)
 
-        html = [img1, img1_1, img1_2, img2]
+        html = [img_valid, img_invalid1, img_invalid2, img_invalid3]
 
         self.assert_runpy_result_and_response(
             "user_error",
-            expected_msgs=[img1],
-            # not_execpted_msgs=[img1_1, img1_2, img2],
+            expected_msgs=[img_valid],
+            not_execpted_msgs=[img_invalid1, img_invalid2, img_invalid3],
             html=html,
+            in_html=True,
+        )
+
+    def test_html_with_data_protocol_for_other_tags_sanitized(self):
+        # Fixed https://github.com/inducer/relate/issues/435
+        # Ref: https://github.com/mozilla/bleach/issues/348
+        b64_data = ("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAAB=")
+
+        html_strings = [
+            '<a src="data:,Hello%2C%20Evil%20World!"></a>',
+            '<a href="data:,Hello%2C%20Evil%20World!"></a>',
+            '<a src="data:text/html;base64,%s"</a>' % b64_data,
+            '<a src="data:text/html;base64,%s"</a>' % b64_data,
+
+            '<script src="data:text/html,<script>alert("Evil");</script>"',
+            '<script href="data:text/html,<script>alert("Evil");</script>"',
+            '<script src="data:text/html;base64,%s"</script>' % b64_data,
+            '<script href="data:text/html;base64,%s"</script>' % b64_data,
+
+            '<style src="data:,Evilcss">',
+            '<style href="data:,Evilcss">',
+            '<style src="data:image/png;base64,%s">' % b64_data,
+            '<style href="data:image/png;base64,%s">' % b64_data,
+        ]
+
+        self.assert_runpy_result_and_response(
+            "user_error",
+            not_execpted_msgs=html_strings + ["Evil", b64_data],
+            html=html_strings,
             in_html=True,
         )
 
