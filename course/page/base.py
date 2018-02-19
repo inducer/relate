@@ -145,18 +145,18 @@ class InvalidFeedbackPointsError(ValueError):
     pass
 
 
-def get_close(value):
-    # type: (float) -> Union[float, int]
+def round_point_count_to_quarters(value, atol=1e-5):
+    # type: (float, float) -> Union[float, int]
     """
     If 'value' is close to an int, a half or quarter, return the close value,
     otherwise return the original value.
     """
 
-    if abs(value - int(value)) < ATOL:
+    if abs(value - int(value)) < atol:
         return int(value)
 
     import math
-    _atol = ATOL * 4
+    _atol = atol * 4
     v = value * 4
     if abs(v - math.floor(v)) < _atol:
         v = math.floor(v)
@@ -168,13 +168,13 @@ def get_close(value):
     return round(v / 4, 2)
 
 
-def validate_point_count(correctness):
-    # type: (Optional[float]) -> (Optional[Union[float, int]])
+def validate_point_count(correctness, atol=1e-5):
+    # type: (Optional[float], float) -> (Optional[Union[float, int]])
 
     if correctness is None:
         return None
 
-    if correctness < -ATOL or correctness > MAX_EXTRA_CREDIT_FACTOR + ATOL:
+    if correctness < -atol or correctness > MAX_EXTRA_CREDIT_FACTOR + atol:
         raise InvalidFeedbackPointsError(
             _("'correctness' is invalid: expecting "
               "a value within [0, %(max_extra_credit_factor)s] or None, "
@@ -183,7 +183,7 @@ def validate_point_count(correctness):
                "invalid_value": correctness}
         )
 
-    return get_close(correctness)
+    return round_point_count_to_quarters(correctness, atol)
 
 
 def get_auto_feedback(correctness):
