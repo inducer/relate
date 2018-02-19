@@ -281,132 +281,130 @@ class GradesChangeStateMachineTest(SingleCourseTestMixin, TestCase):
         GCFactory.create(**(self.gc(points=None)))
         self.assertGradeChangeStateEqual("NONE")
 
-    # {{{ These currently failed, should work when Issue # 263 and #417 are fixed
+    # {{{ Fixing Issue # 263 and #417
 
-    # def test_update_latest_gc_of_ealier_finished_session(self):
-    #     self.use_default_setup()
-    #
-    #     # Issue # 263 and #417
-    #     self.update_gc(self.gc2, points=10)
-    #     self.assertGradeChangeStateEqual(6)
-    #
-    # def test_append_nonsession_gc_after_reopen_session2(self):
-    #     self.use_default_setup()
-    #     self.reopen_session2()
-    #
-    #     # Append a grade change without session
-    #     # grade_time need to be specified, because the faked gc
-    #     # is using fake time, while reopen a session will create
-    #     # an actual gc using the actual time.
-    #     self.append_gc(self.gc(points=11, grade_time=now()))
-    #     self.assertGradeChangeStateEqual(11)
-    #
-    # def test_append_gc_with_session_after_reopen_session2(self):
-    #     self.use_default_setup()
-    #     self.reopen_session2()
-    #
-    #     # append a grade change for session2
-    #     # grade_time need to be specified, because the faked gc
-    #     # is using fake time, while reopen a session will create
-    #     # an actual gc using the actual time.
-    #     self.append_gc(self.gc(points=12, flow_session=self.session2,
-    #                            grade_time=now()))
-    #     self.assertGradeChangeStateEqual(12)
-    #
-    # def test_special_case(self):
-    #     # https://github.com/inducer/relate/pull/423#discussion_r162121467
-    #     gc2015 = GCFactory.create(**(self.gc(points=5)))
-    #
-    #     session1 = fctr.FlowSessionFactory.create(
-    #         participation=self.ptcp,
-    #         start_time=self.time-timedelta(days=17),
-    #         completion_time=self.time-timedelta(days=14))
-    #
-    #     self.time_increment()
-    #
-    #     gc2016 = GCFactory.create(
-    #         **(self.gc(points=0, flow_session=session1, grade_time=self.time)))
-    #
-    #     gc2017 = GCFactory.create(**(self.gc(points=7)))
-    #
-    #     session2 = fctr.FlowSessionFactory.create(
-    #         participation=self.ptcp,
-    #         start_time=self.time-timedelta(days=17),
-    #         completion_time=self.time-timedelta(days=15))
-    #
-    #     self.time_increment()
-    #
-    #     gc2018 = GCFactory.create(**(self.gc(points=6, flow_session=session2)))
-    #
-    #     assert models.GradingOpportunity.objects.count() == 1
-    #     assert models.GradeChange.objects.count() == 4
-    #     assert models.FlowSession.objects.count() == 2
-    #
-    #     self.assertTrue(session2.completion_time < session1.completion_time)
-    #     self.assertTrue(
-    #         gc2015.grade_time < gc2016.grade_time < gc2017.grade_time
-    #         < gc2018.grade_time)
-    #
-    #     self.assertGradeChangeStateEqual(gc2017.percentage())
+    def test_update_latest_gc_of_ealier_finished_session(self):
+        self.use_default_setup()
+
+        # Issue # 263 and #417
+        self.update_gc(self.gc2, points=10)
+        self.assertGradeChangeStateEqual(6)
+
+    def test_append_nonsession_gc_after_reopen_session2(self):
+        self.use_default_setup()
+        self.reopen_session2()
+
+        # Append a grade change without session
+        # grade_time need to be specified, because the faked gc
+        # is using fake time, while reopen a session will create
+        # an actual gc using the actual time.
+        self.append_gc(self.gc(points=11, grade_time=now()))
+        self.assertGradeChangeStateEqual(11)
+
+    def test_append_gc_with_session_after_reopen_session2(self):
+        self.use_default_setup()
+        self.reopen_session2()
+
+        # append a grade change for session2
+        # grade_time need to be specified, because the faked gc
+        # is using fake time, while reopen a session will create
+        # an actual gc using the actual time.
+        self.append_gc(self.gc(points=12, flow_session=self.session2,
+                               grade_time=now()))
+        self.assertGradeChangeStateEqual(12)
+
+    def test_special_case(self):
+        # https://github.com/inducer/relate/pull/423#discussion_r162121467
+        gc2015 = GCFactory.create(**(self.gc(points=5)))
+
+        session1 = fctr.FlowSessionFactory.create(
+            participation=self.ptcp,
+            start_time=self.time-timedelta(days=17),
+            completion_time=self.time-timedelta(days=14))
+
+        self.time_increment()
+
+        gc2016 = GCFactory.create(
+            **(self.gc(points=0, flow_session=session1, grade_time=self.time)))
+
+        gc2017 = GCFactory.create(**(self.gc(points=7)))
+
+        session2 = fctr.FlowSessionFactory.create(
+            participation=self.ptcp,
+            start_time=self.time-timedelta(days=17),
+            completion_time=self.time-timedelta(days=15))
+
+        self.time_increment()
+
+        gc2018 = GCFactory.create(**(self.gc(points=6, flow_session=session2)))
+
+        assert models.GradingOpportunity.objects.count() == 1
+        assert models.GradeChange.objects.count() == 4
+        assert models.FlowSession.objects.count() == 2
+
+        self.assertTrue(session2.completion_time < session1.completion_time)
+        self.assertTrue(
+            gc2015.grade_time < gc2016.grade_time < gc2017.grade_time
+            < gc2018.grade_time)
+
+        self.assertGradeChangeStateEqual(gc2017.percentage())
 
     # }}}
 
-    # {{{ These test fail when two grade change have the same grade_time
-    # The expected behavior is GradeChange object with the larger pk
-    # dominate. Expected be fixed with #263 and #417
-    # def test_gcs_have_same_grade_time1(self):
-    #     gc1 = GCFactory.create(**(self.gc(points=0)))
-    #     session = fctr.FlowSessionFactory.create(
-    #         participation=self.ptcp,
-    #         completion_time=gc1.grade_time-timedelta(days=1))
-    #     GCFactory.create(**(self.gc(points=5, flow_session=session,
-    #                                 grade_time=gc1.grade_time)))
-    #     self.assertGradeChangeStateEqual(5)
+    # {{{ GradeChange object with the larger pk dominate the final result.
+    def test_gcs_have_same_grade_time1(self):
+        gc1 = GCFactory.create(**(self.gc(points=0)))
+        session = fctr.FlowSessionFactory.create(
+            participation=self.ptcp,
+            completion_time=gc1.grade_time-timedelta(days=1))
+        GCFactory.create(**(self.gc(points=5, flow_session=session,
+                                    grade_time=gc1.grade_time)))
+        self.assertGradeChangeStateEqual(5)
 
-    # def test_gc_have_same_grade_time2(self):
-    #     session = fctr.FlowSessionFactory.create(
-    #         participation=self.ptcp,
-    #         start_time=self.time-timedelta(days=1),
-    #         completion_time=self.time)
-    #     self.time_increment()
-    #     gc1 = GCFactory.create(**(self.gc(points=5, flow_session=session)))
-    #     GCFactory.create(**(self.gc(points=0, grade_time=gc1.grade_time)))
-    #     self.assertGradeChangeStateEqual(0)
+    def test_gc_have_same_grade_time2(self):
+        session = fctr.FlowSessionFactory.create(
+            participation=self.ptcp,
+            start_time=self.time-timedelta(days=1),
+            completion_time=self.time)
+        self.time_increment()
+        gc1 = GCFactory.create(**(self.gc(points=5, flow_session=session)))
+        GCFactory.create(**(self.gc(points=0, grade_time=gc1.grade_time)))
+        self.assertGradeChangeStateEqual(0)
+
     # }}}
 
-    # {{{ These currently failed, #430, and should be removed and replaced
-    # if session_reopened won't be introduced as a gradechange state
+    # {{{ Fixing #430, session_reopened is introduced as a gradechange state
 
-    # def test_reopen_session2(self):
-    #     self.use_default_setup()
-    #
-    #     # Issue #430
-    #     n_gc = models.GradeChange.objects.count()
-    #     self.reopen_session2()
-    #     self.assertGradeChangeStateEqual("OTHER_STATE")
-    #
-    #     # New GradeChange object is created, with state "session_reopened"
-    #     expected_n_gc = models.GradeChange.objects.count()
-    #
-    #     self.assertEqual(expected_n_gc, n_gc + 1)
-    #
-    #     # This need to add a gracde change state session_reopened
-    #     self.assertEqual(models.GradeChange.objects.last().state,
-    #                      g_state.session_reopened)
-    #
-    #     # Test saving an reopened session won't created new GradeChange object
-    #     self.session2.start_time = now()
-    #     self.session2.save()
-    #     self.session2.refresh_from_db()
-    #     self.assertEqual(expected_n_gc, n_gc + 1)
-    #     self.assertEqual(models.GradeChange.objects.last().state,
-    #                      g_state.session_reopened)
-    #
-    # def test_gc_last_session_reopened(self):
-    #     GCFactory.create(**(self.gc(points=6)))
-    #     GCFactory.create(**(self.gc(points=0, state=g_state.session_reopened)))
-    #     _, machine = get_gc_and_machine(self.gopp, self.ptcp)
-    #     self.assertGradeChangeStateEqual("OTHER_STATE")
-    #     self.assertEqual(machine.valid_percentages, [])
+    def test_reopen_session2(self):
+        self.use_default_setup()
+
+        # Issue #430
+        n_gc = models.GradeChange.objects.count()
+        self.reopen_session2()
+        self.assertGradeChangeStateEqual("OTHER_STATE")
+
+        # New GradeChange object is created, with state "session_reopened"
+        expected_n_gc = models.GradeChange.objects.count()
+
+        self.assertEqual(expected_n_gc, n_gc + 1)
+
+        # This need to add a gracde change state session_reopened
+        self.assertEqual(models.GradeChange.objects.last().state,
+                         g_state.session_reopened)
+
+        # Test saving an reopened session won't created new GradeChange object
+        self.session2.start_time = now()
+        self.session2.save()
+        self.session2.refresh_from_db()
+        self.assertEqual(expected_n_gc, n_gc + 1)
+        self.assertEqual(models.GradeChange.objects.last().state,
+                         g_state.session_reopened)
+
+    def test_gc_last_session_reopened(self):
+        GCFactory.create(**(self.gc(points=6)))
+        GCFactory.create(**(self.gc(points=0, state=g_state.session_reopened)))
+        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
+        self.assertGradeChangeStateEqual("OTHER_STATE")
+        self.assertEqual(machine.valid_percentages, [])
 
     # }}}
