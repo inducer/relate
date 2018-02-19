@@ -643,6 +643,21 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         feedback_bits = []
 
+        correctness = None
+
+        if "points" in response_dict:
+            correctness = response_dict["points"]
+            try:
+                feedback_bits.append(
+                        "<p><b>%s</b></p>"
+                        % get_auto_feedback(correctness))
+            except Exception as e:
+                correctness = None
+                response_dict["result"] = "setup_error"
+                response_dict["message"] = (
+                    "%s: %s" % (type(e).__name__, str(e))
+                )
+
         # {{{ send email if the grading code broke
 
         if response_dict["result"] in [
@@ -746,13 +761,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         response = dict_to_struct(response_dict)
 
         bulk_feedback_bits = []
-        if hasattr(response, "points"):
-            correctness = response.points
-            feedback_bits.append(
-                    "<p><b>%s</b></p>"
-                    % get_auto_feedback(correctness))
-        else:
-            correctness = None
 
         if response.result == "success":
             pass

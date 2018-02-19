@@ -32,11 +32,13 @@ from django.core import mail
 
 from course.models import FlowSession
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
-from course.page.base import AnswerFeedback
+from course.page.base import (
+    AnswerFeedback, get_auto_feedback,
+    validate_point_count, InvalidFeedbackPointsError)
 
 from tests.base_test_mixins import (
     SingleCoursePageTestMixin, FallBackStorageMessageTestMixin)
-from tests.utils import LocmemBackendTestsMixin
+from tests.utils import LocmemBackendTestsMixin, mock
 
 QUIZ_FLOW_ID = "quiz-test"
 
@@ -620,16 +622,77 @@ class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
     # }}}
 
 
+class ValidatePointCountTest(unittest.TestCase):
+    """
+    test course.page.base.validate_point_count
+    """
+    def test_none(self):
+        self.assertIsNone(validate_point_count(None))
+
+    def test_negative_error(self):
+        with self.assertRaises(InvalidFeedbackPointsError):
+            validate_point_count(-0.0001)
+
+    def test_above_max_extra_credit_factor_error(self):
+        with self.assertRaises(InvalidFeedbackPointsError):
+            validate_point_count(MAX_EXTRA_CREDIT_FACTOR + 0.0001)
+
+    def test_close_0_negative(self):
+        self.assertEqual(validate_point_count(-0.000009), 0)
+
+    def test_close_0_positive(self):
+        self.assertEqual(validate_point_count(0.000009), 0)
+
+    def test_above_close_max_extra_credit_factor(self):
+        self.assertEqual(validate_point_count(
+            MAX_EXTRA_CREDIT_FACTOR + 0.000009), MAX_EXTRA_CREDIT_FACTOR)
+
+    def test_below_close_max_extra_credit_factor(self):
+        self.assertEqual(validate_point_count(
+            MAX_EXTRA_CREDIT_FACTOR - 0.000009), MAX_EXTRA_CREDIT_FACTOR)
+
+    def test_int(self):
+        self.assertEqual(validate_point_count(5), 5)
+
+    def test_gt_close_int(self):
+        self.assertEqual(validate_point_count(5.000009), 5)
+
+    def test_lt_close_int(self):
+        self.assertEqual(validate_point_count(4.9999999), 5)
+
+    def test_quarter(self):
+        self.assertEqual(validate_point_count(1.25), 1.25)
+
+    def test_gt_quarter(self):
+        self.assertEqual(validate_point_count(0.2500009), 0.25)
+
+    def test_lt_quarter(self):
+        self.assertEqual(validate_point_count(9.7499999), 9.75)
+
+    def test_half(self):
+        self.assertEqual(validate_point_count(1.5), 1.5)
+
+    def test_gt_half(self):
+        self.assertEqual(validate_point_count(3.500001), 3.5)
+
+    def test_lt_half(self):
+        self.assertEqual(validate_point_count(0.4999999), 0.5)
+
+
 class AnswerFeedBackTest(unittest.TestCase):
+    """
+    test course.page.base.AnswerFeedBack
+    """
+
     # TODO: more tests
     def test_correctness_negative(self):
         correctness = -0.1
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidFeedbackPointsError):
             AnswerFeedback(correctness)
 
     def test_correctness_exceed_max_extra_credit_factor(self):
         correctness = MAX_EXTRA_CREDIT_FACTOR + 0.1
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidFeedbackPointsError):
             AnswerFeedback(correctness)
 
     def test_correctness_can_be_none(self):
@@ -649,5 +712,113 @@ class AnswerFeedBackTest(unittest.TestCase):
     def test_from_json_none(self):
         af = AnswerFeedback.from_json(None, None)
         self.assertIsNone(af)
+
+    def test_validate_point_count_called(self):
+        import random
+        with mock.patch("course.page.base.validate_point_count")\
+                as mock_validate_point_count,\
+                mock.patch("course.page.base.get_auto_feedback")\
+                as mock_get_auto_feedback:
+            mock_validate_point_count.side_effect = lambda x: x
+
+            mock_get_auto_feedback.side_effect = lambda x: x
+            for i in range(10):
+                correctness = random.uniform(0, 15)
+                feedback = "some feedback"
+                AnswerFeedback(correctness, feedback)
+                mock_validate_point_count.assert_called_once_with(correctness)
+
+                # because feedback is not None
+                self.assertEqual(mock_get_auto_feedback.call_count, 0)
+                mock_validate_point_count.reset_mock()
+
+            for i in range(10):
+                correctness = random.uniform(0, 15)
+                AnswerFeedback(correctness)
+
+                # because get_auto_feedback is mocked, the call_count of
+                # mock_validate_point_count is only once
+                mock_validate_point_count.assert_called_once_with(correctness)
+                mock_validate_point_count.reset_mock()
+
+                # because feedback is None
+                self.assertEqual(mock_get_auto_feedback.call_count, 1)
+                mock_get_auto_feedback.reset_mock()
+
+            AnswerFeedback(correctness=None)
+            mock_validate_point_count.assert_called_once_with(None)
+
+
+class GetAutoFeedbackTest(unittest.TestCase):
+    """
+    test course.page.base.get_auto_feedback
+    """
+    def test_none(self):
+        self.assertIn("No information", get_auto_feedback(None))
+
+    def test_not_correct(self):
+        self.assertIn("not correct", get_auto_feedback(0.000001))
+        self.assertIn("not correct", get_auto_feedback(-0.000001))
+
+    def test_correct(self):
+        result = get_auto_feedback(0.999999)
+        self.assertIn("is correct", result)
+        self.assertNotIn("bonus", result)
+
+        result = get_auto_feedback(1)
+        self.assertIn("is correct", result)
+        self.assertNotIn("bonus", result)
+
+        result = get_auto_feedback(1.000001)
+        self.assertIn("is correct", result)
+        self.assertNotIn("bonus", result)
+
+    def test_correct_with_bonus(self):
+        result = get_auto_feedback(1.01)
+        self.assertIn("is correct", result)
+        self.assertIn("bonus", result)
+
+        result = get_auto_feedback(2)
+        self.assertIn("is correct", result)
+        self.assertIn("bonus", result)
+
+        result = get_auto_feedback(9.99999)
+        self.assertIn("is correct", result)
+        self.assertIn("bonus", result)
+
+    def test_with_mostly_correct(self):
+        self.assertIn("mostly correct", get_auto_feedback(0.51))
+        self.assertIn("mostly correct", get_auto_feedback(0.999))
+
+    def test_with_somewhat_correct(self):
+        self.assertIn("somewhat correct", get_auto_feedback(0.5))
+        self.assertIn("somewhat correct", get_auto_feedback(0.5000001))
+        self.assertIn("somewhat correct", get_auto_feedback(0.001))
+        self.assertIn("somewhat correct", get_auto_feedback(0.2))
+
+    def test_correctness_negative(self):
+        correctness = -0.1
+        with self.assertRaises(InvalidFeedbackPointsError):
+            get_auto_feedback(correctness)
+
+    def test_correctness_exceed_max_extra_credit_factor(self):
+        correctness = MAX_EXTRA_CREDIT_FACTOR + 0.1
+        with self.assertRaises(InvalidFeedbackPointsError):
+            get_auto_feedback(correctness)
+
+    def test_validate_point_count_called(self):
+        import random
+        with mock.patch("course.page.base.validate_point_count") \
+                as mock_validate_point_count:
+            mock_validate_point_count.side_effect = lambda x: x
+            for i in range(10):
+                correctness = random.uniform(0, 15)
+                get_auto_feedback(correctness)
+                mock_validate_point_count.assert_called_once_with(correctness)
+                mock_validate_point_count.reset_mock()
+
+            get_auto_feedback(correctness=None)
+            mock_validate_point_count.assert_called_once_with(None)
+
 
 # vim: fdm=marker
