@@ -898,7 +898,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -915,7 +915,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -937,7 +937,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
@@ -955,7 +955,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
@@ -973,7 +973,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -991,7 +991,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -1009,7 +1009,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
@@ -1036,7 +1036,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -1061,7 +1061,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         with mock.patch("course.page.PageContext") as mock_page_context:
             mock_page_context.return_value.in_sandbox = False
