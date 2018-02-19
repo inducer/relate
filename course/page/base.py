@@ -44,7 +44,7 @@ from django.conf import settings
 # {{{ mypy
 
 if False:
-    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet  # noqa
+    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union  # noqa
     from django import http  # noqa
     from course.models import (  # noqa
             Course,
@@ -56,6 +56,7 @@ if False:
 
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
+ATOL = 1e-5
 
 
 class PageContext(object):
@@ -139,13 +140,63 @@ def markup_to_html(
 
 # {{{ answer feedback type
 
+
+class InvalidFeedbackPointsError(ValueError):
+    pass
+
+
+def round_point_count_to_quarters(value, atol=1e-5):
+    # type: (float, float) -> Union[float, int]
+    """
+    If 'value' is close to an int, a half or quarter, return the close value,
+    otherwise return the original value.
+    """
+
+    if abs(value - int(value)) < atol:
+        return int(value)
+
+    import math
+    _atol = atol * 4
+    v = value * 4
+    if abs(v - math.floor(v)) < _atol:
+        v = math.floor(v)
+    elif abs(v - math.ceil(v)) < _atol:
+        v = math.ceil(v)
+    else:
+        return value
+
+    return round(v / 4, 2)
+
+
+def validate_point_count(correctness, atol=1e-5):
+    # type: (Optional[float], float) -> (Optional[Union[float, int]])
+
+    if correctness is None:
+        return None
+
+    if correctness < -atol or correctness > MAX_EXTRA_CREDIT_FACTOR + atol:
+        raise InvalidFeedbackPointsError(
+            _("'correctness' is invalid: expecting "
+              "a value within [0, %(max_extra_credit_factor)s] or None, "
+              "got %(invalid_value)s.")
+            % {"max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
+               "invalid_value": correctness}
+        )
+
+    return round_point_count_to_quarters(correctness, atol)
+
+
 def get_auto_feedback(correctness):
     # type: (Optional[float]) -> Text
+
+    correctness = validate_point_count(correctness)
+
     if correctness is None:
         return six.text_type(_("No information on correctness of answer."))
-    elif abs(correctness - 0) < 1e-5:
+
+    if correctness == 0:
         return six.text_type(_("Your answer is not correct."))
-    elif abs(correctness - 1) < 1e-5:
+    elif correctness == 1:
         return six.text_type(_("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
@@ -190,10 +241,7 @@ class AnswerFeedback(object):
     def __init__(self, correctness, feedback=None, bulk_feedback=None):
         # type: (Optional[float], Optional[Text], Optional[Text]) -> None
 
-        if correctness is not None:
-            # allow for extra credit
-            if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
-                raise ValueError(_("Invalid correctness value"))
+        correctness = validate_point_count(correctness)
 
         if feedback is None:
             feedback = get_auto_feedback(correctness)

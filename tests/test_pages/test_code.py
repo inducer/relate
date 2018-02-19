@@ -35,6 +35,8 @@ from course.page.code import (
     RUNPY_PORT, request_python_run_with_retries, InvalidPingResponse,
     is_nuisance_failure)
 
+from course.constants import MAX_EXTRA_CREDIT_FACTOR
+
 from tests.base_test_mixins import (
     SubprocessRunpyContainerMixin,
     SingleCoursePageTestMixin)
@@ -74,6 +76,12 @@ GRADE_CODE_FAILING_MSG = (
 )
 
 RUNPY_WITH_RETRIES_PATH = "course.page.code.request_python_run_with_retries"
+
+AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
+    "'correctness' is invalid: expecting "
+    "a value within [0, %s] or None, "
+    "got %s."
+)
 
 
 class RealDockerTestMixin(object):
@@ -353,6 +361,207 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             "some stderr",
             stderr="some stderr"
         )
+
+    # {{{ https://github.com/inducer/relate/pull/448
+    def test_feedback_points_close_to_1(self):
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1.000000000002,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_feedback_code_exceed_1(self):
+        feedback_points = 1.1
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1.1)
+
+        expected_feedback = "Your answer is correct and earned bonus points."
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, expected_feedback)
+
+    def test_feedback_code_positive_close_to_0(self):
+        # https://github.com/inducer/relate/pull/448#issuecomment-363655132
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1,
+                        "min_points": 0.00000000001
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        # Post a wrong answer
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b - a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
+
+    def test_feedback_code_negative_close_to_0(self):
+        # https://github.com/inducer/relate/pull/448#issuecomment-363655132
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1,
+                        "min_points": -0.00000000001
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        # Post a wrong answer
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b - a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
+
+    def test_feedback_code_error_close_below_max_auto_feedback_points(self):
+        feedback_points = MAX_EXTRA_CREDIT_FACTOR - 1e-6
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(
+            resp, MAX_EXTRA_CREDIT_FACTOR)
+
+    def test_feedback_code_error_close_above_max_auto_feedback_points(self):
+        feedback_points = MAX_EXTRA_CREDIT_FACTOR + 1e-6
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(
+            resp, MAX_EXTRA_CREDIT_FACTOR)
+
+    def test_feedback_code_error_negative_feedback_points(self):
+        invalid_feedback_points = -0.1
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1,
+                        "min_points": invalid_feedback_points
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        # Post a wrong answer
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b - a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+
+        error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
+                     % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
+
+        self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+            resp, error_msg)
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, GRADE_CODE_FAILING_MSG)
+
+    def test_feedback_code_error_exceed_max_extra_credit_factor(self):
+        invalid_feedback_points = 10.1
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": invalid_feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+        error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
+                     % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
+
+        self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+            resp, error_msg)
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, GRADE_CODE_FAILING_MSG)
+
+    def test_feedback_code_error_exceed_max_extra_credit_factor_email(self):
+        invalid_feedback_points = 10.1
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": invalid_feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHaveValidPage(resp)
+
+        with mock.patch("course.page.PageContext") as mock_page_context:
+            mock_page_context.return_value.in_sandbox = False
+
+            # This remove the warning caused by mocked commit_sha value
+            # "CacheKeyWarning: Cache key contains characters that
+            # will cause errors ..."
+            mock_page_context.return_value.commit_sha = b"1234"
+
+            resp = self.get_page_sandbox_submit_answer_response(
+                markdown,
+                answer_data={"answer": ['c = b + a\r']})
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+            error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
+                         % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
+
+            self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                resp, error_msg)
+
+            self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, GRADE_CODE_FAILING_MSG)
+            self.assertEqual(len(mail.outbox), 1)
+
+            self.assertIn(error_msg, mail.outbox[0].body)
+
+    # }}}
 
 
 class RequestPythonRunWithRetriesTest(unittest.TestCase):
