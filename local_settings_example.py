@@ -295,6 +295,31 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+# Uncomment and configure the following if you want to alter how export gradebooks
+# to csv files. For csv encodings, see
+# https://docs.python.org/3/library/codecs.html#encodings-and-unicode for more
+# details.
+
+# RELATE_CSV_SETTINGS = {
+#     "GRADEBOOK_EXPORT":{
+#
+#         # The user attributes included in the exported csv, must be a tuple/list
+#         # of tuple/list of user model field names. If not configured (or
+#         # configured None), (['username', 'last_name', 'first_name'],)
+#         # will be used.
+#         "fields_choices":(
+#             ['username', 'last_name', 'first_name'],
+#             ['username', 'last_name', 'first_name', 'institutional_id'],
+#         ),
+#
+#         # The encoding used for the exported csv, for example, utf_8_sig is an
+#         # encoding invented by Microsoft, as a variant of UTF-8. 'utf-8' is an
+#         # always-available option in the export gradebook interface.
+#         #.If not configured(or configured None), ['utf-8'] will be used.
+#         "encodings": ["utf_8_sig", "cp273"],
+#     }
+# }
+
 # {{{ docker
 
 # A string containing the image ID of the docker image to be used to run

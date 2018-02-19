@@ -22,11 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import os
 from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
+
+from course.grades import ExportGradeBookForm
+
 from tests.utils import mock
 
 
@@ -712,3 +716,280 @@ class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
     def test_warning_conf_false(self):
         self.assertCheckMessages(
             ["relate_disable_codehilite_markdown_extension.W002"])
+
+
+class CheckRelateCsvSettings(CheckRelateSettingsBase):
+    # This TestCase is not pure for check, but also make sure it returned
+    # expected result
+    msg_id_prefix = "relate_csv_setting"
+
+    RESULT_WHEN_NOT_CONFIGURED = {
+        'export_csv_encodings_options': [('utf-8', "Default ('utf-8')")],
+        'export_csv_fields_options': (
+            ('username,last_name,first_name', 'username, last name, first name'),)}
+
+    VALID_CONF_NONE = None
+    VALID_CONF1 = {
+        "GRADEBOOK_EXPORT": {
+            "fields_choices": (
+                ['username', 'last_name', 'first_name'],
+                ['username', 'last_name', 'first_name', 'institutional_id'],
+            ),
+            "encodings": ["utf_8_sig"]
+        }}
+    VALID_CONF1_1 = {
+        "GRADEBOOK_EXPORT": {
+            "encodings": ["utf_8_sig"]
+        }}
+    VALID_CONF1_2 = {
+        "GRADEBOOK_EXPORT": {
+            "fields_choices": []
+        }}
+    VALID_CONF1_3 = {
+        "GRADEBOOK_EXPORT": {
+            "fields_choices": ((),)
+        }}
+    VALID_CONF1_4 = {
+        "GRADEBOOK_EXPORT": {
+            "encodings": []
+        }}
+    VALID_CONF2 = {
+        "GRADEBOOK_EXPORT": {
+            "fields_choices": (
+                ['username', 'last_name', 'first_name'],
+                ['username', 'last_name', 'first_name', 'institutional_id'],
+            ),
+            "encodings": [
+                "utf-8",
+                ("utf_8_sig",
+                 "Excel viewable csv containing Chinese")]
+        }}
+    VALID_CONF3 = {}
+    VALID_CONF4 = {"GRADEBOOK_EXPORT": {}}
+    VALID_CONF5 = {"GRADEBOOK_EXPORT": None}
+    VALID_CONF6 = {
+        "GRADEBOOK_EXPORT": {
+            "fields_choices": None,
+            "encodings": None
+        }}
+
+    INVALID_CONF1 = []
+    INVALID_CONF2 = {"GRADEBOOK_EXPORT": []}
+    INVALID_CONF3 = {"GRADEBOOK_EXPORT": "some string"}
+
+    INVALID_CONF2_01_1 = {"GRADEBOOK_EXPORT": {
+        "fields_choices": (
+            'username',
+            ['username', 'last_name', 'first_name'])
+    }}
+
+    INVALID_CONF2_02_1 = {"GRADEBOOK_EXPORT":
+        {"fields_choices":
+             (['username', 'last_name', ["institutional_id"]],)}}
+
+    INVALID_CONF2_02_2 = {"GRADEBOOK_EXPORT": {
+        "fields_choices": (['username', 'last_name', "non_exist_attr"],)}}
+
+    INVALID_CONF2_03_1 = {"GRADEBOOK_EXPORT": {
+        "encodings": 'utf-8'
+    }}
+
+    INVALID_CONF2_03_2 = {"GRADEBOOK_EXPORT": {
+        "encodings": [('utf-8', "default", "something")]
+    }}
+
+    INVALID_CONF2_03_3 = {"GRADEBOOK_EXPORT": {
+        "encodings": [('utf-8', ["description"])]
+    }}
+
+    INVALID_CONF2_03_4 = {"GRADEBOOK_EXPORT": {
+        "encodings": [1, 'utf-8']
+    }}
+
+    def setUp(self):
+        super(CheckRelateCsvSettings, self).setUp()
+
+        # clear cached_property
+        from course.grades import csv_settings
+        csv_settings.__dict__ = {}
+
+    def assertReturnedExpectedResults(self, expected_result, print_error=True):  # noqa
+        assert isinstance(expected_result, dict)
+        from relate.utils import struct_to_dict, Struct
+        from course.grades import RelateCSVSettingsInitializer
+        from typing import cast
+        import pprint
+
+        csv_handler = RelateCSVSettingsInitializer()
+        csv_handler.export_csv_encodings_options
+        csv_handler.export_csv_fields_options
+
+        csv_handler_dict = struct_to_dict(cast(Struct, csv_handler))
+
+        def dict_equal(d1, d2):
+            pp = pprint.PrettyPrinter(indent=4)
+
+            for (k, v) in six.iteritems(d1):
+                try:
+                    if v != d2[k]:
+                        if print_error:
+                            print("\n")
+                            pp.pprint(csv_handler_dict)
+                            print("--------------------\n")
+                        pass
+                except Exception as e:
+                    if print_error:
+                        print("\n")
+                        pp = pprint.PrettyPrinter(indent=4)
+                        pp.pprint(csv_handler_dict)
+                        print("--------------------\n")
+                    self.fail("%s: %s" % (type(e).__name__, str(e)))
+
+                self.assertEqual(v, d2[k])
+
+        dict_equal(csv_handler_dict, expected_result)
+
+    def test_valid_conf_not_configured(self):
+        with override_settings():
+            del settings.RELATE_CSV_SETTINGS
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(self.RESULT_WHEN_NOT_CONFIGURED)
+
+    def test_valid_conf_none(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.VALID_CONF_NONE):
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(self.RESULT_WHEN_NOT_CONFIGURED)
+
+    def test_valid_conf1(self):
+        expected_result = {
+            'export_csv_encodings_options':
+                [('utf_8_sig', "Default ('utf_8_sig')"), ('utf-8', 'utf-8')],
+            'export_csv_fields_options': (
+                ('username,last_name,first_name',
+                 'username, last name, first name'),
+                ('username,last_name,first_name,institutional_id',
+                 'username, last name, first name, Institutional ID'))}
+        with override_settings(RELATE_CSV_SETTINGS=self.VALID_CONF1):
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(expected_result)
+
+            form = ExportGradeBookForm()
+            self.assertEqual(len(form.fields["user_info_fields"].choices), 2)
+            self.assertEqual(
+                form.fields["user_info_fields"].widget.input_type, "select")
+            self.assertEqual(len(form.fields["encoding_used"].choices), 2)
+            self.assertEqual(
+                form.fields["encoding_used"].widget.input_type, "select")
+
+    def test_valid_conf2(self):
+        expected_result = {
+            'export_csv_encodings_options':
+                [('utf-8', "Default ('utf-8')"),
+                 ('utf_8_sig', 'utf_8_sig '
+                               '(Excel viewable csv containing Chinese)')],
+            'export_csv_fields_options':
+                (('username,last_name,first_name',
+                  'username, last name, first name'),
+                 ('username,last_name,first_name,institutional_id',
+                  'username, last name, first name, Institutional ID'))}
+
+        with override_settings(RELATE_CSV_SETTINGS=self.VALID_CONF2):
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(expected_result)
+
+            form = ExportGradeBookForm()
+            self.assertEqual(len(form.fields["user_info_fields"].choices), 2)
+            self.assertEqual(
+                form.fields["user_info_fields"].widget.input_type, "select")
+            self.assertEqual(len(form.fields["encoding_used"].choices), 2)
+            self.assertEqual(
+                form.fields["encoding_used"].widget.input_type, "select")
+
+    def test_valid_conf3(self):
+        expected_result = self.RESULT_WHEN_NOT_CONFIGURED
+        with override_settings(RELATE_CSV_SETTINGS=self.VALID_CONF3):
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(expected_result)
+
+            form = ExportGradeBookForm()
+            self.assertEqual(len(form.fields["user_info_fields"].choices), 1)
+            self.assertEqual(
+                form.fields["user_info_fields"].widget.input_type, "hidden")
+            self.assertEqual(len(form.fields["encoding_used"].choices), 1)
+            self.assertEqual(
+                form.fields["encoding_used"].widget.input_type, "hidden")
+
+    def test_valid_conf4(self):
+        expected_result = self.RESULT_WHEN_NOT_CONFIGURED
+        with override_settings(RELATE_CSV_SETTINGS=self.VALID_CONF4):
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(expected_result)
+
+    def test_valid_conf5(self):
+        expected_result = self.RESULT_WHEN_NOT_CONFIGURED
+        with override_settings(RELATE_CSV_SETTINGS=self.VALID_CONF5):
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(expected_result)
+
+    def test_valid_conf6(self):
+        expected_result = self.RESULT_WHEN_NOT_CONFIGURED
+        with override_settings(RELATE_CSV_SETTINGS=self.VALID_CONF6):
+            self.assertCheckMessages([])
+            self.assertReturnedExpectedResults(expected_result)
+
+    def test_invalid_conf1(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF1):
+            self.assertCheckMessages(['relate_csv_setting.E001'])
+
+    def test_invalid_conf2(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2):
+            self.assertCheckMessages(['relate_csv_setting.E002'])
+
+    def test_invalid_conf3(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF3):
+            self.assertCheckMessages(['relate_csv_setting.E002'])
+
+    def test_invalid_conf2_1_1(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2_01_1):
+            self.assertCheckMessages(['relate_csv_setting.E002_01'])
+
+    def test_invalid_conf2_2_1(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2_02_1):
+            self.assertCheckMessages(['relate_csv_setting.E002_02'])
+
+    def test_invalid_conf2_2_2(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2_02_2):
+            self.assertCheckMessages(['relate_csv_setting.E002_02'])
+
+    def test_invalid_conf2_3_1(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2_03_1):
+            self.assertCheckMessages(['relate_csv_setting.E002_03'])
+
+    def test_invalid_conf2_3_2(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2_03_2):
+            self.assertCheckMessages(['relate_csv_setting.E002_03'])
+
+    def test_invalid_conf2_3_3(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2_03_3):
+            self.assertCheckMessages(['relate_csv_setting.E002_03'])
+
+    def test_invalid_conf2_3_4(self):
+        with override_settings(RELATE_CSV_SETTINGS=self.INVALID_CONF2_03_4):
+            self.assertCheckMessages(['relate_csv_setting.E002_03'])
+
+    def test_institutial_id_form_not_shown_warning(self):
+        expected_result = {
+            'export_csv_encodings_options':
+                [('utf_8_sig', "Default ('utf_8_sig')"),
+                 ('utf-8', 'utf-8')],
+            'export_csv_fields_options':
+                (('username,last_name,first_name',
+                  'username, last name, first name'),
+                 ('username,last_name,first_name,institutional_id',
+                  'username, last name, first name, '
+                  'Institutional ID'))}
+        with override_settings(
+                RELATE_SHOW_INST_ID_FORM=False,
+                RELATE_CSV_SETTINGS=self.VALID_CONF1):
+            self.assertCheckMessages(['relate_csv_setting.W001'])
+            self.assertReturnedExpectedResults(expected_result)

@@ -1759,16 +1759,27 @@ class GradeStateMachine(object):
         else:
             return "_((other state))"
 
-    def stringify_machine_readable_state(self):
+    def stringify_machine_readable_state(self, alias_for_state_none=None,
+                                         alias_for_graded_none=None,
+                                         callback_for_percentage=None):
+        if alias_for_state_none is None:
+            alias_for_state_none = u"NONE"
+
+        if alias_for_graded_none is None:
+            alias_for_graded_none = u"NONE"
+
+        if callback_for_percentage is None:
+            callback_for_percentage = lambda x: "%.3f" % x  # noqa
+
         if self.state is None:
-            return u"NONE"
+            return alias_for_state_none
         elif self.state == grade_state_change_types.exempt:
             return "EXEMPT"
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
-                return "%.3f" % self.percentage()
+                return callback_for_percentage(self.percentage())
             else:
-                return u"NONE"
+                return alias_for_graded_none
         else:
             return u"OTHER_STATE"
 
