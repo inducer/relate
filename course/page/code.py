@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import bleach
+import re
 import six
 
 from course.validation import ValidationError
@@ -290,6 +292,97 @@ def request_python_run_with_retries(run_req, run_timeout, image=None, retry_coun
             continue
 
         return result
+
+
+# {{{ HTML sanitization helpers
+
+def is_allowed_data_uri(allowed_mimetypes, uri):
+    import re
+    m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
+    if not m:
+        return False
+
+    mimetype = m.group(1)
+    return mimetype in allowed_mimetypes
+
+
+def filter_from_code_html_attributes(tag, name, value):
+    from html5lib.filters.sanitizer import attr_val_is_uri
+    if tag == "audio":
+        if name in ["controls"]:
+            return True
+        else:
+            return False
+
+    elif tag == "source":
+        if name in ["type"]:
+            return True
+        elif name == "src":
+            if is_allowed_data_uri([
+                    "audio/wav",
+                    ], value):
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    elif tag == "img":
+        if name in ["alt", "title"]:
+            return True
+        elif name == "src":
+            if is_allowed_data_uri([
+                    "image/png",
+                    "image/jpeg",
+                    ], value):
+                return True
+        else:
+            return False
+
+    else:
+        # Approach recommended here: https://github.com/mozilla/bleach/issues/348
+
+        # FIXME: Cannot access 'namespaced name' of attribute, so
+        # we're unable to match XML's base and xlink.
+        if (None, name) in attr_val_is_uri:
+            # Reluctant copy-paste from
+            # https://github.com/mozilla/bleach/blob/8706b5373b633407e804b1b2975edf8760067ff7/bleach/sanitizer.py#L513-L525
+
+            from xml.sax.saxutils import unescape
+
+            val_unescaped = re.sub(
+                "[`\000-\040\177-\240\s]+",
+                '',
+                unescape(value)).lower()
+
+            # Remove replacement characters from unescaped characters
+            val_unescaped = val_unescaped.replace("\ufffd", "")
+
+            # Drop attributes with uri values that have
+            # protocols that aren't allowed
+            if (re.match(r'^[a-z0-9][-+.a-z0-9]*:', val_unescaped)
+                    and
+                    (val_unescaped.split(':')[0]
+                        not in bleach.ALLOWED_PROTOCOLS)):
+                return False
+
+        return name in bleach.ALLOWED_ATTRIBUTES
+
+
+def sanitize_from_code_html(s):
+    if not isinstance(s, six.text_type):
+        return _("(Non-string in 'HTML' output filtered out)")
+
+    return bleach.clean(s,
+            tags=bleach.ALLOWED_TAGS + ["audio", "video", "source",
+                                        "img"],
+            attributes=filter_from_code_html_attributes,
+
+            # Fixed https://github.com/inducer/relate/issues/435
+            # Ref: https://github.com/mozilla/bleach/issues/348
+            protocols=bleach.ALLOWED_PROTOCOLS + ["data"])
+
+# }}}
 
 
 class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
@@ -880,63 +973,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         # {{{ html output / santization
 
         if hasattr(response, "html") and response.html:
-            def is_allowed_data_uri(allowed_mimetypes, uri):
-                import re
-                m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
-                if not m:
-                    return False
-
-                mimetype = m.group(1)
-                return mimetype in allowed_mimetypes
-
-            def sanitize(s):
-                import bleach
-
-                def filter_audio_attributes(tag, name, value):
-                    if name in ["controls"]:
-                        return True
-                    else:
-                        return False
-
-                def filter_source_attributes(tag, name, value):
-                    if name in ["type"]:
-                        return True
-                    elif name == "src":
-                        return is_allowed_data_uri([
-                            "audio/wav",
-                            ], value)
-                    else:
-                        return False
-
-                def filter_img_attributes(tag, name, value):
-                    if name in ["alt", "title"]:
-                        return True
-                    elif name == "src":
-                        return is_allowed_data_uri([
-                            "image/png",
-                            "image/jpeg",
-                            ], value)
-                    else:
-                        return False
-
-                if not isinstance(s, six.text_type):
-                    return _("(Non-string in 'HTML' output filtered out)")
-
-                return bleach.clean(s,
-                        tags=bleach.ALLOWED_TAGS + ["audio", "video", "source",
-                                                    "img"],
-                        attributes={
-                            "audio": filter_audio_attributes,
-                            "source": filter_source_attributes,
-                            "img": filter_img_attributes,
-                            },
-
-                        # Fixed https://github.com/inducer/relate/issues/435
-                        # Ref: https://github.com/mozilla/bleach/issues/348
-                        protocols=["data"])
-
             bulk_feedback_bits.extend(
-                    sanitize(snippet) for snippet in response.html)
+                    sanitize_from_code_html(snippet) for snippet in response.html)
 
         # }}}
 
