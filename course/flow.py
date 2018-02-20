@@ -1139,12 +1139,15 @@ def grade_flow_session(
         # creator left as NULL
         gchange.flow_session = flow_session
         gchange.comment = comment
+        gchange.effective_time = (
+                # If not activity, use completion_time as effective_time
+                flow_session.last_activity() or flow_session.completion_time)
+        assert gchange.effective_time is not None
 
         previous_grade_changes = list(GradeChange.objects
                 .filter(
                     opportunity=gchange.opportunity,
                     participation=gchange.participation,
-                    state=gchange.state,
                     attempt_id=gchange.attempt_id,
                     flow_session=gchange.flow_session)
                 .order_by("-grade_time")
@@ -1156,7 +1159,10 @@ def grade_flow_session(
             previous_grade_change, = previous_grade_changes
             if (previous_grade_change.points == gchange.points
                     and previous_grade_change.max_points == gchange.max_points
-                    and previous_grade_change.comment == gchange.comment):
+                    and previous_grade_change.comment == gchange.comment
+                    and previous_grade_change.state == gchange.state
+                    and previous_grade_change.effective_time ==
+                    gchange.effective_time):
                 do_save = False
         else:
             # no previous grade changes
@@ -1189,6 +1195,7 @@ def reopen_session(
         session,  # type: FlowSession
         force=False,  # type: bool
         suppress_log=False,  # type: bool
+        generate_gradechange=True,  # type: bool
         unsubmit_pages=False,  # type: bool
         ):
     # type: (...) -> None
@@ -1216,6 +1223,31 @@ def reopen_session(
 
         session.completion_time = None
         session.save()
+
+        # {{{ create a grade change with status do_over
+
+        if generate_gradechange:
+            last_gchanges = (
+                GradeChange.objects.filter(flow_session=session)
+                .order_by("-grade_time")[:1])
+
+            from course.models import grade_state_change_types
+            new_gchange_state = grade_state_change_types.do_over
+
+            if last_gchanges.count():
+                last_gchange, = last_gchanges
+
+                last_gchange.pk = None
+                last_gchange.points = None
+                last_gchange.creator = None
+                last_gchange.comment = None
+                last_gchange.state = new_gchange_state
+
+                from django.utils.timezone import now
+                last_gchange.grade_time = now()
+                last_gchange.save()
+
+        # }}}
 
         if unsubmit_pages:
             answer_visits = assemble_answer_visits(session)
@@ -1315,7 +1347,8 @@ def regrade_session(
                         })
             session.save()
 
-            reopen_session(now_datetime, session, force=True, suppress_log=True)
+            reopen_session(now_datetime, session, force=True, suppress_log=True,
+                           generate_gradechange=False)
             finish_flow_session_standalone(
                     repo, course, session, force_regrade=True,
                     now_datetime=prev_completion_time,
@@ -1345,7 +1378,8 @@ def recalculate_session_grade(repo, course, session):
                     })
         session.save()
 
-        reopen_session(now_datetime, session, force=True, suppress_log=True)
+        reopen_session(now_datetime, session, force=True, suppress_log=True,
+                       generate_gradechange=False)
         finish_flow_session_standalone(
                 repo, course, session, force_regrade=False,
                 now_datetime=prev_completion_time,

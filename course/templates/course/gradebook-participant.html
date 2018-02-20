@@ -65,10 +65,10 @@
       {% with grade_info.grade_state_machine as gsm %}
       <tr>
         <td data-order="{{ grade_info.opportunity.identifier }}">{{ grade_info.opportunity.name }}</td>
-        {% if grade_info.opportunity.result_shown_in_participant_grade_book %}
+        {% if grade_info.opportunity.result_shown_in_participant_grade_book or pperm.view_gradebook %}
           <td data-order="{{ gsm.stringify_percentage }}">
             <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
-             ><span class="sensitive">{{ gsm.stringify_state }}</span></a>
+             ><span class="sensitive">{{ gsm.stringify_state }}{% if not grade_info.opportunity.result_shown_in_participant_grade_book and pperm.view_gradebook %}{% trans "(not released)" %}{% endif %}</span></a>
           </td>
           <td
            {% if  gsm.last_graded_time %}
@@ -77,7 +77,7 @@
                data-order=""
             {% endif %}
             >
-            {{ grade_info.grade_state_machine.last_graded_time }}
+            {{ grade_info.grade_state_machine.last_graded_time }}{% if not grade_info.opportunity.result_shown_in_participant_grade_book and pperm.view_gradebook %}{% trans "(not released)" %}{% endif %}
           </td>
         {% else %}
           <td>{% trans "(not released)" %}</td>

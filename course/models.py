@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast
-
 import six
 
 from django.db import models
@@ -1565,6 +1563,12 @@ class GradeChange(models.Model):
             related_name="grade_changes",
             verbose_name=_('Flow session'), on_delete=models.SET_NULL)
 
+    effective_time = models.DateTimeField(default=None, blank=True, null=True,
+            help_text=_("The time matching the completion time of the related "
+            "event. For example, the completion time the of the related "
+            "flow session"),
+            verbose_name=_('Effective time'))
+
     class Meta:
         verbose_name = _("Grade change")
         verbose_name_plural = _("Grade changes")
@@ -1619,13 +1623,15 @@ class GradeStateMachine(object):
 
         # applies to *all* grade changes
         self._last_grade_change_time = None
+        self.earliest_percentage = None
+        self.latest_percentage = None
 
     def _clear_grades(self):
         # type: () -> None
 
         self.state = None
         self.last_grade_time = None
-        self.valid_percentages = []  # type: List[GradeChange]
+        self.valid_percentages = []  # type: List[Optional[float]]
         self.attempt_id_to_gchange = {}  # type: Dict[Text, GradeChange]
 
     def _consume_grade_change(self, gchange, set_is_superseded):
@@ -1642,8 +1648,8 @@ class GradeStateMachine(object):
 
         # check that times are increasing
         if self._last_grade_change_time is not None:
-            assert gchange.grade_time > self._last_grade_change_time
-            self._last_grade_change_time = gchange.grade_time
+            assert gchange.grade_time >= self._last_grade_change_time
+        self._last_grade_change_time = gchange.grade_time
 
         if gchange.state == grade_state_change_types.graded:
             if self.state == grade_state_change_types.unavailable:
@@ -1676,7 +1682,16 @@ class GradeStateMachine(object):
             self.state = gchange.state
 
         elif gchange.state == grade_state_change_types.do_over:
-            self._clear_grades()
+            if gchange.attempt_id is not None:
+                if (set_is_superseded and
+                        gchange.attempt_id in self.attempt_id_to_gchange):
+                    self.attempt_id_to_gchange[gchange.attempt_id] \
+                            .is_superseded = True
+                self.attempt_id_to_gchange[gchange.attempt_id] \
+                        = gchange
+            else:
+                self._clear_grades()
+            self.last_graded_time = gchange.grade_time
 
         elif gchange.state == grade_state_change_types.exempt:
             self._clear_grades()
@@ -1704,15 +1719,55 @@ class GradeStateMachine(object):
             gchange.is_superseded = False
             self._consume_grade_change(gchange, set_is_superseded)
 
-        valid_grade_changes = sorted(
-                (gchange
-                for gchange in self.attempt_id_to_gchange.values()
-                if gchange.percentage() is not None),
-                key=lambda gchange: gchange.grade_time)
+        gchanges = [gchange for gchange in self.attempt_id_to_gchange.values()]
+
+        valid_grade_changes = sorted(gchanges, key=lambda x: (x.grade_time, x.pk))
+
+        import copy
+        _valid_percentages_copy = copy.copy(self.valid_percentages)
 
         self.valid_percentages.extend(
-                cast(GradeChange, gchange.percentage())
-                for gchange in valid_grade_changes)
+                [gchange.percentage() for gchange in valid_grade_changes])
+
+        # {{{ Calculate the earliest percentage and latest percentage, instead of
+        # get them from self.valid_percentages, so as to avoid inconsistent results.
+
+        if self.opportunity is not None:
+            strategy = self.opportunity.aggregation_strategy
+            if self.valid_percentages and strategy in [
+                            grade_aggregation_strategy.use_earliest,
+                            grade_aggregation_strategy.use_latest]:
+
+                gchanges_with_session = sorted([
+                    gchange for gchange in gchanges
+                    if gchange.flow_session is not None],
+                    key=lambda x: (x.effective_time, x.pk))
+
+                # There are no more than 1 flow session, just return the grade
+                # changes ordered by grade_time.
+                if len(gchanges_with_session) <= 1:
+                    self.earliest_percentage = self.valid_percentages[0]
+                    self.latest_percentage = self.valid_percentages[-1]
+                else:
+                    idx = (
+                        0 if strategy == grade_aggregation_strategy.use_earliest
+                        else -1)
+
+                    _gchanges = sorted(
+                        [gchange for gchange in gchanges
+                         if gchange.flow_session is None]
+                        + [gchanges_with_session[idx]],
+                        key=lambda x: (x.grade_time, x.pk))
+
+                    _valid_percentages = (
+                        _valid_percentages_copy +
+                        [gchange.percentage() for gchange in _gchanges])
+
+                    if strategy == grade_aggregation_strategy.use_earliest:
+                        self.earliest_percentage = _valid_percentages[0]
+                    else:
+                        self.latest_percentage = _valid_percentages[-1]
+            # }}}
 
         del self.attempt_id_to_gchange
 
@@ -1729,16 +1784,25 @@ class GradeStateMachine(object):
 
         strategy = self.opportunity.aggregation_strategy
 
-        if strategy == grade_aggregation_strategy.max_grade:
-            return max(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.min_grade:
-            return min(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.avg_grade:
-            return sum(self.valid_percentages)/len(self.valid_percentages)
+        if strategy in [grade_aggregation_strategy.max_grade,
+                        grade_aggregation_strategy.min_grade,
+                        grade_aggregation_strategy.avg_grade]:
+            numeric_percentages = [p for p in self.valid_percentages
+                                   if p is not None]
+            if len(numeric_percentages):
+                if strategy == grade_aggregation_strategy.max_grade:
+                    return max(numeric_percentages)
+                elif strategy == grade_aggregation_strategy.min_grade:
+                    return min(numeric_percentages)
+                else:
+                    # strategy == grade_aggregation_strategy.avg_grade
+                    return sum(numeric_percentages)/len(self.valid_percentages)
+            else:
+                return None
         elif strategy == grade_aggregation_strategy.use_earliest:
-            return self.valid_percentages[0]
+            return self.earliest_percentage
         elif strategy == grade_aggregation_strategy.use_latest:
-            return self.valid_percentages[-1]
+            return self.latest_percentage
         else:
             raise ValueError(
                     _("invalid grade aggregation strategy '%s'") % strategy)
@@ -1749,13 +1813,12 @@ class GradeStateMachine(object):
         elif self.state == grade_state_change_types.exempt:
             return "_((exempt))"
         elif self.state == grade_state_change_types.graded:
-            if self.valid_percentages:
-                result = "%.1f%%" % self.percentage()
-                if len(self.valid_percentages) > 1:
-                    result += " (/%d)" % len(self.valid_percentages)
-                return result
-            else:
-                return u"- ∅ -"
+            assert self.valid_percentages
+            result = ("%.2f%%" % self.percentage()
+                      if self.percentage() is not None else u"- ∅ -")
+            if len(self.valid_percentages) > 1:
+                result += " (/%d)" % len(self.valid_percentages)
+            return result
         else:
             return "_((other state))"
 
@@ -1765,19 +1828,17 @@ class GradeStateMachine(object):
         elif self.state == grade_state_change_types.exempt:
             return "EXEMPT"
         elif self.state == grade_state_change_types.graded:
-            if self.valid_percentages:
-                return "%.3f" % self.percentage()
-            else:
-                return u"NONE"
+            assert self.valid_percentages
+            return ("%.3f" % self.percentage()
+                    if self.percentage() is not None else u"NONE")
         else:
             return u"OTHER_STATE"
 
     def stringify_percentage(self):
         if self.state == grade_state_change_types.graded:
-            if self.valid_percentages:
-                return "%.1f" % self.percentage()
-            else:
-                return u""
+            assert self.valid_percentages
+            return ("%.2f" % self.percentage()
+                    if self.percentage() is not None else u"")
         else:
             return ""
 # }}}

@@ -114,6 +114,9 @@ class GradingOpportunityFactory(factory.django.DjangoModelFactory):
     name = get_default_gopp_name()
     flow_id = DEFAULT_FLOW_ID
     aggregation_strategy = DEFAULT_GRADE_AGGREGATION_STRATEGY
+    shown_in_grade_book = True
+    shown_in_participant_grade_book = True
+    result_shown_in_participant_grade_book = True
 
 
 class FlowPageDataFactory(factory.django.DjangoModelFactory):
@@ -166,3 +169,8 @@ class GradeChangeFactory(factory.django.DjangoModelFactory):
     creator = None
     grade_time = now()
     flow_session = factory.SubFactory(FlowSessionFactory)
+
+    effective_time = factory.lazy_attribute(
+        lambda x: (
+                x.flow_session.last_activity() or x.flow_session.completion_time)
+        if x.flow_session is not None else None)

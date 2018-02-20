@@ -183,10 +183,11 @@ class ResponseContextMixin(object):
     Ref: https://docs.djangoproject.com/en/dev/topics/testing/tools/#django.test.Response.context  # noqa
     """
     def get_response_context_value_by_name(self, response, context_name):
-        value = response.context.__getitem__(context_name)
-        self.assertIsNotNone(
-            value,
-            msg="%s does not exist in given response" % context_name)
+        try:
+            value = response.context.__getitem__(context_name)
+        except KeyError:
+            self.fail(
+                msg="%s does not exist in given response" % context_name)
         return value
 
     def assertResponseContextIsNone(self, resp, context_name):  # noqa
@@ -761,6 +762,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         class ClientUserSwitcher(object):
             def __init__(self, switch_to):
                 self.client = _self.c
+                if isinstance(switch_to, Participation):
+                    switch_to = switch_to.user
                 self.switch_to = switch_to
                 self.logged_in_user = _self.get_logged_in_user()
 
@@ -1204,6 +1207,27 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                   "page_id": page_id}
 
         return self.c.get(reverse("relate-page_analytics", kwargs=params))
+
+    # {{{ grades view
+    def view_participant_grades_url(self, participation_id, course_identifier=None):
+        course_identifier = (
+            course_identifier or self.get_default_course_identifier())
+        kwargs = {"course_identifier": course_identifier}
+
+        if participation_id is not None:
+            kwargs["participation_id"] = participation_id
+
+        return reverse("relate-view_participant_grades", kwargs=kwargs)
+
+    def get_view_participant_grades(self, participation_id, course_identifier=None):
+        return self.c.get(self.view_participant_grades_url(
+            participation_id, course_identifier))
+
+    def get_view_my_grades(self, course_identifier=None):
+        return self.c.get(self.view_participant_grades_url(
+            participation_id=None, course_identifier=course_identifier))
+
+    # }}}
 
 
 class SingleCourseTestMixin(CoursesTestMixinBase):

@@ -64,18 +64,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         # Should only have one grading opportunity object
         self.assertEqual(GradingOpportunity.objects.all().count(), 1)
 
-    def test_view_my_grade(self):
-        resp = self.c.get(reverse("relate-view_participant_grades",
-                                  args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-
-    def test_view_participant_grades(self):
-        params = {"course_identifier": self.course.identifier,
-                  "participation_id": self.instructor_participation.user.id}
-        resp = self.c.get(reverse("relate-view_participant_grades",
-                                                    kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-
     def test_view_participant_list(self):
         resp = self.c.get(reverse("relate-view_participant_list",
                                   args=[self.course.identifier]))
