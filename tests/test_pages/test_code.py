@@ -645,7 +645,9 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     not_expected_msgs = [not_expected_msgs]
                 for msg in not_expected_msgs:
                     self.assertResponseContextAnswerFeedbackNotContainsFeedback(
-                        resp, msg, html=in_html)
+                        resp, msg)
+                    self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                        resp, msg, html=True)
 
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -782,8 +784,12 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_html_audio(self):
         b64_data = "T2dnUwACAAAAAAAAAAA+HAAAAAAAAGyawCEBQGZpc2h"
-        audio_valid = (
+        audio_valid1 = (
             '<audio controls><source src="data:audio/wav;base64,'
+            '%s" type="audio/wav">'
+            '</audio>' % b64_data)
+        audio_valid2 = (
+            '<audio><source src="data:audio/wav;base64,'
             '%s" type="audio/wav">'
             '</audio>' % b64_data)
         audio_invalid1 = (
@@ -795,25 +801,21 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             '%s" type="audio/wav">'
             '</audio>' % b64_data)
         audio_invalid3 = (
-            '<audio><source src="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
-        audio_invalid4 = (
             '<audio controls><source src="data:audio/ogg;base64,'
             '%s" type="audio/ogg">'
             '</audio>' % b64_data)
-        audio_invalid5 = (
+        audio_invalid4 = (
             '<audio controls><source src="hosse.wav" type="audio/wav">'
             '</audio>')
 
-        html = [audio_valid, audio_invalid1, audio_invalid2, audio_invalid3,
-                audio_invalid4, audio_invalid5]
+        html = [audio_valid1, audio_valid2, audio_invalid1, audio_invalid2,
+                audio_invalid3, audio_invalid4]
 
         self.assert_runpy_result_and_response(
             "user_error",
-            expected_msgs=[audio_valid],
+            expected_msgs=[audio_valid1, audio_valid2],
             not_expected_msgs=[audio_invalid1, audio_invalid2, audio_invalid3,
-                               audio_invalid4, audio_invalid5],
+                               audio_invalid4],
             html=html,
             in_html=True
         )
@@ -860,8 +862,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         '<a src="data:text/html;base64,%s"</a>' % evil_b64_data,
         '<img src="https://Evil.com">',
 
-        '<script src="data:text/html,<script>alert("Evil");</script>"',
-        '<script href="data:text/html,<script>alert("Evil");</script>"',
+        '<script src="data:text/html,<script>alert("Evil");"</script>',
+        '<script href="data:text/html,<script>alert("Evil");"</script>',
         '<script src="data:text/html;base64,%s"</script>' % evil_b64_data,
         '<script href="data:text/html;base64,%s"</script>' % evil_b64_data,
 
@@ -887,8 +889,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         self.assert_runpy_result_and_response(
             "user_error",
-            not_expected_msgs=self.evil_data_html_strings + [
-                "Evil", self.evil_data_html_strings],
+            not_expected_msgs=self.evil_data_html_strings + ["Evil"],
             html=self.evil_data_html_strings,
             in_html=True,
         )

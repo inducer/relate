@@ -25,7 +25,6 @@ THE SOFTWARE.
 """
 
 import bleach
-import re
 import six
 
 from course.validation import ValidationError
@@ -307,7 +306,7 @@ def is_allowed_data_uri(allowed_mimetypes, uri):
 
 
 def filter_from_code_html_attributes(tag, name, value):
-    from html5lib.filters.sanitizer import attr_val_is_uri
+
     if tag == "audio":
         if name in ["controls"]:
             return True
@@ -339,34 +338,7 @@ def filter_from_code_html_attributes(tag, name, value):
         else:
             return False
 
-    else:
-        # Approach recommended here: https://github.com/mozilla/bleach/issues/348
-
-        # FIXME: Cannot access 'namespaced name' of attribute, so
-        # we're unable to match XML's base and xlink.
-        if (None, name) in attr_val_is_uri:
-            # Reluctant copy-paste from
-            # https://github.com/mozilla/bleach/blob/8706b5373b633407e804b1b2975edf8760067ff7/bleach/sanitizer.py#L513-L525
-
-            from xml.sax.saxutils import unescape
-
-            val_unescaped = re.sub(
-                "[`\000-\040\177-\240\s]+",
-                '',
-                unescape(value)).lower()
-
-            # Remove replacement characters from unescaped characters
-            val_unescaped = val_unescaped.replace("\ufffd", "")
-
-            # Drop attributes with uri values that have
-            # protocols that aren't allowed
-            if (re.match(r'^[a-z0-9][-+.a-z0-9]*:', val_unescaped)
-                    and
-                    (val_unescaped.split(':')[0]
-                        not in bleach.ALLOWED_PROTOCOLS)):
-                return False
-
-        return name in bleach.ALLOWED_ATTRIBUTES
+    return False
 
 
 def sanitize_from_code_html(s):
@@ -377,6 +349,9 @@ def sanitize_from_code_html(s):
             tags=bleach.ALLOWED_TAGS + ["audio", "video", "source",
                                         "img"],
             attributes=filter_from_code_html_attributes,
+
+            # strip unwanted tags
+            strip=True,
 
             # Fixed https://github.com/inducer/relate/issues/435
             # Ref: https://github.com/mozilla/bleach/issues/348

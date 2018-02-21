@@ -223,29 +223,44 @@ class ResponseContextMixin(object):
     def get_response_context_answer_feedback(self, response):
         return self.get_response_context_value_by_name(response, "feedback")
 
+    def get_response_context_answer_feedback_string(self, response,
+                                             include_bulk_feedback=True):
+        answer_feedback = self.get_response_context_value_by_name(
+            response, "feedback")
+
+        self.assertTrue(hasattr(answer_feedback, "feedback"))
+        if not include_bulk_feedback:
+            return answer_feedback.feedback
+
+        if answer_feedback.bulk_feedback is None:
+            return answer_feedback.feedback
+        else:
+            if answer_feedback.feedback is None:
+                return answer_feedback.bulk_feedback
+            return answer_feedback.feedback + answer_feedback.bulk_feedback
+
     def assertResponseContextAnswerFeedbackContainsFeedback(  # noqa
             self, response, expected_feedback,
             include_bulk_feedback=True, html=False):
-        answer_feedback = self.get_response_context_answer_feedback(response)
-        feedback_str = answer_feedback.feedback
-        if include_bulk_feedback:
-            feedback_str += answer_feedback.bulk_feedback
+        feedback_str = self.get_response_context_answer_feedback_string(
+            response, include_bulk_feedback)
 
-        self.assertTrue(hasattr(answer_feedback, "feedback"))
         if not html:
             self.assertIn(expected_feedback, feedback_str)
         else:
             self.assertInHTML(expected_feedback, feedback_str)
 
     def assertResponseContextAnswerFeedbackNotContainsFeedback(  # noqa
-                                        self, response, expected_feedback,
-                                        html=False):
-        answer_feedback = self.get_response_context_answer_feedback(response)
-        self.assertTrue(hasattr(answer_feedback, "feedback"))
+            self, response, expected_feedback,
+            include_bulk_feedback=True,
+            html=False):
+        feedback_str = self.get_response_context_answer_feedback_string(
+            response, include_bulk_feedback)
+
         if not html:
-            self.assertNotIn(expected_feedback, answer_feedback.feedback)
+            self.assertNotIn(expected_feedback, feedback_str)
         else:
-            self.assertInHTML(expected_feedback, answer_feedback.feedback, count=0)
+            self.assertInHTML(expected_feedback, feedback_str, count=0)
 
     def assertResponseContextAnswerFeedbackCorrectnessEquals(  # noqa
                                         self, response, expected_correctness):
