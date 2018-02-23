@@ -240,6 +240,7 @@ CODE_CELL_HTML_CLASS = "code_cell"
 CODE_CELL_IN_STR_PATTERN = '<div class="prompt input_prompt">In[%s]:</div>'
 CODE_CELL_PRINT_STR1 = "This is function1"
 CODE_CELL_PRINT_STR2 = "This is function2"
+RELATE_IPYNB_CONVERT_PRE_WRAPPER_TAG_NAME = "relate_ipynb"
 
 
 def strip_nbsp(s):
@@ -261,6 +262,7 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
         self.assertNotContains(response, "```")
         self.assertNotContains(response, "# First Title of Test NoteBook")
         self.assertNotContains(response, "# Second Title of Test NoteBook")
+        self.assertNotContains(response, RELATE_IPYNB_CONVERT_PRE_WRAPPER_TAG_NAME)
 
     def setUp(self):
         super(NbconvertRenderTestMixin, self).setUp()

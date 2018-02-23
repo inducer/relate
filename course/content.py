@@ -912,18 +912,6 @@ def expand_markup(
     return text
 
 
-def unwrap_relate_tmp_pre_tag(html_string):
-    # type: (Text) -> (Text)
-
-    from lxml.html import fromstring, tostring
-    tree = fromstring(html_string)
-
-    for node in tree.iterdescendants("pre"):
-        if "relate_tmp_pre" in node.attrib.get("class", ""):
-            node.drop_tag()
-    return tostring(tree, encoding="unicode")
-
-
 def markup_to_html(
         course,  # type: Optional[Course]
         repo,  # type: Repo_ish
@@ -976,11 +964,13 @@ def markup_to_html(
         return ""
 
     from course.mdx_mathjax import MathJaxExtension
+    from course.utils import NBConvertExtension
     import markdown
 
     extensions = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
         MathJaxExtension(),
+        NBConvertExtension(),
         "markdown.extensions.extra",
     ]
 
@@ -997,9 +987,6 @@ def markup_to_html(
     result = markdown.markdown(text,
         extensions=extensions,
         output_format="html5")
-
-    if result.strip():
-        result = unwrap_relate_tmp_pre_tag(result)
 
     assert isinstance(result, six.text_type)
     if cache_key is not None:

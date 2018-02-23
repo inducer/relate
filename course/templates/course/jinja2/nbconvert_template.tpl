@@ -2,7 +2,7 @@
 
 {# This is to prevent code_cell being process by markdown_to_html #}
 
-{% block input %}<pre class="relate_tmp_pre">{{ super() }}</pre>
+{% block input %}<pre><relate_ipynb>{{ super() }}</relate_ipynb></pre>
 {%- endblock input %}
 
 {# This is to remove the empty cells ahead of markdown_cells #}
