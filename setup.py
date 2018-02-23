@@ -21,5 +21,12 @@ setup(name="relate-courseware",
       license="MIT",
       packages=find_packages(exclude=['tests']),
       install_requires=[
+          "django>=1.10,<1.12",
+          "django-crispy-forms>=1.5.1",
           "colorama",
+          "markdown",
+          "dulwich",
+          "pyyaml",
+          "lxml",
+          "nbconvert>=5.2.1",
           ])
