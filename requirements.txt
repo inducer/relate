@@ -117,7 +117,4 @@ typing
 nbconvert>=5.2.1
 IPython
 
-# For parsing and edit html
-lxml
-
 # vim: foldmethod=marker

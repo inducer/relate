@@ -28,6 +28,7 @@ from typing import cast
 
 import six
 import datetime  # noqa
+import markdown
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
@@ -1321,6 +1322,22 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
         (body, resources) = html_exporter.from_notebook_node(notebook)
 
         return body
+
+
+NBCONVERT_PRE_OPEN_RE = re.compile(r"<pre\s*>\s*<relate_ipynb\s*>")
+NBCONVERT_PRE_CLOSE_RE = re.compile(r"</relate_ipynb\s*>\s*</pre\s*>")
+
+
+class NBConvertHTMLPostprocessor(markdown.postprocessors.Postprocessor):
+    def run(self, text):
+        text = NBCONVERT_PRE_OPEN_RE.sub("", text)
+        text = NBCONVERT_PRE_CLOSE_RE.sub("", text)
+        return text
+
+
+class NBConvertExtension(markdown.Extension):
+    def extendMarkdown(self, md, md_globals):  # noqa
+        md.postprocessors['relate_nbconvert'] = NBConvertHTMLPostprocessor(md)
 
 # }}}
 
