@@ -29,4 +29,14 @@ setup(name="relate-courseware",
           "pyyaml",
           "lxml",
           "nbconvert>=5.2.1",
-          ])
+          ],
+      package_data={
+          "relate": [
+              "templates/*.html",
+              ],
+          "course": [
+              "templates/course/*.html",
+              "templates/course/jinja2/*.tpl",
+              ],
+          },
+      )
