@@ -29,6 +29,8 @@ setup(name="relate-courseware",
           "pyyaml",
           "lxml",
           "nbconvert>=5.2.1",
+          "pymbolic",
+          "sympy",
           ],
       package_data={
           "relate": [
