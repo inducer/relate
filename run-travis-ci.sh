@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # before_script
-if [[ $RL_TRAVIS_TEST == test ]]; then
+if [[ $RL_TRAVIS_TEST == flake8 ]]; then
   curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
 fi
 
