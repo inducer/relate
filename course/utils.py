@@ -939,7 +939,7 @@ def get_codemirror_widget(
         ):
     # type: (...) ->  CodeMirrorTextarea
 
-    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
 
     theme = "default"
     if read_only:
@@ -1304,7 +1304,6 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
         c.HighlightMagicsPreprocessor.enabled = False
 
         import os
-        from django.conf import settings
 
         # Place the template in course template dir
         import course
