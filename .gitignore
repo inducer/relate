@@ -28,3 +28,4 @@ git-roots
 .mypy_cache
 
 /.idea
+/.env

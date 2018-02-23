@@ -37,8 +37,6 @@ from django.utils import translation
 from django.utils.translation import (
         ugettext as _, pgettext_lazy)
 
-from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
-
 from relate.utils import string_concat
 from course.content import (
         get_course_repo, get_flow_desc,
@@ -70,6 +68,8 @@ if False:
             FlowPageData,
             )
     from course.content import Repo_ish  # noqa
+    from codemirror import CodeMirrorTextarea  # noqa
+
 
 # }}}
 
@@ -938,6 +938,9 @@ def get_codemirror_widget(
         read_only=False,  # type: bool
         ):
     # type: (...) ->  CodeMirrorTextarea
+
+    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
+
     theme = "default"
     if read_only:
         theme += " relate-readonly"
@@ -1301,11 +1304,12 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
         c.HighlightMagicsPreprocessor.enabled = False
 
         import os
-        from django.conf import settings
 
         # Place the template in course template dir
+        import course
         template_path = os.path.join(
-            settings.BASE_DIR, "course", "templates", "course", "jinja2")
+                os.path.dirname(course.__file__),
+                "templates", "course", "jinja2")
         c.TemplateExporter.template_path.append(template_path)
 
         from nbconvert import HTMLExporter
