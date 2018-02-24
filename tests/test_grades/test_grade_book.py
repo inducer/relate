@@ -37,12 +37,22 @@ from course.grades import (
     get_single_grade_changes_and_state_machine as get_gc_and_machine)
 
 from tests.utils import mock  # noqa
-from tests.base_test_mixins import SingleCourseTestMixin
+from tests.base_test_mixins import SingleCoursePageTestMixin
 from tests import factories as fctr
 from tests.factories import GradeChangeFactory as GCFactory
+from tests.test_pages import QUIZ_FLOW_ID
 
 
-class GradeBookTestMixin(SingleCourseTestMixin):
+def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(
+        session, flow_desc, now_datetime):
+    # The testing flow "quiz-test" didn't set the attribute
+    from course.utils import get_session_grading_rule
+    actual_grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
+    actual_grading_rule.use_last_activity_as_completion_time = True
+    return actual_grading_rule
+
+
+class GradeBookTestMixin(SingleCoursePageTestMixin):
 
     def setUp(self):
         super(GradeBookTestMixin, self).setUp()
@@ -171,7 +181,7 @@ class GradeBookTestMixin(SingleCourseTestMixin):
     def reopen_session1(self):
         existing_gc_count = models.GradeChange.objects.count()
         reopen_session(now_datetime=local_now(), session=self.session1,
-                       generate_gradechange=True,
+                       generate_grade_change=True,
                        suppress_log=True)
         self.assertEqual(models.GradeChange.objects.count(), existing_gc_count+1)
         self.session1.refresh_from_db()
@@ -179,7 +189,7 @@ class GradeBookTestMixin(SingleCourseTestMixin):
     def reopen_session2(self):
         existing_gc_count = models.GradeChange.objects.count()
         reopen_session(now_datetime=local_now(), session=self.session2,
-                       generate_gradechange=True,
+                       generate_grade_change=True,
                        suppress_log=True)
         self.assertEqual(models.GradeChange.objects.count(), existing_gc_count+1)
         self.session2.refresh_from_db()
@@ -504,7 +514,7 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
 
     # }}}
 
-    # {{{ When two grade change have the same grade_time
+    # {{{ When two grade changes have the same grade_time
     # The expected behavior is GradeChange object with the larger pk
     # dominate. Fixed with #263 and #417
 
@@ -556,7 +566,7 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
 
         existing_gc_count = models.GradeChange.objects.count()
         reopen_session(now_datetime=local_now(), session=session_temp,
-                       generate_gradechange=True,
+                       generate_grade_change=True,
                        suppress_log=True)
         self.assertEqual(models.GradeChange.objects.count(), existing_gc_count)
 
@@ -629,6 +639,114 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
                          models.GradeChange.objects.count())
 
     # }}}
+
+    # {{{ test new gchange created when finishing flow
+
+    def test_new_gchange_created_when_finish_flow_use_last_no_activity(self):
+        # With use_last_activity_as_completion_time = True, if a flow session has
+        # no last_activity, the expected effective_time of the new gchange should
+        # be the completion time of the related flow_session.
+        with self.temporarily_switch_to_user(self.ptcp):
+            self.start_flow(QUIZ_FLOW_ID)
+            self.assertEqual(models.GradeChange.objects.count(), 0)
+
+            with mock.patch("course.flow.get_session_grading_rule") as \
+                    mock_get_grading_rule:
+                mock_get_grading_rule.side_effect = (
+                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)  # noqa
+                resp = self.end_flow()
+                self.assertEqual(resp.status_code, 200)
+
+            self.assertEqual(models.GradeChange.objects.count(), 1)
+            latest_gchange = models.GradeChange.objects.last()
+            latest_flow_session = models.FlowSession.objects.last()
+            self.assertIsNone(latest_flow_session.last_activity())
+            self.assertEqual(latest_gchange.effective_time,
+                             latest_flow_session.completion_time)
+
+    def test_new_gchange_created_when_finish_flow_use_last_has_activity(self):
+        # With use_last_activity_as_completion_time = True, if a flow session HAS
+        # last_activity, the expected effective_time of the new gchange should be
+        # the last_activity() of the related flow_session.
+        with self.temporarily_switch_to_user(self.instructor_participation):
+            self.start_flow(QUIZ_FLOW_ID)
+
+            # create a flow page visit, then there should be last_activity() for
+            # the session.
+            self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+            self.assertEqual(
+                models.FlowPageVisit.objects.filter(answer__isnull=False).count(),
+                1)
+            last_answered_visit = (
+                models.FlowPageVisit.objects.filter(answer__isnull=False).first())
+            last_answered_visit.visit_time = now() - timedelta(hours=1)
+            last_answered_visit.save()
+            self.assertEqual(models.GradeChange.objects.count(), 0)
+
+            with mock.patch("course.flow.get_session_grading_rule") as \
+                    mock_get_grading_rule:
+                mock_get_grading_rule.side_effect = (
+                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)  # noqa
+                resp = self.end_flow()
+                self.assertEqual(resp.status_code, 200)
+
+            self.assertEqual(models.GradeChange.objects.count(), 1)
+            latest_gchange = models.GradeChange.objects.last()
+            latest_flow_session = models.FlowSession.objects.last()
+            self.assertIsNotNone(latest_flow_session.last_activity())
+            self.assertEqual(latest_flow_session.completion_time,
+                             latest_flow_session.last_activity())
+            self.assertEqual(latest_gchange.effective_time,
+                             latest_flow_session.last_activity())
+
+    def test_new_gchange_created_when_finish_flow_not_use_last_no_activity(self):
+        # With use_last_activity_as_completion_time = False, if a flow session has
+        # no last_activity, the expected effective_time of the new gchange should
+        # be the completion time of the related flow_session.
+        with self.temporarily_switch_to_user(self.ptcp):
+            self.start_flow(QUIZ_FLOW_ID)
+            self.assertEqual(models.GradeChange.objects.count(), 0)
+
+            resp = self.end_flow()
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertEqual(models.GradeChange.objects.count(), 1)
+            latest_gchange = models.GradeChange.objects.last()
+            latest_flow_session = models.FlowSession.objects.last()
+            self.assertIsNone(latest_flow_session.last_activity())
+            self.assertEqual(latest_gchange.effective_time,
+                             latest_flow_session.completion_time)
+
+    def test_new_gchange_created_when_finish_flow_not_use_last_has_activity(self):
+        # With use_last_activity_as_completion_time = False, even if a flow session
+        # HAS last_activity, the expected effective_time of the new gchange should
+        # be the completion_time of the related flow_session.
+        with self.temporarily_switch_to_user(self.instructor_participation):
+            self.start_flow(QUIZ_FLOW_ID)
+
+            # create a flow page visit, then there should be last_activity() for
+            # the session.
+            self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+            self.assertEqual(
+                models.FlowPageVisit.objects.filter(answer__isnull=False).count(),
+                1)
+            last_answered_visit = (
+                models.FlowPageVisit.objects.filter(answer__isnull=False).first())
+            last_answered_visit.visit_time = now() - timedelta(hours=1)
+            last_answered_visit.save()
+            self.assertEqual(models.GradeChange.objects.count(), 0)
+
+            resp = self.end_flow()
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertEqual(models.GradeChange.objects.count(), 1)
+            latest_gchange = models.GradeChange.objects.last()
+            latest_flow_session = models.FlowSession.objects.last()
+            self.assertIsNotNone(latest_flow_session.last_activity())
+            self.assertNotEqual(latest_flow_session.completion_time,
+                             latest_flow_session.last_activity())
+            self.assertEqual(latest_gchange.effective_time,
+                             latest_flow_session.completion_time)
 
 
 class ViewParticipantGradesTest(GradeBookTestMixin, TestCase):

@@ -108,7 +108,6 @@ def view_participant_grades(pctx, participation_id=None):
                 "grade_time")
             .select_related("participation")
             .select_related("participation__user")
-            .select_related("flow_session")
             .select_related("opportunity"))
 
     idx = 0
@@ -230,7 +229,6 @@ def get_grade_table(course):
                 "grade_time")
             .select_related("participation")
             .select_related("participation__user")
-            .select_related("flow_session")
             .select_related("opportunity"))
 
     idx = 0
@@ -756,7 +754,6 @@ def average_grade(opportunity):
                 "participation__id",
                 "grade_time")
             .select_related("participation")
-            .select_related("flow_session")
             .select_related("opportunity"))
 
     grades = []

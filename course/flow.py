@@ -1139,9 +1139,14 @@ def grade_flow_session(
         # creator left as NULL
         gchange.flow_session = flow_session
         gchange.comment = comment
-        gchange.effective_time = (
-                # If not activity, use completion_time as effective_time
-                flow_session.last_activity() or flow_session.completion_time)
+
+        gchange.effective_time = None
+        if grading_rule.use_last_activity_as_completion_time:
+            gchange.effective_time = flow_session.last_activity()
+
+        if gchange.effective_time is None:
+            gchange.effective_time = flow_session.completion_time
+
         assert gchange.effective_time is not None
 
         previous_grade_changes = list(GradeChange.objects
@@ -1195,7 +1200,7 @@ def reopen_session(
         session,  # type: FlowSession
         force=False,  # type: bool
         suppress_log=False,  # type: bool
-        generate_gradechange=True,  # type: bool
+        generate_grade_change=True,  # type: bool
         unsubmit_pages=False,  # type: bool
         ):
     # type: (...) -> None
@@ -1226,7 +1231,7 @@ def reopen_session(
 
         # {{{ create a grade change with status do_over
 
-        if generate_gradechange:
+        if generate_grade_change:
             last_gchanges = (
                 GradeChange.objects.filter(flow_session=session)
                 .order_by("-grade_time")[:1])
@@ -1348,7 +1353,7 @@ def regrade_session(
             session.save()
 
             reopen_session(now_datetime, session, force=True, suppress_log=True,
-                           generate_gradechange=False)
+                           generate_grade_change=False)
             finish_flow_session_standalone(
                     repo, course, session, force_regrade=True,
                     now_datetime=prev_completion_time,
@@ -1379,7 +1384,7 @@ def recalculate_session_grade(repo, course, session):
         session.save()
 
         reopen_session(now_datetime, session, force=True, suppress_log=True,
-                       generate_gradechange=False)
+                       generate_grade_change=False)
         finish_flow_session_standalone(
                 repo, course, session, force_regrade=False,
                 now_datetime=prev_completion_time,

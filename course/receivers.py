@@ -114,6 +114,8 @@ def may_preapprove_role(course, user):
 @transaction.atomic
 def create_exempt_grade_change_when_delete_session(sender, instance, **kwargs):
     # type: (Any, FlowSession, **Any) -> None
+
+    # FIXME: `exempt` is not designed to be used in ths way.
     """
     Create a :class:`GradeChange` entry with state "exempt" for the attempt_id
     of that flow_session, after deleting a flow session from admin. We are

@@ -1623,8 +1623,6 @@ class GradeStateMachine(object):
 
         # applies to *all* grade changes
         self._last_grade_change_time = None
-        self.earliest_percentage = None
-        self.latest_percentage = None
 
     def _clear_grades(self):
         # type: () -> None
@@ -1719,57 +1717,60 @@ class GradeStateMachine(object):
             gchange.is_superseded = False
             self._consume_grade_change(gchange, set_is_superseded)
 
-        gchanges = [gchange for gchange in self.attempt_id_to_gchange.values()]
-
-        valid_grade_changes = sorted(gchanges, key=lambda x: (x.grade_time, x.pk))
-
-        import copy
-        _valid_percentages_copy = copy.copy(self.valid_percentages)
-
-        self.valid_percentages.extend(
-                [gchange.percentage() for gchange in valid_grade_changes])
+        valid_gchanges_with_attempt_id = sorted(
+            [gchange for gchange in self.attempt_id_to_gchange.values()],
+            key=lambda x: (x.grade_time, x.pk))
+        del self.attempt_id_to_gchange
 
         # {{{ Calculate the earliest percentage and latest percentage, instead of
         # get them from self.valid_percentages, so as to avoid inconsistent results.
 
         if self.opportunity is not None:
             strategy = self.opportunity.aggregation_strategy
-            if self.valid_percentages and strategy in [
+            if strategy not in [
                             grade_aggregation_strategy.use_earliest,
                             grade_aggregation_strategy.use_latest]:
 
-                gchanges_with_session = sorted([
-                    gchange for gchange in gchanges
-                    if gchange.flow_session is not None],
-                    key=lambda x: (x.effective_time, x.pk))
+                # Order of gchanges is not of matter
+                self.valid_percentages.extend(
+                    [gchange.percentage() for gchange in
+                     valid_gchanges_with_attempt_id])
+
+            else:
+                valid_gchanges_with_session = ([
+                    gchange for gchange in valid_gchanges_with_attempt_id
+                    if (gchange.flow_session is not None
+                        and gchange.effective_time is not None)])
 
                 # There are no more than 1 flow session, just return the grade
-                # changes ordered by grade_time.
-                if len(gchanges_with_session) <= 1:
-                    self.earliest_percentage = self.valid_percentages[0]
-                    self.latest_percentage = self.valid_percentages[-1]
-                else:
-                    idx = (
-                        0 if strategy == grade_aggregation_strategy.use_earliest
-                        else -1)
+                # changes ordered by grade_time. Note that the length of
+                # valid_gchanges_with_session equals the number of related
+                # flow sessions.
+                if len(valid_gchanges_with_session) <= 1:
+                    # Order of gchanges is also not of matter
+                    self.valid_percentages.extend(
+                        [gchange.percentage() for gchange in
+                         valid_gchanges_with_attempt_id])
 
-                    _gchanges = sorted(
-                        [gchange for gchange in gchanges
+                else:
+                    # Assemble only grade changes of the earliest/latest flow
+                    # session into percentage calculation.
+                    gchange_with_session_to_assemble = sorted(
+                        valid_gchanges_with_session,
+                        key=lambda x: (x.effective_time, x.pk),
+                        reverse=(
+                            strategy == grade_aggregation_strategy.use_latest))[0]
+
+                    gchanges_to_assemble = sorted(
+                        [gchange for gchange in valid_gchanges_with_attempt_id
                          if gchange.flow_session is None]
-                        + [gchanges_with_session[idx]],
+                        + [gchange_with_session_to_assemble],
                         key=lambda x: (x.grade_time, x.pk))
 
-                    _valid_percentages = (
-                        _valid_percentages_copy +
-                        [gchange.percentage() for gchange in _gchanges])
+                    self.valid_percentages.extend(
+                        [gchange.percentage() for gchange in gchanges_to_assemble])
 
-                    if strategy == grade_aggregation_strategy.use_earliest:
-                        self.earliest_percentage = _valid_percentages[0]
-                    else:
-                        self.latest_percentage = _valid_percentages[-1]
             # }}}
-
-        del self.attempt_id_to_gchange
 
         return self
 
@@ -1789,20 +1790,22 @@ class GradeStateMachine(object):
                         grade_aggregation_strategy.avg_grade]:
             numeric_percentages = [p for p in self.valid_percentages
                                    if p is not None]
-            if len(numeric_percentages):
+            if numeric_percentages:
                 if strategy == grade_aggregation_strategy.max_grade:
                     return max(numeric_percentages)
                 elif strategy == grade_aggregation_strategy.min_grade:
                     return min(numeric_percentages)
                 else:
-                    # strategy == grade_aggregation_strategy.avg_grade
+                    assert strategy == grade_aggregation_strategy.avg_grade
                     return sum(numeric_percentages)/len(self.valid_percentages)
             else:
                 return None
         elif strategy == grade_aggregation_strategy.use_earliest:
-            return self.earliest_percentage
+            return (
+                None if not self.valid_percentages else self.valid_percentages[0])
         elif strategy == grade_aggregation_strategy.use_latest:
-            return self.latest_percentage
+            return (
+                None if not self.valid_percentages else self.valid_percentages[-1])
         else:
             raise ValueError(
                     _("invalid grade aggregation strategy '%s'") % strategy)

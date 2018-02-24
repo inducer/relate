@@ -8,7 +8,7 @@ def set_grade_change_effective_time(apps, schema_editor):
     GradeChange = apps.get_model("course", "GradeChange")  # noqa
     target_grade_changes = GradeChange.objects.filter(
         flow_session__isnull=False,
-    )
+    ).select_related("flow_session")
     for gc in target_grade_changes:
         if not gc.flow_session.in_progress:
             gc.effective_time = gc.flow_session.completion_time
