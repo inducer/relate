@@ -473,6 +473,14 @@ def validate_flow_page(vctx, location, page_desc):
 
     validate_identifier(vctx, location, page_desc.id)
 
+    if page_desc.type.startswith("repo:"):
+        vctx.add_warning(
+                location,
+                _("Custom page type '%s' specified. "
+                "Custom page types will stop being supported in "
+                "Relate in 2019.")
+                % page_desc.type)
+
     from course.content import get_flow_page_class
     try:
         class_ = get_flow_page_class(vctx.repo, page_desc.type, vctx.commit_sha)
