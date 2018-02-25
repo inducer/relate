@@ -56,6 +56,8 @@ RELATE_STARTUP_CHECKS_TAG = "start_up_check"
 RELATE_STARTUP_CHECKS_EXTRA_TAG = "startup_checks_extra"
 RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = (
     "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION")
+RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE = (
+    "RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE")
 
 
 class RelateCriticalCheckMessage(Critical):
@@ -485,6 +487,20 @@ def check_relate_settings(app_configs, **kwargs):
                                     % (directory, RELATE_OVERRIDE_TEMPLATES_DIRS)),
                                 id="relate_override_templates_dirs.W001"
                             ))
+
+    # }}}
+
+    # {{{ check RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE
+    relate_custom_page_types_removed_deadline = getattr(
+        settings, RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE, None)
+    if relate_custom_page_types_removed_deadline is not None:
+        from datetime import datetime
+        if not isinstance(relate_custom_page_types_removed_deadline, datetime):
+            errors.append(RelateCriticalCheckMessage(
+                msg=(INSTANCE_ERROR_PATTERN
+                     % {"location": RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE,
+                        "types": "datetime.datetime"}),
+                id="relate_custom_page_types_removed_deadline.E001"))
 
     # }}}
     return errors
