@@ -40,6 +40,8 @@ class ValidateFlowPageTest(SingleCourseTestMixin,
         self.current_commit_sha = self.get_course_commit_sha(
             self.instructor_participation)
 
+    force_deadline = datetime(2019, 1, 1, 0, 0, 0, 0)
+
     custom_page_type = "repo:simple_questions.MyTextQuestion"
 
     commit_sha_deprecated = b"593a1cdcecc6f4759fd5cadaacec0ba9dd0715a7"
@@ -56,20 +58,32 @@ class ValidateFlowPageTest(SingleCourseTestMixin,
 
     def test_custom_page_types_deprecate(self):
         deadline = datetime(2039, 1, 1, 0, 0, 0, 0)
+
         with override_settings(
                 RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
             resp = self.post_update_course_content(
                 commit_sha=self.commit_sha_deprecated)
             self.assertEqual(resp.status_code, 200)
-            expected_message = (
-                self.deprecate_warning_message_pattern
-                % {"page_type": self.custom_page_type,
-                   "date_time": format_datetime_local(deadline)}
-            )
+
+            if datetime.now() <= self.force_deadline:
+                expected_message = (
+                    self.deprecate_warning_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.commit_sha_deprecated)
+            else:
+                expected_message = (
+                    self.expired_error_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.current_commit_sha)
             self.assertResponseMessagesContains(resp, expected_message, loose=True)
-            self.assertEqual(
-                self.get_course_commit_sha(self.instructor_participation),
-                self.commit_sha_deprecated)
 
     def test_custom_page_types_not_supported(self):
         deadline = datetime(2017, 1, 1, 0, 0, 0, 0)
@@ -94,13 +108,23 @@ class ValidateFlowPageTest(SingleCourseTestMixin,
             resp = self.post_update_course_content(
                 commit_sha=self.commit_sha_deprecated)
             self.assertEqual(resp.status_code, 200)
-            not_expected_message = [
-                "Custom page types were no longer supported",
-                "Custom page types will stop being supported"
-            ]
-            for m in not_expected_message:
-                self.assertNotContains(resp, not_expected_message)
 
-            self.assertEqual(
-                self.get_course_commit_sha(self.instructor_participation),
-                self.commit_sha_deprecated)
+            if datetime.now() <= self.force_deadline:
+                expected_message = (
+                    self.deprecate_warning_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.commit_sha_deprecated)
+            else:
+                expected_message = (
+                    self.expired_error_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.current_commit_sha)
+            self.assertResponseMessagesContains(resp, expected_message, loose=True)

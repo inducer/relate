@@ -480,28 +480,28 @@ def validate_flow_page(vctx, location, page_desc):
 
         deadline = get_custom_page_types_stop_support_deadline()
 
-        if deadline is not None:
+        assert deadline is not None
 
-            if deadline < local_now():
-                raise ValidationError(
-                        location,
-                        _("Custom page type '%(page_type)s' specified. "
-                          "Custom page types were no longer supported in "
-                          "%(relate_site_name)s since %(date_time)s.")
-                        % {"page_type": page_desc.type,
-                           "date_time": format_datetime_local(deadline),
-                           "relate_site_name": settings.RELATE_SITE_NAME,
-                           })
-            else:
-                vctx.add_warning(
-                        location,
-                        _("Custom page type '%(page_type)s' specified. "
-                          "Custom page types will stop being supported in "
-                          "%(relate_site_name)s at %(date_time)s.")
-                        % {"page_type": page_desc.type,
-                           "date_time": format_datetime_local(deadline),
-                           "relate_site_name": settings.RELATE_SITE_NAME
-                           })
+        if deadline < local_now():
+            raise ValidationError(
+                    location,
+                    _("Custom page type '%(page_type)s' specified. "
+                      "Custom page types were no longer supported in "
+                      "%(relate_site_name)s since %(date_time)s.")
+                    % {"page_type": page_desc.type,
+                       "date_time": format_datetime_local(deadline),
+                       "relate_site_name": settings.RELATE_SITE_NAME,
+                       })
+        else:
+            vctx.add_warning(
+                    location,
+                    _("Custom page type '%(page_type)s' specified. "
+                      "Custom page types will stop being supported in "
+                      "%(relate_site_name)s at %(date_time)s.")
+                    % {"page_type": page_desc.type,
+                       "date_time": format_datetime_local(deadline),
+                       "relate_site_name": settings.RELATE_SITE_NAME
+                       })
 
     from course.content import get_flow_page_class
     try:

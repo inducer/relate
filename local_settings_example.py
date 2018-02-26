@@ -401,18 +401,6 @@ RELATE_TICKET_MINUTES_VALID_AFTER_USE = 12*60
 
 # }}}
 
-# {{{ deprecation deadline of custom page types
-
-# Uncomment the following to customize the deadline after which custom page types
-# won't be supported for your RELATE instances. Format: a datetime.datetime
-# instance. If not configured, the default deadline is 2019-01-01 00:00. If
-# explicitly configured None, no deadline will be imposed.
-
-#from datetime import datetime
-#RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE = datetime(2019, 1, 1, 0, 0, 0, 0)
-
-# }}}
-
 # {{{ saml2 (optional)
 
 if RELATE_SIGN_IN_BY_SAML2_ENABLED:
