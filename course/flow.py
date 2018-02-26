@@ -1229,30 +1229,24 @@ def reopen_session(
         session.completion_time = None
         session.save()
 
-        # {{{ create a grade change with status do_over
-
         if generate_grade_change:
             last_gchanges = (
                 GradeChange.objects.filter(flow_session=session)
                 .order_by("-grade_time")[:1])
 
-            from course.models import grade_state_change_types
-            new_gchange_state = grade_state_change_types.do_over
-
             if last_gchanges.count():
                 last_gchange, = last_gchanges
-
                 last_gchange.pk = None
                 last_gchange.points = None
                 last_gchange.creator = None
                 last_gchange.comment = None
-                last_gchange.state = new_gchange_state
+
+                from course.models import grade_state_change_types
+                last_gchange.state = grade_state_change_types.do_over
 
                 from django.utils.timezone import now
                 last_gchange.grade_time = now()
                 last_gchange.save()
-
-        # }}}
 
         if unsubmit_pages:
             answer_visits = assemble_answer_visits(session)
