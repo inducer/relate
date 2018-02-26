@@ -748,6 +748,27 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
             self.assertEqual(latest_gchange.effective_time,
                              latest_flow_session.completion_time)
 
+    # }}}
+
+    def test_backward_compatibility_merging_466(self):
+        # this make sure after merging https://github.com/inducer/relate/pull/466
+        # gchanges are consumed without issue
+        self.use_default_setup()
+        self.gc_session2.effective_time = None
+        self.gc_session2.save()
+        self.gc_session2.refresh_from_db()
+
+        # We are not using reopen_session(), because that will create new
+        # gchange, which only happen after #466 was merged.
+        self.session2.in_progress = True
+        self.session2.save()
+        self.session2.refresh_from_db()
+        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
+
+        # session2's gchange is excluded
+        self.assertGradeChangeStateEqual(7)
+        self.assertEqual(machine.valid_percentages, [0, 7])
+
 
 class ViewParticipantGradesTest(GradeBookTestMixin, TestCase):
     def setUp(self):

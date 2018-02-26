@@ -1662,6 +1662,15 @@ class GradeStateMachine(object):
             #if self.due_time is not None and gchange.grade_time > self.due_time:
                 #raise ValueError("cannot accept grade after due date")
 
+            # This is for backward compatibility, making sure
+            # reopened sessions (and which were not finished afterward) are
+            # excluded, because session-related gchanges which have None
+            # effective_time can only be created
+            # before https://github.com/inducer/relate/pull/466 was merged.
+            if (gchange.flow_session is not None
+                    and gchange.effective_time is None):
+                return
+
             self.state = gchange.state
             if gchange.attempt_id is not None:
                 if (set_is_superseded and
@@ -1739,14 +1748,15 @@ class GradeStateMachine(object):
             else:
                 valid_gchanges_with_session = ([
                     gchange for gchange in valid_gchanges_with_attempt_id
-                    if (gchange.flow_session is not None
-                        and gchange.effective_time is not None)])
+                    if (gchange.flow_session is not None)])
 
-                # There are no more than 1 flow session, just return the grade
-                # changes ordered by grade_time. Note that the length of
-                # valid_gchanges_with_session equals the number of related
-                # flow sessions.
                 if len(valid_gchanges_with_session) <= 1:
+                    # There are no more than 1 flow session with not null gchange
+                    # effective_time, just return the grade
+                    # changes ordered by grade_time. Note that the length of
+                    # valid_gchanges_with_session equals the number of related
+                    # flow sessions.
+
                     # Order of gchanges is also not of matter
                     self.valid_percentages.extend(
                         [gchange.percentage() for gchange in
