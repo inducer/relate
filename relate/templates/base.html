@@ -78,41 +78,51 @@
 
                 {% block navbar %}{% endblock %}
 
-                {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility %}
-                  <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Staff" %}<b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                      {% if user.is_staff %}
-                        <li><a href="/admin" target="_blank">{% trans "Admin site" %}</a></li>
-                        <li role="presentation" class="divider"></li>
-                      {% endif %}
-                      {% if user.is_superuser or pperm.use_admin_interface %}
-                        <li><a href="{% url 'relate-purge_page_view_data' %}" target="_blank">{% trans "Purge page view data" %}</a></li>
-                        <li role="presentation" class="divider"></li>
-                      {% endif %}
-                      {% if perms.course.can_issue_exam_tickets %}
-                        <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
-                        <li><a href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
-                        <li><a href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
-                        <li role="presentation" class="divider"></li>
-                      {% endif %}
-                      {% if currently_impersonating or pperm.impersonate_role %}
-                        <li role="presentation" class="dropdown-header">{% trans "Test/Troubleshoot" %}</li>
-                        {% if currently_impersonating %}
-                          <li><a href="{% url 'relate-stop_impersonating' %}" target="_blank">{% trans "Stop impersonating" %}</a></li>
-                        {% else %}
-                          <li><a href="{% url 'relate-impersonate' %}" target="_blank">{% trans "Impersonate user" %}</a></li>
-                        {% endif %}
-                      {% endif %}
-                      {% if pperm.set_fake_time %}
-                        <li><a href="{% url 'relate-set_fake_time' %}" target="_blank">{% trans "Set fake time" %}</a></li>
-                      {% endif %}
-                      {% if pperm.set_pretend_facility %}
-                        <li><a href="{% url 'relate-set_pretend_facilities' %}" target="_blank">{% trans "Pretend to be in facilities" %}</a></li>
-                      {% endif %}
-                    </ul>
-                  </li>
-                {% endif %}
+                {% block navbar_dropdown_staff %}
+                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility %}
+                    <li class="dropdown">
+                      <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Staff" %}<b class="caret"></b></a>
+                      <ul class="dropdown-menu">
+                        {% block navbar_dropdown_staff_menu_admin %}
+                          {% if user.is_staff %}
+                            <li><a href="/admin" target="_blank">{% trans "Admin site" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_purge_page_view_data %}
+                          {% if user.is_superuser or pperm.use_admin_interface %}
+                            <li role="presentation" class="divider"></li>
+                            <li><a href="{% url 'relate-purge_page_view_data' %}" target="_blank">{% trans "Purge page view data" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_exam %}
+                          {% if perms.course.can_issue_exam_tickets %}
+                            <li role="presentation" class="divider"></li>
+                            <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
+                            <li><a href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
+                            <li><a href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_trouble_shoot %}
+                          {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time %}
+                            <li role="presentation" class="divider"></li>
+                            <li role="presentation" class="dropdown-header">{% trans "Test/Troubleshoot" %}</li>
+                            {% if currently_impersonating %}
+                              <li><a href="{% url 'relate-stop_impersonating' %}" target="_blank">{% trans "Stop impersonating" %}</a></li>
+                            {% else %}
+                              <li><a href="{% url 'relate-impersonate' %}" target="_blank">{% trans "Impersonate user" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_fake_time %}
+                              <li><a href="{% url 'relate-set_fake_time' %}" target="_blank">{% trans "Set fake time" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_pretend_facility %}
+                              <li><a href="{% url 'relate-set_pretend_facilities' %}" target="_blank">{% trans "Pretend to be in facilities" %}</a></li>
+                            {% endif %}
+                          {% endif %}
+                        {% endblock %}
+                      </ul>
+                    </li>
+                  {% endif %}
+              {% endblock %}
               </ul>
               <ul class="nav navbar-nav navbar-right">
                 {% block preview_status %}
