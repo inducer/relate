@@ -23,6 +23,8 @@ THE SOFTWARE.
 """
 
 import os
+from datetime import datetime
+
 from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
@@ -712,3 +714,22 @@ class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
     def test_warning_conf_false(self):
         self.assertCheckMessages(
             ["relate_disable_codehilite_markdown_extension.W002"])
+
+
+class CheckRelateCustomPageTypesRemovedDeadline(CheckRelateSettingsBase):
+    msg_id_prefix = "relate_custom_page_types_removed_deadline"
+    VALID_CONF = datetime(2017, 12, 31, 0, 0)
+    INVALID_CONF = "2017-12-31 00:00"
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=None)
+    def test_valid_conf_none(self):
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=VALID_CONF)
+    def test_valid_conf(self):
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=INVALID_CONF)
+    def test_invalid_conf(self):
+        self.assertCheckMessages(
+            ["relate_custom_page_types_removed_deadline.E001"])
