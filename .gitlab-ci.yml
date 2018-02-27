@@ -24,7 +24,7 @@ Python 3.6:
 
 Python 3.6:
   script:
-  - "PY_EXE=python3.6 bash ./test-command-line-tool.sh"
+  - "PY_EXE=python3.6 bash ./test-command-line-tool.sh python3.6"
   tags:
   - python3.6
   - linux
