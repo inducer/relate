@@ -291,8 +291,9 @@ class CheckRelateEmailAppelationPriorityList(CheckRelateSettingsBase):
     msg_id_prefix = "relate_email_appelation_priority_list"
 
     VALID_CONF_NONE = None
-    VALID_CONF = ["name1", "name2"]
+    VALID_CONF = ["full_name"]
     INVALID_CONF_STR = "name1"
+    INVALID_CONF = ["name1", "name2"]
 
     @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=VALID_CONF_NONE)
     def test_valid_relate_email_appelation_priority_list_none(self):
@@ -305,7 +306,11 @@ class CheckRelateEmailAppelationPriorityList(CheckRelateSettingsBase):
     @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=INVALID_CONF_STR)
     def test_invalid_relate_email_appelation_priority_list_str(self):
         self.assertCheckMessages(
-            ["relate_email_appelation_priority_list.E001"])
+            ["relate_email_appelation_priority_list.W001"])
+
+    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=INVALID_CONF)
+    def test_valid_relate_email_appelation_priority_list_invalid(self):
+        self.assertCheckMessages(["relate_email_appelation_priority_list.W002"])
 
 
 class CheckRelateEmailConnections(CheckRelateSettingsBase):

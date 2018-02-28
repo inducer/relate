@@ -151,7 +151,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                 verbose_blank(first_name), verbose_blank(last_name))
 
         from accounts.utils import relate_user_method_settings
-        format_method = relate_user_method_settings.get_custom_full_name_method
+        format_method = relate_user_method_settings.custom_full_name_method
         if format_method is None:
             format_method = default_fullname
 
@@ -186,33 +186,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_email_appellation(self):
         "Return the appellation of the receiver in email."
-        from django.conf import settings
 
-        # import the user defined priority list
-        customized_priority_list = getattr(
-                settings,
-                "RELATE_EMAIL_APPELATION_PRIORITY_LIST", [])
-
-        # When the settings explicitly set it to None
-        if not customized_priority_list:
-            customized_priority_list = []
-
-        priority_list = []
-
-        # filter out not allowd appellations in customized list
-        for e in customized_priority_list:
-            if e in ["first_name", "email", "username", "full_name"]:
-                priority_list.append(e)
-
-        # make sure the default appellations are included in case
-        # user defined appellations are not available.
-        for e in ["first_name", "email", "username"]:
-            if e not in priority_list:
-                priority_list.append(e)
+        from accounts.utils import relate_user_method_settings
+        priority_list = (
+            relate_user_method_settings.email_appelation_priority_list)
 
         for attr in priority_list:
             if attr == "full_name":
-                appellation = self.get_full_name(allow_blank=True)
+                appellation = self.get_full_name(allow_blank=False)
             else:
                 appellation = getattr(self, attr)
 
@@ -220,8 +201,6 @@ class User(AbstractBaseUser, PermissionsMixin):
                 return appellation
             else:
                 continue
-
-        return _("user")
 
     def clean(self):
         super(User, self).clean()

@@ -101,22 +101,12 @@ def check_relate_settings(app_configs, **kwargs):
         ))
     # }}}
 
-    # {{{ check RELATE_EMAIL_APPELATION_PRIORITY_LIST
-    relate_email_appelation_priority_list = getattr(
-        settings, RELATE_EMAIL_APPELATION_PRIORITY_LIST, None)
-    if relate_email_appelation_priority_list is not None:
-        if not isinstance(relate_email_appelation_priority_list, (list, tuple)):
-            errors.append(RelateCriticalCheckMessage(
-                msg=(
-                    INSTANCE_ERROR_PATTERN
-                    % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
-                       "types": "list or tuple"}),
-                id="relate_email_appelation_priority_list.E001")
-            )
-    # }}}
+    from accounts.utils import relate_user_method_settings
+    # check RELATE_EMAIL_APPELATION_PRIORITY_LIST
+    errors.extend(
+        relate_user_method_settings.check_email_appelation_priority_list())
 
     # check RELATE_CSV_SETTINGS
-    from accounts.utils import relate_user_method_settings
     errors.extend(relate_user_method_settings.check_custom_full_name_method())
 
     # {{{ check EMAIL_CONNECTIONS

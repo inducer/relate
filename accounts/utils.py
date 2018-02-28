@@ -29,7 +29,11 @@ from django.core.checks import Warning
 from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 
+from relate.checks import INSTANCE_ERROR_PATTERN
+from course.constants import DEFAULT_EMAIL_APPELATION_PRIORITY_LIST
+
 RELATE_USER_FULL_NAME_FORMAT_METHOD = "RELATE_USER_FULL_NAME_FORMAT_METHOD"
+RELATE_EMAIL_APPELATION_PRIORITY_LIST = "RELATE_EMAIL_APPELATION_PRIORITY_LIST"
 
 
 class RelateUserMethodSettingsInitializer(object):
@@ -40,109 +44,172 @@ class RelateUserMethodSettingsInitializer(object):
 
     def __init__(self):
         self._custom_full_name_method = None
+        self._email_appelation_priority_list = (
+                DEFAULT_EMAIL_APPELATION_PRIORITY_LIST)
 
     @cached_property
-    def get_custom_full_name_method(self):
+    def custom_full_name_method(self):
         self.check_custom_full_name_method()
         return self._custom_full_name_method
 
+    @cached_property
+    def email_appelation_priority_list(self):
+        self.check_email_appelation_priority_list()
+        return self._email_appelation_priority_list
+
+    def check_email_appelation_priority_list(self):
+        errors = []
+        self._email_appelation_priority_list = (
+            DEFAULT_EMAIL_APPELATION_PRIORITY_LIST)
+
+        from django.conf import settings
+        custom_email_appelation_priority_list = getattr(
+            settings, RELATE_EMAIL_APPELATION_PRIORITY_LIST, None)
+        if not custom_email_appelation_priority_list:
+            return errors
+
+        if not isinstance(custom_email_appelation_priority_list, (list, tuple)):
+            errors.append(Warning(
+                msg=("%s, %s" % (
+                        INSTANCE_ERROR_PATTERN
+                        % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
+                           "types": "list or tuple"},
+                        "default value '%s' will be used"
+                        % repr(DEFAULT_EMAIL_APPELATION_PRIORITY_LIST))),
+                id="relate_email_appelation_priority_list.W001"))
+            return errors
+
+        priority_list = []
+        not_supported_appels = []
+
+        # filter out not allowd appellations in customized list
+        for appel in custom_email_appelation_priority_list:
+            if appel in DEFAULT_EMAIL_APPELATION_PRIORITY_LIST:
+                priority_list.append(appel)
+            else:
+                not_supported_appels.append(appel)
+
+        # make sure the default appellations are included in case
+        # user defined appellations are not available.
+        for appel in DEFAULT_EMAIL_APPELATION_PRIORITY_LIST:
+            if appel not in priority_list:
+                priority_list.append(appel)
+
+        assert len(priority_list)
+        self._email_appelation_priority_list = priority_list
+
+        if not_supported_appels:
+            errors.append(Warning(
+                msg=("%(location)s: not supported email appelation(s) found "
+                     "and will be ignored: %(not_supported_appelds)s. "
+                     "%(actual)s will be used as "
+                     "RELATE_EMAIL_APPELATION_PRIORITY_LIST."
+                     % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
+                        "not_supported_appelds": ", ".join(not_supported_appels),
+                        "actual": repr(priority_list)}),
+                id="relate_email_appelation_priority_list.W002"))
+        return errors
+
     def check_custom_full_name_method(self):
+        self._custom_full_name_method = None
         errors = []
 
         from django.conf import settings
         relate_user_full_name_format_method = getattr(
             settings, RELATE_USER_FULL_NAME_FORMAT_METHOD, None)
-        self._custom_full_name_method = None
-        if relate_user_full_name_format_method is not None:
-            if isinstance(relate_user_full_name_format_method, six.string_types):
-                try:
-                    relate_user_full_name_format_method = (
-                        import_string(relate_user_full_name_format_method))
-                except ImportError:
-                    errors = [Warning(
-                        msg=(
-                                "%(location)s: `%(method)s` failed to be imported, "
-                                "default format method will be used."
-                                % {"location": RELATE_USER_FULL_NAME_FORMAT_METHOD,
-                                   "method": relate_user_full_name_format_method
-                                   }
-                        ),
-                        id="relate_user_full_name_format_method.W001"
-                    )]
-                    return errors
 
-            self._custom_full_name_method = relate_user_full_name_format_method
-            if not callable(relate_user_full_name_format_method):
-                errors.append(Warning(
+        if relate_user_full_name_format_method is None:
+            return errors
+
+        if isinstance(relate_user_full_name_format_method, six.string_types):
+            try:
+                relate_user_full_name_format_method = (
+                    import_string(relate_user_full_name_format_method))
+            except ImportError:
+                errors = [Warning(
                     msg=(
-                            "%(location)s: `%(method)s` is not a callable, "
+                            "%(location)s: `%(method)s` failed to be imported, "
                             "default format method will be used."
                             % {"location": RELATE_USER_FULL_NAME_FORMAT_METHOD,
                                "method": relate_user_full_name_format_method
                                }
                     ),
-                    id="relate_user_full_name_format_method.W002"
+                    id="relate_user_full_name_format_method.W001"
+                )]
+                return errors
+
+        self._custom_full_name_method = relate_user_full_name_format_method
+        if not callable(relate_user_full_name_format_method):
+            errors.append(Warning(
+                msg=(
+                        "%(location)s: `%(method)s` is not a callable, "
+                        "default format method will be used."
+                        % {"location": RELATE_USER_FULL_NAME_FORMAT_METHOD,
+                           "method": relate_user_full_name_format_method
+                           }
+                ),
+                id="relate_user_full_name_format_method.W002"
+            ))
+        else:
+            try:
+                returned_name = (
+                    relate_user_full_name_format_method("first_name",
+                                                        "last_name"))
+            except Exception as e:
+                from traceback import format_exc
+                errors.append(Warning(
+                    msg=(
+                            "%(location)s: `%(method)s` called with '"
+                            "args 'first_name', 'last_name' failed with"
+                            "exception below:\n"
+                            "%(err_type)s: %(err_str)s\n"
+                            "%(format_exc)s\n\n"
+                            "Default format method will be used."
+                            % {"location": RELATE_USER_FULL_NAME_FORMAT_METHOD,
+                               "method": relate_user_full_name_format_method,
+                               "err_type": type(e).__name__,
+                               "err_str": str(e),
+                               'format_exc': format_exc()}
+                    ),
+                    id="relate_user_full_name_format_method.W003"
                 ))
             else:
-                try:
-                    returned_name = (
-                        relate_user_full_name_format_method("first_name",
-                                                            "last_name"))
-                except Exception as e:
-                    from traceback import format_exc
+                unexpected_return_value = ""
+                if returned_name is None:
+                    unexpected_return_value = "None"
+                if not isinstance(returned_name, six.string_types):
+                    unexpected_return_value = type(returned_name).__name__
+                elif not returned_name.strip():
+                    unexpected_return_value = "empty string %s" % returned_name
+                if unexpected_return_value:
                     errors.append(Warning(
-                        msg=(
-                                "%(location)s: `%(method)s` called with '"
-                                "args 'first_name', 'last_name' failed with"
-                                "exception below:\n"
-                                "%(err_type)s: %(err_str)s\n"
-                                "%(format_exc)s\n\n"
-                                "Default format method will be used."
-                                % {"location": RELATE_USER_FULL_NAME_FORMAT_METHOD,
-                                   "method": relate_user_full_name_format_method,
-                                   "err_type": type(e).__name__,
-                                   "err_str": str(e),
-                                   'format_exc': format_exc()}
-                        ),
-                        id="relate_user_full_name_format_method.W003"
+                        msg=("%(location)s: `%(method)s` is expected to "
+                             "return a non-empty string, got `%(result)s`, "
+                             "default format method will be used."
+                             % {
+                                 "location": RELATE_USER_FULL_NAME_FORMAT_METHOD,
+                                 "method": relate_user_full_name_format_method,
+                                 "result": unexpected_return_value,
+                             }),
+                        id="relate_user_full_name_format_method.W004"
                     ))
                 else:
-                    unexpected_return_value = ""
-                    if returned_name is None:
-                        unexpected_return_value = "None"
-                    if not isinstance(returned_name, six.string_types):
-                        unexpected_return_value = type(returned_name).__name__
-                    elif not returned_name.strip():
-                        unexpected_return_value = "empty string %s" % returned_name
-                    if unexpected_return_value:
+                    returned_name2 = (
+                        relate_user_full_name_format_method("first_name2",
+                                                            "last_name2"))
+                    if returned_name == returned_name2:
                         errors.append(Warning(
                             msg=("%(location)s: `%(method)s` is expected to "
-                                 "return a non-empty string, got `%(result)s`, "
-                                 "default format method will be used."
+                                 "return different value with different "
+                                 "input, default format method will be used."
                                  % {
-                                     "location": RELATE_USER_FULL_NAME_FORMAT_METHOD,
-                                     "method": relate_user_full_name_format_method,
-                                     "result": unexpected_return_value,
+                                     "location":
+                                         RELATE_USER_FULL_NAME_FORMAT_METHOD,
+                                     "method":
+                                         relate_user_full_name_format_method
                                  }),
-                            id="relate_user_full_name_format_method.W004"
+                            id="relate_user_full_name_format_method.W005"
                         ))
-                    else:
-                        returned_name2 = (
-                            relate_user_full_name_format_method("first_name2",
-                                                                "last_name2"))
-                        if returned_name == returned_name2:
-                            errors.append(Warning(
-                                msg=("%(location)s: `%(method)s` is expected to "
-                                     "return different value with different "
-                                     "input, default format method will be used."
-                                     % {
-                                         "location":
-                                             RELATE_USER_FULL_NAME_FORMAT_METHOD,
-                                         "method":
-                                             relate_user_full_name_format_method
-                                     }),
-                                id="relate_user_full_name_format_method.W005"
-                            ))
 
         if errors:
             self._custom_full_name_method = None
