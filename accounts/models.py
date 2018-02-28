@@ -131,7 +131,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_full_name(self, allow_blank=True, force_verbose_blank=False):
         if (not allow_blank
-                and not self.first_name or not self.last_name):
+                and (not self.first_name or not self.last_name)):
             return None
 
         def verbose_blank(s):
@@ -150,11 +150,10 @@ class User(AbstractBaseUser, PermissionsMixin):
             return '%s %s' % (
                 verbose_blank(first_name), verbose_blank(last_name))
 
-        from django.conf import settings
-        format_method = getattr(
-                settings,
-                "RELATE_USER_FULL_NAME_FORMAT_METHOD",
-                default_fullname)
+        from accounts.utils import relate_user_method_settings
+        format_method = relate_user_method_settings.get_custom_full_name_method
+        if format_method is None:
+            format_method = default_fullname
 
         try:
             full_name = format_method(
@@ -193,6 +192,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         customized_priority_list = getattr(
                 settings,
                 "RELATE_EMAIL_APPELATION_PRIORITY_LIST", [])
+
+        # When the settings explicitly set it to None
+        if not customized_priority_list:
+            customized_priority_list = []
 
         priority_list = []
 

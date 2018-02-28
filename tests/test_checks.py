@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import os
 from datetime import datetime
 
@@ -29,7 +30,9 @@ from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
+from unittest import skipIf
 from tests.utils import mock
+from tests.factories import UserFactory
 
 
 class CheckRelateSettingsBase(SimpleTestCase):
@@ -127,6 +130,163 @@ class CheckRelateURL(CheckRelateSettingsBase):
         self.assertCheckMessages(["relate_base_url.E003"])
 
 
+class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
+    # This TestCase is not pure for check, but also make sure it returned
+    # expected result
+    allow_database_queries = True
+
+    msg_id_prefix = "relate_user_full_name_format_method"
+
+    @skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_get_full_name(self):
+        def valid_method(first_name, last_name):
+            return "%s %s" % (last_name, first_name)
+
+        def invalid_method1(first_name):
+            return first_name
+
+        def invalid_method2(first_name, last_name):  # noqa
+            return None
+
+        def invalid_method3(first_name, last_name):  # noqa
+            return " "
+
+        def invalid_method4(first_name, last_name):  # noqa
+            return b"my_name"
+
+        def invalid_method5(first_name, last_name):  # noqa
+            return "my_name"
+
+        def invalid_method6(first_name, last_name):  # noqa
+            return Exception()
+
+        default_user_dict = {"first_name": "first_name", "last_name": "last_name"}
+        default_result = "first_name last_name"
+
+        user_get_full_name_test_kwargs_list = (
+            ({"id": 1,
+              "custom_method": None,
+              "user_dict": {},
+              "default": '',
+              "not_allow_blank": None,
+              "force_verbose_blank": "(blank) (blank)"}),
+            ({"id": 2,
+              "custom_method": None,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result}),
+            ({"id": 3,
+              "custom_method": valid_method,
+              "user_dict": default_user_dict,
+              "default": "last_name first_name",
+              "not_allow_blank": "last_name first_name",
+              "force_verbose_blank": "last_name first_name"}),
+            ({"id": 4,
+              "custom_method": invalid_method1,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W003']}),
+            ({"id": 5,
+              "custom_method": invalid_method2,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 6,
+              "custom_method": invalid_method3,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 7,
+              "custom_method": invalid_method4,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 8,
+              "custom_method": invalid_method5,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W005']}),
+            ({"id": 9,
+              "custom_method": invalid_method6,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 10,
+              "custom_method": "abcd",  # a string
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W001']}),
+            ({"id": 11,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method",
+              "user_dict": default_user_dict,
+              "default": "First_Name Last_Name",
+              "not_allow_blank": "First_Name Last_Name",
+              "force_verbose_blank": "First_Name Last_Name"}),
+            ({"id": 12,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method_invalid",
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 13,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method_invalid_str",
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W002']}),
+            ({"id": 14,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method",
+              "user_dict": {"first_name": "first_name"},
+              "default": "First_Name",
+              "not_allow_blank": None,
+              "force_verbose_blank": "First_Name (Blank)"}),
+        )
+
+        # Ensure no duplicate entries in user_get_full_name_test_kwargs_list
+        # to generate error info when subTests fail.
+        ids = set([kwargs["id"] for kwargs in user_get_full_name_test_kwargs_list])
+        assert len(ids) == len(user_get_full_name_test_kwargs_list)
+
+        for kwargs in user_get_full_name_test_kwargs_list:
+            # clear cached_property
+            from accounts.utils import relate_user_method_settings
+            relate_user_method_settings.__dict__ = {}
+            with self.subTest(id=kwargs["id"]):
+                with override_settings(
+                        RELATE_USER_FULL_NAME_FORMAT_METHOD=kwargs[
+                            "custom_method"]):
+                    check_messages = kwargs.get("check_messages", [])
+                    self.assertCheckMessages(check_messages)
+
+                    user = UserFactory(**kwargs["user_dict"])
+                    self.assertEqual(user.get_full_name(), kwargs["default"])
+                    self.assertEqual(user.get_full_name(allow_blank=False),
+                                     kwargs["not_allow_blank"])
+                    self.assertEqual(user.get_full_name(force_verbose_blank=True),
+                                     kwargs["force_verbose_blank"])
+
+
 class CheckRelateEmailAppelationPriorityList(CheckRelateSettingsBase):
     msg_id_prefix = "relate_email_appelation_priority_list"
 
@@ -145,7 +305,7 @@ class CheckRelateEmailAppelationPriorityList(CheckRelateSettingsBase):
     @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=INVALID_CONF_STR)
     def test_invalid_relate_email_appelation_priority_list_str(self):
         self.assertCheckMessages(
-            ["relate_email_appelation_priority_list.E002"])
+            ["relate_email_appelation_priority_list.E001"])
 
 
 class CheckRelateEmailConnections(CheckRelateSettingsBase):
@@ -679,6 +839,25 @@ class CheckRelateTemplatesDirs(CheckRelateSettingsBase):
                      "relate_override_templates_dirs.W001"])
 
 
+class CheckRelateCustomPageTypesRemovedDeadline(CheckRelateSettingsBase):
+    msg_id_prefix = "relate_custom_page_types_removed_deadline"
+    VALID_CONF = datetime(2017, 12, 31, 0, 0)
+    INVALID_CONF = "2017-12-31 00:00"
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=None)
+    def test_valid_conf_none(self):
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=VALID_CONF)
+    def test_valid_conf(self):
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=INVALID_CONF)
+    def test_invalid_conf(self):
+        self.assertCheckMessages(
+            ["relate_custom_page_types_removed_deadline.E001"])
+
+
 class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
     msg_id_prefix = "relate_disable_codehilite_markdown_extension"
     VALID_CONF = None
@@ -714,22 +893,3 @@ class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
     def test_warning_conf_false(self):
         self.assertCheckMessages(
             ["relate_disable_codehilite_markdown_extension.W002"])
-
-
-class CheckRelateCustomPageTypesRemovedDeadline(CheckRelateSettingsBase):
-    msg_id_prefix = "relate_custom_page_types_removed_deadline"
-    VALID_CONF = datetime(2017, 12, 31, 0, 0)
-    INVALID_CONF = "2017-12-31 00:00"
-
-    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=None)
-    def test_valid_conf_none(self):
-        self.assertCheckMessages([])
-
-    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=VALID_CONF)
-    def test_valid_conf(self):
-        self.assertCheckMessages([])
-
-    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=INVALID_CONF)
-    def test_invalid_conf(self):
-        self.assertCheckMessages(
-            ["relate_custom_page_types_removed_deadline.E001"])

@@ -24,10 +24,11 @@ THE SOFTWARE.
 
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 
 from tests.factories import UserFactory
+from tests.utils import mock
 
 
 class UserModelTest(TestCase):
@@ -69,3 +70,64 @@ class UserModelTest(TestCase):
         UserFactory.create()
         with self.assertRaises(IntegrityError):
             UserFactory.create(email=None)
+
+    def test_custom_get_full_name_method_failed(self):
+        """
+        Test when RELATE_USER_FULL_NAME_FORMAT_METHOD failed, default method
+        is used.
+        """
+        user = UserFactory.create(first_name="my_first", last_name="my_last")
+
+        default_get_full_name = user.get_full_name()
+
+        custom_get_full_name_path = (
+            "tests.resource.my_customized_get_full_name_method")
+        get_custom_full_name_method_path = (
+            "accounts.utils.RelateUserMethodSettingsInitializer"
+            ".get_custom_full_name_method")
+
+        with override_settings(
+                RELATE_USER_FULL_NAME_FORMAT_METHOD=custom_get_full_name_path):
+
+            from accounts.utils import relate_user_method_settings
+            # clear cached value
+            relate_user_method_settings.__dict__ = {}
+
+            # If custom method works, the returned value is different with
+            # default value.
+            self.assertNotEqual(default_get_full_name, user.get_full_name())
+
+            with mock.patch(get_custom_full_name_method_path) as mock_custom_method:
+                # clear cached value
+                relate_user_method_settings.__dict__ = {}
+
+                # raise an error when calling custom method
+                mock_custom_method.side_effect = Exception()
+
+                # the value falls back to default value
+                self.assertEqual(user.get_full_name(), default_get_full_name)
+
+    def test_custom_get_full_name_method_is_cached(self):
+        """
+        Test relate_user_method_settings.get_custom_full_name_method is cached.
+        """
+
+        user = UserFactory.create(first_name="my_first", last_name="my_last")
+        custom_get_full_name_path = (
+            "tests.resource.my_customized_get_full_name_method")
+        get_custom_full_name_check_path = (
+            "accounts.utils.RelateUserMethodSettingsInitializer"
+            ".check_custom_full_name_method")
+
+        with override_settings(
+                RELATE_USER_FULL_NAME_FORMAT_METHOD=custom_get_full_name_path):
+
+            from accounts.utils import relate_user_method_settings
+            # clear cached value
+            relate_user_method_settings.__dict__ = {}
+
+            user.get_full_name()
+
+            with mock.patch(get_custom_full_name_check_path) as mock_check:
+                user.get_full_name()
+                self.assertEqual(mock_check.call_count, 0)

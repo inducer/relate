@@ -29,6 +29,7 @@ import six
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.module_loading import import_string
 
 REQUIRED_CONF_ERROR_PATTERN = (
     "You must configure %(location)s for RELATE to run properly.")
@@ -110,9 +111,13 @@ def check_relate_settings(app_configs, **kwargs):
                     INSTANCE_ERROR_PATTERN
                     % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
                        "types": "list or tuple"}),
-                id="relate_email_appelation_priority_list.E002")
+                id="relate_email_appelation_priority_list.E001")
             )
     # }}}
+
+    # check RELATE_CSV_SETTINGS
+    from accounts.utils import relate_user_method_settings
+    errors.extend(relate_user_method_settings.check_custom_full_name_method())
 
     # {{{ check EMAIL_CONNECTIONS
     email_connections = getattr(settings, EMAIL_CONNECTIONS, None)
@@ -138,7 +143,6 @@ def check_relate_settings(app_configs, **kwargs):
                     ))
                 else:
                     if "backend" in c:
-                        from django.utils.module_loading import import_string
                         try:
                             import_string(c["backend"])
                         except ImportError as e:
@@ -292,7 +296,7 @@ def check_relate_settings(app_configs, **kwargs):
 
     # }}}
 
-    # {{{ check RELATE_SESSION_RESTART_COOLDOWN_SECONDS
+    # {{{ check RELATE_TICKET_MINUTES_VALID_AFTER_USE
     relate_ticket_minutes_valid_after_use = getattr(
         settings, RELATE_TICKET_MINUTES_VALID_AFTER_USE, None)
     if relate_ticket_minutes_valid_after_use is not None:
@@ -526,7 +530,6 @@ def register_startup_checks_extra():
                    "types": "list or tuple"
                    }
             )
-        from django.utils.module_loading import import_string
         for c in startup_checks_extra:
             try:
                 check_item = import_string(c)
