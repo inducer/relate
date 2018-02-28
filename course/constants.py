@@ -30,7 +30,7 @@ if False:
 from django.utils.translation import pgettext_lazy, ugettext
 # Allow 10x extra credit at the very most.
 MAX_EXTRA_CREDIT_FACTOR = 10
-DEFAULT_EMAIL_APPELATION_PRIORITY_LIST = [
+DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST = [
     "first_name", "email", "username", "full_name"]
 
 

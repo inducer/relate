@@ -145,27 +145,27 @@ class UserModelTest(TestCase):
         relate_user_method_settings.__dict__ = {}
 
         with override_settings(
-                RELATE_EMAIL_APPELATION_PRIORITY_LIST=[""]):
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=[""]):
             relate_user_method_settings.__dict__ = {}
             self.assertEqual(user.get_email_appellation(), "my_first")
 
         relate_user_method_settings.__dict__ = {}
 
         with override_settings(
-                RELATE_EMAIL_APPELATION_PRIORITY_LIST=["whatever"]):
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=["whatever"]):
             self.assertEqual(user.get_email_appellation(), "my_first")
 
         relate_user_method_settings.__dict__ = {}
 
         # not a list
         with override_settings(
-                RELATE_EMAIL_APPELATION_PRIORITY_LIST="whatever"):
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST="whatever"):
             self.assertEqual(user.get_email_appellation(), "my_first")
 
         relate_user_method_settings.__dict__ = {}
 
         with override_settings(
-                RELATE_EMAIL_APPELATION_PRIORITY_LIST=["full_name"],
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=["full_name"],
                 RELATE_USER_FULL_NAME_FORMAT_METHOD=None):
             self.assertEqual(user.get_email_appellation(), "my_first my_last")
 
@@ -182,31 +182,73 @@ class UserModelTest(TestCase):
         relate_user_method_settings.__dict__ = {}
 
         with override_settings(
-                RELATE_EMAIL_APPELATION_PRIORITY_LIST=["full_name", "username"],
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=["full_name", "username"],
                 RELATE_USER_FULL_NAME_FORMAT_METHOD=None):
             # because full_name is None
             self.assertEqual(user.get_email_appellation(), user.username)
 
     def test_get_email_appellation_priority_list_is_cached(self):
         """
-        Test relate_user_method_settings.email_appelation_priority_list is cached.
+        Test relate_user_method_settings.email_appellation_priority_list is cached.
         """
         user = UserFactory.create(first_name="my_first", last_name="my_last")
 
-        email_appel_priority_list_check_path = (
+        email_appell_priority_list_check_path = (
             "accounts.utils.RelateUserMethodSettingsInitializer"
-            ".check_email_appelation_priority_list")
+            ".check_email_appellation_priority_list")
 
         from accounts.utils import relate_user_method_settings
         relate_user_method_settings.__dict__ = {}
 
         with override_settings(
-                RELATE_EMAIL_APPELATION_PRIORITY_LIST=["full_name", "username"],
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=["full_name", "username"],
                 RELATE_USER_FULL_NAME_FORMAT_METHOD=None):
             self.assertEqual(user.get_email_appellation(), "my_first my_last")
 
             user2 = UserFactory.create(first_name="my_first")
-            with mock.patch(email_appel_priority_list_check_path) as mock_check:
+            with mock.patch(email_appell_priority_list_check_path) as mock_check:
                 self.assertEqual(user2.get_email_appellation(),
                                  user2.username)
                 self.assertEqual(mock_check.call_count, 0)
+
+    def test_get_email_appellation_priority_list_special_case(self):
+        """
+        In case when course.constants.DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST is set
+        to an empty list.
+        """
+        user = UserFactory.create(first_name="my_first", last_name="my_last")
+
+        from accounts.utils import relate_user_method_settings
+        relate_user_method_settings.__dict__ = {}
+
+        with override_settings(
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=None,
+                RELATE_USER_FULL_NAME_FORMAT_METHOD=None):
+
+            default_list_path = (
+                "accounts.utils.DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST")
+
+            with mock.patch(default_list_path, []):
+                self.assertEqual(user.get_email_appellation(), "user")
+
+    def test_get_email_appellation_priority_list_deprecated(self):
+        user = UserFactory.create(first_name="my_first", last_name="my_last")
+
+        from accounts.utils import relate_user_method_settings
+        relate_user_method_settings.__dict__ = {}
+
+        # Use the deprecated one, correct one not configured
+        with override_settings(
+                RELATE_EMAIL_APPELATION_PRIORITY_LIST=["email"],
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=None,
+                RELATE_USER_FULL_NAME_FORMAT_METHOD=None):
+            self.assertEqual(user.get_email_appellation(), user.email)
+
+        relate_user_method_settings.__dict__ = {}
+
+        # If the correct name is configured, use the configure of the correct one.
+        with override_settings(
+                RELATE_EMAIL_APPELATION_PRIORITY_LIST=["first_name"],
+                RELATE_EMAIL_APPELLATION_PRIORITY_LIST=["full_name"],
+                RELATE_USER_FULL_NAME_FORMAT_METHOD=None):
+            self.assertEqual(user.get_email_appellation(), "my_first my_last")

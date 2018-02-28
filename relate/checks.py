@@ -44,7 +44,6 @@ RELATE_CUTOMIZED_SITE_NAME = "RELATE_CUTOMIZED_SITE_NAME"
 RELATE_OVERRIDE_TEMPLATES_DIRS = "RELATE_OVERRIDE_TEMPLATES_DIRS"
 EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
-RELATE_EMAIL_APPELATION_PRIORITY_LIST = "RELATE_EMAIL_APPELATION_PRIORITY_LIST"
 RELATE_FACILITIES = "RELATE_FACILITIES"
 RELATE_MAINTENANCE_MODE_EXCEPTIONS = "RELATE_MAINTENANCE_MODE_EXCEPTIONS"
 RELATE_SESSION_RESTART_COOLDOWN_SECONDS = "RELATE_SESSION_RESTART_COOLDOWN_SECONDS"
@@ -102,9 +101,9 @@ def check_relate_settings(app_configs, **kwargs):
     # }}}
 
     from accounts.utils import relate_user_method_settings
-    # check RELATE_EMAIL_APPELATION_PRIORITY_LIST
+    # check RELATE_EMAIL_APPELLATION_PRIORITY_LIST
     errors.extend(
-        relate_user_method_settings.check_email_appelation_priority_list())
+        relate_user_method_settings.check_email_appellation_priority_list())
 
     # check RELATE_CSV_SETTINGS
     errors.extend(relate_user_method_settings.check_custom_full_name_method())

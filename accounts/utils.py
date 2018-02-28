@@ -30,10 +30,11 @@ from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 
 from relate.checks import INSTANCE_ERROR_PATTERN
-from course.constants import DEFAULT_EMAIL_APPELATION_PRIORITY_LIST
+from course.constants import DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST
 
 RELATE_USER_FULL_NAME_FORMAT_METHOD = "RELATE_USER_FULL_NAME_FORMAT_METHOD"
-RELATE_EMAIL_APPELATION_PRIORITY_LIST = "RELATE_EMAIL_APPELATION_PRIORITY_LIST"
+RELATE_EMAIL_APPELLATION_PRIORITY_LIST = (
+    "RELATE_EMAIL_APPELLATION_PRIORITY_LIST")
 
 
 class RelateUserMethodSettingsInitializer(object):
@@ -44,8 +45,8 @@ class RelateUserMethodSettingsInitializer(object):
 
     def __init__(self):
         self._custom_full_name_method = None
-        self._email_appelation_priority_list = (
-                DEFAULT_EMAIL_APPELATION_PRIORITY_LIST)
+        self._email_appellation_priority_list = (
+                DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST)
 
     @cached_property
     def custom_full_name_method(self):
@@ -53,61 +54,72 @@ class RelateUserMethodSettingsInitializer(object):
         return self._custom_full_name_method
 
     @cached_property
-    def email_appelation_priority_list(self):
-        self.check_email_appelation_priority_list()
-        return self._email_appelation_priority_list
+    def email_appellation_priority_list(self):
+        self.check_email_appellation_priority_list()
+        return self._email_appellation_priority_list
 
-    def check_email_appelation_priority_list(self):
+    def check_email_appellation_priority_list(self):
         errors = []
-        self._email_appelation_priority_list = (
-            DEFAULT_EMAIL_APPELATION_PRIORITY_LIST)
+        self._email_appellation_priority_list = (
+            DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST)
 
         from django.conf import settings
-        custom_email_appelation_priority_list = getattr(
-            settings, RELATE_EMAIL_APPELATION_PRIORITY_LIST, None)
-        if not custom_email_appelation_priority_list:
+        custom_email_appellation_priority_list = getattr(
+            settings, RELATE_EMAIL_APPELLATION_PRIORITY_LIST, None)
+        if not custom_email_appellation_priority_list:
+            if hasattr(settings, "RELATE_EMAIL_APPELATION_PRIORITY_LIST"):
+                if settings.RELATE_EMAIL_APPELATION_PRIORITY_LIST is not None:
+                    errors.append(Warning(
+                        msg=("'RELATE_EMAIL_APPELATION_PRIORITY_LIST' is "
+                             "deprecated due to typo, use "
+                             "'RELATE_EMAIL_APPELLATION_PRIORITY_LIST' "
+                             "instead."),
+                        id="relate_email_appellation_priority_list.W003"))
+                    custom_email_appellation_priority_list = (
+                        settings.RELATE_EMAIL_APPELATION_PRIORITY_LIST)
+        if not custom_email_appellation_priority_list:
             return errors
 
-        if not isinstance(custom_email_appelation_priority_list, (list, tuple)):
+        if not isinstance(custom_email_appellation_priority_list, (list, tuple)):
             errors.append(Warning(
                 msg=("%s, %s" % (
                         INSTANCE_ERROR_PATTERN
-                        % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
+                        % {"location": RELATE_EMAIL_APPELLATION_PRIORITY_LIST,
                            "types": "list or tuple"},
                         "default value '%s' will be used"
-                        % repr(DEFAULT_EMAIL_APPELATION_PRIORITY_LIST))),
-                id="relate_email_appelation_priority_list.W001"))
+                        % repr(DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST))),
+                id="relate_email_appellation_priority_list.W001"))
             return errors
 
         priority_list = []
         not_supported_appels = []
 
         # filter out not allowd appellations in customized list
-        for appel in custom_email_appelation_priority_list:
-            if appel in DEFAULT_EMAIL_APPELATION_PRIORITY_LIST:
-                priority_list.append(appel)
+        for appell in custom_email_appellation_priority_list:
+            if appell in DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST:
+                priority_list.append(appell)
             else:
-                not_supported_appels.append(appel)
+                not_supported_appels.append(appell)
 
         # make sure the default appellations are included in case
         # user defined appellations are not available.
-        for appel in DEFAULT_EMAIL_APPELATION_PRIORITY_LIST:
-            if appel not in priority_list:
-                priority_list.append(appel)
+        for appell in DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST:
+            if appell not in priority_list:
+                priority_list.append(appell)
 
         assert len(priority_list)
-        self._email_appelation_priority_list = priority_list
+        self._email_appellation_priority_list = priority_list
 
         if not_supported_appels:
             errors.append(Warning(
                 msg=("%(location)s: not supported email appelation(s) found "
                      "and will be ignored: %(not_supported_appelds)s. "
                      "%(actual)s will be used as "
-                     "RELATE_EMAIL_APPELATION_PRIORITY_LIST."
-                     % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
+                     "relate_email_appellation_priority_list."
+                     % {"location": RELATE_EMAIL_APPELLATION_PRIORITY_LIST,
                         "not_supported_appelds": ", ".join(not_supported_appels),
                         "actual": repr(priority_list)}),
-                id="relate_email_appelation_priority_list.W002"))
+                id="relate_email_appellation_priority_list.W002"))
         return errors
 
     def check_custom_full_name_method(self):

@@ -189,7 +189,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         from accounts.utils import relate_user_method_settings
         priority_list = (
-            relate_user_method_settings.email_appelation_priority_list)
+            relate_user_method_settings.email_appellation_priority_list)
 
         for attr in priority_list:
             if attr == "full_name":
@@ -197,10 +197,12 @@ class User(AbstractBaseUser, PermissionsMixin):
             else:
                 appellation = getattr(self, attr)
 
-            if appellation:
-                return appellation
-            else:
+            if not appellation:
                 continue
+
+            return appellation
+
+        return _("user")
 
     def clean(self):
         super(User, self).clean()

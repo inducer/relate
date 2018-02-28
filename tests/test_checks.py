@@ -287,30 +287,40 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
                                      kwargs["force_verbose_blank"])
 
 
-class CheckRelateEmailAppelationPriorityList(CheckRelateSettingsBase):
-    msg_id_prefix = "relate_email_appelation_priority_list"
+class CheckRelateEmailAppellationPriorityList(CheckRelateSettingsBase):
+    msg_id_prefix = "relate_email_appellation_priority_list"
 
     VALID_CONF_NONE = None
     VALID_CONF = ["full_name"]
     INVALID_CONF_STR = "name1"
     INVALID_CONF = ["name1", "name2"]
 
-    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=VALID_CONF_NONE)
-    def test_valid_relate_email_appelation_priority_list_none(self):
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=VALID_CONF_NONE)
+    def test_relate_email_appellation_priority_list_none(self):
         self.assertCheckMessages([])
 
-    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=VALID_CONF)
-    def test_valid_relate_email_appelation_priority_list(self):
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=VALID_CONF)
+    def test_relate_email_appellation_priority_list_valid(self):
         self.assertCheckMessages([])
 
-    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=INVALID_CONF_STR)
-    def test_invalid_relate_email_appelation_priority_list_str(self):
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=INVALID_CONF_STR)
+    def test_relate_email_appellation_priority_list_invalid_str(self):
         self.assertCheckMessages(
-            ["relate_email_appelation_priority_list.W001"])
+            ["relate_email_appellation_priority_list.W001"])
 
-    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=INVALID_CONF)
-    def test_valid_relate_email_appelation_priority_list_invalid(self):
-        self.assertCheckMessages(["relate_email_appelation_priority_list.W002"])
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=INVALID_CONF)
+    def test_relate_email_appellation_priority_list_invalid(self):
+        self.assertCheckMessages(["relate_email_appellation_priority_list.W002"])
+
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=None,
+                       RELATE_EMAIL_APPELATION_PRIORITY_LIST=VALID_CONF)
+    def test_relate_email_appellation_priority_list_type_deprecated(self):
+        self.assertCheckMessages(["relate_email_appellation_priority_list.W003"])
+
+    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=None,
+                       RELATE_EMAIL_APPELLATION_PRIORITY_LIST=None)
+    def test_relate_email_appellation_priority_list_type_deprecated_none(self):
+        self.assertCheckMessages([])
 
 
 class CheckRelateEmailConnections(CheckRelateSettingsBase):
