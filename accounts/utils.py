@@ -25,16 +25,17 @@ THE SOFTWARE.
 """
 
 import six
-from django.core.checks import Warning
 from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 
-from relate.checks import INSTANCE_ERROR_PATTERN
+from relate.checks import (
+    INSTANCE_ERROR_PATTERN, Warning, RelateCriticalCheckMessage)
 from course.constants import DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST
 
 RELATE_USER_FULL_NAME_FORMAT_METHOD = "RELATE_USER_FULL_NAME_FORMAT_METHOD"
 RELATE_EMAIL_APPELLATION_PRIORITY_LIST = (
     "RELATE_EMAIL_APPELLATION_PRIORITY_LIST")
+RELATE_USER_PROFILE_MASK_METHOD = "RELATE_USER_PROFILE_MASK_METHOD"
 
 
 class RelateUserMethodSettingsInitializer(object):
@@ -47,6 +48,7 @@ class RelateUserMethodSettingsInitializer(object):
         self._custom_full_name_method = None
         self._email_appellation_priority_list = (
                 DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST)
+        self._custom_profile_mask_method = None
 
     @cached_property
     def custom_full_name_method(self):
@@ -57,6 +59,80 @@ class RelateUserMethodSettingsInitializer(object):
     def email_appellation_priority_list(self):
         self.check_email_appellation_priority_list()
         return self._email_appellation_priority_list
+
+    @cached_property
+    def custom_profile_mask_method(self):
+        self.check_user_profile_mask_method()
+        return self._custom_profile_mask_method
+
+    def check_user_profile_mask_method(self):
+        self._custom_profile_mask_method = None
+        errors = []
+
+        from django.conf import settings
+        custom_user_profile_mask_method = getattr(
+            settings, RELATE_USER_PROFILE_MASK_METHOD, None)
+
+        if custom_user_profile_mask_method is None:
+            return errors
+
+        if isinstance(custom_user_profile_mask_method, six.string_types):
+            try:
+                custom_user_profile_mask_method = (
+                    import_string(custom_user_profile_mask_method))
+            except ImportError:
+                errors = [RelateCriticalCheckMessage(
+                    msg=(
+                            "%(location)s: `%(method)s` failed to be imported. "
+                            % {"location": RELATE_USER_PROFILE_MASK_METHOD,
+                               "method": custom_user_profile_mask_method
+                               }
+                    ),
+                    id="relate_user_profile_mask_method.E001"
+                )]
+                return errors
+
+        self._custom_profile_mask_method = custom_user_profile_mask_method
+        if not callable(custom_user_profile_mask_method):
+            errors.append(RelateCriticalCheckMessage(
+                msg=(
+                        "%(location)s: `%(method)s` is not a callable. "
+                        % {"location": RELATE_USER_PROFILE_MASK_METHOD,
+                           "method": custom_user_profile_mask_method
+                           }
+                ),
+                id="relate_user_profile_mask_method.E002"
+            ))
+        else:
+            import inspect
+            if six.PY3:
+                sig = inspect.signature(custom_user_profile_mask_method)
+                n_args = len([p.name for p in sig.parameters.values()])
+            else:
+                # Don't count the number of defaults.
+                # (getargspec returns args, varargs, varkw, defaults)
+                n_args = sum(
+                    [len(arg) for arg
+                     in inspect.getargspec(custom_user_profile_mask_method)[:3]
+                     if arg is not None])
+
+            if not n_args or n_args > 1:
+                errors.append(RelateCriticalCheckMessage(
+                    msg=(
+                        "%(location)s: `%(method)s` should have exactly "
+                        "one arg, got %(n)d."
+                        % {"location": RELATE_USER_PROFILE_MASK_METHOD,
+                           "method": custom_user_profile_mask_method,
+                           "n": n_args
+                           }
+                    ),
+                    id="relate_user_profile_mask_method.E003"
+                ))
+
+        if errors:
+            self._custom_profile_mask_method = None
+
+        return errors
 
     def check_email_appellation_priority_list(self):
         errors = []

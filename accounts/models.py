@@ -172,13 +172,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         def default_mask_method(user):
             return "%s%s" % (_("User"), str(user.pk))
 
-        from django.conf import settings
-        mask_method = getattr(
-                settings,
-                "RELATE_USER_PROFILE_MASK_METHOD",
-                default_mask_method)
+        from accounts.utils import relate_user_method_settings
+        mask_method = relate_user_method_settings.custom_profile_mask_method
+        if mask_method is None:
+            mask_method = default_mask_method
 
-        return str(mask_method(self)).strip()
+        # Intentionally don't fallback if it failed -- let user see the exception.
+        result = mask_method(self)
+        if not result:
+            raise RuntimeError("get_masked_profile should not None.")
+        else:
+            result = str(result).strip()
+        if not result:
+            raise RuntimeError("get_masked_profile should not return "
+                               "an empty string.")
+        return result
 
     def get_short_name(self):
         "Returns the short name for the user."

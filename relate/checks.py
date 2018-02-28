@@ -108,6 +108,9 @@ def check_relate_settings(app_configs, **kwargs):
     # check RELATE_CSV_SETTINGS
     errors.extend(relate_user_method_settings.check_custom_full_name_method())
 
+    # check RELATE_USER_PROFILE_MASK_METHOD
+    errors.extend(relate_user_method_settings.check_user_profile_mask_method())
+
     # {{{ check EMAIL_CONNECTIONS
     email_connections = getattr(settings, EMAIL_CONNECTIONS, None)
     if email_connections is not None:

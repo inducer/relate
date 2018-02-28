@@ -130,6 +130,135 @@ class CheckRelateURL(CheckRelateSettingsBase):
         self.assertCheckMessages(["relate_base_url.E003"])
 
 
+class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
+    # This TestCase is not pure for check, but also make sure it returned
+    # expected result
+    allow_database_queries = True
+
+    msg_id_prefix = "relate_user_profile_mask_method"
+
+    def setUp(self):
+        super(CheckRelateUserProfileMaskMethod, self).setUp()
+        self.user = UserFactory.create(first_name="my_first", last_name="my_last")
+
+        from accounts.utils import relate_user_method_settings
+        relate_user_method_settings.__dict__ = {}
+
+    def test_get_masked_profile_not_configured(self):
+        with override_settings():
+            del settings.RELATE_USER_PROFILE_MASK_METHOD
+            self.assertCheckMessages([])
+
+            # make sure it runs without issue
+            self.assertIsNotNone(self.user.get_masked_profile())
+
+    def test_get_masked_profile_valid_none(self):
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=None):
+            self.assertCheckMessages([])
+
+            # make sure it runs without issue
+            self.assertIsNotNone(self.user.get_masked_profile())
+
+    def test_get_masked_profile_valid_method1(self):
+        def custom_method(u):
+            return "%s%s" % ("User", str(u.pk + 1))
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages([])
+            self.assertEqual(self.user.get_masked_profile(),
+                             custom_method(self.user))
+
+    def test_get_masked_profile_valid_method2(self):
+        def custom_method(user=None):
+            if user is not None:
+                return "%s%s" % ("User", str(user.pk + 1))
+            else:
+                return ""
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages([])
+            self.assertEqual(self.user.get_masked_profile(),
+                             custom_method(self.user))
+
+    def test_get_masked_profile_valid_method_path(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_valid")):
+            self.assertCheckMessages([])
+            from tests.resource import (
+                my_custom_get_masked_profile_method_valid as custom_method)
+            self.assertEqual(self.user.get_masked_profile(),
+                             custom_method(self.user))
+
+    def test_get_masked_profile_param_invalid1(self):
+        # the method has 0 args/kwargs
+        def custom_method():
+            return "profile"
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+
+    def test_get_masked_profile_param_invalid2(self):
+        # the method has 2 args/kwargs
+        def custom_method(u, v):
+            return "%s%s" % ("User", str(u.pk + 1))
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+
+    def test_get_masked_profile_param_invalid3(self):
+        # the method has 2 args/kwargs
+        def custom_method(u, v=None):
+            return "%s%s" % ("User", str(u.pk + 1))
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+
+    def test_get_masked_profile_invalid_path(self):
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD="invalid path"):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E001'])
+
+    def test_get_masked_profile_valid_path_not_callable(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_invalid_str")):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E002'])
+
+    def test_passed_check_but_return_none(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_valid_but_return_none")):  # noqa
+            self.assertCheckMessages([])
+            from tests.resource import (
+                my_custom_get_masked_profile_method_valid_but_return_none
+                as custom_method)
+
+            # test method can run
+            custom_method(self.user)
+
+            with self.assertRaises(RuntimeError):
+                self.user.get_masked_profile()
+
+    def test_passed_check_but_return_empty_string(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_valid_but_return_emtpy_string")):  # noqa
+            self.assertCheckMessages([])
+            from tests.resource import (
+                my_custom_get_masked_profile_method_valid_but_return_emtpy_string
+                as custom_method)
+
+            # test method can run
+            custom_method(self.user)
+
+            with self.assertRaises(RuntimeError):
+                self.user.get_masked_profile()
+
+
 class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
     # This TestCase is not pure for check, but also make sure it returned
     # expected result
@@ -145,19 +274,19 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
         def invalid_method1(first_name):
             return first_name
 
-        def invalid_method2(first_name, last_name):  # noqa
+        def invalid_method2(first_name, last_name):
             return None
 
-        def invalid_method3(first_name, last_name):  # noqa
+        def invalid_method3(first_name, last_name):
             return " "
 
-        def invalid_method4(first_name, last_name):  # noqa
+        def invalid_method4(first_name, last_name):
             return b"my_name"
 
-        def invalid_method5(first_name, last_name):  # noqa
+        def invalid_method5(first_name, last_name):
             return "my_name"
 
-        def invalid_method6(first_name, last_name):  # noqa
+        def invalid_method6(first_name, last_name):
             return Exception()
 
         default_user_dict = {"first_name": "first_name", "last_name": "last_name"}

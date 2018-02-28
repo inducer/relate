@@ -252,3 +252,26 @@ class UserModelTest(TestCase):
                 RELATE_EMAIL_APPELLATION_PRIORITY_LIST=["full_name"],
                 RELATE_USER_FULL_NAME_FORMAT_METHOD=None):
             self.assertEqual(user.get_email_appellation(), "my_first my_last")
+
+    def test_user_profile_mask_method_is_cached(self):
+        user = UserFactory.create(first_name="my_first", last_name="my_last")
+
+        from accounts.utils import relate_user_method_settings
+
+        user_profile_mask_method_check_path = (
+            "accounts.utils.RelateUserMethodSettingsInitializer"
+            ".check_user_profile_mask_method")
+
+        def custom_method(u):
+            return "%s%s" % ("User", str(u.pk + 100))
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            relate_user_method_settings.__dict__ = {}
+            self.assertEqual(user.get_masked_profile(), custom_method(user))
+
+            user2 = UserFactory.create(first_name="my_first")
+
+            with mock.patch(user_profile_mask_method_check_path) as mock_check:
+                self.assertEqual(user2.get_masked_profile(),
+                                 custom_method(user2))
+                self.assertEqual(mock_check.call_count, 0)

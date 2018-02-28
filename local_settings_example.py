@@ -224,7 +224,7 @@ RELATE_SHOW_EDITOR_FORM = True
 # For example, you can define it like this:
 
 #<code>
-#   def my_fullname_format(firstname, lastname)
+#   def my_fullname_format(firstname, lastname):
 #         return "%s%s" % (last_name, first_name)
 #</code>
 
@@ -234,7 +234,7 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # You can also import it from your custom module, or use a dotted path of the
 # method, i.e.:
-# RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
+#RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
 
 # }}}
 
@@ -253,6 +253,31 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # RELATE_EMAIL_APPELLATION_PRIORITY_LIST = [
 #         "full_name", "first_name", "email", "username"]
+
+# }}}
+
+# {{{ custom method for masking user profile
+# When a participation, for example, teaching assistant, has limited access to
+# students' profile (i.e., has_permission(pperm.view_participant_masked_profile)),
+# a built-in mask method (which is based on pk of user instances) is used be
+# default. The mask method can be overriden by the following a custom method, with
+# user as the args.
+
+#RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
+# For example, you can define it like this:
+
+#<code>
+#   def my_mask_method(user):
+#         return "User_%s" % str(user.pk + 100)
+#</code>
+
+# and then uncomment the following line and enable it with:
+
+#RELATE_USER_PROFILE_MASK_METHOD = my_mask_method
+
+# You can also import it from your custom module, or use a dotted path of the
+# method, i.e.:
+#RELATE_USER_PROFILE_MASK_METHOD = "path.to.my_mask_method"
 
 # }}}
 

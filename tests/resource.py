@@ -27,8 +27,23 @@ def my_customized_get_full_name_method(first_name, last_name):
     return "%s %s" % (first_name.title(), last_name.title())
 
 
-def my_customized_get_full_name_method_invalid(first_name, last_name):  # noqa
+def my_customized_get_full_name_method_invalid(first_name, last_name):
     return None
 
 
 my_customized_get_full_name_method_invalid_str = "some_string"
+
+
+def my_custom_get_masked_profile_method_valid(u):
+    return "%s%s" % ("User", str(u.pk + 100))
+
+
+my_custom_get_masked_profile_method_invalid_str = "some_string"
+
+
+def my_custom_get_masked_profile_method_valid_but_return_none(u):
+    return
+
+
+def my_custom_get_masked_profile_method_valid_but_return_emtpy_string(u):
+    return "  "
