@@ -34,6 +34,7 @@ from django.contrib.auth import (
 )
 from django.http import QueryDict, HttpResponse
 from django.urls import NoReverseMatch, reverse
+import unittest
 from unittest import skipIf
 from course.auth import get_impersonable_user_qset, get_user_model
 from course.models import FlowPageVisit, ParticipationPermission
@@ -1899,5 +1900,19 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
             self.assertEqual(mock_add_msg.call_count, 1)
             self.assertIn(expected_msg, mock_add_msg.call_args[0])
             self.assertHasNoUserLoggedIn()
+
+
+class LogoutConfirmationRequiredDecoratorTest(unittest.TestCase):
+    def setUp(self):
+        self.user = UserFactory()
+
+    def test_logout_confirmation_required_as_callable(self):
+        from course.auth import logout_confirmation_required
+        self.assertTrue(callable(logout_confirmation_required()))
+        self.assertTrue(logout_confirmation_required()(self.user))
+
+        from django.contrib.auth.models import AnonymousUser
+        self.assertTrue(logout_confirmation_required()(AnonymousUser))
+
 
 # vim: foldmethod=marker

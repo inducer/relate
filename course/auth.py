@@ -328,7 +328,7 @@ def make_sign_in_key(user):
 
 
 def logout_confirmation_required(
-        func, redirect_field_name=REDIRECT_FIELD_NAME,
+        func=None, redirect_field_name=REDIRECT_FIELD_NAME,
         logout_confirmation_url='relate-logout-confirmation'):
     """
     Decorator for views that checks that no user is logged in.
