@@ -36,7 +36,8 @@ from django.http import QueryDict, HttpResponse
 from django.urls import NoReverseMatch, reverse
 import unittest
 from unittest import skipIf
-from course.auth import get_impersonable_user_qset, get_user_model
+from course.auth import (
+    get_impersonable_user_qset, get_user_model, Saml2Backend)
 from course.models import FlowPageVisit, ParticipationPermission
 from course import constants
 
@@ -1914,5 +1915,77 @@ class LogoutConfirmationRequiredDecoratorTest(unittest.TestCase):
         from django.contrib.auth.models import AnonymousUser
         self.assertTrue(logout_confirmation_required()(AnonymousUser))
 
+
+class TestSaml2Backend(TestCase):
+    def test_update_user(self):
+        user = UserFactory(first_name="", last_name="", institutional_id="",
+                           institutional_id_verified=False, name_verified=False,
+                           status=constants.user_status.unconfirmed)
+
+        backend = Saml2Backend()
+
+        saml_attribute_mapping = {
+            'PrincipalName': ('username',),
+            'iTrustUIN': ('institutional_id',),
+            'mail': ('email',),
+            'givenName': ('first_name',),
+            'sn': ('last_name',),
+        }
+
+        user_attribute = {
+            'PrincipalName': (user.username,),
+        }
+
+        with mock.patch("accounts.models.User.save") as mock_save:
+            # no changes
+            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+            self.assertEqual(mock_save.call_count, 0)
+
+        self.assertEqual(user.first_name, "")
+        self.assertEqual(user.last_name, "")
+        self.assertFalse(user.name_verified)
+        self.assertEqual(user.status, constants.user_status.unconfirmed)
+        self.assertFalse(user.institutional_id_verified)
+
+        expected_first = "my_first"
+        expected_last = "my_last"
+        expected_inst_id = "123321"
+
+        user_attribute = {
+            'PrincipalName': (user.username,),
+            'iTrustUIN': (expected_inst_id,),
+            'givenName': (expected_first,),
+            'sn': (expected_last,),
+        }
+
+        with mock.patch("accounts.models.User.save") as mock_save:
+            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+            self.assertEqual(mock_save.call_count, 1)
+
+        user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+        self.assertEqual(user.first_name, expected_first)
+        self.assertEqual(user.last_name, expected_last)
+        self.assertTrue(user.name_verified)
+        self.assertEqual(user.status, constants.user_status.unconfirmed)
+        self.assertTrue(user.institutional_id_verified)
+
+        user_attribute = {
+            'PrincipalName': (user.username,),
+            'iTrustUIN': (expected_inst_id,),
+            'mail': (user.email,),
+            'givenName': (expected_first,),
+            'sn': (expected_last,),
+        }
+        user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+        self.assertEqual(user.first_name, expected_first)
+        self.assertEqual(user.last_name, expected_last)
+        self.assertTrue(user.name_verified)
+        self.assertEqual(user.status, constants.user_status.active)
+        self.assertTrue(user.institutional_id_verified)
+
+        with mock.patch("accounts.models.User.save") as mock_save:
+            # no changes
+            backend.update_user(user, user_attribute, saml_attribute_mapping)
+            self.assertEqual(mock_save.call_count, 0)
 
 # vim: foldmethod=marker
