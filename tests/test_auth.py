@@ -1667,6 +1667,20 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(resp.status_code, 200)
 
+    def test_reset_user_has_no_email(self):
+        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
+            self.user.email = ""
+            self.user.save()
+            expected_msg = (
+                "The account with that institution ID "
+                "doesn't have an associated email.")
+            resp = self.post_reset_password(data={"instid": self.user_inst_id},
+                                            use_instid=True)
+            self.assertTrue(resp.status_code, 200)
+            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(resp.status_code, 200)
+
     def test_reset_by_email_have_multiple_user_with_same_email(self):
         with mock.patch("accounts.models.User.objects.get") as mock_get_user:
             from django.core.exceptions import MultipleObjectsReturned

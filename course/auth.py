@@ -620,9 +620,6 @@ def reset_password(request, field="email"):
                             % {"field": FIELD_DICT[field]})
                 else:
                     if not user.email:
-                        # happens when a user have an inst_id but have no email.
-                        # This is almost impossible, because the email field of
-                        # User should meet NOT NULL constraint.
                         messages.add_message(request, messages.ERROR,
                                 _("The account with that institution ID "
                                     "doesn't have an associated email."))
