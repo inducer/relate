@@ -1159,8 +1159,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and code_feedback.correctness is not None):
             code_feedback_points = code_feedback.correctness*code_points
 
-        from relate.utils import render_email_template
-        feedback = render_email_template(
+        from django.template.loader import render_to_string
+        feedback = render_to_string(
                 "course/feedback-code-with-human.html",
                 {
                     "percentage": percentage,
