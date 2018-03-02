@@ -56,7 +56,6 @@ if False:
 
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
-ATOL = 1e-5
 
 
 class PageContext(object):

@@ -105,7 +105,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_sandbox_page_session(self):
         return self.get_sandbox_data_by_key(PAGE_SESSION_KEY_PREFIX)
 
-    def assertSandboxHaveValidPage(self, resp):  # noqa
+    def assertSandboxHasValidPage(self, resp):  # noqa
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, True)
 
     def assertSandboxWarningTextContain(self, resp, expected_text, loose=False):  # noqa
@@ -120,7 +120,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
             warnings_strs = "".join(warnings_strs)
         self.assertIn(expected_text, warnings_strs)
 
-    def assertSandboxNotHaveValidPage(self, resp):  # noqa
+    def assertSandboxNotHasValidPage(self, resp):  # noqa
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, False)
 
 
@@ -134,7 +134,7 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
         # Check one of the quiz questions
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextIsNone(resp, "feedback")
 
         from course.page.text import CORRECT_ANSWER_PATTERN

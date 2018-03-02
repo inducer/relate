@@ -613,8 +613,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         transfer_attr("names_for_user")
         transfer_attr("names_from_user")
 
-        if hasattr(self.page_desc, "test_code"):
-            run_req["test_code"] = self.get_test_code()
+        run_req["test_code"] = self.get_test_code()
 
         if hasattr(self.page_desc, "data_files"):
             run_req["data_files"] = {}
@@ -1080,10 +1079,11 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         % location)
 
         if hasattr(self.page_desc, "human_feedback_value"):
-            self.human_feedback_percentage = \
-                self.page_desc.human_feedback_value * 100 / self.page_desc.value
+            self.human_feedback_percentage = (
+                self.page_desc.human_feedback_value * 100 / self.page_desc.value)
         else:
-            self.human_feedback_percentage = self.page_desc.human_feedback_percentage
+            self.human_feedback_percentage = (
+                self.page_desc.human_feedback_percentage)
 
     def required_attrs(self):
         return super(
@@ -1144,7 +1144,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
         human_feedback_points = None
         if grade_data is not None:
-            if grade_data["feedback_text"] is not None:
+            assert grade_data["feedback_text"] is not None
+            if grade_data["feedback_text"].strip():
                 human_feedback_text = markup_to_html(
                         page_context, grade_data["feedback_text"])
 

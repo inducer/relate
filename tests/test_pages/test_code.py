@@ -23,31 +23,31 @@ THE SOFTWARE.
 """
 
 import six
+import zipfile
 import unittest
 from unittest import skipIf
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, RequestFactory
 
 from docker.errors import APIError as DockerAPIError
 from socket import error as socket_error, timeout as sock_timeout
 import errno
 
+from course.models import FlowSession
 from course.page.code import (
     RUNPY_PORT, request_python_run_with_retries, InvalidPingResponse,
-    is_nuisance_failure)
+    is_nuisance_failure, PythonCodeQuestionWithHumanTextFeedback)
+from course.utils import FlowPageContext, CoursePageContext
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 
+from tests.test_pages import QUIZ_FLOW_ID
+from tests.test_pages.test_generic import MESSAGE_ANSWER_SAVED_TEXT
+
 from tests.base_test_mixins import (
-    SubprocessRunpyContainerMixin,
-    SingleCoursePageTestMixin)
+    SubprocessRunpyContainerMixin, SingleCoursePageTestMixin,
+    FallBackStorageMessageTestMixin)
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
-)
-from tests.test_pages import QUIZ_FLOW_ID
-from tests.test_pages.utils import (
-    skip_real_docker_test, SKIP_REAL_DOCKER_REASON,
-    REAL_RELATE_DOCKER_URL, REAL_RELATE_DOCKER_RUNPY_IMAGE,
-    REAL_RELATE_DOCKER_TLS_CONFIG
 )
 from tests.utils import LocmemBackendTestsMixin, mock, mail
 
@@ -84,85 +84,241 @@ AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
 )
 
 
-class RealDockerTestMixin(object):
-    @classmethod
-    def setUpClass(cls):  # noqa
-        from unittest import SkipTest
-        if skip_real_docker_test:
-            raise SkipTest(SKIP_REAL_DOCKER_REASON)
-
-        super(RealDockerTestMixin, cls).setUpClass()
-        cls.override_docker_settings = override_settings(
-            RELATE_DOCKER_URL=REAL_RELATE_DOCKER_URL,
-            RELATE_DOCKER_RUNPY_IMAGE=REAL_RELATE_DOCKER_RUNPY_IMAGE,
-            RELATE_DOCKER_TLS_CONFIG=REAL_RELATE_DOCKER_TLS_CONFIG
-        )
-        cls.override_docker_settings.enable()
-        cls.make_sure_docker_image_pulled()
-
-    @classmethod
-    def tearDownClass(cls):  # noqa
-        super(RealDockerTestMixin, cls).tearDownClass()
-        cls.override_docker_settings.disable()
-
-    @classmethod
-    def make_sure_docker_image_pulled(cls):
-        import docker
-        cli = docker.Client(
-            base_url=REAL_RELATE_DOCKER_URL,
-            tls=None,
-            timeout=15,
-            version="1.19")
-
-        if not bool(cli.images(REAL_RELATE_DOCKER_RUNPY_IMAGE)):
-            # This should run only once and get cached on Travis-CI
-            cli.pull(REAL_RELATE_DOCKER_RUNPY_IMAGE)
-
-
-@skipIf(skip_real_docker_test, SKIP_REAL_DOCKER_REASON)
-class RealDockerCodePageTest(SingleCoursePageTestMixin,
-                             RealDockerTestMixin, TestCase):
+class SingleCourseQuizPageCodeQuestionTest(
+            SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
+            SubprocessRunpyContainerMixin, TestCase):
     flow_id = QUIZ_FLOW_ID
-    page_id = "addition"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(SingleCourseQuizPageCodeQuestionTest, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_flow(cls.flow_id)
 
     def setUp(self):  # noqa
-        super(RealDockerCodePageTest, self).setUp()
+        super(SingleCourseQuizPageCodeQuestionTest, self).setUp()
+        # This is needed to ensure student is logged in
         self.c.force_login(self.student_participation.user)
-        self.start_flow(self.flow_id)
 
-    def test_code_page_correct_answer(self):
-        answer_data = {"answer": "c = a + b"}
-        expected_str = (
-            "It looks like you submitted code that is identical to "
-            "the reference solution. This is not allowed.")
-        resp = self.post_answer_by_page_id(self.page_id, answer_data)
-        self.assertContains(resp, expected_str, count=1)
+    def test_code_page_correct(self):
+        page_id = "addition"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = b + a\r']})
         self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(1)
 
-    def test_code_page_wrong_answer(self):
-        answer_data = {"answer": "c = a - b"}
-        resp = self.post_answer_by_page_id(self.page_id, answer_data)
+    def test_code_page_wrong(self):
+        page_id = "addition"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a - b\r']})
         self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
-    def test_code_page_user_code_exception_raise(self):
-        answer_data = {"answer": "c = a ^ b"}
-        from django.utils.html import escape
-        expected_error_str1 = escape(
-            "Your code failed with an exception. "
-            "A traceback is below.")
-        expected_error_str2 = escape(
-            "TypeError: unsupported operand type(s) for ^: "
-            "'float' and 'float'")
-        resp = self.post_answer_by_page_id(self.page_id, answer_data)
+    def test_code_page_identical_to_reference(self):
+        page_id = "addition"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a + b\r']})
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, expected_error_str1, count=1)
-        self.assertContains(resp, expected_error_str2, count=1)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp,
+                ("It looks like you submitted code "
+                 "that is identical to the reference "
+                 "solution. This is not allowed."))
         self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(0)
+        self.assertSessionScoreEqual(1)
+
+    def test_download_code_submissions_no_answer(self):
+        group_page_id = "quiz_tail/addition"
+        self.end_flow()
+
+        # no answer
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.post_download_all_submissions_by_group_page_id(
+                group_page_id=group_page_id, flow_id=self.flow_id)
+            self.assertEqual(resp.status_code, 200)
+            prefix, zip_file = resp["Content-Disposition"].split('=')
+            self.assertEqual(prefix, "attachment; filename")
+            self.assertEqual(resp.get('Content-Type'), "application/zip")
+
+            buf = six.BytesIO(resp.content)
+            with zipfile.ZipFile(buf, 'r') as zf:
+                self.assertIsNone(zf.testzip())
+                self.assertEqual(
+                    len([f for f in zf.filelist if f.filename.endswith('.py')]), 0)
+                for f in zf.filelist:
+                    self.assertGreater(f.file_size, 0)
+
+    def test_download_code_submissions_has_answer(self):
+        group_page_id = "quiz_tail/addition"
+
+        # create an answer
+        page_id = "addition"
+        self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a - b\r']})
+        self.end_flow()
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.post_download_all_submissions_by_group_page_id(
+                group_page_id=group_page_id, flow_id=self.flow_id)
+            self.assertEqual(resp.status_code, 200)
+            prefix, zip_file = resp["Content-Disposition"].split('=')
+            self.assertEqual(prefix, "attachment; filename")
+            self.assertEqual(resp.get('Content-Type'), "application/zip")
+
+            buf = six.BytesIO(resp.content)
+            with zipfile.ZipFile(buf, 'r') as zf:
+                self.assertIsNone(zf.testzip())
+                # todo: make more assertions in terms of file content
+                self.assertEqual(
+                    len([f for f in zf.filelist if f.filename.endswith('.py')]), 1)
+                for f in zf.filelist:
+                    self.assertGreater(f.file_size, 0)
+
+    def test_code_page_analytics_no_answer(self):
+        # analytics with no answer
+        page_id = "addition"
+        self.end_flow()
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_flow_page_analytics(
+                flow_id=self.flow_id, group_id="quiz_tail",
+                page_id=page_id)
+            self.assertEqual(resp.status_code, 200)
+
+    def test_code_page_analytics_has_answer(self):
+        # create an answer
+        page_id = "addition"
+        self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a - b\r']})
+        self.end_flow()
+
+        # todo: make more assertions in terms of content
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_flow_page_analytics(
+                flow_id=self.flow_id, group_id="quiz_tail",
+                page_id=page_id)
+            self.assertEqual(resp.status_code, 200)
+
+    def test_code_human_feedback_page_submit(self):
+        page_id = "pymult"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a * b\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade1(self):
+        page_id = "pymult"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = b * a\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "'c' looks good")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 2/2 points.")
+
+        # since the test_code didn't do a feedback.set_points() after
+        # check_scalar()
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade2(self):
+        page_id = "pymult"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a / b\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "'c' is inaccurate")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The autograder assigned 0/2 points.")
+
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        feedback_text = "This is the feedback from instructor."
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"],
+            "feedback_text": feedback_text
+        }
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 2/2 points.")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, feedback_text)
+        self.assertSessionScoreEqual(2)
+
+    def test_code_human_feedback_page_grade3(self):
+        page_id = "py_simple_list"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['b = [a + 1] * 50\r']})
+
+        # this is testing feedback.finish(0.3, feedback_msg)
+        # 2 * 0.3 = 0.6
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The autograder assigned 0.90/3 points.")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The elements in b have wrong values")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        # The page is not graded before human grading.
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade4(self):
+        page_id = "py_simple_list"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['b = [a] * 50\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "b looks good")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 1/1 points.")
+
+        self.assertSessionScoreEqual(4)
+
+        grade_data = {
+            "released": ["on"]
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertFormErrorLoose(resp, None)
+        self.assertSessionScoreEqual(None)
+
+        # not released
+        feedback_text = "This is the feedback from instructor."
+        grade_data = {
+            "grade_percent": ["100"],
+            "feedback_text": feedback_text
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                resp, "The human grader assigned 1/1 points.")
+        self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                resp, feedback_text)
+
+        self.assertSessionScoreEqual(None)
 
 
 class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
@@ -177,9 +333,17 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS, "data file '%s' not found" % file_name)
+
+    def test_data_files_missing_random_question_data_file_bad_format(self):
+        markdown = markdowns.CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "data file '%s' not found" % "['foo', 'bar']")
 
     def test_not_multiple_submit_warning(self):
         markdown = (
@@ -188,11 +352,38 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp,
             NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
         )
+
+    def test_not_multiple_submit_warning2(self):
+        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_not_multiple_submit_warning3(self):
+        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_allow_multiple_submit(self):
+        markdown = markdowns.CODE_MARKDWON
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
 
     def test_explicity_not_allow_multiple_submit(self):
         markdown = (
@@ -201,14 +392,14 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
     def test_question_without_test_code(self):
         markdown = markdowns.CODE_MARKDWON_PATTERN_WITHOUT_TEST_CODE
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
         resp = self.get_page_sandbox_submit_answer_response(
@@ -223,7 +414,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         markdown = markdowns.CODE_MARKDWON_PATTERN_WITHOUT_CORRECT_CODE
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
         resp = self.get_page_sandbox_submit_answer_response(
@@ -231,6 +422,148 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             answer_data={"answer": ['c = b + a\r']})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_question_with_human_feedback_both_feedback_value_feedback_percentage_present(self):  # noqa
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 3,
+                       "human_feedback": "human_feedback_value: 2",
+                       "extra_attribute": "human_feedback_percentage: 20"})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "'human_feedback_value' and "
+                               "'human_feedback_percentage' are not "
+                               "allowed to coexist")
+
+    def test_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # noqa
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 3,
+                       "human_feedback": "",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "expecting either 'human_feedback_value' "
+                               "or 'human_feedback_percentage', found neither.")
+
+    def test_question_with_human_feedback_used_feedback_value_warning(self):
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 3,
+                       "human_feedback": "human_feedback_value: 2",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            "Used deprecated 'human_feedback_value' attribute--"
+            "use 'human_feedback_percentage' instead."
+        )
+
+    def test_question_with_human_feedback_used_feedback_value_bad_value(self):
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 0,
+                       "human_feedback": "human_feedback_value: 2",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "'human_feedback_value' attribute is not allowed "
+                               "if value of question is 0, use "
+                               "'human_feedback_percentage' instead")
+
+    def test_question_with_human_feedback_used_feedback_value_invalid(self):
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 2,
+                       "human_feedback": "human_feedback_value: 3",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "human_feedback_value greater than overall "
+                               "value of question")
+
+    def test_question_with_human_feedback_feedback_percentage_invalid(self):
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 2,
+                       "human_feedback": "human_feedback_percentage: 120",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "the value of human_feedback_percentage "
+                               "must be between 0 and 100")
+
+    def test_question_with_human_feedback_value_0_feedback_full_percentage(self):
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 0,
+                       "human_feedback": "human_feedback_percentage: 100",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_question_with_human_feedback_value_0_feedback_0_percentage(self):
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+                    % {"value": 0,
+                       "human_feedback": "human_feedback_percentage: 0",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_request_python_run_with_retries_raise_uncaught_error_in_sandbox(self):
+        with mock.patch(
+            RUNPY_WITH_RETRIES_PATH,
+            autospec=True
+        ) as mock_runpy:
+            expected_error_str = ("This is an error raised with "
+                                  "request_python_run_with_retries")
+
+            # correct_code_explanation and correct_code
+            expected_feedback = (
+                '<p>This is the <a href="http://example.com/1">explanation'
+                '</a>.</p>The following code is a valid answer: '
+                '<pre>\nc = 2 + 1\n</pre>')
+            mock_runpy.side_effect = RuntimeError(expected_error_str)
+
+            resp = self.get_page_sandbox_submit_answer_response(
+                markdowns.CODE_MARKDWON,
+                answer_data={"answer": ['c = 1 + 2\r']})
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                      None)
+
+            self.assertResponseContextContains(resp, "correct_answer",
+                                               expected_feedback)
+            # No email when in sandbox
+            self.assertEqual(len(mail.outbox), 0)
+
+    def test_request_python_run_with_retries_raise_uncaught_error_debugging(self):
+        with mock.patch(
+            RUNPY_WITH_RETRIES_PATH,
+            autospec=True
+        ) as mock_runpy:
+            expected_error_str = ("This is an error raised with "
+                                  "request_python_run_with_retries")
+            mock_runpy.side_effect = RuntimeError(expected_error_str)
+
+            with override_settings(DEBUG=True):
+                resp = self.get_page_sandbox_submit_answer_response(
+                    markdowns.CODE_MARKDWON,
+                    answer_data={"answer": ['c = 1 + 2\r']})
+                self.assertEqual(resp.status_code, 200)
+                self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                          None)
+                # No email when debugging
+                self.assertEqual(len(mail.outbox), 0)
 
     def test_request_python_run_with_retries_raise_uncaught_error(self):
         with mock.patch(
@@ -251,7 +584,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
                 resp = self.get_page_sandbox_submit_answer_response(
                     markdowns.CODE_MARKDWON,
-                    answer_data={"answer": ['c = b + a\r']})
+                    answer_data={"answer": ['c = 1 + 2\r']})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                           None)
@@ -280,15 +613,16 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
                     resp = self.get_page_sandbox_submit_answer_response(
                         markdowns.CODE_MARKDWON,
-                        answer_data={"answer": ['c = b + a\r']})
+                        answer_data={"answer": ['c = 1 + 2\r']})
                     self.assertContains(resp, expected_error_str)
                     self.assertEqual(resp.status_code, 200)
                     self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                               None)
                     self.assertEqual(len(mail.outbox), 0)
 
-    def assert_runpy_result_and_response(self, result_type, expected_msg,
-                                         correctness=0, mail_count=0,
+    def assert_runpy_result_and_response(self, result_type, expected_msgs=None,
+                                         not_expected_msgs=None,
+                                         correctness=0, mail_count=0, in_html=False,
                                          **extra_result):
         with mock.patch(RUNPY_WITH_RETRIES_PATH, autospec=True) as mock_runpy:
             result = {"result": result_type}
@@ -297,9 +631,24 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             resp = self.get_page_sandbox_submit_answer_response(
                 markdowns.CODE_MARKDWON,
-                answer_data={"answer": ['c = b + a\r']})
-            self.assertResponseContextAnswerFeedbackContainsFeedback(resp,
-                                                                     expected_msg)
+                answer_data={"answer": ['c = 1 + 2\r']})
+
+            if expected_msgs is not None:
+                if isinstance(expected_msgs, six.text_type):
+                    expected_msgs = [expected_msgs]
+                for msg in expected_msgs:
+                    self.assertResponseContextAnswerFeedbackContainsFeedback(
+                        resp, msg, html=in_html)
+
+            if not_expected_msgs is not None:
+                if isinstance(not_expected_msgs, six.text_type):
+                    not_expected_msgs = [not_expected_msgs]
+                for msg in not_expected_msgs:
+                    self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                        resp, msg)
+                    self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                        resp, msg, html=True)
+
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                       correctness)
@@ -327,20 +676,6 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 "unknown_error", None)
         self.assertIn("invalid runpy result: unknown_error", str(e.exception))
 
-    def test_html_bleached_in_feedback(self):
-        self.assert_runpy_result_and_response(
-            "user_error",
-            "",
-            html="<p>some html</p>"
-        )
-
-    def test_html_non_text_bleached_in_feedback(self):
-        self.assert_runpy_result_and_response(
-            "user_error",
-            "(Non-string in 'HTML' output filtered out)",
-            html=b"not string"
-        )
-
     def test_traceback_in_feedback(self):
         self.assert_runpy_result_and_response(
             "user_error",
@@ -362,7 +697,215 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             stderr="some stderr"
         )
 
+    def test_exechost_local(self):
+        self.assert_runpy_result_and_response(
+            "user_error",
+            not_expected_msgs="Your code ran on",
+            exec_host="localhost"
+        )
+
+    def test_exechost_ip(self):
+        with mock.patch("socket.gethostbyaddr") as mock_get_host:
+            ip = "192.168.1.100"
+            resovled = "example.com"
+            mock_get_host.side_effect = lambda x: (resovled, [], [])
+            self.assert_runpy_result_and_response(
+                "user_error",
+                execpted_msgs="Your code ran on %s" % resovled,
+                exec_host=ip
+            )
+
+    def test_exechost_ip_resolve_failure(self):
+        with mock.patch("socket.gethostbyaddr") as mock_get_host:
+            ip = "192.168.1.100"
+            mock_get_host.side_effect = socket_error
+            self.assert_runpy_result_and_response(
+                "user_error",
+                execpted_msgs="Your code ran on %s" % ip,
+                exec_host=ip
+            )
+
+    def test_figures(self):
+        bmp_b64 = ("data:image/bmp;base64,Qk1GAAAAAAAAAD4AAAAoAAAAAgAAAAIA"
+                   "AAABAAEAAAAAAAgAAADEDgAAxA4AAAAAAAAAAAAAAAAAAP///wDAAAA"
+                   "AwAAAAA==")
+        jpeg_b64 = ("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/4QBa"
+                    "RXhpZgAATU0AKgAAAAgABQMBAAUAAAABAAAASgMDAAEAAAABAAAAAFE"
+                    "QAAEAAAABAQAAAFERAAQAAAABAAAOwlESAAQAAAABAAAOwgAAAAAAAY"
+                    "agAACxj//bAEMAAgEBAgEBAgICAgICAgIDBQMDAwMDBgQEAwUHBgcHB"
+                    "wYHBwgJCwkICAoIBwcKDQoKCwwMDAwHCQ4PDQwOCwwMDP/bAEMBAgIC"
+                    "AwMDBgMDBgwIBwgMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw"
+                    "MDAwMDAwMDAwMDAwMDAwMDAwMDP/AABEIAAIAAgMBIgACEQEDEQH/xA"
+                    "AfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDA"
+                    "gQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8"
+                    "CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY"
+                    "2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmq"
+                    "srO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T"
+                    "19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xA"
+                    "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"
+                    "GhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdIS"
+                    "UpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeY"
+                    "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"
+                    "l5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/AP38ooooA//Z")
+        png_b64 = (
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAAB"
+            "IeJ9nAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAP///"
+            "6XZn90AAAAJcEhZcwAADsIAAA7CARUoSoAAAAAMSURBVBjTYzjAcAAAAwQBgXn"
+            "6PNcAAAAASUVORK5CYII=")
+
+        self.assert_runpy_result_and_response(
+            "user_error",
+            expected_msgs=[png_b64, jpeg_b64, "Figure1", "Figure 1",
+                           "Figure3", "Figure 3", ],
+            not_expected_msgs=[bmp_b64, "Figure2", "Figure 2"],
+            figures=[
+                [1, "image/png", png_b64],
+                [2, "image/bmp", bmp_b64],
+                [3, "image/jpeg", jpeg_b64]
+            ]
+        )
+
+    def test_html_in_feedback(self):
+        html = "<ul><li>some html</li></ul>"
+        self.assert_runpy_result_and_response(
+            "user_error",
+            html,
+            html=[html]
+        )
+
+        js = "<script>console.log('good')</script>"
+        html_with_js = html + js
+        self.assert_runpy_result_and_response(
+            "user_error",
+            expected_msgs=html,
+            not_expected_msgs=js,  # js is sanitized
+            html=[html_with_js]
+        )
+
+    def test_html_audio(self):
+        b64_data = "T2dnUwACAAAAAAAAAAA+HAAAAAAAAGyawCEBQGZpc2h"
+        audio_valid1 = (
+            '<audio controls><source src="data:audio/wav;base64,'
+            '%s" type="audio/wav">'
+            '</audio>' % b64_data)
+        audio_valid2 = (
+            '<audio><source src="data:audio/wav;base64,'
+            '%s" type="audio/wav">'
+            '</audio>' % b64_data)
+        audio_invalid1 = (
+            '<audio control><source src="data:audio/wav;base64,'
+            '%s" type="audio/wav">'
+            '</audio>' % b64_data)
+        audio_invalid2 = (
+            '<audio controls><source href="data:audio/wav;base64,'
+            '%s" type="audio/wav">'
+            '</audio>' % b64_data)
+        audio_invalid3 = (
+            '<audio controls><source src="data:audio/ogg;base64,'
+            '%s" type="audio/ogg">'
+            '</audio>' % b64_data)
+        audio_invalid4 = (
+            '<audio controls><source src="hosse.wav" type="audio/wav">'
+            '</audio>')
+
+        html = [audio_valid1, audio_valid2, audio_invalid1, audio_invalid2,
+                audio_invalid3, audio_invalid4]
+
+        self.assert_runpy_result_and_response(
+            "user_error",
+            expected_msgs=[audio_valid1, audio_valid2],
+            not_expected_msgs=[audio_invalid1, audio_invalid2, audio_invalid3,
+                               audio_invalid4],
+            html=html,
+            in_html=True
+        )
+
+    # {{{ Failed tests
+
+    # def test_html_img(self):
+    #     b64_data = ("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAAB"
+    #         "IeJ9nAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAP///"
+    #         "6XZn90AAAAJcEhZcwAADsIAAA7CARUoSoAAAAAMSURBVBjTYzjAcAAAAwQBgXn"
+    #         "6PNcAAAAASUVORK5CYII=")
+    #
+    #     img_valid = (
+    #         '<img src="data:image/png;base64,%s" alt="test img" '
+    #         'title="test image">' % b64_data)
+    #
+    #     img_invalid1 = (
+    #         '<img src="data:image/png;base64,%s" '
+    #         'alt="test img" '
+    #         'width="126" '
+    #         'height="44">' % b64_data)
+    #
+    #     img_invalid2 = (
+    #         '<img href="data:image/png;base64,%s" '
+    #         'alt="test img" title="test image">' % b64_data)
+    #
+    #     img_invalid3 = (
+    #         '<img src="data:image/bmp;base64,%s" '
+    #         'alt="test img" title="test image">' % b64_data)
+    #
+    #     html = [img_valid, img_invalid1, img_invalid2, img_invalid3]
+    #
+    #     self.assert_runpy_result_and_response(
+    #         "user_error",
+    #         expected_msgs=[img_valid],
+    #         not_expected_msgs=[img_invalid1, img_invalid2, img_invalid3],
+    #         html=html,
+    #         in_html=True,
+    #     )
+    #
+    # evil_b64_data = ("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAAB=")
+    # evil_data_html_strings = [
+    #     '<a src="data:,Hello%2C%20Evil%20World!"></a>',
+    #     '<a href="data:,Hello%2C%20Evil%20World!"></a>',
+    #     '<a src="data:text/html;base64,%s"</a>' % evil_b64_data,
+    #     '<a src="data:text/html;base64,%s"</a>' % evil_b64_data,
+    #     '<img src="https://Evil.com">',
+    #
+    #     '<script src="data:text/html,<script>alert("Evil");"</script>',
+    #     '<script href="data:text/html,<script>alert("Evil");"</script>',
+    #     '<script src="data:text/html;base64,%s"</script>' % evil_b64_data,
+    #     '<script href="data:text/html;base64,%s"</script>' % evil_b64_data,
+    #
+    #     '<style src="data:,Evilcss">',
+    #     '<style src="data:image/png;base64,%s">' % evil_b64_data,
+    #     '<style href="data:image/png;base64,%s">' % evil_b64_data,
+    # ]
+
+    # def test_html_from_code_sanitization(self):
+    #     from course.page.code import sanitize_from_code_html
+    #     for evhtml in self.evil_data_html_strings:
+    #         print("------------------")
+    #         print(evhtml)
+    #         sanitized = sanitize_from_code_html(evhtml)
+    #         print(sanitized)
+    #
+    #         assert "Evil" not in sanitized
+
+    # def test_html_with_data_protocol_for_other_tags_sanitized(self):
+    #     # Fixed https://github.com/inducer/relate/issues/435
+    #     # Ref: https://github.com/mozilla/bleach/issues/348
+    #
+    #     self.assert_runpy_result_and_response(
+    #         "user_error",
+    #         not_expected_msgs=self.evil_data_html_strings + ["Evil"],
+    #         html=self.evil_data_html_strings,
+    #         in_html=True,
+    #     )
+
+    # }}}
+
+    def test_html_non_text_bleached_in_feedback(self):
+        self.assert_runpy_result_and_response(
+            "user_error",
+            "(Non-string in 'HTML' output filtered out)",
+            html=b"not string"
+        )
+
     # {{{ https://github.com/inducer/relate/pull/448
+
     def test_feedback_points_close_to_1(self):
         markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
                     % {
@@ -371,7 +914,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -388,7 +931,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -410,7 +953,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
@@ -428,7 +971,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
@@ -446,7 +989,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -464,7 +1007,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -482,7 +1025,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
@@ -509,7 +1052,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -534,7 +1077,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     })
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         with mock.patch("course.page.PageContext") as mock_page_context:
             mock_page_context.return_value.in_sandbox = False
@@ -712,6 +1255,15 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     case="Docker ping timeout with InvalidPingResponse and "
                          "remove container failed with APIError"):
                 invalid_ping_resp_msg = "my custom invalid ping response exception"
+                fake_host_ip = "0.0.0.0"
+
+                mock_inpect_ctn.return_value = {
+                    "NetworkSettings": {
+                        "Ports": {"%d/tcp" % RUNPY_PORT: (
+                            {"HostIp": fake_host_ip, "HostPort": fake_host_port},
+                        )}
+                    }}
+
                 mock_ctn_request.side_effect = (
                     InvalidPingResponse(invalid_ping_resp_msg))
                 mock_remove_ctn.reset_mock()
@@ -728,7 +1280,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     self.assertEqual(res["result"], "uncaught_error")
                     self.assertEqual(res['message'],
                                      "Timeout waiting for container.")
-                    self.assertEqual(res["exec_host"], fake_host_ip)
+                    self.assertEqual(res["exec_host"], "localhost")
                     self.assertIn(InvalidPingResponse.__name__, res["traceback"])
                     self.assertIn(invalid_ping_resp_msg, res["traceback"])
 
@@ -877,5 +1429,113 @@ class IsNuisanceFailureTest(unittest.TestCase):
                   "traceback":
                       "\nhttp.client.RemoteDisconnected: \nfoo"}
         self.assertTrue(is_nuisance_failure(result))
+
+
+class CodeQuestionWithHumanTextFeedbackSpecialCase(
+        SingleCoursePageTestMixin, SubprocessRunpyContainerMixin, TestCase):
+    """
+    https://github.com/inducer/relate/issues/269
+    https://github.com/inducer/relate/commit/2af0ad7aa053b735620b2cf0bae0b45822bfb87f  # noqa
+    """
+
+    flow_id = QUIZ_FLOW_ID
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(CodeQuestionWithHumanTextFeedbackSpecialCase, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_flow(cls.flow_id)
+
+    def setUp(self):  # noqa
+        super(CodeQuestionWithHumanTextFeedbackSpecialCase, self).setUp()
+        self.c.force_login(self.student_participation.user)
+        self.rf = RequestFactory()
+
+    def get_grade_feedback(self, answer_data, page_value,
+                           human_feedback_percentage, grade_data):
+        page_id = "py_simple_list"
+        course_identifier = self.course.identifier
+        flow_session_id = self.get_default_flow_session_id(course_identifier)
+        flow_session = FlowSession.objects.get(id=flow_session_id)
+
+        page_ordinal = self.get_page_ordinal_via_page_id(
+            page_id, course_identifier, flow_session_id)
+
+        post_data = answer_data.copy()
+        post_data.update({"submit": ""})
+
+        request = self.rf.post(
+            self.get_page_url_by_ordinal(
+                page_ordinal, course_identifier, flow_session_id),
+            post_data)
+        request.user = self.student_participation.user
+
+        pctx = CoursePageContext(request, course_identifier)
+        fpctx = FlowPageContext(
+            pctx.repo, pctx.course, self.flow_id, page_ordinal,
+            self.student_participation, flow_session, request)
+        page_desc = fpctx.page_desc
+        page_desc.value = page_value
+        page_desc.human_feedback_percentage = human_feedback_percentage
+
+        page = PythonCodeQuestionWithHumanTextFeedback(None, None, page_desc)
+
+        page_context = fpctx.page_context
+        grade_data.setdefault('grade_percent', None)
+        grade_data.setdefault('released', True)
+        grade_data.setdefault('feedback_text', "")
+        page_data = fpctx.page_data
+        feedback = page.grade(
+            page_context=page_context,
+            answer_data=answer_data,
+            page_data=page_data,
+            grade_data=grade_data)
+
+        return feedback
+
+    def test_code_with_human_feedback(self):
+        answer_data = {"answer": 'b = [a + 0] * 50'}
+        grade_data = {"grade_percent": 100}
+        page_value = 4
+        human_feedback_percentage = 60
+        feedback = self.get_grade_feedback(
+            answer_data, page_value, human_feedback_percentage, grade_data)
+        self.assertIn("The overall grade is 100%.", feedback.feedback)
+        self.assertIn(
+            "The autograder assigned 1.60/1.60 points.", feedback.feedback)
+        self.assertIn(
+            "The human grader assigned 2.40/2.40 points.", feedback.feedback)
+
+    def test_code_with_human_feedback_full_percentage(self):
+        answer_data = {"answer": 'b = [a + 0] * 50'}
+        grade_data = {"grade_percent": 100}
+        page_value = 0
+        human_feedback_percentage = 100
+        from course.page.base import AnswerFeedback
+        with mock.patch(
+                "course.page.code.PythonCodeQuestion.grade") as mock_py_grade:
+
+            # In this way, code_feedback.correctness is None
+            mock_py_grade.return_value = AnswerFeedback(correctness=None)
+            feedback = self.get_grade_feedback(
+                answer_data, page_value, human_feedback_percentage, grade_data)
+            self.assertIn("The overall grade is 100%.", feedback.feedback)
+            self.assertIn(
+                "No information on correctness of answer.", feedback.feedback)
+            self.assertIn(
+                "The human grader assigned 0/0 points.", feedback.feedback)
+
+    def test_code_with_human_feedback_zero_percentage(self):
+        answer_data = {"answer": 'b = [a + 0] * 50'}
+        grade_data = {}
+        page_value = 0
+        human_feedback_percentage = 0
+        feedback = self.get_grade_feedback(
+            answer_data, page_value, human_feedback_percentage, grade_data)
+        self.assertIn("The overall grade is 100%.", feedback.feedback)
+        self.assertIn(
+            "Your answer is correct.", feedback.feedback)
+        self.assertIn(
+            "The autograder assigned 0/0 points.", feedback.feedback)
 
 # vim: fdm=marker
