@@ -28,7 +28,6 @@ from base64 import b64encode
 import unittest
 from django.test import TestCase
 from django.urls import resolve
-from django.core import mail
 
 from course.models import FlowSession
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
@@ -37,8 +36,10 @@ from course.page.base import (
     validate_point_count, InvalidFeedbackPointsError)
 
 from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, FallBackStorageMessageTestMixin)
-from tests.utils import LocmemBackendTestsMixin, mock
+    SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
+    SubprocessRunpyContainerMixin)
+from tests.utils import mock
+from tests import factories
 
 QUIZ_FLOW_ID = "quiz-test"
 
@@ -285,6 +286,8 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                              '../fixtures', 'test_file.txt'), 'rb') as fp:
             resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
+
+            # https://github.com/inducer/relate/issues/351
             self.assertEqual(resp.status_code, 200)
 
         self.assertResponseMessagesContains(resp, [MESSAGE_ANSWER_FAILED_SAVE_TEXT])
@@ -364,7 +367,152 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                 self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
+    def test_submit_history_failure_no_perm(self):
+        # student have no pperm to view ta's submit history
+        ta_flow_session = factories.FlowSessionFactory(
+            participation=self.ta_participation)
+        resp = self.get_page_submit_history_by_ordinal(
+                page_ordinal=1, flow_session_id=ta_flow_session.id)
+        self.assertEqual(resp.status_code, 403)
+
     # }}}
+
+
+class SingleCourseQuizPageCodeQuestionTest(
+            SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
+            SubprocessRunpyContainerMixin, TestCase):
+    flow_id = QUIZ_FLOW_ID
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(SingleCourseQuizPageCodeQuestionTest, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_flow(cls.flow_id)
+
+    def setUp(self):  # noqa
+        super(SingleCourseQuizPageCodeQuestionTest, self).setUp()
+        # This is needed to ensure student is logged in
+        self.c.force_login(self.student_participation.user)
+
+    def test_code_page_correct(self):
+        page_id = "addition"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(1)
+
+    def test_code_page_wrong(self):
+        page_id = "addition"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a - b\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(0)
+
+    def test_code_page_identical_to_reference(self):
+        page_id = "addition"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a + b\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp,
+                ("It looks like you submitted code "
+                 "that is identical to the reference "
+                 "solution. This is not allowed."))
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(1)
+
+    def test_code_human_feedback_page_submit(self):
+        page_id = "pymult"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a * b\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade1(self):
+        page_id = "pymult"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = b * a\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "'c' looks good")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 2/2 points.")
+
+        # since the test_code didn't do a feedback.set_points() after
+        # check_scalar()
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade2(self):
+        page_id = "pymult"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['c = a / b\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "'c' is inaccurate")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The autograder assigned 0/2 points.")
+
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 2/2 points.")
+        self.assertSessionScoreEqual(2)
+
+    def test_code_human_feedback_page_grade3(self):
+        page_id = "py_simple_list"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['b = [a + 1] * 50\r']})
+
+        # this is testing feedback.finish(0.3, feedback_msg)
+        # 2 * 0.3 = 0.6
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The autograder assigned 0.90/3 points.")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The elements in b have wrong values")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        # The page is not graded before human grading.
+        self.assertSessionScoreEqual(None)
+
+    def test_code_human_feedback_page_grade4(self):
+        page_id = "py_simple_list"
+        resp = self.post_answer_by_page_id(
+            page_id, {"answer": ['b = [a] * 50\r']})
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "b looks good")
+        self.assertEqual(self.end_flow().status_code, 200)
+
+        grade_data = {
+            "grade_percent": ["100"],
+            "released": ["on"]
+        }
+
+        resp = self.post_grade_by_page_id(page_id, grade_data)
+        self.assertTrue(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, "The human grader assigned 1/1 points.")
+
+        self.assertSessionScoreEqual(4)
 
 
 class ValidatePointCountTest(unittest.TestCase):

@@ -131,6 +131,24 @@ around the ``"No"``.
 Course Operations
 =================
 
+How do I launch an exam?
+------------------------
+
+An exam does not launch automatically when the header is changed. First, make
+sure you have updated the course so the exam has the correct header in the public git revision.
+Then, you must go to Grading -> Edit Exams, and activate the exam for the correct dates.
+Most exam issues, like being unable to issue exam tickets, come from failing
+to do one of the above two things.
+
+How do I grant an extension for a particular student?
+-----------------------------------------------------
+
+Grant an exception (from say the gradebook or the grading menu) to the latest
+session of the assignment you want to extend. Change the "Access Expires" to what you want it to be.
+Make sure the correct access rules are checked. You will want it to generate a
+grade (so check it), but make sure to set the credit percent to what you want
+it to be.
+
 Some events happen twice or three times in a week. How can I create create recurring events for that circumstance?
 ------------------------------------------------------------------------------------------------------------------
 
@@ -145,5 +163,15 @@ Sometimes we need to postpone or put in advance all the following events, which 
 How do I manually upload a file for a student, after the deadline has passed?
 -----------------------------------------------------------------------------
 
-Typically, you can reopen the session with the appropriate access rules (from say, the gradebook), impersonate the student,
-upload the file, and then submit the session to close it. The previous steps may not work though if the flow rules are too restrictive.
+Typically, you can reopen the session with the appropriate access rules (from say, the gradebook),
+impersonate the student, upload the file, and then submit the session to close it.
+The previous steps may not work though if the flow rules are too restrictive.
+
+How do I adjust a particular student's grade up?
+------------------------------------------------
+
+An easy way is to grant an exception for that student's quiz/homework/exam and
+give them some number of bonus points. Note that this will also change the
+number of points that the assignment is out of. To compensate, you must also change
+the "maximum number of points" to the appropriate value. Remember to not grant
+an access exception.

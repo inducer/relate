@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import re
 import datetime
 from django.test import TestCase
@@ -262,6 +263,90 @@ class CourseSpecificLangFormTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(form.errors["force_lang"][0],
                          VALIDATION_ERROR_LANG_NOT_SUPPORTED_PATTERN % "foo")
         self.assertEqual(Course.objects.count(), expected_course_count)
+
+
+class GetCurrentLanguageJsLangNameTest(TestCase):
+    def setUp(self):
+        super(GetCurrentLanguageJsLangNameTest, self).setUp()
+
+        from django.template.utils import EngineHandler
+        self.engines = EngineHandler()
+
+    def test_get_current_js_lang_name_tag(self):
+        with override_settings(LANGUAGE_CODE="en-us"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "en-US")
+
+        with override_settings(LANGUAGE_CODE="de"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "de")
+
+    def test_get_current_js_lang_name_tag_failed(self):
+        from django.template import TemplateSyntaxError
+        msg = ("'get_current_js_lang_name' requires 'as variable' "
+               "(got [u'get_current_js_lang_name'])")
+
+        if six.PY3:
+            msg = msg.replace("u'", "'")
+
+        with self.assertRaisesMessage(TemplateSyntaxError, expected_message=msg):
+            self.engines["django"].from_string(
+                "{% get_current_js_lang_name %}")
+
+        msg = ("'get_current_js_lang_name' requires 'as variable' "
+               "(got [u'get_current_js_lang_name', u'AS', u'LANG'])")
+
+        if six.PY3:
+            msg = msg.replace("u'", "'")
+
+        with self.assertRaisesMessage(TemplateSyntaxError, expected_message=msg):
+            self.engines["django"].from_string(
+                "{% get_current_js_lang_name AS LANG %}{{LANG}}")
+
+
+class HasPermissionTemplateFilterTest(SingleCourseTestMixin, TestCase):
+    def setUp(self):
+        super(HasPermissionTemplateFilterTest, self).setUp()
+
+        from django.template.utils import EngineHandler
+        self.engines = EngineHandler()
+
+    def test_has_permission_with_no_arg(self):
+        template = self.engines["django"].from_string(
+            "{% if participation|has_permission:'view_gradebook' %}"
+            "YES{% else %}NO{% endif %}")
+        text = template.render({"participation": self.student_participation})
+        self.assertEqual(text, "NO")
+
+    def test_has_permission_with_arg(self):
+        # with spaces in filter value
+        template = self.engines["django"].from_string(
+            "{% if participation|has_permission:'access_files_for , student ' %}"
+            "YES{% else %}NO{% endif %}")
+        text = template.render({"participation": self.student_participation})
+        self.assertEqual(text, "YES")
+
+        # with no spaces in filter value
+        template = self.engines["django"].from_string(
+            "{% if participation|has_permission:'access_files_for,student' %}"
+            "YES{% else %}NO{% endif %}")
+        text = template.render({"participation": self.student_participation})
+        self.assertEqual(text, "YES")
+
+    def test_has_permission_fail_silently(self):
+        with mock.patch(
+                "course.models.Participation.has_permission") as mock_has_pperm:
+            mock_has_pperm.side_effect = RuntimeError
+
+            template = self.engines["django"].from_string(
+                "{% if participation|has_permission:'access_files_for,public' %}"
+                "YES{% else %}NO{% endif %}")
+            text = template.render({"participation": self.student_participation})
+            self.assertEqual(text, "NO")
 
 
 class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCase):

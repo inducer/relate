@@ -143,8 +143,6 @@ ROOT_URLCONF = 'relate.urls'
 
 WSGI_APPLICATION = 'relate.wsgi.application'
 
-# {{{ templates
-
 # {{{ context processors
 
 RELATE_EXTRA_CONTEXT_PROCESSORS = (
@@ -156,6 +154,8 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             )
 
 # }}}
+
+# {{{ templates
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 

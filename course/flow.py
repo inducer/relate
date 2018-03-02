@@ -2106,13 +2106,10 @@ def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal)
     if not request.is_ajax() or request.method != "GET":
         raise PermissionDenied()
 
-    try:
-        page_ordinal = int(page_ordinal)
-        flow_session_id = int(flow_session_id)
-    except ValueError:
-        raise http.Http404()
+    page_ordinal = int(page_ordinal)
+    flow_session_id = int(flow_session_id)
 
-    flow_session = get_and_check_flow_session(pctx, int(flow_session_id))
+    flow_session = get_and_check_flow_session(pctx, flow_session_id)
 
     page_data = get_object_or_404(
         FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)

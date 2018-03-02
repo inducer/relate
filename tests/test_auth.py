@@ -34,8 +34,12 @@ from django.contrib.auth import (
 )
 from django.http import QueryDict, HttpResponse
 from django.urls import NoReverseMatch, reverse
+import unittest
 from unittest import skipIf
-from course.auth import get_impersonable_user_qset, get_user_model
+from course.auth import (
+    get_impersonable_user_qset, get_user_model,
+    Saml2Backend, EmailedTokenBackend,
+)
 from course.models import FlowPageVisit, ParticipationPermission
 from course import constants
 
@@ -541,10 +545,10 @@ class AuthTestMixin(object):
         if not redirect_to:
             return url
         return ('%(url)s?%(next)s=%(bad_url)s' % {
-                    'url': url,
-                    'next': REDIRECT_FIELD_NAME,
-                    'bad_url': quote(redirect_to),
-                })
+            'url': url,
+            'next': REDIRECT_FIELD_NAME,
+            'bad_url': quote(redirect_to),
+        })
 
     def get_sign_up_view_url(self, redirect_to=None):
         return self.concatenate_redirect_url(
@@ -663,8 +667,8 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
         reload_urlconf()
 
         all_expected_named_urls = (
-            self.need_logout_confirmation_named_urls
-            + self.djsaml2_urls + self.need_login_named_urls)
+                self.need_logout_confirmation_named_urls
+                + self.djsaml2_urls + self.need_login_named_urls)
         for name, args, kwargs in all_expected_named_urls:
             with self.subTest(name=name):
                 try:
@@ -915,7 +919,8 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
             self.assertIn(expected_msg, mock_add_msg.call_args[0])
             self.assertEqual(resp.status_code, 302)
 
-            self.assertRedirects(resp, self.get_user_profile_url()+"?first_login=1",
+            self.assertRedirects(resp,
+                                 self.get_user_profile_url() + "?first_login=1",
                                  fetch_redirect_response=False)
             self.assertSessionHasUserLoggedIn()
 
@@ -963,7 +968,6 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
 @override_settings(RELATE_REGISTRATION_ENABLED=True)
 class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
                  FallBackStorageMessageTestMixin, TestCase):
-
     sign_up_user_dict = {
         "username": "test_sign_up_user", "password": "mypassword",
         "email": "test_sign_up@example.com"
@@ -1024,10 +1028,10 @@ class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
     @mock.patch(ADD_MESSAGES_FUNC_PATH)
     def test_signup_existing_email(self, mock_add_msg):
         expected_msg = (
-            "That email address is already in use. "
-            "Would you like to "
-            "<a href='%s'>reset your password</a> instead?"
-            % reverse("relate-reset_password"))
+                "That email address is already in use. "
+                "Would you like to "
+                "<a href='%s'>reset your password</a> instead?"
+                % reverse("relate-reset_password"))
 
         data = self.get_sign_up_user_dict()
         data["email"] = self.test_user.email
@@ -1057,10 +1061,10 @@ class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
 
         new_user = get_user_model().objects.last()
         sign_in_url = sent_request.build_absolute_uri(
-                        reverse(
-                            "relate-reset_password_stage2",
-                            args=(new_user.id, new_user.sign_in_key,))
-                        + "?to_profile=1")
+            reverse(
+                "relate-reset_password_stage2",
+                args=(new_user.id, new_user.sign_in_key,))
+            + "?to_profile=1")
         self.assertIn(sign_in_url, mail.outbox[0].body)
         self.assertIn(expected_msg, mock_add_msg.call_args[0])
 
@@ -1081,8 +1085,8 @@ class SignOutTest(CoursesTestMixinBase,
 
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=False)
     def test_sign_out_by_get(self):
-        with mock.patch("djangosaml2.views._get_subject_id")\
-                as mock_get_subject_id,\
+        with mock.patch("djangosaml2.views._get_subject_id") \
+                as mock_get_subject_id, \
                 mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
@@ -1095,8 +1099,8 @@ class SignOutTest(CoursesTestMixinBase,
 
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=False)
     def test_sign_out_by_post(self):
-        with mock.patch("djangosaml2.views._get_subject_id")\
-                as mock_get_subject_id,\
+        with mock.patch("djangosaml2.views._get_subject_id") \
+                as mock_get_subject_id, \
                 mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
@@ -1118,8 +1122,8 @@ class SignOutTest(CoursesTestMixinBase,
 
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=True)
     def test_sign_out_with_saml2_enabled_no_subject_id(self):
-        with mock.patch("djangosaml2.views._get_subject_id")\
-                as mock_get_subject_id,\
+        with mock.patch("djangosaml2.views._get_subject_id") \
+                as mock_get_subject_id, \
                 mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
             mock_get_subject_id.return_value = None
             with self.temporarily_switch_to_user(self.test_user):
@@ -1131,8 +1135,8 @@ class SignOutTest(CoursesTestMixinBase,
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=True)
     def test_sign_out_with_saml2_enabled_with_subject_id(self):
         self.c.force_login(self.test_user)
-        with mock.patch("djangosaml2.views._get_subject_id")\
-                as mock_get_subject_id,\
+        with mock.patch("djangosaml2.views._get_subject_id") \
+                as mock_get_subject_id, \
                 mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             mock_saml2_logout.return_value = HttpResponse()
@@ -1480,7 +1484,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
                  {EDITABLE_INST_ID_BEFORE_VERI: True, SHOW_INST_ID_FORM: True},
                  {},
                  {"institutional_id": "123   ",
-                    "institutional_id_confirm": "   123"},
+                  "institutional_id_confirm": "   123"},
                  {"institutional_id": "123"},
                  [],
                  expected_success_msg),
@@ -1643,9 +1647,9 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
     def test_reset_by_email_non_exist(self):
         with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
             expected_msg = (
-                "That %s doesn't have an "
-                "associated user account. Are you "
-                "sure you've registered?" % "email address")
+                    "That %s doesn't have an "
+                    "associated user account. Are you "
+                    "sure you've registered?" % "email address")
             resp = self.post_reset_password(
                 data={"email": "some_email@example.com"})
             self.assertTrue(resp.status_code, 200)
@@ -1655,11 +1659,25 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
     def test_reset_by_instid_non_exist(self):
         with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
             expected_msg = (
-                "That %s doesn't have an "
-                "associated user account. Are you "
-                "sure you've registered?" % "institutional ID")
+                    "That %s doesn't have an "
+                    "associated user account. Are you "
+                    "sure you've registered?" % "institutional ID")
             resp = self.post_reset_password(
                 data={"instid": "2345"}, use_instid=True)
+            self.assertTrue(resp.status_code, 200)
+            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_reset_user_has_no_email(self):
+        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
+            self.user.email = ""
+            self.user.save()
+            expected_msg = (
+                "The account with that institution ID "
+                "doesn't have an associated email.")
+            resp = self.post_reset_password(data={"instid": self.user_inst_id},
+                                            use_instid=True)
             self.assertTrue(resp.status_code, 200)
             self.assertIn(expected_msg, mock_add_msg.call_args[0])
         self.assertEqual(len(mail.outbox), 0)
@@ -1813,14 +1831,15 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
         self.assertHasNoUserLoggedIn()
 
     def test_reset_stage2_post_success_redirect_profile_no_real_name(self):
-        assert not(self.user.first_name or self.user.last_name)
+        assert not (self.user.first_name or self.user.last_name)
         with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
             expected_msg = ("Successfully signed in. "
                             "Please complete your registration information below.")
             data = {"password": "my_pass", "password_repeat": "my_pass"}
             resp = self.post_reset_password_stage2(self.user.id,
                                                    self.user.sign_in_key, data)
-            self.assertRedirects(resp, self.get_profile_view_url()+"?first_login=1",
+            self.assertRedirects(resp,
+                                 self.get_profile_view_url() + "?first_login=1",
                                  fetch_redirect_response=False)
             self.assertEqual(mock_add_msg.call_count, 1)
             self.assertIn(expected_msg, mock_add_msg.call_args[0])
@@ -1835,7 +1854,8 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
             data = {"password": "my_pass", "password_repeat": "my_pass"}
             resp = self.post_reset_password_stage2(self.user.id,
                                                    self.user.sign_in_key, data)
-            self.assertRedirects(resp, self.get_profile_view_url()+"?first_login=1",
+            self.assertRedirects(resp,
+                                 self.get_profile_view_url() + "?first_login=1",
                                  fetch_redirect_response=False)
             self.assertEqual(mock_add_msg.call_count, 1)
             self.assertIn(expected_msg, mock_add_msg.call_args[0])
@@ -1866,7 +1886,8 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
             resp = self.post_reset_password_stage2(self.user.id,
                                                    self.user.sign_in_key, data,
                                                    querystring={"to_profile": "-1"})
-            self.assertRedirects(resp, self.get_profile_view_url()+"?first_login=1",
+            self.assertRedirects(resp,
+                                 self.get_profile_view_url() + "?first_login=1",
                                  fetch_redirect_response=False)
             self.assertEqual(mock_add_msg.call_count, 1)
             self.assertIn(expected_msg, mock_add_msg.call_args[0])
@@ -1899,5 +1920,118 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
             self.assertEqual(mock_add_msg.call_count, 1)
             self.assertIn(expected_msg, mock_add_msg.call_args[0])
             self.assertHasNoUserLoggedIn()
+
+
+class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
+    def test_authenticate(self):
+        user = UserFactory()
+        self.c.logout()
+
+        with override_settings(RELATE_REGISTRATION_ENABLED=True):
+            self.post_reset_password(data={"email": user.email})
+
+        user.refresh_from_db()
+        assert user.sign_in_key is not None
+
+        backend = EmailedTokenBackend()
+        self.assertEqual(
+            backend.authenticate(user.pk, token=user.sign_in_key), user)
+
+        self.assertIsNone(
+            backend.authenticate(user.pk, token="non_exist_sign_in_key"))
+
+    def test_get_user(self):
+        user = UserFactory()
+        self.c.logout()
+
+        backend = EmailedTokenBackend()
+        self.assertEqual(backend.get_user(user.pk), user)
+        self.assertIsNone(backend.get_user(10000))
+
+
+class LogoutConfirmationRequiredDecoratorTest(unittest.TestCase):
+    def setUp(self):
+        self.user = UserFactory()
+
+    def test_logout_confirmation_required_as_callable(self):
+        from course.auth import logout_confirmation_required
+        self.assertTrue(callable(logout_confirmation_required()))
+        self.assertTrue(logout_confirmation_required()(self.user))
+
+        from django.contrib.auth.models import AnonymousUser
+        self.assertTrue(logout_confirmation_required()(AnonymousUser))
+
+
+class TestSaml2Backend(TestCase):
+    def test_update_user(self):
+        user = UserFactory(first_name="", last_name="", institutional_id="",
+                           institutional_id_verified=False, name_verified=False,
+                           status=constants.user_status.unconfirmed)
+
+        backend = Saml2Backend()
+
+        saml_attribute_mapping = {
+            'PrincipalName': ('username',),
+            'iTrustUIN': ('institutional_id',),
+            'mail': ('email',),
+            'givenName': ('first_name',),
+            'sn': ('last_name',),
+        }
+
+        user_attribute = {
+            'PrincipalName': (user.username,),
+        }
+
+        with mock.patch("accounts.models.User.save") as mock_save:
+            # no changes
+            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+            self.assertEqual(mock_save.call_count, 0)
+
+        self.assertEqual(user.first_name, "")
+        self.assertEqual(user.last_name, "")
+        self.assertFalse(user.name_verified)
+        self.assertEqual(user.status, constants.user_status.unconfirmed)
+        self.assertFalse(user.institutional_id_verified)
+
+        expected_first = "my_first"
+        expected_last = "my_last"
+        expected_inst_id = "123321"
+
+        user_attribute = {
+            'PrincipalName': (user.username,),
+            'iTrustUIN': (expected_inst_id,),
+            'givenName': (expected_first,),
+            'sn': (expected_last,),
+        }
+
+        with mock.patch("accounts.models.User.save") as mock_save:
+            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+            self.assertEqual(mock_save.call_count, 1)
+
+        user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+        self.assertEqual(user.first_name, expected_first)
+        self.assertEqual(user.last_name, expected_last)
+        self.assertTrue(user.name_verified)
+        self.assertEqual(user.status, constants.user_status.unconfirmed)
+        self.assertTrue(user.institutional_id_verified)
+
+        user_attribute = {
+            'PrincipalName': (user.username,),
+            'iTrustUIN': (expected_inst_id,),
+            'mail': (user.email,),
+            'givenName': (expected_first,),
+            'sn': (expected_last,),
+        }
+        user = backend.update_user(user, user_attribute, saml_attribute_mapping)
+        self.assertEqual(user.first_name, expected_first)
+        self.assertEqual(user.last_name, expected_last)
+        self.assertTrue(user.name_verified)
+        self.assertEqual(user.status, constants.user_status.active)
+        self.assertTrue(user.institutional_id_verified)
+
+        with mock.patch("accounts.models.User.save") as mock_save:
+            # no changes
+            backend.update_user(user, user_attribute, saml_attribute_mapping)
+            self.assertEqual(mock_save.call_count, 0)
 
 # vim: foldmethod=marker

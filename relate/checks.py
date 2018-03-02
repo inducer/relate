@@ -29,6 +29,7 @@ import six
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.module_loading import import_string
 
 REQUIRED_CONF_ERROR_PATTERN = (
     "You must configure %(location)s for RELATE to run properly.")
@@ -43,7 +44,6 @@ RELATE_CUTOMIZED_SITE_NAME = "RELATE_CUTOMIZED_SITE_NAME"
 RELATE_OVERRIDE_TEMPLATES_DIRS = "RELATE_OVERRIDE_TEMPLATES_DIRS"
 EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
-RELATE_EMAIL_APPELATION_PRIORITY_LIST = "RELATE_EMAIL_APPELATION_PRIORITY_LIST"
 RELATE_FACILITIES = "RELATE_FACILITIES"
 RELATE_MAINTENANCE_MODE_EXCEPTIONS = "RELATE_MAINTENANCE_MODE_EXCEPTIONS"
 RELATE_SESSION_RESTART_COOLDOWN_SECONDS = "RELATE_SESSION_RESTART_COOLDOWN_SECONDS"
@@ -56,6 +56,8 @@ RELATE_STARTUP_CHECKS_TAG = "start_up_check"
 RELATE_STARTUP_CHECKS_EXTRA_TAG = "startup_checks_extra"
 RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = (
     "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION")
+RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE = (
+    "RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE")
 
 
 class RelateCriticalCheckMessage(Critical):
@@ -98,19 +100,16 @@ def check_relate_settings(app_configs, **kwargs):
         ))
     # }}}
 
-    # {{{ check RELATE_EMAIL_APPELATION_PRIORITY_LIST
-    relate_email_appelation_priority_list = getattr(
-        settings, RELATE_EMAIL_APPELATION_PRIORITY_LIST, None)
-    if relate_email_appelation_priority_list is not None:
-        if not isinstance(relate_email_appelation_priority_list, (list, tuple)):
-            errors.append(RelateCriticalCheckMessage(
-                msg=(
-                    INSTANCE_ERROR_PATTERN
-                    % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
-                       "types": "list or tuple"}),
-                id="relate_email_appelation_priority_list.E002")
-            )
-    # }}}
+    from accounts.utils import relate_user_method_settings
+    # check RELATE_EMAIL_APPELLATION_PRIORITY_LIST
+    errors.extend(
+        relate_user_method_settings.check_email_appellation_priority_list())
+
+    # check RELATE_CSV_SETTINGS
+    errors.extend(relate_user_method_settings.check_custom_full_name_method())
+
+    # check RELATE_USER_PROFILE_MASK_METHOD
+    errors.extend(relate_user_method_settings.check_user_profile_mask_method())
 
     # {{{ check EMAIL_CONNECTIONS
     email_connections = getattr(settings, EMAIL_CONNECTIONS, None)
@@ -136,7 +135,6 @@ def check_relate_settings(app_configs, **kwargs):
                     ))
                 else:
                     if "backend" in c:
-                        from django.utils.module_loading import import_string
                         try:
                             import_string(c["backend"])
                         except ImportError as e:
@@ -290,7 +288,7 @@ def check_relate_settings(app_configs, **kwargs):
 
     # }}}
 
-    # {{{ check RELATE_SESSION_RESTART_COOLDOWN_SECONDS
+    # {{{ check RELATE_TICKET_MINUTES_VALID_AFTER_USE
     relate_ticket_minutes_valid_after_use = getattr(
         settings, RELATE_TICKET_MINUTES_VALID_AFTER_USE, None)
     if relate_ticket_minutes_valid_after_use is not None:
@@ -487,6 +485,20 @@ def check_relate_settings(app_configs, **kwargs):
                             ))
 
     # }}}
+
+    # {{{ check RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE
+    relate_custom_page_types_removed_deadline = getattr(
+        settings, RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE, None)
+    if relate_custom_page_types_removed_deadline is not None:
+        from datetime import datetime
+        if not isinstance(relate_custom_page_types_removed_deadline, datetime):
+            errors.append(RelateCriticalCheckMessage(
+                msg=(INSTANCE_ERROR_PATTERN
+                     % {"location": RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE,
+                        "types": "datetime.datetime"}),
+                id="relate_custom_page_types_removed_deadline.E001"))
+
+    # }}}
     return errors
 
 
@@ -510,7 +522,6 @@ def register_startup_checks_extra():
                    "types": "list or tuple"
                    }
             )
-        from django.utils.module_loading import import_string
         for c in startup_checks_extra:
             try:
                 check_item = import_string(c)

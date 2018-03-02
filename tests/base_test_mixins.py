@@ -1115,6 +1115,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             course_identifier = self.get_default_course_identifier()
         return reverse("relate-update_course", args=[course_identifier])
 
+    def get_course_commit_sha(self, participation, course=None):
+        course = course or self.get_default_course()
+        from course.content import get_course_commit_sha
+        return get_course_commit_sha(course, participation)
+
     def post_update_course_content(self, commit_sha,
                                    fetch_update=False,
                                    prevent_discarding_revisions=True,
@@ -1470,11 +1475,15 @@ class FallBackStorageMessageTestMixin(object):
         for idx, m in enumerate(messages):
             six.assertRegex(self, m, expected_message_regexs[idx])
 
-    def assertResponseMessagesContains(self, response, expected_messages):  # noqa
+    def assertResponseMessagesContains(self, response, expected_messages,  # noqa
+                                       loose=False):
         storage = self.get_listed_storage_from_response(response)
         if isinstance(expected_messages, str):
             expected_messages = [expected_messages]
         messages = [m.message for m in storage]
+        if loose:
+            from django.utils.encoding import force_text
+            messages = " ".join([force_text(m) for m in messages])
         for em in expected_messages:
             self.assertIn(em, messages)
 
