@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import bleach
 import six
 
 from course.validation import ValidationError
@@ -291,73 +290,6 @@ def request_python_run_with_retries(run_req, run_timeout, image=None, retry_coun
             continue
 
         return result
-
-
-# {{{ HTML sanitization helpers
-
-def is_allowed_data_uri(allowed_mimetypes, uri):
-    import re
-    m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
-    if not m:
-        return False
-
-    mimetype = m.group(1)
-    return mimetype in allowed_mimetypes
-
-
-def filter_from_code_html_attributes(tag, name, value):
-
-    if tag == "audio":
-        if name in ["controls"]:
-            return True
-        else:
-            return False
-
-    elif tag == "source":
-        if name in ["type"]:
-            return True
-        elif name == "src":
-            if is_allowed_data_uri([
-                    "audio/wav",
-                    ], value):
-                return True
-            else:
-                return False
-        else:
-            return False
-
-    elif tag == "img":
-        if name in ["alt", "title"]:
-            return True
-        elif name == "src":
-            if is_allowed_data_uri([
-                    "image/png",
-                    "image/jpeg",
-                    ], value):
-                return True
-        else:
-            return False
-
-    return False
-
-
-def sanitize_from_code_html(s):
-    if not isinstance(s, six.text_type):
-        return _("(Non-string in 'HTML' output filtered out)")
-
-    return bleach.clean(s,
-            tags=bleach.ALLOWED_TAGS + ["audio", "video", "source",
-                                        "img"],
-            attributes=filter_from_code_html_attributes,
-
-            # strip unwanted tags
-            strip=True,
-
-            # Fixed https://github.com/inducer/relate/issues/435
-            # Ref: https://github.com/mozilla/bleach/issues/348
-            protocols=bleach.ALLOWED_PROTOCOLS + ["data"])
-
-# }}}
 
 
 class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
@@ -948,8 +880,61 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         # {{{ html output / santization
 
         if hasattr(response, "html") and response.html:
+            def is_allowed_data_uri(allowed_mimetypes, uri):
+                import re
+                m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
+                if not m:
+                    return False
+
+                mimetype = m.group(1)
+                return mimetype in allowed_mimetypes
+
+            def sanitize(s):
+                import bleach
+
+                def filter_audio_attributes(tag, name, value):
+                    if name in ["controls"]:
+                        return True
+                    else:
+                        return False
+
+                def filter_source_attributes(tag, name, value):
+                    if name in ["type"]:
+                        return True
+                    elif name == "src":
+                        if is_allowed_data_uri([
+                                "audio/wav",
+                                ], value):
+                            return bleach.sanitizer.VALUE_SAFE
+                        else:
+                            return False
+                    else:
+                        return False
+
+                def filter_img_attributes(tag, name, value):
+                    if name in ["alt", "title"]:
+                        return True
+                    elif name == "src":
+                        return is_allowed_data_uri([
+                            "image/png",
+                            "image/jpeg",
+                            ], value)
+                    else:
+                        return False
+
+                if not isinstance(s, six.text_type):
+                    return _("(Non-string in 'HTML' output filtered out)")
+
+                return bleach.clean(s,
+                        tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
+                        attributes={
+                            "audio": filter_audio_attributes,
+                            "source": filter_source_attributes,
+                            "img": filter_img_attributes,
+                            })
+
             bulk_feedback_bits.extend(
-                    sanitize_from_code_html(snippet) for snippet in response.html)
+                    sanitize(snippet) for snippet in response.html)
 
         # }}}
 
@@ -1174,8 +1159,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and code_feedback.correctness is not None):
             code_feedback_points = code_feedback.correctness*code_points
 
-        from django.template.loader import render_to_string
-        feedback = render_to_string(
+        from relate.utils import render_email_template
+        feedback = render_email_template(
                 "course/feedback-code-with-human.html",
                 {
                     "percentage": percentage,
