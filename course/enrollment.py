@@ -220,16 +220,18 @@ def enroll_view(request, course_identifier):
             preapproval = ParticipationPreapproval.objects.get(
                     course=course, email__iexact=request.user.email)
         except ParticipationPreapproval.DoesNotExist:
-            if user.institutional_id:
-                if not (course.preapproval_require_verified_inst_id
-                        and not user.institutional_id_verified):
-                    try:
-                        preapproval = ParticipationPreapproval.objects.get(
-                                course=course,
-                                institutional_id__iexact=user.institutional_id)
-                    except ParticipationPreapproval.DoesNotExist:
-                        pass
             pass
+
+    if preapproval is None:
+        if user.institutional_id:
+            if not (course.preapproval_require_verified_inst_id
+                    and not user.institutional_id_verified):
+                try:
+                    preapproval = ParticipationPreapproval.objects.get(
+                            course=course,
+                            institutional_id__iexact=user.institutional_id)
+                except ParticipationPreapproval.DoesNotExist:
+                    pass
 
     def email_suffix_matches(email, suffix):
         # type: (Text, Text) -> bool
@@ -238,11 +240,10 @@ def enroll_view(request, course_identifier):
         else:
             return email.endswith("@%s" % suffix) or email.endswith(".%s" % suffix)
 
-    if (
-            preapproval is None
-            and course.enrollment_required_email_suffix
-            and not email_suffix_matches(
-                user.email, course.enrollment_required_email_suffix)):
+    if (preapproval is None
+        and course.enrollment_required_email_suffix
+        and not email_suffix_matches(
+            user.email, course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
                 _("Enrollment not allowed. Please use your '%s' email to "
