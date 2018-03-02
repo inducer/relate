@@ -1624,6 +1624,8 @@ class GradeStateMachine(object):
         # applies to *all* grade changes
         self._last_grade_change_time = None
 
+        self.valid_percentages_count = 0
+
     def _clear_grades(self):
         # type: () -> None
 
@@ -1729,7 +1731,11 @@ class GradeStateMachine(object):
         valid_gchanges_with_attempt_id = sorted(
             [gchange for gchange in self.attempt_id_to_gchange.values()],
             key=lambda x: (x.grade_time, x.pk))
+
         del self.attempt_id_to_gchange
+
+        self.valid_percentages_count = (
+                len(self.valid_percentages) + len(valid_gchanges_with_attempt_id))
 
         # {{{ Calculate the earliest percentage and latest percentage, instead of
         # get them from self.valid_percentages, so as to avoid inconsistent results.
@@ -1824,16 +1830,16 @@ class GradeStateMachine(object):
         if self.state is None:
             return u"- ∅ -"
         elif self.state == grade_state_change_types.exempt:
-            return "_((exempt))"
+            return _("(exempt)")
         elif self.state == grade_state_change_types.graded:
             assert self.valid_percentages
             result = ("%.2f%%" % self.percentage()
                       if self.percentage() is not None else u"- ∅ -")
-            if len(self.valid_percentages) > 1:
-                result += " (/%d)" % len(self.valid_percentages)
+            if self.valid_percentages_count > 1:
+                result += " (/%d)" % self.valid_percentages_count
             return result
         else:
-            return "_((other state))"
+            return _("(other state)")
 
     def stringify_machine_readable_state(self):
         if self.state is None:

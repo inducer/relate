@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 
 __copyright__ = "Copyright (C) 2018 Dong Zhuang, Zesheng Wang, Andreas Kloeckner"
@@ -125,9 +127,21 @@ class GradeBookTestMixin(SingleCoursePageTestMixin):
         gc_kwargs.update(kwargs)
         return gc_kwargs
 
-    def get_gc_machine_state(self):
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
+    def get_gc_machine(self, gopp=None, participation=None):
+        if not gopp:
+            gopp = self.gopp
+        if not participation:
+            participation = self.ptcp
+        _, machine = get_gc_and_machine(gopp, participation)
+        return machine
+
+    def get_gc_stringify_machine_readable_state(self):
+        machine = self.get_gc_machine()
         return machine.stringify_machine_readable_state()
+
+    def get_gc_stringify_state(self):
+        machine = self.get_gc_machine()
+        return machine.stringify_state()
 
     def update_gopp_strategy(self, strategy=None):
         if not strategy:
@@ -138,7 +152,15 @@ class GradeBookTestMixin(SingleCoursePageTestMixin):
             self.gopp.refresh_from_db()
 
     def assertGradeChangeStateEqual(self, expected_state_string=None):  # noqa
-        state_string = self.get_gc_machine_state()
+        # targeting stringify_state
+        state_string = self.get_gc_stringify_state()
+
+        from django.utils.encoding import force_text
+        self.assertEqual(force_text(state_string), expected_state_string)
+
+    def assertGradeChangeMachineReadableStateEqual(self, expected_state_string=None):  # noqa
+        # targeting stringify_machine_readable_state
+        state_string = self.get_gc_stringify_machine_readable_state()
         from decimal import Decimal, InvalidOperation
         try:
             percentage = Decimal(state_string, )
@@ -207,7 +229,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
 
     def test_default_setup(self):
         self.use_default_setup()
-        self.assertGradeChangeStateEqual(6)
+        self.assertGradeChangeMachineReadableStateEqual(6)
+        self.assertGradeChangeStateEqual("6.00% (/3)")
 
         with self.temporarily_switch_to_user(self.ptcp.user):
             resp = self.get_single_grade(self.ptcp, self.gopp)
@@ -217,12 +240,14 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
     def test_change_aggregate_strategy_average(self):
         self.use_default_setup()
         self.update_gopp_strategy(g_stragety.avg_grade)
-        self.assertGradeChangeStateEqual(4.333)
+        self.assertGradeChangeMachineReadableStateEqual(4.333)
+        self.assertGradeChangeStateEqual("4.33% (/3)")
 
     def test_change_aggregate_strategy_earliest(self):
         self.use_default_setup()
         self.update_gopp_strategy(g_stragety.use_earliest)
-        self.assertGradeChangeStateEqual(0)
+        self.assertGradeChangeMachineReadableStateEqual(0)
+        self.assertGradeChangeStateEqual("0.00% (/3)")
 
         with self.temporarily_switch_to_user(self.ptcp.user):
             resp = self.get_single_grade(self.ptcp, self.gopp)
@@ -232,7 +257,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
     def test_change_aggregate_strategy_max(self):
         self.use_default_setup()
         self.update_gopp_strategy(g_stragety.max_grade)
-        self.assertGradeChangeStateEqual(7)
+        self.assertGradeChangeMachineReadableStateEqual(7)
+        self.assertGradeChangeStateEqual("7.00% (/3)")
 
         with self.temporarily_switch_to_user(self.ptcp.user):
             resp = self.get_single_grade(self.ptcp, self.gopp)
@@ -242,9 +268,12 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
     def test_change_aggregate_strategy_max_none(self):
         # when no grade change has percentage
         self.update_gopp_strategy(g_stragety.max_grade)
-        self.assertGradeChangeStateEqual("NONE")
+        self.assertGradeChangeMachineReadableStateEqual("NONE")
+        self.assertGradeChangeStateEqual("- ∅ -")
+
         GCFactory.create(**(self.gc(points=None)))
-        self.assertGradeChangeStateEqual("NONE")
+        self.assertGradeChangeMachineReadableStateEqual("NONE")
+        self.assertGradeChangeStateEqual("- ∅ -")
 
         with self.temporarily_switch_to_user(self.ptcp.user):
             resp = self.get_single_grade(self.ptcp, self.gopp)
@@ -254,25 +283,30 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
     def test_change_aggregate_strategy_min(self):
         self.use_default_setup()
         self.update_gopp_strategy(g_stragety.min_grade)
-        self.assertGradeChangeStateEqual(0)
+        self.assertGradeChangeMachineReadableStateEqual(0)
+        self.assertGradeChangeStateEqual("0.00% (/3)")
 
     def test_change_aggregate_strategy_min_none(self):
         # when no grade change has percentage
         self.update_gopp_strategy(g_stragety.min_grade)
-        self.assertGradeChangeStateEqual("NONE")
+        self.assertGradeChangeMachineReadableStateEqual("NONE")
+        self.assertGradeChangeStateEqual("- ∅ -")
+
         GCFactory.create(**(self.gc(points=None)))
-        self.assertGradeChangeStateEqual("NONE")
+        self.assertGradeChangeMachineReadableStateEqual("NONE")
+        self.assertGradeChangeStateEqual("- ∅ -")
 
     def test_change_aggregate_strategy_invalid(self):
         self.use_default_setup()
         self.update_gopp_strategy("invalid_strategy")
         with self.assertRaises(ValueError):
-            self.get_gc_machine_state()
+            self.get_gc_stringify_machine_readable_state()
 
     def test_average_grade_value(self):
         # Other tests for course.grades.average_grade
         self.use_default_setup()
-        self.assertGradeChangeStateEqual(6)
+        self.assertGradeChangeMachineReadableStateEqual(6)
+        self.assertGradeChangeStateEqual("6.00% (/3)")
 
         # make sure participations with pperm.included_in_grade_statistics
         # are not included
@@ -298,23 +332,28 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
     def test_append_gc(self):
         self.use_default_setup()
         self.append_gc(self.gc(points=8, flow_session=self.session2))
-        self.assertGradeChangeStateEqual(8)
+        self.assertGradeChangeMachineReadableStateEqual(8)
+        self.assertGradeChangeStateEqual("8.00% (/3)")
+
         self.append_gc(self.gc(points=0, flow_session=self.session2))
-        self.assertGradeChangeStateEqual(0)
+        self.assertGradeChangeMachineReadableStateEqual(0)
+        self.assertGradeChangeStateEqual("0.00% (/3)")
 
     def test_update_latest_gc_of_latest_finished_session(self):
         self.use_default_setup()
-        self.assertGradeChangeStateEqual(6)
+        self.assertGradeChangeMachineReadableStateEqual(6)
 
         self.update_gc(self.gc_session2, points=10)
-        self.assertGradeChangeStateEqual(10)
+        self.assertGradeChangeMachineReadableStateEqual(10)
+        self.assertGradeChangeStateEqual("10.00% (/3)")
 
     def test_update_ealiest_gc_of_ealier_finished_session(self):
         self.use_default_setup()
-        self.assertGradeChangeStateEqual(6)
+        self.assertGradeChangeMachineReadableStateEqual(6)
 
         self.update_gc(self.gc_main_2, update_time=False, points=15)
-        self.assertGradeChangeStateEqual(6)
+        self.assertGradeChangeMachineReadableStateEqual(6)
+        self.assertGradeChangeStateEqual("6.00% (/3)")
 
     def test_gc_without_attempt_id(self):
         # TODO: Is it a bug? percentage of GradeChanges without attempt_id are
@@ -322,7 +361,7 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
 
         # Uncomment the following to see the failure
         # self.use_default_setup()
-        # self.assertGradeChangeStateEqual(6)
+        # self.assertGradeChangeMachineReadableStateEqual(6)
         # print(self.gc_main_1.grade_time)
         #
         # self.time_increment()
@@ -331,16 +370,17 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         gc = GCFactory.create(**(self.gc(points=8.5, null_attempt_id=True)))  # noqa
         # print(gc.grade_time)
 
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
-        self.assertGradeChangeStateEqual(8.5)
+        machine = self.get_gc_machine()
+        self.assertGradeChangeMachineReadableStateEqual(8.5)
         self.assertEqual(machine.valid_percentages, [8.5])
 
     def test_gc_unavailable(self):
         GCFactory.create(**(self.gc(points=9.1)))
         GCFactory.create(**(self.gc(points=0, state=g_state.unavailable)))
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
-        self.assertGradeChangeStateEqual("OTHER_STATE")
+        machine = self.get_gc_machine()
+        self.assertGradeChangeMachineReadableStateEqual("OTHER_STATE")
         self.assertEqual(machine.valid_percentages, [])
+        self.assertGradeChangeStateEqual("(other state)")
 
         with self.temporarily_switch_to_user(self.ptcp.user):
             resp = self.get_single_grade(self.ptcp, self.gopp)
@@ -351,16 +391,18 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         GCFactory.create(**(self.gc(points=5)))
 
         with self.assertRaises(ValueError) as e:
-            self.get_gc_machine_state()
+            self.get_gc_stringify_machine_readable_state()
             self.assertIn("cannot accept grade once opportunity has been "
                             "marked 'unavailable'", e.exception)
 
     def test_gc_exempt(self):
         GCFactory.create(**(self.gc(points=6)))
         GCFactory.create(**(self.gc(points=0, state=g_state.exempt)))
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
-        self.assertGradeChangeStateEqual("EXEMPT")
+        machine = self.get_gc_machine()
+        self.assertGradeChangeMachineReadableStateEqual("EXEMPT")
         self.assertEqual(machine.valid_percentages, [])
+        self.assertGradeChangeStateEqual("(exempt)")
+
         with self.temporarily_switch_to_user(self.ptcp.user):
             resp = self.get_single_grade(self.ptcp, self.gopp)
         self.assertResponseContextEqual(resp, "avg_grade_percentage", None)
@@ -370,7 +412,7 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         GCFactory.create(**(self.gc(points=5)))
 
         with self.assertRaises(ValueError) as e:
-            self.get_gc_machine_state()
+            self.get_gc_stringify_machine_readable_state()
             self.assertIn("cannot accept grade once opportunity has been "
                             "marked 'exempt'", e.exception)
 
@@ -380,16 +422,18 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         # This creates a GradeChange object with no attempt_id
         GCFactory.create(**(self.gc(points=0, state=g_state.do_over,
                                     null_attempt_id=True)))
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
-        self.assertGradeChangeStateEqual("NONE")
+        machine = self.get_gc_machine()
+        self.assertGradeChangeMachineReadableStateEqual("NONE")
         self.assertEqual(machine.valid_percentages, [])
+        self.assertGradeChangeStateEqual("- ∅ -")
 
         # This make sure new grade change objects following do_over gc is
         # consumed without problem
         GCFactory.create(**(self.gc(points=5)))
-        self.assertGradeChangeStateEqual("5")
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
+        self.assertGradeChangeMachineReadableStateEqual("5")
+        machine = self.get_gc_machine()
         self.assertEqual(machine.valid_percentages, [5])
+        self.assertGradeChangeStateEqual("5.00%")
 
     def test_gc_do_over_average_grade_value(self):
         self.use_default_setup()
@@ -404,50 +448,56 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
     def test_gc_report_sent(self):
         GCFactory.create(**(self.gc(points=6)))
         gc2 = GCFactory.create(**(self.gc(points=0, state=g_state.report_sent)))
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
-        self.assertGradeChangeStateEqual("6")
+        machine = self.get_gc_machine()
+        self.assertGradeChangeMachineReadableStateEqual("6")
+        self.assertGradeChangeStateEqual("6.00%")
         self.assertEqual(machine.last_report_time, gc2.grade_time)
 
     def test_gc_extension(self):
         GCFactory.create(**(self.gc(points=6)))
         gc2 = GCFactory.create(**(self.gc(points=0, state=g_state.extension,
                                           due_time=self.time+timedelta(days=1))))
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
-        self.assertGradeChangeStateEqual("6")
+        machine = self.get_gc_machine()
+        self.assertGradeChangeMachineReadableStateEqual("6")
+        self.assertGradeChangeStateEqual("6.00%")
         self.assertEqual(machine.due_time, gc2.due_time)
 
     def test_gc_grading_started(self):
         GCFactory.create(**(self.gc(points=6)))
         GCFactory.create(**(self.gc(points=0, state=g_state.grading_started)))
-        self.assertGradeChangeStateEqual("6")
+        self.assertGradeChangeMachineReadableStateEqual("6")
+        self.assertGradeChangeStateEqual("6.00%")
 
     def test_gc_retrieved(self):
         GCFactory.create(**(self.gc(points=6)))
         GCFactory.create(**(self.gc(points=0, state=g_state.retrieved)))
-        self.assertGradeChangeStateEqual("6")
+        self.assertGradeChangeMachineReadableStateEqual("6")
+        self.assertGradeChangeStateEqual("6.00%")
 
     def test_gc_non_exist_state(self):
         GCFactory.create(**(self.gc(points=6)))
         GCFactory.create(**(self.gc(points=0, state="some_state")))
 
         with self.assertRaises(RuntimeError):
-            self.get_gc_machine_state()
+            self.get_gc_stringify_machine_readable_state()
 
     def test_gc_non_point(self):
         GCFactory.create(**(self.gc(points=None)))
-        self.assertGradeChangeStateEqual("NONE")
+        self.assertGradeChangeMachineReadableStateEqual("NONE")
+        self.assertGradeChangeStateEqual("- ∅ -")
 
     # {{{ Fixed issue #263 and #417
 
     def test_update_latest_gc_of_ealier_finished_session(self):
         self.use_default_setup()
-        self.assertGradeChangeStateEqual(6)
+        self.assertGradeChangeMachineReadableStateEqual(6)
 
         # Issue #263 and #417
         # gc_session1 is the GradeChange object of session 1, update it's
         # value won't change the consumed state.
         self.update_gc(self.gc_session1, points=10)
-        self.assertGradeChangeStateEqual(6)
+        self.assertGradeChangeMachineReadableStateEqual(6)
+        self.assertGradeChangeStateEqual("6.00% (/3)")
 
     def test_append_nonsession_gc_after_reopen_session2(self):
         self.use_default_setup()
@@ -458,7 +508,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         # is using fake time, while reopen a session will create
         # an actual gc using the actual time.
         self.append_gc(self.gc(points=11, grade_time=now()))
-        self.assertGradeChangeStateEqual(11)
+        self.assertGradeChangeMachineReadableStateEqual(11)
+        self.assertGradeChangeStateEqual("11.00% (/3)")
 
     def test_append_gc_with_session_after_reopen_session2(self):
         self.use_default_setup()
@@ -474,7 +525,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         self.append_gc(self.gc(points=12, flow_session=self.session2,
                                grade_time=now(),
                                effective_time=latest_gc.effective_time))
-        self.assertGradeChangeStateEqual(12)
+        self.assertGradeChangeMachineReadableStateEqual(12)
+        self.assertGradeChangeStateEqual("12.00% (/3)")
 
     def test_special_case(self):
         # https://github.com/inducer/relate/pull/423#discussion_r162121467
@@ -510,7 +562,7 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
             gc2015.grade_time < gc2016.grade_time < gc2017.grade_time
             < gc2018.grade_time)
 
-        self.assertGradeChangeStateEqual(gc2017.percentage())
+        self.assertGradeChangeMachineReadableStateEqual(gc2017.percentage())
 
     # }}}
 
@@ -525,7 +577,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
             completion_time=gc1.grade_time-timedelta(days=1))
         GCFactory.create(**(self.gc(points=5, flow_session=session,
                                     grade_time=gc1.grade_time)))
-        self.assertGradeChangeStateEqual(5)
+        self.assertGradeChangeMachineReadableStateEqual(5)
+        self.assertGradeChangeStateEqual("5.00% (/2)")
 
     def test_gc_have_same_grade_time2(self):
         session = fctr.FlowSessionFactory.create(
@@ -535,7 +588,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         self.time_increment()
         gc1 = GCFactory.create(**(self.gc(points=5, flow_session=session)))
         GCFactory.create(**(self.gc(points=0, grade_time=gc1.grade_time)))
-        self.assertGradeChangeStateEqual(0)
+        self.assertGradeChangeMachineReadableStateEqual(0)
+        self.assertGradeChangeStateEqual("0.00% (/2)")
     # }}}
 
     # {{{ Fix #430
@@ -544,7 +598,7 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         self.use_default_setup()
 
         # original state
-        self.assertGradeChangeStateEqual("6")
+        self.assertGradeChangeMachineReadableStateEqual("6")
 
         n_gc = models.GradeChange.objects.count()
         self.reopen_session2()
@@ -556,7 +610,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
             models.GradeChange.objects.order_by("grade_time").last().state,
             g_state.do_over)
 
-        self.assertGradeChangeStateEqual("NONE")
+        self.assertGradeChangeMachineReadableStateEqual("NONE")
+        self.assertGradeChangeStateEqual("- ∅ - (/3)")
 
     def test_reopen_session_without_existing_gc(self):
         # This is rare, because a completed_session should had created
@@ -572,7 +627,7 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
 
     def test_reopen_session1(self):
         self.use_default_setup()
-        self.assertGradeChangeStateEqual("6")
+        self.assertGradeChangeMachineReadableStateEqual("6")
 
         n_gc = models.GradeChange.objects.count()
         self.reopen_session1()
@@ -585,7 +640,8 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
             g_state.do_over)
 
         # session 1 is not the latest session
-        self.assertGradeChangeStateEqual("6")
+        self.assertGradeChangeMachineReadableStateEqual("6")
+        self.assertGradeChangeStateEqual("6.00% (/3)")
 
     def _get_admin_flow_session_delete_url(self, args):
         return reverse("admin:course_flowsession_delete", args=args)
@@ -763,11 +819,13 @@ class GradesChangeStateMachineTest(GradeBookTestMixin, TestCase):
         self.session2.in_progress = True
         self.session2.save()
         self.session2.refresh_from_db()
-        _, machine = get_gc_and_machine(self.gopp, self.ptcp)
+
+        machine = self.get_gc_machine()
 
         # session2's gchange is excluded
-        self.assertGradeChangeStateEqual(7)
+        self.assertGradeChangeMachineReadableStateEqual(7)
         self.assertEqual(machine.valid_percentages, [0, 7])
+        self.assertGradeChangeStateEqual("7.00% (/2)")
 
 
 class ViewParticipantGradesTest(GradeBookTestMixin, TestCase):
