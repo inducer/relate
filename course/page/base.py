@@ -36,7 +36,7 @@ from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
         ugettext_lazy as _,
-        ugettext,
+        ugettext_noop as _noop,
         )
 from django.utils import translation
 from django.conf import settings
@@ -191,28 +191,28 @@ def get_auto_feedback(correctness):
     correctness = validate_point_count(correctness)
 
     if correctness is None:
-        return six.text_type(_("No information on correctness of answer."))
+        return six.text_type(_noop("No information on correctness of answer."))
 
     if correctness == 0:
-        return six.text_type(_("Your answer is not correct."))
+        return six.text_type(_noop("Your answer is not correct."))
     elif correctness == 1:
-        return six.text_type(_("Your answer is correct."))
+        return six.text_type(_noop("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
                 string_concat(
-                    _("Your answer is correct and earned bonus points."),
+                    _noop("Your answer is correct and earned bonus points."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness > 0.5:
         return six.text_type(
                 string_concat(
-                    _("Your answer is mostly correct."),
+                    _noop("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     else:
         return six.text_type(
                 string_concat(
-                    _("Your answer is somewhat correct. "),
+                    _noop("Your answer is somewhat correct. "),
                     "(%.1f%%)")
                 % (100*correctness))
 
@@ -1148,7 +1148,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext("No answer provided."))
+                    feedback=_noop("No answer provided."))
 
         if grade_data is None:
             return None
