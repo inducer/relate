@@ -41,7 +41,6 @@ from django.utils.safestring import mark_safe
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 from django import forms
 from django import http
-from django.utils import translation
 from django.conf import settings
 from django.urls import reverse
 
@@ -81,6 +80,7 @@ from course.utils import (
         get_session_access_rule,
         get_session_grading_rule,
         FlowSessionGradingRule,
+        LanguageOverride,
         )
 from course.exam import get_login_exam_ticket
 from course.page import InvalidPageData
@@ -370,7 +370,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
                 commit_sha=course_commit_sha,
                 flow_session=flow_session)
 
-        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+        with LanguageOverride(course=course):
             answer_feedback = page.grade(
                     grading_page_context, visit.page_data.data,
                     visit.answer, grade_data=grade_data)
@@ -2222,7 +2222,7 @@ def post_flow_page(
                 is_unenrolled_session=flow_session.participation is None)
 
         if fpctx.page.is_answer_gradable():
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            with LanguageOverride(course=fpctx.course):
                 feedback = fpctx.page.grade(
                         page_context, page_data.data, answer_visit.answer,
                         grade_data=None)  # type: Optional[AnswerFeedback]
@@ -2383,8 +2383,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
             if not recipient_list:
                 recipient_list = instructor_email_list
 
-            from django.utils import translation
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            with LanguageOverride(course=pctx.course):
                 from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 use_masked_profile_for_email = (
@@ -2652,7 +2651,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                             flow_session.id,
                             0))
 
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            with LanguageOverride(course=pctx.course):
                 from relate.utils import render_email_template
                 participation = flow_session.participation
                 message = render_email_template("course/submit-notify.txt", {

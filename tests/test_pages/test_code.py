@@ -576,6 +576,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             with mock.patch("course.page.PageContext") as mock_page_context:
                 mock_page_context.return_value.in_sandbox = False
+                mock_page_context.return_value.course = self.course
 
                 # This remove the warning caused by mocked commit_sha value
                 # "CacheKeyWarning: Cache key contains characters that
@@ -602,6 +603,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             with mock.patch("course.page.PageContext") as mock_page_context:
                 mock_page_context.return_value.in_sandbox = False
+                mock_page_context.return_value.course = self.course
 
                 # This remove the warning caused by mocked commit_sha value
                 # "CacheKeyWarning: Cache key contains characters that
@@ -1081,6 +1083,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         with mock.patch("course.page.PageContext") as mock_page_context:
             mock_page_context.return_value.in_sandbox = False
+            mock_page_context.return_value.course = self.course
 
             # This remove the warning caused by mocked commit_sha value
             # "CacheKeyWarning: Cache key contains characters that

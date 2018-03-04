@@ -49,12 +49,9 @@ from course.utils import (
 from course.views import get_now_or_fake_time
 from course.page import InvalidPageData
 
-from django.conf import settings
-from django.utils import translation
 from course.constants import (
         participation_permission as pperm,
         )
-
 # {{{ for mypy
 
 if False:
@@ -284,8 +281,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                         request,
                         fpctx.page_context, fpctx.page_data, grade_data,
                         grading_form, request.FILES)
-
-                with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+                from course.utils import LanguageOverride
+                with LanguageOverride(pctx.course):
                     feedback = fpctx.page.grade(
                             fpctx.page_context, fpctx.page_data,
                             answer_data, grade_data)

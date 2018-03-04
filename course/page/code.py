@@ -31,7 +31,6 @@ import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import ugettext as _
-from django.utils import translation
 from django.conf import settings
 
 from relate.utils import StyledForm, string_concat
@@ -684,7 +683,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             error_msg = "\n".join(error_msg_parts)
 
             from relate.utils import local_now, format_datetime_local
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 message = render_email_template(
                     "course/broken-code-question-email.txt", {
