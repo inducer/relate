@@ -24,11 +24,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 from django.test.utils import override_settings
-from course.utils import get_course_specific_language_choices
-from tests.utils import mock
 from django import VERSION as DJANGO_VERSION
+from django.utils import translation
+
+from course.utils import (
+    get_course_specific_language_choices, LanguageOverride)
+
+from tests.base_test_mixins import SingleCourseTestMixin
+from tests.utils import mock
+
 
 if DJANGO_VERSION < (2, 0):
     REAL_TRANSLATION_FUNCTION_TO_MOCK = (
@@ -160,5 +166,68 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
                 # The language description is the language_code, because it can't
                 # be found in django.conf.locale.LANG_INFO
                 self.assertIn("user_customized_lang_code", choices[0][1])
+
+
+class LanguageOverrideTest(SingleCourseTestMixin, TestCase):
+    # test course.utils.LanguageOverride
+
+    @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")
+    def test_language_override_no_course_force_lang(self):
+        if self.course.force_lang:
+            self.course.force_lang = ""
+            self.course.save()
+        with LanguageOverride(course=self.course):
+            self.assertEqual(translation.get_language(), "de")
+            self.assertEqual(translation.ugettext("user"), u"Benutzer")
+
+        self.assertEqual(translation.get_language(), "ko")
+        self.assertEqual(translation.ugettext("user"), u"사용자")
+
+    @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")
+    def test_language_override_course_has_force_lang(self):
+        self.course.force_lang = "zh-hans"
+        self.course.save()
+
+        with LanguageOverride(course=self.course):
+            self.assertEqual(translation.get_language(), "zh-hans")
+
+        self.assertEqual(translation.get_language(), "ko")
+
+    @override_settings(RELATE_ADMIN_EMAIL_LOCALE=None)
+    def test_language_override_no_course_force_lang_no_admin_lang(self):
+        if self.course.force_lang:
+            self.course.force_lang = ""
+            self.course.save()
+
+        with LanguageOverride(course=self.course):
+            self.assertEqual(translation.get_language(), None)
+            self.assertEqual(translation.ugettext("whatever"), "whatever")
+
+        self.assertEqual(translation.get_language(), "en-us")
+
+    @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de")
+    def test_language_override_no_course_force_lang_no_langcode(self):
+        if self.course.force_lang:
+            self.course.force_lang = ""
+            self.course.save()
+
+        translation.deactivate_all()
+        with LanguageOverride(course=self.course):
+            self.assertEqual(translation.get_language(), "de")
+            self.assertEqual(translation.ugettext("user"), u"Benutzer")
+
+        self.assertEqual(translation.get_language(), None)
+        self.assertEqual(translation.ugettext("whatever"), "whatever")
+
+    @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de")
+    def test_language_override_deactivate(self):
+        self.course.force_lang = "zh-hans"
+        self.course.save()
+
+        with LanguageOverride(course=self.course, deactivate=True):
+            self.assertEqual(translation.get_language(), "zh-hans")
+            self.assertEqual(translation.ugettext("user"), u"用户")
+
+        self.assertEqual(translation.get_language(), "en-us")
 
 # vim: foldmethod=marker

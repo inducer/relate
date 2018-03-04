@@ -40,7 +40,6 @@ from django.urls import reverse
 from django.db import transaction, IntegrityError
 from django import forms
 from django import http  # noqa
-from django.utils import translation
 from django.utils.safestring import mark_safe
 
 from crispy_forms.layout import Submit
@@ -62,7 +61,7 @@ from course.constants import (
 
 from course.auth import UserSearchWidget
 
-from course.utils import course_view, render_course_page
+from course.utils import course_view, render_course_page, LanguageOverride
 
 from relate.utils import StyledForm, StyledModelForm, string_concat
 
@@ -265,7 +264,7 @@ def enroll_view(request, course_identifier):
 
             assert participation is not None
 
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            with LanguageOverride(course=course):
                 from relate.utils import render_email_template
                 message = render_email_template(
                     "course/enrollment-request-email.txt", {
@@ -368,8 +367,8 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 def send_enrollment_decision(participation, approved, request=None):
     # type: (Participation, bool, http.HttpRequest) -> None
 
-    with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-        course = participation.course
+    course = participation.course
+    with LanguageOverride(course=course):
         if request:
             course_uri = request.build_absolute_uri(
                     reverse("relate-course_page",

@@ -38,7 +38,6 @@ from django.utils.translation import (
         ugettext_lazy as _,
         ugettext_noop as _noop,
         )
-from django.utils import translation
 from django.conf import settings
 
 # {{{ mypy
@@ -1039,7 +1038,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 grade_data[k] = grading_form.cleaned_data[k]
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
@@ -1077,7 +1077,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if (grading_form.cleaned_data["notes"]
                 and grading_form.cleaned_data["notify_instructor"]
                 and page_context.flow_session):
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]

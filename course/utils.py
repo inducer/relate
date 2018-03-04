@@ -37,6 +37,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import translation
 from django.utils.translation import (
         ugettext as _, pgettext_lazy)
+from django.utils.decorators import ContextDecorator
 
 from relate.utils import string_concat
 from course.content import (
@@ -1214,6 +1215,36 @@ def get_course_specific_language_choices():
         filtered_options.pop(1)
 
     return tuple(filtered_options)
+
+
+class LanguageOverride(ContextDecorator):
+    def __init__(self, course, deactivate=False):
+        # type: (Course, bool) -> None
+        self.course = course
+        self.deactivate = deactivate
+
+        if course.force_lang:
+            self.language = course.force_lang
+        else:
+            from django.conf import settings
+            self.language = settings.RELATE_ADMIN_EMAIL_LOCALE
+
+    def __enter__(self):
+        # type: () -> None
+        self.old_language = translation.get_language()
+        if self.language is not None:
+            translation.activate(self.language)
+        else:
+            translation.deactivate_all()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # type: (Any, Any, Any) -> None
+        if self.old_language is None:
+            translation.deactivate_all()
+        elif self.deactivate:
+            translation.deactivate()
+        else:
+            translation.activate(self.old_language)
 
 
 class RelateJinjaMacroBase(object):
