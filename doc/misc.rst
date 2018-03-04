@@ -233,7 +233,7 @@ Edit ``django.po``. For each ``msgid`` string, put it's translation in
 ``Translators:`` strings above some ``msgid`` strings, are used to provide
 more information for better understanding of the text to be translated.
 A Simplified Chinese version (demo) of translation is included for Chinese
-users, with locale name ``zh_CN``.
+users, with locale name ``zh_HANS``.
 
 Enabling Translations
 ---------------------
