@@ -36,7 +36,7 @@ from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
         ugettext_lazy as _,
-        ugettext_noop as _noop,
+        ugettext_noop,
         )
 from django.conf import settings
 
@@ -190,28 +190,30 @@ def get_auto_feedback(correctness):
     correctness = validate_point_count(correctness)
 
     if correctness is None:
-        return six.text_type(_noop("No information on correctness of answer."))
+        return six.text_type(
+            ugettext_noop("No information on correctness of answer."))
 
     if correctness == 0:
-        return six.text_type(_noop("Your answer is not correct."))
+        return six.text_type(ugettext_noop("Your answer is not correct."))
     elif correctness == 1:
-        return six.text_type(_noop("Your answer is correct."))
+        return six.text_type(ugettext_noop("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
                 string_concat(
-                    _noop("Your answer is correct and earned bonus points."),
+                    ugettext_noop(
+                        "Your answer is correct and earned bonus points."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness > 0.5:
         return six.text_type(
                 string_concat(
-                    _noop("Your answer is mostly correct."),
+                    ugettext_noop("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     else:
         return six.text_type(
                 string_concat(
-                    _noop("Your answer is somewhat correct. "),
+                    ugettext_noop("Your answer is somewhat correct. "),
                     "(%.1f%%)")
                 % (100*correctness))
 
@@ -1149,7 +1151,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=_noop("No answer provided."))
+                    feedback=ugettext_noop("No answer provided."))
 
         if grade_data is None:
             return None
