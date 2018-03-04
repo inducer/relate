@@ -649,7 +649,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             try:
                 feedback_bits.append(
                         "<p><b>%s</b></p>"
-                        % get_auto_feedback(correctness))
+                        % _(get_auto_feedback(correctness)))
             except Exception as e:
                 correctness = None
                 response_dict["result"] = "setup_error"
