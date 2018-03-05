@@ -143,8 +143,6 @@ ROOT_URLCONF = 'relate.urls'
 
 WSGI_APPLICATION = 'relate.wsgi.application'
 
-# {{{ templates
-
 # {{{ context processors
 
 RELATE_EXTRA_CONTEXT_PROCESSORS = (
@@ -156,6 +154,8 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             )
 
 # }}}
+
+# {{{ templates
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 
@@ -248,7 +248,7 @@ RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
 
 RELATE_CACHE_MAX_BYTES = 32768
 
-RELATE_ADMIN_EMAIL_LOCALE = "en_US"
+RELATE_ADMIN_EMAIL_LOCALE = "en-us"
 
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 

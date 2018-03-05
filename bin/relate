@@ -214,6 +214,9 @@ def main():
     pass
     import os
     import argparse
+
+    os.environ["RELATE_COMMAND_LINE"] = "1"
+
     parser = argparse.ArgumentParser(
             description='RELATE course content command line tool')
     subp = parser.add_subparsers()

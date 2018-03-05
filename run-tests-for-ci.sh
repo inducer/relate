@@ -74,6 +74,10 @@ if [[ -n $(grep "msgid" output.txt) ]]; then
     exit 1;
 fi
 
+if [[ "$PY_EXE" = python3* ]]; then
+    ${PY_EXE} manage.py compilemessages
+fi
+
 $PIP install codecov factory_boy
 coverage run manage.py test tests/
 coverage report -m

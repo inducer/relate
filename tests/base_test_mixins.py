@@ -224,22 +224,44 @@ class ResponseContextMixin(object):
     def get_response_context_answer_feedback(self, response):
         return self.get_response_context_value_by_name(response, "feedback")
 
+    def get_response_context_answer_feedback_string(self, response,
+                                             include_bulk_feedback=True):
+        answer_feedback = self.get_response_context_value_by_name(
+            response, "feedback")
+
+        self.assertTrue(hasattr(answer_feedback, "feedback"))
+        if not include_bulk_feedback:
+            return answer_feedback.feedback
+
+        if answer_feedback.bulk_feedback is None:
+            return answer_feedback.feedback
+        else:
+            if answer_feedback.feedback is None:
+                return answer_feedback.bulk_feedback
+            return answer_feedback.feedback + answer_feedback.bulk_feedback
+
     def assertResponseContextAnswerFeedbackContainsFeedback(  # noqa
             self, response, expected_feedback,
-            include_bulk_feedback=True):
-        answer_feedback = self.get_response_context_answer_feedback(response)
-        feedback_str = answer_feedback.feedback
-        if include_bulk_feedback:
-            feedback_str += answer_feedback.bulk_feedback
+            include_bulk_feedback=True, html=False):
+        feedback_str = self.get_response_context_answer_feedback_string(
+            response, include_bulk_feedback)
 
-        self.assertTrue(hasattr(answer_feedback, "feedback"))
-        self.assertIn(expected_feedback, feedback_str)
+        if not html:
+            self.assertIn(expected_feedback, feedback_str)
+        else:
+            self.assertInHTML(expected_feedback, feedback_str)
 
     def assertResponseContextAnswerFeedbackNotContainsFeedback(  # noqa
-                                        self, response, expected_feedback):
-        answer_feedback = self.get_response_context_answer_feedback(response)
-        self.assertTrue(hasattr(answer_feedback, "feedback"))
-        self.assertNotIn(expected_feedback, answer_feedback.feedback)
+            self, response, expected_feedback,
+            include_bulk_feedback=True,
+            html=False):
+        feedback_str = self.get_response_context_answer_feedback_string(
+            response, include_bulk_feedback)
+
+        if not html:
+            self.assertNotIn(expected_feedback, feedback_str)
+        else:
+            self.assertInHTML(expected_feedback, feedback_str, count=0)
 
     def assertResponseContextAnswerFeedbackCorrectnessEquals(  # noqa
                                         self, response, expected_correctness):
@@ -489,19 +511,26 @@ class SuperuserCreateMixin(ResponseContextMixin):
         pretended = session.get("relate_pretend_facilities", None)
         self.assertIsNone(pretended)
 
-    def assertFormErrorLoose(self, response, error, form_name="form"):  # noqa
-        """Assert that error is found in response.context['form'] errors"""
+    def assertFormErrorLoose(self, response, errors, form_name="form"):  # noqa
+        """Assert that errors is found in response.context['form'] errors"""
         import itertools
+        if errors is None:
+            errors = []
+        if not isinstance(errors, (list, tuple)):
+            errors = [errors]
         try:
             form_errors = list(
                 itertools.chain(*response.context[form_name].errors.values()))
         except TypeError:
             form_errors = None
-        if error is not None and form_errors is None:
-            self.fail("%(form_name)s have no errors")
-        elif error is None and form_errors is None:
-            return
-        self.assertIn(str(error), form_errors)
+
+        if form_errors is None or not form_errors:
+            if errors:
+                self.fail("%(form_name)s have no errors")
+            else:
+                return
+        for err in errors:
+            self.assertIn(err, form_errors)
 
 
 # {{{ defined here so that they can be used by in classmethod and instance method
@@ -1089,6 +1118,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             course_identifier = self.get_default_course_identifier()
         return reverse("relate-update_course", args=[course_identifier])
 
+    def get_course_commit_sha(self, participation, course=None):
+        course = course or self.get_default_course()
+        from course.content import get_course_commit_sha
+        return get_course_commit_sha(course, participation)
+
     def post_update_course_content(self, commit_sha,
                                    fetch_update=False,
                                    prevent_discarding_revisions=True,
@@ -1465,11 +1499,15 @@ class FallBackStorageMessageTestMixin(object):
         for idx, m in enumerate(messages):
             six.assertRegex(self, m, expected_message_regexs[idx])
 
-    def assertResponseMessagesContains(self, response, expected_messages):  # noqa
+    def assertResponseMessagesContains(self, response, expected_messages,  # noqa
+                                       loose=False):
         storage = self.get_listed_storage_from_response(response)
         if isinstance(expected_messages, str):
             expected_messages = [expected_messages]
         messages = [m.message for m in storage]
+        if loose:
+            from django.utils.encoding import force_text
+            messages = " ".join([force_text(m) for m in messages])
         for em in expected_messages:
             self.assertIn(em, messages)
 

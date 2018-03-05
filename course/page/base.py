@@ -36,9 +36,8 @@ from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
         ugettext_lazy as _,
-        ugettext,
+        ugettext_noop,
         )
-from django.utils import translation
 from django.conf import settings
 
 # {{{ mypy
@@ -56,7 +55,6 @@ if False:
 
 
 mark_safe_lazy = lazy(mark_safe, six.text_type)
-ATOL = 1e-5
 
 
 class PageContext(object):
@@ -192,28 +190,30 @@ def get_auto_feedback(correctness):
     correctness = validate_point_count(correctness)
 
     if correctness is None:
-        return six.text_type(_("No information on correctness of answer."))
+        return six.text_type(
+            ugettext_noop("No information on correctness of answer."))
 
     if correctness == 0:
-        return six.text_type(_("Your answer is not correct."))
+        return six.text_type(ugettext_noop("Your answer is not correct."))
     elif correctness == 1:
-        return six.text_type(_("Your answer is correct."))
+        return six.text_type(ugettext_noop("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
                 string_concat(
-                    _("Your answer is correct and earned bonus points."),
+                    ugettext_noop(
+                        "Your answer is correct and earned bonus points."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness > 0.5:
         return six.text_type(
                 string_concat(
-                    _("Your answer is mostly correct."),
+                    ugettext_noop("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     else:
         return six.text_type(
                 string_concat(
-                    _("Your answer is somewhat correct. "),
+                    ugettext_noop("Your answer is somewhat correct. "),
                     "(%.1f%%)")
                 % (100*correctness))
 
@@ -1040,7 +1040,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 grade_data[k] = grading_form.cleaned_data[k]
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
@@ -1078,7 +1079,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if (grading_form.cleaned_data["notes"]
                 and grading_form.cleaned_data["notify_instructor"]
                 and page_context.flow_session):
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
@@ -1149,7 +1151,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext("No answer provided."))
+                    feedback=ugettext_noop("No answer provided."))
 
         if grade_data is None:
             return None

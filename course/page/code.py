@@ -31,7 +31,6 @@ import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import ugettext as _
-from django.utils import translation
 from django.conf import settings
 
 from relate.utils import StyledForm, string_concat
@@ -613,8 +612,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         transfer_attr("names_for_user")
         transfer_attr("names_from_user")
 
-        if hasattr(self.page_desc, "test_code"):
-            run_req["test_code"] = self.get_test_code()
+        run_req["test_code"] = self.get_test_code()
 
         if hasattr(self.page_desc, "data_files"):
             run_req["data_files"] = {}
@@ -651,7 +649,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             try:
                 feedback_bits.append(
                         "<p><b>%s</b></p>"
-                        % get_auto_feedback(correctness))
+                        % _(get_auto_feedback(correctness)))
             except Exception as e:
                 correctness = None
                 response_dict["result"] = "setup_error"
@@ -685,7 +683,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             error_msg = "\n".join(error_msg_parts)
 
             from relate.utils import local_now, format_datetime_local
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 message = render_email_template(
                     "course/broken-code-question-email.txt", {
@@ -1080,10 +1079,11 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         % location)
 
         if hasattr(self.page_desc, "human_feedback_value"):
-            self.human_feedback_percentage = \
-                self.page_desc.human_feedback_value * 100 / self.page_desc.value
+            self.human_feedback_percentage = (
+                self.page_desc.human_feedback_value * 100 / self.page_desc.value)
         else:
-            self.human_feedback_percentage = self.page_desc.human_feedback_percentage
+            self.human_feedback_percentage = (
+                self.page_desc.human_feedback_percentage)
 
     def required_attrs(self):
         return super(
@@ -1144,7 +1144,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
         human_feedback_points = None
         if grade_data is not None:
-            if grade_data["feedback_text"] is not None:
+            assert grade_data["feedback_text"] is not None
+            if grade_data["feedback_text"].strip():
                 human_feedback_text = markup_to_html(
                         page_context, grade_data["feedback_text"])
 
@@ -1158,8 +1159,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and code_feedback.correctness is not None):
             code_feedback_points = code_feedback.correctness*code_points
 
-        from relate.utils import render_email_template
-        feedback = render_email_template(
+        from django.template.loader import render_to_string
+        feedback = render_to_string(
                 "course/feedback-code-with-human.html",
                 {
                     "percentage": percentage,

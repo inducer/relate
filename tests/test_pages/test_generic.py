@@ -28,7 +28,6 @@ from base64 import b64encode
 import unittest
 from django.test import TestCase
 from django.urls import resolve
-from django.core import mail
 
 from course.models import FlowSession
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
@@ -39,7 +38,8 @@ from course.page.base import (
 from tests.base_test_mixins import (
     SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
     SubprocessRunpyContainerMixin)
-from tests.utils import LocmemBackendTestsMixin, mock
+from tests.utils import mock
+from tests import factories
 
 QUIZ_FLOW_ID = "quiz-test"
 
@@ -286,6 +286,8 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                              '../fixtures', 'test_file.txt'), 'rb') as fp:
             resp = self.post_answer_by_page_id(
                 page_id, {"uploaded_file": fp})
+
+            # https://github.com/inducer/relate/issues/351
             self.assertEqual(resp.status_code, 200)
 
         self.assertResponseMessagesContains(resp, [MESSAGE_ANSWER_FAILED_SAVE_TEXT])
@@ -365,259 +367,12 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
                 self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
-    # }}}
-
-
-class SingleCourseQuizPageTestExtra(SingleCoursePageTestMixin,
-                               FallBackStorageMessageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageTestExtra, cls).setUpTestData()
-        # this time we create a session submitted by ta
-        cls.c.force_login(cls.ta_participation.user)
-        cls.start_flow(cls.flow_id)
-
-    def setUp(self):  # noqa
-        super(SingleCourseQuizPageTestExtra, self).setUp()
-        # This is needed to ensure student is logged in
-        self.c.force_login(self.student_participation.user)
-
-    def test_grade_history_failure_no_perm(self):
-        self.end_flow()
-
-        # no pperm to view other's grade_history
-        resp = self.c.post(
-            self.get_page_grade_history_url_by_ordinal(
-                page_ordinal=1))
-        self.assertEqual(resp.status_code, 403)
-
     def test_submit_history_failure_no_perm(self):
         # student have no pperm to view ta's submit history
-        resp = self.c.post(
-            self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
-        self.assertEqual(resp.status_code, 403)
-
-
-class SingleCourseQuizPageGradeInterfaceTest(LocmemBackendTestsMixin,
-                                SingleCoursePageTestMixin,
-                                FallBackStorageMessageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageGradeInterfaceTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
-        cls.start_flow(cls.flow_id)
-        cls.this_flow_session_id = cls.default_flow_params["flow_session_id"]
-        cls.any_up_page_id = "anyup"
-        cls.submit_any_upload_question()
-
-    def setUp(self):  # noqa
-        super(SingleCourseQuizPageGradeInterfaceTest, self).setUp()
-        # This is needed to ensure student is logged in
-        self.c.force_login(self.student_participation.user)
-
-    def submit_any_upload_question_null_failure(self):
-        self.post_answer_by_page_id(
-            "anyup", {"uploaded_file": []})
-
-    @classmethod
-    def submit_any_upload_question(cls):
-        with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'test_file.txt'), 'rb') as fp:
-            answer_data = {"uploaded_file": fp}
-            cls.post_answer_by_page_id_class(
-                cls.any_up_page_id, answer_data, **cls.default_flow_params)
-
-    def test_post_grades(self):
-        self.end_flow()
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"]
-        }
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertSessionScoreEqual(5)
-
-        grade_data = {
-            "grade_points": ["4"],
-            "released": []
-        }
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-
-        self.assertSessionScoreEqual(None)
-
-        grade_data = {
-            "grade_points": ["4"],
-            "released": ["on"]
-        }
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-
-        self.assertSessionScoreEqual(4)
-
-    def test_post_grades_history(self):
-        # failure
-        self.post_answer_by_page_id("anyup", {"uploaded_file": []})
-
-        # 2nd success
-        self.submit_any_upload_question()
-        self.end_flow()
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"]
-        }
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertSessionScoreEqual(5)
-
-        ordinal = self.get_page_ordinal_via_page_id(self.any_up_page_id)
-        self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=3)
-
-        grade_data = {
-            "grade_points": ["4"],
-            "released": []
-        }
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertSessionScoreEqual(None)
-        self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=4)
-
-        grade_data = {
-            "grade_points": ["4"],
-            "released": ["on"]
-        }
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertSessionScoreEqual(4)
-        self.assertGradeHistoryItemsCount(page_ordinal=ordinal,
-                                          expected_count=5)
-
-    def test_post_grades_success(self):
-        self.end_flow()
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ['on']
-        }
-
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-
-        self.assertSessionScoreEqual(5)
-
-    def test_post_grades_huge_points_failure(self):
-        self.end_flow()
-
-        grade_data = {
-            "grade_percent": ["2000"],
-            "released": ['on']
-        }
-
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-
-        # value exceeded allowed
-        self.assertResponseContextContains(
-            resp, "grading_form_html",
-            "Ensure this value is less than or equal to")
-
-        self.assertSessionScoreEqual(None)
-
-    def test_post_grades_forbidden(self):
-        self.end_flow()
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ['on']
-        }
-
-        # with self.student_participation.user logged in
-        resp = self.post_grade_by_page_id(self.any_up_page_id, grade_data,
-                                          force_login_instructor=False)
-        self.assertTrue(resp.status_code, 403)
-
-        self.assertSessionScoreEqual(None)
-
-    def test_feedback_and_notify(self):
-        self.end_flow()
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ['on'],
-            "feedback_text": ['test feedback']
-        }
-
-        self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertEqual(len(mail.outbox), 0)
-
-        grade_data["notify"] = ["on"]
-        self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].reply_to, [])
-
-    def test_feedback_email_may_reply(self):
-        self.end_flow()
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ['on'],
-            "feedback_text": ['test feedback'],
-            "notify": ["on"],
-            "may_reply": ["on"]
-        }
-
-        with self.temporarily_switch_to_user(self.ta_participation.user):
-            self.post_grade_by_page_id(self.any_up_page_id, grade_data,
-                                       force_login_instructor=False)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].reply_to, [self.ta_participation.user.email])
-
-    def test_notes_and_notify(self):
-        self.end_flow()
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ['on'],
-            "notes": ['test notes']
-        }
-
-        self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertEqual(len(mail.outbox), 0)
-
-        grade_data["notify_instructor"] = ["on"]
-        self.post_grade_by_page_id(self.any_up_page_id, grade_data)
-        self.assertEqual(len(mail.outbox), 1)
-
-    # {{{ tests on grading history dropdown
-    def test_grade_history_failure_not_ajax(self):
-        self.end_flow()
-
-        resp = self.c.get(
-            self.get_page_grade_history_url_by_ordinal(
-                page_ordinal=1))
-        self.assertEqual(resp.status_code, 403)
-
-    def test_submit_history_failure_not_get(self):
-        self.end_flow()
-
-        resp = self.c.post(
-            self.get_page_grade_history_url_by_ordinal(
-                page_ordinal=1))
-        self.assertEqual(resp.status_code, 403)
-
-    def test_grade_history_failure_not_authenticated(self):
-        self.end_flow()
-
-        with self.temporarily_switch_to_user(None):
-            resp = self.c.post(
-                self.get_page_grade_history_url_by_ordinal(
-                    page_ordinal=1))
+        ta_flow_session = factories.FlowSessionFactory(
+            participation=self.ta_participation)
+        resp = self.get_page_submit_history_by_ordinal(
+                page_ordinal=1, flow_session_id=ta_flow_session.id)
         self.assertEqual(resp.status_code, 403)
 
     # }}}

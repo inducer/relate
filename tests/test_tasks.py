@@ -94,7 +94,11 @@ class TaskTestMixin(object):
         if is_celery_4_or_higher:
             override_settings_kwargs = {"task_always_eager": True}
         else:
-            override_settings_kwargs = {"CELERY_TASK_ALWAYS_EAGER": True}
+            override_settings_kwargs = {
+                "CELERY_TASK_ALWAYS_EAGER": True,
+                "CELERY_EAGER_PROPAGATES_EXCEPTIONS": True,
+                "BROKER_BACKEND": 'memory'
+            }
         celery_fake_overriding = (
             override_settings(**override_settings_kwargs))
         celery_fake_overriding.enable()
@@ -361,7 +365,7 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
     # }}}
 
     # {{{ test regrade_flow_sessions
-    def test_recalculate_ended_sessions_not_in_progress_only(self):
+    def test_regrade_not_in_progress_only(self):
         regrade_flow_sessions(self.gopp.course_id,
                               self.gopp.flow_id,
                               access_rules_tag=None,
@@ -386,7 +390,7 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         self.assertTrue(models.FlowPageVisitGrade.objects.count()
                         > first_round_visit_grade_count)
 
-    def test_recalculate_ended_sessions_in_progress_only(self):
+    def test_regrade_in_progress_only(self):
         regrade_flow_sessions(self.gopp.course_id,
                               self.gopp.flow_id,
                               access_rules_tag=None,
@@ -406,7 +410,7 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
                 visit__flow_session__in=self.in_progress_sessions).count() == 0
         )
 
-    def test_recalculate_ended_sessions_all(self):
+    def test_regrade_all(self):
         # inprog_value=None means "any" page will be regraded disregard whether
         # the session is in-progress
         regrade_flow_sessions(self.gopp.course_id,
@@ -426,6 +430,33 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
             models.FlowPageVisitGrade.objects.filter(
                 visit__flow_session__in=self.in_progress_sessions).count() == 0
         )
+
+    def test_regrade_with_access_rules_tag(self):
+        with mock.patch("course.flow.regrade_session") as mock_regrade:
+            regrade_flow_sessions(self.gopp.course_id,
+                                  self.gopp.flow_id,
+                                  access_rules_tag="None exist tag",
+                                  inprog_value=None
+                                  )
+
+            mock_regrade.return_value = None
+
+            # no regrade happened
+            self.assertEqual(mock_regrade.call_count, 0)
+
+            first_session = models.FlowSession.objects.first()
+            first_session.access_rules_tag = "some tag"
+            first_session.save()
+
+            regrade_flow_sessions(self.gopp.course_id,
+                                  self.gopp.flow_id,
+                                  access_rules_tag="some tag",
+                                  inprog_value=None
+                                  )
+
+            self.assertEqual(mock_regrade.call_count, 1)
+            self.assertIn(first_session, mock_regrade.call_args[0])
+
     # }}}
 
 

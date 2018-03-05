@@ -174,3 +174,19 @@ class GradeChangeFactory(factory.django.DjangoModelFactory):
         lambda x: (
                 x.flow_session.last_activity() or x.flow_session.completion_time)
         if x.flow_session is not None else None)
+
+
+class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.ParticipationPreapproval
+
+    course = factory.SubFactory(CourseFactory)
+
+    @factory.post_generation
+    def roles(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+        else:
+            role = ParticipationRoleFactory(course=self.course)
+            self.roles.set([role])

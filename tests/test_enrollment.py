@@ -46,7 +46,6 @@ from tests.base_test_mixins import (
 )
 from tests.utils import LocmemBackendTestsMixin, mock
 
-
 TEST_EMAIL_SUFFIX1 = "@suffix.com"
 TEST_EMAIL_SUFFIX2 = "suffix.com"
 
@@ -383,16 +382,6 @@ class EnrollmentRequestTest(
         self.assertResponseMessagesCount(resp, 1)
         self.assertResponseMessagesEqual(
             resp, [MESSAGE_ENROLL_ONLY_ACCEPT_POST_REQUEST_TEXT])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-
-        # for participations, this show MESSAGE_CANNOT_REENROLL_TEXT
-        with self.temporarily_switch_to_user(self.student_participation.user):
-            self.c.get(self.enroll_request_url)
-            resp = self.c.get(self.course_page_url)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_CANNOT_REENROLL_TEXT])
         self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
         self.assertEqual(len(mail.outbox), 0)
 
