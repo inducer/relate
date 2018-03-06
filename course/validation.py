@@ -1225,7 +1225,7 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
         pass
     else:
         from relate.utils import dict_to_struct
-        from yaml import load as load_yaml
+        from yaml import safe_load as load_yaml
 
         yaml_data = load_yaml(true_repo[attr_blob_sha].data)  # type: ignore
         att_yml = dict_to_struct(yaml_data)

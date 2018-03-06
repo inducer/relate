@@ -143,7 +143,7 @@ class RELATEPageValidator(object):
         import yaml
 
         try:
-            page_desc = dict_to_struct(yaml.load(new_page_source))
+            page_desc = dict_to_struct(yaml.safe_load(new_page_source))
 
             from course.validation import (
                     validate_flow_page, ValidationContext)
