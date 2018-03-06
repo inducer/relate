@@ -49,7 +49,7 @@ from jinja2 import (
 from relate.utils import dict_to_struct, Struct, SubdirRepoWrapper
 from course.constants import ATTRIBUTES_FILENAME
 
-from yaml import load as load_yaml
+from yaml import safe_load as load_yaml
 
 if sys.version_info >= (3,):
     CACHE_KEY_ROOT = "py3"

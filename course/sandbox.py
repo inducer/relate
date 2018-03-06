@@ -254,7 +254,7 @@ def view_page_sandbox(pctx):
                 new_page_source = expand_yaml_macros(
                         pctx.repo, pctx.course_commit_sha, new_page_source)
 
-                yaml_data = yaml.load(new_page_source)  # type: ignore
+                yaml_data = yaml.safe_load(new_page_source)  # type: ignore
                 page_desc = dict_to_struct(yaml_data)
 
                 if not isinstance(page_desc, Struct):
@@ -310,7 +310,7 @@ def view_page_sandbox(pctx):
 
     have_valid_page = page_source is not None
     if have_valid_page:
-        yaml_data = yaml.load(page_source)  # type: ignore
+        yaml_data = yaml.safe_load(page_source)  # type: ignore
         page_desc = cast(FlowPageDesc, dict_to_struct(yaml_data))
 
         from course.content import instantiate_flow_page

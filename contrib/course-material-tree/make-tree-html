@@ -183,9 +183,9 @@ def main():
                 blacklist_regexps.append(
                         re.compile(fnmatch.translate(pattern.strip())))
 
-    from yaml import load
+    from yaml import safe_load
     with open(args.input_file, "rb") as inf:
-        root_node = load(inf)
+        root_node = safe_load(inf)
 
     normalize_nodes([root_node], args.text_icon)
 
