@@ -107,7 +107,7 @@ class ChoiceInfo(object):
         item_mode = [None]
 
         def find_tag_by_mode(mode):
-            for k, v in six.iteritems(tag_mode_dict):
+            for k, v in six.iteritems(tag_mode_dict):  # pragma: no branch
                 if v == mode:
                     return k
 
@@ -747,7 +747,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     def process_choice_string(cls, page_context, s):
         if not isinstance(s, str):
             s = str(s)
-        s = markup_to_html(page_context, s)
+        s = markup_to_html_plain(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 

@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import os
 from base64 import b64encode
 
@@ -82,9 +83,22 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(int(params["page_ordinal"]), page_count-1)
 
     # {{{ auto graded questions
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_quiz_no_answer(self):
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
+        # ensure analytics page work, when no answer_data
+        # todo: make more assertions in terms of content
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            page_count = FlowSession.objects.first().page_count
+            for i in range(page_count):
+                page_id, group_id = (
+                    self.get_page_id_via_page_oridnal(i, with_group_id=True))
+                with self.subTest(page_id=page_id):
+                    resp = self.get_flow_page_analytics(
+                        flow_id=self.flow_id, group_id=group_id,
+                        page_id=page_id)
+                    self.assertEqual(resp.status_code, 200)
 
     def test_quiz_text(self):
         resp = self.post_answer_by_ordinal(1, {"answer": ['0.5']})
@@ -174,6 +188,15 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         resp = self.post_answer_by_ordinal(5, answer_data)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # ensure analytics page work
+        # todo: make more assertions in terms of content
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_flow_page_analytics(
+                flow_id=self.flow_id, group_id="quiz_start",
+                page_id="inlinemulti")
+            self.assertEqual(resp.status_code, 200)
+
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(10)
 
@@ -189,6 +212,14 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.end_flow().status_code, 200)
 
+        # ensure analytics page work
+        # todo: make more assertions in terms of content
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_flow_page_analytics(
+                flow_id=self.flow_id, group_id="quiz_start",
+                page_id="fear")
+            self.assertEqual(resp.status_code, 200)
+
         # Survey question won't be counted into final score
         self.assertSessionScoreEqual(0)
         last_answer_visit = self.get_last_answer_visit()
@@ -197,13 +228,23 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
     def test_quiz_survey_choice(self):
         self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
 
-        # no answer thus no history
         self.post_answer_by_ordinal(7, {"choice": []})
+
+        # no answer thus no history
         self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
 
         resp = self.post_answer_by_ordinal(7, {"choice": ['8']})
         self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=1)
         self.assertEqual(resp.status_code, 200)
+
+        # ensure analytics page work
+        # todo: make more assertions in terms of content
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_flow_page_analytics(
+                flow_id=self.flow_id, group_id="quiz_start",
+                page_id="age_group")
+            self.assertEqual(resp.status_code, 200)
+
         self.assertEqual(self.end_flow().status_code, 200)
 
         # Survey question won't be counted into final score
