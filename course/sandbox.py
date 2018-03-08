@@ -401,7 +401,6 @@ def view_page_sandbox(pctx):
                             + ": "
                             + "%(err_type)s: %(err_str)s" % {
                                 "err_type": tp.__name__, "err_str": e})  # type: ignore  # noqa: E501
-                    have_valid_page = False
 
                     page_form = None
 
@@ -416,6 +415,8 @@ def view_page_sandbox(pctx):
         correct_answer = page.correct_answer(
                 page_context, page_data, answer_data,
                 grade_data=None)
+
+        have_valid_page = have_valid_page and not page_errors
 
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
