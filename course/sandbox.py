@@ -422,7 +422,7 @@ def view_page_sandbox(pctx):
             "page_errors": page_errors,
             "page_warnings": page_warnings,
             "form": edit_form,  # to placate form.media
-            "have_valid_page": True,
+            "have_valid_page": have_valid_page,
             "title": title,
             "body": body,
             "page_form_html": page_form_html,
@@ -435,7 +435,7 @@ def view_page_sandbox(pctx):
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
             "form": edit_form,  # to placate form.media
-            "have_valid_page": False,
+            "have_valid_page": have_valid_page,
             "page_errors": page_errors,
             "page_warnings": page_warnings,
         })
