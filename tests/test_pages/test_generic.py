@@ -87,14 +87,20 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
     def test_quiz_no_answer(self):
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
-        # ensure analytics page work, when no answer_data
-        # todo: make more assertions in terms of content
+
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             page_count = FlowSession.objects.first().page_count
             for i in range(page_count):
                 page_id, group_id = (
                     self.get_page_id_via_page_oridnal(i, with_group_id=True))
                 with self.subTest(page_id=page_id):
+                    resp = self.c.get(self.get_page_url_by_page_id(page_id=page_id))
+                    self.assertEqual(resp.status_code, 200)
+                    if page_id not in ["age_group", "fear", "welcome"]:
+                        self.assertContains(resp, "No answer provided.")
+
+                    # ensure analytics page work, when no answer_data
+                    # todo: make more assertions in terms of content
                     resp = self.get_flow_page_analytics(
                         flow_id=self.flow_id, group_id=group_id,
                         page_id=page_id)

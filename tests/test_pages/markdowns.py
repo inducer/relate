@@ -2,6 +2,13 @@
 markdowns for page sandbox tests
 """
 
+# {{{
+
+
+# }}}
+
+# {{{ code questions
+
 CODE_MARKDWON = """
 type: PythonCodeQuestion
 access_rules:
@@ -408,3 +415,7 @@ rubric: |
     The code has to be squeaky-clean.
 
 """  # noqa
+
+# }}}
+
+# vim: fdm=marker
