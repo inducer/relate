@@ -525,9 +525,15 @@ class SuperuserCreateMixin(ResponseContextMixin):
 
         if form_errors is None or not form_errors:
             if errors:
-                self.fail("%(form_name)s have no errors")
+                self.fail("%s has no error" % form_name)
             else:
                 return
+
+        if form_errors:
+            if not errors:
+                self.fail("%s unexpectedly has following errors: %s"
+                          % (form_name, repr(form_errors)))
+
         for err in errors:
             self.assertIn(err, form_errors)
 
