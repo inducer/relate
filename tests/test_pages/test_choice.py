@@ -25,13 +25,17 @@ THE SOFTWARE.
 from six import BytesIO
 import zipfile
 from django.test import TestCase
+import unittest
 
-from tests.base_test_mixins import (  # noqa
+from course.page.choice import markup_to_html_plain
+
+from tests.base_test_mixins import (
     SingleCoursePageTestMixin, NONE_PARTICIPATION_USER_CREATE_KWARG_LIST
 )
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
 )
+from tests.utils import mock
 
 from . import QUIZ_FLOW_ID
 
@@ -625,6 +629,46 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_page_error)
 
+    def test_choice_not_stringifiable(self):
+        expected_page_error = (
+            "choice 2: unable to convert to string")
+
+        class BadChoice(object):
+            def __str__(self):
+                raise Exception
+
+        from relate.utils import dict_to_struct
+        fake_page_desc = dict_to_struct(
+            {'type': 'MultipleChoiceQuestion', 'id': 'ice_cream_toppings',
+             'value': 1, 'shuffle': False,
+             'prompt': '# Ice Cream Toppings\nWhich of the following are '
+                       'ice cream toppings?\n',
+             'choices': ['~CORRECT~ Sprinkles',
+                         BadChoice(),
+                         'Vacuum cleaner dust', 'Spider webs',
+                         '~CORRECT~ Almond bits'],
+             'allow_partial_credit': True,
+             '_field_names': [
+                 'type', 'id', 'value', 'shuffle',
+                 'prompt', 'choices',
+                 'allow_partial_credit']}
+        )
+
+        with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:
+            mock_dict_to_struct.return_value = fake_page_desc
+
+            markdown = (MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN
+                         % {"shuffle": "False",
+                            "credit_mode_str": "",
+                            "extra_attr": "allow_partial_credit: True"})
+
+            resp = (
+                self.get_page_sandbox_preview_response(markdown))
+            self.assertEqual(resp.status_code, 200)
+            self.assertSandboxNotHasValidPage(resp)
+            self.assertResponseContextContains(resp, PAGE_ERRORS,
+                                               expected_page_error)
+
 
 class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
     flow_id = QUIZ_FLOW_ID
@@ -743,5 +787,95 @@ class NormalizedAnswerTest(SingleCoursePageTestMixin, TestCase):
             flow_id=self.flow_id, group_id="quiz_start",
             page_id="krylov")
         self.assertEqual(resp.status_code, 200)
+
+
+class MarkupToHtmlPlainTest(unittest.TestCase):
+    # test course.page.choice.markup_to_html_plain
+    def test_markup_to_html_plain_wrapp_by_p_tag(self):
+        with mock.patch("course.page.choice.markup_to_html") as mock_mth:
+            mock_mth.side_effect = lambda x, y: "<p>%s</p>" % y
+            fake_page_context = object
+            self.assertEqual(
+                markup_to_html_plain(fake_page_context, "abcd"), "abcd")
+            self.assertEqual(markup_to_html_plain(fake_page_context, ""), "")
+
+    def test_markup_to_html_plain_wrapp_by_p_other_tag(self):
+        with mock.patch("course.page.choice.markup_to_html") as mock_mth:
+            mock_mth.side_effect = lambda x, y: "<div>%s</div>" % y
+            fake_page_context = object
+            self.assertEqual(
+                markup_to_html_plain(fake_page_context, "abcd"),
+                "<div>abcd</div>")
+
+
+SURVEY_CHOICE_QUESTION_MARKDOWN = """
+type: SurveyChoiceQuestion
+id: age_group_with_comment_and_list_item
+answer_comment: this is a survey question
+prompt: |
+
+    # Age
+
+    How old are you?
+
+choices:
+
+    - 0-10 years
+    - 11-20 years
+    - 21-30 years
+    - 31-40 years
+    - 41-50 years
+    - 51-60 years
+    - 61-70 years
+    - 71-80 years
+    - 81-90 years
+    - -
+      - older
+"""
+
+
+class SurveyChoiceQuestionExtra(SingleCoursePageSandboxTestBaseMixin, TestCase):
+    # extra tests for SurveyChoiceQuestion which has not been tested in
+    # tests.test_pages.test_generic.py
+    def test_page_has_answer_comment_attr(self):
+        markdown = SURVEY_CHOICE_QUESTION_MARKDOWN
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertContains(resp, "older")
+        self.assertContains(resp, "this is a survey question")
+
+    def test_choice_not_stringifiable(self):
+        expected_page_error = (
+            "choice 10: unable to convert to string")
+
+        class BadChoice(object):
+            def __str__(self):
+                raise Exception
+
+        from relate.utils import dict_to_struct
+        fake_page_desc = dict_to_struct(
+            {'type': 'SurveyChoiceQuestion', 'id': 'age_group_with_comment',
+             'answer_comment': 'this is a survey question',
+             'prompt': '\n# Age\n\nHow old are you?\n',
+             'choices': [
+                 '0-10 years', '11-20 years', '21-30 years', '31-40 years',
+                 '41-50 years', '51-60 years', '61-70 years', '71-80 years',
+                 '81-90 years', BadChoice()],
+             '_field_names': ['type', 'id', 'answer_comment',
+                              'prompt', 'choices']}
+        )
+
+        with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:
+            mock_dict_to_struct.return_value = fake_page_desc
+
+            markdown = SURVEY_CHOICE_QUESTION_MARKDOWN
+
+            resp = (
+                self.get_page_sandbox_preview_response(markdown))
+            self.assertEqual(resp.status_code, 200)
+            self.assertSandboxNotHasValidPage(resp)
+            self.assertResponseContextContains(resp, PAGE_ERRORS,
+                                               expected_page_error)
 
 # vim: fdm=marker
