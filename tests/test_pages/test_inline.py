@@ -24,6 +24,10 @@ THE SOFTWARE.
 
 from django.test import TestCase
 
+from course.content import get_repo_blob
+from course.flow import get_page_behavior
+
+from tests.base_test_mixins import SingleCoursePageTestMixin
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
 )
@@ -580,6 +584,119 @@ answers:
 
 """
 
+INLINE_MULTI_MARKDOWN_FEWER = """
+type: InlineMultiQuestion
+id: inlinemulti
+value: 10
+prompt: |
+
+    # An InlineMultiQuestion example
+
+    Complete the following paragraph.(old version)
+
+question: |
+
+    Foo and [[blank1]] are often used in code examples, or
+    tutorials. $\\frac{1}{5}$ is equivalent to [[blank_2]].
+
+    The correct answer for this choice question is [[choice_a]].
+    The Upper case of "foo" is [[choice2]].
+
+    One dollar is [[blank3]], and five percent is [[blank4]].
+
+answers:
+
+    blank1:
+        type: ShortAnswer
+        width: 4em
+        required: True
+        hint: Tex can be rendered in hint, e.g. $x_1$.
+        hint_title: Hint
+        correct_answer:
+        - <plain> BAR
+        - <plain>bar
+
+    blank_2:
+        type: ShortAnswer
+        width: 10em
+        hint: <ol><li>with no hint title</li><li>HTML is OK</li><ol>
+        correct_answer:
+        - <plain> "1/5"
+        - type: float
+          value: 1/5
+          rtol: 0.00001
+        - <plain> 0.2
+
+    choice_a:
+        type: ChoicesAnswer
+        required: True
+        choices:
+        - ~CORRECT~ Correct
+        - Wrong
+
+    choice2:
+        type: ChoicesAnswer
+        choices:
+        - ~CORRECT~ FOO
+        - BAR
+        - fOO
+
+    blank3:
+        type: ShortAnswer
+        width: 3em
+        prepended_text: "$"
+        hint: Blank with prepended text
+        correct_answer:
+        - type: float
+          value: 1
+          rtol: 0.00001
+        - <plain> "1"
+
+    blank4:
+        type: ShortAnswer
+        width: 3em
+        appended_text: "%"
+        hint: Blank with appended text
+        correct_answer:
+        - type: float
+          value: 5
+          rtol: 0.00001
+        - <plain> "5"
+
+"""
+
+
+def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
+    # Fake the inline multiple question yaml for specific commit
+    if not (full_name == "questions/multi-question-example.yml"
+            and commit_sha == b"ec41a2de73a99e6022060518cb5c5c162b88cdf5"):
+        return get_repo_blob(repo, full_name, commit_sha, allow_tree)
+    else:
+        class Blob(object):
+            pass
+        blob = Blob()
+        blob.data = INLINE_MULTI_MARKDOWN_FEWER.encode()
+        return blob
+
+
+def get_page_behavior_not_show_correctness_side_effect(page,
+        permissions,
+        session_in_progress,
+        answer_was_graded,
+        generates_grade,
+        is_unenrolled_session,
+        viewing_prior_version=False):
+    page_behavior = get_page_behavior(
+        page,
+        permissions,
+        session_in_progress,
+        answer_was_graded,
+        generates_grade,
+        is_unenrolled_session,
+        viewing_prior_version)
+    page_behavior.show_correctness = False
+    return page_behavior
+
 
 class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
@@ -914,5 +1031,117 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertContains(
             resp, '<img src="/course/test-course/media/4124e0c23e369d6709a6'
                   '70398167cb9c2fe52d35/images/classroom.jpeg">', html=True)
+
+
+class InlineMultiPageUpdateTest(SingleCoursePageTestMixin, TestCase):
+    flow_id = "quiz-test"
+
+    def setUp(self):
+        super(InlineMultiPageUpdateTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+
+    def test_quiz_inline_not_show_correctness(self):
+        page_id = "inlinemulti"
+
+        self.start_flow(self.flow_id)
+        answer_data = {
+            'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
+            'blank4': '5', 'blank5': 'Bar', 'choice2': '0',
+            'choice_a': '0'}
+
+        with mock.patch("course.flow.get_page_behavior") as mock_get_bhv:
+            mock_get_bhv.side_effect = (
+                get_page_behavior_not_show_correctness_side_effect)
+            resp = self.post_answer_by_page_id(page_id, answer_data)
+            self.assertEqual(resp.status_code, 200)
+
+            # 7 answer
+            self.assertContains(resp, 'correctness="1"', count=0)
+            self.assertContains(resp, 'correctness="0"', count=0)
+
+    # {{{ Test bug fix in https://github.com/inducer/relate/pull/262
+
+    def test_add_new_question(self):
+        """Test bug fix in https://github.com/inducer/relate/pull/262
+        """
+        page_id = "inlinemulti"
+
+        with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
+            mock_get_repo_blob.side_effect = get_repo_blob_side_effect
+
+            self.post_update_course_content(
+                commit_sha=b"ec41a2de73a99e6022060518cb5c5c162b88cdf5")
+
+            self.start_flow(self.flow_id)
+            resp = self.c.get(
+                self.get_page_url_by_page_id(page_id=page_id))
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertContains(resp, "(old version)")
+
+            answer_data = {
+                'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
+                'blank4': '5', 'choice2': '0', 'choice_a': '0'}
+
+            resp = self.post_answer_by_page_id(page_id, answer_data)
+            self.assertEqual(resp.status_code, 200)
+
+            self.end_flow()
+            self.assertSessionScoreEqual(10)
+
+            # 6 correct answer
+            self.assertContains(resp, 'correctness="1"', count=6)
+
+        self.post_update_course_content(
+            commit_sha=b"4124e0c23e369d6709a670398167cb9c2fe52d35")
+        resp = self.c.get(
+            self.get_page_url_by_page_id(page_id=page_id))
+
+        self.assertEqual(resp.status_code, 200)
+
+        # 7 answer
+        self.assertContains(resp, 'correctness="1"', count=7)
+
+    def test_add_new_question_not_show_correctness(self):
+        page_id = "inlinemulti"
+
+        with mock.patch("course.flow.get_page_behavior") as mock_get_bhv:
+            mock_get_bhv.side_effect = (
+                get_page_behavior_not_show_correctness_side_effect)
+
+            with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
+                mock_get_repo_blob.side_effect = get_repo_blob_side_effect
+
+                self.post_update_course_content(
+                    commit_sha=b"ec41a2de73a99e6022060518cb5c5c162b88cdf5")
+
+                self.start_flow(self.flow_id)
+                resp = self.c.get(
+                    self.get_page_url_by_page_id(page_id=page_id))
+
+                self.assertEqual(resp.status_code, 200)
+                self.assertContains(resp, "(old version)")
+
+                answer_data = {
+                    'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
+                    'blank4': '5', 'choice2': '0', 'choice_a': '0'}
+
+                resp = self.post_answer_by_page_id(page_id, answer_data)
+                self.assertEqual(resp.status_code, 200)
+
+                # 6 correct answer
+                self.assertContains(resp, 'correctness="1"', count=0)
+                self.assertContains(resp, 'correctness="0"', count=0)
+
+            self.post_update_course_content(
+                commit_sha=b"4124e0c23e369d6709a670398167cb9c2fe52d35")
+            resp = self.c.get(
+                self.get_page_url_by_page_id(page_id=page_id))
+
+            self.assertEqual(resp.status_code, 200)
+
+            # 7 answer
+            self.assertContains(resp, 'correctness="1"', count=0)
+            self.assertContains(resp, 'correctness="0"', count=0)
 
 # vim: fdm=marker

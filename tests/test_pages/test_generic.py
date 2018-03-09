@@ -186,14 +186,41 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(1)
 
-    def test_quiz_inline(self):
+    def test_quiz_inline_wrong_answer(self):
         answer_data = {
-            'blank1': ['Bar'], 'blank_2': ['0.2'], 'blank3': ['1'],
-            'blank4': ['5'], 'blank5': ['Bar'], 'choice2': ['0'],
-            'choice_a': ['0']}
+            'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
+            'blank4': '5', 'blank5': 'Bar', 'choice_a': '0'}
         resp = self.post_answer_by_ordinal(5, answer_data)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # 6 correct answer
+        self.assertContains(resp, 'correctness="1"', count=6)
+        # 1 incorrect answer
+        self.assertContains(resp, 'correctness="0"', count=1)
+
+        # ensure analytics page work
+        # todo: make more assertions in terms of content
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_flow_page_analytics(
+                flow_id=self.flow_id, group_id="quiz_start",
+                page_id="inlinemulti")
+            self.assertEqual(resp.status_code, 200)
+
+        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSessionScoreEqual(8.57)
+
+    def test_quiz_inline_correct_answer(self):
+        answer_data = {
+            'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
+            'blank4': '5', 'blank5': 'Bar', 'choice2': '0',
+            'choice_a': '0'}
+        resp = self.post_answer_by_ordinal(5, answer_data)
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+
+        # 7 answer
+        self.assertContains(resp, 'correctness="1"', count=7)
 
         # ensure analytics page work
         # todo: make more assertions in terms of content

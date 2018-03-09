@@ -769,8 +769,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             [html, remainder_html] = remainder_html.split(wrapped_name)
             html_list.append(html)
 
-        if remainder_html != "":
-            html_list.append(remainder_html)
+        # remainder_html should at least include "</p>"
+        assert remainder_html, (
+            "remainder_html is unexpected not empty: %s" % remainder_html)
+        html_list.append(remainder_html)
 
         return {
                 "html_list": html_list,
@@ -789,9 +791,8 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
                 for answer_instance in self.answer_instance_list:
                     try:
-                        if answer[answer_instance.name] is not None:
-                            correctness_list.append(answer_instance.get_correctness(
-                                    answer[answer_instance.name]))
+                        correctness_list.append(answer_instance.get_correctness(
+                                answer[answer_instance.name]))
 
                     # The answer doesn't exist for newly added question
                     # for pages which have been submitted.
