@@ -44,12 +44,6 @@ dnspython
 # Py2 broken was broken in 1.3.1
 git+https://github.com/fritzy/SleekXMPP.git@6e27f28c854ce4ae1d9f0cc8ee407bda8de97d3b
 
-# To manage web dependencies
-#django-bower
-# pending release with https://github.com/nvbn/django-bower/issues/68
-git+https://github.com/nvbn/django-bower.git
-
-
 # For comfortable code entry (git for py3 fix in git rev 8979538)
 git+https://github.com/lambdalisue/django-codemirror-widget.git
 #django-codemirror-widget
