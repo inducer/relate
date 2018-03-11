@@ -215,7 +215,6 @@ USE_TZ = True
 # }}}
 
 LOGIN_URL = "relate-sign_in_choice"
-LOGIN_REDIRECT_URL = "/"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
