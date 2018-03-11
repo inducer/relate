@@ -54,7 +54,6 @@ INSTALLED_APPS = (
     "crispy_forms",
     "jsonfield",
     "bootstrap3_datetime",
-    "djangobower",
     "django_select2",
 
     # message queue
@@ -108,31 +107,10 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # }}}
 
-# {{{ bower packages
-
-BOWER_COMPONENTS_ROOT = os.path.join(BASE_DIR, "components")
+# {{{ django-npm
 
 STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
-    "djangobower.finders.BowerFinder",
-    )
-
-BOWER_INSTALLED_APPS = (
-    "bootstrap#3.3.4",
-    "fontawesome#4.4.0",
-    "videojs#5.6.0",
-    "MathJax",
-    "codemirror#5.2.0",
-    "fullcalendar#2.3.1",
-    "jqueryui",
-    "datatables.net",
-    "datatables-i18n",
-    "datatables.net-bs",
-    "datatables.net-fixedcolumns",
-    "datatables.net-fixedcolumns-bs",
-    "jstree#3.2.1",
-    "select2#4.0.1",
-    "select2-bootstrap-css",
-    "blueimp-tmpl",
+    "npm.finders.NpmFinder",
     )
 
 CODEMIRROR_PATH = "codemirror"

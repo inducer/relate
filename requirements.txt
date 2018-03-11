@@ -45,9 +45,7 @@ dnspython
 git+https://github.com/fritzy/SleekXMPP.git@6e27f28c854ce4ae1d9f0cc8ee407bda8de97d3b
 
 # To manage web dependencies
-#django-bower
-# pending release with https://github.com/nvbn/django-bower/issues/68
-git+https://github.com/nvbn/django-bower.git
+django-npm
 
 
 # For comfortable code entry (git for py3 fix in git rev 8979538)
@@ -69,6 +67,9 @@ unicodecsv
 
 # To support network matching for facility recognition
 ipaddress
+
+# For datatables i18n
+pycountry
 
 # {{{ For interoperation with SAML2/Shibboleth
 
