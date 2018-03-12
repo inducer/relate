@@ -7,11 +7,7 @@ django-crispy-forms>=1.5.1
 # in the Django admin.
 jsonfield>=1.0.3,<1.1
 
-# django-yamlfield
-# but for
-# https://github.com/datadesk/django-yamlfield/pull/12
-# use
-git+https://github.com/piotrpawlaczek/django-yamlfield.git@feature/dj-1.9.x
+django-yamlfield
 
 # For easy content formatting:
 markdown>=2.6.3
@@ -41,8 +37,7 @@ git+https://github.com/inducer/django-bootstrap3-datetimepicker.git
 
 # For in-class instant messaging
 dnspython
-# Py2 broken was broken in 1.3.1
-git+https://github.com/fritzy/SleekXMPP.git@6e27f28c854ce4ae1d9f0cc8ee407bda8de97d3b
+SleekXMPP
 
 # To manage web dependencies
 #django-bower
@@ -50,9 +45,8 @@ git+https://github.com/fritzy/SleekXMPP.git@6e27f28c854ce4ae1d9f0cc8ee407bda8de9
 git+https://github.com/nvbn/django-bower.git
 
 
-# For comfortable code entry (git for py3 fix in git rev 8979538)
-git+https://github.com/lambdalisue/django-codemirror-widget.git
-#django-codemirror-widget
+# For comfortable code entry
+django-codemirror-widget
 
 # Optional, used for caching, requires 'libmemcached-dev' (Debian package name)
 # pylibmc
@@ -73,11 +67,8 @@ ipaddress
 # {{{ For interoperation with SAML2/Shibboleth
 
 pysaml2
-git+https://github.com/knaperek/djangosaml2.git
-# Note: djangosaml2 uses a non-Py3 version of python-memcached directly.  #
-# Override that. Also: Don't be tempted to use this for Django caching--it's
-# broken.
-python-memcached==1.59
+djangosaml2
+python-memcached
 
 # }}}
 
@@ -86,9 +77,7 @@ celery<4
 # kombu 4 removes the Django ORM transport
 kombu<4
 
-# Package index release 3.1.17 (current as of Nov 6, 2015)
-# still affected by https://github.com/celery/django-celery/issues/411
-git+https://github.com/celery/django-celery.git@6232c79557517afa74967fcb980c0db2fb1174d8
+django-celery
 
 # }}}
 
