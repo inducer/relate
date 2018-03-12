@@ -40,9 +40,7 @@ dnspython
 SleekXMPP
 
 # To manage web dependencies
-#django-bower
-# pending release with https://github.com/nvbn/django-bower/issues/68
-git+https://github.com/nvbn/django-bower.git
+django-npm
 
 
 # For comfortable code entry
@@ -63,6 +61,9 @@ unicodecsv
 
 # To support network matching for facility recognition
 ipaddress
+
+# For datatables i18n
+pycountry
 
 # {{{ For interoperation with SAML2/Shibboleth
 

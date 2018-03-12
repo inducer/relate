@@ -277,13 +277,13 @@ class GetCurrentLanguageJsLangNameTest(TestCase):
             template = self.engines["django"].from_string(
                 "{% get_current_js_lang_name as LANG %}{{LANG}}")
             text = template.render()
-            self.assertEqual(text, "en-US")
+            self.assertEqual(text, "English")
 
         with override_settings(LANGUAGE_CODE="de"):
             template = self.engines["django"].from_string(
                 "{% get_current_js_lang_name as LANG %}{{LANG}}")
             text = template.render()
-            self.assertEqual(text, "de")
+            self.assertEqual(text, "German")
 
     def test_get_current_js_lang_name_tag_failed(self):
         from django.template import TemplateSyntaxError

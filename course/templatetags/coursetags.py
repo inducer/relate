@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 from django.template import Library, Node, TemplateSyntaxError
 from django.utils import translation
-from relate.utils import to_js_lang_name
+from relate.utils import to_datatables_lang_name
 
 register = Library()
 
@@ -36,8 +36,8 @@ class GetCurrentLanguageJsFmtNode(Node):
         self.variable = variable
 
     def render(self, context):
-        js_lang_name = to_js_lang_name(translation.get_language())
-        context[self.variable] = js_lang_name
+        datatables_lang_name = to_datatables_lang_name(translation.get_language())
+        context[self.variable] = datatables_lang_name
         return ''
 
 
