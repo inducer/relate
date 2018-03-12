@@ -712,7 +712,7 @@ class SignInByPasswordTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin
             resp = self.post_sign_in_by_user_pw(data=self.get_sign_in_data())
             self.assertSessionHasUserLoggedIn()
             self.assertEqual(resp.status_code, 302)
-            self.assertRedirects(resp, settings.LOGIN_REDIRECT_URL,
+            self.assertRedirects(resp, reverse("relate-home"),
                                  fetch_redirect_response=False)
 
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=False)

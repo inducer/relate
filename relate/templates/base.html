@@ -70,7 +70,7 @@
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
             </button>
-              <a class="navbar-brand" href="{% block brand_link %}/{% endblock %}">{%block brand %}{{ relate_site_name }}{% endblock %}</a>
+              <a class="navbar-brand" href="{% block brand_link %}{% url 'relate-home' %}{% endblock %}">{%block brand %}{{ relate_site_name }}{% endblock %}</a>
           </div>
           <div class="navbar-collapse collapse">
             {% if not maintenance_mode %}
@@ -85,7 +85,7 @@
                       <ul class="dropdown-menu">
                         {% block navbar_dropdown_staff_menu_admin %}
                           {% if user.is_staff %}
-                            <li><a href="/admin" target="_blank">{% trans "Admin site" %}</a></li>
+                            <li><a href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
                           {% endif %}
                         {% endblock %}
                         {% block navbar_dropdown_staff_menu_purge_page_view_data %}
