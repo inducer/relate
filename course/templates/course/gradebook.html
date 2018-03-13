@@ -67,7 +67,9 @@
       {% endfor %}
     </tbody>
   </table>
+{% endblock %}
 
+{% block page_bottom_javascript_extra %}
   {% load static %}
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
@@ -81,5 +83,5 @@
     } );
     new $.fn.dataTable.FixedColumns(tbl);
   </script>
-
+  {{ block.super }}
 {% endblock %}
