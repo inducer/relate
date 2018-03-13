@@ -7,7 +7,7 @@
     "datatables.net-bs": "^1.10.16",
     "datatables.net-fixedcolumns": "^3.2.4",
     "datatables.net-fixedcolumns-bs": "^3.2.4",
-    "datatables.net-plugins": "^1.10.15",
+    "datatables-i18n": "git+https://github.com/dzhuang/datatables-i18n.git",
     "font-awesome": "^4.7.0",
     "fullcalendar": "^2.9.1",
     "jquery": "^3.3.1",

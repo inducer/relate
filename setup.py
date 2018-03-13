@@ -30,7 +30,6 @@ setup(name="relate-courseware",
           "nbconvert>=5.2.1",
           "pymbolic",
           "sympy",
-          "pycountry",
           ],
       package_data={
           "relate": [

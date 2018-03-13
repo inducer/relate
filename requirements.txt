@@ -62,9 +62,6 @@ unicodecsv
 # To support network matching for facility recognition
 ipaddress
 
-# For datatables i18n
-pycountry
-
 # {{{ For interoperation with SAML2/Shibboleth
 
 pysaml2
