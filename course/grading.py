@@ -313,6 +313,13 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
                 prev_grade_id = _save_grade(fpctx, flow_session, most_recent_grade,
                         bulk_feedback_json, now_datetime)
+
+                if "submit_next_page" in pctx.request.POST:
+                    return redirect("relate-grade_flow_page",
+                                    pctx.course_identifier, flow_session_id, page_ordinal + 1)
+                elif "submit_next_session" in pctx.request.POST:
+                    return redirect("relate-grade_flow_page",
+                                    pctx.course_identifier, next_flow_session_id, page_ordinal)
         else:
             grading_form = fpctx.page.make_grading_form(
                     fpctx.page_context, fpctx.page_data, grade_data)
@@ -326,10 +333,13 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
         from crispy_forms.layout import Submit
         grading_form.helper.form_class += " relate-grading-form"
         grading_form.helper.add_input(
-                Submit(
-                    "submit", _("Submit"),
-                    accesskey="s",
-                    css_class="relate-grading-save-button"))
+            Submit("submit", _("Submit"), accesskey="s"))
+        if page_ordinal + 1 < flow_session.page_count:
+            grading_form.helper.add_input(
+                Submit("submit_next_page", _("Submit and next page")))
+        if next_flow_session_id:
+            grading_form.helper.add_input(
+                Submit("submit_next_session", _("Submit and next session")))
 
         grading_form_html = fpctx.page.grading_form_to_html(
                 pctx.request, fpctx.page_context, grading_form, grade_data)
