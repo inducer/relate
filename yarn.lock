@@ -29,6 +29,10 @@ core-js@^2.4.0:
   version "2.5.3"
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.5.3.tgz#8acc38345824f16d8365b7c9b4259168e8ed603e"
 
+"datatables-i18n@git+https://github.com/dzhuang/datatables-i18n.git":
+  version "1.0.5"
+  resolved "git+https://github.com/dzhuang/datatables-i18n.git#688313ba2d3c0b608dc5ca3f4903c82e9bc5e3d9"
+
 datatables.net-bs@^1.10.15, datatables.net-bs@^1.10.16:
   version "1.10.16"
   resolved "https://registry.yarnpkg.com/datatables.net-bs/-/datatables.net-bs-1.10.16.tgz#b0854f5b374f713ae3db4156c7cea8a760c3de76"
@@ -50,10 +54,6 @@ datatables.net-fixedcolumns@3.2.4, datatables.net-fixedcolumns@^3.2.4:
   dependencies:
     datatables.net "^1.10.15"
     jquery ">=1.7"
-
-datatables.net-plugins@^1.10.15:
-  version "1.10.15"
-  resolved "https://registry.yarnpkg.com/datatables.net-plugins/-/datatables.net-plugins-1.10.15.tgz#906deebff75010ab4c275f8058b4b60d2c8f3157"
 
 datatables.net@1.10.16, datatables.net@^1.10.15, datatables.net@^1.10.16:
   version "1.10.16"
