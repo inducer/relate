@@ -995,7 +995,7 @@ def markup_to_html(
     return result
 
 
-TITLE_RE = re.compile(r"^\#+\s*(\w.*)", re.UNICODE)
+TITLE_RE = re.compile(r"^\#+\s*(.+)", re.UNICODE)
 
 
 def extract_title_from_markup(markup_text):

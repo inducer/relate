@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 import six
+import re
 
 import django.forms as forms
 
@@ -388,8 +389,9 @@ class PageBase(object):
             self.is_optional_page = getattr(page_desc, "is_optional_page", False)
 
         else:
-            from warnings import warn
-            warn(_("Not passing page_desc to PageBase.__init__ is deprecated"),
+            if vctx is not None:
+                vctx.add_warning(
+                    _("Not passing page_desc to PageBase.__init__ is deprecated"),
                     DeprecationWarning)
             id = page_desc
             del page_desc
@@ -765,9 +767,11 @@ class PageBaseWithTitle(PageBase):
             try:
                 md_body = self.markup_body_for_title()
             except NotImplementedError:
-                from warnings import warn
-                warn(_("PageBaseWithTitle subclass '%s' does not implement "
-                        "markdown_body_for_title()")
+                if vctx is not None:
+                    vctx.add_warning(
+                        location,
+                        _("PageBaseWithTitle subclass '%s' does not implement "
+                          "markdown_body_for_title()")
                         % type(self).__name__)
             else:
                 from course.content import extract_title_from_markup
@@ -779,6 +783,13 @@ class PageBaseWithTitle(PageBase):
                         "%s: ",
                         _("no title found in body or title attribute"))
                     % (location))
+
+        from markdown import markdown
+        from django.utils.html import strip_tags
+        title = strip_tags(markdown(title))
+
+        if not title and vctx is not None:
+            vctx.add_warning(location, _("the rendered title is an empty string"))
 
         self._title = title
 
