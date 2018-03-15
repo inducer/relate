@@ -961,26 +961,25 @@ class HumanTextFeedbackForm(StyledForm):
     def cleaned_percent(self):
         if self.point_value is None:
             return self.cleaned_data["grade_percent"]
-        elif (self.cleaned_data["grade_percent"] is not None
-                and self.cleaned_data.get("grade_points") is not None):
-            points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
-            direct_percent = self.cleaned_data["grade_percent"]
-
-            if abs(points_percent - direct_percent) > 0.1:
-                raise RuntimeError(_("Grade (percent) and Grade (points) "
-                        "disagree"))
-
-            return max(points_percent, direct_percent)
-        elif self.cleaned_data["grade_percent"] is not None:
-            return self.cleaned_data["grade_percent"]
-
-        elif self.cleaned_data.get("grade_points") is not None:
-            if self.point_value:
-                return 100*self.cleaned_data["grade_points"]/self.point_value
-            else:
-                return None
         else:
-            return None
+            candidate_percentages = []
+
+            if self.cleaned_data["grade_percent"] is not None:
+                candidate_percentages.append(self.cleaned_data["grade_percent"])
+
+            if self.cleaned_data.get("grade_points") is not None:
+                candidate_percentages.append(
+                    100 * self.cleaned_data["grade_points"] / self.point_value)
+
+            if not candidate_percentages:
+                return None
+
+            if len(candidate_percentages) == 2:
+                if abs(candidate_percentages[1] - candidate_percentages[0]) > 0.1:
+                    raise RuntimeError(_("Grade (percent) and Grade (points) "
+                                         "disagree"))
+
+            return max(candidate_percentages)
 
 
 class PageBaseWithHumanTextFeedback(PageBase):

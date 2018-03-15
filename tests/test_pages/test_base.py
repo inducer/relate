@@ -22,7 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 from django.test import TestCase
+import unittest
+
+from course.page.base import (
+    create_default_point_scale, HumanTextFeedbackForm
+)
 
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
@@ -105,6 +111,95 @@ choices:
   - ~CORRECT~ $\pi$
   - $\sqrt 2$
 """
+
+
+@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+class CreateDefaultPointScaleTest(unittest.TestCase):
+    # test create_default_point_scale
+    def test_create_default_point_scale(self):
+        test_dict = {
+            3: [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3],
+            7: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7],
+            10: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8,
+                 8.5, 9, 9.5, 10],
+            15: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+            70: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
+        }
+        for k, v in six.iteritems(test_dict):
+            with self.subTest(total_points=k):
+                returned_value = create_default_point_scale(k)
+                self.assertIsNotNone(returned_value)
+                self.assertTrue(len(returned_value))
+                self.assertListEqual(v, returned_value)
+
+
+def human_text_feedback_form_clean_side_effect(self):
+    from course.page.base import StyledForm
+    return super(StyledForm, self).clean()
+
+
+class HumanTextFeedbackFormTest(unittest.TestCase):
+    def test_point_value_vs_field(self):
+        with mock.patch(
+                "course.page.base.create_default_point_scale"
+        ) as mock_create_scale:
+
+            form = HumanTextFeedbackForm(None)
+            self.assertNotIn("grade_points", form.fields)
+            self.assertEqual(mock_create_scale.call_count, 0)
+            mock_create_scale.reset_mock()
+
+            form = HumanTextFeedbackForm(0)
+            self.assertNotIn("grade_points", form.fields)
+            self.assertEqual(mock_create_scale.call_count, 0)
+            mock_create_scale.reset_mock()
+
+            form = HumanTextFeedbackForm(1)
+            self.assertIn("grade_points", form.fields)
+            self.assertEqual(mock_create_scale.call_count, 1)
+            mock_create_scale.reset_mock()
+
+    def test_form_disagree(self):
+        form_data = {"grade_percent": 30, "grade_points": 2}
+        form = HumanTextFeedbackForm(5, form_data)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.non_field_errors(),
+                         ['Grade (percent) and Grade (points) disagree'])
+
+    def test_form_points_percentage_valid(self):
+        form_data = {"grade_percent": 30, "grade_points": 1.50001}
+        form = HumanTextFeedbackForm(5, form_data)
+        self.assertTrue(form.is_valid())
+        self.assertTrue(form.cleaned_percent() - 30 < 0.001)
+
+    def test_form_no_grade_points(self):
+        form_data = {"grade_percent": 30}
+        form = HumanTextFeedbackForm(5, form_data)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_percent(), 30)
+
+    def test_form_no_grade_percent(self):
+        form_data = {"grade_points": 1.5}
+        form = HumanTextFeedbackForm(5, form_data)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_percent(), 30)
+
+    def test_form_point_value_none_cleaned_percentage(self):
+        form_data = {"grade_percent": 30}
+        form = HumanTextFeedbackForm(None, form_data)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_percent(), 30)
+
+    def test_form_cleaned_percent_raise(self):
+        with mock.patch("course.page.base.HumanTextFeedbackForm.clean",
+                        autospec=True) as mock_clean:
+            mock_clean.side_effect = human_text_feedback_form_clean_side_effect
+            form_data = {"grade_percent": 30, "grade_points": 2}
+            form = HumanTextFeedbackForm(5, form_data)
+            self.assertTrue(form.is_valid())
+
+            with self.assertRaises(RuntimeError):
+                form.cleaned_percent()
 
 
 def make_page_data_side_effect_has_data(self):
