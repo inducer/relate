@@ -257,7 +257,7 @@
               ">{{ other_page_data.human_readable_ordinal }}</span>
           {% else %}
             <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}"
-               title="{{ other_page_data.title|safe|striptags }}">
+               title="{{ other_page_data.title|safe }}">
             <span class="relate-flow-page-toc-item btn btn-default btn-xs
               {% if page_nr < page_data.page_ordinal %}
                 relate-prior
@@ -285,7 +285,7 @@
               {% for other_page_data in all_page_data %}
               <li>
                 <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}">
-                  {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title|safe|striptags }}
+                  {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title|safe }}
                   {% if other_page_data.bookmarked %}
                     <i class="fa fa-star" aria-hidden="true"></i>
                   {% endif %}
