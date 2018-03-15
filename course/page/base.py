@@ -575,20 +575,12 @@ class PageBase(object):
             ):
         """Returns an HTML rendering of *form*."""
 
-        from django.template import loader, RequestContext
-        from django import VERSION as django_version  # noqa
+        from django.template import loader
 
-        if django_version >= (1, 9):
-            return loader.render_to_string(
-                    "course/crispy-form.html",
-                    context={"form": form},
-                    request=request)
-        else:
-            context = RequestContext(request)
-            context.update({"form": form})
-            return loader.render_to_string(
-                    "course/crispy-form.html",
-                    context_instance=context)
+        return loader.render_to_string(
+                "course/crispy-form.html",
+                context={"form": form},
+                request=request)
 
     # }}}
 
@@ -767,7 +759,7 @@ class PageBaseWithTitle(PageBase):
             except NotImplementedError:
                 from warnings import warn
                 warn(_("PageBaseWithTitle subclass '%s' does not implement "
-                        "markdown_body_for_title()")
+                        "markup_body_for_title()")
                         % type(self).__name__)
             else:
                 from course.content import extract_title_from_markup
