@@ -479,60 +479,59 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertContains(resp, SANDBOX_TITLE_PATTERN % expected_title_str,
                             html=True)
 
-    # def test_title_with_html_tags(self):
-    #     title_str = "<strong>Important</strong>"
-    #     expected_title_str = "Important"
-    #     markdown = (
-    #             PAGE_WITH_TITLE_MARKDOWN_PATTERN
-    #             % {"attr_title": "",
-    #                "content_title": "# %s" % title_str})
-    #     resp = self.get_page_sandbox_preview_response(markdown)
-    #     self.assertEqual(resp.status_code, 200)
-    #     self.assertSandboxHasValidPage(resp)
-    #     self.assertSandboxWarningTextContain(resp, None)
-    #     self.assertContains(resp, SANDBOX_TITLE_PATTERN % expected_title_str,
-    #                         html=True)
+    def test_title_with_html_tags(self):
+        title_str = "<strong>Important</strong>"
+        expected_title_str = "Important"
+        markdown = (
+                PAGE_WITH_TITLE_MARKDOWN_PATTERN
+                % {"attr_title": "",
+                   "content_title": "# %s" % title_str})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+        self.assertContains(resp, SANDBOX_TITLE_PATTERN % expected_title_str,
+                            html=True)
 
-    # def test_title_with_markdown(self):
-    #     title_str = "**Important**"
-    #     expected_title_str = "Important"
-    #     markdown = (
-    #             PAGE_WITH_TITLE_MARKDOWN_PATTERN
-    #             % {"attr_title": "",
-    #                "content_title": "# %s" % title_str})
-    #     resp = self.get_page_sandbox_preview_response(markdown)
-    #     self.assertEqual(resp.status_code, 200)
-    #     self.assertSandboxHasValidPage(resp)
-    #     self.assertSandboxWarningTextContain(resp, None)
-    #     self.assertContains(resp, SANDBOX_TITLE_PATTERN % expected_title_str,
-    #                         html=True)
+    def test_title_with_markdown(self):
+        title_str = "**Important**"
+        expected_title_str = "Important"
+        markdown = (
+                PAGE_WITH_TITLE_MARKDOWN_PATTERN
+                % {"attr_title": "",
+                   "content_title": "# %s" % title_str})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+        self.assertContains(resp, SANDBOX_TITLE_PATTERN % expected_title_str,
+                            html=True)
 
-    # def test_title_with_lt(self):
-    #     title_str = "<"
-    #     from django.utils.html import escape
-    #     expected_title_str = escape("<")
-    #     markdown = (
-    #             PAGE_WITH_TITLE_MARKDOWN_PATTERN
-    #             % {"attr_title": "",
-    #                "content_title": "# %s" % title_str})
-    #     resp = self.get_page_sandbox_preview_response(markdown)
-    #     self.assertEqual(resp.status_code, 200)
-    #     self.assertSandboxHasValidPage(resp)
-    #     self.assertSandboxWarningTextContain(resp, None)
-    #     self.assertContains(resp, SANDBOX_TITLE_PATTERN % expected_title_str,
-    #                         html=True)
+    def test_title_with_lt(self):
+        title_str = "<"
+        from django.utils.html import escape
+        expected_title_str = escape("<")
+        markdown = (
+                PAGE_WITH_TITLE_MARKDOWN_PATTERN
+                % {"attr_title": "",
+                   "content_title": "# %s" % title_str})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+        self.assertContains(resp, SANDBOX_TITLE_PATTERN % expected_title_str,
+                            html=True)
 
-    # def test_title_with_rendered_empty_title_warn(self):
-    #     title_str = "<p>"
-    #     markdown = (
-    #             PAGE_WITH_TITLE_MARKDOWN_PATTERN
-    #             % {"attr_title": "",
-    #                "content_title": "# %s" % title_str})
-    #     resp = self.get_page_sandbox_preview_response(markdown)
-    #     self.assertEqual(resp.status_code, 200)
-    #     self.assertSandboxHasValidPage(resp)
-    #     self.assertSandboxWarningTextContain(
-    #         resp, "the rendered title is an empty string")
-
+    def test_title_with_rendered_empty_title_warn(self):
+        title_str = "<p>"
+        markdown = (
+                PAGE_WITH_TITLE_MARKDOWN_PATTERN
+                % {"attr_title": "",
+                   "content_title": "# %s" % title_str})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp, "the rendered title is an empty string")
 
 # vim: fdm=marker

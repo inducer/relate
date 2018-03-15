@@ -772,6 +772,13 @@ class PageBaseWithTitle(PageBase):
                         _("no title found in body or title attribute"))
                     % (location))
 
+        from markdown import markdown
+        from django.utils.html import strip_tags
+        title = strip_tags(markdown(title))
+
+        if not title and vctx is not None:
+            vctx.add_warning(location, _("the rendered title is an empty string"))
+
         self._title = title
 
     def allowed_attrs(self):
