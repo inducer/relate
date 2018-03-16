@@ -1058,14 +1058,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             flow_session_id, force_login_instructor)
 
     def assertSessionScoreEqual(  # noqa
-            self, expect_score, course_identifier=None, flow_session_id=None):
+            self, expected_score, course_identifier=None, flow_session_id=None):
         if flow_session_id is None:
             flow_params = self.get_flow_params(course_identifier, flow_session_id)
             flow_session_id = flow_params["flow_session_id"]
         flow_session = FlowSession.objects.get(id=flow_session_id)
-        if expect_score is not None:
+        if expected_score is not None:
             from decimal import Decimal
-            self.assertEqual(flow_session.points, Decimal(str(expect_score)))
+            self.assertEqual(flow_session.points, Decimal(str(expected_score)))
         else:
             self.assertIsNone(flow_session.points)
 

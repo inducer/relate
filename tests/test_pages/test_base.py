@@ -27,13 +27,14 @@ from django.test import TestCase
 import unittest
 
 from course.page.base import (
-    create_default_point_scale, HumanTextFeedbackForm
+    create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode
 )
 
+from tests.base_test_mixins import SingleCoursePageTestMixin
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
 )
-from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.test_grading import SingleCourseQuizPageGradeInterfaceTestMixin
 from tests.utils import mock
 
 SANDBOX_TITLE_PATTERN = "<title>[SB] %s - RELATE </title>"
@@ -206,7 +207,7 @@ def make_page_data_side_effect_has_data(self):
     return {"data": "foo"}
 
 
-class PageBaseTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+class PageBaseDeprecationTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_deprecated_make_page_data_has_warning(self):
         with mock.patch("course.page.text.TextQuestionBase.make_page_data",
@@ -268,12 +269,12 @@ def post_form_side_effect(self, page_context, page_data, post_data, files_data):
         widget_type=getattr(self.page_desc, "widget", None))
 
 
-class PageBaseGradeDeprecateTest(SingleCoursePageTestMixin, TestCase):
+class PageBaseGradeDeprecationTest(SingleCoursePageTestMixin, TestCase):
 
     flow_id = "quiz-test"
 
     def setUp(self):
-        super(PageBaseGradeDeprecateTest, self).setUp()
+        super(PageBaseGradeDeprecationTest, self).setUp()
         self.c.force_login(self.student_participation.user)
         self.start_flow(flow_id=self.flow_id)
 
@@ -354,6 +355,41 @@ class PageBaseGradeDeprecateTest(SingleCoursePageTestMixin, TestCase):
 
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(5)
+
+
+def grading_form_to_html_side_effect_super(
+        self, request, page_context, grading_form, grade_data):
+    from course.page.base import PageBaseWithHumanTextFeedback
+    return (
+        super(
+            PageBaseWithHumanTextFeedback, self
+        ).grading_form_to_html(
+            request, page_context, grading_form, grade_data))
+
+
+class PageBaseGradingFormToHtmlTest(SingleCourseQuizPageGradeInterfaceTestMixin,
+                                    TestCase):
+    flow_id = "quiz-test"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(PageBaseGradingFormToHtmlTest, cls).setUpTestData()
+        cls.end_flow()
+
+    def test_base_class_grading_form_to_html(self):
+        page_id = "anyup"
+        with mock.patch(
+                "course.page.base.PageBaseWithHumanTextFeedback"
+                ".grading_form_to_html", autospec=True
+        ) as mock_grading_form_to_html:
+            mock_grading_form_to_html.side_effect = (
+                grading_form_to_html_side_effect_super)
+
+            with self.temporarily_switch_to_user(
+                    self.instructor_participation.user):
+
+                resp = self.c.get(self.get_page_grading_url_by_page_id(page_id))
+                self.assertEqual(resp.status_code, 200)
 
 
 class PageBaseWithValueTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
@@ -533,5 +569,63 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, "the rendered title is an empty string")
+
+
+HGTEXT_MARKDOWN = """
+type: HumanGradedTextQuestion
+id: hgtext
+value: 5
+widget: "editor:yaml"
+validators:
+
+    -
+        type: relate_page
+        page_type: ChoiceQuestion
+
+prompt: |
+
+    # Submit an exam Choice question
+
+rubric: |
+
+    (None yet)
+
+correct_answer: |
+    [see here](some/references)
+
+"""
+
+
+class PageBaseWithCorrectAnswerTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+    def test_correct_answer_not_none(self):
+        markdown = HGTEXT_MARKDOWN
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        expected_html = '<p><a href="some/references">see here</a></p>'
+        self.assertResponseContextContains(resp, "correct_answer", expected_html)
+
+
+class GetEditorInteractionModeTest(unittest.TestCase):
+    # test get_editor_interaction_mode
+    def test_get_editor_interaction_mode_flow_session_none(self):
+        page_context = mock.MagicMock()
+        page_context.flow_session = None
+        self.assertEqual(get_editor_interaction_mode(page_context), "default")
+
+    def test_get_editor_interaction_mode_participation_none(self):
+        page_context = mock.MagicMock()
+        page_context.flow_session = mock.MagicMock()
+        page_context.flow_session.participation = None
+        self.assertEqual(get_editor_interaction_mode(page_context), "default")
+
+    def test_get_editor_interaction_mode_participation_not_none(self):
+        page_context = mock.MagicMock()
+        page_context.flow_session = mock.MagicMock()
+        page_context.flow_session.participation = mock.MagicMock()
+        page_context.flow_session.participation.user = mock.MagicMock()
+        page_context.flow_session.participation.user.editor_mode = "some_mode"
+        self.assertEqual(get_editor_interaction_mode(page_context), "some_mode")
+
 
 # vim: fdm=marker

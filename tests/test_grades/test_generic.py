@@ -146,7 +146,8 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(FlowSession.objects.all().count(),
                          len(self.flow_session_ids))
 
-    # Seems just show the answer
+    # Just show the grading interfaces of the unanswered pages
+    # the answered pages are tested in tests.teat_pages.test_generic
     def test_view_grade_flow_page(self):
         params = {"course_identifier": self.course.identifier,
                   "flow_session_id": self.flow_session_ids[0]}
