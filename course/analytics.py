@@ -547,7 +547,7 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                 flow_session=visit.flow_session)
 
         title = page.title(grading_page_context, visit.page_data.data)
-        body = page.body(grading_page_context, visit.page_data.data)
+        body = page.analytic_view_body(grading_page_context, visit.page_data.data)
         normalized_answer = page.normalized_answer(
                 grading_page_context, visit.page_data.data, visit.answer)
 

@@ -162,6 +162,9 @@ class AnswerBase(object):
 
         self.required = getattr(answers_desc, "required", False)
 
+    def get_answer_text(self, page_context, answer):
+        return answer
+
     def get_correct_answer_text(self, page_context):
         raise NotImplementedError()
 
@@ -444,6 +447,12 @@ class ChoicesAnswer(AnswerBase):
 
         self.hint = getattr(self.answers_desc, "hint", "")
         self.width = 0
+
+    def get_answer_text(self, page_context, answer):
+        if answer == "":
+            return answer
+        return self.process_choice_string(
+            page_context, self.answers_desc.choices[int(answer)])
 
     def get_width_str(self, opt_width=0):
         return None
@@ -853,9 +862,15 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         """Returns an HTML rendering of *form*."""
 
         from django.template import loader
+        context = {"form": form}
+
+        # This happens when rendering the form in analytics view.
+        if not request:
+            context.update({'csrf_token': "None"})
+
         return loader.render_to_string(
                 "course/custom-crispy-inline-form.html",
-                context={"form": form},
+                context=context,
                 request=request)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
@@ -887,22 +902,44 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         return AnswerFeedback(correctness=correctness)
 
+    def analytic_view_body(self, page_context, page_data):
+        form = InlineMultiQuestionForm(
+            False,
+            self.get_dict_for_form(page_context, page_data),
+            page_context)
+        return (self.body(page_context, page_data)
+                + self.form_to_html(None, page_context, form, None))
+
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        answer_dict = answer_data["answer"]
+
+        result = {}
+        for idx, name in enumerate(self.embedded_name_list):
+            single_answer_str = (
+                self.answer_instance_list[idx].get_answer_text(
+                    page_context, answer_dict[self.embedded_name_list[idx]]))
+
+            # unanswered question result in "" in answer_dict
+            if single_answer_str != "":
+                result[name] = single_answer_str
+
+        import json
+        return ".json", json.dumps(result)
+
     def normalized_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
             return None
 
         answer_dict = answer_data["answer"]
 
-        nml_answer_output = self.get_question(page_context, page_data)
-
-        for idx, wrapped_name in enumerate(self.embedded_wrapped_name_list):
-            nml_answer_output = nml_answer_output.replace(
-                    wrapped_name,
-                    "<strong>"
-                    + answer_dict[self.embedded_name_list[idx]]
-                    + "</strong>")
-
-        return nml_answer_output
+        return ", ".join(
+            [self.answer_instance_list[idx].get_answer_text(
+                page_context, answer_dict[self.embedded_name_list[idx]])
+                for idx, name in enumerate(self.embedded_name_list)]
+        )
 
 # }}}
 

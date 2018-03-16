@@ -401,12 +401,12 @@ class ChoiceQuestion(ChoiceQuestionBase):
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         self.check_page_data(page_data)
 
-        permutation = page_data["permutation"]
-
         if answer_data is None:
             return None
-        else:
-            unpermuted_choice = permutation[answer_data["choice"]]
+
+        permutation = page_data["permutation"]
+
+        unpermuted_choice = permutation[answer_data["choice"]]
 
         import json
         return ".json", json.dumps({

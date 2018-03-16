@@ -338,6 +338,7 @@ class PageBase(object):
 
     .. automethod:: grade
     .. automethod:: correct_answer
+    .. automethod:: analytic_view_body
     .. automethod:: normalized_answer
     .. automethod:: normalized_bytes_answer
     """
@@ -461,6 +462,15 @@ class PageBase(object):
         """Return the (non-HTML) title of this page."""
 
         raise NotImplementedError()
+
+    def analytic_view_body(self, page_context, page_data):
+        # type: (PageContext, Dict) -> str
+
+        """
+        Return the (HTML) body of the page, which is shown in page analytic
+        view."""
+
+        return self.body(page_context, page_data)
 
     def body(self, page_context, page_data):
         # type: (PageContext, Dict) -> str
@@ -662,10 +672,12 @@ class PageBase(object):
         # type: (...) -> Text
         """Returns an HTML rendering of *grading_form*."""
 
+        # http://bit.ly/2GxzWr1
         from crispy_forms.utils import render_crispy_form
-        from django.template import RequestContext
-        context = RequestContext(request, {})
-        return render_crispy_form(grading_form, context=context)
+        from django.template.context_processors import csrf
+        ctx = {}  # type: Dict
+        ctx.update(csrf(request))
+        return render_crispy_form(grading_form, context=ctx)
 
     # }}}
 

@@ -56,6 +56,7 @@ except ImportError:
 
 
 def string_concat(*strings):
+    # type: (Any) -> Text
     return format_lazy("{}" * len(strings), *strings)
 
 # }}}
