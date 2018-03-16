@@ -54,11 +54,9 @@ except ImportError:
     from django.utils.functional import lazy
     format_lazy = lazy(_format_lazy, str)
 
-try:
-    from django.utils.translation import string_concat
-except ImportError:
-    def string_concat(*strings):
-        return format_lazy("{}" * len(strings), *strings)
+
+def string_concat(*strings):
+    return format_lazy("{}" * len(strings), *strings)
 
 # }}}
 
