@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
@@ -57,28 +59,38 @@ def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
 TEST_TEXT_FILE_PATH = get_upload_file_path("test_file.txt")
 TEST_PDF_FILE_PATH = get_upload_file_path("test_file.pdf")
 
-TEST_HGTEXT_MARKDOWN = """
-type: HumanGradedTextQuestion
-id: hgtext
-value: 5
-widget: "editor:yaml"
-validators:
-
-    -
-        type: relate_page
-        page_type: ChoiceQuestion
-
+TEST_HGTEXT_MARKDOWN_ANSWER = u"""
+type: ChoiceQuestion
+id: myquestion
+shuffle: True
 prompt: |
 
-    # Submit an exam Choice question
+    # What is a quarter?
 
-rubric: |
+choices:
 
-    (None yet)
+  - "1"
+  - "2"
+  - ~CORRECT~ 1/4
+  - ~CORRECT~ $\\frac{1}{4}$
+  - 四分之三
+"""
 
-correct_answer: |
-    [see here](some/references)
+TEST_HGTEXT_MARKDOWN_ANSWER_WRONG = u"""
+type: ChoiceQuestion
+id: myquestion
+shuffle: True
+prompt: |
 
+    # What is a quarter?
+
+choices:
+
+  - "1"
+  - "2"
+  - 1/4
+  - $\\frac{1}{4}$
+  - 四分之三
 """
 
 PageTuple = namedtuple(
@@ -118,7 +130,8 @@ TEST_PAGE_TUPLE = (
               {}, 0),
     PageTuple("age_group", "quiz_start", True, False, False, {"choice": 3}, {}, 0),
     PageTuple("hgtext", "quiz_tail", True, True, False,
-              {"answer": TEST_HGTEXT_MARKDOWN}, {}, 5),
+              {"answer": TEST_HGTEXT_MARKDOWN_ANSWER},
+              {"grade_percent": "100", "released": "on"}, 5),
     PageTuple("addition", "quiz_tail", False, True, True, {"answer": 'c = b + a\r'},
               {"grade_percent": "100", "released": "on"}, 1),
     PageTuple("pymult", "quiz_tail", True, True, True, {"answer": 'c = a * b\r'},
@@ -151,31 +164,35 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin,
 
     skip_code_question = True
 
-    def ensure_grading_ui_get(self, page_id):
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            url = self.get_page_grading_url_by_page_id(page_id)
-            resp = self.c.get(url)
-            self.assertEqual(resp.status_code, 200)
+    @classmethod
+    def ensure_grading_ui_get(cls, page_id):
+        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
+            url = cls.get_page_grading_url_by_page_id(page_id)
+            resp = cls.c.get(url)
+            assert resp.status_code == 200
 
-    def ensure_analytic_page_get(self, group_id, page_id):
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.get_flow_page_analytics(
-                flow_id=self.flow_id, group_id=group_id,
+    @classmethod
+    def ensure_analytic_page_get(cls, group_id, page_id):
+        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
+            resp = cls.get_flow_page_analytics(
+                flow_id=cls.flow_id, group_id=group_id,
                 page_id=page_id)
-            self.assertEqual(resp.status_code, 200)
+            assert resp.status_code == 200
 
-    def ensure_download_submission(self, group_id, page_id):
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
+    @classmethod
+    def ensure_download_submission(cls, group_id, page_id):
+        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
             group_page_id = "%s/%s" % (group_id, page_id)
-            resp = self.post_download_all_submissions_by_group_page_id(
-                group_page_id=group_page_id, flow_id=self.flow_id)
-            self.assertEqual(resp.status_code, 200)
+            resp = cls.post_download_all_submissions_by_group_page_id(
+                group_page_id=group_page_id, flow_id=cls.flow_id)
+            assert resp.status_code == 200
             prefix, zip_file = resp["Content-Disposition"].split('=')
-            self.assertEqual(prefix, "attachment; filename")
-            self.assertEqual(resp.get('Content-Type'), "application/zip")
+            assert prefix == "attachment; filename"
+            assert resp.get('Content-Type') == "application/zip"
 
+    @classmethod
     def submit_page_answer_by_ordinal_and_test(
-            self, page_ordinal, use_correct_answer=True, answer_data=None,
+            cls, page_ordinal, use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grade=None, expected_post_answer_status_code=200,
             do_grading=False, do_human_grade=False, grade_data=None,
@@ -189,9 +206,9 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin,
             ensure_download_after_submission=False,
             ensure_download_before_grading=False,
             ensure_download_after_grading=False):
-        page_id = self.get_page_id_via_page_oridnal(page_ordinal)
+        page_id = cls.get_page_id_via_page_oridnal(page_ordinal)
 
-        return self.submit_page_answer_by_page_id_and_test(
+        return cls.submit_page_answer_by_page_id_and_test(
             page_id, use_correct_answer,
             answer_data, skip_code_question, expected_grade,
             expected_post_answer_status_code,
@@ -208,8 +225,9 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin,
             ensure_download_before_grading,
             ensure_download_after_grading)
 
+    @classmethod
     def submit_page_answer_by_page_id_and_test(
-            self, page_id, use_correct_answer=True, answer_data=None,
+            cls, page_id, use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grade=None, expected_post_answer_status_code=200,
             do_grading=False, do_human_grade=False, grade_data=None,
@@ -238,13 +256,13 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin,
             if page_id == page_tuple.page_id:
                 group_id = page_tuple.group_id
                 if ensure_grading_ui_get_before_grading:
-                    self.ensure_grading_ui_get(page_id)
+                    cls.ensure_grading_ui_get(page_id)
 
                 if ensure_analytic_page_get_before_submission:
-                    self.ensure_analytic_page_get(group_id, page_id)
+                    cls.ensure_analytic_page_get(group_id, page_id)
 
                 if ensure_download_before_submission:
-                    self.ensure_download_submission(group_id, page_id)
+                    cls.ensure_download_submission(group_id, page_id)
 
                 if page_tuple.correct_answer is not None:
 
@@ -255,30 +273,30 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin,
                         with open(answer_data, 'rb') as fp:
                             answer_data = {"uploaded_file": fp}
                             submit_answer_response = (
-                                self.post_answer_by_page_id(page_id, answer_data))
+                                cls.post_answer_by_page_id(page_id, answer_data))
                     else:
                         submit_answer_response = (
-                            self.post_answer_by_page_id(page_id, answer_data))
+                            cls.post_answer_by_page_id(page_id, answer_data))
 
-                    self.assertEqual(submit_answer_response.status_code,
-                                     expected_post_answer_status_code)
+                    assert (submit_answer_response.status_code
+                            == expected_post_answer_status_code)
 
                     if ensure_analytic_page_get_after_submission:
-                        self.ensure_analytic_page_get(group_id, page_id)
+                        cls.ensure_analytic_page_get(group_id, page_id)
 
                     if ensure_download_after_submission:
-                        self.ensure_download_submission(group_id, page_id)
+                        cls.ensure_download_submission(group_id, page_id)
 
                 if not do_grading:
                     break
 
-                self.assertEqual(self.end_flow().status_code, 200)
+                assert cls.end_flow().status_code == 200
 
                 if ensure_analytic_page_get_before_grading:
-                    self.ensure_analytic_page_get(group_id, page_id)
+                    cls.ensure_analytic_page_get(group_id, page_id)
 
                 if ensure_download_before_grading:
-                    self.ensure_download_submission(group_id, page_id)
+                    cls.ensure_download_submission(group_id, page_id)
 
                 if page_tuple.correct_answer is not None:
                     if use_correct_answer:
@@ -286,25 +304,25 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin,
 
                     if page_tuple.need_human_grade:
                         if not do_human_grade:
-                            self.assertSessionScoreEqual(None)
+                            cls.assertSessionScoreEqual(None)
                             break
                         if grade_data is not None:
                             assert isinstance(grade_data, dict)
                         else:
                             grade_data = page_tuple.grade_data
 
-                        post_grade_response = self.post_grade_by_page_id(
+                        post_grade_response = cls.post_grade_by_page_id(
                             page_id, grade_data)
-                    self.assertSessionScoreEqual(expected_grade)
+                    cls.assertSessionScoreEqual(expected_grade)
 
                     if ensure_download_after_grading:
-                        self.ensure_download_submission(group_id, page_id)
+                        cls.ensure_download_submission(group_id, page_id)
 
                 if ensure_analytic_page_get_after_grading:
-                    self.ensure_analytic_page_get(group_id, page_id)
+                    cls.ensure_analytic_page_get(group_id, page_id)
 
                 if ensure_grading_ui_get_after_grading:
-                    self.ensure_grading_ui_get(page_id)
+                    cls.ensure_grading_ui_get(page_id)
 
         return submit_answer_response, post_grade_response
 
@@ -534,6 +552,25 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin, TestCase):
                                             MESSAGE_ANSWER_SAVED_TEXT)
 
     # }}}
+
+    def test_human_graded_text(self):
+        page_id = "hgtext"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
+
+    def test_human_graded_text_failed(self):
+        page_id = "hgtext"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": TEST_HGTEXT_MARKDOWN_ANSWER_WRONG},
+                do_grading=False))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
+                                           expected_count=0)
 
     # {{{ fileupload questions
 
