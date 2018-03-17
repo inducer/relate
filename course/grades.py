@@ -792,6 +792,26 @@ def average_grade(opportunity):
         return None, 0
 
 
+def get_single_grade_changes_and_state_machine(opportunity, participation):
+    # type: (GradingOpportunity, Participation) -> Tuple[List[GradeChange], GradeStateMachine]  # noqa
+
+    grade_changes = list(
+        GradeChange.objects.filter(
+            opportunity=opportunity,
+            participation=participation)
+        .order_by("grade_time")
+        .select_related("participation")
+        .select_related("participation__user")
+        .select_related("creator")
+        .select_related("flow_session")
+        .select_related("opportunity"))
+
+    state_machine = GradeStateMachine()
+    state_machine.consume(grade_changes, set_is_superseded=True)
+
+    return grade_changes, state_machine
+
+
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
     # type: (CoursePageContext, Text, Text) -> http.HttpResponse
@@ -909,18 +929,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     # }}}
 
-    grade_changes = list(GradeChange.objects
-            .filter(
-                opportunity=opportunity,
-                participation=participation)
-            .order_by("grade_time")
-            .select_related("participation")
-            .select_related("participation__user")
-            .select_related("creator")
-            .select_related("opportunity"))
-
-    state_machine = GradeStateMachine()
-    state_machine.consume(grade_changes, set_is_superseded=True)
+    grade_changes, state_machine = (
+        get_single_grade_changes_and_state_machine(opportunity, participation))
 
     if opportunity.flow_id:
         flow_sessions = list(FlowSession.objects
@@ -1035,7 +1045,8 @@ class ImportGradesForm(StyledForm):
         self.fields["attr_type"] = forms.ChoiceField(
                 choices=(
                     ("email_or_id", _("Email or NetID")),
-                    ("inst_id", _("Institutional ID")),
+                    ("institutional_id", _("Institutional ID")),
+                    ("username", _("Username")),
                     ),
                 label=_("User attribute"))
 
@@ -1064,6 +1075,15 @@ class ImportGradesForm(StyledForm):
 
     def clean(self):
         data = super(ImportGradesForm, self).clean()
+        attempt_id = data.get("attempt_id")
+        if attempt_id:
+            attempt_id = attempt_id.strip()
+            flow_session_specific_attempt_id_prefix = "flow-session-"
+            if attempt_id.startswith(flow_session_specific_attempt_id_prefix):
+                self.add_error("attempt_id",
+                               _('"%s" as a prefix is not allowed')
+                               % flow_session_specific_attempt_id_prefix)
+
         file_contents = data.get("file")
         if file_contents:
             column_idx_list = [
@@ -1090,28 +1110,34 @@ class ParticipantNotFound(ValueError):
     pass
 
 
-def find_participant_from_inst_id(course, inst_id_str):
-    inst_id_str = inst_id_str.strip()
+def find_participant_from_user_attr(course, attr_type, attr_str):
+    attr_str = attr_str.strip()
+
+    kwargs = {"user__%s__exact" % attr_type: attr_str}
 
     matches = (Participation.objects
             .filter(
                 course=course,
                 status=participation_status.active,
-                user__institutional_id__exact=inst_id_str)
+                **kwargs)
             .select_related("user"))
 
-    if not matches:
+    matches_count = matches.count()
+    if not matches_count or matches_count > 1:
+        from django.contrib.auth import get_user_model
+        from django.utils.encoding import force_text
+        attr_verbose_name = force_text(
+            get_user_model()._meta.get_field(attr_type).verbose_name)
+
+        map_dict = {"user_attr": attr_verbose_name, "user_attr_str": attr_str}
+
+        if not matches_count:
+            raise ParticipantNotFound(
+                    _("no participant found with %(user_attr)s "
+                    "'%(user_attr_str)s'") % map_dict)
         raise ParticipantNotFound(
-                # Translators: use institutional_id_string to find user
-                # (participant).
-                _("no participant found with institutional ID "
-                "'%(inst_id_string)s'") % {
-                    "inst_id_string": inst_id_str})
-    if len(matches) > 1:
-        raise ParticipantNotFound(
-                _("more than one participant found with institutional ID "
-                "'%(inst_id_string)s'") % {
-                    "inst_id_string": inst_id_str})
+                _("more than one participant found with %(user_attr)s "
+                "'%(user_attr_str)s'") % map_dict)
 
     return matches[0]
 
@@ -1190,9 +1216,10 @@ def csv_to_grade_changes(
             if attr_type == "email_or_id":
                 gchange.participation = find_participant_from_id(
                         course, get_col_contents_or_empty(row, attr_column-1))
-            elif attr_type == "inst_id":
-                gchange.participation = find_participant_from_inst_id(
-                        course, get_col_contents_or_empty(row, attr_column-1))
+            elif attr_type in ["institutional_id", "username"]:
+                gchange.participation = find_participant_from_user_attr(
+                        course, attr_type,
+                        get_col_contents_or_empty(row, attr_column-1))
             else:
                 raise ParticipantNotFound(
                     _("Unknown user attribute '%(attr_type)s'") % {

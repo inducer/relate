@@ -51,7 +51,7 @@
               <td>
                 {% if session_properties.grade_shown %}
                   {% if flow_session.points_percentage != None %}
-                    {% blocktrans trimmed with points=flow_session.points|floatformat:2 max_points=flow_session.max_points|floatformat:2  percentage=flow_session.points_percentage|floatformat:2 %}
+                    {% blocktrans trimmed with points=flow_session.points|floatformat:"-2" max_points=flow_session.max_points|floatformat:"-2"  percentage=flow_session.points_percentage|floatformat:"-2" %}
                     <b>{{ points }}</b>
                     out of
                     {{ max_points }}
@@ -109,7 +109,7 @@
               </li>
             {% endif %}
             <li>
-                {% blocktrans trimmed with credit_percent=new_session_grading_rule.credit_percent|floatformat:2 %}
+                {% blocktrans trimmed with credit_percent=new_session_grading_rule.credit_percent|floatformat:"-2" %}
                     You will receive <b>{{ credit_percent }}% credit</b>
                     for your work.
                 {% endblocktrans %}

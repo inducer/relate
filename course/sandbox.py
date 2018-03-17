@@ -254,7 +254,7 @@ def view_page_sandbox(pctx):
                 new_page_source = expand_yaml_macros(
                         pctx.repo, pctx.course_commit_sha, new_page_source)
 
-                yaml_data = yaml.load(new_page_source)  # type: ignore
+                yaml_data = yaml.safe_load(new_page_source)  # type: ignore
                 page_desc = dict_to_struct(yaml_data)
 
                 if not isinstance(page_desc, Struct):
@@ -310,7 +310,7 @@ def view_page_sandbox(pctx):
 
     have_valid_page = page_source is not None
     if have_valid_page:
-        yaml_data = yaml.load(page_source)  # type: ignore
+        yaml_data = yaml.safe_load(page_source)  # type: ignore
         page_desc = cast(FlowPageDesc, dict_to_struct(yaml_data))
 
         from course.content import instantiate_flow_page
@@ -401,7 +401,6 @@ def view_page_sandbox(pctx):
                             + ": "
                             + "%(err_type)s: %(err_str)s" % {
                                 "err_type": tp.__name__, "err_str": e})  # type: ignore  # noqa: E501
-                    have_valid_page = False
 
                     page_form = None
 
@@ -417,12 +416,14 @@ def view_page_sandbox(pctx):
                 page_context, page_data, answer_data,
                 grade_data=None)
 
+        have_valid_page = have_valid_page and not page_errors
+
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
             "page_errors": page_errors,
             "page_warnings": page_warnings,
             "form": edit_form,  # to placate form.media
-            "have_valid_page": True,
+            "have_valid_page": have_valid_page,
             "title": title,
             "body": body,
             "page_form_html": page_form_html,
@@ -435,7 +436,7 @@ def view_page_sandbox(pctx):
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
             "form": edit_form,  # to placate form.media
-            "have_valid_page": False,
+            "have_valid_page": have_valid_page,
             "page_errors": page_errors,
             "page_warnings": page_warnings,
         })

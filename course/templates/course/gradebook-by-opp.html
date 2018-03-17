@@ -170,7 +170,7 @@
           {% else %}
               <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id page_idx %}">
               {% if grade != None and grade.percentage != None %}
-                  {{ grade.percentage|floatformat:2 }}%
+                  {{ grade.percentage|floatformat:"-2" }}%
               {% else %}
                   - &#8709; -
               {% endif %}
@@ -194,7 +194,7 @@
         <td class="datacol" data-order="{{ grade_info.flow_session.points }}">
           {% if grade_info.flow_session %}
               {% if grade_info.flow_session.points != None %}
-                {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:2 max_points=grade_info.flow_session.max_points|floatformat:2 %}
+                {% blocktrans trimmed with points=grade_info.flow_session.points|floatformat:"-2" max_points=grade_info.flow_session.max_points|floatformat:"-2" %}
                 {{ points }}/{{ max_points }}
                 points
                 {% endblocktrans %}
@@ -216,7 +216,9 @@
       {% endfor %}
     </tbody>
   </table>
+{% endblock %}
 
+{% block page_bottom_javascript_extra %}
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-by-opportunity").dataTable({
@@ -229,5 +231,5 @@
     } );
     new $.fn.dataTable.FixedColumns(tbl);
   </script>
-
+  {{ block.super }}
 {% endblock %}

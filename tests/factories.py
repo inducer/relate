@@ -78,6 +78,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     course = factory.SubFactory(CourseFactory)
     enroll_time = factory.LazyFunction(now)
+    status = constants.participation_status.active
 
     @factory.post_generation
     def roles(self, create, extracted, **kwargs):
@@ -165,3 +166,19 @@ class GradeChangeFactory(factory.django.DjangoModelFactory):
     creator = None
     grade_time = now()
     flow_session = factory.SubFactory(FlowSessionFactory)
+
+
+class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.ParticipationPreapproval
+
+    course = factory.SubFactory(CourseFactory)
+
+    @factory.post_generation
+    def roles(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+        else:
+            role = ParticipationRoleFactory(course=self.course)
+            self.roles.set([role])

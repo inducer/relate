@@ -40,7 +40,6 @@ from django.urls import reverse
 from django.db import transaction, IntegrityError
 from django import forms
 from django import http  # noqa
-from django.utils import translation
 from django.utils.safestring import mark_safe
 
 from crispy_forms.layout import Submit
@@ -62,7 +61,7 @@ from course.constants import (
 
 from course.auth import UserSearchWidget
 
-from course.utils import course_view, render_course_page
+from course.utils import course_view, render_course_page, LanguageOverride
 
 from relate.utils import StyledForm, StyledModelForm, string_concat
 
@@ -220,16 +219,18 @@ def enroll_view(request, course_identifier):
             preapproval = ParticipationPreapproval.objects.get(
                     course=course, email__iexact=request.user.email)
         except ParticipationPreapproval.DoesNotExist:
-            if user.institutional_id:
-                if not (course.preapproval_require_verified_inst_id
-                        and not user.institutional_id_verified):
-                    try:
-                        preapproval = ParticipationPreapproval.objects.get(
-                                course=course,
-                                institutional_id__iexact=user.institutional_id)
-                    except ParticipationPreapproval.DoesNotExist:
-                        pass
             pass
+
+    if preapproval is None:
+        if user.institutional_id:
+            if not (course.preapproval_require_verified_inst_id
+                    and not user.institutional_id_verified):
+                try:
+                    preapproval = ParticipationPreapproval.objects.get(
+                            course=course,
+                            institutional_id__iexact=user.institutional_id)
+                except ParticipationPreapproval.DoesNotExist:
+                    pass
 
     def email_suffix_matches(email, suffix):
         # type: (Text, Text) -> bool
@@ -238,11 +239,10 @@ def enroll_view(request, course_identifier):
         else:
             return email.endswith("@%s" % suffix) or email.endswith(".%s" % suffix)
 
-    if (
-            preapproval is None
-            and course.enrollment_required_email_suffix
-            and not email_suffix_matches(
-                user.email, course.enrollment_required_email_suffix)):
+    if (preapproval is None
+        and course.enrollment_required_email_suffix
+        and not email_suffix_matches(
+            user.email, course.enrollment_required_email_suffix)):
 
         messages.add_message(request, messages.ERROR,
                 _("Enrollment not allowed. Please use your '%s' email to "
@@ -264,7 +264,7 @@ def enroll_view(request, course_identifier):
 
             assert participation is not None
 
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            with LanguageOverride(course=course):
                 from relate.utils import render_email_template
                 message = render_email_template(
                     "course/enrollment-request-email.txt", {
@@ -367,8 +367,8 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 def send_enrollment_decision(participation, approved, request=None):
     # type: (Participation, bool, http.HttpRequest) -> None
 
-    with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-        course = participation.course
+    course = participation.course
+    with LanguageOverride(course=course):
         if request:
             course_uri = request.build_absolute_uri(
                     reverse("relate-course_page",

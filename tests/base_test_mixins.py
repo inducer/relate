@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 import sys
 import six
+import re
 import tempfile
 import os
 import shutil
@@ -160,6 +161,9 @@ except Exception:
     pass
 
 
+SELECT2_HTML_FIELD_ID_SEARCH_PATTERN = re.compile(r'data-field_id="([^"]+)"')
+
+
 def git_source_url_to_cache_keys(url):
     url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
     return (
@@ -194,9 +198,9 @@ class ResponseContextMixin(object):
         else:
             self.assertIsNone(value)
 
-    def assertResponseContextIsNotNone(self, resp, context_name):  # noqa
+    def assertResponseContextIsNotNone(self, resp, context_name, msg=""):  # noqa
         value = self.get_response_context_value_by_name(resp, context_name)
-        self.assertIsNotNone(value)
+        self.assertIsNotNone(value, msg)
 
     def assertResponseContextEqual(self, resp, context_name, expected_value):  # noqa
         value = self.get_response_context_value_by_name(resp, context_name)
@@ -219,22 +223,44 @@ class ResponseContextMixin(object):
     def get_response_context_answer_feedback(self, response):
         return self.get_response_context_value_by_name(response, "feedback")
 
+    def get_response_context_answer_feedback_string(self, response,
+                                             include_bulk_feedback=True):
+        answer_feedback = self.get_response_context_value_by_name(
+            response, "feedback")
+
+        self.assertTrue(hasattr(answer_feedback, "feedback"))
+        if not include_bulk_feedback:
+            return answer_feedback.feedback
+
+        if answer_feedback.bulk_feedback is None:
+            return answer_feedback.feedback
+        else:
+            if answer_feedback.feedback is None:
+                return answer_feedback.bulk_feedback
+            return answer_feedback.feedback + answer_feedback.bulk_feedback
+
     def assertResponseContextAnswerFeedbackContainsFeedback(  # noqa
             self, response, expected_feedback,
-            include_bulk_feedback=True):
-        answer_feedback = self.get_response_context_answer_feedback(response)
-        feedback_str = answer_feedback.feedback
-        if include_bulk_feedback:
-            feedback_str += answer_feedback.bulk_feedback
+            include_bulk_feedback=True, html=False):
+        feedback_str = self.get_response_context_answer_feedback_string(
+            response, include_bulk_feedback)
 
-        self.assertTrue(hasattr(answer_feedback, "feedback"))
-        self.assertIn(expected_feedback, feedback_str)
+        if not html:
+            self.assertIn(expected_feedback, feedback_str)
+        else:
+            self.assertInHTML(expected_feedback, feedback_str)
 
     def assertResponseContextAnswerFeedbackNotContainsFeedback(  # noqa
-                                        self, response, expected_feedback):
-        answer_feedback = self.get_response_context_answer_feedback(response)
-        self.assertTrue(hasattr(answer_feedback, "feedback"))
-        self.assertNotIn(expected_feedback, answer_feedback.feedback)
+            self, response, expected_feedback,
+            include_bulk_feedback=True,
+            html=False):
+        feedback_str = self.get_response_context_answer_feedback_string(
+            response, include_bulk_feedback)
+
+        if not html:
+            self.assertNotIn(expected_feedback, feedback_str)
+        else:
+            self.assertInHTML(expected_feedback, feedback_str, count=0)
 
     def assertResponseContextAnswerFeedbackCorrectnessEquals(  # noqa
                                         self, response, expected_correctness):
@@ -284,6 +310,35 @@ class ResponseContextMixin(object):
         except AssertionError:
             print("\n-------no value for context %s----------" % context_name)
 
+    def get_select2_field_id_from_response(self, response,
+                                           form_context_name="form"):
+        self.assertResponseContextIsNotNone(
+            response, form_context_name,
+            "The response doesn't contain a context named '%s'"
+            % form_context_name)
+        form_str = str(response.context[form_context_name])
+        m = SELECT2_HTML_FIELD_ID_SEARCH_PATTERN.search(form_str)
+        assert m, "pattern not found in %s" % form_str
+        return m.group(1)
+
+    def select2_get_request(self, field_id, term=None,
+                            select2_urlname='django_select2-json'):
+
+        select2_url = reverse(select2_urlname)
+        params = {"field_id": field_id}
+        if term is not None:
+            assert isinstance(term, six.string_types)
+            term = term.strip()
+            if term:
+                params["term"] = term
+
+        return self.c.get(select2_url, params,
+                          HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+    def get_select2_response_data(self, response, key="results"):
+        import json
+        return json.loads(response.content.decode('utf-8'))[key]
+
 
 class SuperuserCreateMixin(ResponseContextMixin):
     create_superuser_kwargs = CREATE_SUPERUSER_KWARGS
@@ -298,10 +353,6 @@ class SuperuserCreateMixin(ResponseContextMixin):
             override_settings(GIT_ROOT=tempfile.mkdtemp()))
         cls.settings_git_root_override.enable()
         super(SuperuserCreateMixin, cls).setUpTestData()
-
-    @classmethod
-    def tearDownClass(cls):  # noqa
-        super(SuperuserCreateMixin, cls).tearDownClass()
 
     @classmethod
     def create_superuser(cls):
@@ -354,18 +405,51 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return self.c.post(
             self.get_stop_impersonate_view_url(), data, follow=follow)
 
-    def get_reset_password_url(self, use_instid=False):
+    def get_confirm_stop_impersonate_view_url(self):
+        return reverse("relate-confirm_stop_impersonating")
+
+    def get_confirm_stop_impersonate(self, follow=True):
+        return self.c.get(
+            self.get_confirm_stop_impersonate_view_url(), follow=follow)
+
+    def post_confirm_stop_impersonate(self, follow=True):
+        return self.c.post(
+            self.get_confirm_stop_impersonate_view_url(), {}, follow=follow)
+
+    @classmethod
+    def get_reset_password_url(cls, use_instid=False):
         kwargs = {}
         if use_instid:
             kwargs["field"] = "instid"
         return reverse("relate-reset_password", kwargs=kwargs)
 
-    def get_reset_password(self, use_instid=False):
-        return self.c.get(self.get_reset_password_url(use_instid))
+    @classmethod
+    def get_reset_password(cls, use_instid=False):
+        return cls.c.get(cls.get_reset_password_url(use_instid))
 
-    def post_reset_password(self, data, use_instid=False):
-        return self.c.post(self.get_reset_password_url(use_instid),
-                           data=data)
+    @classmethod
+    def post_reset_password(cls, data, use_instid=False):
+        return cls.c.post(cls.get_reset_password_url(use_instid),
+                          data=data)
+
+    def get_reset_password_stage2_url(self, user_id, sign_in_key, **kwargs):
+        url = reverse("relate-reset_password_stage2", args=(user_id, sign_in_key))
+        querystring = kwargs.pop("querystring", None)
+        if querystring is not None:
+            assert isinstance(querystring, dict)
+            url += ("?%s"
+                    % "&".join(
+                        ["%s=%s" % (k, v)
+                         for (k, v) in six.iteritems(querystring)]))
+        return url
+
+    def get_reset_password_stage2(self, user_id, sign_in_key, **kwargs):
+        return self.c.get(self.get_reset_password_stage2_url(
+            user_id=user_id, sign_in_key=sign_in_key, **kwargs))
+
+    def post_reset_password_stage2(self, user_id, sign_in_key, data, **kwargs):
+        return self.c.post(self.get_reset_password_stage2_url(
+            user_id=user_id, sign_in_key=sign_in_key, **kwargs), data=data)
 
     def get_fake_time_url(self):
         return reverse("relate-set_fake_time")
@@ -426,12 +510,32 @@ class SuperuserCreateMixin(ResponseContextMixin):
         pretended = session.get("relate_pretend_facilities", None)
         self.assertIsNone(pretended)
 
-    def assertFormErrorLoose(self, response, error, form_name="form"):  # noqa
-        """Assert that error is found in response.context['form'] errors"""
+    def assertFormErrorLoose(self, response, errors, form_name="form"):  # noqa
+        """Assert that errors is found in response.context['form'] errors"""
         import itertools
-        form_errors = list(
-            itertools.chain(*response.context[form_name].errors.values()))
-        self.assertIn(str(error), form_errors)
+        if errors is None:
+            errors = []
+        if not isinstance(errors, (list, tuple)):
+            errors = [errors]
+        try:
+            form_errors = list(
+                itertools.chain(*response.context[form_name].errors.values()))
+        except TypeError:
+            form_errors = None
+
+        if form_errors is None or not form_errors:
+            if errors:
+                self.fail("%s has no error" % form_name)
+            else:
+                return
+
+        if form_errors:
+            if not errors:
+                self.fail("%s unexpectedly has following errors: %s"
+                          % (form_name, repr(form_errors)))
+
+        for err in errors:
+            self.assertIn(err, form_errors)
 
 
 # {{{ defined here so that they can be used by in classmethod and instance method
@@ -444,11 +548,14 @@ def get_flow_page_ordinal_from_page_id(flow_session_id, page_id):
     return flow_page_data.page_ordinal
 
 
-def get_flow_page_id_from_page_ordinal(flow_session_id, page_ordinal):
+def get_flow_page_id_from_page_ordinal(flow_session_id, page_ordinal,
+                                       with_group_id=False):
     flow_page_data = FlowPageData.objects.get(
         flow_session__id=flow_session_id,
         page_ordinal=page_ordinal
     )
+    if with_group_id:
+        return flow_page_data.page_id, flow_page_data.group_id
     return flow_page_data.page_id
 
 # }}}
@@ -529,11 +636,6 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     get_user_model().objects.filter(pk__in=pks))
 
         cls.course_qset = Course.objects.all()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.c.logout()
-        super(CoursesTestMixinBase, cls).tearDownClass()
 
     @classmethod
     def create_user(cls, create_user_kwargs):
@@ -836,6 +938,15 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             get_flow_page_ordinal_from_page_id(
                 flow_params["flow_session_id"], page_id))
 
+    def get_page_id_via_page_oridnal(
+            self, page_ordinal, course_identifier=None, flow_session_id=None,
+            with_group_id=False):
+        flow_params = self.get_flow_params(course_identifier, flow_session_id)
+        return (
+            get_flow_page_id_from_page_ordinal(
+                flow_params["flow_session_id"], page_ordinal,
+                with_group_id=with_group_id))
+
     def get_page_view_url_by_ordinal(
             self, viewname, page_ordinal, course_identifier=None,
             flow_session_id=None):
@@ -947,14 +1058,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             flow_session_id, force_login_instructor)
 
     def assertSessionScoreEqual(  # noqa
-            self, expect_score, course_identifier=None, flow_session_id=None):
+            self, expected_score, course_identifier=None, flow_session_id=None):
         if flow_session_id is None:
             flow_params = self.get_flow_params(course_identifier, flow_session_id)
             flow_session_id = flow_params["flow_session_id"]
         flow_session = FlowSession.objects.get(id=flow_session_id)
-        if expect_score is not None:
+        if expected_score is not None:
             from decimal import Decimal
-            self.assertEqual(flow_session.points, Decimal(str(expect_score)))
+            self.assertEqual(flow_session.points, Decimal(str(expected_score)))
         else:
             self.assertIsNone(flow_session.points)
 
@@ -1021,6 +1132,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         if course_identifier is None:
             course_identifier = self.get_default_course_identifier()
         return reverse("relate-update_course", args=[course_identifier])
+
+    def get_course_commit_sha(self, participation, course=None):
+        course = course or self.get_default_course()
+        from course.content import get_course_commit_sha
+        return get_course_commit_sha(course, participation)
 
     def post_update_course_content(self, commit_sha,
                                    fetch_update=False,
@@ -1332,11 +1448,9 @@ class FallBackStorageMessageTestMixin(object):
 
     def setUp(self):  # noqa
         super(FallBackStorageMessageTestMixin, self).setUp()
-        self.settings_override = override_settings(MESSAGE_STORAGE=self.storage)
-        self.settings_override.enable()
-
-    def tearDown(self):  # noqa
-        self.settings_override.disable()
+        self.msg_settings_override = override_settings(MESSAGE_STORAGE=self.storage)
+        self.msg_settings_override.enable()
+        self.addCleanup(self.msg_settings_override.disable)
 
     def get_listed_storage_from_response(self, response):
         return list(self.get_response_context_value_by_name(response, 'messages'))
@@ -1379,11 +1493,15 @@ class FallBackStorageMessageTestMixin(object):
         for idx, m in enumerate(messages):
             six.assertRegex(self, m, expected_message_regexs[idx])
 
-    def assertResponseMessagesContains(self, response, expected_messages):  # noqa
+    def assertResponseMessagesContains(self, response, expected_messages,  # noqa
+                                       loose=False):
         storage = self.get_listed_storage_from_response(response)
         if isinstance(expected_messages, str):
             expected_messages = [expected_messages]
         messages = [m.message for m in storage]
+        if loose:
+            from django.utils.encoding import force_text
+            messages = " ".join([force_text(m) for m in messages])
         for em in expected_messages:
             self.assertIn(em, messages)
 
@@ -1421,14 +1539,10 @@ class SubprocessRunpyContainerMixin(object):
                            "provide PY3 envrionment")
 
         super(SubprocessRunpyContainerMixin, cls).setUpClass()
-        cls.faked_container_patch = mock.patch(
-            "course.page.code.SPAWN_CONTAINERS_FOR_RUNPY", False)
-        cls.faked_container_patch.start()
 
         python_executable = os.getenv("PY_EXE")
 
         if not python_executable:
-            import sys
             python_executable = sys.executable
 
         import subprocess
@@ -1446,17 +1560,27 @@ class SubprocessRunpyContainerMixin(object):
             stderr=subprocess.DEVNULL
         )
 
-        cls.faked_container_patch.start()
+    def setUp(self):
+        super(SubprocessRunpyContainerMixin, self).setUp()
+        self.faked_container_patch = mock.patch(
+            "course.page.code.SPAWN_CONTAINERS_FOR_RUNPY", False)
+        self.faked_container_patch.start()
+        self.addCleanup(self.faked_container_patch.stop)
 
     @classmethod
     def tearDownClass(cls):  # noqa
         super(SubprocessRunpyContainerMixin, cls).tearDownClass()
+
+        from course.page.code import SPAWN_CONTAINERS_FOR_RUNPY
+        # Make sure SPAWN_CONTAINERS_FOR_RUNPY is reset to True
+        assert SPAWN_CONTAINERS_FOR_RUNPY
         if sys.platform.startswith("win"):
             # Without these lines, tests on Appveyor hanged when all tests
-            # finished. However, On nix platforms, these lines resulted in test
+            # finished.
+            # However, On nix platforms, these lines resulted in test
             # failure when there were more than one TestCases which were using
-            # this mixin.
-            cls.faked_container_patch.stop()
+            # this mixin. So we don't kill the subprocess, and it won't bring
+            # bad side effects to remainder tests.
             cls.faked_container_process.kill()
 
 

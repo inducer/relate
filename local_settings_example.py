@@ -236,7 +236,7 @@ RELATE_SHOW_EDITOR_FORM = True
 # For example, you can define it like this:
 
 #<code>
-#   def my_fullname_format(firstname, lastname)
+#   def my_fullname_format(firstname, lastname):
 #         return "%s%s" % (last_name, first_name)
 #</code>
 
@@ -244,25 +244,52 @@ RELATE_SHOW_EDITOR_FORM = True
 
 #RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
 
-# You can also import it from your custom module.
+# You can also import it from your custom module, or use a dotted path of the
+# method, i.e.:
+#RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
 
 # }}}
 
-# {{{ system email appelation priority
+# {{{ system email appellation priority
 
-# RELATE's default email appelation of the receiver is a ordered list:
+# RELATE's default email appellation of the receiver is a ordered list:
 # ["first_name", "email", "username"], when first_name is not None
 # (e.g, first_name = "Foo"), the email will be opened
 # by "Dear Foo,". If first_name is None, then email will be used
-# as appelation, so on and so forth.
+# as appellation, so on and so forth.
 
-# you can override the appelation priority by supply a customized list
-# named RELATE_EMAIL_APPELATION_PRIORITY_LIST. The available
+# you can override the appellation priority by supply a customized list
+# named relate_email_appellation_priority_list. The available
 # elements include first_name, last_name, get_full_name, email and
 # username.
 
-# RELATE_EMAIL_APPELATION_PRIORITY_LIST = [
+# RELATE_EMAIL_APPELLATION_PRIORITY_LIST = [
 #         "full_name", "first_name", "email", "username"]
+
+# }}}
+
+# {{{ custom method for masking user profile
+# When a participation, for example, teaching assistant, has limited access to
+# students' profile (i.e., has_permission(pperm.view_participant_masked_profile)),
+# a built-in mask method (which is based on pk of user instances) is used be
+# default. The mask method can be overriden by the following a custom method, with
+# user as the args.
+
+#RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
+# For example, you can define it like this:
+
+#<code>
+#   def my_mask_method(user):
+#         return "User_%s" % str(user.pk + 100)
+#</code>
+
+# and then uncomment the following line and enable it with:
+
+#RELATE_USER_PROFILE_MASK_METHOD = my_mask_method
+
+# You can also import it from your custom module, or use a dotted path of the
+# method, i.e.:
+#RELATE_USER_PROFILE_MASK_METHOD = "path.to.my_mask_method"
 
 # }}}
 

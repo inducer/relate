@@ -28,6 +28,7 @@ from typing import cast
 
 import six
 import datetime  # noqa
+import markdown
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404)
@@ -36,8 +37,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import translation
 from django.utils.translation import (
         ugettext as _, pgettext_lazy)
-
-from codemirror import CodeMirrorTextarea, CodeMirrorJavascript
+from django.utils.decorators import ContextDecorator
 
 from relate.utils import string_concat
 from course.content import (
@@ -70,6 +70,8 @@ if False:
             FlowPageData,
             )
     from course.content import Repo_ish  # noqa
+    from codemirror import CodeMirrorTextarea  # noqa
+
 
 # }}}
 
@@ -938,6 +940,9 @@ def get_codemirror_widget(
         read_only=False,  # type: bool
         ):
     # type: (...) ->  CodeMirrorTextarea
+
+    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
+
     theme = "default"
     if read_only:
         theme += " relate-readonly"
@@ -1091,7 +1096,33 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
     import csv
     spamreader = csv.reader(file_contents)
     n_header_row = 0
-    for row in spamreader:
+    try:
+        if six.PY2:
+            row0 = spamreader.next()
+        else:
+            row0 = spamreader.__next__()
+    except Exception as e:
+        err_msg = type(e).__name__
+        err_str = str(e)
+        if err_msg == "Error":
+            err_msg = ""
+        else:
+            err_msg += ": "
+        err_msg += err_str
+
+        if "line contains NULL byte" in err_str:
+            err_msg = err_msg.rstrip(".") + ". "
+            err_msg += _("Are you sure the file is a CSV file other "
+                         "than a Microsoft Excel file?")
+
+        return False, (
+            string_concat(
+                pgettext_lazy("Starting of Error message", "Error"),
+                ": %s" % err_msg))
+
+    from itertools import chain
+
+    for row in chain([row0], spamreader):
         n_header_row += 1
         if n_header_row <= header_count:
             continue
@@ -1186,6 +1217,36 @@ def get_course_specific_language_choices():
     return tuple(filtered_options)
 
 
+class LanguageOverride(ContextDecorator):
+    def __init__(self, course, deactivate=False):
+        # type: (Course, bool) -> None
+        self.course = course
+        self.deactivate = deactivate
+
+        if course.force_lang:
+            self.language = course.force_lang
+        else:
+            from django.conf import settings
+            self.language = settings.RELATE_ADMIN_EMAIL_LOCALE
+
+    def __enter__(self):
+        # type: () -> None
+        self.old_language = translation.get_language()
+        if self.language is not None:
+            translation.activate(self.language)
+        else:
+            translation.deactivate_all()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # type: (Any, Any, Any) -> None
+        if self.old_language is None:
+            translation.deactivate_all()
+        elif self.deactivate:
+            translation.deactivate()
+        else:
+            translation.activate(self.old_language)
+
+
 class RelateJinjaMacroBase(object):
     def __init__(self, course, repo, commit_sha):
         # type: (Optional[Course], Repo_ish, bytes) -> None
@@ -1275,11 +1336,12 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
         c.HighlightMagicsPreprocessor.enabled = False
 
         import os
-        from django.conf import settings
 
         # Place the template in course template dir
+        import course
         template_path = os.path.join(
-            settings.BASE_DIR, "course", "templates", "course", "jinja2")
+                os.path.dirname(course.__file__),
+                "templates", "course", "jinja2")
         c.TemplateExporter.template_path.append(template_path)
 
         from nbconvert import HTMLExporter
@@ -1292,6 +1354,38 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
 
         return body
 
+
+NBCONVERT_PRE_OPEN_RE = re.compile(r"<pre\s*>\s*<relate_ipynb\s*>")
+NBCONVERT_PRE_CLOSE_RE = re.compile(r"</relate_ipynb\s*>\s*</pre\s*>")
+
+
+class NBConvertHTMLPostprocessor(markdown.postprocessors.Postprocessor):
+    def run(self, text):
+        text = NBCONVERT_PRE_OPEN_RE.sub("", text)
+        text = NBCONVERT_PRE_CLOSE_RE.sub("", text)
+        return text
+
+
+class NBConvertExtension(markdown.Extension):
+    def extendMarkdown(self, md, md_globals):  # noqa
+        md.postprocessors['relate_nbconvert'] = NBConvertHTMLPostprocessor(md)
+
 # }}}
+
+
+def get_custom_page_types_stop_support_deadline():
+    # type: () -> Optional[datetime.datetime]
+    from django.conf import settings
+    custom_page_types_removed_deadline = getattr(
+        settings, "RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE", None)
+
+    force_deadline = datetime.datetime(2019, 1, 1, 0, 0, 0, 0)
+
+    if (custom_page_types_removed_deadline is None
+            or custom_page_types_removed_deadline > force_deadline):
+        custom_page_types_removed_deadline = force_deadline
+
+    from relate.utils import localize_datetime
+    return localize_datetime(custom_page_types_removed_deadline)
 
 # vim: foldmethod=marker

@@ -30,7 +30,7 @@ from tests.base_test_mixins import SingleCoursePageTestMixin
 
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
-    FlowRuleException, GradeChange
+    FlowRuleException
 )
 
 
@@ -91,6 +91,7 @@ class GradeTestMixin(SingleCoursePageTestMixin):
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
+    # todo: move to test_csv
     def test_view_export_gradebook_csv(self):
         resp = self.c.get(reverse("relate-export_gradebook_csv",
                                   args=[self.course.identifier]))
@@ -145,22 +146,8 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(FlowSession.objects.all().count(),
                          len(self.flow_session_ids))
 
-    def test_view_import_grades_without_header(self):
-        csv_data = [(self.instructor_participation.user.username,
-                        99, "Almost!"),
-                    (self.student_participation.user.username,
-                        50, "I hate this course :(")]
-        self.check_import_grade(csv_data)
-
-    def test_view_import_grades_with_header(self):
-        csv_data = [("username", "grade", "feedback"),
-                    (self.instructor_participation.user.username,
-                        99, "Almost!"),
-                    (self.student_participation.user.username,
-                        50, "I hate this course :(")]
-        self.check_import_grade(csv_data, True)
-
-    # Seems just show the answer
+    # Just show the grading interfaces of the unanswered pages
+    # the answered pages are tested in tests.teat_pages.test_generic
     def test_view_grade_flow_page(self):
         params = {"course_identifier": self.course.identifier,
                   "flow_session_id": self.flow_session_ids[0]}
@@ -294,63 +281,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         # Should have two exception rules now
         # One for access and one for grading
         self.assertEqual(len(FlowRuleException.objects.all()), 2 * session_nums)
-
-    # Helper method for creating in memory csv files to test import grades
-    def creat_grading_csv(self, data):
-        try:
-            import cStringIO  # PY2
-        except ImportError:
-            import io as cStringIO  # PY3
-
-        csvfile = cStringIO.StringIO()
-
-        import csv
-        csvwriter = csv.writer(csvfile)
-        for d in data:
-            # (username, grades, feedback)
-            csvwriter.writerow([d[0], d[1], d[2]])
-        # Reset back to the start of file to avoid invalid form error
-        # Otherwise it will consider the file as empty
-        csvfile.seek(0)
-        return csvfile
-
-    # Helper method for testing import grades
-    def check_import_grade(self, csv_data, headers=False):
-        # Check import form works well
-        resp = self.c.get(reverse("relate-import_grades",
-                                  args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-
-        # Check number of GradeChange
-        self.assertEqual(GradeChange.objects.all().count(), self.n_quiz_takers)
-
-        # Check attributes
-        self.assertEqual(GradingOpportunity.objects.all().count(), 1)
-        opportunity = GradingOpportunity.objects.all().first()
-        self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.flow_id, opportunity.flow_id)
-
-        # Prepare data
-        # Prepare csv
-        csv_file = self.creat_grading_csv(csv_data)
-        # Prepare form data
-        data = {'points_column': ['2'], 'attr_column': ['1'],
-                'feedback_column': ['3'],
-                'grading_opportunity': [str(opportunity.id)],
-                'format': ['csv' + ('head' if headers else '')],
-                'attempt_id': ['main'], 'max_points': ['100'],
-                'import': ['Import'], 'attr_type': ['email_or_id'],
-                'file': csv_file}
-
-        # Check importing
-        resp = self.c.post(reverse("relate-import_grades",
-                                    args=[self.course.identifier]), data)
-        self.assertEqual(resp.status_code, 200)
-
-        # Check number of GradeChange
-        num_diff = len(csv_data) - 1 if headers else len(csv_data)
-        self.assertEqual(GradeChange.objects.all().count(),
-                         self.n_quiz_takers + num_diff)
 
     # Helper method for testing grant exceptions for new session
     def check_grant_new_exception(self, params):

@@ -84,6 +84,23 @@ class TestSetFakeTime(SingleCourseTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertSessionFakeTimeIsNone(self.c.session)
 
+    def test_set_fake_time_by_instructor_when_impersonating(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_set_fake_time()
+            self.assertEqual(resp.status_code, 200)
+
+            self.post_impersonate(impersonatee=self.student_participation.user)
+
+            # set fake time
+            resp = self.post_set_fake_time(self.set_fake_time_data)
+            self.assertEqual(resp.status_code, 200)
+            self.assertSessionFakeTimeEqual(self.c.session, self.fake_time)
+
+            # unset fake time
+            resp = self.post_set_fake_time(self.unset_fake_time_data)
+            self.assertEqual(resp.status_code, 200)
+            self.assertSessionFakeTimeIsNone(self.c.session)
+
 
 @override_settings(RELATE_FACILITIES=RELATE_FACILITIES)
 class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
@@ -118,6 +135,25 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
 
     def test_pretend_facilities_by_instructor(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_set_pretend_facilities()
+            self.assertEqual(resp.status_code, 200)
+
+            resp = self.post_set_pretend_facilities(
+                self.set_pretend_facilities_data)
+            self.assertEqual(resp.status_code, 200)
+            self.assertSessionPretendFacilitiesContains(self.c.session,
+                                                        "test_center1")
+
+            resp = self.post_set_pretend_facilities(
+                self.unset_pretend_facilities_data)
+            self.assertEqual(resp.status_code, 200)
+            self.assertSessionPretendFacilitiesIsNone(self.c.session)
+
+    def test_pretend_facilities_by_instructor_when_impersonating(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+
+            self.post_impersonate(impersonatee=self.student_participation.user)
+
             resp = self.get_set_pretend_facilities()
             self.assertEqual(resp.status_code, 200)
 

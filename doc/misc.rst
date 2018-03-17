@@ -4,8 +4,8 @@ Installation
 RELATE currently works with Python 2.7 and Python 3. (By default, :file:`requirements.txt`
 is set up for Python 3. See below for edit instructions if you are using Python 2.)
 
-Install `bower <http://bower.io/>`_ and its dependencies, as described on its
-web page.
+Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
+(alternative package manager) at your option.
 
 (Optional) Make a virtualenv to install to::
 
@@ -36,7 +36,11 @@ Initialize the database::
 
 Retrieve static (JS/CSS) dependencies::
 
-    python manage.py bower_install
+    npm install
+
+or
+
+    yarn
 
 Run the server::
 
@@ -233,7 +237,7 @@ Edit ``django.po``. For each ``msgid`` string, put it's translation in
 ``Translators:`` strings above some ``msgid`` strings, are used to provide
 more information for better understanding of the text to be translated.
 A Simplified Chinese version (demo) of translation is included for Chinese
-users, with locale name ``zh_CN``.
+users, with locale name ``zh_HANS``.
 
 Enabling Translations
 ---------------------
