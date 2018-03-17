@@ -47,7 +47,7 @@ Run the server::
     python manage.py runserver
 
 Open a browser to http://localhost:8000, sign in (your user name will be the
-same as your system user name, or whatever `whoami` returned above) and select
+same as your system user name, or whatever ``whoami`` returned above) and select
 "Set up new course".
 
 As you play with the web interface, you may notice that some long-running tasks
@@ -55,6 +55,18 @@ just sit there: That is because RELATE relies on a task queue to process
 those long-running tasks. Start a worker by running::
 
     celery worker -A relate
+
+To make this work, you also need a message broker running. This uses the
+setting ``CELERY_BROKER_URL`` in ``local_settings.py`` and defaults to
+``'amqp://'``.  With that setting, you need for example `Rabbit MQ
+<https://www.rabbitmq.com/>`_ or another implementation installed.  On
+Debian-like Linux distributions (e.g. Ubuntu), the following should suffice::
+
+    apt-get install rabbitmq-server
+
+See the `Celery documentation
+<http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-broker_url>`_
+for more information on alternate brokers and settings.
 
 Note that, due to limitations of the demo configuration (i.e. due to not having
 out-of-process caches available), long-running tasks can only show
