@@ -50,8 +50,10 @@ echo "PATH AFTER ACTIVATE: $PATH"
 curl -k https://bootstrap.pypa.io/get-pip.py | ${PY_EXE} -
 
 PIP="${PY_EXE} -m pip"
+hash -r
 
 which pip
+which $PY_EXE
 
 $PIP install pipenv
 PIPENV="${PY_EXE} -m pipenv"
