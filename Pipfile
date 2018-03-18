@@ -102,7 +102,7 @@ typing = "*"
 
 # For rendering Jupyter notebooks
 nbconvert = ">=5.2.1"
-ipython = "*"
+ipython = "<6"
 
 [dev-packages]
 
