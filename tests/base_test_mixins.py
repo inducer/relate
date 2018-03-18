@@ -80,7 +80,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "username": "test_instructor",
                     "password": "test_instructor",
                     "email": "test_instructor@example.com",
-                    "first_name": "Test",
+                    "first_name": "Test_ins",
                     "last_name": "Instructor"},
                 "status": participation_status.active
             },
@@ -90,7 +90,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "username": "test_ta",
                     "password": "test",
                     "email": "test_ta@example.com",
-                    "first_name": "Test",
+                    "first_name": "Test_ta",
                     "last_name": "TA"},
                 "status": participation_status.active
             },
@@ -100,7 +100,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "username": "test_student",
                     "password": "test",
                     "email": "test_student@example.com",
-                    "first_name": "Test",
+                    "first_name": "Test_stu",
                     "last_name": "Student"},
                 "status": participation_status.active
             }

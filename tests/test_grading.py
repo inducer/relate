@@ -23,10 +23,14 @@ THE SOFTWARE.
 """
 
 from django.core import mail
-from django.test import TestCase
+from django.test import TestCase, override_settings
+
+from course.models import ParticipationPermission
+from course.constants import participation_permission as pperm
 
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests import factories
+from tests.utils import mock
 
 
 class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin):
@@ -89,7 +93,6 @@ class SingleCourseQuizPageGradeInterfaceTest(
 
     def test_feedback_and_notify(self):
         grade_data_extra_kwargs = {
-            "released": 'on',
             "feedback_text": 'test feedback'
         }
 
@@ -102,6 +105,91 @@ class SingleCourseQuizPageGradeInterfaceTest(
             self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].reply_to, [])
+
+        # Instructor also get the feedback email
+        self.assertIn(self.course.notify_email, mail.outbox[0].recipients())
+
+        # make sure the name (appellation) is in the email body, not the masked one
+        self.assertIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            "Dear user",
+            mail.outbox[0].body)
+
+    def test_feedback_and_notify_instructor_pperm_masked_profile(self):
+
+        # add view_participant_masked_profile pperm to instructor
+        pp = ParticipationPermission(
+            participation=self.instructor_participation,
+            permission=pperm.view_participant_masked_profile
+        )
+        pp.save()
+        self.instructor_participation.individual_permissions.set([pp])
+
+        grade_data_extra_kwargs = {
+            "feedback_text": 'test feedback',
+            "notify": "on"}
+        self.submit_page_human_grading_by_page_id_and_test(
+            self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].reply_to, [])
+
+        # Instructor also get the feedback email
+        self.assertIn(self.course.notify_email, mail.outbox[0].recipients())
+
+        # make sure the name (appellation) not in the email body, not the masked one
+        self.assertNotIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+        self.assertIn("Dear user", mail.outbox[0].body)
+
+    @override_settings(
+        EMAIL_CONNECTIONS={
+            "grader_feedback": {
+                'backend': 'tests.resource.MyFakeEmailBackend',
+            },
+        },
+        GRADER_FEEDBACK_EMAIL_FROM="my_feedback_from_email@example.com"
+    )
+    def test_feedback_notify_with_grader_feedback_connection(self):
+        grade_data_extra_kwargs = {
+            "feedback_text": 'test feedback',
+            "notify": "on"
+        }
+
+        from django.core.mail import get_connection
+        connection = get_connection(
+            backend='django.core.mail.backends.locmem.EmailBackend')
+
+        with mock.patch("django.core.mail.get_connection") as mock_get_connection:
+            mock_get_connection.return_value = connection
+            self.submit_page_human_grading_by_page_id_and_test(
+                self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
+            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(mail.outbox[0].from_email,
+                             "my_feedback_from_email@example.com")
+            self.assertEqual(
+                mock_get_connection.call_args[1]["backend"],
+                "tests.resource.MyFakeEmailBackend"
+            )
+
+        # make sure the name (appellation) is in the email body, not the masked one
+        self.assertIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            "Dear user",
+            mail.outbox[0].body)
 
     def test_feedback_email_may_reply(self):
         grade_data_extra_kwargs = {
@@ -118,18 +206,118 @@ class SingleCourseQuizPageGradeInterfaceTest(
         self.assertEqual(mail.outbox[0].reply_to,
                          [self.ta_participation.user.email])
 
+        # Instructor also get the feedback email
+        self.assertIn(self.course.notify_email, mail.outbox[0].recipients())
+
+        # make sure the name (appellation) is in the email body, not the masked one
+        self.assertIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            "Dear user",
+            mail.outbox[0].body)
+
     def test_notes_and_notify(self):
         grade_data_extra_kwargs = {
             "notes": 'test notes'
         }
-        self.submit_page_human_grading_by_page_id_and_test(
-            self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
-        self.assertEqual(len(mail.outbox), 0)
 
-        grade_data_extra_kwargs["notify_instructor"] = "on"
-        self.submit_page_human_grading_by_page_id_and_test(
-            self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            self.submit_page_human_grading_by_page_id_and_test(
+                self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs,
+                force_login_instructor=False)
+            self.assertEqual(len(mail.outbox), 0)
+
+            grade_data_extra_kwargs["notify_instructor"] = "on"
+            self.submit_page_human_grading_by_page_id_and_test(
+                self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs,
+                force_login_instructor=False)
+            self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.course.notify_email, mail.outbox[0].recipients())
+
+        # make sure the name (appellation) is in the email body, not the masked one
+        self.assertIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+
+    def test_notes_and_notify_ta_pperm_masked_profile(self):
+
+        # add view_participant_masked_profile pperm to ta
+        pp = ParticipationPermission(
+            participation=self.ta_participation,
+            permission=pperm.view_participant_masked_profile
+        )
+        pp.save()
+        self.ta_participation.individual_permissions.set([pp])
+
+        grade_data_extra_kwargs = {
+            "notes": 'test notes',
+            "notify_instructor": "on"}
+
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            self.submit_page_human_grading_by_page_id_and_test(
+                self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs,
+                force_login_instructor=False)
         self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.course.notify_email, mail.outbox[0].recipients())
+
+        # make sure the name (appellation) not in the email body,
+        # the masked one is used instead
+        self.assertNotIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+
+    @override_settings(
+        EMAIL_CONNECTIONS={
+            "grader_feedback": {
+                'backend': 'tests.resource.MyFakeEmailBackend',
+            },
+        },
+        GRADER_FEEDBACK_EMAIL_FROM="my_feedback_from_email@example.com"
+    )
+    def test_notes_and_notify_with_grader_feedback_connection(self):
+        grade_data_extra_kwargs = {
+            "notes": 'test notes',
+            "notify_instructor": "on"
+        }
+
+        from django.core.mail import get_connection
+        connection = get_connection(
+            backend='django.core.mail.backends.locmem.EmailBackend')
+
+        with mock.patch("django.core.mail.get_connection") as mock_get_connection:
+            mock_get_connection.return_value = connection
+            with self.temporarily_switch_to_user(self.ta_participation.user):
+                self.submit_page_human_grading_by_page_id_and_test(
+                    self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs,
+                    force_login_instructor=False)
+
+            self.assertEqual(len(mail.outbox), 1)
+
+        self.assertIn(self.course.notify_email, mail.outbox[0].recipients())
+        self.assertEqual(mail.outbox[0].from_email,
+                         "my_feedback_from_email@example.com")
+        self.assertEqual(
+            mock_get_connection.call_args[1]["backend"],
+            "tests.resource.MyFakeEmailBackend"
+        )
+
+        # make sure the name (appellation) is in the email body, not the masked one
+        self.assertIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
 
     # {{{ tests on grading history dropdown
     def test_grade_history_failure_no_perm(self):
