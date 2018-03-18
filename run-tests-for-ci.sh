@@ -52,15 +52,18 @@ export PATH=`pwd`/.env/local/bin:$PATH
 
 PIP="${PY_EXE} $(which pip)"
 
+$PIP install pipenv
+PIPENV="${PY_EXE} -m pipenv"
+
 if [[ "$PY_EXE" = python2* ]]; then
-  grep -Ev "django>|django=" requirements.txt > req.txt
-  $PIP install "django<2"
+  ##grep -Ev "django>|django=" requirements.txt > req.txt
+  #$PIP install "django<2"
   $PIP install mock
 else
   cp requirements.txt req.txt
 fi
 
-$PIP install -r req.txt
+$PIPENV install
 
 cp local_settings_example.py local_settings.py
 

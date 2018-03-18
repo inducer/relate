@@ -7,10 +7,13 @@ is set up for Python 3. See below for edit instructions if you are using Python 
 Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
 (alternative package manager) at your option.
 
-(Optional) Make a virtualenv to install to::
+Install `pipenv <https://docs.pipenv.org/>`_ (the linked page provides
+instructions for many systems). On a generic Linux/Unix system, the following
+should work:
 
     virtualenv my-relate-env
     source my-relate-env/bin/activate
+    python -m pip install pipenv
 
 To install, clone the repository::
 
@@ -22,7 +25,7 @@ Enter the relate directory::
 
 Install the dependencies::
 
-    pip install -r requirements.txt
+    pipenv install
 
 Copy (and, optionally, edit) the example configuration::
 
