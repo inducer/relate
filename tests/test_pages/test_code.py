@@ -23,7 +23,6 @@ THE SOFTWARE.
 """
 
 import six
-import zipfile
 import unittest
 from unittest import skipIf
 from django.test import TestCase, override_settings, RequestFactory
@@ -40,14 +39,14 @@ from course.utils import FlowPageContext, CoursePageContext
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 
-from tests.test_pages import QUIZ_FLOW_ID
-from tests.test_pages.test_generic import MESSAGE_ANSWER_SAVED_TEXT
+from tests.contants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
 
 from tests.base_test_mixins import (
     SubprocessRunpyContainerMixin, SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
     FallBackStorageMessageTestMixin)
 from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
+    SingleCoursePageSandboxTestBaseMixin
 )
 from tests.utils import LocmemBackendTestsMixin, mock, mail
 
@@ -85,9 +84,10 @@ AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
 
 
 class SingleCourseQuizPageCodeQuestionTest(
-            SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
+            SingleCourseQuizPageTestMixin, FallBackStorageMessageTestMixin,
             SubprocessRunpyContainerMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
+
+    skip_code_question = False
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -102,223 +102,125 @@ class SingleCourseQuizPageCodeQuestionTest(
 
     def test_code_page_correct(self):
         page_id = "addition"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = b + a\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(1)
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_page_wrong(self):
         page_id = "addition"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a - b\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(0)
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": 'c = a - b\r'},
+                expected_grade=0))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_page_identical_to_reference(self):
         page_id = "addition"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a + b\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": 'c = a + b\r'},
+                expected_grade=1))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp,
-                ("It looks like you submitted code "
-                 "that is identical to the reference "
-                 "solution. This is not allowed."))
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(1)
-
-    def test_download_code_submissions_no_answer(self):
-        group_page_id = "quiz_tail/addition"
-        self.end_flow()
-
-        # no answer
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.post_download_all_submissions_by_group_page_id(
-                group_page_id=group_page_id, flow_id=self.flow_id)
-            self.assertEqual(resp.status_code, 200)
-            prefix, zip_file = resp["Content-Disposition"].split('=')
-            self.assertEqual(prefix, "attachment; filename")
-            self.assertEqual(resp.get('Content-Type'), "application/zip")
-
-            buf = six.BytesIO(resp.content)
-            with zipfile.ZipFile(buf, 'r') as zf:
-                self.assertIsNone(zf.testzip())
-                self.assertEqual(
-                    len([f for f in zf.filelist if f.filename.endswith('.py')]), 0)
-                for f in zf.filelist:
-                    self.assertGreater(f.file_size, 0)
-
-    def test_download_code_submissions_has_answer(self):
-        group_page_id = "quiz_tail/addition"
-
-        # create an answer
-        page_id = "addition"
-        self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a - b\r']})
-        self.end_flow()
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.post_download_all_submissions_by_group_page_id(
-                group_page_id=group_page_id, flow_id=self.flow_id)
-            self.assertEqual(resp.status_code, 200)
-            prefix, zip_file = resp["Content-Disposition"].split('=')
-            self.assertEqual(prefix, "attachment; filename")
-            self.assertEqual(resp.get('Content-Type'), "application/zip")
-
-            buf = six.BytesIO(resp.content)
-            with zipfile.ZipFile(buf, 'r') as zf:
-                self.assertIsNone(zf.testzip())
-                # todo: make more assertions in terms of file content
-                self.assertEqual(
-                    len([f for f in zf.filelist if f.filename.endswith('.py')]), 1)
-                for f in zf.filelist:
-                    self.assertGreater(f.file_size, 0)
-
-    def test_code_page_analytics_no_answer(self):
-        # analytics with no answer
-        page_id = "addition"
-        self.end_flow()
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.get_flow_page_analytics(
-                flow_id=self.flow_id, group_id="quiz_tail",
-                page_id=page_id)
-            self.assertEqual(resp.status_code, 200)
-
-    def test_code_page_analytics_has_answer(self):
-        # create an answer
-        page_id = "addition"
-        self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a - b\r']})
-        self.end_flow()
-
-        # todo: make more assertions in terms of content
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.get_flow_page_analytics(
-                flow_id=self.flow_id, group_id="quiz_tail",
-                page_id=page_id)
-            self.assertEqual(resp.status_code, 200)
+            submit_answer_response,
+            ("It looks like you submitted code "
+             "that is identical to the reference "
+             "solution. This is not allowed."))
 
     def test_code_human_feedback_page_submit(self):
         page_id = "pymult"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a * b\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(None)
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_human_feedback_page_grade1(self):
         page_id = "pymult"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = b * a\r']})
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "'c' looks good")
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"]
-        }
-
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2/2 points.")
 
         # since the test_code didn't do a feedback.set_points() after
         # check_scalar()
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": 'c = b * a\r'},
+                expected_grade=None))
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            post_grade_response, "The human grader assigned 2/2 points.")
+
         self.assertSessionScoreEqual(None)
 
     def test_code_human_feedback_page_grade2(self):
         page_id = "pymult"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a / b\r']})
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "'c' is inaccurate")
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0/2 points.")
-
-        self.assertEqual(self.end_flow().status_code, 200)
 
         feedback_text = "This is the feedback from instructor."
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": 'c = a / b\r'},
+                grade_data_extra_kwargs={"feedback_text": feedback_text},
+                expected_grade=2))
 
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"],
-            "feedback_text": feedback_text
-        }
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2/2 points.")
+            submit_answer_response, "'c' is inaccurate")
+
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, feedback_text)
-        self.assertSessionScoreEqual(2)
+            submit_answer_response, "The autograder assigned 0/2 points.")
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            post_grade_response, "The human grader assigned 2/2 points.")
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            post_grade_response, "The human grader assigned 2/2 points.")
 
     def test_code_human_feedback_page_grade3(self):
         page_id = "py_simple_list"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['b = [a + 1] * 50\r']})
+
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": 'b = [a + 1] * 50\r'},
+                do_grading=False))
 
         # this is testing feedback.finish(0.3, feedback_msg)
         # 2 * 0.3 = 0.6
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0.90/3 points.")
+            submit_answer_response, "The autograder assigned 0.90/3 points.")
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The elements in b have wrong values")
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        # The page is not graded before human grading.
-        self.assertSessionScoreEqual(None)
+            submit_answer_response, "The elements in b have wrong values")
 
     def test_code_human_feedback_page_grade4(self):
         page_id = "py_simple_list"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['b = [a] * 50\r']})
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "b looks good")
-        self.assertEqual(self.end_flow().status_code, 200)
+            submit_answer_response, "b looks good")
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            post_grade_response, "The human grader assigned 1/1 points.")
 
         grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"]
+            "grade_percent": "",
+            "released": "on"
         }
+        resp = self.submit_page_human_grading_by_page_id_and_test(
+            page_id, grade_data=grade_data, expected_grades=None)
 
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 1/1 points.")
-
-        self.assertSessionScoreEqual(4)
-
-        grade_data = {
-            "released": ["on"]
-        }
-
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
         self.assertFormErrorLoose(resp, None)
-        self.assertSessionScoreEqual(None)
 
         # not released
         feedback_text = "This is the feedback from instructor."
         grade_data = {
-            "grade_percent": ["100"],
+            "grade_percent": "100",
             "feedback_text": feedback_text
         }
 
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
+        resp = self.submit_page_human_grading_by_page_id_and_test(
+            page_id, grade_data=grade_data, expected_grades=None)
+
         self.assertResponseContextAnswerFeedbackNotContainsFeedback(
                 resp, "The human grader assigned 1/1 points.")
         self.assertResponseContextAnswerFeedbackNotContainsFeedback(
                 resp, feedback_text)
-
-        self.assertSessionScoreEqual(None)
 
 
 class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
@@ -1440,8 +1342,6 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
     https://github.com/inducer/relate/issues/269
     https://github.com/inducer/relate/commit/2af0ad7aa053b735620b2cf0bae0b45822bfb87f  # noqa
     """
-
-    flow_id = QUIZ_FLOW_ID
 
     @classmethod
     def setUpTestData(cls):  # noqa

@@ -188,8 +188,6 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
                            SubprocessRunpyContainerMixin, TestCase):
     # test course.utils.LanguageOverride
 
-    flow_id = "quiz-test"
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(LanguageOverrideTest, cls).setUpTestData()

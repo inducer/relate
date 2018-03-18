@@ -24,11 +24,13 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
-from tests.base_test_mixins import SingleCourseTestMixin
 
 from course.sandbox import (
     PAGE_SESSION_KEY_PREFIX, PAGE_DATA_SESSION_KEY_PREFIX,
     ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
+
+from tests.base_test_mixins import SingleCourseTestMixin
+from tests.contants import PAGE_WARNINGS, HAVE_VALID_PAGE
 
 QUESTION_MARKUP = """
 type: TextQuestion
@@ -46,9 +48,6 @@ answers:
 """
 
 CORRECT_ANSWER = 0.5
-PAGE_WARNINGS = "page_warnings"
-PAGE_ERRORS = "page_errors"
-HAVE_VALID_PAGE = "have_valid_page"
 
 
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):

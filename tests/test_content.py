@@ -26,14 +26,11 @@ import json
 from django.test import TestCase
 from tests.base_test_mixins import (
     improperly_configured_cache_patch, SingleCoursePageTestMixin)
-from tests.test_pages import QUIZ_FLOW_ID
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
 
 
 class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
-
-    flow_id = QUIZ_FLOW_ID
 
     @classmethod
     def setUpTestData(cls):  # noqa

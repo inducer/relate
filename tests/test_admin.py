@@ -32,6 +32,7 @@ from course import models, admin
 
 from tests.base_test_mixins import AdminTestMixin
 from tests import factories
+from tests.contants import QUIZ_FLOW_ID
 
 
 class CourseAdminTest(AdminTestMixin, TestCase):
@@ -184,20 +185,20 @@ class CourseAdminTest(AdminTestMixin, TestCase):
 
                 if request.user == self.superuser:
                     self.assertIn(
-                        ('All', "001-linalg-recap", "quiz-test"),
+                        ('All', "001-linalg-recap", QUIZ_FLOW_ID),
                         filterspec_list)
                 elif request.user == self.instructor1:
                     self.assertNotIn(
-                        ('All', "001-linalg-recap", "quiz-test"),
+                        ('All', "001-linalg-recap", QUIZ_FLOW_ID),
                         filterspec_list)
                     self.assertNotIn(
-                        ('All', "quiz-test"), filterspec_list)
+                        ('All', QUIZ_FLOW_ID), filterspec_list)
                     self.assertNotIn(
-                        ("quiz-test", ), filterspec_list)
+                        (QUIZ_FLOW_ID, ), filterspec_list)
                 else:
                     assert request.user == self.instructor2
                     self.assertNotIn(
-                        ('All', "001-linalg-recap", "quiz-test"),
+                        ('All', "001-linalg-recap", QUIZ_FLOW_ID),
                         filterspec_list)
                     self.assertNotIn(
                         ('All', "001-linalg-recap"), filterspec_list)

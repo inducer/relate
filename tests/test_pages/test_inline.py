@@ -27,10 +27,11 @@ from django.test import TestCase
 from course.content import get_repo_blob
 from course.flow import get_page_behavior
 
-from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
+    SingleCoursePageSandboxTestBaseMixin
 )
+from tests.contants import PAGE_ERRORS
 from tests.utils import mock
 
 INLINE_MULTI_MARKDOWN_SINGLE = """
@@ -1033,39 +1034,37 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                   '70398167cb9c2fe52d35/images/classroom.jpeg">', html=True)
 
 
-class InlineMultiPageUpdateTest(SingleCoursePageTestMixin, TestCase):
-    flow_id = "quiz-test"
+class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
+    page_id = "inlinemulti"
 
     def setUp(self):
         super(InlineMultiPageUpdateTest, self).setUp()
         self.c.force_login(self.student_participation.user)
 
     def test_quiz_inline_not_show_correctness(self):
-        page_id = "inlinemulti"
-
         self.start_flow(self.flow_id)
-        answer_data = {
-            'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
-            'blank4': '5', 'blank5': 'Bar', 'choice2': '0',
-            'choice_a': '0'}
 
         with mock.patch("course.flow.get_page_behavior") as mock_get_bhv:
             mock_get_bhv.side_effect = (
                 get_page_behavior_not_show_correctness_side_effect)
-            resp = self.post_answer_by_page_id(page_id, answer_data)
-            self.assertEqual(resp.status_code, 200)
+
+            submit_answer_response, _ = (
+                self.submit_page_answer_by_page_id_and_test(
+                    self.page_id, do_grading=False))
+            self.assertEqual(submit_answer_response.status_code, 200)
 
             # 7 answer
-            self.assertContains(resp, 'correctness="1"', count=0)
-            self.assertContains(resp, 'correctness="0"', count=0)
+            self.assertContains(submit_answer_response, 'correctness="1"', count=0)
+            self.assertContains(submit_answer_response, 'correctness="0"', count=0)
+
+            self.end_flow()
+            self.assertSessionScoreEqual(10)
 
     # {{{ Test bug fix in https://github.com/inducer/relate/pull/262
 
     def test_add_new_question(self):
         """Test bug fix in https://github.com/inducer/relate/pull/262
         """
-        page_id = "inlinemulti"
-
         with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
             mock_get_repo_blob.side_effect = get_repo_blob_side_effect
 
@@ -1074,7 +1073,7 @@ class InlineMultiPageUpdateTest(SingleCoursePageTestMixin, TestCase):
 
             self.start_flow(self.flow_id)
             resp = self.c.get(
-                self.get_page_url_by_page_id(page_id=page_id))
+                self.get_page_url_by_page_id(page_id=self.page_id))
 
             self.assertEqual(resp.status_code, 200)
             self.assertContains(resp, "(old version)")
@@ -1083,65 +1082,22 @@ class InlineMultiPageUpdateTest(SingleCoursePageTestMixin, TestCase):
                 'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
                 'blank4': '5', 'choice2': '0', 'choice_a': '0'}
 
-            resp = self.post_answer_by_page_id(page_id, answer_data)
-            self.assertEqual(resp.status_code, 200)
-
-            self.end_flow()
-            self.assertSessionScoreEqual(10)
+            submit_answer_response, _ = (
+                self.submit_page_answer_by_page_id_and_test(
+                    self.page_id, answer_data=answer_data, expected_grades=10))
 
             # 6 correct answer
-            self.assertContains(resp, 'correctness="1"', count=6)
+            self.assertContains(submit_answer_response,
+                                'correctness="1"', count=6)
 
         self.post_update_course_content(
             commit_sha=b"4124e0c23e369d6709a670398167cb9c2fe52d35")
         resp = self.c.get(
-            self.get_page_url_by_page_id(page_id=page_id))
+            self.get_page_url_by_page_id(page_id=self.page_id))
 
         self.assertEqual(resp.status_code, 200)
 
         # 7 answer
         self.assertContains(resp, 'correctness="1"', count=7)
-
-    def test_add_new_question_not_show_correctness(self):
-        page_id = "inlinemulti"
-
-        with mock.patch("course.flow.get_page_behavior") as mock_get_bhv:
-            mock_get_bhv.side_effect = (
-                get_page_behavior_not_show_correctness_side_effect)
-
-            with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
-                mock_get_repo_blob.side_effect = get_repo_blob_side_effect
-
-                self.post_update_course_content(
-                    commit_sha=b"ec41a2de73a99e6022060518cb5c5c162b88cdf5")
-
-                self.start_flow(self.flow_id)
-                resp = self.c.get(
-                    self.get_page_url_by_page_id(page_id=page_id))
-
-                self.assertEqual(resp.status_code, 200)
-                self.assertContains(resp, "(old version)")
-
-                answer_data = {
-                    'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
-                    'blank4': '5', 'choice2': '0', 'choice_a': '0'}
-
-                resp = self.post_answer_by_page_id(page_id, answer_data)
-                self.assertEqual(resp.status_code, 200)
-
-                # 6 correct answer
-                self.assertContains(resp, 'correctness="1"', count=0)
-                self.assertContains(resp, 'correctness="0"', count=0)
-
-            self.post_update_course_content(
-                commit_sha=b"4124e0c23e369d6709a670398167cb9c2fe52d35")
-            resp = self.c.get(
-                self.get_page_url_by_page_id(page_id=page_id))
-
-            self.assertEqual(resp.status_code, 200)
-
-            # 7 answer
-            self.assertContains(resp, 'correctness="1"', count=0)
-            self.assertContains(resp, 'correctness="0"', count=0)
 
 # vim: fdm=marker

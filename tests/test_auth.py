@@ -51,6 +51,7 @@ from tests.base_test_mixins import (
 from tests.utils import (
     LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
 from tests.factories import UserFactory, ParticipationFactory
+from tests.contants import QUIZ_FLOW_ID
 
 # settings names
 EDITABLE_INST_ID_BEFORE_VERI = "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION"
@@ -273,7 +274,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
     def test_impersonator_flow_page_visit(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            self.start_flow("quiz-test")
+            self.start_flow(QUIZ_FLOW_ID)
             self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(FlowPageVisit.objects.count(), 1)
             first_visit = FlowPageVisit.objects.first()

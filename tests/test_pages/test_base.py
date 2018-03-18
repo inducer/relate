@@ -30,10 +30,11 @@ from course.page.base import (
     create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode
 )
 
-from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
+    SingleCoursePageSandboxTestBaseMixin
 )
+from tests.contants import PAGE_ERRORS
 from tests.test_grading import SingleCourseQuizPageGradeInterfaceTestMixin
 from tests.utils import mock
 
@@ -269,10 +270,7 @@ def post_form_side_effect(self, page_context, page_data, post_data, files_data):
         widget_type=getattr(self.page_desc, "widget", None))
 
 
-class PageBaseGradeDeprecationTest(SingleCoursePageTestMixin, TestCase):
-
-    flow_id = "quiz-test"
-
+class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
     def setUp(self):
         super(PageBaseGradeDeprecationTest, self).setUp()
         self.c.force_login(self.student_participation.user)
@@ -280,8 +278,7 @@ class PageBaseGradeDeprecationTest(SingleCoursePageTestMixin, TestCase):
 
     def test_update_grade_data_from_grading_form(self):
         page_id = "hgtext"
-        self.post_answer_by_page_id(
-            page_id, answer_data={"answer": TEST_ANSWER_MARKDOWN})
+        self.submit_page_answer_by_page_id_and_test(page_id)
         self.end_flow()
 
         with mock.patch(
@@ -295,8 +292,8 @@ class PageBaseGradeDeprecationTest(SingleCoursePageTestMixin, TestCase):
                 update_grade_data_from_grading_form_v2_side_effect_super)
 
             grade_data = {
-                "grade_percent": ["100"],
-                "released": ["on"]
+                "grade_percent": "100",
+                "released": "on"
             }
             resp = self.post_grade_by_page_id(page_id, grade_data)
 
@@ -369,8 +366,6 @@ def grading_form_to_html_side_effect_super(
 
 class PageBaseGradingFormToHtmlTest(SingleCourseQuizPageGradeInterfaceTestMixin,
                                     TestCase):
-    flow_id = "quiz-test"
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(PageBaseGradingFormToHtmlTest, cls).setUpTestData()

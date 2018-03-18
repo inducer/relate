@@ -38,6 +38,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 
+from tests.contants import QUIZ_FLOW_ID, TEST_PAGE_TUPLE
 from tests.utils import mock
 from course.models import (
     Course, Participation, ParticipationRole, FlowSession, FlowPageData,
@@ -45,7 +46,7 @@ from course.models import (
 from course.constants import participation_status, user_status
 from course.content import get_course_repo_path
 
-ATOL = 1e-05
+CORRECTNESS_ATOL = 1e-05
 
 CREATE_SUPERUSER_KWARGS = {
     "username": "test_admin",
@@ -278,7 +279,7 @@ class ResponseContextMixin(object):
                           % expected_correctness)
             self.assertTrue(
                 abs(float(answer_feedback.correctness)
-                    - float(str(expected_correctness))) < ATOL,
+                    - float(str(expected_correctness))) < CORRECTNESS_ATOL,
                 "%s does not equal %s"
                 % (str(answer_feedback.correctness)[:5],
                    str(expected_correctness)[:5]))
@@ -1450,9 +1451,7 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
     # This serves as cache
     _default_session_id = None
 
-    @property
-    def flow_id(self):
-        raise NotImplementedError
+    flow_id = QUIZ_FLOW_ID
 
     @classmethod
     def update_default_flow_session_id(cls, course_identifier):
@@ -1496,6 +1495,301 @@ class TwoCoursePageTestMixin(TwoCourseTestMixin):
             cls._course1_default_session_id = new_session_id
         elif course_identifier == cls.course2.identifier:
             cls._course2_default_session_id = new_session_id
+
+
+class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
+
+    skip_code_question = True
+
+    @classmethod
+    def ensure_grading_ui_get(cls, page_id):
+        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
+            url = cls.get_page_grading_url_by_page_id(page_id)
+            resp = cls.c.get(url)
+            assert resp.status_code == 200
+
+    @classmethod
+    def ensure_analytic_page_get(cls, group_id, page_id):
+        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
+            resp = cls.get_flow_page_analytics(
+                flow_id=cls.flow_id, group_id=group_id,
+                page_id=page_id)
+            assert resp.status_code == 200
+
+    @classmethod
+    def ensure_download_submission(
+            cls, group_id, page_id, dl_file_extension=None):
+        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
+            group_page_id = "%s/%s" % (group_id, page_id)
+            resp = cls.post_download_all_submissions_by_group_page_id(
+                group_page_id=group_page_id, flow_id=cls.flow_id)
+            assert resp.status_code == 200
+            prefix, zip_file = resp["Content-Disposition"].split('=')
+            assert prefix == "attachment; filename"
+            assert resp.get('Content-Type') == "application/zip"
+            if dl_file_extension:
+                buf = six.BytesIO(resp.content)
+                import zipfile
+                with zipfile.ZipFile(buf, 'r') as zf:
+                    assert zf.testzip() is None
+                    # todo: make more assertions in terms of file content
+
+                    for f in zf.filelist:
+                        assert f.file_size > 0
+
+                    assert len([f for f in zf.filelist if
+                             f.filename.endswith(dl_file_extension)]) > 0
+
+    @classmethod
+    def submit_page_answer_by_ordinal_and_test(
+            cls, page_ordinal, use_correct_answer=True, answer_data=None,
+            skip_code_question=True,
+            expected_grades=None, expected_post_answer_status_code=200,
+            do_grading=False, do_human_grade=False, grade_data=None,
+            grade_data_extra_kwargs=None,
+            dl_file_extension=None,
+            ensure_grading_ui_get_before_grading=False,
+            ensure_grading_ui_get_after_grading=False,
+            ensure_analytic_page_get_before_submission=False,
+            ensure_analytic_page_get_after_submission=False,
+            ensure_analytic_page_get_before_grading=False,
+            ensure_analytic_page_get_after_grading=False,
+            ensure_download_before_submission=False,
+            ensure_download_after_submission=False,
+            ensure_download_before_grading=False,
+            ensure_download_after_grading=False):
+        page_id = cls.get_page_id_via_page_oridnal(page_ordinal)
+
+        return cls.submit_page_answer_by_page_id_and_test(
+            page_id, use_correct_answer,
+            answer_data, skip_code_question, expected_grades,
+            expected_post_answer_status_code,
+            do_grading, do_human_grade,
+            grade_data, grade_data_extra_kwargs, dl_file_extension,
+            ensure_grading_ui_get_before_grading,
+            ensure_grading_ui_get_after_grading,
+            ensure_analytic_page_get_before_submission,
+            ensure_analytic_page_get_after_submission,
+            ensure_analytic_page_get_before_grading,
+            ensure_analytic_page_get_after_grading,
+            ensure_download_before_submission,
+            ensure_download_after_submission,
+            ensure_download_before_grading,
+            ensure_download_after_grading)
+
+    @classmethod
+    def submit_page_answer_by_page_id_and_test(
+            cls, page_id, use_correct_answer=True, answer_data=None,
+            skip_code_question=True,
+            expected_grades=None, expected_post_answer_status_code=200,
+            do_grading=False, do_human_grade=False, grade_data=None,
+            grade_data_extra_kwargs=None,
+            dl_file_extension=None,
+            ensure_grading_ui_get_before_grading=False,
+            ensure_grading_ui_get_after_grading=False,
+            ensure_analytic_page_get_before_submission=False,
+            ensure_analytic_page_get_after_submission=False,
+            ensure_analytic_page_get_before_grading=False,
+            ensure_analytic_page_get_after_grading=False,
+            ensure_download_before_submission=False,
+            ensure_download_after_submission=False,
+            ensure_download_before_grading=False,
+            ensure_download_after_grading=False):
+
+        if answer_data is not None:
+            assert isinstance(answer_data, dict)
+            use_correct_answer = False
+
+        submit_answer_response = None
+        post_grade_response = None
+
+        for page_tuple in TEST_PAGE_TUPLE:
+            if skip_code_question and page_tuple.need_runpy:
+                continue
+            if page_id == page_tuple.page_id:
+                group_id = page_tuple.group_id
+                if ensure_grading_ui_get_before_grading:
+                    cls.ensure_grading_ui_get(page_id)
+
+                if ensure_analytic_page_get_before_submission:
+                    cls.ensure_analytic_page_get(group_id, page_id)
+
+                if ensure_download_before_submission:
+                    cls.ensure_download_submission(group_id, page_id)
+
+                if page_tuple.correct_answer is not None:
+
+                    if answer_data is None:
+                        answer_data = page_tuple.correct_answer
+
+                    if page_id in ["anyup", "proof"]:
+                        file_path = answer_data["uploaded_file"]
+                        if not file_path:
+                            # submitting an empty answer
+                            submit_answer_response = (
+                                cls.post_answer_by_page_id(page_id, answer_data))
+                        else:
+                            if isinstance(file_path, list):
+                                file_path, = file_path
+
+                            file_path = file_path.strip()
+                            with open(file_path, 'rb') as fp:
+                                answer_data = {"uploaded_file": fp}
+                                submit_answer_response = (
+                                    cls.post_answer_by_page_id(
+                                        page_id, answer_data))
+                    else:
+                        submit_answer_response = (
+                            cls.post_answer_by_page_id(page_id, answer_data))
+
+                    assert (submit_answer_response.status_code
+                            == expected_post_answer_status_code)
+
+                    if ensure_analytic_page_get_after_submission:
+                        cls.ensure_analytic_page_get(group_id, page_id)
+
+                    if ensure_download_after_submission:
+                        cls.ensure_download_submission(
+                            group_id, page_id)
+
+                if not do_grading:
+                    break
+
+                assert cls.end_flow().status_code == 200
+
+                if ensure_analytic_page_get_before_grading:
+                    cls.ensure_analytic_page_get(group_id, page_id)
+
+                if ensure_download_before_grading:
+                    cls.ensure_download_submission(group_id, page_id)
+
+                if page_tuple.correct_answer is not None:
+                    if use_correct_answer:
+                        expected_grades = page_tuple.full_points
+
+                    if page_tuple.need_human_grade:
+                        if not do_human_grade:
+                            cls.assertSessionScoreEqual(None)
+                            break
+                        if grade_data is not None:
+                            assert isinstance(grade_data, dict)
+                        else:
+                            grade_data = page_tuple.grade_data.copy()
+
+                        if grade_data_extra_kwargs:
+                            assert isinstance(grade_data_extra_kwargs, dict)
+                            grade_data.update(grade_data_extra_kwargs)
+
+                        post_grade_response = cls.post_grade_by_page_id(
+                            page_id, grade_data)
+                    cls.assertSessionScoreEqual(expected_grades)
+
+                    if not dl_file_extension:
+                        dl_file_extension = page_tuple.dl_file_extension
+
+                    if ensure_download_after_grading:
+                        cls.ensure_download_submission(
+                            group_id, page_id,
+                            dl_file_extension=page_tuple.dl_file_extension)
+
+                if ensure_analytic_page_get_after_grading:
+                    cls.ensure_analytic_page_get(group_id, page_id)
+
+                if ensure_grading_ui_get_after_grading:
+                    cls.ensure_grading_ui_get(page_id)
+
+        return submit_answer_response, post_grade_response
+
+    def default_submit_page_answer_by_page_id_and_test(self, page_id,
+                                                       answer_data=None,
+                                                       expected_grade=None,
+                                                       do_grading=True,
+                                                       grade_data=None,
+                                                       grade_data_extra_kwargs=None,
+                                                       ):
+        return self.submit_page_answer_by_page_id_and_test(
+            page_id, answer_data=answer_data,
+            skip_code_question=self.skip_code_question,
+            expected_grades=expected_grade, expected_post_answer_status_code=200,
+            do_grading=do_grading, do_human_grade=True, grade_data=grade_data,
+            grade_data_extra_kwargs=grade_data_extra_kwargs,
+            ensure_grading_ui_get_before_grading=True,
+            ensure_grading_ui_get_after_grading=True,
+            ensure_analytic_page_get_before_submission=True,
+            ensure_analytic_page_get_after_submission=True,
+            ensure_analytic_page_get_before_grading=True,
+            ensure_analytic_page_get_after_grading=True,
+            ensure_download_before_submission=True,
+            ensure_download_after_submission=True,
+            ensure_download_before_grading=True,
+            ensure_download_after_grading=True)
+
+    @classmethod
+    def submit_page_human_grading_by_page_id_and_test(
+            cls, page_id,
+            expected_post_grading_status_code=200,
+            grade_data=None, expected_grades=None,
+            grade_data_extra_kwargs=None,
+            force_login_instructor=True,
+            ensure_grading_ui_get_before_grading=False,
+            ensure_grading_ui_get_after_grading=False,
+            ensure_analytic_page_get_before_grading=False,
+            ensure_analytic_page_get_after_grading=False,
+            ensure_download_before_grading=False,
+            ensure_download_after_grading=False):
+
+        post_grade_response = None
+
+        for page_tuple in TEST_PAGE_TUPLE:
+            if page_id == page_tuple.page_id:
+                group_id = page_tuple.group_id
+                if ensure_grading_ui_get_before_grading:
+                    cls.ensure_grading_ui_get(page_id)
+
+                if ensure_analytic_page_get_before_grading:
+                    cls.ensure_analytic_page_get(group_id, page_id)
+
+                if ensure_download_before_grading:
+                    cls.ensure_download_submission(group_id, page_id)
+
+                if not page_tuple.need_human_grade:
+                    break
+
+                assign_full_grades = True
+
+                if grade_data is not None:
+                    assert isinstance(grade_data, dict)
+                    assign_full_grades = False
+                else:
+                    grade_data = page_tuple.grade_data.copy()
+
+                if assign_full_grades:
+                    expected_grades = page_tuple.full_points
+
+                if grade_data_extra_kwargs:
+                    assert isinstance(grade_data_extra_kwargs, dict)
+                    grade_data.update(grade_data_extra_kwargs)
+
+                post_grade_response = cls.post_grade_by_page_id(
+                    page_id, grade_data,
+                    force_login_instructor=force_login_instructor)
+
+                assert (post_grade_response.status_code
+                        == expected_post_grading_status_code)
+
+                if post_grade_response.status_code == 200:
+                    cls.assertSessionScoreEqual(expected_grades)
+
+                if ensure_download_after_grading:
+                    cls.ensure_download_submission(group_id, page_id)
+
+                if ensure_analytic_page_get_after_grading:
+                    cls.ensure_analytic_page_get(group_id, page_id)
+
+                if ensure_grading_ui_get_after_grading:
+                    cls.ensure_grading_ui_get(page_id)
+
+        return post_grade_response
 
 
 class FallBackStorageMessageTestMixin(object):

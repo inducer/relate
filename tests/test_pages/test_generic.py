@@ -25,9 +25,7 @@ THE SOFTWARE.
 """
 
 import six
-import os
 from base64 import b64encode
-from collections import namedtuple
 
 import unittest
 from django.test import TestCase
@@ -39,318 +37,20 @@ from course.page.base import (
     AnswerFeedback, get_auto_feedback,
     validate_point_count, InvalidFeedbackPointsError)
 
+from tests.contants import (
+    MESSAGE_ANSWER_SAVED_TEXT,
+    MESSAGE_ANSWER_FAILED_SAVE_TEXT, TEST_TEXT_FILE_PATH, TEST_PDF_FILE_PATH,
+    TEST_HGTEXT_MARKDOWN_ANSWER_WRONG)
+
 from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
-    SubprocessRunpyContainerMixin)
+    SingleCourseQuizPageTestMixin,
+    FallBackStorageMessageTestMixin)
 from tests.utils import mock
 from tests import factories
 
-QUIZ_FLOW_ID = "quiz-test"
 
-MESSAGE_ANSWER_SAVED_TEXT = "Answer saved."
-MESSAGE_ANSWER_FAILED_SAVE_TEXT = "Failed to submit answer."
-FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "..", 'fixtures')
-
-
-def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
-    return os.path.join(fixture_path, file_name)
-
-
-TEST_TEXT_FILE_PATH = get_upload_file_path("test_file.txt")
-TEST_PDF_FILE_PATH = get_upload_file_path("test_file.pdf")
-
-TEST_HGTEXT_MARKDOWN_ANSWER = u"""
-type: ChoiceQuestion
-id: myquestion
-shuffle: True
-prompt: |
-
-    # What is a quarter?
-
-choices:
-
-  - "1"
-  - "2"
-  - ~CORRECT~ 1/4
-  - ~CORRECT~ $\\frac{1}{4}$
-  - 四分之三
-"""
-
-TEST_HGTEXT_MARKDOWN_ANSWER_WRONG = u"""
-type: ChoiceQuestion
-id: myquestion
-shuffle: True
-prompt: |
-
-    # What is a quarter?
-
-choices:
-
-  - "1"
-  - "2"
-  - 1/4
-  - $\\frac{1}{4}$
-  - 四分之三
-"""
-
-PageTuple = namedtuple(
-    'PageTuple', [
-        'page_id',
-        'group_id',
-        'need_human_grade',
-        'expecting_grade',
-        'need_runpy',
-        'correct_answer',
-        'grade_data',
-        'full_points',
-    ]
-)
-
-TEST_AUDIO_OUTPUT_ANSWER = """
-import numpy as np
-t = np.linspace(0, 1, sample_rate, endpoint=False)
-signal = np.sin(2*np.pi*t * 440)
-
-output_audio(signal)
-"""
-
-TEST_PAGE_TUPLE = (
-    PageTuple("welcome", "intro", False, False, False, None, {}, None),
-    PageTuple("half", "quiz_start", False, True, False, {"answer": '0.5'}, {}, 5),
-    PageTuple("krylov", "quiz_start", False, True, False, {"choice": ['0']}, {}, 2),
-    PageTuple("ice_cream_toppings", "quiz_start", False, True, False,
-              {"choice": ['0', '1', '4']}, {}, 1),
-    PageTuple("matrix_props", "quiz_start", False, True, False,
-              {"choice": ['0', '3']}, {}, 1),
-    PageTuple("inlinemulti", "quiz_start", False, True, False,
-              {'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
-               'blank4': '5', 'blank5': 'Bar', 'choice2': '0',
-               'choice_a': '0'}, {}, 10),
-    PageTuple("fear", "quiz_start", True, False, False, {"answer": "NOTHING!!!"},
-              {}, 0),
-    PageTuple("age_group", "quiz_start", True, False, False, {"choice": 3}, {}, 0),
-    PageTuple("hgtext", "quiz_tail", True, True, False,
-              {"answer": TEST_HGTEXT_MARKDOWN_ANSWER},
-              {"grade_percent": "100", "released": "on"}, 5),
-    PageTuple("addition", "quiz_tail", False, True, True, {"answer": 'c = b + a\r'},
-              {"grade_percent": "100", "released": "on"}, 1),
-    PageTuple("pymult", "quiz_tail", True, True, True, {"answer": 'c = a * b\r'},
-              {"grade_percent": "100", "released": "on"}, None),
-    PageTuple("neumann", "quiz_tail", False, True, False, {"answer": "1/(1-A)"}, {},
-              5),
-    PageTuple("py_simple_list", "quiz_tail", True, True, True,
-              {"answer": 'b = [a] * 50\r'},
-              {"grade_percent": "100", "released": "on"}, 4),
-
-    # Skipped
-    # PageTuple("test_audio_output", "quiz_tail", True, True, True,
-    #           {"answer": TEST_AUDIO_OUTPUT_ANSWER}, {}, 1),
-
-    PageTuple("quarter", "quiz_tail", False, True, False, {"answer": ['0.25']},
-              {}, 0),
-    PageTuple("anyup", "quiz_tail", True, False, False, TEST_TEXT_FILE_PATH,
-              {"grade_percent": "100", "released": "on"}, 5),
-    PageTuple("proof", "quiz_tail", True, False, False, TEST_PDF_FILE_PATH,
-              {"grade_percent": "100", "released": "on"}, 5),
-    PageTuple("eigvec", "quiz_tail", False, True, False, {"answer": 'matrix'}, {},
-              2),
-    PageTuple("lsq", "quiz_tail", False, True, False, {"choice": ['2']}, {}, 1),
-)
-
-
-class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin,
-                                    FallBackStorageMessageTestMixin):
-    flow_id = QUIZ_FLOW_ID
-
-    skip_code_question = True
-
-    @classmethod
-    def ensure_grading_ui_get(cls, page_id):
-        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
-            url = cls.get_page_grading_url_by_page_id(page_id)
-            resp = cls.c.get(url)
-            assert resp.status_code == 200
-
-    @classmethod
-    def ensure_analytic_page_get(cls, group_id, page_id):
-        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
-            resp = cls.get_flow_page_analytics(
-                flow_id=cls.flow_id, group_id=group_id,
-                page_id=page_id)
-            assert resp.status_code == 200
-
-    @classmethod
-    def ensure_download_submission(cls, group_id, page_id):
-        with cls.temporarily_switch_to_user(cls.instructor_participation.user):
-            group_page_id = "%s/%s" % (group_id, page_id)
-            resp = cls.post_download_all_submissions_by_group_page_id(
-                group_page_id=group_page_id, flow_id=cls.flow_id)
-            assert resp.status_code == 200
-            prefix, zip_file = resp["Content-Disposition"].split('=')
-            assert prefix == "attachment; filename"
-            assert resp.get('Content-Type') == "application/zip"
-
-    @classmethod
-    def submit_page_answer_by_ordinal_and_test(
-            cls, page_ordinal, use_correct_answer=True, answer_data=None,
-            skip_code_question=True,
-            expected_grade=None, expected_post_answer_status_code=200,
-            do_grading=False, do_human_grade=False, grade_data=None,
-            ensure_grading_ui_get_before_grading=False,
-            ensure_grading_ui_get_after_grading=False,
-            ensure_analytic_page_get_before_submission=False,
-            ensure_analytic_page_get_after_submission=False,
-            ensure_analytic_page_get_before_grading=False,
-            ensure_analytic_page_get_after_grading=False,
-            ensure_download_before_submission=False,
-            ensure_download_after_submission=False,
-            ensure_download_before_grading=False,
-            ensure_download_after_grading=False):
-        page_id = cls.get_page_id_via_page_oridnal(page_ordinal)
-
-        return cls.submit_page_answer_by_page_id_and_test(
-            page_id, use_correct_answer,
-            answer_data, skip_code_question, expected_grade,
-            expected_post_answer_status_code,
-            do_grading, do_human_grade,
-            grade_data,
-            ensure_grading_ui_get_before_grading,
-            ensure_grading_ui_get_after_grading,
-            ensure_analytic_page_get_before_submission,
-            ensure_analytic_page_get_after_submission,
-            ensure_analytic_page_get_before_grading,
-            ensure_analytic_page_get_after_grading,
-            ensure_download_before_submission,
-            ensure_download_after_submission,
-            ensure_download_before_grading,
-            ensure_download_after_grading)
-
-    @classmethod
-    def submit_page_answer_by_page_id_and_test(
-            cls, page_id, use_correct_answer=True, answer_data=None,
-            skip_code_question=True,
-            expected_grade=None, expected_post_answer_status_code=200,
-            do_grading=False, do_human_grade=False, grade_data=None,
-            ensure_grading_ui_get_before_grading=False,
-            ensure_grading_ui_get_after_grading=False,
-            ensure_analytic_page_get_before_submission=False,
-            ensure_analytic_page_get_after_submission=False,
-            ensure_analytic_page_get_before_grading=False,
-            ensure_analytic_page_get_after_grading=False,
-            ensure_download_before_submission=False,
-            ensure_download_after_submission=False,
-            ensure_download_before_grading=False,
-            ensure_download_after_grading=False):
-
-        if answer_data is not None:
-            if page_id not in ["anyup", "proof"]:
-                assert isinstance(answer_data, dict)
-            use_correct_answer = False
-
-        submit_answer_response = None
-        post_grade_response = None
-
-        for page_tuple in TEST_PAGE_TUPLE:
-            if skip_code_question and page_tuple.need_runpy:
-                continue
-            if page_id == page_tuple.page_id:
-                group_id = page_tuple.group_id
-                if ensure_grading_ui_get_before_grading:
-                    cls.ensure_grading_ui_get(page_id)
-
-                if ensure_analytic_page_get_before_submission:
-                    cls.ensure_analytic_page_get(group_id, page_id)
-
-                if ensure_download_before_submission:
-                    cls.ensure_download_submission(group_id, page_id)
-
-                if page_tuple.correct_answer is not None:
-
-                    if answer_data is None:
-                        answer_data = page_tuple.correct_answer
-
-                    if page_id in ["anyup", "proof"]:
-                        with open(answer_data, 'rb') as fp:
-                            answer_data = {"uploaded_file": fp}
-                            submit_answer_response = (
-                                cls.post_answer_by_page_id(page_id, answer_data))
-                    else:
-                        submit_answer_response = (
-                            cls.post_answer_by_page_id(page_id, answer_data))
-
-                    assert (submit_answer_response.status_code
-                            == expected_post_answer_status_code)
-
-                    if ensure_analytic_page_get_after_submission:
-                        cls.ensure_analytic_page_get(group_id, page_id)
-
-                    if ensure_download_after_submission:
-                        cls.ensure_download_submission(group_id, page_id)
-
-                if not do_grading:
-                    break
-
-                assert cls.end_flow().status_code == 200
-
-                if ensure_analytic_page_get_before_grading:
-                    cls.ensure_analytic_page_get(group_id, page_id)
-
-                if ensure_download_before_grading:
-                    cls.ensure_download_submission(group_id, page_id)
-
-                if page_tuple.correct_answer is not None:
-                    if use_correct_answer:
-                        expected_grade = page_tuple.full_points
-
-                    if page_tuple.need_human_grade:
-                        if not do_human_grade:
-                            cls.assertSessionScoreEqual(None)
-                            break
-                        if grade_data is not None:
-                            assert isinstance(grade_data, dict)
-                        else:
-                            grade_data = page_tuple.grade_data
-
-                        post_grade_response = cls.post_grade_by_page_id(
-                            page_id, grade_data)
-                    cls.assertSessionScoreEqual(expected_grade)
-
-                    if ensure_download_after_grading:
-                        cls.ensure_download_submission(group_id, page_id)
-
-                if ensure_analytic_page_get_after_grading:
-                    cls.ensure_analytic_page_get(group_id, page_id)
-
-                if ensure_grading_ui_get_after_grading:
-                    cls.ensure_grading_ui_get(page_id)
-
-        return submit_answer_response, post_grade_response
-
-    def default_submit_page_answer_by_page_id_and_test(self, page_id,
-                                                       answer_data=None,
-                                                       expected_grade=None,
-                                                       do_grading=True,
-                                                       grade_data=None):
-        return self.submit_page_answer_by_page_id_and_test(
-            page_id, answer_data=answer_data,
-            skip_code_question=self.skip_code_question,
-            expected_grade=expected_grade, expected_post_answer_status_code=200,
-            do_grading=do_grading, do_human_grade=True, grade_data=grade_data,
-            ensure_grading_ui_get_before_grading=True,
-            ensure_grading_ui_get_after_grading=True,
-            ensure_analytic_page_get_before_submission=True,
-            ensure_analytic_page_get_after_submission=True,
-            ensure_analytic_page_get_before_grading=True,
-            ensure_analytic_page_get_after_grading=True,
-            ensure_download_before_submission=True,
-            ensure_download_after_submission=True,
-            ensure_download_before_grading=True,
-            ensure_download_after_grading=True)
-
-
-class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-
+class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
+                               FallBackStorageMessageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCourseQuizPageTest, cls).setUpTestData()
@@ -375,11 +75,11 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin, TestCase):
 
         # test PageOrdinalOutOfRange
         resp = self.c.get(
-            self.get_page_url_by_ordinal(page_ordinal=page_count+1))
+            self.get_page_url_by_ordinal(page_ordinal=page_count + 1))
         self.assertEqual(resp.status_code, 302)
         _, _, params = resolve(resp.url)
         #  ensure redirected to last page
-        self.assertEqual(int(params["page_ordinal"]), page_count-1)
+        self.assertEqual(int(params["page_ordinal"]), page_count - 1)
 
     # {{{ auto graded questions
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
@@ -588,7 +288,8 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin, TestCase):
         # change answer
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data=TEST_PDF_FILE_PATH, expected_grade=5))
+                page_id, answer_data={"uploaded_file": TEST_PDF_FILE_PATH},
+                expected_grade=5))
 
         self.assertResponseMessagesContains(submit_answer_response,
                                             MESSAGE_ANSWER_SAVED_TEXT)
@@ -614,7 +315,8 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin, TestCase):
         # wrong MIME type, a text file
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data=TEST_TEXT_FILE_PATH, do_grading=False))
+                page_id, answer_data={"uploaded_file": TEST_TEXT_FILE_PATH},
+                do_grading=False))
         self.assertResponseMessagesContains(submit_answer_response,
                                             MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
@@ -696,130 +398,17 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin, TestCase):
         ta_flow_session = factories.FlowSessionFactory(
             participation=self.ta_participation)
         resp = self.get_page_submit_history_by_ordinal(
-                page_ordinal=1, flow_session_id=ta_flow_session.id)
+            page_ordinal=1, flow_session_id=ta_flow_session.id)
         self.assertEqual(resp.status_code, 403)
 
     # }}}
-
-
-class SingleCourseQuizPageCodeQuestionTest(
-            SingleCourseQuizPageTestMixin, SubprocessRunpyContainerMixin, TestCase):
-
-    skip_code_question = False
-    flow_id = QUIZ_FLOW_ID
-
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageCodeQuestionTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
-        cls.start_flow(cls.flow_id)
-
-    def setUp(self):  # noqa
-        super(SingleCourseQuizPageCodeQuestionTest, self).setUp()
-        # This is needed to ensure student is logged in
-        self.c.force_login(self.student_participation.user)
-
-    def test_code_page_correct(self):
-        page_id = "addition"
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
-
-    def test_code_page_wrong(self):
-        page_id = "addition"
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a - b\r'},
-                expected_grade=0))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
-
-    def test_code_page_identical_to_reference(self):
-        page_id = "addition"
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a + b\r'},
-                expected_grade=1))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            submit_answer_response,
-            ("It looks like you submitted code "
-             "that is identical to the reference "
-             "solution. This is not allowed."))
-
-    def test_code_human_feedback_page_submit(self):
-        page_id = "pymult"
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
-
-    def test_code_human_feedback_page_grade1(self):
-        page_id = "pymult"
-
-        # since the test_code didn't do a feedback.set_points() after
-        # check_scalar()
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = b * a\r'},
-                expected_grade=None))
-
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            post_grade_response, "The human grader assigned 2/2 points.")
-
-        self.assertSessionScoreEqual(None)
-
-    def test_code_human_feedback_page_grade2(self):
-        page_id = "pymult"
-
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a / b\r'},
-                expected_grade=2))
-
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            submit_answer_response, "'c' is inaccurate")
-
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            submit_answer_response, "The autograder assigned 0/2 points.")
-
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            post_grade_response, "The human grader assigned 2/2 points.")
-
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            post_grade_response, "The human grader assigned 2/2 points.")
-
-    def test_code_human_feedback_page_grade3(self):
-        page_id = "py_simple_list"
-
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'b = [a + 1] * 50\r'},
-                do_grading=False))
-
-        # this is testing feedback.finish(0.3, feedback_msg)
-        # 2 * 0.3 = 0.6
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            submit_answer_response, "The autograder assigned 0.90/3 points.")
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            submit_answer_response, "The elements in b have wrong values")
-
-    def test_code_human_feedback_page_grade4(self):
-        page_id = "py_simple_list"
-        submit_answer_response, post_grade_response = (
-            self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            submit_answer_response, "b looks good")
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-            post_grade_response, "The human grader assigned 1/1 points.")
 
 
 class ValidatePointCountTest(unittest.TestCase):
     """
     test course.page.base.validate_point_count
     """
+
     def test_none(self):
         self.assertIsNone(validate_point_count(None))
 
@@ -909,10 +498,10 @@ class AnswerFeedBackTest(unittest.TestCase):
 
     def test_validate_point_count_called(self):
         import random
-        with mock.patch("course.page.base.validate_point_count")\
-                as mock_validate_point_count,\
-                mock.patch("course.page.base.get_auto_feedback")\
-                as mock_get_auto_feedback:
+        with mock.patch("course.page.base.validate_point_count") \
+                as mock_validate_point_count, \
+                mock.patch("course.page.base.get_auto_feedback") \
+                        as mock_get_auto_feedback:
             mock_validate_point_count.side_effect = lambda x: x
 
             mock_get_auto_feedback.side_effect = lambda x: x
@@ -947,6 +536,7 @@ class GetAutoFeedbackTest(unittest.TestCase):
     """
     test course.page.base.get_auto_feedback
     """
+
     def test_none(self):
         self.assertIn("No information", get_auto_feedback(None))
 
@@ -1013,6 +603,5 @@ class GetAutoFeedbackTest(unittest.TestCase):
 
             get_auto_feedback(correctness=None)
             mock_validate_point_count.assert_called_once_with(None)
-
 
 # vim: fdm=marker

@@ -22,22 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from six import BytesIO
-import zipfile
 from django.test import TestCase
 import unittest
 
 from course.page.choice import markup_to_html_plain
 
-from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, NONE_PARTICIPATION_USER_CREATE_KWARG_LIST
-)
+from tests.base_test_mixins import SingleCoursePageTestMixin
 from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
+    SingleCoursePageSandboxTestBaseMixin
 )
+from tests.contants import PAGE_ERRORS
 from tests.utils import mock
-
-from . import QUIZ_FLOW_ID
 
 # The last item is within a pair of backticks
 # https://github.com/inducer/relate/issues/121
@@ -671,8 +666,6 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
 
 class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(BrokenPageDataTest, cls).setUpTestData()
@@ -708,85 +701,6 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
         self.assertContains(
             resp, ("existing choice permutation not "
                    "suitable for number of choices in question"))
-
-
-class NormalizedAnswerTest(SingleCoursePageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-    none_participation_user_create_kwarg_list = (
-        NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
-
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(NormalizedAnswerTest, cls).setUpTestData()
-        cls.extra_participation_user1 = cls.non_participation_users[0]
-        cls.create_participation(cls.course, cls.extra_participation_user1)
-        cls.c.force_login(cls.extra_participation_user1)
-        cls.start_flow(cls.flow_id)
-        cls.end_flow()
-
-        cls.c.force_login(cls.student_participation.user)
-        cls.start_flow(cls.flow_id)
-
-    def setUp(self):  # noqa
-        super(NormalizedAnswerTest, self).setUp()
-        # This is needed to ensure student is logged in
-        with self.temporarily_switch_to_user(self.student_participation.user):
-            self.post_answer_by_page_id(page_id="ice_cream_toppings",
-                                        answer_data={"choice": ['0', '1', '4']})
-            self.post_answer_by_page_id(page_id="krylov",
-                                        answer_data={"choice": ['0']})
-            self.end_flow()
-        self.c.force_login(self.instructor_participation.user)
-
-    def test_multiple_choice_submissions(self):
-        group_page_id = "quiz_start/ice_cream_toppings"
-        resp = self.post_download_all_submissions_by_group_page_id(
-            group_page_id=group_page_id, flow_id=self.flow_id)
-        self.assertEqual(resp.status_code, 200)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
-        self.assertEqual(prefix, "attachment; filename")
-        self.assertEqual(resp.get('Content-Type'), "application/zip")
-
-        buf = BytesIO(resp.content)
-        with zipfile.ZipFile(buf, 'r') as zf:
-            self.assertIsNone(zf.testzip())
-            # todo: make more assertions in terms of file content
-            self.assertEqual(
-                len([f for f in zf.filelist if f.filename.endswith('.json')]), 1)
-            for f in zf.filelist:
-                self.assertGreater(f.file_size, 0)
-
-    def test_multiple_choice_page_analytics(self):
-        # todo: make more assertions in terms of content
-        resp = self.get_flow_page_analytics(
-            flow_id=self.flow_id, group_id="quiz_start",
-            page_id="ice_cream_toppings")
-        self.assertEqual(resp.status_code, 200)
-
-    def test_choice_submissions(self):
-        group_page_id = "quiz_start/krylov"
-        resp = self.post_download_all_submissions_by_group_page_id(
-            group_page_id=group_page_id, flow_id=self.flow_id)
-        self.assertEqual(resp.status_code, 200)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
-        self.assertEqual(prefix, "attachment; filename")
-        self.assertEqual(resp.get('Content-Type'), "application/zip")
-
-        buf = BytesIO(resp.content)
-        with zipfile.ZipFile(buf, 'r') as zf:
-            self.assertIsNone(zf.testzip())
-            self.assertEqual(len(zf.filelist), 1)
-            for f in zf.filelist:
-                self.assertGreater(f.file_size, 0)
-            # todo: make more assertions in terms of file content
-            self.assertIn('.json', zf.filelist[0].filename)
-
-    def test_choice_page_analytics(self):
-        # todo: make more assertions in terms of content
-        resp = self.get_flow_page_analytics(
-            flow_id=self.flow_id, group_id="quiz_start",
-            page_id="krylov")
-        self.assertEqual(resp.status_code, 200)
 
 
 class MarkupToHtmlPlainTest(unittest.TestCase):

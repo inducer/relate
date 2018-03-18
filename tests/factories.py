@@ -30,9 +30,10 @@ from course import models
 from course import constants
 
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
+from tests.contants import QUIZ_FLOW_ID
 
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
-DEFAULT_FLOW_ID = "quiz-test"
+DEFAULT_FLOW_ID = QUIZ_FLOW_ID
 DEFAULT_GRADE_IDENTIFIER = "la_quiz"
 DEFAULT_GRADE_AGGREGATION_STRATEGY = constants.grade_aggregation_strategy.use_latest
 DEFAULT_GOPP_TITLE = "TEST RELATE Test Quiz"

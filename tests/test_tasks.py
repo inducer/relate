@@ -39,6 +39,7 @@ from tests.test_flow.test_purge_page_view_data import (
     PURGE_VIEW_TWO_COURSE_SETUP_LIST)
 from tests import factories
 from tests.utils import mock
+from tests.contants import QUIZ_FLOW_ID
 
 from pkg_resources import parse_version
 import celery
@@ -590,7 +591,7 @@ class TasksTestsWithCeleryDependency(SingleCourseTestMixin, TestCase):
     with settings.CELERY_TASK_ALWAYS_EAGER=True.
     """
 
-    flow_id = "quiz-test"
+    flow_id = QUIZ_FLOW_ID
 
     def test_expire_in_progress_sessions(self):
         with mock.patch("course.tasks.Course.objects.get")\
