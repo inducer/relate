@@ -15,6 +15,9 @@ find . -name '*.pyc' -delete
 
 # }}}
 
+# Get out of Travis' predefined virtualenv, which breaks our tests
+deactivate || true
+
 git submodule update --init --recursive
 
 # {{{ virtualenv

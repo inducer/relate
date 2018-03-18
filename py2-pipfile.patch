@@ -1,0 +1,13 @@
+diff --git a/Pipfile b/Pipfile
+index 1b6b7ac6..c0cdb573 100644
+--- a/Pipfile
++++ b/Pipfile
+@@ -7,7 +7,7 @@ name = "pypi"
+ 
+ [packages]
+ 
+-Django = "<2.1,>=1.10"
++Django = "<2,>=1.10"
+ 
+ # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
+ django-crispy-forms = ">=1.5.1"
