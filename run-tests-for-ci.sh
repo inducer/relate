@@ -33,19 +33,21 @@ else
   ${VIRTUALENV} .env
 fi
 
+echo "PATH BEFORE ACTIVATE: $PATH"
 . .env/bin/activate
+echo "PATH AFTER ACTIVATE: $PATH"
 
 # }}}
 
 # # {{{ setuptools
-# 
+#
 # #curl -k https://bitbucket.org/pypa/setuptools/raw/bootstrap-py24/ez_setup.py | python -
 # #curl -k https://ssl.tiker.net/software/ez_setup.py | python -
 # curl -k https://bootstrap.pypa.io/ez_setup.py | python -
-# 
+#
 # # }}}
-# 
-# curl -k https://bootstrap.pypa.io/get-pip.py | python -
+
+curl -k https://bootstrap.pypa.io/get-pip.py | ${PY_EXE} -
 
 PIP="${PY_EXE} -m pip"
 
