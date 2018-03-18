@@ -59,11 +59,11 @@ if [[ "$PY_EXE" = python2* ]]; then
   ##grep -Ev "django>|django=" requirements.txt > req.txt
   #$PIP install "django<2"
   $PIP install mock
-else
-  cp requirements.txt req.txt
+#else
+  #cp requirements.txt req.txt
 fi
 
-$PIPENV install
+$PIPENV install -d
 
 cp local_settings_example.py local_settings.py
 
@@ -81,7 +81,6 @@ if [[ "$PY_EXE" = python3* ]]; then
     ${PY_EXE} manage.py compilemessages
 fi
 
-$PIP install codecov factory_boy
 coverage run manage.py test tests/
 coverage report -m
 codecov

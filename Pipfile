@@ -107,6 +107,9 @@ ipython = "*"
 [dev-packages]
 
 # For unittest by mock (only required for Py2)
-# mock = "*"
+mock = "*"
+coverage = "*"
+codecov = "*"
+factory_boy = "*"
 
 # vim: foldmethod=marker
