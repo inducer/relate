@@ -24,7 +24,7 @@ rm -Rf "$VENV_VERSION"
 curl -k https://pypi.python.org/packages/d4/0c/9840c08189e030873387a73b90ada981885010dd9aea134d6de30cd24cb8/$VENV_VERSION.tar.gz | tar xfz -
 
 VIRTUALENV="${PY_EXE} -m venv"
-${VIRTUALENV} -h > /dev/null || VIRTUALENV="$VENV_VERSION/virtualenv.py --no-setuptools -p ${PY_EXE}"
+${VIRTUALENV} -h > /dev/null || VIRTUALENV="$VENV_VERSION/virtualenv.py -p ${PY_EXE}"
 
 if [ -d ".env" ]; then
   echo "**> virtualenv exists"
@@ -37,20 +37,19 @@ fi
 
 # }}}
 
-# {{{ setuptools
+# # {{{ setuptools
+# 
+# #curl -k https://bitbucket.org/pypa/setuptools/raw/bootstrap-py24/ez_setup.py | python -
+# #curl -k https://ssl.tiker.net/software/ez_setup.py | python -
+# curl -k https://bootstrap.pypa.io/ez_setup.py | python -
+# 
+# # }}}
+# 
+# curl -k https://bootstrap.pypa.io/get-pip.py | python -
 
-#curl -k https://bitbucket.org/pypa/setuptools/raw/bootstrap-py24/ez_setup.py | python -
-#curl -k https://ssl.tiker.net/software/ez_setup.py | python -
-curl -k https://bootstrap.pypa.io/ez_setup.py | python -
+PIP="${PY_EXE} -m pip"
 
-# }}}
-
-curl -k https://bootstrap.pypa.io/get-pip.py | python -
-
-# Not sure why pip ends up there, but in Py3.3, it sometimes does.
-export PATH=`pwd`/.env/local/bin:$PATH
-
-PIP="${PY_EXE} $(which pip)"
+which pip
 
 $PIP install pipenv
 PIPENV="${PY_EXE} -m pipenv"
