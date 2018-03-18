@@ -74,8 +74,6 @@ python-memcached
 celery==4.1.0
 django-celery-results==1.0.1
 
-django-celery
-
 # }}}
 
 # For searchable select widgets
