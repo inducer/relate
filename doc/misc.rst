@@ -56,6 +56,18 @@ those long-running tasks. Start a worker by running::
 
     celery worker -A relate
 
+.. note::
+
+    For Windows, you need first install `eventlet` by::
+
+        pip install eventlet
+
+    and then run::
+
+        celery worker -A relate -P eventlet
+
+    See `Related issue <https://github.com/celery/celery/issues/4178>`_ for more information.
+
 To make this work, you also need a message broker running. This uses the
 setting ``CELERY_BROKER_URL`` in ``local_settings.py`` and defaults to
 ``'amqp://'``.  With that setting, you need for example `Rabbit MQ
@@ -63,6 +75,11 @@ setting ``CELERY_BROKER_URL`` in ``local_settings.py`` and defaults to
 Debian-like Linux distributions (e.g. Ubuntu), the following should suffice::
 
     apt-get install rabbitmq-server
+
+.. note::
+
+    To install Rabibit MQ for Windows, see `Installing on Windows
+    <https://www.rabbitmq.com/install-windows.html>`_ for more information.
 
 See the `Celery documentation
 <http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-broker_url>`_
