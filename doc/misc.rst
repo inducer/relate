@@ -38,7 +38,7 @@ Retrieve static (JS/CSS) dependencies::
 
     npm install
 
-or
+or::
 
     yarn
 
@@ -66,11 +66,11 @@ those long-running tasks. Start a worker by running::
 
         celery worker -A relate -P eventlet
 
-    See `Related issue <https://github.com/celery/celery/issues/4178>`_ for more information.
+    See the `related issue <https://github.com/celery/celery/issues/4178>`_ for more information.
 
 To make this work, you also need a message broker running. This uses the
 setting ``CELERY_BROKER_URL`` in ``local_settings.py`` and defaults to
-``'amqp://'``.  With that setting, you need for example `Rabbit MQ
+``'amqp://'``.  With that setting, you need for example `RabbitMQ
 <https://www.rabbitmq.com/>`_ or another implementation installed.  On
 Debian-like Linux distributions (e.g. Ubuntu), the following should suffice::
 
@@ -78,7 +78,7 @@ Debian-like Linux distributions (e.g. Ubuntu), the following should suffice::
 
 .. note::
 
-    To install Rabibit MQ for Windows, see `Installing on Windows
+    To install RabbitMQ for Windows, see `Installing on Windows
     <https://www.rabbitmq.com/install-windows.html>`_ for more information.
 
 See the `Celery documentation
