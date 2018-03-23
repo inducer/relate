@@ -26,8 +26,11 @@ import six
 from django.test import TestCase
 import unittest
 
+from relate.utils import dict_to_struct
+
 from course.page.base import (
-    create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode
+    create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode,
+    PageBehavior, PageBase
 )
 
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
@@ -133,6 +136,193 @@ class CreateDefaultPointScaleTest(unittest.TestCase):
                 self.assertIsNotNone(returned_value)
                 self.assertTrue(len(returned_value))
                 self.assertListEqual(v, returned_value)
+
+
+def correct_answer_side_effect_super(
+        self, page_context, page_data, answer_data, grade_data):
+    from course.page.text import TextQuestionBase
+    return super(TextQuestionBase, self).correct_answer(
+        page_context, page_data, answer_data, grade_data)
+
+
+def normalized_answer_side_effect_super(
+        self, page_context, page_data, answer_data):
+    from course.page.text import TextQuestionBase
+    return super(TextQuestionBase, self).normalized_answer(
+        page_context, page_data, answer_data)
+
+
+def normalized_bytes_answer_side_effect_super(
+        self, page_context, page_data, answer_data):
+    from course.page.text import TextQuestionBase
+    return super(TextQuestionBase, self).normalized_bytes_answer(
+        page_context, page_data, answer_data)
+
+
+class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
+
+    page_id = "half"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(PageBaseAPITest, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_flow(cls.flow_id)
+
+    def setUp(self):
+        super(PageBaseAPITest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+
+    def test_correctness(self):
+        self.submit_page_answer_by_page_id_and_test(self.page_id)
+        resp = self.c.get(self.get_page_url_by_page_id(self.page_id))
+        self.assertResponseContextIsNotNone(resp, "correct_answer")
+
+        # make sure PageBase.correctness works
+        with mock.patch("course.page.text.TextQuestion.correct_answer",
+                        autospec=True) as mock_correctness:
+            mock_correctness.side_effect = correct_answer_side_effect_super
+            resp = self.c.get(self.get_page_url_by_page_id(self.page_id))
+            self.assertResponseContextIsNone(resp, "correct_answer")
+
+    def test_normalized_answer(self):
+        # make sure PageBase.normalized_answer works
+        with mock.patch("course.page.text.TextQuestion.normalized_answer",
+                        autospec=True) as mock_normalized_answer:
+            mock_normalized_answer.side_effect = normalized_answer_side_effect_super
+            self.submit_page_answer_by_page_id_and_test(
+                self.page_id,
+                ensure_analytic_page_get_before_grading=True,
+                ensure_analytic_page_get_after_grading=True, do_grading=True)
+
+    def test_normalized_bytes_answer(self):
+        # make sure PageBase.normalized_answer works
+        with mock.patch("course.page.text.TextQuestion.normalized_bytes_answer",
+                        autospec=True) as mock_normalized_bytes_answer:
+            mock_normalized_bytes_answer.side_effect = \
+                normalized_bytes_answer_side_effect_super
+
+            self.submit_page_answer_by_page_id_and_test(
+                self.page_id,
+                ensure_download_before_grading=True,
+                ensure_download_after_grading=True,
+                dl_file_with_ext_count=0,
+                do_grading=True)
+
+
+class PageBasePageDescBackwardCompatibilityTest(unittest.TestCase):
+    def test_page_desc_not_struct_warn(self):
+        with mock.patch("warnings.warn") as mock_warn:
+            PageBase(None, "", "abcd")
+            self.assertTrue(mock_warn.call_count >= 1)
+
+            expected_warn_msg = (
+                "Not passing page_desc to PageBase.__init__ is deprecated")
+
+            warned_with_expected_msg = False
+
+            for args in mock_warn.call_args_list:
+                if expected_warn_msg in args[0]:
+                    warned_with_expected_msg = True
+                    break
+
+            if not warned_with_expected_msg:
+                self.fail("'%s' is not warned as expected" % expected_warn_msg)
+
+
+@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
+    # test page_base.get_modified_permissions_for_page
+    def test_get_modified_permissions_for_page(self):
+        access_rule_permissions_list = [
+            "view", "submit_answer", "end_session", "see_session_time",
+            "lock_down_as_exam_session"]
+        access_rule_permissions = frozenset(access_rule_permissions_list)
+
+        with self.subTest(access_rules="Not present"):
+            page_desc = dict_to_struct(
+                {
+                    "id": "abcd",
+                    "type": "SomePageType",
+                }
+            )
+            page = PageBase(None, "", page_desc)
+            self.assertSetEqual(
+                page.get_modified_permissions_for_page(access_rule_permissions),
+                access_rule_permissions)
+
+        with self.subTest(access_rules={}):
+            page_desc = dict_to_struct(
+                {
+                    "id": "abcd",
+                    "type": "SomePageType",
+                    "access_rules": {}
+                }
+            )
+            page = PageBase(None, "", page_desc)
+            self.assertSetEqual(
+                page.get_modified_permissions_for_page(access_rule_permissions),
+                access_rule_permissions)
+
+        with self.subTest(access_rules={"add_permissions": [],
+                                        "remove_permissions": []}):
+            page_desc = dict_to_struct(
+                {
+                    "id": "abcd",
+                    "type": "SomePageType",
+                    "access_rules": {"add_permissions": [],
+                                     "remove_permissions": []}
+                }
+            )
+            page = PageBase(None, "", page_desc)
+            self.assertSetEqual(
+                page.get_modified_permissions_for_page(access_rule_permissions),
+                access_rule_permissions)
+
+        with self.subTest(access_rules={"add_permissions": ["some_perm"],
+                                        "remove_permissions": []}):
+            page_desc = dict_to_struct(
+                {
+                    "id": "abcd",
+                    "type": "SomePageType",
+                    "access_rules": {"add_permissions": ["some_perm"],
+                                     "remove_permissions": []}
+                }
+            )
+            page = PageBase(None, "", page_desc)
+            self.assertSetEqual(
+                page.get_modified_permissions_for_page(access_rule_permissions),
+                frozenset(access_rule_permissions_list + ["some_perm"]))
+
+        with self.subTest(access_rules={"remove_permissions": ["none_exist_perm"]}):
+            page_desc = dict_to_struct(
+                {
+                    "id": "abcd",
+                    "type": "SomePageType",
+                    "access_rules": {"remove_permissions": ["none_exist_perm"]}
+                }
+            )
+            page = PageBase(None, "", page_desc)
+
+            self.assertSetEqual(
+                page.get_modified_permissions_for_page(access_rule_permissions),
+                access_rule_permissions)
+
+        with self.subTest(access_rules={
+                "remove_permissions": [access_rule_permissions_list[0]]}):
+            page_desc = dict_to_struct(
+                {
+                    "id": "abcd",
+                    "type": "SomePageType",
+                    "access_rules": {
+                        "remove_permissions": [access_rule_permissions_list[0]]}
+                }
+            )
+            page = PageBase(None, "", page_desc)
+
+            self.assertSetEqual(
+                page.get_modified_permissions_for_page(access_rule_permissions),
+                frozenset(access_rule_permissions_list[1:]))
 
 
 def human_text_feedback_form_clean_side_effect(self):
@@ -364,15 +554,25 @@ def grading_form_to_html_side_effect_super(
             request, page_context, grading_form, grade_data))
 
 
-class PageBaseGradingFormToHtmlTest(SingleCourseQuizPageGradeInterfaceTestMixin,
+def human_feedback_point_value_side_effect_super(self, page_context, page_data):
+    from course.page.upload import FileUploadQuestion
+    return (
+        super(
+            FileUploadQuestion, self
+        ).human_feedback_point_value(page_context, page_data))
+
+
+class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMixin,
                                     TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(PageBaseGradingFormToHtmlTest, cls).setUpTestData()
+        super(PageBaseWithHumanTextFeedbackTest, cls).setUpTestData()
+        cls.page_id = "anyup"
+        cls.submit_page_answer_by_page_id_and_test(page_id=cls.page_id)
         cls.end_flow()
 
     def test_base_class_grading_form_to_html(self):
-        page_id = "anyup"
+        # make sure subclass grading_form_to_html method works
         with mock.patch(
                 "course.page.base.PageBaseWithHumanTextFeedback"
                 ".grading_form_to_html", autospec=True
@@ -383,8 +583,57 @@ class PageBaseGradingFormToHtmlTest(SingleCourseQuizPageGradeInterfaceTestMixin,
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
 
-                resp = self.c.get(self.get_page_grading_url_by_page_id(page_id))
+                resp = self.c.get(
+                    self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
+
+    def test_human_feedback_point_value_subclass(self):
+        # make sure subclass PageBase.human_feedback_point_value works
+        with mock.patch(
+                "course.page.upload.FileUploadQuestion"
+                ".human_feedback_point_value", autospec=True
+        ) as mock_human_feedback_point_value:
+            mock_human_feedback_point_value.side_effect = (
+                human_feedback_point_value_side_effect_super)
+
+            with self.temporarily_switch_to_user(
+                    self.instructor_participation.user):
+
+                resp = self.c.get(
+                    self.get_page_grading_url_by_page_id(self.page_id))
+                self.assertEqual(resp.status_code, 200)
+
+    def test_grade(self):
+        with self.temporarily_switch_to_user(
+                self.instructor_participation.user):
+
+            # not released
+            resp = self.post_grade_by_page_id(
+                self.page_id,
+                grade_data={})
+            self.assertIsNone(resp.context.get("feedback"))
+            self.assertEqual(resp.status_code, 200)
+
+            # no grade_percent
+            resp = self.post_grade_by_page_id(
+                self.page_id,
+                grade_data={
+                    "released": "on"}
+            )
+            self.assertIsNone(resp.context.get("feedback"))
+            self.assertEqual(resp.status_code, 200)
+
+            expected_feedback_str = "I don't know how to grade"
+            resp = self.post_grade_by_page_id(
+                self.page_id,
+                grade_data={
+                    "released": "on",
+                    "feedback_text": expected_feedback_str}
+            )
+            self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, expected_feedback_str)
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+            self.assertEqual(resp.status_code, 200)
 
 
 class PageBaseWithValueTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
@@ -622,5 +871,24 @@ class GetEditorInteractionModeTest(unittest.TestCase):
         page_context.flow_session.participation.user.editor_mode = "some_mode"
         self.assertEqual(get_editor_interaction_mode(page_context), "some_mode")
 
+
+class PageBehaviorTest(unittest.TestCase):
+    def test_page_behavior_backward_compatibility(self):
+        answer_is_final = PageBehavior(show_correctness=False, show_answer=False,
+                          may_change_answer=False)
+        if not answer_is_final:
+            self.fail(
+                "PageBehavior object expected to be True "
+                "when may_change_answer is False for backward "
+                "compatibility")
+
+        answer_is_final = PageBehavior(show_correctness=False, show_answer=False,
+                          may_change_answer=True)
+
+        if answer_is_final:
+            self.fail(
+                "PageBehavior object expected to be False "
+                "when may_change_answer is True for backward "
+                "compatibility")
 
 # vim: fdm=marker

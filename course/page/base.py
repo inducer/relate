@@ -863,8 +863,9 @@ class TextInputWithButtons(forms.TextInput):
         self.button_values = button_values
         super(TextInputWithButtons, self).__init__(*args, **kwargs)
 
-    def render(self, name, value, attrs=None):
-        html = super(TextInputWithButtons, self).render(name, value, attrs)
+    def render(self, name, value, attrs=None, renderer=None):
+        html = super(TextInputWithButtons, self).render(name, value, attrs,
+                                                        renderer)
         from django.utils.html import format_html, mark_safe, escapejs
         id = attrs["id"]
 

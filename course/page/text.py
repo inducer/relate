@@ -963,6 +963,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
+        unspec_correct_answer_text = None
         for matcher in self.matchers:
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:

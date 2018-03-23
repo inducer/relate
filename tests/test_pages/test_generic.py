@@ -309,7 +309,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertEqual(
             answer_visits_qset[0].answer["base64_data"], expected_result1)
 
-    def test_fileupload_pdf_wrong_mimetype(self):
+    def test_fileupload_pdf_wrong_mime_type(self):
         page_id = "proof"
 
         # wrong MIME type, a text file
