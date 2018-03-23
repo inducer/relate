@@ -40,6 +40,7 @@ prompt: |
     # A half
     What's a half?
 answers:
+    - <regex>half
     - type: float
       value: 0.5
       rtol: 1e-4
@@ -147,7 +148,7 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
 
     def test_page_sandbox_submit_answer(self):
         # Try to answer the rendered question
-        answer_data = {'answer': ['0.5']}
+        answer_data = {'answer': ['a half']}
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertEqual(resp.status_code, 200)

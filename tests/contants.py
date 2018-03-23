@@ -16,6 +16,7 @@ def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
 
 TEST_TEXT_FILE_PATH = get_upload_file_path("test_file.txt")
 TEST_PDF_FILE_PATH = get_upload_file_path("test_file.pdf")
+
 TEST_HGTEXT_MARKDOWN_ANSWER = u"""
 type: ChoiceQuestion
 id: myquestion
@@ -32,6 +33,7 @@ choices:
   - ~CORRECT~ $\\frac{1}{4}$
   - 四分之三
 """
+
 TEST_HGTEXT_MARKDOWN_ANSWER_WRONG = u"""
 type: ChoiceQuestion
 id: myquestion
@@ -48,6 +50,16 @@ choices:
   - $\\frac{1}{4}$
   - 四分之三
 """
+
+TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG = """
+type: Page
+id: myquestion
+content: |
+
+    # Title
+    content
+"""
+
 PageTuple = namedtuple(
     'PageTuple', [
         'page_id',

@@ -40,7 +40,7 @@ from course.page.base import (
 from tests.contants import (
     MESSAGE_ANSWER_SAVED_TEXT,
     MESSAGE_ANSWER_FAILED_SAVE_TEXT, TEST_TEXT_FILE_PATH, TEST_PDF_FILE_PATH,
-    TEST_HGTEXT_MARKDOWN_ANSWER_WRONG)
+    TEST_HGTEXT_MARKDOWN_ANSWER_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG)
 
 from tests.base_test_mixins import (
     SingleCourseQuizPageTestMixin,
@@ -268,6 +268,27 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 do_grading=False))
         self.assertResponseMessagesContains(submit_answer_response,
                                             MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        self.assertFormErrorLoose(
+            submit_answer_response,
+            "ValidationError: submitted page: "
+            "one or more correct answer(s) expected, 0 found"
+        )
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
+                                           expected_count=0)
+
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id,
+                answer_data={"answer": TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG},
+                do_grading=False))
+        self.assertFormErrorLoose(
+            submit_answer_response,
+            "ValidationError: page must be of type 'ChoiceQuestion'"
+        )
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
                                            expected_count=0)
