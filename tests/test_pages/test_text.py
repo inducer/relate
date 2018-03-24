@@ -262,7 +262,6 @@ class SymbolicExpressionMatcherTest(unittest.TestCase):
                 "some_where: unable to check symbolic "
                 "expression")
             mock_vctx = mock.MagicMock()
-            # mock_vctx.add_warning.return_value = None
             SymbolicExpressionMatcher(mock_vctx, "some_where", "abcd")
             self.assertEqual(mock_vctx.add_warning.call_count, 1)
             self.assertIn(expected_warning, mock_vctx.add_warning.call_args[0][1])
