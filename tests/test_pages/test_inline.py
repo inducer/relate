@@ -715,6 +715,27 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(resp, "This field is required.")
 
+    def test_negative_width(self):
+        markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
+                    % {"attr1": "width: -4em",
+                       "attr2": "width: 5em"})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS,
+            "blank1: 'width': unrecogonized width attribute string: '-4em'")
+
+    def test_negative_weight(self):
+        markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
+                    % {"attr1": "weight: 15",
+                       "attr2": "weight: -5"})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS,
+            "blank2: 'weight' must be a non-negative value, got '-5' instead")
+
     def test_two_not_required(self):
         markdown = INLINE_MULTI_MARKDOWN_TWO_NOT_REQUIRED
         resp = self.get_page_sandbox_preview_response(markdown)

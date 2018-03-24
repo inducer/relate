@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
+from typing import cast
 from django.utils.translation import (
         ugettext_lazy as _, ugettext)
 from django.utils.safestring import mark_safe
@@ -40,6 +40,12 @@ from course.page.text import TextQuestionBase, parse_matcher
 
 import re
 
+# {{{ for mypy
+
+if False:
+    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+
+# }}}
 
 # {{{ multiple text question
 
@@ -217,6 +223,7 @@ class ShortAnswer(AnswerBase):
 
     @staticmethod
     def get_length_attr_em(location, width_attr):
+        # type: (Text, Text) -> Optional[float]
         """
         generate the length for input box, the unit is 'em'
         """
@@ -260,7 +267,7 @@ class ShortAnswer(AnswerBase):
         if length_unit == "%":
             return float(length_value)*DEFAULT_WIDTH/100.0
         else:
-            return float(length_value)/EM_LEN_DICT[length_unit]
+            return float(length_value)/cast(float, EM_LEN_DICT[length_unit])
 
     def __init__(self, vctx, location, name, answers_desc):
         super(ShortAnswer, self).__init__(
@@ -285,7 +292,15 @@ class ShortAnswer(AnswerBase):
                 ),
             )
 
-        self.weight = getattr(answers_desc, "weight", 0)
+        weight = getattr(answers_desc, "weight", 0)
+        if weight < 0:
+            raise ValidationError(
+                    string_concat(
+                        "%s: %s: ",
+                        _("'weight' must be a non-negative value, "
+                          "got '%s' instead") % str(weight))
+                    % (location, self.name))
+        self.weight = weight
 
         if len(answers_desc.correct_answer) == 0:
             raise ValidationError(
@@ -295,9 +310,10 @@ class ShortAnswer(AnswerBase):
                     % (location, self.name))
 
         self.hint = getattr(self.answers_desc, "hint", "")
-        self.width = getattr(self.answers_desc, "width", None)
+        width = getattr(self.answers_desc, "width", None)
 
-        parsed_length = self.get_length_attr_em(location, self.width)
+        parsed_length = self.get_length_attr_em(
+            "%s: %s: 'width'" % (location, self.name), width)
 
         self.width = 0
         if parsed_length is not None:
@@ -332,6 +348,8 @@ class ShortAnswer(AnswerBase):
         return "width: " + str(max(self.width, opt_width)) + "em"
 
     def get_correct_answer_text(self, page_context):
+
+        unspec_correct_answer_text = None
         for matcher in self.matchers:  # pragma: no branch  # noqa
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:

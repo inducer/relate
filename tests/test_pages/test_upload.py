@@ -52,6 +52,25 @@ rubric: |
 
 """
 
+UPLOAD_WITH_NEGATIVE_VALUE_MARKDOWN = """
+type: FileUploadQuestion
+id: test
+value: -5
+maximum_megabytes: 0.5
+prompt: |
+
+    # Upload a pdf file
+
+mime_types:
+
+    - application/pdf
+
+rubric: |
+
+    uploaded?
+
+"""
+
 UPLOAD_WITHOUT_VALUE_MARKDOWN = """
 type: FileUploadQuestion
 id: test
@@ -138,8 +157,18 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "'maximum_megabytes' expecting a positive value, "
+            "'maximum_megabytes' expects a positive value, "
             "got -0.5 instead")
+
+    def test_negative_value(self):
+        markdown = UPLOAD_WITH_NEGATIVE_VALUE_MARKDOWN
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS,
+            "sandboxAttribute 'value' expects a non-negative value, "
+            "got -5 instead")
 
     def test_mime_types(self):
         markdown = UPLOAD_WITH_UNKNOWN_MIME_TYPES_MARKDOWN

@@ -179,7 +179,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             raise ValidationError(
                 string_concat(
                     location, ": ",
-                    _("'maximum_megabytes' expecting a positive value, "
+                    _("'maximum_megabytes' expects a positive value, "
                       "got %(value)s instead")
                     % {'value': str(page_desc.maximum_megabytes)}))
 

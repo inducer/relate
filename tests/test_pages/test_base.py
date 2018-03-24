@@ -63,6 +63,26 @@ answers:
 
 """
 
+TEXT_QUESTION_WITH_NEGATIVE_VALUE_MARKDOWN = """
+type: TextQuestion
+id: eigvec
+title: Eigenvectors
+value: -2
+prompt: |
+
+    # What's an eigenvector?
+
+    Yadda ___________________ yadda.
+
+answers:
+
+- <plain>matrix
+- <case_sens_plain>Eigenmatrix
+- <regex>(?:linear\s+)?\s*map
+- <case_sens_regex>(?:operator\s+)?\s*map
+
+"""
+
 OPTIONAL_PAGE_WITH_VALUE_ATTR = """
 type: TextQuestion
 id: eigvec
@@ -647,6 +667,16 @@ class PageBaseWithValueTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             resp, PAGE_ERRORS,
             "Attribute 'value' should be removed when "
             "'is_optional_page' is True.")
+
+    def test_optional_page_with_negative_value_attr(self):
+        markdown = TEXT_QUESTION_WITH_NEGATIVE_VALUE_MARKDOWN
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS,
+            "sandboxAttribute 'value' expects a non-negative value, "
+            "got -2 instead")
 
 
 class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
