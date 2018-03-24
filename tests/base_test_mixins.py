@@ -542,8 +542,8 @@ class SuperuserCreateMixin(ResponseContextMixin):
         if not isinstance(errors, (list, tuple)):
             errors = [errors]
         try:
-            form_errors = list(
-                itertools.chain(*response.context[form_name].errors.values()))
+            form_errors = ". ".join(list(
+                itertools.chain(*response.context[form_name].errors.values())))
         except TypeError:
             form_errors = None
 
@@ -1701,7 +1701,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                     if ensure_download_after_grading:
                         cls.ensure_download_submission(
                             group_id, page_id,
-                            dl_file_extension=page_tuple.dl_file_extension,
+                            dl_file_extension=dl_file_extension,
                             file_with_ext_count=dl_file_with_ext_count)
 
                 if ensure_analytic_page_get_after_grading:
