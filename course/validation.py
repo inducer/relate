@@ -541,19 +541,19 @@ def validate_flow_group(vctx, location, grp):
                 ]
             )
 
-    for i, page_desc in enumerate(grp.pages):
-        validate_flow_page(
-                vctx,
-                "%s, page %d ('%s')"
-                % (location, i+1, getattr(page_desc, "id", None)),
-                page_desc)
-
     if len(grp.pages) == 0:
         raise ValidationError(
                 string_concat(
                     "%(location)s, ",
                     _("group '%(group_id)s': group is empty"))
                 % {'location': location, 'group_id': grp.id})
+
+    for i, page_desc in enumerate(grp.pages):
+        validate_flow_page(
+                vctx,
+                "%s, page %d ('%s')"
+                % (location, i+1, getattr(page_desc, "id", None)),
+                page_desc)
 
     if hasattr(grp, "max_page_count") and grp.max_page_count <= 0:
         raise ValidationError(
