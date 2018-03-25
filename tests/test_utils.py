@@ -25,18 +25,26 @@ THE SOFTWARE.
 """
 
 import six
+from datetime import datetime
+
+import unittest
 from unittest import skipUnless
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import override_settings
 from django import VERSION as DJANGO_VERSION
 from django.utils import translation
 from django.utils.translation import ugettext_noop
+from django.conf import settings
+
+from relate.utils import localize_datetime, format_datetime_local
 
 from course.utils import (
-    get_course_specific_language_choices, LanguageOverride)
+    get_course_specific_language_choices, LanguageOverride,
+    get_custom_page_types_stop_support_deadline)
 
 from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, SubprocessRunpyContainerMixin)
+    SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
+    SingleCourseTestMixin, FallBackStorageMessageTestMixin)
 from tests.utils import mock
 
 
@@ -315,5 +323,131 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
     def test_course_force_lang_zh_hans_feedback(self):
         self.feedback_test(course_force_lang="zh-hans")
 
+
+class GetCustomPageTypesStopSupportDeadlineTest(unittest.TestCase):
+    # test course.utils.get_custom_page_types_stop_support_deadline
+
+    force_deadline = datetime(2019, 1, 1, 0, 0, 0, 0)
+
+    def test_custom_deadline_before_force_deadline(self):
+        deadline = datetime(2017, 1, 1, 0, 0, 0, 0)
+        with override_settings(
+                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
+            self.assertEqual(
+                get_custom_page_types_stop_support_deadline(),
+                localize_datetime(deadline))
+
+    def test_custom_deadline_after_force_deadline(self):
+        deadline = datetime(2019, 1, 1, 1, 0, 0, 0)
+        with override_settings(
+                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
+            self.assertEqual(
+                get_custom_page_types_stop_support_deadline(),
+                localize_datetime(self.force_deadline))
+
+    def test_custom_deadline_not_configured(self):
+        with override_settings():
+            del settings.RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE
+            self.assertEqual(
+                get_custom_page_types_stop_support_deadline(),
+                localize_datetime(self.force_deadline))
+
+
+class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
+                                    FallBackStorageMessageTestMixin, TestCase):
+
+    def setUp(self):
+        super(CustomRepoPageStopSupportTest, self).setUp()
+        self.current_commit_sha = self.get_course_commit_sha(
+            self.instructor_participation)
+
+    force_deadline = datetime(2019, 1, 1, 0, 0, 0, 0)
+
+    custom_page_type = "repo:simple_questions.MyTextQuestion"
+
+    commit_sha_deprecated = b"593a1cdcecc6f4759fd5cadaacec0ba9dd0715a7"
+
+    deprecate_warning_message_pattern = (
+        "Custom page type '%(page_type)s' specified. "
+        "Custom page types will stop being supported in "
+        "RELATE at %(date_time)s.")
+
+    expired_error_message_pattern = (
+        "Custom page type '%(page_type)s' specified. "
+        "Custom page types were no longer supported in "
+        "RELATE since %(date_time)s.")
+
+    def test_custom_page_types_deprecate(self):
+        deadline = datetime(2039, 1, 1, 0, 0, 0, 0)
+
+        with override_settings(
+                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
+            resp = self.post_update_course_content(
+                commit_sha=self.commit_sha_deprecated)
+            self.assertEqual(resp.status_code, 200)
+
+            if datetime.now() <= self.force_deadline:
+                expected_message = (
+                    self.deprecate_warning_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.commit_sha_deprecated)
+            else:
+                expected_message = (
+                    self.expired_error_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.current_commit_sha)
+            self.assertResponseMessagesContains(resp, expected_message, loose=True)
+
+    def test_custom_page_types_not_supported(self):
+        deadline = datetime(2017, 1, 1, 0, 0, 0, 0)
+        with override_settings(
+                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
+            resp = self.post_update_course_content(
+                commit_sha=self.commit_sha_deprecated)
+            self.assertEqual(resp.status_code, 200)
+            expected_message = (
+                self.expired_error_message_pattern
+                % {"page_type": self.custom_page_type,
+                   "date_time": format_datetime_local(deadline)}
+            )
+            self.assertResponseMessagesContains(resp, expected_message, loose=True)
+            self.assertEqual(
+                self.get_course_commit_sha(self.instructor_participation),
+                self.current_commit_sha)
+
+    def test_custom_page_types_deadline_configured_none(self):
+        with override_settings(
+                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=None):
+            resp = self.post_update_course_content(
+                commit_sha=self.commit_sha_deprecated)
+            self.assertEqual(resp.status_code, 200)
+
+            if datetime.now() <= self.force_deadline:
+                expected_message = (
+                    self.deprecate_warning_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.commit_sha_deprecated)
+            else:
+                expected_message = (
+                    self.expired_error_message_pattern
+                    % {"page_type": self.custom_page_type,
+                       "date_time": format_datetime_local(self.force_deadline)}
+                )
+                self.assertEqual(
+                    self.get_course_commit_sha(self.instructor_participation),
+                    self.current_commit_sha)
+            self.assertResponseMessagesContains(resp, expected_message, loose=True)
 
 # vim: foldmethod=marker
