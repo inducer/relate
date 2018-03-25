@@ -1374,6 +1374,7 @@ class FlowRuleException(models.Model):
         __str__ = __unicode__
 
     def clean(self):
+        # type: () -> None
         super(FlowRuleException, self).clean()
 
         if (self.kind == flow_rule_kind.grading
@@ -1404,10 +1405,10 @@ class FlowRuleException(models.Model):
                     self.participation.course,
                     self.flow_id, commit_sha)
 
-        tags = None
+        tags = []  # type: List
         grade_identifier = None
         if hasattr(flow_desc, "rules"):
-            tags = getattr(flow_desc.rules, "tags", None)
+            tags = cast(list, getattr(flow_desc.rules, "tags", []))
             grade_identifier = flow_desc.rules.grade_identifier
 
         try:

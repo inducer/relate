@@ -585,6 +585,7 @@ def validate_flow_group(vctx, location, grp):
 # {{{ flow rules
 
 def validate_session_start_rule(vctx, location, nrule, tags):
+    # type: (ValidationContext, Text, Any, List[Text]) -> None
     validate_struct(
             vctx, location, nrule,
             required_attrs=[],
