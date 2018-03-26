@@ -1652,6 +1652,10 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                         submit_answer_response = (
                             cls.post_answer_by_page_id(page_id, answer_data))
 
+                    # Fixed #514
+                    # https://github.com/inducer/relate/issues/514
+                    submit_answer_response.context["form"].as_p()
+
                     assert (submit_answer_response.status_code
                             == expected_post_answer_status_code), (
                             "%s != %s" % (submit_answer_response.status_code,

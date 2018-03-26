@@ -699,7 +699,7 @@ class TextQuestionBase(PageBaseWithTitle):
         }
 
         if answer_data is not None:
-            kwargs.update({"data": answer_data["answer"]})
+            kwargs.update({"data": {"answer": answer_data["answer"]}})
 
         return TextAnswerForm(**kwargs)
 
