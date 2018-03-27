@@ -1377,7 +1377,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
 
 
 class TwoCourseTestMixin(CoursesTestMixinBase):
-    courses_setup_list = []
+    courses_setup_list = TWO_COURSE_SETUP_LIST
 
     @classmethod
     def setUpTestData(cls):  # noqa

@@ -61,6 +61,13 @@ class CourseFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ('identifier',)
 
     identifier = DEFAULT_COURSE_IDENTIFIER
+    name = "test-course"
+    number = factory.Sequence(lambda n: "%03d" % n)
+    time_period = "Spring"
+    git_source = SINGLE_COURSE_SETUP_LIST[0]["course"]["git_source"]
+    notify_email = factory.Sequence(lambda n: "test_notify_%03d@exmaple.com" % n)
+    from_email = factory.Sequence(lambda n: "test_from_%03d@exmaple.com" % n)
+    active_git_commit_sha = "some_sha"
 
 
 class ParticipationRoleFactory(factory.django.DjangoModelFactory):
@@ -89,6 +96,16 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
         else:
             role = ParticipationRoleFactory(course=self.course)
             self.roles.set([role])
+
+
+class ParticipationTagFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.ParticipationTag
+        django_get_or_create = ('course', 'name', 'shown_to_participant')
+
+    course = factory.SubFactory(CourseFactory)
+    name = "tag1"
+    shown_to_participant = True
 
 
 class FlowSessionFactory(factory.django.DjangoModelFactory):

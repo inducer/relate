@@ -727,6 +727,11 @@ def validate_session_access_rule(vctx, location, arule, tags):
         validate_facility(vctx, location, arule.if_in_facility)
 
     if hasattr(arule, "if_has_tag"):
+        if arule.if_has_tag is not None:
+            validate_identifier(vctx, "%s: if_has_tag" % location,
+                    arule.if_has_tag,
+                    warning_only=True)
+
         if not (arule.if_has_tag is None or arule.if_has_tag in tags):
             raise ValidationError(
                     string_concat(
@@ -822,6 +827,10 @@ def validate_session_grading_rule(
 
     has_conditionals = False
 
+    if hasattr(grule, "if_started_before"):
+        vctx.encounter_datespec(location, grule.if_started_before)
+        has_conditionals = True
+
     if hasattr(grule, "if_completed_before"):
         vctx.encounter_datespec(location, grule.if_completed_before)
         has_conditionals = True
@@ -837,12 +846,19 @@ def validate_session_grading_rule(
     if hasattr(grule, "if_has_participation_tags_any"):
         for ptag in grule.if_has_participation_tags_any:
             validate_participationtag(vctx, location, ptag)
+        has_conditionals = True
 
     if hasattr(grule, "if_has_participation_tags_all"):
         for ptag in grule.if_has_participation_tags_all:
             validate_participationtag(vctx, location, ptag)
+        has_conditionals = True
 
     if hasattr(grule, "if_has_tag"):
+        if grule.if_has_tag is not None:
+            validate_identifier(vctx, "%s: if_has_tag" % location,
+                    grule.if_has_tag,
+                    warning_only=True)
+
         if not (grule.if_has_tag is None or grule.if_has_tag in tags):
             raise ValidationError(
                     string_concat(
@@ -885,12 +901,19 @@ def validate_flow_rules(vctx, location, rules):
             )
 
     if not hasattr(rules, "grade_identifier"):
+        error_msg = _("'rules' block does not have a grade_identifier "
+                     "attribute.")
+
+        # for backward compatibility
+        if hasattr(rules, "grading"):
+            if hasattr(rules.grading, "grade_identifier"):
+                error_msg = string_concat(
+                    error_msg,
+                    _(" This attribute needs to be moved out of "
+                      "the lower-level 'grading' rules block and into "
+                      "the 'rules' block itself."))
         raise ValidationError(
-                string_concat("%(location)s: ",
-                    _("'rules' block does not have a grade_identifier "
-                        "attribute. This attribute needs to be moved out of "
-                        "the lower-level 'grading' rules block and into "
-                        "the 'rules' block itself."))
+                string_concat("%(location)s: ", error_msg)
                 % {'location': location})
 
     tags = getattr(rules, "tags", [])
@@ -942,7 +965,8 @@ def validate_flow_rules(vctx, location, rules):
             dict(GRADE_AGGREGATION_STRATEGY_CHOICES)):
         raise ValidationError(
                 string_concat("%s: ",
-                    _("invalid grade aggregation strategy"))
+                    _("invalid grade aggregation strategy"),
+                    ": %s" % rules.grade_aggregation_strategy)
                 % location)
 
     # }}}
@@ -1355,8 +1379,8 @@ def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
     n_flow_desc = normalize_flow_desc(flow_desc)
 
     from course.models import FlowPageData
-    for grp in n_flow_desc.groups:
-        for page_desc in grp.pages:
+    for grp in n_flow_desc.groups:  # pragma: no branch
+        for page_desc in grp.pages:  # pragma: no branch
             fpd_with_mismatched_page_types = list(
                     FlowPageData.objects
                     .filter(
@@ -1380,6 +1404,38 @@ def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
                             "type_old": mismatched_fpd.page_type})
 
 # }}}
+
+
+def validate_flow_id(vctx, location, flow_id):
+    # type: (ValidationContext, Text, Text) -> None
+
+    from course.constants import FLOW_ID_REGEX
+    match = re.match("^" + FLOW_ID_REGEX + "$", flow_id)
+    if match is None:
+        raise ValidationError(
+            string_concat("%s: ",
+                          _("invalid flow name. "
+                            "Flow names may only contain (roman) "
+                            "letters, numbers, "
+                            "dashes and underscores."))
+            % location)
+
+
+def validate_static_page_name(vctx, location, page_name):
+    # type: (ValidationContext, Text, Text) -> None
+
+    from course.constants import STATICPAGE_PATH_REGEX
+    match = re.match("^" + STATICPAGE_PATH_REGEX + "$", page_name)
+    if match is None:
+        raise ValidationError(
+            string_concat("%s: ",
+                          _(
+                              "invalid page name. "
+                              "Page names may only contain "
+                              "alphanumeric characters (any language) "
+                              "and hyphens."
+                          ))
+            % location)
 
 
 def validate_course_content(repo, course_file, events_file,
@@ -1467,17 +1523,9 @@ def validate_course_content(repo, course_file, events_file,
             if not entry_path.endswith(".yml"):
                 continue
 
-            from course.constants import FLOW_ID_REGEX
             flow_id = entry_path[:-4]
-            match = re.match("^"+FLOW_ID_REGEX+"$", flow_id)
-            if match is None:
-                raise ValidationError(
-                        string_concat("%s: ",
-                            _("invalid flow name. "
-                                "Flow names may only contain (roman) "
-                                "letters, numbers, "
-                                "dashes and underscores."))
-                        % entry_path)
+            location = entry_path
+            validate_flow_id(vctx, location, flow_id)
 
             location = "flows/%s" % entry_path
             flow_desc = get_yaml_from_repo_safely(repo, location,
@@ -1530,19 +1578,9 @@ def validate_course_content(repo, course_file, events_file,
             if not entry_path.endswith(".yml"):
                 continue
 
-            from course.constants import STATICPAGE_PATH_REGEX
             page_name = entry_path[:-4]
-            match = re.match("^"+STATICPAGE_PATH_REGEX+"$", page_name)
-            if match is None:
-                raise ValidationError(
-                        string_concat("%s: ",
-                            _(
-                                "invalid page name. "
-                                "Page names may only contain "
-                                "alphanumeric characters (any language) "
-                                "and hyphens."
-                                ))
-                        % entry_path)
+            location = entry_path
+            validate_static_page_name(vctx, location, page_name)
 
             location = "staticpages/%s" % entry_path
             page_desc = get_yaml_from_repo_safely(repo, location,

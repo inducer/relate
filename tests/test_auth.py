@@ -45,8 +45,7 @@ from course import constants
 
 from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCoursePageTestMixin, TwoCourseTestMixin,
-    FallBackStorageMessageTestMixin, TWO_COURSE_SETUP_LIST,
-    NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
+    FallBackStorageMessageTestMixin, NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
 
 from tests.utils import (
     LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
@@ -408,7 +407,6 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
 class CrossCourseImpersonateTest(TwoCourseTestMixin,
                                  FallBackStorageMessageTestMixin, TestCase):
-    courses_setup_list = TWO_COURSE_SETUP_LIST
     none_participation_user_create_kwarg_list = (
         NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
 
