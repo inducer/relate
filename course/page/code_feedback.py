@@ -92,7 +92,7 @@ class Feedback:
             return bad(
                     "'%s' does not have correct data type--"
                     "got: '%s', expected: '%s'" % (
-                        name, data.dtype.kind, ref.dtype.kind))
+                        name, data.dtype, ref.dtype))
 
         return True
 
