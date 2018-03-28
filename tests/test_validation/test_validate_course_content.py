@@ -23,7 +23,6 @@ THE SOFTWARE.
 """
 
 import stat
-import hashlib
 from dulwich.repo import Tree
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -227,25 +226,18 @@ def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
         raise ObjectDoesNotExist()
     if full_name == "flows" and allow_tree:
         tree = Tree()
-        tree.add(b"not_a_flow", stat.S_IFREG,
-                 hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(flow1_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a flow").hexdigest().encode())
+        tree.add(b"not_a_flow", stat.S_IFREG, b"not a flow")
+        tree.add(flow1_location.encode(), stat.S_IFREG, b"a flow")
 
-        tree.add(flow2_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"another flow").hexdigest().encode())
-        tree.add(flow3_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"yet another flow").hexdigest().encode())
+        tree.add(flow2_location.encode(), stat.S_IFREG, b"another flow")
+        tree.add(flow3_location.encode(), stat.S_IFREG, b"yet another flow")
         return tree
     if full_name == "staticpages":
         tree = Tree()
-        tree.add(b"not_a_page", stat.S_IFREG,
-                 hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(staticpage1_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a static page").hexdigest().encode())
+        tree.add(b"not_a_page", stat.S_IFREG, b"not a page")
+        tree.add(staticpage1_location.encode(), stat.S_IFREG, b"a static page")
 
-        tree.add(staticpage2_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a static page").hexdigest().encode())
+        tree.add(staticpage2_location.encode(), stat.S_IFREG, b"a static page")
         return tree
     if full_name == "":
         return Tree()
@@ -256,26 +248,19 @@ def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
 def get_repo_blob_side_effect1(repo, full_name, commit_sha, allow_tree=True):
     if full_name == "media" and allow_tree:
         tree = Tree()
-        tree.add(name=b"media",
-                 mode=stat.S_IFDIR,
-                 hexsha=hashlib.sha224(b"some media").hexdigest().encode())
+        tree.add(b"media", stat.S_IFDIR, b"some media")
         return tree
     if full_name == "flows" and allow_tree:
         tree = Tree()
-        tree.add(b"not_a_flow", stat.S_IFREG,
-                 hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(flow1_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a flow").hexdigest().encode())
+        tree.add(b"not_a_flow", stat.S_IFREG, b"not a flow")
+        tree.add(flow1_location.encode(), stat.S_IFREG, b"a flow")
         return tree
     if full_name == "staticpages":
         tree = Tree()
-        tree.add(b"not_a_page", stat.S_IFREG,
-                 hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(staticpage1_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a static page").hexdigest().encode())
+        tree.add(b"not_a_page", stat.S_IFREG, b"not a page")
+        tree.add(staticpage1_location.encode(), stat.S_IFREG, b"a static page")
 
-        tree.add(staticpage2_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a static page").hexdigest().encode())
+        tree.add(staticpage2_location.encode(), stat.S_IFREG, b"a static page")
         return tree
     if full_name == "":
         return Tree()
@@ -290,13 +275,10 @@ def get_repo_blob_side_effect2(repo, full_name, commit_sha, allow_tree=True):
         raise ObjectDoesNotExist()
     if full_name == "staticpages":
         tree = Tree()
-        tree.add(b"not_a_page", stat.S_IFREG,
-                 hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(staticpage1_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a static page").hexdigest().encode())
+        tree.add(b"not_a_page", stat.S_IFREG, b"not a page")
+        tree.add(staticpage1_location.encode(), stat.S_IFREG, b"a static page")
 
-        tree.add(staticpage2_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a static page").hexdigest().encode())
+        tree.add(staticpage2_location.encode(), stat.S_IFREG, b"a static page")
         return tree
     if full_name == "":
         return Tree()
@@ -309,10 +291,8 @@ def get_repo_blob_side_effect3(repo, full_name, commit_sha, allow_tree=True):
         raise ObjectDoesNotExist()
     if full_name == "flows" and allow_tree:
         tree = Tree()
-        tree.add(b"not_a_flow", stat.S_IFREG,
-                 hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(flow1_location.encode(), stat.S_IFREG,
-                 hashlib.sha224(b"a flow").hexdigest().encode())
+        tree.add(b"not_a_flow", stat.S_IFREG, b"not a flow")
+        tree.add(flow1_location.encode(), stat.S_IFREG, b"a flow")
         return tree
     if full_name == "staticpages":
         raise ObjectDoesNotExist()

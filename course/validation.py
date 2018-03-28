@@ -1271,7 +1271,7 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
         # no .attributes.yml here
         pass
     except ValueError:
-        # the path root only contains a dirctory
+        # the path root only contains a directory
         pass
     else:
         from relate.utils import dict_to_struct
@@ -1320,7 +1320,7 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
         # no .gitignore here
         pass
     except ValueError:
-        # the path root only contains a dirctory
+        # the path root only contains a directory
         pass
     else:
         gitignore_lines = true_repo[gitignore_sha].data.decode("utf-8").split("\n")
@@ -1601,7 +1601,7 @@ def validate_course_content(repo, course_file, events_file,
 
 # {{{ validation script support
 
-class FileSystemFakeRepo(object):
+class FileSystemFakeRepo(object):  # pragma: no cover
     def __init__(self, root):
         self.root = root
         assert isinstance(self.root, six.binary_type)
@@ -1623,13 +1623,13 @@ class FileSystemFakeRepo(object):
         return FileSystemFakeRepoTree(self.root)
 
 
-class FileSystemFakeRepoTreeEntry(object):
+class FileSystemFakeRepoTreeEntry(object):  # pragma: no cover
     def __init__(self, path, mode):
         self.path = path
         self.mode = mode
 
 
-class FileSystemFakeRepoTree(object):
+class FileSystemFakeRepoTree(object):  # pragma: no cover
     def __init__(self, root):
         self.root = root
         assert isinstance(self.root, six.binary_type)
@@ -1659,7 +1659,7 @@ class FileSystemFakeRepoTree(object):
                 for n in os.listdir(self.root)]
 
 
-class FileSystemFakeRepoFile(object):
+class FileSystemFakeRepoFile(object):  # pragma: no cover
     def __init__(self, name):
         self.name = name
 
@@ -1670,7 +1670,7 @@ class FileSystemFakeRepoFile(object):
 
 
 def validate_course_on_filesystem(
-        root, course_file, events_file):
+        root, course_file, events_file):  # pragma: no cover
     fake_repo = FileSystemFakeRepo(root.encode("utf-8"))
     warnings = validate_course_content(
             fake_repo,
