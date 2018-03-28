@@ -227,24 +227,24 @@ def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
         raise ObjectDoesNotExist()
     if full_name == "flows" and allow_tree:
         tree = Tree()
-        tree.add(b"not_a_flow", stat.S_IFDIR,
+        tree.add(b"not_a_flow", stat.S_IFREG,
                  hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(flow1_location.encode(), stat.S_IFDIR,
+        tree.add(flow1_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a flow").hexdigest().encode())
 
-        tree.add(flow2_location.encode(), stat.S_IFDIR,
+        tree.add(flow2_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"another flow").hexdigest().encode())
-        tree.add(flow3_location.encode(), stat.S_IFDIR,
+        tree.add(flow3_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"yet another flow").hexdigest().encode())
         return tree
     if full_name == "staticpages":
         tree = Tree()
-        tree.add(b"not_a_page", stat.S_IFDIR,
+        tree.add(b"not_a_page", stat.S_IFREG,
                  hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(staticpage1_location.encode(), stat.S_IFDIR,
+        tree.add(staticpage1_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a static page").hexdigest().encode())
 
-        tree.add(staticpage2_location.encode(), stat.S_IFDIR,
+        tree.add(staticpage2_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a static page").hexdigest().encode())
         return tree
     if full_name == "":
@@ -262,19 +262,19 @@ def get_repo_blob_side_effect1(repo, full_name, commit_sha, allow_tree=True):
         return tree
     if full_name == "flows" and allow_tree:
         tree = Tree()
-        tree.add(b"not_a_flow", stat.S_IFDIR,
+        tree.add(b"not_a_flow", stat.S_IFREG,
                  hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(flow1_location.encode(), stat.S_IFDIR,
+        tree.add(flow1_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a flow").hexdigest().encode())
         return tree
     if full_name == "staticpages":
         tree = Tree()
-        tree.add(b"not_a_page", stat.S_IFDIR,
+        tree.add(b"not_a_page", stat.S_IFREG,
                  hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(staticpage1_location.encode(), stat.S_IFDIR,
+        tree.add(staticpage1_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a static page").hexdigest().encode())
 
-        tree.add(staticpage2_location.encode(), stat.S_IFDIR,
+        tree.add(staticpage2_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a static page").hexdigest().encode())
         return tree
     if full_name == "":
@@ -290,12 +290,12 @@ def get_repo_blob_side_effect2(repo, full_name, commit_sha, allow_tree=True):
         raise ObjectDoesNotExist()
     if full_name == "staticpages":
         tree = Tree()
-        tree.add(b"not_a_page", stat.S_IFDIR,
+        tree.add(b"not_a_page", stat.S_IFREG,
                  hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(staticpage1_location.encode(), stat.S_IFDIR,
+        tree.add(staticpage1_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a static page").hexdigest().encode())
 
-        tree.add(staticpage2_location.encode(), stat.S_IFDIR,
+        tree.add(staticpage2_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a static page").hexdigest().encode())
         return tree
     if full_name == "":
@@ -309,9 +309,9 @@ def get_repo_blob_side_effect3(repo, full_name, commit_sha, allow_tree=True):
         raise ObjectDoesNotExist()
     if full_name == "flows" and allow_tree:
         tree = Tree()
-        tree.add(b"not_a_flow", stat.S_IFDIR,
+        tree.add(b"not_a_flow", stat.S_IFREG,
                  hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(flow1_location.encode(), stat.S_IFDIR,
+        tree.add(flow1_location.encode(), stat.S_IFREG,
                  hashlib.sha224(b"a flow").hexdigest().encode())
         return tree
     if full_name == "staticpages":

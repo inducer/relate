@@ -23,6 +23,9 @@ THE SOFTWARE.
 """
 
 import unittest
+import stat
+import hashlib
+from dulwich.repo import Tree
 from django.test import TestCase
 
 from course import validation
@@ -37,6 +40,7 @@ from tests import factories
 
 location = "some_where"
 vctx = mock.MagicMock()
+vctx.repo = mock.MagicMock()
 
 
 class ValidationTestMixin(object):
@@ -2887,3 +2891,250 @@ class ValidateStaticPageNameTest(ValidationTestMixin, unittest.TestCase):
         with self.assertRaises(ValidationError) as cm:
             validation.validate_static_page_name(vctx, location, page_name)
         self.assertIn(expected_error_msg, str(cm.exception))
+
+
+VALID_ATTRIBUTES_YML = """
+unenrolled:
+    - test1.pdf
+student:
+    - test2.pdf
+"""
+
+INVALID_ATTRIBUTES_YML = """
+unenrolled:
+    - test1.pdf
+student:
+    - test2.pdf
+    - 42
+"""
+
+VALID_ATTRIBUTES_WITH_PUBLIC_YML = """
+public:
+    - test1.pdf
+student:
+    - test2.pdf
+"""
+
+INVALID_ATTRIBUTES_WITH_PUBLIC_AND_UNENROLLED_YML = """
+public:
+    - test1.pdf
+unenrolled:
+    - test2.pdf
+"""
+
+GITIGNORE = b"""a_dir
+another_dir/*"""
+
+GITIGNORE_COMMENTED = b"""
+# a_dir
+"""
+
+default_access_kinds = ["public", "in_exam", "student", "ta",
+                        "unenrolled", "instructor"]
+
+
+class FakeBlob(object):
+    def __init__(self, data):
+        self.data = data
+
+
+class FakeRepo(object):
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    def __getitem__(self, item):
+        return self.__dict__[item]
+
+
+class CheckAttributesYmlTest(ValidationTestMixin, unittest.TestCase):
+    # test validation.check_attributes_yml
+
+    def setUp(self):
+        super(CheckAttributesYmlTest, self).setUp()
+        patch = mock.patch("course.content.get_true_repo_and_path")
+        self.mock_get_true_repo_and_path = patch.start()
+
+        self.mock_get_true_repo_and_path.return_value = (vctx.repo, "")
+        self.addCleanup(patch.stop)
+
+    def test_success_with_no_attributes_yml_and_no_gitignore(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+        validation.check_attributes_yml(
+            vctx, repo, path, tree, default_access_kinds)
+
+    def test_success_with_no_attributes_yml_and_no_gitignore_root_only_contains_a_subfolder(self):  # noqa
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+
+        tree.add(b"a_dir", stat.S_IFDIR,
+                 hashlib.sha224(b"a dir").hexdigest().encode())
+        validation.check_attributes_yml(
+            vctx, repo, path, tree, default_access_kinds)
+        self.assertEqual(vctx.add_warning.call_count, 0)
+
+        # make sure check_attributes_yml is called recursively
+        self.assertEqual(
+            self.mock_get_true_repo_and_path.call_count, 2,
+            "check_attributes_yml is expected to be called recursively")
+        self.assertEqual(
+            self.mock_get_true_repo_and_path.call_args[0][1], "a_dir",
+            "check_attributes_yml is expected call with subfolder'a_dir'"
+        )
+
+    def test_success_with_attributes_yml(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+        tree.add(b".attributes.yml", stat.S_IFREG,
+                 b".attributes.yml_content")
+
+        fake_repo = FakeRepo()
+        fake_repo[b".attributes.yml_content"] = FakeBlob(VALID_ATTRIBUTES_YML)
+        self.mock_get_true_repo_and_path.return_value = (fake_repo, "")
+
+        validation.check_attributes_yml(
+            vctx, repo, path, tree, default_access_kinds)
+
+    def test_attributes_yml_public_deprecated(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+        tree.add(b".attributes.yml", stat.S_IFREG,
+                 b".attributes.yml_content")
+
+        fake_repo = FakeRepo()
+        fake_repo[b".attributes.yml_content"] = FakeBlob(
+            VALID_ATTRIBUTES_WITH_PUBLIC_YML)
+        self.mock_get_true_repo_and_path.return_value = (fake_repo, "")
+
+        validation.check_attributes_yml(
+            vctx, repo, path, tree, default_access_kinds)
+        self.assertEqual(vctx.add_warning.call_count, 1)
+
+        expected_warn_msg = ("Access class 'public' is deprecated. "
+                             "Use 'unenrolled' instead.")
+        self.assertIn(expected_warn_msg, vctx.add_warning.call_args[0])
+
+    def test_failure_with_invalid_attributes_yml(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+        tree.add(b".attributes.yml", stat.S_IFREG,
+                 b".attributes.yml_content")
+
+        fake_repo = FakeRepo()
+        fake_repo[b".attributes.yml_content"] = FakeBlob(INVALID_ATTRIBUTES_YML)
+        self.mock_get_true_repo_and_path.return_value = (fake_repo, "")
+
+        with self.assertRaises(ValidationError) as cm:
+            validation.check_attributes_yml(
+                vctx, repo, path, tree, default_access_kinds)
+
+        expected_error_msg = "entry 2 in 'student' is not a string"
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_attributes_yml_failed_with_public_and_unenrolled(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+        tree.add(b".attributes.yml", stat.S_IFREG,
+                 b".attributes.yml_content")
+
+        fake_repo = FakeRepo()
+        fake_repo[b".attributes.yml_content"] = (
+            FakeBlob(INVALID_ATTRIBUTES_WITH_PUBLIC_AND_UNENROLLED_YML))
+        self.mock_get_true_repo_and_path.return_value = (fake_repo, "")
+
+        with self.assertRaises(ValidationError) as cm:
+            validation.check_attributes_yml(
+                vctx, repo, path, tree, default_access_kinds)
+
+        expected_error_msg = ("access classes 'public' and 'unenrolled' may not "
+                              "exist simultaneously.")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_attributes_yml_gitignore_subfolder(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+
+        tree.add(b".gitignore", stat.S_IFREG, b".gitignore_content")
+        tree.add(b"a_dir", stat.S_IFDIR, b"a_dir_content")
+
+        fake_repo = FakeRepo()
+        fake_repo[b".gitignore_content"] = (
+            FakeBlob(GITIGNORE))
+
+        fake_repo[b"a_dir_content"] = Tree()
+        self.mock_get_true_repo_and_path.return_value = (fake_repo, "")
+
+        validation.check_attributes_yml(
+            vctx, repo, path, tree, default_access_kinds)
+        self.assertEqual(vctx.add_warning.call_count, 0)
+
+        # make sure check_attributes_yml is not called recursively
+        self.assertEqual(
+            self.mock_get_true_repo_and_path.call_count, 1,
+            "check_attributes_yml is expected to be called only once")
+
+    def test_attributes_yml_gitignore_subfolder_commented(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+
+        tree.add(b".gitignore", stat.S_IFREG, b".gitignore_content")
+        tree.add(b"a_dir", stat.S_IFDIR, b"a_dir_content")
+
+        fake_repo = FakeRepo()
+        fake_repo[b".gitignore_content"] = (
+            FakeBlob(GITIGNORE_COMMENTED))
+
+        fake_repo[b"a_dir_content"] = Tree()
+        self.mock_get_true_repo_and_path.return_value = (fake_repo, "")
+
+        validation.check_attributes_yml(
+            vctx, repo, path, tree, default_access_kinds)
+        self.assertEqual(vctx.add_warning.call_count, 0)
+
+        # make sure check_attributes_yml is called recursively
+        self.assertEqual(
+            self.mock_get_true_repo_and_path.call_count, 2,
+            "check_attributes_yml is expected to be called twice")
+
+    def test_attributes_yml_failed_with_public_and_unenrolled_in_subfolder(self):
+        path = ""
+        repo = vctx.repo
+        tree = Tree()
+
+        tree.add(b"a_dir", stat.S_IFDIR, b"a_dir_content")
+
+        fake_repo = FakeRepo()
+        fake_sub_repo = FakeRepo()
+
+        sub_tree = Tree()
+        sub_tree.add(b"some_file", stat.S_IFREG, b"some_content")
+        sub_tree.add(b".attributes.yml", stat.S_IFREG,
+                 b".attributes.yml_content")
+
+        fake_sub_repo[b".attributes.yml_content"] = FakeBlob(
+            INVALID_ATTRIBUTES_WITH_PUBLIC_AND_UNENROLLED_YML)
+
+        fake_repo[b"a_dir_content"] = sub_tree
+        self.mock_get_true_repo_and_path.side_effect = [
+            (fake_repo, ""), (fake_sub_repo, "a_dir")]
+
+        with self.assertRaises(ValidationError) as cm:
+            validation.check_attributes_yml(
+                vctx, repo, path, tree, default_access_kinds)
+
+        expected_error_msg = ("access classes 'public' and 'unenrolled' may not "
+                              "exist simultaneously.")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+        # make sure check_attributes_yml is called recursively
+        self.assertEqual(
+            self.mock_get_true_repo_and_path.call_count, 2,
+            "check_attributes_yml is expected to be called twice")

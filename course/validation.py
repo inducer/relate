@@ -1270,6 +1270,9 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
     except KeyError:
         # no .attributes.yml here
         pass
+    except ValueError:
+        # the path root only contains a dirctory
+        pass
     else:
         from relate.utils import dict_to_struct
         from yaml import safe_load as load_yaml
@@ -1314,7 +1317,10 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
     try:
         dummy, gitignore_sha = tree[b".gitignore"]
     except KeyError:
-        # no .attributes.yml here
+        # no .gitignore here
+        pass
+    except ValueError:
+        # the path root only contains a dirctory
         pass
     else:
         gitignore_lines = true_repo[gitignore_sha].data.decode("utf-8").split("\n")
