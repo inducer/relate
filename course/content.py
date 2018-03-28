@@ -1400,6 +1400,7 @@ def normalize_flow_desc(flow_desc):
 def get_flow_desc(repo, course, flow_id, commit_sha):
     # type: (Repo_ish, Course, Text, bytes) -> FlowDesc
 
+    # FIXME: extension should be case-insensitive
     flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
 
     flow_desc = normalize_flow_desc(flow_desc)

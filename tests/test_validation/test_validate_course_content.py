@@ -40,10 +40,124 @@ from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests.utils import mock
 
+FLOW_WITHOUT_RULE_YAML = """
+title: "Flow 1 without rule"
+description: |
+    # Linear Algebra Recap
+
+pages:
+
+-
+    type: Page
+    id: intro
+    content: |
+
+        # Hello World
+
+"""
+
+FLOW_WITH_ACCESS_RULE_YAML = """
+title: "Flow 1 with access rule"
+description: |
+    # Linear Algebra Recap
+
+rules:
+    access:
+    -
+        if_has_role: [student, ta, instructor]
+        permissions: [view]
+
+    grade_identifier: null
+
+pages:
+
+-
+    type: Page
+    id: intro
+    content: |
+
+        # Hello World
+
+"""
+
+FLOW_WITH_GRADING_RULE_YAML_PATTERN = """
+title: "RELATE Test Quiz1"
+description: |
+
+    # RELATE Test Quiz
+
+rules:
+    grade_identifier: %(grade_identifier)s
+    grade_aggregation_strategy: use_latest
+
+    grading:
+    -
+        credit_percent: 100
+
+groups:
+-
+    id: quiz_start
+    shuffle: False
+    pages:
+    -
+        type: TextQuestion
+        id: half
+        value: 5
+        prompt: |
+
+          # A half
+
+          What's a half?
+
+        answers:
+
+          - type: float
+            value: 0.5
+            rtol: 1e-4
+          - <plain>half
+          - <plain>a half
+
+"""
+
 events_file = "events.yml"
 my_events_file = "my_events_file.yml"
 course_file = "test_course_file"
+course_desc = mock.MagicMock()
 validate_sha = "test_validate_sha"
+
+staticpage1_path = "staticpages/spage1.yml"
+staticpage1_location = "spage1.yml"
+staticpage1_id = "spage1"
+staticpage1_desc = mock.MagicMock()
+
+staticpage2_path = "staticpages/spage2.yml"
+staticpage2_location = "spage2.yml"
+staticpage2_id = "spage2"
+staticpage2_desc = mock.MagicMock()
+
+flow1_path = "flows/flow1.yml"
+flow1_location = "flow1.yml"
+flow1_id = "flow1"
+flow1_no_rule_desc = dict_to_struct(load_yaml(FLOW_WITHOUT_RULE_YAML))
+flow1_with_access_rule_desc = dict_to_struct(load_yaml(FLOW_WITH_ACCESS_RULE_YAML))
+
+flow2_path = "flows/flow2.yml"
+flow2_location = "flow2.yml"
+flow2_id = "flow2"
+flow2_grade_identifier = "la_quiz"
+flow2_default_desc = dict_to_struct(load_yaml(
+    FLOW_WITH_GRADING_RULE_YAML_PATTERN % {
+        "grade_identifier": flow2_grade_identifier}))
+
+flow3_path = "flows/flow3.yml"
+flow3_location = "flow3.yml"
+flow3_id = "flow3"
+flow3_grade_identifier = "la_quiz2"
+flow3_default_desc = dict_to_struct(load_yaml(
+    FLOW_WITH_GRADING_RULE_YAML_PATTERN % {
+        "grade_identifier": flow3_grade_identifier}))
+
+flow3_with_duplicated_grade_identifier_desc = flow2_default_desc
 
 
 def get_yaml_from_repo_side_effect(repo, full_name, commit_sha, cached=True):
@@ -70,196 +184,42 @@ def get_yaml_from_repo_no_events_file_side_effect(
         return get_yaml_from_repo(repo, full_name, commit_sha, cached)
 
 
-FLOW1_WITHOUT_RULE_YAML = """
-title: "Flow 1 without rule"
-description: |
-    # Linear Algebra Recap
-
-pages:
-
--
-    type: Page
-    id: intro
-    content: |
-
-        # Hello World
-
-"""
-
-FLOW1_WITH_ACCESS_RULE_YAML = """
-title: "Flow 1 with access rule"
-description: |
-    # Linear Algebra Recap
-
-rules:
-    access:
-    -
-        if_has_role: [student, ta, instructor]
-        permissions: [view]
-
-    grade_identifier: null
-
-pages:
-
--
-    type: Page
-    id: intro
-    content: |
-
-        # Hello World
-
-"""
-
-FLOW2_WITH_GRADING_RULE_YAML = """
-title: "RELATE Test Quiz1"
-description: |
-
-    # RELATE Test Quiz
-
-rules:
-    grade_identifier: la_quiz
-    grade_aggregation_strategy: use_latest
-
-    grading:
-    -
-        credit_percent: 100
-
-groups:
--
-    id: quiz_start
-    shuffle: False
-    pages:
-    -
-        type: TextQuestion
-        id: half
-        value: 5
-        prompt: |
-
-          # A half
-
-          What's a half?
-
-        answers:
-
-          - type: float
-            value: 0.5
-            rtol: 1e-4
-          - <plain>half
-          - <plain>a half
-
-"""
-
-FLOW3_WITH_GRADING_RULE_YAML = """
-title: "RELATE Test Quiz1"
-description: |
-
-    # RELATE Test Quiz
-
-rules:
-    grade_identifier: la_quiz2
-    grade_aggregation_strategy: use_latest
-
-    grading:
-    -
-        credit_percent: 100
-
-groups:
--
-    id: quiz_start
-    shuffle: False
-    pages:
-    -
-        type: TextQuestion
-        id: half
-        value: 5
-        prompt: |
-
-          # A half
-
-          What's a half?
-
-        answers:
-
-          - type: float
-            value: 0.5
-            rtol: 1e-4
-          - <plain>half
-          - <plain>a half
-
-"""
-
-FLOW3_WITH_GRADING_RULE_WITH_SAME_GID_AS_FLOW2_YAML = """
-title: "RELATE Test Quiz1"
-description: |
-
-    # RELATE Test Quiz
-
-rules:
-    grade_identifier: la_quiz
-    grade_aggregation_strategy: use_latest
-
-    grading:
-    -
-        credit_percent: 100
-
-groups:
--
-    id: quiz_start
-    shuffle: False
-    pages:
-    -
-        type: TextQuestion
-        id: half
-        value: 5
-        prompt: |
-
-          # A half
-
-          What's a half?
-
-        answers:
-
-          - type: float
-            value: 0.5
-            rtol: 1e-4
-          - <plain>half
-          - <plain>a half
-
-"""
-
-
 def get_yaml_from_repo_safely_side_effect(repo, full_name, commit_sha):
     if full_name == course_file:
-        return "faked_course_desc"
-    if full_name == "flows/flow1.yml":
-        return dict_to_struct(load_yaml(FLOW1_WITHOUT_RULE_YAML))
-    if full_name == "flows/flow2.yml":
-        return dict_to_struct(load_yaml(FLOW2_WITH_GRADING_RULE_YAML))
-    if full_name == "flows/flow3.yml":
-        return dict_to_struct(load_yaml(FLOW3_WITH_GRADING_RULE_YAML))
+        return course_desc
+    if full_name == flow1_path:
+        return flow1_no_rule_desc
+    if full_name == flow2_path:
+        return flow2_default_desc
+    if full_name == flow3_path:
+        return flow3_default_desc
 
-    if full_name.startswith("staticpages/"):
-        return "faked_staticpages"
-    else:
-        return get_yaml_from_repo_safely(repo, full_name, commit_sha)
+    if full_name == staticpage1_path:
+        return staticpage1_desc
+    if full_name == staticpage2_path:
+        return staticpage2_desc
+
+    return get_yaml_from_repo_safely(repo, full_name, commit_sha)
 
 
 def get_yaml_from_repo_safely_with_duplicate_grade_identifier_side_effect(
         repo, full_name, commit_sha):
     if full_name == course_file:
-        return "faked_course_desc"
-    if full_name == "flows/flow1.yml":
-        return dict_to_struct(load_yaml(FLOW1_WITH_ACCESS_RULE_YAML))
-    if full_name == "flows/flow2.yml":
-        return dict_to_struct(load_yaml(FLOW2_WITH_GRADING_RULE_YAML))
-    if full_name == "flows/flow3.yml":
-        return dict_to_struct(load_yaml(
-            FLOW3_WITH_GRADING_RULE_WITH_SAME_GID_AS_FLOW2_YAML))
+        return course_desc
+    if full_name == flow1_path:
+        return flow1_with_access_rule_desc
 
-    if full_name.startswith("staticpages/"):
-        return "faked_staticpages"
-    else:
-        return get_yaml_from_repo_safely(repo, full_name, commit_sha)
+    if full_name == flow2_path:
+        return flow2_default_desc
+    if full_name == flow3_path:
+        return flow3_with_duplicated_grade_identifier_desc
+
+    if full_name == staticpage1_path:
+        return staticpage1_desc
+    if full_name == staticpage2_path:
+        return staticpage2_desc
+
+    return get_yaml_from_repo_safely(repo, full_name, commit_sha)
 
 
 def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
@@ -269,18 +229,22 @@ def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
         tree = Tree()
         tree.add(b"not_a_flow", stat.S_IFDIR,
                  hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(b"flow1.yml", stat.S_IFDIR,
+        tree.add(flow1_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"a flow").hexdigest().encode())
-        tree.add(b"flow2.yml", stat.S_IFDIR,
+
+        tree.add(flow2_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"another flow").hexdigest().encode())
-        tree.add(b"flow3.yml", stat.S_IFDIR,
+        tree.add(flow3_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"yet another flow").hexdigest().encode())
         return tree
     if full_name == "staticpages":
         tree = Tree()
         tree.add(b"not_a_page", stat.S_IFDIR,
                  hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(b"spage1.yml", stat.S_IFDIR,
+        tree.add(staticpage1_location.encode(), stat.S_IFDIR,
+                 hashlib.sha224(b"a static page").hexdigest().encode())
+
+        tree.add(staticpage2_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"a static page").hexdigest().encode())
         return tree
     if full_name == "":
@@ -300,14 +264,17 @@ def get_repo_blob_side_effect1(repo, full_name, commit_sha, allow_tree=True):
         tree = Tree()
         tree.add(b"not_a_flow", stat.S_IFDIR,
                  hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(b"flow1.yml", stat.S_IFDIR,
+        tree.add(flow1_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"a flow").hexdigest().encode())
         return tree
     if full_name == "staticpages":
         tree = Tree()
         tree.add(b"not_a_page", stat.S_IFDIR,
                  hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(b"spage1.yml", stat.S_IFDIR,
+        tree.add(staticpage1_location.encode(), stat.S_IFDIR,
+                 hashlib.sha224(b"a static page").hexdigest().encode())
+
+        tree.add(staticpage2_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"a static page").hexdigest().encode())
         return tree
     if full_name == "":
@@ -325,7 +292,10 @@ def get_repo_blob_side_effect2(repo, full_name, commit_sha, allow_tree=True):
         tree = Tree()
         tree.add(b"not_a_page", stat.S_IFDIR,
                  hashlib.sha224(b"not a page").hexdigest().encode())
-        tree.add(b"spage1.yml", stat.S_IFDIR,
+        tree.add(staticpage1_location.encode(), stat.S_IFDIR,
+                 hashlib.sha224(b"a static page").hexdigest().encode())
+
+        tree.add(staticpage2_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"a static page").hexdigest().encode())
         return tree
     if full_name == "":
@@ -341,7 +311,7 @@ def get_repo_blob_side_effect3(repo, full_name, commit_sha, allow_tree=True):
         tree = Tree()
         tree.add(b"not_a_flow", stat.S_IFDIR,
                  hashlib.sha224(b"not a flow").hexdigest().encode())
-        tree.add(b"flow1.yml", stat.S_IFDIR,
+        tree.add(flow1_location.encode(), stat.S_IFDIR,
                  hashlib.sha224(b"a flow").hexdigest().encode())
         return tree
     if full_name == "staticpages":
@@ -359,8 +329,6 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         self.repo = mock.MagicMock()
 
         self.course = factories.CourseFactory()
-
-        self.vctx = validation.ValidationContext(self.repo, "some_sha", self.course)
 
         fake_get_yaml_from_repo_safely = mock.patch(
             "course.validation.get_yaml_from_repo_safely")
@@ -435,8 +403,20 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             self.repo, course_file, events_file, validate_sha, course=None)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
 
-        # validate_staticpage_desc call to validate course_page, and a staticpage
-        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 2)
+        # validate_staticpage_desc call to validate course_page, and 2 staticpages
+        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 3)
+
+        # make sure validate_staticpage_desc was called with expected args
+        expected_validate_staticpage_desc_call_args = {
+            (course_file, course_desc),
+            (staticpage1_path, staticpage1_desc),
+            (staticpage2_path, staticpage2_desc)}
+        args_set = set()
+        for args, kwargs in self.mock_validate_staticpage_desc.call_args_list:
+            args_set.add(args[1:])
+
+        self.assertSetEqual(expected_validate_staticpage_desc_call_args,
+                            args_set)
 
         # validate_calendar_desc_struct is called
         self.assertEqual(self.mock_validate_calendar_desc_struct.call_count, 1)
@@ -447,8 +427,30 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         # validate_flow_id is called 3 times, for 3 flow files
         self.assertEqual(self.mock_validate_flow_id.call_count, 3)
 
+        # make sure validate_flow_id was called with expected args
+        expected_validate_flow_id_call_args = {
+            (flow1_location, flow1_id),
+            (flow2_location, flow2_id),
+            (flow3_location, flow3_id), }
+        args_set = set()
+        for args, kwargs in self.mock_validate_flow_id.call_args_list:
+            args_set.add(args[1:])
+
+        self.assertSetEqual(expected_validate_flow_id_call_args, args_set)
+
         # validate_flow_desc is called 3 times, for 3 flow files
         self.assertEqual(self.mock_validate_flow_desc.call_count, 3)
+
+        # make sure validate_flow_desc was called with expected args
+        expected_validate_flow_desc_call_args = {
+            (flow1_path, flow1_no_rule_desc),
+            (flow2_path, flow2_default_desc),
+            (flow3_path, flow3_default_desc), }
+        args_set = set()
+        for args, kwargs in self.mock_validate_flow_desc.call_args_list:
+            args_set.add(args[1:])
+
+        self.assertSetEqual(expected_validate_flow_desc_call_args, args_set)
 
         # check_grade_identifier_link is not called, because course is None
         self.assertEqual(self.mock_check_grade_identifier_link.call_count, 0)
@@ -456,16 +458,26 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         # check_for_page_type_changes is not called, because course is None
         self.assertEqual(self.mock_check_for_page_type_changes.call_count, 0)
 
-        # validate_static_page_name is called once for one static page
-        self.assertEqual(self.mock_validate_static_page_name.call_count, 1)
+        # validate_static_page_name is called once for 2 static pages
+        self.assertEqual(self.mock_validate_static_page_name.call_count, 2)
+
+        # make sure validate_static_page_name was called with expected args
+        expected_validate_static_page_name_call_args = {
+            (staticpage1_location, staticpage1_id),
+            (staticpage2_location, staticpage2_id)}
+        args_set = set()
+        for args, kwargs in self.mock_validate_static_page_name.call_args_list:
+            args_set.add(args[1:])
+
+        self.assertSetEqual(expected_validate_static_page_name_call_args, args_set)
 
     def test_course_not_none(self):
         validation.validate_course_content(
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
 
-        # validate_staticpage_desc call to validate course_page, and a staticpage
-        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 2)
+        # validate_staticpage_desc call to validate course_page, and 2 staticpages
+        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 3)
 
         # validate_calendar_desc_struct is called
         self.assertEqual(self.mock_validate_calendar_desc_struct.call_count, 1)
@@ -482,12 +494,22 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         # check_grade_identifier_link is call twice, only 2 flow
         # has grade_identifier
         self.assertEqual(self.mock_check_grade_identifier_link.call_count, 2)
+        # make sure validate_static_page_name was called with expected args
+        expected_check_grade_identifier_link_call_args = {
+            (flow2_path, self.course, flow2_id, flow2_grade_identifier),
+            (flow3_path, self.course, flow3_id, flow3_grade_identifier)}
+        args_set = set()
+        for args, kwargs in self.mock_check_grade_identifier_link.call_args_list:
+            args_set.add(args[1:])
+
+        self.assertSetEqual(
+            expected_check_grade_identifier_link_call_args, args_set)
 
         # check_for_page_type_changes is called 3 times for 3 flows
         self.assertEqual(self.mock_check_for_page_type_changes.call_count, 3)
 
-        # validate_static_page_name is called once for one static page
-        self.assertEqual(self.mock_validate_static_page_name.call_count, 1)
+        # validate_static_page_name is called once for 2 static pages
+        self.assertEqual(self.mock_validate_static_page_name.call_count, 2)
 
     def test_course_custom_events_file_does_not_exist(self):
         self.mock_get_yaml_from_repo.side_effect = (
@@ -502,8 +524,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
         self.assertIn(expected_warn_msg, self.mock_vctx_add_warning.call_args[0])
 
-        # validate_staticpage_desc call to validate course_page, and a staticpage
-        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 2)
+        # validate_staticpage_desc call to validate course_page, and 2 staticpages
+        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 3)
 
         # validate_calendar_desc_struct is not called
         self.assertEqual(self.mock_validate_calendar_desc_struct.call_count, 0)
@@ -520,8 +542,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         # check_for_page_type_changes is called 3 times for 3 flows
         self.assertEqual(self.mock_check_for_page_type_changes.call_count, 3)
 
-        # validate_static_page_name is called once for one static page
-        self.assertEqual(self.mock_validate_static_page_name.call_count, 1)
+        # validate_static_page_name is called once for 2 static pages
+        self.assertEqual(self.mock_validate_static_page_name.call_count, 2)
 
     def test_course_no_events_file(self):
         self.mock_get_yaml_from_repo.side_effect = (
@@ -530,8 +552,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
 
-        # validate_staticpage_desc call to validate course_page, and a staticpage
-        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 2)
+        # validate_staticpage_desc call to validate course_page, and 2 staticpages
+        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 3)
 
         # validate_calendar_desc_struct is not called
         self.assertEqual(self.mock_validate_calendar_desc_struct.call_count, 0)
@@ -548,8 +570,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         # check_for_page_type_changes is called 3 times for 3 flows
         self.assertEqual(self.mock_check_for_page_type_changes.call_count, 3)
 
-        # validate_static_page_name is called once for one static page
-        self.assertEqual(self.mock_validate_static_page_name.call_count, 1)
+        # validate_static_page_name is called once for 2 static pages
+        self.assertEqual(self.mock_validate_static_page_name.call_count, 2)
 
     def test_get_repo_blob_media_dir_not_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect1
@@ -564,8 +586,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
         self.assertIn(expected_warn_msg, self.mock_vctx_add_warning.call_args[0])
 
-        # validate_staticpage_desc call to validate course_page, and a staticpage
-        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 2)
+        # validate_staticpage_desc call to validate course_page, and 2 staticpages
+        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 3)
 
         # validate_calendar_desc_struct is called
         self.assertEqual(self.mock_validate_calendar_desc_struct.call_count, 1)
@@ -582,8 +604,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         # check_for_page_type_changes is called once, there's only 1 flow file
         self.assertEqual(self.mock_check_for_page_type_changes.call_count, 1)
 
-        # validate_static_page_name is called once for one static page
-        self.assertEqual(self.mock_validate_static_page_name.call_count, 1)
+        # validate_static_page_name is called twice for 2 static pages
+        self.assertEqual(self.mock_validate_static_page_name.call_count, 2)
 
     def test_get_repo_blob_flows_dir_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect2
@@ -591,8 +613,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
 
-        # validate_staticpage_desc call to validate course_page, and a staticpage
-        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 2)
+        # validate_staticpage_desc call to validate course_page, and 2 staticpages
+        self.assertEqual(self.mock_validate_staticpage_desc.call_count, 3)
 
         # validate_calendar_desc_struct is called
         self.assertEqual(self.mock_validate_calendar_desc_struct.call_count, 1)
@@ -609,8 +631,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         # check_for_page_type_changes is not called, because no flow files
         self.assertEqual(self.mock_check_for_page_type_changes.call_count, 0)
 
-        # validate_static_page_name is called once for one static page
-        self.assertEqual(self.mock_validate_static_page_name.call_count, 1)
+        # validate_static_page_name is called twice for two static pages
+        self.assertEqual(self.mock_validate_static_page_name.call_count, 2)
 
     def test_get_repo_blob_staticpages_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect3
