@@ -30,10 +30,15 @@ from django.test import TestCase
 
 from relate.utils import dict_to_struct
 
+from course.models import (
+    ParticipationRole,
+    ParticipationPermission, ParticipationRolePermission)
 from course import validation
 from course.validation import ValidationError
 from course.content import get_yaml_from_repo, get_repo_blob, load_yaml
 from course.validation import get_yaml_from_repo_safely
+from course.constants import (
+    DEFAULT_ACCESS_KINDS, participation_permission as pperm)
 
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
@@ -403,6 +408,10 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
         # check_attributes_yml is called
         self.assertEqual(self.mock_check_attributes_yml.call_count, 1)
+        expected_check_attributes_yml_call_args_access_kinds = DEFAULT_ACCESS_KINDS
+        self.assertEqual(
+            self.mock_check_attributes_yml.call_args[0][-1],
+            expected_check_attributes_yml_call_args_access_kinds)
 
         # validate_flow_id is called 3 times, for 3 flow files
         self.assertEqual(self.mock_validate_flow_id.call_count, 3)
@@ -654,3 +663,101 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
                               "grade_identifier as another flow")
         self.assertIn(expected_error_msg, str(cm.exception))
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
+
+    def test_course_not_none_check_attributes_yml(self):
+        # This test check_attributes_yml args access_type
+        # is generated with course-specific pperm.access_files_for
+
+        user = factories.UserFactory()
+
+        # {{{ create another course with different set of participation role
+        # permission and participation permission
+
+        another_course = factories.CourseFactory(identifier="another-course")
+        another_course_prole = ParticipationRole(
+            course=another_course,
+            identifier="another_course_role",
+            name="another_course_role")
+        another_course_prole.save()
+
+        another_course_participation = factories.ParticipationFactory(
+            course=another_course, user=user)
+        another_course_participation.roles.set([another_course_prole])
+
+        another_course_ppm_access_files_for_roles = "another_role"
+        ParticipationPermission(
+            participation=another_course_participation,
+            permission=pperm.access_files_for,
+            argument=another_course_ppm_access_files_for_roles
+        ).save()
+
+        another_course_rpm_access_files_for_roles = "another_course_everyone"
+        ParticipationRolePermission(
+            role=another_course_prole,
+            permission=pperm.access_files_for,
+            argument=another_course_rpm_access_files_for_roles).save()
+
+        self.assertTrue(
+            another_course_participation.has_permission(
+                pperm.access_files_for,
+                argument=another_course_ppm_access_files_for_roles))
+
+        self.assertTrue(
+            another_course_participation.has_permission(
+                pperm.access_files_for,
+                argument=another_course_rpm_access_files_for_roles))
+        # }}}
+
+        # {{{ create for default test course extra participation role
+        # permission and participation permission
+
+        this_course_prole = ParticipationRole(
+            course=self.course,
+            identifier="another_course_role",
+            name="another_course_role")
+        this_course_prole.save()
+
+        this_course_participation = factories.ParticipationFactory(
+            course=self.course, user=user)
+        this_course_participation.roles.set([this_course_prole])
+
+        this_course_ppm_access_files_for_roles = "this_course_some_role"
+        ParticipationPermission(
+            participation=this_course_participation,
+            permission=pperm.access_files_for,
+            argument=this_course_ppm_access_files_for_roles
+        ).save()
+
+        this_course_rpm_access_files_for_roles = "this_course_everyone"
+        ParticipationRolePermission(
+            role=this_course_prole,
+            permission=pperm.access_files_for,
+            argument=this_course_rpm_access_files_for_roles).save()
+
+        self.assertTrue(
+            this_course_participation.has_permission(
+                pperm.access_files_for,
+                argument=this_course_ppm_access_files_for_roles))
+
+        self.assertTrue(
+            this_course_participation.has_permission(
+                pperm.access_files_for,
+                argument=this_course_rpm_access_files_for_roles))
+        # }}}
+
+        validation.validate_course_content(
+            self.repo, course_file, events_file, validate_sha, course=self.course)
+        self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
+
+        # check_attributes_yml is called
+        self.assertEqual(self.mock_check_attributes_yml.call_count, 1)
+
+        access_kinds = list(self.mock_check_attributes_yml.call_args[0][-1])
+
+        self.assertIn(this_course_ppm_access_files_for_roles, access_kinds)
+        self.assertIn(this_course_rpm_access_files_for_roles, access_kinds)
+
+        self.assertNotIn(another_course_ppm_access_files_for_roles, access_kinds)
+        self.assertNotIn(another_course_rpm_access_files_for_roles, access_kinds)
+
+# vim: foldmethod=marker

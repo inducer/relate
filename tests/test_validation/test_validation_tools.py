@@ -31,7 +31,8 @@ from django.test import TestCase
 from course import validation
 from course.validation import ValidationError
 from course.content import dict_to_struct
-from course.constants import flow_permission, grade_aggregation_strategy
+from course.constants import (
+    flow_permission, grade_aggregation_strategy, ATTRIBUTES_FILENAME)
 
 from tests.utils import mock, suppress_stdout_decorator
 from tests.base_test_mixins import CoursesTestMixinBase
@@ -2988,7 +2989,7 @@ class CheckAttributesYmlTest(ValidationTestMixin, unittest.TestCase):
         path = ""
         repo = vctx.repo
         tree = Tree()
-        tree.add(b".attributes.yml", stat.S_IFREG,
+        tree.add(ATTRIBUTES_FILENAME.encode(), stat.S_IFREG,
                  b".attributes.yml_content")
 
         fake_repo = FakeRepo()
@@ -3002,7 +3003,7 @@ class CheckAttributesYmlTest(ValidationTestMixin, unittest.TestCase):
         path = ""
         repo = vctx.repo
         tree = Tree()
-        tree.add(b".attributes.yml", stat.S_IFREG,
+        tree.add(ATTRIBUTES_FILENAME.encode(), stat.S_IFREG,
                  b".attributes.yml_content")
 
         fake_repo = FakeRepo()
@@ -3022,7 +3023,7 @@ class CheckAttributesYmlTest(ValidationTestMixin, unittest.TestCase):
         path = ""
         repo = vctx.repo
         tree = Tree()
-        tree.add(b".attributes.yml", stat.S_IFREG,
+        tree.add(ATTRIBUTES_FILENAME.encode(), stat.S_IFREG,
                  b".attributes.yml_content")
 
         fake_repo = FakeRepo()
@@ -3040,7 +3041,7 @@ class CheckAttributesYmlTest(ValidationTestMixin, unittest.TestCase):
         path = ""
         repo = vctx.repo
         tree = Tree()
-        tree.add(b".attributes.yml", stat.S_IFREG,
+        tree.add(ATTRIBUTES_FILENAME.encode(), stat.S_IFREG,
                  b".attributes.yml_content")
 
         fake_repo = FakeRepo()
@@ -3116,7 +3117,7 @@ class CheckAttributesYmlTest(ValidationTestMixin, unittest.TestCase):
 
         sub_tree = Tree()
         sub_tree.add(b"some_file", stat.S_IFREG, b"some_content")
-        sub_tree.add(b".attributes.yml", stat.S_IFREG,
+        sub_tree.add(ATTRIBUTES_FILENAME.encode(), stat.S_IFREG,
                  b".attributes.yml_content")
 
         fake_sub_repo[b".attributes.yml_content"] = FakeBlob(
