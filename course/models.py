@@ -52,7 +52,7 @@ from course.constants import (  # noqa
         exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
         participation_permission, PARTICIPATION_PERMISSION_CHOICES,
 
-        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX
+        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX, NAME_VALID_REGEX
         )
 
 from course.page.base import AnswerFeedback
@@ -344,12 +344,13 @@ class ParticipationTag(models.Model):
         super(ParticipationTag, self).clean()
 
         import re
-        name_valid_re = re.compile(r"^\w+$")
+        name_valid_re = re.compile(NAME_VALID_REGEX)
 
         if name_valid_re.match(self.name) is None:
-            # Translators: "Name" is the name of a ParticipationTag
+            field_name = "name"
             raise ValidationError(
-                    {"name": _("Name contains invalid characters.")})
+                {field_name:
+                     _("'%s' contains invalid characters.") % field_name})
 
     def __unicode__(self):
         return "%s (%s)" % (self.name, self.course)
@@ -387,12 +388,13 @@ class ParticipationRole(models.Model):
         super(ParticipationRole, self).clean()
 
         import re
-        name_valid_re = re.compile(r"^\w+$")
+        identifier_valid_re = re.compile(NAME_VALID_REGEX)
 
-        if name_valid_re.match(self.identifier) is None:
-            # Translators: "Name" is the name of a ParticipationTag
+        if identifier_valid_re.match(self.identifier) is None:
+            field_name = "identifier"
             raise ValidationError(
-                    {"name": _("Name contains invalid characters.")})
+                {field_name:
+                     _("'%s' contains invalid characters.") % field_name})
 
     def __unicode__(self):
         return _("%(identifier)s in %(course)s") % {
@@ -460,6 +462,15 @@ class ParticipationRolePermission(ParticipationPermissionBase):
     role = models.ForeignKey(ParticipationRole,
             verbose_name=_('Role'), on_delete=models.CASCADE,
             related_name="permissions")
+
+    def __unicode__(self):
+        # Translators: permissions for roles
+        return _("%(permission)s for %(role)s") % {
+            "permission": super(ParticipationRolePermission, self).__unicode__(),
+            "role": self.role}
+
+    if six.PY3:
+        __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation role permission")
@@ -598,6 +609,9 @@ class ParticipationPreapproval(models.Model):
             # Participation Preapproval
             return _("Institutional ID %(inst_id)s in %(course)s") % {
                     "inst_id": self.institutional_id, "course": self.course}
+        else:
+            return _("Preapproval with pk %(pk)s in %(course)s") % {
+                    "pk": self.pk, "course": self.course}
 
     if six.PY3:
         __str__ = __unicode__
@@ -1211,7 +1225,10 @@ def update_bulk_feedback(page_data, grade, bulk_feedback_json):
 
 
 def get_feedback_for_grade(grade):
-    # type: (FlowPageVisitGrade) -> Optional[AnswerFeedback]
+    # type: (Optional[FlowPageVisitGrade]) -> Optional[AnswerFeedback]
+
+    if grade is None:
+        return None
 
     try:
         bulk_feedback_json = FlowPageBulkFeedback.objects.get(
@@ -1220,18 +1237,14 @@ def get_feedback_for_grade(grade):
     except ObjectDoesNotExist:
         bulk_feedback_json = None
 
-    if grade is not None:
-        return AnswerFeedback.from_json(
-                grade.feedback, bulk_feedback_json)
-    else:
-        return None
+    return AnswerFeedback.from_json(grade.feedback, bulk_feedback_json)
 
 # }}}
 
 
-# {{{ flow access
+# {{{ deprecated exception stuff
 
-def validate_stipulations(stip):
+def validate_stipulations(stip):  # pragma: no cover (deprecated and not tested)
     if stip is None:
         return
 
@@ -1256,9 +1269,7 @@ def validate_stipulations(stip):
                 _("'allowed_session_count' must be a non-negative integer"))
 
 
-# {{{ deprecated exception stuff
-
-class FlowAccessException(models.Model):
+class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
     # deprecated
 
     participation = models.ForeignKey(Participation, db_index=True,
@@ -1311,7 +1322,7 @@ class FlowAccessException(models.Model):
         __str__ = __unicode__
 
 
-class FlowAccessExceptionEntry(models.Model):
+class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
     # deprecated
 
     exception = models.ForeignKey(FlowAccessException,
@@ -1362,13 +1373,15 @@ class FlowRuleException(models.Model):
     def __unicode__(self):
         return (
                 # Translators: For FlowRuleException
-                _("%(kind)s exception for '%(user)s' to '%(flow_id)s'"
-                "in '%(course)s'")
+                _("%(kind)s exception %(exception_id)s for '%(user)s' to "
+                "'%(flow_id)s' in '%(course)s'")
                 % {
                     "kind": self.kind,
                     "user": self.participation.user,
                     "flow_id": self.flow_id,
-                    "course": self.participation.course})
+                    "course": self.participation.course,
+                    "exception_id":
+                        " id %d" % self.id if self.id is not None else ""})
 
     if six.PY3:
         __str__ = __unicode__
@@ -1376,6 +1389,11 @@ class FlowRuleException(models.Model):
     def clean(self):
         # type: () -> None
         super(FlowRuleException, self).clean()
+
+        if self.kind not in dict(FLOW_RULE_KIND_CHOICES).keys():
+            raise ValidationError(
+                # Translators: the rule refers to FlowRuleException rule
+                string_concat(_("invalid exception rule kind"), ": ", self.kind))
 
         if (self.kind == flow_rule_kind.grading
                 and self.expiration is not None):
@@ -1420,13 +1438,13 @@ class FlowRuleException(models.Model):
                 validate_session_grading_rule(
                         ctx, six.text_type(self), rule, tags,
                         grade_identifier)
-            else:
-                # the rule refers to FlowRuleException rule
-                raise ValidationError(_("invalid rule kind: ")+self.kind)
+            else:  # pragma: no cover. This won't happen
+                raise ValueError("invalid exception rule kind")
 
         except ContentValidationError as e:
             # the rule refers to FlowRuleException rule
-            raise ValidationError(_("invalid existing_session_rules: ")+str(e))
+            raise ValidationError(
+                string_concat(_("invalid existing_session_rules"), ": ", str(e)))
 
     class Meta:
         verbose_name = _("Flow rule exception")
