@@ -35,7 +35,7 @@ from django.utils.translation import (
         ugettext_lazy as _, ugettext)
 from course.constants import (
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-        ATTRIBUTES_FILENAME,
+        ATTRIBUTES_FILENAME, DEFAULT_ACCESS_KINDS,
         participation_permission as pperm)
 
 from course.content import get_repo_blob
@@ -1494,8 +1494,7 @@ def validate_course_content(repo, course_file, events_file,
         access_kinds = frozenset(k for k in access_kinds if k is not None)
 
     else:
-        access_kinds = ["public", "in_exam", "student", "ta",
-                     "unenrolled", "instructor"]
+        access_kinds = DEFAULT_ACCESS_KINDS
 
     check_attributes_yml(
             vctx, repo, "",

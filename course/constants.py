@@ -551,5 +551,7 @@ EXAM_TICKET_STATE_CHOICES = (
 
 
 ATTRIBUTES_FILENAME = ".attributes.yml"
+DEFAULT_ACCESS_KINDS = ["public", "in_exam", "student", "ta",
+                        "unenrolled", "instructor"]
 
 # vim: foldmethod=marker
