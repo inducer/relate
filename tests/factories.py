@@ -22,10 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import pytz
+from datetime import datetime
+
 from django.utils.timezone import now
 import factory
+from factory import fuzzy
 from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext_lazy as _
+
 from course import models
 from course import constants
 
@@ -126,6 +131,7 @@ class FlowSessionFactory(factory.django.DjangoModelFactory):
 class GradingOpportunityFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.GradingOpportunity
+        django_get_or_create = ('course', 'identifier',)
 
     course = factory.SubFactory(CourseFactory)
     identifier = DEFAULT_GRADE_IDENTIFIER
@@ -159,6 +165,14 @@ class FlowPageVisitFactory(factory.django.DjangoModelFactory):
     answer = None
 
 
+class FlowPageVisitGradeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.FlowPageVisitGrade
+
+    visit = factory.SubFactory(FlowPageVisitFactory)
+    grade_time = factory.lazy_attribute(lambda x: x.visit.visit_time)
+
+
 class EventFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Event
@@ -190,6 +204,8 @@ class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ParticipationPreapproval
 
+    email = factory.Sequence(lambda n: "test_preappro_%03d@preapprv.com" % n)
+    institutional_id = factory.Sequence(lambda n: "%03d" % n)
     course = factory.SubFactory(CourseFactory)
 
     @factory.post_generation
@@ -200,3 +216,120 @@ class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
         else:
             role = ParticipationRoleFactory(course=self.course)
             self.roles.set([role])
+
+
+def generate_random_hash():
+    import hashlib
+    from random import random
+
+    hash = hashlib.sha1()
+    hash.update(str(random()).encode())
+    hash.hexdigest()
+    return hash.hexdigest()[:10]
+
+
+class AuthenticationTokenFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.AuthenticationToken
+
+    user = factory.lazy_attribute(lambda x: x.participation.user)
+    participation = factory.SubFactory(ParticipationFactory)
+
+    description = factory.Sequence(
+        lambda n: "test description %03d" % n)
+
+    token_hash = fuzzy.FuzzyText()
+
+    @factory.post_generation
+    def restrict_to_participation_role(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+        else:
+            role = ParticipationRoleFactory(course=self.participation.course)
+            self.restrict_to_participation_role = role
+
+
+class InstantFlowRequestFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.InstantFlowRequest
+        django_get_or_create = ('course', 'flow_id')
+
+    course = factory.SubFactory(CourseFactory)
+    flow_id = "my_flow_id"
+    start_time = fuzzy.FuzzyDateTime(
+        datetime(2019, 1, 1, tzinfo=pytz.UTC),
+        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+    end_time = fuzzy.FuzzyDateTime(
+        datetime(2019, 2, 1, tzinfo=pytz.UTC),
+        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+    cancelled = False
+
+
+class FlowRuleExceptionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.FlowRuleException
+
+    flow_id = DEFAULT_FLOW_ID
+    participation = factory.SubFactory(ParticipationFactory)
+    creation_time = fuzzy.FuzzyDateTime(
+        datetime(2019, 1, 1, tzinfo=pytz.UTC),
+        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+
+    kind = constants.flow_rule_kind.start
+    rule = {
+        "if_before": "some_date",
+    }
+    active = True
+
+
+class InstantMessageFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.InstantMessage
+        django_get_or_create = ('participation', 'text')
+
+    participation = factory.SubFactory(ParticipationFactory)
+    text = fuzzy.FuzzyText()
+    time = fuzzy.FuzzyDateTime(
+        datetime(2019, 2, 1, tzinfo=pytz.UTC),
+        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+
+
+class ExamFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.Exam
+        django_get_or_create = ('course', 'description')
+
+    course = factory.SubFactory(CourseFactory)
+    description = "desc of exam"
+    flow_id = DEFAULT_FLOW_ID
+    active = True
+    listed = True
+
+    no_exams_before = fuzzy.FuzzyDateTime(
+        datetime(2019, 1, 1, tzinfo=pytz.UTC),
+        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+    no_exams_after = fuzzy.FuzzyDateTime(
+        datetime(2019, 2, 1, tzinfo=pytz.UTC),
+        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+
+
+class ExamTicketFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = models.ExamTicket
+        django_get_or_create = ('exam', 'participation')
+
+    exam = factory.SubFactory(ExamFactory)
+
+    participation = factory.SubFactory(ParticipationFactory)
+
+    creation_time = now()
+    state = constants.exam_ticket_states.valid
+    code = "my_exam_ticket"
+    valid_start_time = fuzzy.FuzzyDateTime(
+        datetime(2019, 1, 1, tzinfo=pytz.UTC),
+        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+    valid_end_time = fuzzy.FuzzyDateTime(
+        datetime(2019, 2, 1, tzinfo=pytz.UTC),
+        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+    restrict_to_facility = ""

@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import unittest
 from django.test import TestCase
 from django.conf import settings
 from django.test.utils import override_settings
@@ -34,6 +35,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from relate.utils import string_concat
 
+from course import enrollment
 from course.models import (
     Course,
     Participation, ParticipationRole, ParticipationPreapproval)
@@ -45,6 +47,7 @@ from tests.base_test_mixins import (
     FallBackStorageMessageTestMixin
 )
 from tests.utils import LocmemBackendTestsMixin, mock
+from tests import factories
 
 TEST_EMAIL_SUFFIX1 = "@suffix.com"
 TEST_EMAIL_SUFFIX2 = "suffix.com"
@@ -1237,5 +1240,35 @@ class EnrollmentDecisionEmailConnectionsTest(
             self.assertEqual(msg.from_email, expected_from_email)
     # }}}
 
+
+class ParticipationQueryFormTest(unittest.TestCase):
+    def setUp(self):
+        self.course = factories.CourseFactory()
+
+    def test_form_valid(self):
+        data = {
+            "queries": "id:1234",
+            "op": "apply_tag",
+            "tag": "hello"}
+
+        form = enrollment.ParticipationQueryForm(data=data)
+        self.assertTrue(form.is_valid())
+
+    def test_form_valid_no_tag(self):
+        data = {
+            "queries": "id:1234",
+            "op": "drop"}
+
+        form = enrollment.ParticipationQueryForm(data=data)
+        self.assertTrue(form.is_valid())
+
+    def test_form_tag_invalid(self):
+        data = {
+            "queries": "id:1234",
+            "op": "apply_tag",
+            "tag": "~hello~"}
+
+        form = enrollment.ParticipationQueryForm(data=data)
+        self.assertIn("Name contains invalid characters.", form.errors["tag"])
 
 # vim: foldmethod=marker
