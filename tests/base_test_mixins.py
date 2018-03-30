@@ -208,12 +208,23 @@ class ResponseContextMixin(object):
         self.assertEqual(value, expected_value)
 
     def assertResponseContextContains(self, resp,  # noqa
-                                      context_name, expected_value, html=False):
+                                      context_name, expected_value, html=False,
+                                      in_bulk=False):
         value = self.get_response_context_value_by_name(resp, context_name)
-        if not html:
-            self.assertIn(expected_value, value)
+        if in_bulk:
+            if not isinstance(expected_value, list):
+                expected_value = [expected_value]
+
+            for v in expected_value:
+                if not html:
+                    self.assertIn(v, value)
+                else:
+                    self.assertInHTML(v, value)
         else:
-            self.assertInHTML(expected_value, value)
+            if not html:
+                self.assertIn(expected_value, value)
+            else:
+                self.assertInHTML(expected_value, value)
 
     def assertResponseContextRegex(  # noqa
             self, resp,  # noqa

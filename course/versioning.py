@@ -69,7 +69,7 @@ from course.constants import (
 
 if False:
     from django import http  # noqa
-    from typing import Tuple, List, Text, Any, Dict  # noqa
+    from typing import Tuple, List, Text, Any, Dict, Union  # noqa
     from dulwich.client import GitClient  # noqa
 
 # }}}
@@ -108,22 +108,39 @@ def transfer_remote_refs(repo, remote_refs):
 
 
 class DulwichParamikoSSHVendor(object):
-    def __init__(self, ssh_kwargs):
-        self.ssh_kwargs = ssh_kwargs
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
 
-    def run_command(self, host, command, username=None, port=None,
-                    progress_stderr=None):
-        if port is None:
-            port = 22
+    def run_command(self, host, command,
+                    username=None, port=None,
+                    progress_stderr=None,
+                    password=None, pkey=None,
+                    key_filename=None, **kwargs):
 
         client = paramiko.SSHClient()
 
-        client.set_missing_host_key_policy(AutoAcceptPolicy())
-        client.connect(host, username=username, port=port,
-                       **self.ssh_kwargs)
+        connection_kwargs = {'hostname': host}
+        connection_kwargs.update(self.kwargs)
 
+        if username:
+            connection_kwargs['username'] = username
+        if port:
+            connection_kwargs['port'] = port
+        if password:
+            connection_kwargs['password'] = password
+        if pkey:
+            connection_kwargs['pkey'] = pkey
+        if key_filename:
+            connection_kwargs['key_filename'] = key_filename
+        connection_kwargs.update(kwargs)
+
+        client.set_missing_host_key_policy(AutoAcceptPolicy())
+        client.connect(**connection_kwargs)
+
+        # Open SSH session
         channel = client.get_transport().open_session()
 
+        # Run commands
         channel.exec_command(command)
 
         def progress_stderr(s):
@@ -142,7 +159,7 @@ class DulwichParamikoSSHVendor(object):
 
 
 def get_dulwich_client_and_remote_path_from_course(course):
-    # type: (Course) -> Tuple[dulwich.client.GitClient, bytes]
+    # type: (Course) -> Tuple[Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], bytes]  # noqa
     ssh_kwargs = {}
     if course.ssh_private_key:
         from six import StringIO
@@ -150,7 +167,7 @@ def get_dulwich_client_and_remote_path_from_course(course):
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
     def get_dulwich_ssh_vendor():
-        vendor = DulwichParamikoSSHVendor(ssh_kwargs)
+        vendor = DulwichParamikoSSHVendor(**ssh_kwargs)
         return vendor
 
     # writing to another module's global variable: gross!

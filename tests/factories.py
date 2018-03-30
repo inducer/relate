@@ -63,7 +63,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 class CourseFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Course
-        django_get_or_create = ('identifier',)
+        django_get_or_create = ('identifier', 'git_source')
 
     identifier = DEFAULT_COURSE_IDENTIFIER
     name = "test-course"
