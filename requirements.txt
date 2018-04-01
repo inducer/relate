@@ -28,7 +28,7 @@ pytz
 pyyaml
 
 # dulwich
-dulwich>=0.18.2,<0.19.0
+dulwich>=0.19
 ecdsa
 paramiko
 

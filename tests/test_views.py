@@ -24,13 +24,16 @@ THE SOFTWARE.
 
 from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
+from django.urls import reverse
 import datetime
 from course import views
 
 from tests.base_test_mixins import (
-    SingleCourseTestMixin,
+    CoursesTestMixinBase, SingleCourseTestMixin,
 )
+from tests.test_auth import AuthTestMixin
 from tests.utils import mock
+from tests import factories
 
 DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
 
@@ -337,3 +340,41 @@ class TestEditCourse(SingleCourseTestMixin, TestCase):
         from django.core.exceptions import ValidationError
         with self.assertRaises(ValidationError):
             self.course.save()
+
+
+class GenerateSshKeypairTest(CoursesTestMixinBase, AuthTestMixin, TestCase):
+    def get_generate_ssh_keypair_url(self):
+        return reverse("relate-generate_ssh_keypair")
+
+    def test_anonymous(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            self.assertEqual(resp.status_code, 302)
+
+            expected_redirect_url = self.get_sign_in_choice_url(
+                redirect_to=self.get_generate_ssh_keypair_url())
+
+            self.assertRedirects(resp, expected_redirect_url,
+                                 fetch_redirect_response=False)
+
+    def test_not_staff(self):
+        user = factories.UserFactory()
+        assert not user.is_staff
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            self.assertEqual(resp.status_code, 403)
+
+    def test_success(self):
+        user = factories.UserFactory()
+        user.is_staff = True
+        user.save()
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextContains(
+                resp, "public_key",
+                ["-----BEGIN RSA PRIVATE KEY-----",
+                 "-----END RSA PRIVATE KEY-----"], in_bulk=True)
+            self.assertResponseContextContains(
+                resp, "private_key",
+                ["ssh-rsa", "relate-course-key"], in_bulk=True)

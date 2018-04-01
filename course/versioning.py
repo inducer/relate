@@ -69,16 +69,10 @@ from course.constants import (
 
 if False:
     from django import http  # noqa
-    from typing import Tuple, List, Text, Any, Dict  # noqa
+    from typing import Tuple, List, Text, Any, Dict, Union  # noqa
     from dulwich.client import GitClient  # noqa
 
 # }}}
-
-
-class AutoAcceptPolicy(paramiko.client.MissingHostKeyPolicy):
-    def missing_host_key(self, client, hostname, key):
-        # simply accept the key
-        return
 
 
 def _remove_prefix(prefix, s):
@@ -107,42 +101,8 @@ def transfer_remote_refs(repo, remote_refs):
             del repo[ref]
 
 
-class DulwichParamikoSSHVendor(object):
-    def __init__(self, ssh_kwargs):
-        self.ssh_kwargs = ssh_kwargs
-
-    def run_command(self, host, command, username=None, port=None,
-                    progress_stderr=None):
-        if port is None:
-            port = 22
-
-        client = paramiko.SSHClient()
-
-        client.set_missing_host_key_policy(AutoAcceptPolicy())
-        client.connect(host, username=username, port=port,
-                       **self.ssh_kwargs)
-
-        channel = client.get_transport().open_session()
-
-        channel.exec_command(command)
-
-        def progress_stderr(s):
-            import sys
-            sys.stderr.write(s.decode("utf-8"))
-            sys.stderr.flush()
-
-        try:
-            from dulwich.client import ParamikoWrapper
-        except ImportError:
-            from dulwich.contrib.paramiko_vendor import (
-                    _ParamikoWrapper as ParamikoWrapper)
-
-        return ParamikoWrapper(
-            client, channel, progress_stderr=progress_stderr)
-
-
 def get_dulwich_client_and_remote_path_from_course(course):
-    # type: (Course) -> Tuple[dulwich.client.GitClient, bytes]
+    # type: (Course) -> Tuple[Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], bytes]  # noqa
     ssh_kwargs = {}
     if course.ssh_private_key:
         from six import StringIO
@@ -150,7 +110,8 @@ def get_dulwich_client_and_remote_path_from_course(course):
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
     def get_dulwich_ssh_vendor():
-        vendor = DulwichParamikoSSHVendor(ssh_kwargs)
+        from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
+        vendor = ParamikoSSHVendor(**ssh_kwargs)
         return vendor
 
     # writing to another module's global variable: gross!
