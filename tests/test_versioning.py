@@ -26,6 +26,7 @@ import six
 from copy import deepcopy
 import unittest
 from django.test import TestCase, RequestFactory
+from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 
 from course.models import Course, Participation
 from course import versioning
@@ -208,8 +209,8 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertTrue(resp.status_code, 200)
 
 
-class DulwichParamikoSSHVendorTest(unittest.TestCase):
-    # A simple integration tests, making sure DulwichParamikoSSHVendor is used
+class ParamikoSSHVendorTest(unittest.TestCase):
+    # A simple integration tests, making sure ParamikoSSHVendor is used
     # for ssh protocol.
 
     @classmethod
@@ -218,7 +219,7 @@ class DulwichParamikoSSHVendorTest(unittest.TestCase):
         cls.git_client, _ = (
             versioning.get_dulwich_client_and_remote_path_from_course(course))
         cls.ssh_vendor = cls.git_client.ssh_vendor
-        assert isinstance(cls.ssh_vendor, versioning.DulwichParamikoSSHVendor)
+        assert isinstance(cls.ssh_vendor, ParamikoSSHVendor)
 
     @classmethod
     def prepare_data(cls):
@@ -233,6 +234,8 @@ class DulwichParamikoSSHVendorTest(unittest.TestCase):
 
         expected_error_msg = "Authentication failed"
         with self.assertRaises(AuthenticationException) as cm:
+            # This is also used to ensure paramiko.client.MissingHostKeyPolicy
+            # is added to the client
             self.ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
