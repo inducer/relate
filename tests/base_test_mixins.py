@@ -1200,10 +1200,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def post_update_course_content(cls, commit_sha,
-                                   fetch_update=False,
                                    prevent_discarding_revisions=True,
                                    force_login_instructor=True,
                                    course=None,
+                                   command="update",
                                    ):
         # course instead of course_identifier because we need to do
         # refresh_from_db
@@ -1219,12 +1219,12 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         if not prevent_discarding_revisions:
             data["prevent_discarding_revisions"] = ["on"]
 
-        if not fetch_update:
-            data["update"] = ["Update"]
-        else:
-            data["fetch_update"] = ["Fetch and update"]
+        # normally, command should be in
+        # ["fetch", "fetch_update", "update", "fetch_preview", "preview",
+        #  "end_preview"]
+        data[command] = 'on'
 
-        force_login_user = None
+        force_login_user = cls.get_logged_in_user()
         if force_login_instructor:
             force_login_user = cls.get_default_instructor_user(course.identifier)
 

@@ -94,7 +94,7 @@ def js_lang_fallback(lang_name, js_name=None):
 def has_permission(participation, arg):
     """
     Check if a participation instance has specific permission.
-    :param a :class:`participation:` instance
+    :param participation: a :class:`participation:` instance
     :param arg: String, with permission and arguments separated by comma
     :return: a :class:`bool`
     """
@@ -113,3 +113,9 @@ def has_permission(participation, arg):
     return has_pperm
 
 # }}}
+
+
+@register.filter(name='commit_message_as_html')
+def commit_message_as_html(commit_sha, repo):
+    from course.versioning import _get_commit_message_as_html
+    return _get_commit_message_as_html(repo, commit_sha)

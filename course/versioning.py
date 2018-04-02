@@ -69,8 +69,9 @@ from course.constants import (
 
 if False:
     from django import http  # noqa
-    from typing import Tuple, List, Text, Any, Dict, Union  # noqa
+    from typing import Tuple, List, Text, Any, Dict, Union, Optional  # noqa
     from dulwich.client import GitClient  # noqa
+    from dulwich.objects import Commit  # noqa
 
 # }}}
 
@@ -237,7 +238,7 @@ def set_up_new_course(request):
                         messages.add_message(request, messages.INFO,
                                 _("Course content validated, creation "
                                 "succeeded."))
-                except Exception:
+                except Exception as e:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
 
@@ -255,11 +256,13 @@ def set_up_new_course(request):
                                 "repository directory '%s'.")
                                 % repo_path)
 
-                    raise
+                    # We don't raise the OSError thrown by force_remove_path
+                    # This is to ensure correct error msg for PY2.
+                    raise e
 
-                finally:
-                    if repo is not None:
-                        repo.close()
+                else:
+                    assert repo is not None
+                    repo.close()
 
             except Exception as e:
                 from traceback import print_exc
@@ -290,6 +293,8 @@ def set_up_new_course(request):
 # {{{ update
 
 def is_parent_commit(repo, potential_parent, child, max_history_check_size=None):
+    # type: (Repo, Commit, Commit, Optional[int]) -> bool
+
     queue = [repo[parent] for parent in child.parents]
 
     while queue:
@@ -308,15 +313,20 @@ def is_parent_commit(repo, potential_parent, child, max_history_check_size=None)
     return False
 
 
+ALLOWED_COURSE_REVISIOIN_COMMANDS = [
+    "fetch", "fetch_update", "update", "fetch_preview",
+    "preview", "end_preview"]
+
+
 def run_course_update_command(
         request, repo, content_repo, pctx, command, new_sha, may_update,
         prevent_discarding_revisions):
+    if command not in ALLOWED_COURSE_REVISIOIN_COMMANDS:
+        raise RuntimeError(_("invalid command"))
+
     if command.startswith("fetch"):
         if command != "fetch":
             command = command[6:]
-
-        if not pctx.course.git_source:
-            raise RuntimeError(_("no git source URL specified"))
 
         client, remote_path = \
             get_dulwich_client_and_remote_path_from_course(pctx.course)
@@ -358,7 +368,7 @@ def run_course_update_command(
                 new_sha, course=pctx.course)
     except ValidationError as e:
         messages.add_message(request, messages.ERROR,
-                _("Course content did not validate successfully. (%s) "
+                _("Course content did not validate successfully: '%s' "
                 "Update not applied.") % str(e))
         return
 
@@ -385,7 +395,7 @@ def run_course_update_command(
         pctx.participation.preview_git_commit_sha = new_sha.decode()
         pctx.participation.save()
 
-    elif command == "update" and may_update:
+    elif command == "update" and may_update:  # pragma: no branch
         pctx.course.active_git_commit_sha = new_sha.decode()
         pctx.course.save()
 
@@ -398,9 +408,6 @@ def run_course_update_command(
 
         messages.add_message(request, messages.SUCCESS,
                 _("Update applied. "))
-
-    else:
-        raise RuntimeError(_("invalid command"))
 
 
 class GitUpdateForm(StyledForm):
@@ -506,14 +513,13 @@ def update_course(pctx):
     may_update = pctx.has_permission(pperm.update_content)
 
     response_form = None
+    form = None
     if request.method == "POST":
         form = GitUpdateForm(may_update, previewing, repo, request.POST,
             request.FILES)
-        commands = ["fetch", "fetch_update", "update", "fetch_preview",
-                "preview", "end_preview"]
 
         command = None
-        for cmd in commands:
+        for cmd in ALLOWED_COURSE_REVISIOIN_COMMANDS:
             if cmd in form.data:
                 command = cmd
                 break
@@ -554,59 +560,21 @@ def update_course(pctx):
                     "prevent_discarding_revisions": True,
                     })
 
-    text_lines = [
-            "<table class='table'>",
-            string_concat(
-                "<tr><th>",
-                ugettext("Git Source URL"),
-                "</th><td><tt>%(git_source)s</tt></td></tr>")
-            % {'git_source': pctx.course.git_source},
-            string_concat(
-                "<tr><th>",
-                ugettext("Public active git SHA"),
-                "</th><td> %(commit)s (%(message)s)</td></tr>")
-            % {
-                'commit': course.active_git_commit_sha,
-                'message': _get_commit_message_as_html(
-                    repo, course.active_git_commit_sha)
-                },
-            string_concat(
-                "<tr><th>",
-                ugettext("Current git HEAD"),
-                "</th><td>%(commit)s (%(message)s)</td></tr>")
-            % {
-                'commit': repo.head().decode(),
-                'message': _get_commit_message_as_html(repo, repo.head())},
-            ]
-    if participation is not None and participation.preview_git_commit_sha:
-        text_lines.append(
-                string_concat(
-                    "<tr><th>",
-                    ugettext("Current preview git SHA"),
-                    "</th><td>%(commit)s (%(message)s)</td></tr>")
-                % {
-                    'commit': participation.preview_git_commit_sha,
-                    'message': _get_commit_message_as_html(
-                        repo, participation.preview_git_commit_sha),
-                })
-    else:
-        text_lines.append(
-                "".join([
-                    "<tr><th>",
-                    ugettext("Current preview git SHA"),
-                    "</th><td>",
-                    ugettext("None"),
-                    "</td></tr>",
-                    ]))
+    from django.template.loader import render_to_string
+    form_text = render_to_string(
+        "course/git-sha-table.html", {
+            "participation": participation,
+            "is_previewing": previewing,
+            "course": course,
+            "repo": repo,
+            "current_git_head": repo.head().decode(),
+        })
 
-    text_lines.append("</table>")
+    assert form is not None
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_text": "".join(
-            "<p>%s</p>" % line
-            for line in text_lines
-            ),
+        "form_text": form_text,
         "form_description": ugettext("Update Course Revision"),
     })
 
