@@ -153,7 +153,7 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
         def find_page_desc(page_id):
             new_page_desc = None
 
-            for page_desc in grp.pages:
+            for page_desc in grp.pages:  # pragma: no branch
                 if page_desc.id == page_id:
                     new_page_desc = page_desc
                     break

@@ -692,6 +692,8 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
     get_participant.short_description = _("Participant")  # type: ignore
     get_participant.admin_order_field = "participation__user"  # type: ignore
 
+    ordering = ("-creation_time",)
+
     search_fields = (
             "flow_id",
             "participation__user__username",

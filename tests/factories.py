@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import pytz
 from datetime import datetime
 
@@ -98,9 +99,19 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
         if not create:
             # Simple build, do nothing.
             return
-        else:
-            role = ParticipationRoleFactory(course=self.course)
-            self.roles.set([role])
+
+        if extracted:
+            for role in extracted:
+                if isinstance(role, six.string_types):
+                    role = ParticipationRoleFactory(
+                        course=self.course, identifier=role)
+                else:
+                    assert isinstance(role, models.ParticipationRole)
+                self.roles.set([role])
+                return
+
+        role = ParticipationRoleFactory(course=self.course)
+        self.roles.set([role])
 
 
 class ParticipationTagFactory(factory.django.DjangoModelFactory):
@@ -161,7 +172,8 @@ class FlowPageVisitFactory(factory.django.DjangoModelFactory):
     flow_session = factory.lazy_attribute(lambda x: x.page_data.flow_session)
     visit_time = factory.LazyFunction(now)
     user = factory.lazy_attribute(
-        lambda x: x.page_data.flow_session.participation.user)
+        lambda x: x.page_data.flow_session.participation.user
+        if x.page_data.flow_session.participation is not None else None)
     answer = None
 
 

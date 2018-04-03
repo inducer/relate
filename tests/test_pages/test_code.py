@@ -611,11 +611,11 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
     def test_exechost_ip(self):
         with mock.patch("socket.gethostbyaddr") as mock_get_host:
             ip = "192.168.1.100"
-            resovled = "example.com"
-            mock_get_host.side_effect = lambda x: (resovled, [], [])
+            resolved = "example.com"
+            mock_get_host.side_effect = lambda x: (resolved, [], [])
             self.assert_runpy_result_and_response(
                 "user_error",
-                execpted_msgs="Your code ran on %s" % resovled,
+                execpted_msgs="Your code ran on %s" % resolved,
                 exec_host=ip
             )
 

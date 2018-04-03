@@ -2029,6 +2029,12 @@ class AdminTestMixin(TwoCourseTestMixin):
             args = []
         return reverse("admin:%s_%s_change" % (app_name, model_name), args=args)
 
+    @classmethod
+    def get_admin_add_view_url(cls, app_name, model_name, args=None):
+        if args is None:
+            args = []
+        return reverse("admin:%s_%s_add" % (app_name, model_name), args=args)
+
     def get_admin_form_fields(self, response):
         """
         Return a list of AdminFields for the AdminForm in the response.

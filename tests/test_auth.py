@@ -44,13 +44,12 @@ from course.models import FlowPageVisit, ParticipationPermission
 from course import constants
 
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCoursePageTestMixin, TwoCourseTestMixin,
-    FallBackStorageMessageTestMixin, NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
+    CoursesTestMixinBase, SingleCoursePageTestMixin,
+    FallBackStorageMessageTestMixin)
 
 from tests.utils import (
     LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
-from tests.factories import UserFactory, ParticipationFactory
-from tests.contants import QUIZ_FLOW_ID
+from tests import factories
 
 # settings names
 EDITABLE_INST_ID_BEFORE_VERI = "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION"
@@ -112,10 +111,10 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
         # create 2 participations, on is not active,
         # impersonatable count should be 2, not 3
-        ParticipationFactory.create(
+        factories.ParticipationFactory.create(
             course=self.course,
             status=constants.participation_status.active)
-        ParticipationFactory.create(
+        factories.ParticipationFactory.create(
             course=self.course,
             status=constants.participation_status.requested)
         impersonatable = get_impersonable_user_qset(user)
@@ -272,13 +271,10 @@ class ImpersonateTest(SingleCoursePageTestMixin,
                                              ERROR_WHILE_IMPERSONATING_MESSAGE)
 
     def test_impersonator_flow_page_visit(self):
-        with self.temporarily_switch_to_user(self.student_participation.user):
-            self.start_flow(QUIZ_FLOW_ID)
-            self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
-            self.assertEqual(FlowPageVisit.objects.count(), 1)
-            first_visit = FlowPageVisit.objects.first()
-            self.assertFalse(first_visit.is_impersonated())
-            self.assertIsNone(first_visit.impersonated_by)
+        session = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation)
+        page_data = factories.FlowPageDataFactory(flow_session=session)
+        factories.FlowPageVisitFactory(page_data=page_data)
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
             resp = self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
@@ -304,7 +300,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
     def test_impersonate_select2_user_search_widget_instructor(self):
 
-        p = ParticipationFactory.create(course=self.course)
+        p = factories.ParticipationFactory.create(course=self.course)
         # make sure user have/don't have first_name and last_name get
         # rendered in UserSearchWidget when requested.
         if p.user.last_name:
@@ -405,21 +401,28 @@ class ImpersonateTest(SingleCoursePageTestMixin,
     # }}}
 
 
-class CrossCourseImpersonateTest(TwoCourseTestMixin,
-                                 FallBackStorageMessageTestMixin, TestCase):
-    none_participation_user_create_kwarg_list = (
-        NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
+class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
         super(CrossCourseImpersonateTest, cls).setUpTestData()
-        cls.extra_participation_user1 = cls.non_participation_users[0]
-        cls.create_participation(cls.course2, cls.extra_participation_user1)
+        course1 = factories.CourseFactory()
+        course2 = factories.CourseFactory(identifier="another-course")
+
+        cls.ta = factories.UserFactory()
+
+        # create 2 ta with the same user in 2 courses
+        cls.course1_ta_participation = factories.ParticipationFactory.create(
+            user=cls.ta, course=course1, roles=["ta"])
+        cls.course1_ta_participation = factories.ParticipationFactory.create(
+            user=cls.ta, course=course2, roles=["ta"])
+
+        # create a student in each courses
+        factories.ParticipationFactory(course=course1)
+        factories.ParticipationFactory(course=course2)
 
     def test_impersonate_across_courses(self):
-        user = self.course1_ta_participation.user
-        self.assertEqual(self.course1_ta_participation.user,
-                         self.course2_ta_participation.user)
+        user = self.ta
         impersonatable = get_impersonable_user_qset(user)
         # one is student_participation.user, another is extra_participation_user1
         # in two courses
@@ -436,9 +439,7 @@ class CrossCourseImpersonateTest(TwoCourseTestMixin,
             permission=pperm.view_participant_masked_profile)
         pp.save()
 
-        user = self.course1_ta_participation.user
-        self.assertEqual(self.course1_ta_participation.user,
-                         self.course2_ta_participation.user)
+        user = self.ta
         impersonatable = get_impersonable_user_qset(user)
         self.assertEqual(impersonatable.count(), 0)
 
@@ -1604,7 +1605,7 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
         super(ResetPasswordStageOneTest, cls).setUpTestData()
         cls.user_email = "a_very_looooooong_email@somehost.com"
         cls.user_inst_id = "1234"
-        cls.user = UserFactory.create(email=cls.user_email,
+        cls.user = factories.UserFactory.create(email=cls.user_email,
                                       institutional_id=cls.user_inst_id)
 
     def setUp(self):
@@ -1738,7 +1739,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
     @classmethod
     def setUpTestData(cls):  # noqa
         super(ResetPasswordStageTwoTest, cls).setUpTestData()
-        user = UserFactory()
+        user = factories.UserFactory()
         cls.c.logout()
 
         with override_settings(RELATE_REGISTRATION_ENABLED=True):
@@ -1923,7 +1924,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
 
 class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
     def test_authenticate(self):
-        user = UserFactory()
+        user = factories.UserFactory()
         self.c.logout()
 
         with override_settings(RELATE_REGISTRATION_ENABLED=True):
@@ -1940,7 +1941,7 @@ class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
             backend.authenticate(user.pk, token="non_exist_sign_in_key"))
 
     def test_get_user(self):
-        user = UserFactory()
+        user = factories.UserFactory()
         self.c.logout()
 
         backend = EmailedTokenBackend()
@@ -1950,7 +1951,7 @@ class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
 
 class LogoutConfirmationRequiredDecoratorTest(unittest.TestCase):
     def setUp(self):
-        self.user = UserFactory()
+        self.user = factories.UserFactory()
 
     def test_logout_confirmation_required_as_callable(self):
         from course.auth import logout_confirmation_required
@@ -1963,9 +1964,11 @@ class LogoutConfirmationRequiredDecoratorTest(unittest.TestCase):
 
 class TestSaml2Backend(TestCase):
     def test_update_user(self):
-        user = UserFactory(first_name="", last_name="", institutional_id="",
-                           institutional_id_verified=False, name_verified=False,
-                           status=constants.user_status.unconfirmed)
+        user = factories.UserFactory(first_name="", last_name="",
+                                     institutional_id="",
+                                     institutional_id_verified=False,
+                                     name_verified=False,
+                                     status=constants.user_status.unconfirmed)
 
         backend = Saml2Backend()
 
