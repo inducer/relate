@@ -22,6 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
+from random import shuffle
+from django.utils.timezone import now, timedelta
 from django.core import mail
 from django.test import TestCase, override_settings
 
@@ -52,7 +55,21 @@ class SingleCourseQuizPageGradeInterfaceTest(
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCourseQuizPageGradeInterfaceTest, cls).setUpTestData()
+
+        with cls.temporarily_switch_to_user(cls.student_participation.user):
+            # a failure submission
+            cls.submit_page_answer_by_page_id_and_test(
+                cls.page_id, answer_data={"uploaded_file": []})
+            # a success full
+            cls.submit_page_answer_by_page_id_and_test(
+                cls.page_id,
+                do_grading=False)
+
         cls.end_flow()
+
+    def setUp(self):
+        super(SingleCourseQuizPageGradeInterfaceTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
 
     def test_post_grades(self):
         self.submit_page_human_grading_by_page_id_and_test(self.page_id)
@@ -319,15 +336,11 @@ class SingleCourseQuizPageGradeInterfaceTest(
             self.student_participation.user.get_masked_profile(),
             mail.outbox[0].body)
 
-    # {{{ tests on grading history dropdown
+    # {{{ test grading.get_prev_grades_dropdown_content
     def test_grade_history_failure_no_perm(self):
-        ta_flow_session = factories.FlowSessionFactory(
-            participation=self.ta_participation)
-
-        # no pperm to view other's grade_history
-        resp = self.c.post(
+        resp = self.c.get(
             self.get_page_grade_history_url_by_ordinal(
-                page_ordinal=1, flow_session_id=ta_flow_session.pk))
+                page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(resp.status_code, 403)
 
     def test_grade_history_failure_not_ajax(self):
@@ -349,26 +362,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
                     page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(resp.status_code, 403)
 
-    # }}}
-
-
-class SingleCourseQuizPageGradeInterfaceTestExtra(
-        SingleCourseQuizPageGradeInterfaceTestMixin, TestCase):
-
-    def setUp(self):  # noqa
-        # This is needed to ensure student is logged in to submit page or end flow.
-        self.c.force_login(self.student_participation.user)
-
-    def test_post_grades_history(self):
-        # This submission failed
-        resp, _ = self.submit_page_answer_by_page_id_and_test(
-            self.page_id, answer_data={"uploaded_file": []})
-        self.assertFormErrorLoose(resp, "This field is required.")
-
-        # 2nd submission succeeded
-        self.submit_page_answer_by_page_id_and_test(self.page_id, do_grading=False)
-        self.end_flow()
-
+    def test_grades_history_after_graded(self):
         self.submit_page_human_grading_by_page_id_and_test(self.page_id)
 
         ordinal = self.get_page_ordinal_via_page_id(self.page_id)
@@ -390,5 +384,278 @@ class SingleCourseQuizPageGradeInterfaceTestExtra(
             self.page_id, grade_data=grade_data, expected_grades=4)
         self.assertGradeHistoryItemsCount(page_ordinal=ordinal,
                                           expected_count=5)
+
+    # }}}
+
+    # {{{ test grade_flow_page (for cases not covered by other tests)
+
+    # {{{ prev_grade
+    def test_viewing_prev_grade_id_not_exist(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(
+                self.get_page_grading_url_by_page_id(self.page_id)
+                + "?grade_id=1000")
+            self.assertEqual(resp.status_code, 404)
+
+    def test_viewing_prev_grade_id_not_int(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(
+                self.get_page_grading_url_by_page_id(self.page_id)
+                + "?grade_id=my_id")
+            self.assertEqual(resp.status_code, 400)
+
+    def test_viewing_prev_grade(self):
+        grade_data = {
+            "grade_points": "4",
+            "released": "on"
+        }
+        self.submit_page_human_grading_by_page_id_and_test(
+            self.page_id, grade_data=grade_data, expected_grades=4)
+        with self.temporarily_switch_to_user(
+                self.instructor_participation.user), mock.patch(
+                "course.grading.get_feedback_for_grade") as mock_get_feedback:
+
+            resp = self.c.get(
+                self.get_page_grading_url_by_page_id(self.page_id)
+                + "?grade_id=1")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(mock_get_feedback.call_count, 1)
+
+    def test_viewing_prev_grade_may_not_post_grade(self):
+        grade_data = {
+            "grade_points": "4",
+            "released": "on"
+        }
+        self.submit_page_human_grading_by_page_id_and_test(
+            self.page_id, grade_data=grade_data, expected_grades=4)
+
+        ordinal = self.get_page_ordinal_via_page_id(self.page_id)
+        self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=3)
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.post(
+                self.get_page_grading_url_by_page_id(self.page_id) + "?grade_id=1",
+                data=grade_data
+            )
+            self.assertEqual(resp.status_code, 200)
+        self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=3)
+
+    # }}}
+
+    def test_flow_session_course_not_matching(self):
+        another_course = factories.CourseFactory(identifier="another-course")
+        some_user = factories.UserFactory()
+        his_participation = factories.ParticipationFactory(
+            course=another_course, user=some_user)
+        his_flow_session = factories.FlowSessionFactory(
+            course=another_course, participation=his_participation)
+
+        url = self.get_page_grading_url_by_ordinal(
+            page_ordinal=1, course_identifier=self.course.identifier,
+            flow_session_id=his_flow_session.pk)
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(url)
+            self.assertEqual(resp.status_code, 400)
+
+    def test_flow_session_has_no_participation(self):
+        null_participation_flow_session = factories.FlowSessionFactory(
+            course=self.course, participation=None, user=None)
+
+        url = self.get_page_grading_url_by_ordinal(
+            page_ordinal=1,
+            flow_session_id=null_participation_flow_session.pk,
+        )
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(url)
+            self.assertEqual(resp.status_code, 400)
+
+    def test_page_desc_none(self):
+        with mock.patch(
+                "course.content.get_flow_page_desc") as mock_get_flow_page_desc:
+            from django.core.exceptions import ObjectDoesNotExist
+            mock_get_flow_page_desc.side_effect = ObjectDoesNotExist
+
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.c.get(
+                    self.get_page_grading_url_by_page_id(self.page_id))
+                self.assertEqual(resp.status_code, 404)
+
+    def test_invalid_page_data(self):
+        with mock.patch(
+                "course.page.upload.FileUploadQuestion.make_form"
+        ) as mock_make_form, mock.patch(
+            "course.grading.messages.add_message"
+        ) as mock_add_msg:
+            from course.grading import InvalidPageData
+            error_msg = "your file is broken."
+            mock_make_form.side_effect = InvalidPageData(error_msg)
+
+            expected_error_msg = (
+                    "The page data stored in the database was found "
+                    "to be invalid for the page as given in the "
+                    "course content. Likely the course content was "
+                    "changed in an incompatible way (say, by adding "
+                    "an option to a choice question) without changing "
+                    "the question ID. The precise error encountered "
+                    "was the following: %s" % error_msg)
+
+            with self.temporarily_switch_to_user(
+                    self.instructor_participation.user):
+                resp = self.c.get(
+                    self.get_page_grading_url_by_page_id(self.page_id))
+                self.assertEqual(resp.status_code, 200)
+                self.assertIn(expected_error_msg, mock_add_msg.call_args[0])
+
+    def test_no_perm_to_post_grade(self):
+        some_user = factories.UserFactory()
+        his_participation = factories.ParticipationFactory(
+            user=some_user, course=self.course)
+        from course.models import ParticipationPermission
+        pp = ParticipationPermission(
+            participation=his_participation,
+            permission=pperm.view_gradebook
+        )
+        pp.save()
+        his_participation.individual_permissions.set([pp])
+        with self.temporarily_switch_to_user(some_user):
+            resp = self.c.get(
+                self.get_page_grading_url_by_page_id(self.page_id))
+            self.assertEqual(resp.status_code, 200)
+
+            grade_data = {
+                "grade_points": "4",
+                "released": "on"
+            }
+            resp = self.post_grade_by_page_id(
+                self.page_id, grade_data, force_login_instructor=False)
+            self.assertEqual(resp.status_code, 403)
+
+    def test_flow_session_grading_opportunity_is_none(self):
+        grade_data = {
+            "grade_points": "4",
+            "released": "on"
+        }
+
+        def get_session_grading_rule_side_effect(session, flow_desc, now_datetime):
+            from course.utils import (
+                get_session_grading_rule, FlowSessionGradingRule)
+            true_g_rule = get_session_grading_rule(
+                session, flow_desc, now_datetime)
+
+            fake_grading_rule = FlowSessionGradingRule(
+                # make grade_identifier None
+                grade_identifier=None,
+                grade_aggregation_strategy=true_g_rule.grade_aggregation_strategy,
+                due=true_g_rule.due,
+                generates_grade=true_g_rule.generates_grade,
+                description=true_g_rule.description,
+                credit_percent=true_g_rule.credit_percent,
+                use_last_activity_as_completion_time=(
+                    true_g_rule.use_last_activity_as_completion_time),
+                bonus_points=true_g_rule.bonus_points,
+                max_points=true_g_rule.max_points,
+                max_points_enforced_cap=true_g_rule.max_points_enforced_cap)
+            return fake_grading_rule
+
+        with mock.patch(
+                "course.grading.get_session_grading_rule"
+        ) as mock_get_grading_rule:
+            mock_get_grading_rule.side_effect = get_session_grading_rule_side_effect
+
+            with self.temporarily_switch_to_user(
+                    self.instructor_participation.user):
+                # get success
+                resp = self.c.get(
+                    self.get_page_grading_url_by_page_id(self.page_id))
+                self.assertEqual(resp.status_code, 200)
+                self.assertResponseContextIsNone(
+                    resp, "grading_opportunity")
+
+                # post success
+                resp = self.post_grade_by_page_id(
+                    self.page_id, grade_data)
+                self.assertEqual(resp.status_code, 200)
+
+                self.assertResponseContextIsNone(
+                    resp, "grading_opportunity")
+
+
+class GraderSetUpMixin(object):
+    @classmethod
+    def create_flow_page_visit_grade(cls, course=None,
+                                     n_participations_per_course=1,
+                                     n_sessions_per_participation=1,
+                                     n_non_null_answer_visits_per_session=3):
+        if course is None:
+            course = factories.CourseFactory(identifier=course.identifier)
+        participations = factories.ParticipationFactory.create_batch(
+            size=n_participations_per_course, course=course)
+
+        grader1 = factories.UserFactory()
+        grader2 = factories.UserFactory()
+
+        graders = [grader1, grader2]
+
+        visit_time = now() - timedelta(days=1)
+        for participation in participations:
+            flow_sessions = factories.FlowSessionFactory.create_batch(
+                size=n_sessions_per_participation, participation=participation)
+            for flow_session in flow_sessions:
+                non_null_anaswer_fpds = factories.FlowPageDataFactory.create_batch(
+                    size=n_non_null_answer_visits_per_session,
+                    flow_session=flow_session
+                )
+                for fpd in non_null_anaswer_fpds:
+                    visit_time = visit_time + timedelta(seconds=10)
+                    factories.FlowPageVisitFactory.create(
+                        visit_time=visit_time,
+                        page_data=fpd,
+                        answer={"answer": "abcd"})
+
+                    shuffle(graders)
+
+                    grade_time = visit_time + timedelta(seconds=10)
+                    factories.FlowPageVisitGradeFactory.create(
+                        grader=graders[0],
+                        grade_time=grade_time)
+
+        n_non_null_answer_fpv = (
+                n_participations_per_course
+                * n_sessions_per_participation
+                * n_non_null_answer_visits_per_session)
+
+        #print(n_non_null_answer_fpv)
+        return n_non_null_answer_fpv
+
+
+class ShowGraderStatisticsTest(
+        SingleCourseQuizPageTestMixin, GraderSetUpMixin, TestCase):
+    # test grading.show_grader_statistics
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(ShowGraderStatisticsTest, cls).setUpTestData()
+        cls.create_flow_page_visit_grade(cls.course)
+
+    def get_show_grader_statistics_url(self, flow_id, course_identifier=None):
+        course_identifier = (
+                course_identifier or self.get_default_course_identifier())
+        from tests.base_test_mixins import reverse
+        params = {"course_identifier": course_identifier,
+                    "flow_id": flow_id}
+        return reverse("relate-show_grader_statistics", kwargs=params)
+
+    def test_no_permission(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.get_show_grader_statistics_url(self.flow_id))
+            self.assertEqual(resp.status_code, 403)
+
+    def test_success(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(self.get_show_grader_statistics_url(self.flow_id))
+            self.assertEqual(resp.status_code, 200)
+
 
 # vim: fdm=marker
