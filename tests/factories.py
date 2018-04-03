@@ -171,6 +171,7 @@ class FlowPageVisitGradeFactory(factory.django.DjangoModelFactory):
 
     visit = factory.SubFactory(FlowPageVisitFactory)
     grade_time = factory.lazy_attribute(lambda x: x.visit.visit_time)
+    correctness = None
 
 
 class EventFactory(factory.django.DjangoModelFactory):
