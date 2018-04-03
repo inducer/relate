@@ -1,0 +1,26 @@
+title: "Linear Algebra"
+description: |
+    # Linear Algebra Recap
+
+rules:
+    start:
+    _
+        may_start_new_session: True
+        default_expiration_mode: roll_over
+
+    access:
+    -
+        permissions: [view]
+
+    grade_identifier: null
+
+pages:
+
+-
+    type: Page
+    id: intro
+    content: |
+
+        # A little distraction to start
+
+        Yadda yadda.

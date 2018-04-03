@@ -39,7 +39,7 @@ from course.utils import FlowPageContext, CoursePageContext
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 
-from tests.contants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
+from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
 
 from tests.base_test_mixins import (
     SubprocessRunpyContainerMixin, SingleCoursePageTestMixin,

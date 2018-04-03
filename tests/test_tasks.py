@@ -39,7 +39,7 @@ from tests.test_flow.test_purge_page_view_data import (
     PURGE_VIEW_TWO_COURSE_SETUP_LIST)
 from tests import factories
 from tests.utils import mock
-from tests.contants import QUIZ_FLOW_ID
+from tests.constants import QUIZ_FLOW_ID
 
 from pkg_resources import parse_version
 import celery

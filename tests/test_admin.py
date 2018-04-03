@@ -32,7 +32,7 @@ from course import models, admin
 
 from tests.base_test_mixins import AdminTestMixin
 from tests import factories
-from tests.contants import QUIZ_FLOW_ID
+from tests.constants import QUIZ_FLOW_ID
 
 
 class CourseAdminTest(AdminTestMixin, TestCase):

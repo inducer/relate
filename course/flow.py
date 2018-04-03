@@ -614,7 +614,7 @@ def get_interaction_kind(
                 else:
                     return flow_session_interaction_kind.practice_grade
             else:
-                ikind = flow_session_interaction_kind.ungraded
+                return flow_session_interaction_kind.ungraded
 
     return ikind
 
