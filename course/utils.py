@@ -758,7 +758,7 @@ class FlowPageContext(FlowContext):
         from course.content import get_flow_page_desc
         try:
             self.page_desc = get_flow_page_desc(
-                    flow_session, self.flow_desc, page_data.group_id,
+                    flow_session.flow_id, self.flow_desc, page_data.group_id,
                     page_data.page_id)  # type: Optional[FlowPageDesc]
         except ObjectDoesNotExist:
             self.page_desc = None
