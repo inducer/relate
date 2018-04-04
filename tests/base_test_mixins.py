@@ -2059,7 +2059,7 @@ class AdminTestMixin(TwoCourseTestMixin):
         from django.contrib.admin.views.main import ChangeList
         return ChangeList(
             request, model, modeladmin.list_display,
-            modeladmin.list_display_links, modeladmin.list_filter,
+            modeladmin.list_display_links, modeladmin.get_list_filter(request),
             modeladmin.date_hierarchy, modeladmin.search_fields,
             modeladmin.list_select_related, modeladmin.list_per_page,
             modeladmin.list_max_show_all, modeladmin.list_editable, modeladmin,
