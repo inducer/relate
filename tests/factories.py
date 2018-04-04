@@ -338,7 +338,7 @@ class ExamTicketFactory(factory.django.DjangoModelFactory):
 
     creation_time = now()
     state = constants.exam_ticket_states.valid
-    code = "my_exam_ticket"
+    code = fuzzy.FuzzyText()
     valid_start_time = fuzzy.FuzzyDateTime(
         datetime(2019, 1, 1, tzinfo=pytz.UTC),
         datetime(2019, 1, 31, tzinfo=pytz.UTC))
