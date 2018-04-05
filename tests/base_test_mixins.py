@@ -38,11 +38,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 
-from tests.contants import QUIZ_FLOW_ID, TEST_PAGE_TUPLE
+from tests.constants import QUIZ_FLOW_ID, TEST_PAGE_TUPLE
 from tests.utils import mock
 from course.models import (
     Course, Participation, ParticipationRole, FlowSession, FlowPageData,
-    FlowPageVisit)
+    FlowPageVisit, GradingOpportunity)
 from course.constants import participation_status, user_status
 from course.content import get_course_repo_path
 
@@ -575,11 +575,14 @@ class SuperuserCreateMixin(ResponseContextMixin):
 
 # {{{ defined here so that they can be used by in classmethod and instance method
 
-def get_flow_page_ordinal_from_page_id(flow_session_id, page_id):
+def get_flow_page_ordinal_from_page_id(flow_session_id, page_id,
+                                       with_group_id=False):
     flow_page_data = FlowPageData.objects.get(
         flow_session__id=flow_session_id,
         page_id=page_id
     )
+    if with_group_id:
+        return flow_page_data.page_ordinal, flow_page_data.group_id
     return flow_page_data.page_ordinal
 
 
@@ -799,6 +802,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def get_edit_course_url(cls, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
         return cls.get_course_view_url("relate-edit_course", course_identifier)
 
     @classmethod
@@ -815,6 +820,74 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def get_course_page_url(cls, course_identifier=None):
         return cls.get_course_view_url("relate-course_page", course_identifier)
+
+    @classmethod
+    def _get_grades_url(cls, args=None, kwargs=None):
+        return reverse("relate-view_participant_grades",
+                       args=args, kwargs=kwargs)
+
+    @classmethod
+    def get_my_grades_url(cls, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        return cls._get_grades_url(args=[course_identifier])
+
+    @classmethod
+    def get_my_grades_view(cls, course_identifier=None):
+        return cls.c.get(cls.get_my_grades_url(course_identifier))
+
+    @classmethod
+    def get_participant_grades_url(cls, participation_id, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        return cls._get_grades_url(
+            kwargs={"course_identifier": course_identifier,
+                    "participation_id": participation_id})
+
+    @classmethod
+    def get_participant_grades_view(cls, participation_id, course_identifier=None,
+                                   force_login_instructor=True):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.get(
+                cls.get_participant_grades_url(participation_id, course_identifier))
+
+    @classmethod
+    def get_gradebook_by_opp_url(
+            cls, gopp_identifier, view_page_grades=False, course_identifier=None):
+        opp_id = GradingOpportunity.objects.get(identifier=gopp_identifier).pk
+
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+
+        kwargs = {"course_identifier": course_identifier,
+                  "opp_id": opp_id}
+        url = reverse("relate-view_grades_by_opportunity",
+                                  kwargs=kwargs)
+        if view_page_grades:
+            url += "?view_page_grades=1"
+        return url
+
+    @classmethod
+    def get_gradebook_by_opp_view(
+            cls, gopp_identifier, view_page_grades=False, course_identifier=None,
+            force_login_instructor=True):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.get(cls.get_gradebook_by_opp_url(
+                gopp_identifier, view_page_grades, course_identifier))
 
     @classmethod
     def get_logged_in_user(cls):
@@ -916,18 +989,20 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             course.refresh_from_db()
 
     @classmethod
-    def start_flow(cls, flow_id, course_identifier=None):
-        """
-        Notice: this is a classmethod, so this will change the data
-        created in setUpTestData, so don't do this in individual tests, or
-        testdata will be different between tests.
-        """
+    def start_flow(cls, flow_id, course_identifier=None, ignore_cool_down=True):
         course_identifier = course_identifier or cls.get_default_course_identifier()
         existing_session_count = FlowSession.objects.all().count()
         params = {"course_identifier": course_identifier,
                   "flow_id": flow_id}
-        resp = cls.c.post(reverse("relate-view_start_flow", kwargs=params))
-        assert resp.status_code == 302
+        if ignore_cool_down:
+            cool_down_seconds = 0
+        else:
+            cool_down_seconds = settings.RELATE_SESSION_RESTART_COOLDOWN_SECONDS
+        with override_settings(
+                RELATE_SESSION_RESTART_COOLDOWN_SECONDS=cool_down_seconds):
+            resp = cls.c.post(reverse("relate-view_start_flow", kwargs=params))
+
+        assert resp.status_code == 302, resp.content
         new_session_count = FlowSession.objects.all().count()
         assert new_session_count == existing_session_count + 1
         _, _, params = resolve(resp.url)
@@ -938,12 +1013,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def end_flow(cls, course_identifier=None, flow_session_id=None):
-        """
-        Be cautious that this is a classmethod
-        """
-        if cls.default_flow_params is None:
-            raise RuntimeError("There's no started flow_sessions.")
-        params = deepcopy(cls.default_flow_params)
+        params = {}
+        if not course_identifier or not flow_session_id:
+            if cls.default_flow_params is None:
+                raise RuntimeError("There's no started flow_sessions.")
+            params = deepcopy(cls.default_flow_params)
         if course_identifier:
             params["course_identifier"] = course_identifier
         if flow_session_id:
@@ -974,11 +1048,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def get_page_ordinal_via_page_id(
-            cls, page_id, course_identifier=None, flow_session_id=None):
+            cls, page_id, course_identifier=None, flow_session_id=None,
+            with_group_id=False):
         flow_params = cls.get_flow_params(course_identifier, flow_session_id)
         return (
             get_flow_page_ordinal_from_page_id(
-                flow_params["flow_session_id"], page_id))
+                flow_params["flow_session_id"], page_id,
+                with_group_id=with_group_id))
 
     @classmethod
     def get_page_id_via_page_oridnal(
@@ -1119,9 +1195,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         flow_session = FlowSession.objects.get(id=flow_session_id)
         if expected_score is not None:
             from decimal import Decimal
-            assert flow_session.points == Decimal(str(expected_score))
+            assert flow_session.points == Decimal(str(expected_score)), (
+                "The flow session got '%s' in stead of '%s'"
+                % (str(flow_session.points), str(Decimal(str(expected_score))))
+            )
         else:
-            assert flow_session.points is None
+            assert flow_session.points is None, (
+                    "This flow session unexpectedly got %s instead of None"
+                    % flow_session.points)
 
     @classmethod
     def get_page_submit_history_url_by_ordinal(

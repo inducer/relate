@@ -30,7 +30,7 @@ from course.sandbox import (
     ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
 
 from tests.base_test_mixins import SingleCourseTestMixin
-from tests.contants import PAGE_WARNINGS, HAVE_VALID_PAGE
+from tests.constants import PAGE_WARNINGS, HAVE_VALID_PAGE
 
 QUESTION_MARKUP = """
 type: TextQuestion

@@ -36,7 +36,7 @@ from course import models
 from course import constants
 
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
-from tests.contants import QUIZ_FLOW_ID
+from tests.constants import QUIZ_FLOW_ID
 
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
 DEFAULT_FLOW_ID = QUIZ_FLOW_ID

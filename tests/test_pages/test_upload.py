@@ -30,7 +30,7 @@ from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin
 )
-from tests.contants import PAGE_ERRORS
+from tests.constants import PAGE_ERRORS
 from tests.utils import mock
 
 UPLOAD_WITH_NEGATIVE_MAXIMUM_SIZE_MARKDOWN = """
@@ -189,7 +189,7 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
 
     def test_upload_file_with_size_exceed(self):
         markdown = UPLOAD_WITH_SMALL_MAX_ALLOWED_SIZE
-        from tests.contants import TEST_PDF_FILE_PATH
+        from tests.constants import TEST_PDF_FILE_PATH
         with open(TEST_PDF_FILE_PATH, 'rb') as fp:
             answer_data = {"uploaded_file": fp}
             resp = self.get_page_sandbox_submit_answer_response(

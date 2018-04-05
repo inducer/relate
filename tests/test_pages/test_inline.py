@@ -31,7 +31,7 @@ from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin
 )
-from tests.contants import PAGE_ERRORS
+from tests.constants import PAGE_ERRORS
 from tests.utils import mock
 
 INLINE_MULTI_MARKDOWN_SINGLE = """

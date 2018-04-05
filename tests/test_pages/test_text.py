@@ -42,7 +42,7 @@ from course.page.text import (
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin
 )
-from tests.contants import PAGE_ERRORS
+from tests.constants import PAGE_ERRORS
 from tests.utils import mock
 
 TEXT_QUESTION_WITH_ANSWER_EXPLANATION_MARKDOWN = """

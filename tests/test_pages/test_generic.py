@@ -37,7 +37,7 @@ from course.page.base import (
     AnswerFeedback, get_auto_feedback,
     validate_point_count, InvalidFeedbackPointsError)
 
-from tests.contants import (
+from tests.constants import (
     MESSAGE_ANSWER_SAVED_TEXT,
     MESSAGE_ANSWER_FAILED_SAVE_TEXT, TEST_TEXT_FILE_PATH, TEST_PDF_FILE_PATH,
     TEST_HGTEXT_MARKDOWN_ANSWER_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG)
