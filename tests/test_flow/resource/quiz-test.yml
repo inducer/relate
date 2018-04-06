@@ -1,0 +1,159 @@
+# This is a YAML comment, which is entirely ignored.
+
+# YAML files in Relate are preprocessed with Jinja2.
+# See http://jinja.pocoo.org/docs/latest/templates/ for syntax.
+
+# This brings in a helper function that is used to include pages from
+# separate files. This is optional, but conceivably useful.
+{% from "yaml-macros.yml" import indented_include %}
+
+title: "RELATE Test Quiz"
+
+# The "|" character introduces a 'block literal', which means all text indented below
+# it is taken literally. The description property holds text marked up with 'Markdown'.
+# See https://documen.tician.de/relate/content.html#relate-markup for more.
+#
+# So the '#' character below introduces a first-level headline (not a comment).
+description: |
+
+    # RELATE Test Quiz
+
+rules:
+    start:
+    -
+        if_before: end_week 1
+        if_has_role: [student, ta, instructor]
+        if_has_fewer_sessions_than: 4
+        may_start_new_session: True
+        may_list_existing_sessions: True
+
+    -
+        may_start_new_session: False
+        may_list_existing_sessions: True
+
+    access:
+    -
+        message: "Welcome! This message is brought to you by the access rules."
+        permissions: [view, submit_answer, end_session, see_correctness, see_answer_after_submission]
+
+    grade_identifier: la_quiz
+    grade_aggregation_strategy: use_latest
+
+    grading:
+    -
+        credit_percent: 100
+
+groups:
+-
+    id: intro
+    pages:
+
+    -
+        type: Page
+        id: welcome
+        content: |
+
+            # Welcome to the test quiz for RELATE!
+
+            Don't be scared.
+
+-
+    id: quiz_start
+    shuffle: False
+    pages:
+
+    # Pages can be given in-line (like this one) or brought in by including
+    # them from other files, as below.
+    -
+        type: TextQuestion
+        id: half
+        value: 5
+        prompt: |
+
+          # A half
+
+          What's a half?
+
+        answers:
+
+          - type: float
+            value: 0.5
+            rtol: 1e-4
+          - <plain>half
+          - <plain>a half
+
+    -
+        {{ indented_include("questions/krylov.yml", 8) }}
+
+    -
+        type: MultipleChoiceQuestion
+        id: ice_cream_toppings
+        credit_mode: exact
+        value: 1
+        shuffle: False
+        prompt: |
+
+            # Ice Cream Toppings
+
+            Which of the following are ice cream toppings?
+
+        choices:
+
+          - ~CORRECT~ Sprinkles
+          - ~CORRECT~ Chocolate chunks
+          - Vacuum cleaner dust
+          - Spider webs
+          - ~CORRECT~ Almond bits
+
+    -
+        {{ indented_include("questions/matrix-properties.yml", 8) }}
+
+    -
+        {{ indented_include("questions/multi-question-example.yml", 8) }}
+
+    -
+        type: SurveyTextQuestion
+        id: fear
+        widget: textarea
+        prompt: |
+
+            # Psychology Survey
+
+            What's your biggest fear?
+
+    -
+        {{ indented_include("questions/survey-age-question.yml", 8) }}
+
+-
+    id: quiz_tail
+    shuffle: True
+    pages:
+
+    -
+        {{ indented_include("questions/complex-text-match-example.yml", 8) }}
+    -
+        {{ indented_include("questions/symbolic-expression-example.yml", 8) }}
+    -
+        {{ indented_include("questions/long-choice-least-squares.yml", 8) }}
+    -
+        {{ indented_include("questions/autograded-python-example.yml", 8) }}
+    -
+        {{ indented_include("questions/auto-and-human-graded-python-example.yml", 8) }}
+    -
+        {{ indented_include("questions/pdf-file-upload-example.yml", 8) }}
+    -
+        {{ indented_include("questions/any-file-upload-example.yml", 8) }}
+    -
+        {{ indented_include("questions/human-graded-text-example.yml", 8) }}
+    -
+        {{ indented_include("questions/audio-output-example.yml", 8) }}
+    -
+        {{ indented_include("questions/python-complex-validation-test-code.yml", 8) }}
+    -
+        {{ indented_include("questions/non-ascii-choices.yml", 8) }}
+
+completion_text: |
+
+    # See you in class!
+
+    Thanks for completing the quiz.
