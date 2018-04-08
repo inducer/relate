@@ -1,0 +1,140 @@
+# The page_ids of included pages should the same as those in the sample repo.
+# Notice, don't do analysis and download test for this flow desc using
+# submit_page_answer_by_ordinal_and_test helper.
+
+{% from "yaml-macros.yml" import indented_include %}
+title: "RELATE Test Quiz"
+description: |
+
+    # RELATE Test Quiz
+
+rules:
+    start:
+    -
+        if_before: end_week 1
+        if_has_role: [student, ta, instructor]
+        if_has_fewer_sessions_than: 4
+        may_start_new_session: True
+        may_list_existing_sessions: True
+
+    -
+        may_start_new_session: False
+        may_list_existing_sessions: True
+
+    access:
+    -
+        permissions: [view, submit_answer, end_session, see_correctness, see_answer_after_submission]
+
+    grade_identifier: la_quiz
+    grade_aggregation_strategy: use_latest
+
+    grading:
+    -
+        credit_percent: 100
+
+groups:
+-
+    id: intro
+    pages:
+
+    -
+        type: Page
+        id: welcome
+        content: |
+
+            # Welcome to the test quiz for RELATE!
+
+            Don't be scared.
+
+-
+    id: quiz_start
+    shuffle: False
+    pages:
+    -
+        {{ indented_include("questions/pdf-file-upload-example.yml", 8) }}
+    -
+        type: TextQuestion
+        id: half
+        value: 5
+        prompt: |
+
+          # A half
+
+          What's a half?
+
+        answers:
+
+          - type: float
+            value: 0.5
+            rtol: 1e-4
+          - <plain>half
+          - <plain>a half
+
+    -
+        {{ indented_include("questions/krylov.yml", 8) }}
+
+    -
+        type: MultipleChoiceQuestion
+        id: matrix_props
+        is_optional_page: True
+        shuffle: False
+        credit_mode: proportional
+        prompt: |
+
+            # Matrix properties
+
+            You know that the matrix $A$ satisfies $A=A^T$.
+
+            Which of the following is true about $A$?
+
+        choices:
+
+          - ~CORRECT~ $A$ has real eigenvalues.
+          - $A$ has eigenvalues with positive real part.
+          - $(x,y) = x^TAy$ is an inner product.
+          - ~CORRECT~ $A$ has orthogonal eigenvectors.
+          - $AA^T=I$
+
+    -
+        {{ indented_include("questions/survey-age-question.yml", 8) }}
+
+-
+    id: quiz_tail
+    shuffle: False
+    pages:
+
+    -
+        type: FileUploadQuestion
+        id: anyup
+        access_rules:
+            add_permissions:
+                - change_answer
+        is_optional_page: True
+        maximum_megabytes: 0.5
+        prompt: |
+
+            # Upload your favorite file
+
+            Upload anything you like below.
+
+        mime_types:
+
+            - application/octet-stream
+
+        rubric: |
+
+            Have they uploaded a file?
+
+    -
+        type: TextQuestion
+        id: neumann
+        value: 0
+        prompt: |
+
+          # Neumann series
+
+          What's $\operatorname{Id} + A + A^2 +A^3+\cdots$?
+
+        answers:
+
+          - <sym_expr>1/(1-A)

@@ -890,9 +890,9 @@ def gather_grade_info(
         if points is not None:
             points = min(
                     points, grading_rule.max_points_enforced_cap)
-        if provisional_points is not None:
-            provisional_points = min(
-                    provisional_points, grading_rule.max_points_enforced_cap)
+        assert provisional_points is not None
+        provisional_points = min(
+                provisional_points, grading_rule.max_points_enforced_cap)
 
     # }}}
 
@@ -951,9 +951,9 @@ def grade_page_visits(
             if not page.is_answer_gradable():
                 continue
 
-        if answer_visit is not None:
-            if not answer_visit.grades.count() or force_regrade:  # type: ignore
-                grade_page_visit(answer_visit, respect_preview=respect_preview)
+        assert answer_visit is not None
+        if not answer_visit.grades.count() or force_regrade:  # type: ignore
+            grade_page_visit(answer_visit, respect_preview=respect_preview)
 
 
 @retry_transaction_decorator()
@@ -1038,8 +1038,9 @@ def expire_flow_session(
 
         if not session_start_rule.may_start_new_session:
             # No new session allowed: finish.
-            return finish_flow_session(fctx, flow_session, grading_rule,
-                    now_datetime=now_datetime, respect_preview=False)
+            finish_flow_session(fctx, flow_session, grading_rule,
+                                now_datetime=now_datetime, respect_preview=False)
+            return True
         else:
 
             flow_session.access_rules_tag = session_start_rule.tag_session
@@ -1064,8 +1065,9 @@ def expire_flow_session(
             return True
 
     elif flow_session.expiration_mode == flow_session_expiration_mode.end:
-        return finish_flow_session(fctx, flow_session, grading_rule,
-                now_datetime=now_datetime, respect_preview=False)
+        finish_flow_session(fctx, flow_session, grading_rule,
+                            now_datetime=now_datetime, respect_preview=False)
+        return True
     else:
         raise ValueError(
                 _("invalid expiration mode '%(mode)s' on flow session ID "
@@ -1144,7 +1146,6 @@ def grade_flow_session(
                 .filter(
                     opportunity=gchange.opportunity,
                     participation=gchange.participation,
-                    state=gchange.state,
                     attempt_id=gchange.attempt_id,
                     flow_session=gchange.flow_session)
                 .order_by("-grade_time")
@@ -1156,6 +1157,7 @@ def grade_flow_session(
             previous_grade_change, = previous_grade_changes
             if (previous_grade_change.points == gchange.points
                     and previous_grade_change.max_points == gchange.max_points
+                    and previous_grade_change.state == gchange.state
                     and previous_grade_change.comment == gchange.comment):
                 do_save = False
         else:
@@ -1374,60 +1376,65 @@ def view_start_flow(pctx, flow_id):
     # type: (CoursePageContext, Text) -> http.HttpResponse
     request = pctx.request
 
-    login_exam_ticket = get_login_exam_ticket(pctx.request)
-    now_datetime = get_now_or_fake_time(request)
     fctx = FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
 
     if request.method == "POST":
         return post_start_flow(pctx, fctx, flow_id)
+
+    login_exam_ticket = get_login_exam_ticket(pctx.request)
+    now_datetime = get_now_or_fake_time(request)
+
+    session_start_rule = get_session_start_rule(
+            pctx.course, pctx.participation,
+            flow_id, fctx.flow_desc, now_datetime,
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
+
+    if session_start_rule.may_list_existing_sessions:
+        past_sessions = (FlowSession.objects
+                .filter(
+                    participation=pctx.participation,
+                    flow_id=fctx.flow_id,
+                    participation__isnull=False)
+               .order_by("start_time"))
+
+        from collections import namedtuple
+        SessionProperties = namedtuple("SessionProperties",  # noqa
+                ["may_view", "may_modify", "due", "grade_description",
+                    "grade_shown"])
+
+        past_sessions_and_properties = []
+        for session in past_sessions:
+            access_rule = get_session_access_rule(
+                    session, fctx.flow_desc, now_datetime,
+                    facilities=pctx.request.relate_facilities,
+                    login_exam_ticket=login_exam_ticket)
+            grading_rule = get_session_grading_rule(
+                    session, fctx.flow_desc, now_datetime)
+
+            session_properties = SessionProperties(
+                    may_view=flow_permission.view in access_rule.permissions,
+                    may_modify=(
+                        flow_permission.submit_answer in access_rule.permissions
+                        or
+                        flow_permission.end_session in access_rule.permissions
+                        ),
+                    due=grading_rule.due,
+                    grade_description=grading_rule.description,
+                    grade_shown=(
+                        flow_permission.cannot_see_flow_result
+                        not in access_rule.permissions))
+            past_sessions_and_properties.append((session, session_properties))
     else:
-        session_start_rule = get_session_start_rule(
-                pctx.course, pctx.participation,
-                flow_id, fctx.flow_desc, now_datetime,
-                facilities=pctx.request.relate_facilities,
-                login_exam_ticket=login_exam_ticket)
+        past_sessions_and_properties = []
 
-        if session_start_rule.may_list_existing_sessions:
-            past_sessions = (FlowSession.objects
-                    .filter(
-                        participation=pctx.participation,
-                        flow_id=fctx.flow_id,
-                        participation__isnull=False)
-                   .order_by("start_time"))
+    may_start = session_start_rule.may_start_new_session
+    new_session_grading_rule = None
+    start_may_decrease_grade = False
+    grade_aggregation_strategy_descr = None
 
-            from collections import namedtuple
-            SessionProperties = namedtuple("SessionProperties",  # noqa
-                    ["may_view", "may_modify", "due", "grade_description",
-                        "grade_shown"])
-
-            past_sessions_and_properties = []
-            for session in past_sessions:
-                access_rule = get_session_access_rule(
-                        session, fctx.flow_desc, now_datetime,
-                        facilities=pctx.request.relate_facilities,
-                        login_exam_ticket=login_exam_ticket)
-                grading_rule = get_session_grading_rule(
-                        session, fctx.flow_desc, now_datetime)
-
-                session_properties = SessionProperties(
-                        may_view=flow_permission.view in access_rule.permissions,
-                        may_modify=(
-                            flow_permission.submit_answer in access_rule.permissions
-                            or
-                            flow_permission.end_session in access_rule.permissions
-                            ),
-                        due=grading_rule.due,
-                        grade_description=grading_rule.description,
-                        grade_shown=(
-                            flow_permission.cannot_see_flow_result
-                            not in access_rule.permissions))
-                past_sessions_and_properties.append((session, session_properties))
-        else:
-            past_sessions_and_properties = []
-
-        may_start = session_start_rule.may_start_new_session
-
+    if may_start:
         potential_session = FlowSession(
             course=pctx.course,
             participation=pctx.participation,
@@ -1451,21 +1458,22 @@ def view_start_flow(pctx, flow_id):
                     grade_aggregation_strategy.max_grade,
                     grade_aggregation_strategy.use_earliest])
 
-        return render_course_page(pctx, "course/flow-start.html", {
-            "flow_desc": fctx.flow_desc,
-            "flow_identifier": flow_id,
+        grade_aggregation_strategy_descr = (
+            dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
+                new_session_grading_rule.grade_aggregation_strategy))
 
-            "now": now_datetime,
-            "may_start": may_start,
-            "new_session_grading_rule": new_session_grading_rule,
-            "grade_aggregation_strategy_descr": (
-                dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
-                    new_session_grading_rule.grade_aggregation_strategy)),
-            "start_may_decrease_grade": start_may_decrease_grade,
+    return render_course_page(pctx, "course/flow-start.html", {
+        "flow_desc": fctx.flow_desc,
+        "flow_identifier": flow_id,
 
-            "past_sessions_and_properties": past_sessions_and_properties,
-            },
-            allow_instant_flow_requests=False)
+        "now": now_datetime,
+        "may_start": may_start,
+        "new_session_grading_rule": new_session_grading_rule,
+        "grade_aggregation_strategy_descr": grade_aggregation_strategy_descr,
+        "start_may_decrease_grade": start_may_decrease_grade,
+        "past_sessions_and_properties": past_sessions_and_properties,
+        },
+        allow_instant_flow_requests=False)
 
 
 @retry_transaction_decorator(serializable=True)

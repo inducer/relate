@@ -822,6 +822,18 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return cls.get_course_view_url("relate-course_page", course_identifier)
 
     @classmethod
+    def get_finish_flow_session_view_url(cls, course_identifier=None,
+                                         flow_session_id=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        if flow_session_id is None:
+            flow_session_id = cls.get_default_flow_session_id(course_identifier)
+
+        kwargs = {"course_identifier": course_identifier,
+                  "flow_session_id": flow_session_id}
+        return reverse("relate-finish_flow_session_view", kwargs=kwargs)
+
+    @classmethod
     def _get_grades_url(cls, args=None, kwargs=None):
         return reverse("relate-view_participant_grades",
                        args=args, kwargs=kwargs)
@@ -989,26 +1001,34 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             course.refresh_from_db()
 
     @classmethod
-    def start_flow(cls, flow_id, course_identifier=None, ignore_cool_down=True):
+    def get_view_start_flow_url(cls, flow_id, course_identifier=None):
         course_identifier = course_identifier or cls.get_default_course_identifier()
-        existing_session_count = FlowSession.objects.all().count()
-        params = {"course_identifier": course_identifier,
+        kwargs = {"course_identifier": course_identifier,
                   "flow_id": flow_id}
+        return reverse("relate-view_start_flow", kwargs=kwargs)
+
+    @classmethod
+    def start_flow(cls, flow_id, course_identifier=None,
+                   ignore_cool_down=True, assume_success=True):
+        existing_session_count = FlowSession.objects.all().count()
         if ignore_cool_down:
             cool_down_seconds = 0
         else:
             cool_down_seconds = settings.RELATE_SESSION_RESTART_COOLDOWN_SECONDS
         with override_settings(
                 RELATE_SESSION_RESTART_COOLDOWN_SECONDS=cool_down_seconds):
-            resp = cls.c.post(reverse("relate-view_start_flow", kwargs=params))
+            resp = cls.c.post(
+                cls.get_view_start_flow_url(flow_id, course_identifier))
 
-        assert resp.status_code == 302, resp.content
-        new_session_count = FlowSession.objects.all().count()
-        assert new_session_count == existing_session_count + 1
-        _, _, params = resolve(resp.url)
-        del params["page_ordinal"]
-        cls.default_flow_params = params
-        cls.update_default_flow_session_id(course_identifier)
+        if assume_success:
+            assert resp.status_code == 302, resp.content
+            new_session_count = FlowSession.objects.all().count()
+            assert new_session_count == existing_session_count + 1
+            _, _, params = resolve(resp.url)
+            del params["page_ordinal"]
+            cls.default_flow_params = params
+            cls.update_default_flow_session_id(course_identifier)
+
         return resp
 
     @classmethod
@@ -1836,7 +1856,9 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
     def submit_page_human_grading_by_page_id_and_test(
             cls, page_id,
             expected_post_grading_status_code=200,
-            grade_data=None, expected_grades=None,
+            grade_data=None,
+            expected_grades=None,
+            do_session_score_equal_assersion=True,
             grade_data_extra_kwargs=None,
             force_login_instructor=True,
             ensure_grading_ui_get_before_grading=False,
@@ -1845,6 +1867,8 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             ensure_analytic_page_get_after_grading=False,
             ensure_download_before_grading=False,
             ensure_download_after_grading=False):
+
+        # this helper is expected to be used when the session is finished
 
         post_grade_response = None
 
@@ -1886,7 +1910,8 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                         == expected_post_grading_status_code)
 
                 if post_grade_response.status_code == 200:
-                    cls.assertSessionScoreEqual(expected_grades)
+                    if do_session_score_equal_assersion:
+                        cls.assertSessionScoreEqual(expected_grades)
 
                 if ensure_download_after_grading:
                     cls.ensure_download_submission(group_id, page_id)
