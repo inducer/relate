@@ -192,6 +192,10 @@ USE_TZ = True
 
 LOGIN_URL = "relate-sign_in_choice"
 
+# Do not remove this setting. It is used by djangosaml2 to determine where to
+# redirect after a successful login.
+LOGIN_REDIRECT_URL = "/"
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
