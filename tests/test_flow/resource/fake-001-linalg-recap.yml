@@ -4,7 +4,7 @@ description: |
 
 rules:
     start:
-    _
+    -
         may_start_new_session: True
         default_expiration_mode: roll_over
 

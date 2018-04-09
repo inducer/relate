@@ -125,8 +125,6 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
             in_sandbox=False,
             page_uri=None)
 
-    from course.models import FlowPageData
-
     def remove_page(fpd):
         if fpd.page_ordinal is not None:
             fpd.page_ordinal = None
@@ -1771,16 +1769,10 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
 
     flow_session_id = int(flow_session_id)
     flow_session = get_and_check_flow_session(pctx, flow_session_id)
+
+    assert flow_session is not None
+
     flow_id = flow_session.flow_id
-
-    if flow_session is None:
-        messages.add_message(request, messages.WARNING,
-                _("No in-progress session record found for this flow. "
-                "Redirected to flow start page."))
-
-        return redirect("relate-view_start_flow",
-                pctx.course.identifier,
-                flow_id)
 
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             respect_preview=True)
@@ -2160,9 +2152,6 @@ def post_flow_page(
 
     assert page_context is not None
 
-    prev_answer_visits = list(
-            get_prev_answer_visits_qset(fpctx.page_data))
-
     submission_allowed = True
 
     assert fpctx.page is not None
@@ -2172,6 +2161,9 @@ def post_flow_page(
         messages.add_message(request, messages.ERROR,
                 _("Answer submission not allowed."))
         submission_allowed = False
+
+    prev_answer_visits = list(
+            get_prev_answer_visits_qset(fpctx.page_data))
 
     # reject if previous answer was final
     if (prev_answer_visits
@@ -2315,6 +2307,9 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
     flow_session = get_and_check_flow_session(pctx, flow_session_id)
     flow_id = flow_session.flow_id
 
+    adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
+            respect_preview=True)
+
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, page_ordinal,
                             participation=pctx.participation,
                             flow_session=flow_session,
@@ -2338,15 +2333,6 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
         raise http.Http404()
 
     # }}}
-
-    from django.conf import settings
-    from course.models import FlowSession
-
-    flow_session = get_object_or_404(
-        FlowSession, id=int(flow_session_id))
-    from course.models import FlowPageData
-    page_id = FlowPageData.objects.get(
-        flow_session=flow_session_id, page_ordinal=page_ordinal).page_id
 
     review_url = reverse(
         "relate-view_flow_page",
@@ -2372,35 +2358,39 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
                     settings.ROBOT_EMAIL_FROM)
             student_email = flow_session.participation.user.email
 
-            from course.constants import (
-                    participation_permission as pperm)
+            from course.constants import participation_status
 
             ta_email_list = Participation.objects.filter(
                     course=pctx.course,
                     roles__permissions__permission=pperm.assign_grade,
                     roles__identifier="ta",
-            ).values_list("user__email", flat=True)
-
-            instructor_email_list = Participation.objects.filter(
-                    course=pctx.course,
-                    roles__permissions__permission=pperm.assign_grade,
-                    roles__identifier="instructor"
+                    status=participation_status.active
             ).values_list("user__email", flat=True)
 
             recipient_list = ta_email_list
             if not recipient_list:
-                recipient_list = instructor_email_list
+
+                # instructors to receive the email
+                recipient_list = Participation.objects.filter(
+                    course=pctx.course,
+                    roles__permissions__permission=pperm.assign_grade,
+                    roles__identifier="instructor"
+                ).values_list("user__email", flat=True)
 
             with LanguageOverride(course=pctx.course):
-                from relate.utils import render_email_template
+
                 from course.utils import will_use_masked_profile_for_email
-                use_masked_profile_for_email = (
-                    will_use_masked_profile_for_email(recipient_list)
-                )
-                if use_masked_profile_for_email:
+
+                if will_use_masked_profile_for_email(recipient_list):
                     username = pctx.participation.user.get_masked_profile()
                 else:
                     username = pctx.participation.user.get_full_name()
+
+                page_id = FlowPageData.objects.get(
+                    flow_session=flow_session_id, page_ordinal=page_ordinal).page_id
+
+                from relate.utils import render_email_template
+
                 message = render_email_template(
                     "course/flow-page-interaction-email.txt", {
                         "page_id": page_id,
