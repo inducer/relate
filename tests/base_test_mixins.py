@@ -184,11 +184,21 @@ class ResponseContextMixin(object):
     Ref: https://docs.djangoproject.com/en/dev/topics/testing/tools/#django.test.Response.context  # noqa
     """
     def get_response_context_value_by_name(self, response, context_name):
-        value = response.context.__getitem__(context_name)
-        self.assertIsNotNone(
-            value,
-            msg="%s does not exist in given response" % context_name)
-        return value
+        try:
+            value = response.context[context_name]
+        except KeyError:
+            self.fail("%s does not exist in given response" % context_name)
+        else:
+            return value
+
+    def assertResponseHasNoContext(self, response, context_name):  # noqa
+        has_context = True
+        try:
+            response.context[context_name]
+        except KeyError:
+            has_context = False
+        if has_context:
+            self.fail("%s unexpectedly exist in given response" % context_name)
 
     def assertResponseContextIsNone(self, resp, context_name):  # noqa
         try:
@@ -205,7 +215,11 @@ class ResponseContextMixin(object):
 
     def assertResponseContextEqual(self, resp, context_name, expected_value):  # noqa
         value = self.get_response_context_value_by_name(resp, context_name)
-        self.assertEqual(value, expected_value)
+        try:
+            self.assertTrue(float(value) - float(expected_value) <= 1e-04)
+            return
+        except Exception:
+            self.assertEqual(value, expected_value)
 
     def assertResponseContextContains(self, resp,  # noqa
                                       context_name, expected_value, html=False,
@@ -1047,6 +1061,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return resp
 
     @classmethod
+    def get_resume_flow_url(cls, course_identifier=None, flow_session_id=None):
+        flow_params = cls.get_flow_params(course_identifier, flow_session_id)
+        return reverse("relate-view_resume_flow", kwargs=flow_params)
+
+    @classmethod
     def get_flow_params(cls, course_identifier=None, flow_session_id=None):
         course_identifier = (
                 course_identifier or cls.get_default_course_identifier())
@@ -1104,18 +1123,24 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def get_page_url_by_ordinal(
-            cls, page_ordinal, course_identifier=None, flow_session_id=None):
-        return cls.get_page_view_url_by_ordinal(
+            cls, page_ordinal, course_identifier=None, flow_session_id=None,
+            visit_id=None):
+        url = cls.get_page_view_url_by_ordinal(
             "relate-view_flow_page",
             page_ordinal, course_identifier, flow_session_id)
+        if visit_id is not None:
+            url += "?visit_id=%s" % str(visit_id)
+
+        return url
 
     @classmethod
     def get_page_url_by_page_id(
-            cls, page_id, course_identifier=None, flow_session_id=None):
+            cls, page_id, course_identifier=None, flow_session_id=None,
+            visit_id=None):
         page_ordinal = cls.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
         return cls.get_page_url_by_ordinal(
-            page_ordinal, course_identifier, flow_session_id)
+            page_ordinal, course_identifier, flow_session_id, visit_id)
 
     @classmethod
     def get_page_grading_url_by_ordinal(
@@ -1135,22 +1160,23 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def post_answer_by_ordinal(
             cls, page_ordinal, answer_data,
-            course_identifier=None, flow_session_id=None):
+            course_identifier=None, flow_session_id=None, visit_id=None):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
         resp = cls.c.post(
             cls.get_page_url_by_ordinal(
-                page_ordinal, course_identifier, flow_session_id),
+                page_ordinal, course_identifier, flow_session_id, visit_id),
             submit_data)
         return resp
 
     @classmethod
-    def post_answer_by_page_id(cls, page_id, answer_data,
-                               course_identifier=None, flow_session_id=None):
+    def post_answer_by_page_id(
+            cls, page_id, answer_data,
+            course_identifier=None, flow_session_id=None, visit_id=None):
         page_ordinal = cls.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
         return cls.post_answer_by_ordinal(
-            page_ordinal, answer_data, course_identifier, flow_session_id)
+            page_ordinal, answer_data, course_identifier, flow_session_id, visit_id)
 
     @classmethod
     def post_answer_by_ordinal_class(cls, page_ordinal, answer_data,

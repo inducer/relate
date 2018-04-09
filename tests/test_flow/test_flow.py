@@ -25,17 +25,25 @@ THE SOFTWARE.
 import os
 import six
 from collections import OrderedDict
+import itertools
 
 import unittest
-from django.test import TestCase
+from django import http
+from django.urls import reverse
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import PermissionDenied
+from django.test import TestCase, RequestFactory
 from django.utils.timezone import now, timedelta
+from django.core import mail
 
-from relate.utils import dict_to_struct
+from relate.utils import dict_to_struct, StyledForm
 
 from course.content import get_repo_blob
 from course import models, flow
 from course import constants
 from course.constants import grade_aggregation_strategy as g_strategy
+from course.constants import flow_permission as fperm
 from course.utils import FlowSessionStartRule, FlowSessionGradingRule
 
 from tests.base_test_mixins import (
@@ -80,7 +88,10 @@ COMMIT_SHA_MAP = {
             "page_ids": ["anyup"]}},
         {"my_fake_commit_sha_for_grade_flow_session2": {
             "path": "fake-quiz-test-for-grade_flow_session2.yml",
-            "page_ids": ["anyup"]}}
+            "page_ids": ["anyup"]}},
+        {"my_fake_commit_sha_for_view_flow_page": {
+            "path": "fake-quiz-test-for-view_flow_page.yml",
+            "page_ids": ["anyup"]}},
     ],
 
     "flow/%s.yml" % "001-linalg-recap":
@@ -2755,7 +2766,8 @@ class RegradeSessionTest(SingleCourseTestMixin, TestCase):
 
         self.assertEqual(self.mock_finish_flow_session_standalone.call_count, 1)
         self.assertFalse(
-            self.mock_finish_flow_session_standalone.call_args[1]["respect_preview"])  # noqa
+            self.mock_finish_flow_session_standalone.call_args[1][
+                "respect_preview"])
 
         self.assertEqual(self.mock_assemble_answer_visits.call_count, 0)
         self.assertEqual(self.mock_grade_page_visit.call_count, 0)
@@ -2830,7 +2842,8 @@ class RecalculateSessionGradeTest(SingleCourseTestMixin, TestCase):
 
         self.assertEqual(self.mock_finish_flow_session_standalone.call_count, 1)
         self.assertFalse(
-            self.mock_finish_flow_session_standalone.call_args[1]["respect_preview"])  # noqa
+            self.mock_finish_flow_session_standalone.call_args[1][
+                "respect_preview"])
 
 
 class LockDownIfNeededTest(unittest.TestCase):
@@ -2858,7 +2871,7 @@ class LockDownIfNeededTest(unittest.TestCase):
                 "relate_session_locked_to_exam_flow_session_pk"))
 
     def test_has_lock_down_as_exam_session_flow_permission(self):
-        flow_permissions = [constants.flow_permission.lock_down_as_exam_session,
+        flow_permissions = [fperm.lock_down_as_exam_session,
                             "other_flow_permission"]
         flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
 
@@ -2992,21 +3005,21 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
 
         # create 2 session with different access_rule and grading_rule
         fs1 = self.get_test_flow_session(in_progress=False,
-                                   start_time=now() - timedelta(days=3))
+                                         start_time=now() - timedelta(days=3))
         fs2 = self.get_test_flow_session(in_progress=True,
-                                   start_time=now() - timedelta(days=2),
-                                   completion_time=None)
+                                         start_time=now() - timedelta(days=2),
+                                         completion_time=None)
 
         access_rule_for_session1 = self.get_hacked_session_access_rule(
-            permissions=[constants.flow_permission.cannot_see_flow_result]
+            permissions=[fperm.cannot_see_flow_result]
         )
 
         access_rule_for_session2 = self.get_hacked_session_access_rule(
             permissions=[
-                constants.flow_permission.view,
-                constants.flow_permission.submit_answer,
-                constants.flow_permission.end_session,
-                constants.flow_permission.see_answer_after_submission]
+                fperm.view,
+                fperm.submit_answer,
+                fperm.end_session,
+                fperm.see_answer_after_submission]
         )
 
         grading_rule_for_session1 = self.get_hacked_session_grading_rule(
@@ -3225,5 +3238,1595 @@ class PostStartFlowTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(self.mock_get_login_exam_ticket.call_count, 1)
         self.assertEqual(self.mock_lock_down_if_needed.call_count, 1)
 
+
+class ViewResumeFlowTest(SingleCourseTestMixin, TestCase):
+    # test flow.view_resume_flow
+    def test(self):
+        fs = factories.FlowSessionFactory(participation=self.student_participation)
+        faked_now_datetime = now() + timedelta(days=1)
+
+        with mock.patch(
+                "course.flow.get_now_or_fake_time"
+        ) as mock_now, mock.patch(
+            "course.flow.get_and_check_flow_session"
+        ) as mock_check_fs, mock.patch(
+            "course.flow.get_login_exam_ticket"
+        ) as mock_get_ticket, mock.patch(
+            "course.flow.get_session_access_rule"
+        ) as mock_get_ac, mock.patch(
+            "course.flow.lock_down_if_needed"
+        ) as mock_lock_down:
+            mock_now.return_value = faked_now_datetime
+            mock_check_fs.return_value = fs
+            faked_ticket = mock.MagicMock()
+            mock_get_ticket.return_value = faked_ticket
+
+            resp = self.c.get(self.get_resume_flow_url(
+                course_identifier=self.course.identifier, flow_session_id=fs.pk))
+
+            self.assertRedirects(
+                resp, self.get_page_url_by_ordinal(
+                    page_ordinal=0, flow_session_id=fs.pk),
+                fetch_redirect_response=False)
+
+            self.assertEqual(mock_check_fs.call_count, 1)
+            self.assertEqual(mock_get_ticket.call_count, 1)
+            self.assertEqual(mock_get_ac.call_count, 1)
+            self.assertIn("facilities", mock_get_ac.call_args[1])
+            self.assertEqual(mock_get_ac.call_args[1]["login_exam_ticket"],
+                             faked_ticket)
+
+            self.assertEqual(mock_lock_down.call_count, 1)
+
+
+class GetAndCheckFlowSessionTest(SingleCourseTestMixin, TestCase):
+    # test flow.get_and_check_flow_session
+
+    def setUp(self):
+        super(GetAndCheckFlowSessionTest, self).setUp()
+        self.rf = RequestFactory()
+
+    def get_pctx(self, request_user):
+        request = self.rf.get(self.get_course_page_url())
+        request.user = request_user
+
+        from course.utils import CoursePageContext
+        pctx = CoursePageContext(request, self.course.identifier)
+        return pctx
+
+    def test_object_does_not_exist(self):
+        pctx = self.get_pctx(self.student_participation.user)
+
+        with self.assertRaises(http.Http404):
+            flow.get_and_check_flow_session(pctx, flow_session_id=100)
+
+    def test_flow_session_course_not_match(self):
+        another_course = factories.CourseFactory(identifier="another-course")
+        another_course_fs = factories.FlowSessionFactory(
+            participation=factories.ParticipationFactory(course=another_course)
+        )
+
+        pctx = self.get_pctx(self.student_participation.user)
+
+        with self.assertRaises(http.Http404):
+            flow.get_and_check_flow_session(
+                pctx, flow_session_id=another_course_fs.pk)
+
+    def test_anonymous_session(self):
+        anonymous_session = factories.FlowSessionFactory(
+            course=self.course, participation=None, user=None
+        )
+
+        pctx = self.get_pctx(request_user=AnonymousUser())
+
+        self.assertEqual(
+            flow.get_and_check_flow_session(
+                pctx, flow_session_id=anonymous_session.pk),
+            anonymous_session)
+
+    def test_my_session(self):
+        my_session = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation
+        )
+
+        pctx = self.get_pctx(request_user=self.student_participation.user)
+
+        self.assertEqual(
+            flow.get_and_check_flow_session(
+                pctx, flow_session_id=my_session.pk),
+            my_session)
+
+    def test_not_my_session_anonymous(self):
+        my_session = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation
+        )
+
+        from django.contrib.auth.models import AnonymousUser
+        pctx = self.get_pctx(request_user=AnonymousUser())
+
+        with self.assertRaises(PermissionDenied) as cm:
+            flow.get_and_check_flow_session(
+                pctx, flow_session_id=my_session.pk)
+        expected_error_msg = "may not view other people's sessions"
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_view_student_session(self):
+        student_session = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation
+        )
+
+        pctx = self.get_pctx(request_user=self.instructor_participation.user)
+
+        self.assertEqual(
+            flow.get_and_check_flow_session(
+                pctx, flow_session_id=student_session.pk),
+            student_session)
+
+
+class WillReceiveFeedbackTest(unittest.TestCase):
+    # test flow.will_receive_feedback
+    def test1(self):
+        self.assertFalse(flow.will_receive_feedback(frozenset(["abcd", "efg"])))
+
+    def test2(self):
+        self.assertFalse(flow.will_receive_feedback(
+            frozenset([
+                fperm.submit_answer,
+                fperm.see_answer_before_submission])))
+
+    def test3(self):
+        self.assertTrue(flow.will_receive_feedback(
+            frozenset([
+                fperm.see_correctness,
+                fperm.see_answer_before_submission])))
+
+    def test4(self):
+        self.assertTrue(flow.will_receive_feedback(
+            frozenset([
+                fperm.submit_answer,
+                fperm.see_answer_after_submission])))
+
+
+class MaySendEmailAboutFlowPageTest(unittest.TestCase):
+    # test flow.may_send_email_about_flow_page
+    def test1(self):
+        self.assertFalse(flow.may_send_email_about_flow_page(
+            frozenset(["abcd", "efg"])))
+
+    def test2(self):
+        self.assertFalse(flow.may_send_email_about_flow_page(
+            frozenset([
+                fperm.submit_answer,
+                fperm.see_answer_before_submission])))
+
+    def test3(self):
+        self.assertTrue(flow.may_send_email_about_flow_page(
+            frozenset([
+                "blahblah",
+                fperm.send_email_about_flow_page])))
+
+    def test4(self):
+        self.assertTrue(flow.may_send_email_about_flow_page(
+            frozenset([
+                fperm.send_email_about_flow_page])))
+
+
+@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+class GetPageBehaviorTest(unittest.TestCase):
+    # test flow.get_page_behavior
+    def setUp(self):
+        self.page = mock.MagicMock()
+
+    def assertShowCorrectness(self, behavior, perms, show=True):  # noqa
+        self.assertEqual(
+            behavior.show_correctness, show,
+            "behavior.show_correctness unexpected to be %s with %s"
+            % (not show, ", ".join(perms)))
+
+    def assertShowAnswer(self, behavior, perms, show=True):  # noqa
+        self.assertEqual(behavior.show_answer, show,
+                         "behavior.show_answer unexpected to be %s with %s"
+                         % (not show, ", ".join(perms)))
+
+    def assertMayChangeAnswer(self, behavior, perms, may_change=True):  # noqa
+        self.assertEqual(behavior.may_change_answer, may_change,
+                         "behavior.may_change_answer unexpected to be %s with %s"
+                         % (not may_change, ", ".join(perms)))
+
+    def get_flow_permissions_list(self, excluded=None):
+        if not isinstance(excluded, list):
+            excluded = [excluded]
+        all_flow_permissions = dict(constants.FLOW_PERMISSION_CHOICES).keys()
+        return [fp for fp in all_flow_permissions if fp not in excluded]
+
+    def test_show_correctness1(self):
+        # not expects_answer
+        self.page.expects_answer.return_value = False
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list()]
+        combinations.append(([], False))
+
+        params = list(itertools.product([True, False], repeat=5))
+
+        for p in params:
+            (session_in_progress, answer_was_graded, generate_grade,
+             is_unenrooled_session, viewing_prior_version) = p
+            for permissions, show in combinations:
+                with self.subTest(
+                        permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=answer_was_graded,
+                        generates_grade=generate_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=viewing_prior_version,
+                    )
+                self.assertShowCorrectness(behavior, permissions, show)
+
+    def test_show_correctness2(self):
+        # expects_answer, answer_was_graded
+        self.page.expects_answer.return_value = True
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list(
+                            excluded=fperm.see_correctness)]
+        combinations.append(([], False))
+        combinations.append((frozenset([fperm.see_correctness]), True))
+
+        params = list(itertools.product([True, False], repeat=4))
+
+        for p in params:
+            (session_in_progress, generate_grade,
+             is_unenrooled_session, viewing_prior_version) = p
+
+            for permissions, show in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=True,
+                        generates_grade=generate_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=viewing_prior_version,
+                    )
+                self.assertShowCorrectness(behavior, permissions, show)
+
+    def test_show_correctness3(self):
+        # expects_answer, answer was NOT graded
+        self.page.expects_answer.return_value = True
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list()]
+        combinations.append(([], False))
+
+        params = list(itertools.product([True, False], repeat=4))
+
+        for p in params:
+            (session_in_progress, generate_grade,
+             is_unenrooled_session, viewing_prior_version) = p
+
+            for permissions, show in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=False,
+                        generates_grade=generate_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=viewing_prior_version,
+                    )
+                self.assertShowCorrectness(behavior, permissions, show)
+
+    def test_show_answer1(self):
+        # not expects_answer
+        self.page.expects_answer.return_value = False
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list(
+                            excluded=[
+                                fperm.see_answer_before_submission,
+                                fperm.see_answer_after_submission])]
+        combinations.append(([], False))
+        combinations.append(
+            (frozenset([fperm.see_answer_before_submission]), True))
+        combinations.append(
+            (frozenset([fperm.see_answer_after_submission]), True))
+        combinations.append(
+            (frozenset([fperm.see_answer_after_submission,
+                        fperm.see_answer_before_submission]), True))
+
+        params = list(itertools.product([True, False], repeat=5))
+
+        for p in params:
+            (session_in_progress, generate_grade, answer_was_graded,
+             is_unenrooled_session, viewing_prior_version) = p
+
+            for permissions, show in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=answer_was_graded,
+                        generates_grade=generate_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=viewing_prior_version,
+                    )
+                    self.assertShowAnswer(behavior, permissions, show)
+
+    def test_show_answer2(self):
+        # expects_answer, answer was NOT graded
+        self.page.expects_answer.return_value = True
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list(
+                            excluded=[
+                                fperm.see_answer_before_submission])]
+        combinations.append(([], False))
+        combinations.append(
+            (frozenset([fperm.see_answer_before_submission]), True))
+
+        params = list(itertools.product([True, False], repeat=4))
+
+        for p in params:
+            (session_in_progress, generate_grade,
+             is_unenrooled_session, viewing_prior_version) = p
+
+            for permissions, show in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=False,
+                        generates_grade=generate_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=viewing_prior_version,
+                    )
+                    self.assertShowAnswer(behavior, permissions, show)
+
+    def test_show_answer3(self):
+        # expects_answer, answer was graded, session not in progress
+
+        self.page.expects_answer.return_value = True
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list(
+                            excluded=[
+                                fperm.see_answer_before_submission,
+                                fperm.see_answer_after_submission])]
+        combinations.append(([], False))
+
+        # when session not in_progress, see_answer_after_submission dominates
+        combinations.extend(
+            [(frozenset([fp, fperm.see_answer_after_submission]), True)
+             for fp in self.get_flow_permissions_list(
+                excluded=fperm.see_answer_after_submission)])
+
+        combinations.append(
+            (frozenset([fperm.see_answer_before_submission]), True))
+        combinations.append(
+            (frozenset([fperm.see_answer_after_submission]), True))
+
+        # see_answer_before_submission also dominates
+        combinations.extend(
+            [(frozenset([fp, fperm.see_answer_before_submission]), True)
+             for fp in self.get_flow_permissions_list(
+                excluded=fperm.see_answer_before_submission)])
+
+        params = list(itertools.product([True, False], repeat=3))
+
+        for p in params:
+            (generate_grade, is_unenrooled_session, viewing_prior_version) = p
+
+            for permissions, show in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=False,
+                        answer_was_graded=True,
+                        generates_grade=generate_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=viewing_prior_version,
+                    )
+                    self.assertShowAnswer(behavior, permissions, show)
+
+    def test_show_answer4(self):
+        # expects_answer, answer was graded, session in progress
+
+        self.page.expects_answer.return_value = True
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list(
+                            excluded=[
+                                fperm.see_answer_before_submission,
+                                fperm.see_answer_after_submission])]
+        combinations.append(([], False))
+        combinations.append(
+            (frozenset([fperm.see_answer_before_submission]), True))
+
+        combinations.append(
+            (frozenset([fperm.see_answer_after_submission]), True))
+
+        # if see_answer_before_submission dominate not present,
+        # change_answer dominates
+        combinations.extend(
+            [(frozenset([fp, fperm.change_answer]), False) for fp in
+             self.get_flow_permissions_list(
+                 excluded=fperm.see_answer_before_submission)])
+
+        # see_answer_before_submission dominates
+        combinations.extend(
+            [(frozenset([fp, fperm.see_answer_before_submission]), True)
+             for fp in self.get_flow_permissions_list(
+                excluded=fperm.see_answer_before_submission)])
+
+        params = list(itertools.product([True, False], repeat=3))
+
+        for p in params:
+            (generate_grade, is_unenrooled_session, viewing_prior_version) = p
+
+            for permissions, show in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=True,
+                        answer_was_graded=True,
+                        generates_grade=generate_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=viewing_prior_version,
+                    )
+                    self.assertShowAnswer(behavior, permissions, show)
+
+    def test_may_change_answer1(self):
+        # viewing_prior_version dominates
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list()]
+
+        params = list(itertools.product([True, False], repeat=5))
+
+        for p in params:
+            (self.page.expects_answer.return_value,
+             session_in_progress, answer_was_graded,
+             generates_grade,
+             is_unenrooled_session) = p
+
+            for permissions, may_change in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=answer_was_graded,
+                        generates_grade=generates_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                        viewing_prior_version=True,
+                    )
+                    self.assertMayChangeAnswer(behavior, permissions, may_change)
+
+    def test_may_change_answer2(self):
+        # session_in_progress dominates
+
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list()]
+
+        params = list(itertools.product([True, False], repeat=4))
+
+        for p in params:
+            (self.page.expects_answer.return_value,
+             answer_was_graded, generates_grade,
+             is_unenrooled_session) = p
+
+            for permissions, may_change in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=False,
+                        answer_was_graded=answer_was_graded,
+                        generates_grade=generates_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                    )
+                    self.assertMayChangeAnswer(behavior, permissions, may_change)
+
+    def test_may_change_answer3(self):
+        # no submit_answer dominates
+
+        combinations = [(frozenset([fp]), False)
+                        for fp in self.get_flow_permissions_list(
+                excluded=fperm.submit_answer)]
+
+        params = list(itertools.product([True, False], repeat=5))
+
+        for p in params:
+            (self.page.expects_answer.return_value,
+             session_in_progress, answer_was_graded,
+             generates_grade,
+             is_unenrooled_session) = p
+
+            for permissions, may_change in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=answer_was_graded,
+                        generates_grade=generates_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                    )
+                    self.assertMayChangeAnswer(behavior, permissions, may_change)
+
+    def test_may_change_answer4(self):
+        # not answer_was_graded or (flow_permission.change_answer in permissions)
+
+        combinations = [(frozenset([fp, fperm.submit_answer]), False)
+                        for fp in self.get_flow_permissions_list(
+                excluded=fperm.change_answer)]
+
+        params = list(itertools.product([True, False], repeat=4))
+
+        for p in params:
+            (self.page.expects_answer.return_value,
+             session_in_progress, generates_grade, is_unenrooled_session) = p
+
+            for permissions, may_change in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=session_in_progress,
+                        answer_was_graded=True,
+                        generates_grade=generates_grade,
+                        is_unenrolled_session=is_unenrooled_session,
+                    )
+                    self.assertMayChangeAnswer(behavior, permissions, may_change)
+
+    def test_may_change_answer6(self):
+        # generates_grade and not is_unenrolled_session or (not generates_grade)
+
+        combinations = [
+            (frozenset([fp, fperm.submit_answer, fperm.change_answer]), False)
+            for fp in self.get_flow_permissions_list()]
+
+        params = list(itertools.product([True, False], repeat=1))
+
+        for p in params:
+            (self.page.expects_answer.return_value) = p
+
+            for permissions, may_change in combinations:
+                with self.subTest(permissions=permissions):
+                    behavior = flow.get_page_behavior(
+                        self.page,
+                        permissions=permissions,
+                        session_in_progress=True,
+                        answer_was_graded=False,
+                        generates_grade=True,
+                        is_unenrolled_session=True,
+                    )
+                    self.assertMayChangeAnswer(behavior, permissions, may_change)
+
+    def test_may_change_answer7(self):
+        # cases that may_change_answer
+        from collections import namedtuple
+        Conf = namedtuple(
+            "Conf", [
+                'extra_fperms',
+                'answer_was_graded',
+                'generates_grade',
+                'is_unenrolled_session',
+            ]
+        )
+
+        confs = (
+            Conf([], False, False, True),
+            Conf([], False, False, False),
+            Conf([fperm.change_answer], True, False, True),
+            Conf([fperm.change_answer], True, False, False),
+            Conf([fperm.change_answer], False, False, True),
+            Conf([fperm.change_answer], False, False, False),
+        )
+
+        params = list(itertools.product([True, False], repeat=1))
+
+        for conf in confs:
+            combinations = []
+            for fp in self.get_flow_permissions_list():
+                fperms = [fp, fperm.submit_answer]
+                if conf.extra_fperms:
+                    fperms.extend(conf.extra_fperms)
+
+                combinations.append((frozenset(fperms), True))
+
+                for p in params:
+                    (self.page.expects_answer.return_value) = p
+
+                for permissions, may_change in combinations:
+                    with self.subTest(
+                            permissions=permissions,
+                            answer_was_graded=conf.answer_was_graded,
+                            generates_grade=conf.generates_grade,
+                            is_unenrolled_session=conf.is_unenrolled_session):
+                        behavior = flow.get_page_behavior(
+                            self.page,
+                            permissions=permissions,
+                            session_in_progress=True,
+                            answer_was_graded=conf.answer_was_graded,
+                            generates_grade=conf.generates_grade,
+                            is_unenrolled_session=conf.is_unenrolled_session,
+                        )
+                        self.assertMayChangeAnswer(behavior, permissions, may_change)
+
+
+class AddButtonsToFormTest(unittest.TestCase):
+    # test flow.add_buttons_to_form
+    def setUp(self):
+        super(AddButtonsToFormTest, self).setUp()
+        self.flow_session = mock.MagicMock()
+        self.fpctx = mock.MagicMock()
+
+        fake_will_receive_feedback = mock.patch("course.flow.will_receive_feedback")
+        self.mock_will_receive_feedback = fake_will_receive_feedback.start()
+        self.addCleanup(fake_will_receive_feedback.stop)
+
+    def fake_flow_session_page_count(self, count):
+        self.flow_session.page_count = count
+
+    def fake_fpctx_page_data_page_ordinal(self, ordinal):
+        self.fpctx.page_data.page_ordinal = ordinal
+
+    def get_flow_permissions_list(self, excluded=None):
+        if not isinstance(excluded, list):
+            excluded = [excluded]
+        all_flow_permissions = dict(constants.FLOW_PERMISSION_CHOICES).keys()
+        return [fp for fp in all_flow_permissions if fp not in excluded]
+
+    def get_form_submit_inputs(self, form):
+        from crispy_forms.layout import Submit
+        inputs = [
+            (input.name, input.value) for input in form.helper.inputs
+            if isinstance(input, Submit)
+        ]
+        names = list(dict(inputs).keys())
+        values = list(dict(inputs).values())
+        return names, values
+
+    def test_not_add_save_button(self):
+        class MyForm(StyledForm):
+            show_save_button = False
+
+        form = MyForm()
+
+        self.mock_will_receive_feedback.return_value = True
+        flow.add_buttons_to_form(form, self.fpctx, self.flow_session, frozenset())
+
+        names, values = self.get_form_submit_inputs(form)
+        self.assertNotIn("save", names)
+        self.assertIn("submit", names)
+        self.assertIn("Submit final answer", values)
+
+    def test_add_save_button_by_default(self):
+        class MyForm(StyledForm):
+            pass
+
+        form = MyForm()
+
+        self.mock_will_receive_feedback.return_value = True
+        flow.add_buttons_to_form(form, self.fpctx, self.flow_session, frozenset())
+
+        names, values = self.get_form_submit_inputs(form)
+        self.assertIn("save", names)
+        self.assertIn("submit", names)
+        self.assertIn("Submit final answer", values)
+
+    def test_add_submit_answer_for_feedback_button(self):
+        form = StyledForm()
+
+        self.mock_will_receive_feedback.return_value = True
+        flow.add_buttons_to_form(
+            form, self.fpctx, self.flow_session, frozenset([fperm.change_answer]))
+
+        names, values = self.get_form_submit_inputs(form)
+        self.assertIn("submit", names)
+        self.assertIn("Submit answer for feedback", values)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_not_add_submit_answer_for_feedback_button(self):
+
+        self.mock_will_receive_feedback.return_value = True
+        combinations = [(frozenset([fp]), False) for fp in
+                        self.get_flow_permissions_list(excluded=fperm.change_answer)]
+        combinations.append(([], False))
+
+        form = StyledForm()
+        for permissions, show in combinations:
+            with self.subTest(
+                    permissions=permissions):
+                flow.add_buttons_to_form(
+                    form, self.fpctx, self.flow_session, permissions)
+
+            names, values = self.get_form_submit_inputs(form)
+            self.assertNotIn("Submit answer for feedback", values)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_add_save_and_next(self):
+
+        self.mock_will_receive_feedback.return_value = False
+
+        combinations = [(frozenset([fp]), True) for fp in
+                        self.get_flow_permissions_list()]
+        combinations.append(([], True))
+
+        self.fake_flow_session_page_count(3)
+        self.fake_fpctx_page_data_page_ordinal(1)
+
+        form = StyledForm()
+        for permissions, show in combinations:
+            with self.subTest(
+                    permissions=permissions):
+                flow.add_buttons_to_form(
+                    form, self.fpctx, self.flow_session, permissions)
+
+            names, values = self.get_form_submit_inputs(form)
+            self.assertIn("save_and_next", names)
+            self.assertNotIn("submit", names)
+            self.assertNotIn("save_and_finish", names)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_add_save_and_finish(self):
+
+        self.mock_will_receive_feedback.return_value = False
+
+        combinations = [(frozenset([fp]), True) for fp in
+                        self.get_flow_permissions_list()]
+        combinations.append(([], True))
+
+        self.fake_flow_session_page_count(3)
+        self.fake_fpctx_page_data_page_ordinal(2)
+
+        form = StyledForm()
+        for permissions, show in combinations:
+            with self.subTest(
+                    permissions=permissions):
+                flow.add_buttons_to_form(
+                    form, self.fpctx, self.flow_session, permissions)
+
+            names, values = self.get_form_submit_inputs(form)
+            self.assertNotIn("save_and_next", names)
+            self.assertNotIn("submit", names)
+            self.assertIn("save_and_finish", names)
+
+
+class CreateFlowPageVisitTest(SingleCourseTestMixin, TestCase):
+    # test flow.create_flow_page_visit
+    def setUp(self):
+        super(CreateFlowPageVisitTest, self).setUp()
+        rf = RequestFactory()
+        self.request = rf.get(self.get_course_page_url())
+
+    def test_anonymous_visit(self):
+        self.request.user = AnonymousUser()
+        fs = factories.FlowSessionFactory(
+            course=self.course, participation=None, user=None)
+        page_data = factories.FlowPageDataFactory(flow_session=fs)
+
+        flow.create_flow_page_visit(self.request, fs, page_data)
+
+        fpvs = models.FlowPageVisit.objects.all()
+        self.assertEqual(fpvs.count(), 1)
+        fpv = fpvs[0]
+        self.assertEqual(fpv.user, None)
+        self.assertEqual(fpv.is_submitted_answer, None)
+        self.assertIsNotNone(fpv.remote_address)
+
+    def test_impersonate(self):
+        fs = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation)
+        page_data = factories.FlowPageDataFactory(flow_session=fs)
+
+        self.request.user = self.student_participation.user
+        middleware = SessionMiddleware()
+        middleware.process_request(self.request)
+        self.request.session.save()
+
+        setattr(self.request, "relate_impersonate_original_user",
+                self.instructor_participation.user)
+
+        flow.create_flow_page_visit(self.request, fs, page_data)
+
+        fpvs = models.FlowPageVisit.objects.all()
+        self.assertEqual(fpvs.count(), 1)
+        fpv = fpvs[0]
+        self.assertEqual(fpv.user, self.student_participation.user)
+        self.assertEqual(fpv.is_submitted_answer, None)
+        self.assertIsNotNone(fpv.remote_address)
+
+        self.assertEqual(fpv.impersonated_by, self.instructor_participation.user)
+
+
+class ViewFlowPageTest(
+        SingleCourseQuizPageTestMixin, BatchFakeGetRepoBlobMixin, TestCase):
+    # test flow.view_flow_page for not covered part by other tests
+
+    def setUp(self):
+        super(ViewFlowPageTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+
+        fake_lock_down_if_needed = mock.patch(
+            "course.flow.lock_down_if_needed")
+        self.mock_lock_down_if_needed = fake_lock_down_if_needed.start()
+        self.addCleanup(fake_lock_down_if_needed.stop)
+
+        fake_create_flow_page_visit = mock.patch(
+            "course.flow.create_flow_page_visit")
+        self.mock_create_flow_page_visit = fake_create_flow_page_visit.start()
+        self.addCleanup(fake_create_flow_page_visit.stop)
+
+    def test_invalid_flow_session_id(self):
+        with mock.patch(
+                "course.flow.adjust_flow_session_page_data") as mock_adjust_data:
+            kwargs = {
+                "course_identifier": self.course.identifier,
+                "flow_session_id": 100,  # invalid
+                "page_ordinal": 0
+            }
+            resp = self.c.get(
+                reverse("relate-view_flow_page", kwargs=kwargs))
+            self.assertEqual(resp.status_code, 404)
+
+            # check should happen before adjust session data
+            self.assertEqual(mock_adjust_data.call_count, 0)
+
+            self.assertEqual(self.mock_create_flow_page_visit.call_count, 0)
+
+    def test_fpctx_page_is_none(self):
+        self.start_flow(self.flow_id)
+        with mock.patch("course.content.get_flow_page_desc") as mock_get_page_desc:
+            from django.core.exceptions import ObjectDoesNotExist
+            mock_get_page_desc.side_effect = ObjectDoesNotExist
+
+            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            self.assertEqual(resp.status_code, 404)
+
+            self.assertEqual(self.mock_create_flow_page_visit.call_count, 0)
+
+    def get_hacked_session_access_rule(self, **kwargs):
+        from course.utils import FlowSessionAccessRule
+        defaults = {
+            "permissions": [],
+        }
+        defaults.update(kwargs)
+        return FlowSessionAccessRule(**defaults)
+
+    def test_may_not_view(self):
+        self.start_flow(self.flow_id)
+        with mock.patch(
+                "course.page.base.PageBase.get_modified_permissions_for_page"
+        ) as mock_perms:
+            mock_perms.return_value = []
+            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            self.assertEqual(resp.status_code, 403)
+            self.assertEqual(mock_perms.call_count, 1)
+
+            self.assertTrue(self.mock_lock_down_if_needed.call_count > 0)
+            self.assertEqual(self.mock_create_flow_page_visit.call_count, 0)
+
+    def test_post_finish(self):
+        self.start_flow(self.flow_id)
+        resp = self.c.post(
+            self.get_page_url_by_ordinal(0), data={"finish": ""})
+        self.assertRedirects(resp, self.get_finish_flow_session_view_url(),
+                             fetch_redirect_response=False)
+        self.assertEqual(self.mock_create_flow_page_visit.call_count, 0)
+
+    def test_post_result_not_tuple(self):
+        self.start_flow(self.flow_id)
+        with mock.patch("course.flow.post_flow_page") as mock_post_flow_page:
+            mock_post_flow_page.return_value = http.HttpResponse("hello world")
+            resp = self.post_answer_by_page_id(
+                "half", answer_data={"answer": "ok"})
+            self.assertEqual(resp.status_code, 200)
+
+    def test_prev_visit_id_after_post(self):
+        self.start_flow(self.flow_id)
+        resp = self.post_answer_by_page_id(
+            "half", answer_data={"answer": "ok"})
+
+        self.assertResponseContextEqual(resp, "prev_visit_id", 1)
+
+        fpvs = models.FlowPageVisit.objects.all()
+        self.assertEqual(fpvs.count(), 1)
+
+        fpv = fpvs[0]
+
+        resp = self.post_answer_by_page_id(
+            "half", answer_data={"answer": "1/2"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextEqual(resp, "prev_visit_id", fpv.id)
+
+    def test_get_prev_visit_id_not_number(self):
+        self.start_flow(self.flow_id)
+        resp = self.c.get(self.get_page_url_by_ordinal(1, visit_id="foo"))
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_prev_visit_id_not_exists(self):
+        # no prev_answer_visits
+        self.start_flow(self.flow_id)
+        resp = self.c.get(self.get_page_url_by_ordinal(1, visit_id=100))
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextEqual(resp, "viewing_prior_version", False)
+
+    def test_get_prev_visit_id_not_exists_with_prev_answer_visit(self):
+        self.start_flow(self.flow_id)
+        page_id = "half"
+        page_data = models.FlowPageData.objects.get(page_id=page_id)
+        factories.FlowPageVisitFactory(
+            page_data=page_data, answer={"answer": "hi"})
+
+        resp = self.c.get(self.get_page_url_by_page_id(page_id, visit_id=100))
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextEqual(resp, "viewing_prior_version", False)
+
+    def switch_to_fake_commit_sha(
+            self, commit_sha="my_fake_commit_sha_for_view_flow_page"):
+        self.course.active_git_commit_sha = commit_sha
+        self.course.save()
+
+    def test_get_prev_visit_id_exists(self):
+        self.switch_to_fake_commit_sha()
+
+        self.start_flow(self.flow_id)
+        page_id = "half"
+        page_data = models.FlowPageData.objects.get(page_id=page_id)
+
+        visit_time = now() - timedelta(days=1)
+
+        visit0 = factories.FlowPageVisitFactory(
+            page_data=page_data, answer=None, visit_time=visit_time)
+
+        visit_time = visit_time + timedelta(hours=1)
+
+        visit1 = factories.FlowPageVisitFactory(
+            page_data=page_data, answer={"answer": "hi"}, visit_time=visit_time)
+
+        visit_time = visit_time + timedelta(hours=1)
+
+        visit2 = factories.FlowPageVisitFactory(
+            page_data=page_data, answer={"answer": "hello"}, visit_time=visit_time)
+
+        with mock.patch("course.flow.messages.add_message") as mock_add_msg:
+            # viewing current visit
+            resp = self.c.get(
+                self.get_page_url_by_page_id(page_id, visit_id=visit2.id))
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "viewing_prior_version", False)
+            self.assertEqual(mock_add_msg.call_count, 0, mock_add_msg.call_args)
+            mock_add_msg.reset_mock()
+
+            # viewing non-answer visit
+            resp = self.c.get(
+                self.get_page_url_by_page_id(page_id, visit_id=visit0.id))
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "viewing_prior_version", False)
+            self.assertEqual(mock_add_msg.call_count, 0, mock_add_msg.call_args)
+            mock_add_msg.reset_mock()
+
+            # viewing previous visit
+            resp = self.c.get(
+                self.get_page_url_by_page_id(page_id, visit_id=visit1.id))
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "viewing_prior_version", True)
+            self.assertEqual(mock_add_msg.call_count, 1)
+            expected_warn_message_partial = "Viewing prior submission dated"
+            self.assertIn(
+                expected_warn_message_partial, mock_add_msg.call_args[0][2])
+
+    def test_see_session_time_not_in_progress(self):
+        completion_time = now() - timedelta(days=1)
+        start_time = completion_time - timedelta(hours=1)
+        self.student_participation.time_factor = 1.11
+        self.student_participation.save()
+
+        fs = factories.FlowSessionFactory(
+            course=self.course,
+            participation=self.student_participation,
+            start_time=start_time,
+            completion_time=completion_time, in_progress=False)
+
+        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        self.assertResponseContextEqual(resp, "session_minutes", None)
+        self.assertResponseContextEqual(resp, "time_factor", 1)
+
+        self.switch_to_fake_commit_sha()
+        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        self.assertResponseContextEqual(resp, "session_minutes", 60)
+        self.assertResponseContextEqual(resp, "time_factor", 1.11)
+
+    def test_see_session_time_in_progress(self):
+        self.switch_to_fake_commit_sha()
+
+        start_time = now() - timedelta(minutes=62)
+
+        fs = factories.FlowSessionFactory(
+            course=self.course,
+            participation=self.student_participation,
+            start_time=start_time,
+            in_progress=True)
+
+        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        self.assertTrue(resp.context["session_minutes"] > 61)
+        self.assertResponseContextEqual(resp, "time_factor", 1)
+
+    def test_warning_for_anonymous_flow_session(self):
+        # switch to a fake flow which allow anonymous to start a flow
+        self.switch_to_fake_commit_sha()
+        self.c.logout()
+        self.start_flow(self.flow_id)
+
+        with mock.patch("course.flow.messages.add_message") as mock_add_msg:
+            resp = self.c.get(self.get_page_url_by_ordinal(1))
+            expected_warn_msg = (
+                "Changes to this session are being prevented "
+                "because this session yields a permanent grade, but "
+                "you have not completed your enrollment process in "
+                "this course.")
+            self.assertIn(expected_warn_msg, mock_add_msg.call_args[0])
+            self.assertResponseContextIsNotNone(resp, "session_minutes")
+            self.assertResponseContextEqual(resp, "time_factor", 1)
+
+    def test_viewing_optional_page(self):
+        self.switch_to_fake_commit_sha()
+        self.start_flow(self.flow_id)
+
+        resp = self.c.get(self.get_page_url_by_page_id("half"))
+        self.assertResponseHasNoContext(resp, "is_optional_page")
+
+        resp = self.c.get(self.get_page_url_by_page_id("half2"))
+        self.assertResponseContextEqual(resp, "is_optional_page", True)
+
+
+@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+class GetPressedButtonTest(unittest.TestCase):
+    def test_success(self):
+        buttons = ["save", "save_and_next", "save_and_finish", "submit"]
+        for button in buttons:
+            with self.subTest(button=button):
+                form = StyledForm(data={button: ""})
+                self.assertEqual(flow.get_pressed_button(form), button)
+
+    def test_failure(self):
+        form = StyledForm(data={"unknown": ""})
+        from django.core.exceptions import SuspiciousOperation
+        with self.assertRaises(SuspiciousOperation) as cm:
+            flow.get_pressed_button(form)
+
+        expected_error_msg = "could not find which button was pressed"
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+
+class PostFlowPageTest(
+        BatchFakeGetRepoBlobMixin, SingleCourseQuizPageTestMixin, TestCase):
+    # test flow.post_flow_page for not covered part by other tests
+    page_id = "half"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(PostFlowPageTest, cls).setUpTestData()
+        cls.c.force_login(cls.student_participation.user)
+        cls.start_flow(cls.flow_id)
+        cls.flow_session = models.FlowSession.objects.first()
+        cls.page_data = models.FlowPageData.objects.get(page_id=cls.page_id)
+        cls.course.active_git_commit_sha = "my_fake_commit_sha_for_view_flow_page"
+        cls.course.save()
+
+    def setUp(self):
+        super(PostFlowPageTest, self).setUp()
+        self.flow_session.refresh_from_db()
+        self.page_data.refresh_from_db()
+        self.fpctx = mock.MagicMock()
+
+        rf = RequestFactory()
+        self.request = rf.get(self.get_course_page_url())
+        self.request.user = self.student_participation.user
+        middleware = SessionMiddleware()
+        middleware.process_request(self.request)
+        self.request.session.save()
+
+        self.fpctx.course = self.course
+        self.fpctx.page_data = self.page_data
+        self.fpctx.page.answer_data.return_value = {"answer": "hello"}
+        self.fpctx.page_ordinal = self.page_data.page_ordinal
+
+        from course.page.base import AnswerFeedback
+        self.fpctx.page.grade.return_value = AnswerFeedback(correctness=1)
+
+        fake_create_flow_page_visit = mock.patch(
+            "course.flow.create_flow_page_visit")
+        self.mock_create_flow_page_visit = fake_create_flow_page_visit.start()
+        self.addCleanup(fake_create_flow_page_visit.stop)
+
+        fake_get_prev_answer_visits_qset = mock.patch(
+            "course.flow.get_prev_answer_visits_qset")
+        self.mock_get_prev_answer_visits_qset = (
+            fake_get_prev_answer_visits_qset.start())
+        self.addCleanup(fake_get_prev_answer_visits_qset.stop)
+
+        fake_get_pressed_button = mock.patch(
+            "course.flow.get_pressed_button")
+        self.mock_get_pressed_button = fake_get_pressed_button.start()
+        self.addCleanup(fake_get_pressed_button.stop)
+
+        fake_add_message = mock.patch("course.flow.messages.add_message")
+        self.mock_add_message = fake_add_message.start()
+        self.addCleanup(fake_add_message.stop)
+
+        fake_will_receive_feedback = mock.patch(
+            "course.flow.will_receive_feedback")
+        self.mock_will_receive_feedback = fake_will_receive_feedback.start()
+        self.addCleanup(fake_will_receive_feedback.stop)
+
+    def test_no_submit_answer_fperm(self):
+        flow.post_flow_page(
+            self.flow_session, self.fpctx, self.request,
+            permissions=frozenset(), generates_grade=True)
+
+        self.assertEqual(
+            self.mock_create_flow_page_visit.call_count, 1)
+        self.assertEqual(self.mock_add_message.call_count, 2)
+        msgs = ["Answer submission not allowed.",
+                "Failed to submit answer."]
+
+        used = []
+        for calls in self.mock_add_message.call_args_list:
+            args, _ = calls
+            for msg in msgs:
+                if msg in args:
+                    used.append(msg)
+
+        for msg in msgs:
+            if msg not in used:
+                self.fail("%s is unexpectedly not used in adding message")
+
+    def test_impersonated(self):
+        setattr(self.request, "relate_impersonate_original_user",
+                self.instructor_participation.user)
+        self.mock_get_pressed_button.return_value = "save"
+        flow.post_flow_page(
+            self.flow_session, self.fpctx, self.request,
+            permissions=frozenset([fperm.submit_answer, fperm.change_answer]),
+            generates_grade=True)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn("Answer saved.",
+                      self.mock_add_message.call_args[0])
+
+        self.assertEqual(
+            self.mock_create_flow_page_visit.call_count, 0)
+
+        latest_answer_visit = models.FlowPageVisit.objects.last()
+        self.assertEqual(latest_answer_visit.impersonated_by,
+                         self.instructor_participation.user)
+
+    def test_save_and_next(self):
+        self.mock_get_pressed_button.return_value = "save_and_next"
+        self.mock_will_receive_feedback.return_value = False
+        resp = flow.post_flow_page(
+            self.flow_session, self.fpctx, self.request,
+            permissions=frozenset([fperm.submit_answer, fperm.change_answer]),
+            generates_grade=True)
+
+        self.assertIsInstance(resp, http.HttpResponse)
+
+        next_page_ordinal = self.page_data.page_ordinal + 1
+
+        self.assertRedirects(
+            resp, self.get_page_url_by_ordinal(next_page_ordinal),
+            fetch_redirect_response=False)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn("Answer saved.",
+                      self.mock_add_message.call_args[0])
+
+        self.assertEqual(
+            self.mock_create_flow_page_visit.call_count, 0)
+
+        latest_answer_visit = models.FlowPageVisit.objects.last()
+        self.assertIsNone(latest_answer_visit.impersonated_by)
+
+    def test_save_and_finish(self):
+        self.mock_get_pressed_button.return_value = "save_and_finish"
+        self.mock_will_receive_feedback.return_value = False
+        resp = flow.post_flow_page(
+            self.flow_session, self.fpctx, self.request,
+            permissions=frozenset([fperm.submit_answer, fperm.change_answer]),
+            generates_grade=True)
+
+        self.assertRedirects(
+            resp, self.get_finish_flow_session_view_url(),
+            fetch_redirect_response=False)
+
+        self.assertIsInstance(resp, http.HttpResponse)
+        self.assertEqual(resp.status_code, 302)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn("Answer saved.",
+                      self.mock_add_message.call_args[0])
+
+        self.assertEqual(
+            self.mock_create_flow_page_visit.call_count, 0)
+
+
+class SendEmailAboutFlowPageTest(
+        BatchFakeGetRepoBlobMixin, SingleCourseQuizPageTestMixin, TestCase):
+    # test flow.send_email_about_flow_page
+    page_id = "half"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(SendEmailAboutFlowPageTest, cls).setUpTestData()
+        cls.course.active_git_commit_sha = "my_fake_commit_sha_for_view_flow_page"
+        cls.course.save()
+
+    def setUp(self):
+        super(SendEmailAboutFlowPageTest, self).setUp()
+
+        self.c.force_login(self.student_participation.user)
+        self.start_flow(self.flow_id)
+        self.flow_session = models.FlowSession.objects.first()
+        self.page_data = models.FlowPageData.objects.get(page_id=self.page_id)
+
+        fake_get_session_access_rule = mock.patch(
+            "course.flow.get_session_access_rule")
+        self.mock_get_session_access_rule = fake_get_session_access_rule.start()
+        self.addCleanup(fake_get_session_access_rule.stop)
+
+        fake_adjust_flow_session_page_data = mock.patch(
+            "course.flow.adjust_flow_session_page_data")
+        self.mock_adjust_flow_session_page_data = (
+            fake_adjust_flow_session_page_data.start())
+        self.mock_adjust_flow_session_page_data.return_value = None
+        self.addCleanup(fake_adjust_flow_session_page_data.stop)
+
+        fake_get_login_exam_ticket = mock.patch("course.flow.get_login_exam_ticket")
+        self.mock_get_login_exam_ticket = fake_get_login_exam_ticket.start()
+        self.addCleanup(fake_get_login_exam_ticket.stop)
+
+        fake_get_modified_permissions_for_page = mock.patch(
+            "course.page.base.PageBase.get_modified_permissions_for_page")
+        self.mock_get_modified_permissions_for_page = (
+            fake_get_modified_permissions_for_page.start()
+        )
+        self.mock_get_modified_permissions_for_page.return_value = [
+            fperm.view, fperm.send_email_about_flow_page]
+        self.addCleanup(fake_get_modified_permissions_for_page.stop)
+
+        fake_get_and_check_flow_session = mock.patch(
+            "course.flow.get_and_check_flow_session")
+        self.mock_get_and_check_flow_session = (
+            fake_get_and_check_flow_session.start())
+        self.mock_get_and_check_flow_session.return_value = self.flow_session
+        self.addCleanup(fake_get_and_check_flow_session.stop)
+
+        fake_add_message = mock.patch("course.flow.messages.add_message")
+        self.mock_add_message = fake_add_message.start()
+        self.addCleanup(fake_add_message.stop)
+
+        fake_will_use_masked_profile_for_email = mock.patch(
+            "course.utils.will_use_masked_profile_for_email")
+        self.mock_will_use_masked_profile_for_email = (
+            fake_will_use_masked_profile_for_email.start())
+        self.mock_will_use_masked_profile_for_email.return_value = False
+        self.addCleanup(fake_will_use_masked_profile_for_email.stop)
+
+    def get_send_email_about_flow_page_url(
+            self, page_ordinal, course_identifier=None,
+            flow_session_id=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        flow_session_id = (flow_session_id
+                           or self.get_default_flow_session_id(course_identifier))
+        return reverse(
+            "relate-flow_page_interaction_email",
+            kwargs={"course_identifier": course_identifier,
+                    "flow_session_id": flow_session_id,
+                    "page_ordinal": page_ordinal})
+
+    def test_404(self):
+        with mock.patch("course.content.get_flow_page_desc") as mock_get_page_desc:
+            from django.core.exceptions import ObjectDoesNotExist
+            mock_get_page_desc.side_effect = ObjectDoesNotExist
+            resp = self.c.get(
+                self.get_send_email_about_flow_page_url(page_ordinal=1))
+            self.assertEqual(resp.status_code, 404)
+
+            self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
+            self.assertEqual(self.mock_get_login_exam_ticket.call_count, 0)
+
+    def test_no_permission_404(self):
+        self.mock_get_modified_permissions_for_page.return_value = [fperm.view]
+
+        resp = self.c.get(
+            self.get_send_email_about_flow_page_url(page_ordinal=1))
+        self.assertEqual(resp.status_code, 404)
+
+        self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
+        self.assertEqual(self.mock_get_login_exam_ticket.call_count, 1)
+        self.assertEqual(self.mock_get_session_access_rule.call_count, 1)
+        self.assertEqual(self.mock_get_modified_permissions_for_page.call_count, 1)
+
+    def test_get(self):
+        resp = self.c.get(
+            self.get_send_email_about_flow_page_url(page_ordinal=1))
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
+        self.assertEqual(self.mock_get_login_exam_ticket.call_count, 1)
+        self.assertEqual(self.mock_get_session_access_rule.call_count, 1)
+        self.assertEqual(self.mock_get_modified_permissions_for_page.call_count, 1)
+
+    def test_post(self):
+        resp = self.c.post(
+            self.get_send_email_about_flow_page_url(page_ordinal=1),
+            data={"message": "foo bar" * 10}
+        )
+        self.assertRedirects(resp, self.get_page_url_by_ordinal(1),
+                             fetch_redirect_response=False)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        expected_msg = ("Email sent, and notice that you will "
+                        "also receive a copy of the email.")
+        self.assertIn(expected_msg, self.mock_add_message.call_args[0])
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            mail.outbox[0].recipients(),
+            [self.ta_participation.user.email,
+             self.student_participation.user.email])
+        self.assertEqual(
+            mail.outbox[0].reply_to, [self.student_participation.user.email])
+        self.assertEqual(
+            mail.outbox[0].bcc, [self.student_participation.user.email])
+
+    def test_post_too_few_words(self):
+        resp = self.c.post(
+            self.get_send_email_about_flow_page_url(page_ordinal=1),
+            data={"message": "foo bar"}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertFormErrorLoose(
+            resp, "At least 20 characters are required for submission.")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_tas(self):
+        self.ta_participation.status = constants.participation_status.dropped
+        self.ta_participation.save()
+
+        resp = self.c.post(
+            self.get_send_email_about_flow_page_url(page_ordinal=1),
+            data={"message": "foo bar" * 10}
+        )
+        self.assertRedirects(resp, self.get_page_url_by_ordinal(1),
+                             fetch_redirect_response=False)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        expected_msg = ("Email sent, and notice that you will "
+                        "also receive a copy of the email.")
+        self.assertIn(expected_msg, self.mock_add_message.call_args[0])
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            mail.outbox[0].recipients(),
+            [self.instructor_participation.user.email,
+             self.student_participation.user.email])
+        self.assertEqual(
+            mail.outbox[0].reply_to, [self.student_participation.user.email])
+        self.assertEqual(
+            mail.outbox[0].bcc, [self.student_participation.user.email])
+
+        self.assertIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            "Dear user",
+            mail.outbox[0].body)
+
+    def test_mask_student_profile(self):
+        self.mock_will_use_masked_profile_for_email.return_value = True
+
+        resp = self.c.post(
+            self.get_send_email_about_flow_page_url(page_ordinal=1),
+            data={"message": "foo bar" * 10}
+        )
+        self.assertRedirects(resp, self.get_page_url_by_ordinal(1),
+                             fetch_redirect_response=False)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        expected_msg = ("Email sent, and notice that you will "
+                        "also receive a copy of the email.")
+        self.assertIn(expected_msg, self.mock_add_message.call_args[0])
+
+        self.assertEqual(len(mail.outbox), 1)
+
+        self.assertNotIn(
+            self.student_participation.user.get_email_appellation(),
+            mail.outbox[0].body)
+        self.assertIn(
+            self.student_participation.user.get_masked_profile(),
+            mail.outbox[0].body)
+
+
+class UpdatePageBookmarkStateTest(SingleCourseQuizPageTestMixin, TestCase):
+    # test flow.update_page_bookmark_state
+
+    def setUp(self):
+        super(UpdatePageBookmarkStateTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+        self.start_flow(self.flow_id)
+        self.flow_session = models.FlowSession.objects.last()
+
+    def get_update_page_bookmark_state_url(
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        flow_session_id = (flow_session_id
+                           or self.get_default_flow_session_id(course_identifier))
+        return reverse(
+            "relate-update_page_bookmark_state",
+            kwargs={"course_identifier": course_identifier,
+                    "flow_session_id": flow_session_id,
+                    "page_ordinal": page_ordinal})
+
+    def test_not_post(self):
+        resp = self.c.get(self.get_update_page_bookmark_state_url(1))
+        self.assertEqual(resp.status_code, 400)
+        fpd = models.FlowPageData.objects.get(
+            flow_session=self.flow_session, page_ordinal=1)
+        self.assertEqual(fpd.bookmarked, False)
+
+    def test_invalid_flow_session_id(self):
+        resp = self.c.post(
+            self.get_update_page_bookmark_state_url(1, flow_session_id=100),
+            data={"bookmark_state": "1"})
+        self.assertEqual(resp.status_code, 404)
+        fpd = models.FlowPageData.objects.get(
+            flow_session=self.flow_session, page_ordinal=1)
+        self.assertEqual(fpd.bookmarked, False)
+
+    def test_success(self):
+        resp = self.c.post(
+            self.get_update_page_bookmark_state_url(1),
+            data={"bookmark_state": "1"})
+        self.assertEqual(resp.status_code, 200)
+        fpd = models.FlowPageData.objects.get(
+            flow_session=self.flow_session, page_ordinal=1)
+        self.assertEqual(fpd.bookmarked, True)
+
+    def test_post_invalid_bookmark_state(self):
+        resp = self.c.post(
+            self.get_update_page_bookmark_state_url(1),
+            data={"bookmark_state": "a"})
+        self.assertEqual(resp.status_code, 400)
+        fpd = models.FlowPageData.objects.get(
+            flow_session=self.flow_session, page_ordinal=1)
+        self.assertEqual(fpd.bookmarked, False)
+
+    def test_not_you_session(self):
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            resp = self.c.post(
+                self.get_update_page_bookmark_state_url(1),
+                data={"bookmark_state": "1"})
+            self.assertEqual(resp.status_code, 403)
+            fpd = models.FlowPageData.objects.get(
+                flow_session=self.flow_session, page_ordinal=1)
+            self.assertEqual(fpd.bookmarked, False)
+
+
+class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
+    # test flow.update_expiration_mode
+
+    def setUp(self):
+        super(UpdateExpirationModeTest, self).setUp()
+        self.c.force_login(self.student_participation.user)
+        self.start_flow(self.flow_id)
+        self.flow_session = models.FlowSession.objects.last()
+
+        fake_get_login_exam_ticket = mock.patch("course.flow.get_login_exam_ticket")
+        self.mock_get_login_exam_ticket = fake_get_login_exam_ticket.start()
+        self.addCleanup(fake_get_login_exam_ticket.stop)
+
+        fake_is_expiration_mode_allowed = mock.patch(
+            "course.flow.is_expiration_mode_allowed")
+        self.mock_is_expiration_mode_allowed = (
+            fake_is_expiration_mode_allowed.start())
+        self.mock_is_expiration_mode_allowed.return_value = True
+        self.addCleanup(fake_is_expiration_mode_allowed.stop)
+
+    def get_relate_update_expiration_mode_url(
+            self, course_identifier=None, flow_session_id=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        flow_session_id = (flow_session_id
+                           or self.get_default_flow_session_id(course_identifier))
+        return reverse(
+            "relate-update_expiration_mode",
+            kwargs={"course_identifier": course_identifier,
+                    "flow_session_id": flow_session_id})
+
+    def test_not_post(self):
+        resp = self.c.get(self.get_relate_update_expiration_mode_url())
+        self.assertEqual(resp.status_code, 400)
+        fs = models.FlowSession.objects.last()
+        self.assertEqual(fs.expiration_mode,
+                         constants.flow_session_expiration_mode.end)
+
+    def test_invalid_flow_session_id(self):
+        resp = self.c.post(
+            self.get_relate_update_expiration_mode_url(flow_session_id=100),
+            data={"expiration_mode":
+                      constants.flow_session_expiration_mode.roll_over})
+        self.assertEqual(resp.status_code, 404)
+        fs = models.FlowSession.objects.last()
+        self.assertEqual(fs.expiration_mode,
+                         constants.flow_session_expiration_mode.end)
+
+    def test_session_not_in_progress(self):
+        self.flow_session.in_progress = False
+        self.flow_session.save()
+        resp = self.c.post(
+            self.get_relate_update_expiration_mode_url(),
+            data={"expiration_mode":
+                      constants.flow_session_expiration_mode.roll_over})
+        self.assertEqual(resp.status_code, 403)
+        fs = models.FlowSession.objects.last()
+        self.assertEqual(fs.expiration_mode,
+                         constants.flow_session_expiration_mode.end)
+
+    def test_success(self):
+        resp = self.c.post(
+            self.get_relate_update_expiration_mode_url(),
+            data={"expiration_mode":
+                      constants.flow_session_expiration_mode.roll_over})
+        self.assertEqual(resp.status_code, 200)
+        fs = models.FlowSession.objects.last()
+        self.assertEqual(fs.expiration_mode,
+                         constants.flow_session_expiration_mode.roll_over)
+
+    def test_not_is_expiration_mode_allowed(self):
+        self.mock_is_expiration_mode_allowed.return_value = False
+        resp = self.c.post(
+            self.get_relate_update_expiration_mode_url(),
+            data={"expiration_mode":
+                      constants.flow_session_expiration_mode.roll_over})
+        self.assertEqual(resp.status_code, 403)
+        fs = models.FlowSession.objects.last()
+        self.assertEqual(fs.expiration_mode,
+                         constants.flow_session_expiration_mode.end)
+
+    def test_post_invalid_bookmark_state(self):
+        resp = self.c.post(
+            self.get_relate_update_expiration_mode_url(),
+            data={"expiration_mode": "unknown"})
+        self.assertEqual(resp.status_code, 400)
+        fs = models.FlowSession.objects.last()
+        self.assertEqual(fs.expiration_mode,
+                         constants.flow_session_expiration_mode.end)
+
+    def test_not_you_session(self):
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            resp = self.c.post(
+                self.get_relate_update_expiration_mode_url(),
+                data={"expiration_mode":
+                          constants.flow_session_expiration_mode.roll_over})
+            self.assertEqual(resp.status_code, 403)
+            fs = models.FlowSession.objects.last()
+            self.assertEqual(fs.expiration_mode,
+                             constants.flow_session_expiration_mode.end)
 
 # vim: foldmethod=marker
