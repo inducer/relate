@@ -1046,18 +1046,17 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return resp
 
     @classmethod
-    def end_flow(cls, course_identifier=None, flow_session_id=None):
-        params = {}
+    def end_flow(cls, course_identifier=None, flow_session_id=None,
+                 post_parameter="submit"):
         if not course_identifier or not flow_session_id:
             if cls.default_flow_params is None:
-                raise RuntimeError("There's no started flow_sessions.")
-            params = deepcopy(cls.default_flow_params)
-        if course_identifier:
-            params["course_identifier"] = course_identifier
-        if flow_session_id:
-            params["flow_session_id"] = flow_session_id
-        resp = cls.c.post(reverse("relate-finish_flow_session_view",
-                                  kwargs=params), {'submit': ['']})
+                raise RuntimeError(
+                    "There's no started flow_sessions, or "
+                    "the session is not started by start_flow")
+        resp = cls.c.post(
+            cls.get_finish_flow_session_view_url(
+                course_identifier, flow_session_id),
+            data={post_parameter: ['']})
         return resp
 
     @classmethod

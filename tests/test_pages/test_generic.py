@@ -189,7 +189,6 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=1)
 
         self.assertEqual(self.end_flow().status_code, 200)
-        self.end_flow()
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_proportion_rule_partial(self):
@@ -385,7 +384,6 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
         # Make sure the page is rendered with 0 max_points
         self.assertResponseContextEqual(submit_answer_response, "max_points", 0)
-        self.end_flow()
 
         # The answer is wrong, there should also be zero score.
         self.assertSessionScoreEqual(0)

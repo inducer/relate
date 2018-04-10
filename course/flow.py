@@ -494,7 +494,7 @@ def get_prev_answer_visits_qset(page_data):
 
 
 def get_first_from_qset(qset):
-    # type: (Sequence) -> Optional[Any]
+    # type: (query.QuerySet) -> Optional[Any]
     for item in qset[:1]:
         return item
 
@@ -2506,7 +2506,7 @@ def update_page_bookmark_state(pctx, flow_session_id, page_ordinal):
 
 @course_view
 def update_expiration_mode(pctx, flow_session_id):
-    # type: (CoursePageContext, int) -> http.HttpRequest
+    # type: (CoursePageContext, int) -> http.HttpResponse
 
     if pctx.request.method != "POST":
         raise SuspiciousOperation(_("only POST allowed"))
@@ -2626,10 +2626,14 @@ def finish_flow_session_view(pctx, flow_session_id):
 
         if (hasattr(fctx.flow_desc, "notify_on_submit")
                 and fctx.flow_desc.notify_on_submit):
-            from course.utils import will_use_masked_profile_for_email
             staff_email = (
                 fctx.flow_desc.notify_on_submit + [fctx.course.notify_email])
+
+            from course.utils import will_use_masked_profile_for_email
             use_masked_profile = will_use_masked_profile_for_email(staff_email)
+
+            if flow_session.participation is None or flow_session.user is None:
+                use_masked_profile = False
 
             if (grading_rule.grade_identifier
                     and flow_session.participation is not None):
@@ -2847,40 +2851,22 @@ class UnsubmitFlowPageForm(forms.Form):
 def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
     # type: (CoursePageContext, int, int) -> http.HttpResponse
 
+    if pctx.participation is None:
+        raise PermissionDenied()
+
+    if not pctx.has_permission(pperm.reopen_flow_session):
+        raise PermissionDenied()
+
     request = pctx.request
     now_datetime = get_now_or_fake_time(request)
 
     page_ordinal = int(page_ordinal)
-
     flow_session_id = int(flow_session_id)
-    try:
-        flow_session = (FlowSession.objects
-                .select_related("participation")
-                .get(id=flow_session_id))
-    except ObjectDoesNotExist:
-        raise http.Http404()
 
-    if flow_session.course.pk != pctx.course.pk:
-        raise http.Http404()
+    flow_session = get_and_check_flow_session(pctx, flow_session_id)
 
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             respect_preview=True)
-
-    # {{{ permission checking
-
-    if flow_session is None:
-        raise SuspiciousOperation("no flow session found")
-
-    if pctx.participation is None:
-        raise http.Http403()
-
-    if flow_session.course.pk != pctx.participation.course.pk:
-        raise http.Http403()
-
-    if not pctx.has_permission(pperm.reopen_flow_session):
-        raise http.Http403()
-
-    # }}}
 
     page_data = get_object_or_404(
             FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
