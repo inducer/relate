@@ -77,8 +77,8 @@ COMMIT_SHA_MAP = {
             "path": "fake-quiz-test-for-grade2.yml",
             "page_ids": ["krylov", "quarter"]}},
 
-        {"my_fake_commit_sha_for_gradesinfo": {
-            "path": "fake-quiz-test-for-gradeinfo.yml",
+        {"my_fake_commit_sha_for_finish_flow_session": {
+            "path": "fake-quiz-test-for-finish_flow_session.yml",
             "page_ids": ["half", "krylov", "matrix_props", "age_group",
                          "anyup", "proof", "neumann"]
         }},
@@ -93,9 +93,6 @@ COMMIT_SHA_MAP = {
             "path": "fake-quiz-test-for-view_flow_page.yml",
             "page_ids": ["anyup"]}},
     ],
-
-    "flow/%s.yml" % "001-linalg-recap":
-        [{"my_fake_commit_sha_3": {"path": "fake-001-linalg-recap.yml"}}]
 }
 
 
@@ -116,9 +113,9 @@ def flow_page_data_save_side_effect(self, *args, **kwargs):
         raise RuntimeError("this error should not have been raised!")
 
 
-class BatchFakeGetRepoBlobMixin(object):
+class HackRepoMixin(object):
     def setUp(self):
-        super(BatchFakeGetRepoBlobMixin, self).setUp()
+        super(HackRepoMixin, self).setUp()
         batch_fake_get_repo_blob = mock.patch(
             "course.content.get_repo_blob")
         self.batch_mock_get_repo_blob = batch_fake_get_repo_blob.start()
@@ -161,9 +158,38 @@ class BatchFakeGetRepoBlobMixin(object):
         if not_match_infos:
             self.fail("\n".join(not_match_infos))
 
+    def get_hacked_flow_desc(self, user=None, flow_id=None, commit_sha=None,
+                             **kwargs):
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        if user is None:
+            user = self.student_participation.user
+        request.user = user
+
+        if flow_id is None:
+            flow_id = QUIZ_FLOW_ID
+
+        if commit_sha is None:
+            commit_sha = self.course.active_git_commit_sha
+
+        if isinstance(commit_sha, six.text_type):
+            commit_sha = commit_sha.encode()
+
+        from course.utils import CoursePageContext
+        pctx = CoursePageContext(request, self.course.identifier)
+        from course.content import get_flow_desc
+        flow_desc = get_flow_desc(
+            pctx.repo, pctx.course, flow_id, commit_sha)
+
+        from relate.utils import struct_to_dict
+        flow_desc_dict = struct_to_dict(flow_desc)
+
+        flow_desc_dict.update(kwargs)
+        return dict_to_struct(flow_desc_dict)
+
 
 class AdjustFlowSessionPageDataTest(
-        BatchFakeGetRepoBlobMixin, SingleCourseQuizPageTestMixin, TestCase):
+        HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
     # test flow.adjust_flow_session_page_data
 
     def setUp(self):
@@ -238,7 +264,7 @@ class AdjustFlowSessionPageDataTest(
         for page_id in page_ids_removed_in_2nd:
             self.assertIsNotNone(
                 models.FlowPageData.objects.get(page_id=page_id).page_ordinal)
-        # }}}
+            # }}}
 
     def test_remove_page_with_non_ordinal(self):
         self.course.active_git_commit_sha = "my_fake_commit_sha_1"
@@ -473,7 +499,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         self.assertEqual(self.mock_get_flow_grading_opportunity.call_count, 0)
 
 
-class AssemblePageGradesTest(BatchFakeGetRepoBlobMixin,
+class AssemblePageGradesTest(HackRepoMixin,
                              SingleCourseQuizPageTestMixin, TestCase):
     # This is actually test course.flow.assemble_page_grades
 
@@ -1032,21 +1058,32 @@ class GradeInfoTest(unittest.TestCase):
             99 < g_info.unreachable_points_percent() < 100)
 
 
-class FinishFlowSessionViewTest(BatchFakeGetRepoBlobMixin,
+class FinishFlowSessionViewTest(HackRepoMixin,
                                 SingleCourseQuizPageTestMixin, TestCase):
-
-    # test flow.finish_flow_session
+    # test flow.finish_flow_session_view
 
     @classmethod
     def setUpTestData(cls):  # noqa
         super(FinishFlowSessionViewTest, cls).setUpTestData()
-        cls.course.active_git_commit_sha = "my_fake_commit_sha_for_gradesinfo"
+        cls.course.active_git_commit_sha = (
+            "my_fake_commit_sha_for_finish_flow_session")
         cls.course.save()
         cls.student = cls.student_participation.user
 
     def setUp(self):
         super(FinishFlowSessionViewTest, self).setUp()
         self.c.force_login(self.student)
+
+        fake_add_message = mock.patch("course.flow.messages.add_message")
+        self.mock_add_message = fake_add_message.start()
+        self.addCleanup(fake_add_message.stop)
+
+        fake_will_use_masked_profile_for_email = mock.patch(
+            "course.utils.will_use_masked_profile_for_email")
+        self.mock_will_use_masked_profile_for_email = (
+            fake_will_use_masked_profile_for_email.start())
+        self.mock_will_use_masked_profile_for_email.return_value = False
+        self.addCleanup(fake_will_use_masked_profile_for_email.stop)
 
     def test_submit_all_correct(self):
         # with human graded questions not graded
@@ -1371,6 +1408,254 @@ class FinishFlowSessionViewTest(BatchFakeGetRepoBlobMixin,
                 "unknown_count": 0
             }
             self.assertGradeInfoEqual(resp, expected_grade_info_dict)
+
+    def get_hacked_session_access_rule(self, **kwargs):
+        from course.utils import FlowSessionAccessRule
+        defaults = {
+            "permissions": [fperm.view, fperm.end_session],
+        }
+        defaults.update(kwargs)
+        return FlowSessionAccessRule(**defaults)
+
+    def test_no_view_fperm(self):
+        self.start_flow(self.flow_id)
+        with mock.patch(
+                "course.flow.get_session_access_rule") as mock_get_arule:
+            mock_get_arule.return_value = (
+                self.get_hacked_session_access_rule(
+                    permissions=[fperm.end_session]))
+
+            # fail for get
+            resp = self.c.get(self.get_finish_flow_session_view_url())
+            self.assertEqual(resp.status_code, 403)
+
+            # fail for post
+            resp = self.end_flow()
+            self.assertEqual(resp.status_code, 403)
+
+    def test_no_end_session_fperm(self):
+        self.start_flow(self.flow_id)
+        with mock.patch(
+                "course.flow.get_session_access_rule") as mock_get_arule:
+            mock_get_arule.return_value = (
+                self.get_hacked_session_access_rule(
+                    permissions=[fperm.view]))
+
+            resp = self.end_flow()
+            self.assertEqual(resp.status_code, 403)
+
+    def test_odd_post_parameter(self):
+        self.start_flow(self.flow_id)
+        resp = self.end_flow(post_parameter="unknown")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_finish_non_in_progress_session(self):
+        fs = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation,
+            in_progress=False
+        )
+        # re-submit finish flow
+        resp = self.end_flow(
+            course_identifier=self.course.identifier,
+            flow_session_id=fs.pk)
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            "Cannot end a session that's already ended",
+            self.mock_add_message.call_args[0])
+
+    def test_notify_on_submit_emtpy(self):
+        with mock.patch("course.utils.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = (
+                self.get_hacked_flow_desc(
+                    # no recepient
+                    notify_on_submit=[])
+            )
+            self.start_flow(self.flow_id)
+            self.end_flow()
+
+            self.assertEqual(len(mail.outbox), 0)
+
+    def test_notify_on_submit_no_grade_identifier(self):
+        with mock.patch(
+                "course.flow.get_session_grading_rule") as mock_get_grule:
+            mock_get_grule.return_value = \
+                self.get_hacked_session_grading_rule(grade_identifier=None)
+            notify_on_submit_emails = ["test_notif@example.com"]
+            with mock.patch("course.utils.get_flow_desc") as mock_get_flow_desc:
+                mock_get_flow_desc.return_value = (
+                    self.get_hacked_flow_desc(
+                        notify_on_submit=notify_on_submit_emails)
+                )
+                self.start_flow(self.flow_id)
+
+                fs = models.FlowSession.objects.first()
+                fs.participation = None
+                fs.user = None
+                fs.save()
+
+                self.end_flow()
+
+            self.assertEqual(len(mail.outbox), 1)
+            expected_review_uri = reverse("relate-view_flow_page",
+                                          args=(
+                                              self.course.identifier,
+                                              fs.id, 0))
+
+            self.assertIn(
+                expected_review_uri,
+                mail.outbox[0].body)
+
+    def test_notify_on_submit_no_participation(self):
+        notify_on_submit_emails = ["test_notif@example.com"]
+        with mock.patch("course.utils.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = (
+                self.get_hacked_flow_desc(
+                    notify_on_submit=notify_on_submit_emails)
+            )
+            self.start_flow(self.flow_id)
+
+            fs = models.FlowSession.objects.first()
+            fs.participation = None
+            fs.user = None
+            fs.save()
+
+            self.end_flow()
+
+        self.assertEqual(len(mail.outbox), 1)
+        expected_review_uri = reverse("relate-view_flow_page",
+                                      args=(
+                                          self.course.identifier,
+                                          fs.id, 0))
+
+        self.assertIn(
+            expected_review_uri,
+            mail.outbox[0].body)
+
+    def test_notify_on_submit(self):
+        notify_on_submit_emails = ["test_notif@example.com"]
+        with mock.patch("course.utils.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = (
+                self.get_hacked_flow_desc(
+                    notify_on_submit=notify_on_submit_emails)
+            )
+            self.start_flow(self.flow_id)
+            self.end_flow()
+
+        gopp = models.GradingOpportunity.objects.first()
+
+        expected_review_uri = reverse("relate-view_single_grade",
+                                      args=(
+                                          self.course.identifier,
+                                          self.student_participation.pk,
+                                          gopp.pk
+                                      ))
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            mail.outbox[0].recipients(),
+            notify_on_submit_emails + [self.course.notify_email])
+
+        self.assertIn(
+            self.student_participation.user.username,
+            mail.outbox[0].body)
+        self.assertIn(
+            expected_review_uri,
+            mail.outbox[0].body)
+        self.assertIn(
+            self.student_participation.user.username,
+            mail.outbox[0].subject)
+
+    def test_notify_on_submit_use_masked_profile(self):
+        self.mock_will_use_masked_profile_for_email.return_value = True
+        notify_on_submit_emails = [
+            "test_notif@example.com", self.ta_participation.user.email]
+        with mock.patch("course.utils.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = (
+                self.get_hacked_flow_desc(
+                    notify_on_submit=notify_on_submit_emails)
+            )
+            self.start_flow(self.flow_id)
+            self.end_flow()
+
+        gopp = models.GradingOpportunity.objects.first()
+        expected_review_uri = reverse("relate-view_single_grade",
+                                      args=(
+                                          self.course.identifier,
+                                          self.student_participation.pk,
+                                          gopp.pk
+                                      ))
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(
+            expected_review_uri,
+            mail.outbox[0].body)
+
+        self.assertNotIn(
+            self.student_participation.user.username,
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.username,
+            mail.outbox[0].subject)
+
+        self.assertNotIn(
+            self.student_participation.user.get_full_name(),
+            mail.outbox[0].body)
+        self.assertNotIn(
+            self.student_participation.user.get_full_name(),
+            mail.outbox[0].subject)
+
+    def test_get_finish_non_interactive_flow(self):
+        resp = self.start_flow(flow_id="001-linalg-recap")
+        self.assertEqual(resp.status_code, 302)
+        resp = self.c.get(self.get_finish_flow_session_view_url())
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, "course/flow-completion.html")
+
+    def test_get_finish_interactive_flow_with_unfinished_pages(self):
+        self.start_flow(flow_id=self.flow_id)
+        resp = self.c.get(self.get_finish_flow_session_view_url())
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, "course/flow-confirm-completion.html")
+        self.assertResponseHasNoContext(resp, "grade_info")
+        self.assertResponseContextEqual(resp, "answered_count", 3)
+
+    def test_post_finish_non_interactive_flow(self):
+        with mock.patch(
+                "course.flow.get_session_access_rule") as mock_get_arule:
+            # This has to be done, or we won't be able to end the flow session,
+            # though the session doesn't need to be ended.
+            mock_get_arule.return_value = (
+                self.get_hacked_session_access_rule(
+                    permissions=[fperm.view, fperm.end_session]))
+            resp = self.start_flow(flow_id="001-linalg-recap")
+            self.assertEqual(resp.status_code, 302)
+            resp = self.end_flow()
+            self.assertEqual(resp.status_code, 200)
+            self.assertTemplateUsed(resp, "course/flow-completion.html")
+
+    def test_post_finish_with_cannot_see_flow_result_access_rule(self):
+        with mock.patch(
+                "course.flow.get_session_access_rule") as mock_get_arule:
+            # This has to be done, or we won't be able to end the flow session,
+            # though the session doesn't need to be ended.
+            mock_get_arule.return_value = (
+                self.get_hacked_session_access_rule(
+                    permissions=[
+                        fperm.view, fperm.end_session,
+                        fperm.cannot_see_flow_result]))
+            resp = self.start_flow(self.flow_id)
+            self.assertEqual(resp.status_code, 302)
+            resp = self.end_flow()
+            self.assertEqual(resp.status_code, 200)
+            self.assertTemplateUsed(resp, "course/flow-completion-grade.html")
+            self.assertResponseContextIsNone(resp, "grade_info")
+
+            # Then we get the finish page
+            resp = self.c.get(self.get_finish_flow_session_view_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertTemplateUsed(resp, "course/flow-completion-grade.html")
+            self.assertResponseContextIsNone(resp, "grade_info")
 
 
 class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
@@ -1786,7 +2071,7 @@ class GetFlowSessionAttemptIdTest(unittest.TestCase):
 
 
 class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
-                           BatchFakeGetRepoBlobMixin, TestCase):
+                           HackRepoMixin, TestCase):
     # test flow.grade_flow_session
 
     def setUp(self):
@@ -4052,7 +4337,7 @@ class CreateFlowPageVisitTest(SingleCourseTestMixin, TestCase):
 
 
 class ViewFlowPageTest(
-        SingleCourseQuizPageTestMixin, BatchFakeGetRepoBlobMixin, TestCase):
+        SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
     # test flow.view_flow_page for not covered part by other tests
 
     def setUp(self):
@@ -4312,7 +4597,7 @@ class GetPressedButtonTest(unittest.TestCase):
 
 
 class PostFlowPageTest(
-        BatchFakeGetRepoBlobMixin, SingleCourseQuizPageTestMixin, TestCase):
+        HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
     # test flow.post_flow_page for not covered part by other tests
     page_id = "half"
 
@@ -4464,7 +4749,7 @@ class PostFlowPageTest(
 
 
 class SendEmailAboutFlowPageTest(
-        BatchFakeGetRepoBlobMixin, SingleCourseQuizPageTestMixin, TestCase):
+        HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
     # test flow.send_email_about_flow_page
     page_id = "half"
 
@@ -4828,5 +5113,265 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
             fs = models.FlowSession.objects.last()
             self.assertEqual(fs.expiration_mode,
                              constants.flow_session_expiration_mode.end)
+
+
+class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
+    # test flow.regrade_flows_view
+
+    def setUp(self):
+        super(RegradeFlowsViewTest, self).setUp()
+        self.c.force_login(self.instructor_participation.user)
+
+        fake_regrade_task = mock.patch(
+                "course.tasks.regrade_flow_sessions.delay")
+        self.mock_regrade_task = fake_regrade_task.start()
+        self.addCleanup(fake_regrade_task.stop)
+
+        fake_redirect = mock.patch("course.flow.redirect")
+        self.mock_redirect = fake_redirect.start()
+        self.addCleanup(fake_redirect.stop)
+
+    def get_regrade_flows_view_url(self, course_identfier=None):
+        course_identfier = course_identfier or self.get_default_course_identifier()
+        return reverse("relate-regrade_flows_view", args=(course_identfier,))
+
+    def test_no_pperm(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.get_regrade_flows_view_url())
+            self.assertEqual(resp.status_code, 403)
+
+            self.assertEqual(self.mock_regrade_task.call_count, 0)
+            self.assertEqual(self.mock_redirect.call_count, 0)
+
+            resp = self.c.post(
+                self.get_regrade_flows_view_url(),
+                data={
+                    "regraded_session_in_progress": "yes",
+                    "flow_id": QUIZ_FLOW_ID,
+                    "access_rules_tag": "",
+                }
+            )
+            self.assertEqual(resp.status_code, 403)
+
+            self.assertEqual(self.mock_regrade_task.call_count, 0)
+            self.assertEqual(self.mock_redirect.call_count, 0)
+
+    def test_form_error(self):
+        with mock.patch(
+                "course.flow.RegradeFlowForm.is_valid") as mock_form_is_valid:
+            mock_form_is_valid.return_value = False
+            resp = self.c.post(
+                self.get_regrade_flows_view_url(),
+                data={
+                    "regraded_session_in_progress": "yes",
+                    "flow_id": QUIZ_FLOW_ID,
+                    "access_rules_tag": "",
+                }
+            )
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertEqual(self.mock_regrade_task.call_count, 0)
+            self.assertEqual(self.mock_redirect.call_count, 0)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_success(self):
+        # get success
+        resp = self.c.get(self.get_regrade_flows_view_url())
+        self.assertEqual(resp.status_code, 200)
+
+        # post success
+        access_rules_tag = "some_tag"
+        flow_id = self.flow_id
+        inprog_value_map = {
+            "any": None,
+            "yes": True,
+            "no": False,
+        }
+        for regraded_session_in_progress, inprog_value in (
+                six.iteritems(inprog_value_map)):
+            with self.subTest(
+                    regraded_session_in_progress=regraded_session_in_progress):
+                self.mock_regrade_task.return_value = mock.MagicMock()
+                self.mock_redirect.return_value = http.HttpResponse()
+                resp = self.c.post(
+                    self.get_regrade_flows_view_url(),
+                    data={
+                        "regraded_session_in_progress":
+                            regraded_session_in_progress,
+                        "flow_id": flow_id,
+                        "access_rules_tag": access_rules_tag,
+                    }
+                )
+                self.assertFormErrorLoose(resp, None)
+                self.assertEqual(self.mock_regrade_task.call_count, 1)
+                self.mock_regrade_task.assert_called_once_with(
+                    self.course.id,
+                    flow_id,
+                    access_rules_tag,
+                    inprog_value,
+                )
+                self.mock_regrade_task.reset_mock()
+                self.assertEqual(self.mock_redirect.call_count, 1)
+                self.assertIn(
+                    "relate-monitor_task", self.mock_redirect.call_args[0])
+                self.mock_redirect.reset_mock()
+
+
+class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
+    # test flow.view_unsubmit_flow_page
+
+    page_id = "half"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(ViewUnsubmitFlowPageTest, cls).setUpTestData()
+        with cls.temporarily_switch_to_user(cls.student_participation.user):
+            cls.start_flow(cls.flow_id)
+            cls.submit_page_answer_by_page_id_and_test(page_id=cls.page_id)
+
+    def setUp(self):
+        super(ViewUnsubmitFlowPageTest, self).setUp()
+        self.c.force_login(self.instructor_participation.user)
+
+        fake_unsubmit_page = mock.patch(
+            "course.flow.unsubmit_page")
+        self.mock_unsubmit_page = fake_unsubmit_page.start()
+        self.addCleanup(fake_unsubmit_page.stop)
+
+        fake_add_message = mock.patch("course.flow.messages.add_message")
+        self.mock_add_message = fake_add_message.start()
+        self.addCleanup(fake_add_message.stop)
+
+        fake_adjust_flow_session_page_data = mock.patch(
+            "course.flow.adjust_flow_session_page_data")
+        self.mock_adjust_flow_session_page_data = (
+            fake_adjust_flow_session_page_data.start())
+        self.mock_adjust_flow_session_page_data.return_value = None
+        self.addCleanup(fake_adjust_flow_session_page_data.stop)
+
+    def get_view_unsubmit_flow_page_url(
+            self, page_ordinal, course_identifier=None, flow_session_id=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        flow_session_id = (flow_session_id
+                           or self.get_default_flow_session_id(course_identifier))
+        return reverse(
+            "relate-unsubmit_flow_page",
+            kwargs={"course_identifier": course_identifier,
+                    "flow_session_id": flow_session_id,
+                    "page_ordinal": page_ordinal})
+
+    def get_view_unsubmit_flow_page_url_by_page_id(
+            self, page_id, course_identifier=None, flow_session_id=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        flow_session_id = (flow_session_id
+                           or self.get_default_flow_session_id(course_identifier))
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        return self.get_view_unsubmit_flow_page_url(
+            page_ordinal, course_identifier, flow_session_id)
+
+    def test_anonymous(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.get(
+                self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id))
+            self.assertEqual(resp.status_code, 403)
+
+            resp = self.c.post(
+                self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
+                data={"submit": ""})
+
+            self.assertEqual(resp.status_code, 403)
+            self.assertEqual(self.mock_unsubmit_page.call_count, 0)
+
+    def test_no_pperm(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(
+                self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id))
+            self.assertEqual(resp.status_code, 403)
+
+            resp = self.c.post(
+                self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
+                data={"submit": ""})
+
+            self.assertEqual(resp.status_code, 403)
+            self.assertEqual(self.mock_unsubmit_page.call_count, 0)
+
+    def test_session_does_not_exist(self):
+        resp = self.c.get(
+            self.get_view_unsubmit_flow_page_url_by_page_id(
+                self.page_id, flow_session_id=100))
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.c.post(
+            self.get_view_unsubmit_flow_page_url_by_page_id(
+                self.page_id, flow_session_id=100),
+            data={"submit": ""})
+
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(self.mock_unsubmit_page.call_count, 0)
+
+    def test_success(self):
+        # get_success
+        resp = self.c.get(
+            self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id))
+        self.assertEqual(resp.status_code, 200)
+
+        # post_success
+        resp = self.c.post(
+            self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
+            data={"submit": ""})
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(self.mock_unsubmit_page.call_count, 1)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            "Flow page changes reallowed. ",
+            self.mock_add_message.call_args[0]
+        )
+
+    def test_postdata_without_submit(self):
+        resp = self.c.post(
+            self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
+            data={})
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(self.mock_unsubmit_page.call_count, 0)
+
+        self.assertEqual(self.mock_add_message.call_count, 0)
+
+    def test_post_form_not_valid(self):
+        with mock.patch(
+                "course.flow.UnsubmitFlowPageForm.is_valid") as mock_form_valid:
+            mock_form_valid.return_value = False
+            resp = self.c.post(
+                self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
+                data={"submit": ""})
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(self.mock_unsubmit_page.call_count, 0)
+
+    def test_unsubmit_page_has_no_answer_visit(self):
+        # this page has not been answered yet
+        page_id = "ice_cream_toppings"
+        expected_error_msg = "No prior answers found that could be un-submitted."
+
+        resp = self.c.get(
+            self.get_view_unsubmit_flow_page_url_by_page_id(page_id))
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(self.mock_unsubmit_page.call_count, 0)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(expected_error_msg, self.mock_add_message.call_args[0])
+        self.mock_add_message.reset_mock()
+
+        resp = self.c.post(
+            self.get_view_unsubmit_flow_page_url_by_page_id(page_id),
+            data={"submit": ""})
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(self.mock_unsubmit_page.call_count, 0)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(expected_error_msg, self.mock_add_message.call_args[0])
 
 # vim: foldmethod=marker
