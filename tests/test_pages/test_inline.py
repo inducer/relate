@@ -1060,7 +1060,6 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def setUp(self):
         super(InlineMultiPageUpdateTest, self).setUp()
-        self.c.force_login(self.student_participation.user)
 
     def test_quiz_inline_not_show_correctness(self):
         self.start_flow(self.flow_id)

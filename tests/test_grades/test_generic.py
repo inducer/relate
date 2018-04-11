@@ -244,12 +244,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
                                             kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
-    # Only check page for now
-    def test_view_regrade_flow(self):
-        resp = self.c.get(reverse("relate-regrade_flows_view",
-                                            args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-
     def test_view_grant_exception_new_session(self):
         all_session = FlowSession.objects.all()
         # Check number of flow sessions and ids
@@ -393,6 +387,9 @@ class GradeTestMixin(SingleCoursePageTestMixin):
 
 
 class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
+
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls): # noqa
         super(GradeTwoQuizTakerTest, cls).setUpTestData()
@@ -405,6 +402,9 @@ class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
 
 
 class GradeThreeQuizTakerTest(GradeTestMixin, TestCase):
+
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls): # noqa
         super(GradeThreeQuizTakerTest, cls).setUpTestData()
@@ -421,7 +421,6 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super(GradePermissionsTests, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
         cls.start_flow(flow_id=cls.flow_id)
         cls.end_flow()
 

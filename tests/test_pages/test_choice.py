@@ -669,7 +669,6 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super(BrokenPageDataTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
         cls.start_flow(cls.flow_id)
         cls.end_flow()
         from course.models import FlowPageData

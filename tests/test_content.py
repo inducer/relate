@@ -35,7 +35,6 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCoursePageCacheTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
         cls.start_flow(cls.flow_id)
 
     @improperly_configured_cache_patch()
@@ -270,6 +269,8 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
 
 
 class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
+
+    force_login_student_for_each_test = False
 
     @classmethod
     def setUpTestData(cls):  # noqa
