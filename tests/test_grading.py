@@ -43,7 +43,6 @@ class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin)
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCourseQuizPageGradeInterfaceTestMixin, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
         cls.start_flow(cls.flow_id)
         cls.this_flow_session_id = cls.default_flow_params["flow_session_id"]
         cls.submit_page_answer_by_page_id_and_test(cls.page_id)
@@ -66,10 +65,6 @@ class SingleCourseQuizPageGradeInterfaceTest(
                 do_grading=False)
 
         cls.end_flow()
-
-    def setUp(self):
-        super(SingleCourseQuizPageGradeInterfaceTest, self).setUp()
-        self.c.force_login(self.student_participation.user)
 
     def test_post_grades(self):
         self.submit_page_human_grading_by_page_id_and_test(self.page_id)

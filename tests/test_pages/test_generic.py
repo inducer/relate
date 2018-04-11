@@ -54,15 +54,9 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCourseQuizPageTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
 
         # cls.default_flow_params will only be available after a flow is started
         cls.start_flow(cls.flow_id)
-
-    def setUp(self):  # noqa
-        super(SingleCourseQuizPageTest, self).setUp()
-        # This is needed to ensure student is logged in
-        self.c.force_login(self.student_participation.user)
 
     # view all pages
     def test_view_all_flow_pages(self):

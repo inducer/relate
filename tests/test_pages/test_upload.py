@@ -217,10 +217,8 @@ class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin, TestCase):
         with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
             mock_get_repo_blob.side_effect = get_repo_blob_side_effect
 
-            self.c.force_login(self.student_participation.user)
             self.start_flow(self.flow_id)
-            # self.default_submit_page_answer_by_page_id_and_test(
-            #     page_id="proof", do_grading=True)
+
             self.submit_page_answer_by_page_id_and_test(
                 page_id="proof", do_grading=True, do_human_grade=True,
                 ensure_download_after_grading=True, dl_file_extension=".dat")

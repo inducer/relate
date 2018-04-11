@@ -38,13 +38,17 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 
-from tests.constants import QUIZ_FLOW_ID, TEST_PAGE_TUPLE
-from tests.utils import mock
 from course.models import (
     Course, Participation, ParticipationRole, FlowSession, FlowPageData,
     FlowPageVisit, GradingOpportunity)
-from course.constants import participation_status, user_status
+from course.constants import (
+    participation_status, user_status,
+    grade_aggregation_strategy as g_strategy,
+    flow_permission as fperm)
 from course.content import get_course_repo_path
+
+from tests.constants import QUIZ_FLOW_ID, TEST_PAGE_TUPLE
+from tests.utils import mock
 
 CORRECTNESS_ATOL = 1e-05
 
@@ -1024,6 +1028,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def start_flow(cls, flow_id, course_identifier=None,
                    ignore_cool_down=True, assume_success=True):
+        """
+        Notice: be cautious to use this in setUpTestData, because this will
+        create many related objects in db, if those objects are changed in
+        individual test, other tests followed might fail.
+        """
         existing_session_count = FlowSession.objects.all().count()
         if ignore_cool_down:
             cool_down_seconds = 0
@@ -1451,15 +1460,102 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
         return cls.c.get(reverse("relate-page_analytics", kwargs=params))
 
+    # {{{ hack getting session rules
+
+    default_session_start_rule = {
+        "tag_session": None,
+        "may_start_new_session": True,
+        "may_list_existing_sessions": True,
+        "default_expiration_mode": None}
+
+    def get_hacked_session_start_rule(self, **kwargs):
+        """
+        Used for mocking session_start_rule
+        :param kwargs: attributes in the mocked FlowSessionStartRule instance
+        :return: a :class:`FlowSessionStartRule` instance
+
+        Example:
+
+            with mock.patch(
+                "course.flow.get_session_start_rule") as mock_get_nrule:
+                mock_get_nrule.return_value = (
+                    self.get_hacked_session_start_rule())
+        """
+        from course.utils import FlowSessionStartRule
+        defaults = deepcopy(self.default_session_start_rule)
+        defaults.update(kwargs)
+        return FlowSessionStartRule(**defaults)
+
+    default_session_access_rule = {
+        "permissions": [fperm.view, fperm.end_session]}
+
+    def get_hacked_session_access_rule(self, **kwargs):
+        """
+        Used for mocking session_access_rule
+        :param kwargs: attributes in the mocked FlowSessionAccessRule instance
+        :return: a :class:`FlowSessionAccessRule` instance
+
+        Example:
+
+            with mock.patch(
+                    "course.flow.get_session_access_rule") as mock_get_arule:
+                mock_get_arule.return_value = (
+                    self.get_hacked_session_access_rule(
+                        permissions=[fperm.end_session]))
+        """
+        from course.utils import FlowSessionAccessRule
+        defaults = deepcopy(self.default_session_access_rule)
+        defaults.update(kwargs)
+        return FlowSessionAccessRule(**defaults)
+
+    default_session_grading_rule = {
+        "grade_identifier": "la_quiz",
+        "grade_aggregation_strategy": g_strategy.use_latest,
+        "due": None,
+        "generates_grade": True,
+        "description": None,
+        "credit_percent": 100,
+        "use_last_activity_as_completion_time": False,
+        "bonus_points": 0,
+        "max_points": None,
+        "max_points_enforced_cap": None,
+    }
+
+    def get_hacked_session_grading_rule(self, **kwargs):
+        """
+        Used for mocking session_grading_rule
+        :param kwargs: attributes in the mocked FlowSessionGradingRule instance
+        :return: a :class:`FlowSessionGradingRule` instance
+
+        Example:
+
+            with mock.patch(
+                "course.flow.get_session_grading_rule") as mock_get_grule:
+                mock_get_grule.return_value = \
+                    self.get_hacked_session_grading_rule(bonus_points=2)
+        """
+        from course.utils import FlowSessionGradingRule
+        defaults = deepcopy(self.default_session_grading_rule)
+        defaults.update(kwargs)
+        return FlowSessionGradingRule(**defaults)
+
+    # }}}
+
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
+    initial_commit_sha = None
+    force_login_student_for_each_test = True
 
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCourseTestMixin, cls).setUpTestData()
         assert len(cls.course_qset) == 1
         cls.course = cls.course_qset.first()
+        if cls.initial_commit_sha is not None:
+            cls.course.active_git_commit_sha = cls.initial_commit_sha
+            cls.course.save()
+
         cls.instructor_participation = Participation.objects.filter(
             course=cls.course,
             roles__identifier="instructor",
@@ -1480,7 +1576,11 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             status=participation_status.active
         ).first()
         assert cls.ta_participation
-        cls.c.logout()
+
+        if cls.force_login_student_for_each_test:
+            cls.c.force_login(cls.student_participation.user)
+        else:
+            cls.c.logout()
         cls.course_page_url = cls.get_course_page_url()
 
     def setUp(self):  # noqa
@@ -1492,6 +1592,8 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         self.instructor_participation.refresh_from_db()
         self.student_participation.refresh_from_db()
         self.ta_participation.refresh_from_db()
+        if self.force_login_student_for_each_test:
+            self.c.force_login(self.student_participation.user)
 
     @classmethod
     def get_default_course(cls):

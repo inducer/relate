@@ -196,6 +196,8 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
                            SubprocessRunpyContainerMixin, TestCase):
     # test course.utils.LanguageOverride
 
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls):  # noqa
         super(LanguageOverrideTest, cls).setUpTestData()

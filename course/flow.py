@@ -1629,10 +1629,13 @@ def will_receive_feedback(permissions):
             or flow_permission.see_answer_after_submission in permissions)
 
 
-def may_send_email_about_flow_page(permissions):
-    # type: (FrozenSet[Text]) -> bool
+def may_send_email_about_flow_page(flow_session, permissions):
+    # type: (FlowSession, FrozenSet[Text]) -> bool
 
-    return flow_permission.send_email_about_flow_page in permissions
+    return (
+        flow_session.participation is not None
+        and flow_session.user is not None
+        and flow_permission.send_email_about_flow_page in permissions)
 
 
 def get_page_behavior(
@@ -2058,7 +2061,7 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
         "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": page_behavior.show_answer,
         "may_send_email_about_flow_page":
-            may_send_email_about_flow_page(permissions),
+            may_send_email_about_flow_page(flow_session, permissions),
         "expects_answer": fpctx.page.expects_answer(),
 
         "session_minutes": session_minutes,
@@ -2329,7 +2332,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
     permissions = fpctx.page.get_modified_permissions_for_page(
             access_rule.permissions)
 
-    if not may_send_email_about_flow_page(permissions):
+    if not may_send_email_about_flow_page(flow_session, permissions):
         raise http.Http404()
 
     # }}}
@@ -2633,6 +2636,7 @@ def finish_flow_session_view(pctx, flow_session_id):
             use_masked_profile = will_use_masked_profile_for_email(staff_email)
 
             if flow_session.participation is None or flow_session.user is None:
+                # because Anonymous doesn't have get_masked_profile() method
                 use_masked_profile = False
 
             if (grading_rule.grade_identifier
@@ -2944,12 +2948,6 @@ def purge_page_view_data(request):
         if form.is_valid():
             if "submit" in request.POST:
                 course = form.cleaned_data["course"]
-
-                # This actually won't happen, because it will fail at
-                # form validation stage. We leave it here as a double
-                # check for data security.
-                if course not in list(purgeable_courses):
-                    raise PermissionDenied()
 
                 from course.tasks import purge_page_view_data
                 async_res = purge_page_view_data.delay(course.id)
