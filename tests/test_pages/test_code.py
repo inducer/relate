@@ -1329,6 +1329,12 @@ class IsNuisanceFailureTest(unittest.TestCase):
                       "\nhttp.client.RemoteDisconnected: \nfoo"}
         self.assertTrue(is_nuisance_failure(result))
 
+    def test_no_route_to_host(self):
+        result = {"result": "uncaught_error",
+                  "traceback":
+                      "\n[Errno 113] No route to host: \nfoo"}
+        self.assertTrue(is_nuisance_failure(result))
+
 
 class CodeQuestionWithHumanTextFeedbackSpecialCase(
         SingleCoursePageTestMixin, SubprocessRunpyContainerMixin, TestCase):
