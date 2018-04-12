@@ -1514,7 +1514,8 @@ class CourseCommitShaDoesNotExist(Exception):
     pass
 
 
-def get_course_commit_sha(course, participation, raise_on_error=False):
+def get_course_commit_sha(course, participation,
+                          raise_on_nonexistent_preview_commit=False):
     # type: (Course, Optional[Participation], Optional[bool]) -> bytes
 
     sha = course.active_git_commit_sha
@@ -1530,14 +1531,12 @@ def get_course_commit_sha(course, participation, raise_on_error=False):
                 try:
                     repo[preview_sha.encode()]
                 except KeyError:
-                    if raise_on_error:
+                    if raise_on_nonexistent_preview_commit:
                         raise CourseCommitShaDoesNotExist(
                             _("Preview revision '%s' does not exist--"
                               "showing active course content instead."
                               % participation.preview_git_commit_sha))
                     preview_sha = None
-                finally:
-                    repo.close()
 
             if preview_sha is not None:
                 sha = preview_sha

@@ -602,7 +602,8 @@ class CoursePageContext(object):
 
         try:
             sha = get_course_commit_sha(
-                self.course, self.participation, raise_on_error=True)
+                self.course, self.participation,
+                raise_on_nonexistent_preview_commit=True)
         except CourseCommitShaDoesNotExist as e:
             from django.contrib import messages
             messages.add_message(request, messages.ERROR, str(e))
