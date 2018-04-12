@@ -277,6 +277,9 @@ def is_nuisance_failure(result):
         if "http.client.RemoteDisconnected" in result["traceback"]:
             return True
 
+        if "[Errno 113] No route to host" in result["traceback"]:
+            return True
+
     return False
 
 
