@@ -24,6 +24,9 @@ THE SOFTWARE.
 
 import json
 from django.test import TestCase
+
+from course.models import FlowSession
+
 from tests.base_test_mixins import (
     improperly_configured_cache_patch, SingleCoursePageTestMixin)
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
@@ -276,6 +279,34 @@ class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
     def setUpTestData(cls):  # noqa
         super(NbconvertRenderTest, cls).setUpTestData()
         cls.c.force_login(cls.instructor_participation.user)
+
+    def test_notebook_page_view(self):
+        self.start_flow(flow_id="001-linalg-recap",
+                        course_identifier=self.course.identifier,
+                        assume_success=False)
+        fs = FlowSession.objects.last()
+        resp = self.c.get(
+            self.get_page_url_by_page_id(
+                "ipynb", course_identifier=self.course.identifier,
+                flow_session_id=fs.id))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_notebook_file_not_found(self):
+        self.start_flow(flow_id="001-linalg-recap",
+                        course_identifier=self.course.identifier,
+                        assume_success=False)
+        with mock.patch(
+                "course.content.get_repo_blob_data_cached") as mock_get_blob_cached:
+
+            from django.core.exceptions import ObjectDoesNotExist
+            mock_get_blob_cached.side_effect = ObjectDoesNotExist()
+
+            fs = FlowSession.objects.last()
+            with self.assertRaises(ObjectDoesNotExist):
+                self.c.get(
+                    self.get_page_url_by_page_id(
+                        "ipynb", course_identifier=self.course.identifier,
+                        flow_session_id=fs.id))
 
     def test_full_notebook_render(self):
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_FULL)

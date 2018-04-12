@@ -32,7 +32,7 @@ import hashlib
 import datetime
 import memcache
 from copy import deepcopy
-from django.test import Client, override_settings
+from django.test import Client, override_settings, RequestFactory
 from django.urls import reverse, resolve
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -1613,6 +1613,55 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             if v is None:
                 kwargs[k] = ""
         return kwargs
+
+    def get_hacked_flow_desc(
+            self, user=None, flow_id=None, commit_sha=None,
+            del_rules=False, as_dict=False, **kwargs):
+        """
+        Get a hacked version of flow_desc
+        :param user: the flow_desc viewed by which user, default to a student
+        :param flow_id: the flow_desc of which flow_id, default to `quiz-test`
+        :param commit_sha: default to corrent running commit_sha
+        :param kwargs: the attributes of the hacked flow_dec
+        :return: the faked flow_desc
+        """
+
+        # {{{ get the actual flow_desc by a real visit
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        if user is None:
+            user = self.student_participation.user
+        request.user = user
+
+        if flow_id is None:
+            flow_id = QUIZ_FLOW_ID
+
+        if commit_sha is None:
+            commit_sha = self.course.active_git_commit_sha
+
+        if isinstance(commit_sha, six.text_type):
+            commit_sha = commit_sha.encode()
+
+        from course.utils import CoursePageContext
+        pctx = CoursePageContext(request, self.course.identifier)
+        from course.content import get_flow_desc
+        flow_desc = get_flow_desc(
+            pctx.repo, pctx.course, flow_id, commit_sha)
+
+        # }}}
+
+        from relate.utils import struct_to_dict, dict_to_struct
+        flow_desc_dict = struct_to_dict(flow_desc)
+
+        if del_rules:
+            del flow_desc_dict["rules"]
+
+        flow_desc_dict.update(kwargs)
+
+        if as_dict:
+            return flow_desc_dict
+
+        return dict_to_struct(flow_desc_dict)
 
 
 class TwoCourseTestMixin(CoursesTestMixinBase):

@@ -185,8 +185,6 @@ def _eval_generic_conditions(
             and rule.if_signed_in_with_matching_exam_ticket):
         if login_exam_ticket is None:
             return False
-        if login_exam_ticket is None:
-            return False
         if login_exam_ticket.exam.flow_id != flow_id:
             return False
 
@@ -939,7 +937,7 @@ def get_codemirror_widget(
         dependencies=(),  # type: Tuple
         read_only=False,  # type: bool
         ):
-    # type: (...) ->  CodeMirrorTextarea
+    # type: (...) ->  Tuple[CodeMirrorTextarea,Text]
 
     from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
 
@@ -1152,7 +1150,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
 
 
 def will_use_masked_profile_for_email(recipient_email):
-    # type: (Union[Text, List[Text]]) -> bool
+    # type: (Union[None, Text, List[Text]]) -> bool
     if not recipient_email:
         return False
     if not isinstance(recipient_email, list):
