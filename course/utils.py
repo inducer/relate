@@ -42,10 +42,10 @@ from django.utils.decorators import ContextDecorator
 from relate.utils import string_concat
 from course.content import (
         get_course_repo, get_flow_desc,
-        parse_date_spec, get_course_commit_sha)
+        parse_date_spec, get_course_commit_sha,
+        CourseCommitShaDoesNotExist)
 from course.constants import (
         flow_permission, flow_rule_kind)
-import dulwich.repo
 from course.content import (  # noqa
         FlowDesc,
         FlowPageDesc,
@@ -598,40 +598,16 @@ class CoursePageContext(object):
         from course.views import check_course_state
         check_course_state(self.course, self.participation)
 
-        self.course_commit_sha = get_course_commit_sha(
-                self.course, self.participation)
-
         self.repo = get_course_repo(self.course)
 
-        # logic duplicated in course.content.get_course_commit_sha
-        sha = self.course.active_git_commit_sha.encode()
+        try:
+            sha = get_course_commit_sha(
+                self.course, self.participation, raise_on_error=True)
+        except CourseCommitShaDoesNotExist as e:
+            from django.contrib import messages
+            messages.add_message(request, messages.ERROR, str(e))
 
-        if self.participation is not None:
-            if self.participation.preview_git_commit_sha:
-                preview_sha = self.participation.preview_git_commit_sha.encode()
-
-                with get_course_repo(self.course) as repo:
-                    from relate.utils import SubdirRepoWrapper
-                    if isinstance(repo, SubdirRepoWrapper):
-                        true_repo = repo.repo
-                    else:
-                        true_repo = cast(dulwich.repo.Repo, repo)
-
-                    try:
-                        true_repo[preview_sha]
-                    except KeyError:
-                        from django.contrib import messages
-                        messages.add_message(request, messages.ERROR,
-                                _("Preview revision '%s' does not exist--"
-                                "showing active course content instead.")
-                                % preview_sha.decode())
-
-                        preview_sha = None
-                    finally:
-                        true_repo.close()
-
-                if preview_sha is not None:
-                    sha = preview_sha
+            sha = self.course.active_git_commit_sha.encode()
 
         self.course_commit_sha = sha
 
