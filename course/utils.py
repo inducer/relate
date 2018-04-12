@@ -603,6 +603,7 @@ class CoursePageContext(object):
         try:
             sha = get_course_commit_sha(
                 self.course, self.participation,
+                repo=self.repo,
                 raise_on_nonexistent_preview_commit=True)
         except CourseCommitShaDoesNotExist as e:
             from django.contrib import messages
