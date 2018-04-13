@@ -215,7 +215,7 @@ def enroll_view(request, course_identifier):
         return redirect("relate-course_page", course_identifier)
 
     preapproval = None
-    if request.user.email:
+    if request.user.email:  # pragma: no branch (user email NOT NULL constraint)
         try:
             preapproval = ParticipationPreapproval.objects.get(
                     course=course, email__iexact=request.user.email)
@@ -240,16 +240,6 @@ def enroll_view(request, course_identifier):
         else:
             return email.endswith("@%s" % suffix) or email.endswith(".%s" % suffix)
 
-    if (preapproval is None
-        and course.enrollment_required_email_suffix
-        and not email_suffix_matches(
-            user.email, course.enrollment_required_email_suffix)):
-
-        messages.add_message(request, messages.ERROR,
-                _("Enrollment not allowed. Please use your '%s' email to "
-                "enroll.") % course.enrollment_required_email_suffix)
-        return redirect("relate-course_page", course_identifier)
-
     roles = ParticipationRole.objects.filter(
             course=course,
             is_default_for_new_participants=True)
@@ -258,6 +248,24 @@ def enroll_view(request, course_identifier):
         roles = list(preapproval.roles.all())
 
     try:
+        if preapproval is None:
+            if course.enrollment_required_email_suffix:
+                if not email_suffix_matches(
+                        user.email, course.enrollment_required_email_suffix):
+                    messages.add_message(
+                        request, messages.ERROR,
+                        _("Enrollment not allowed. Please use your '%s' "
+                          "email to enroll.")
+                        % course.enrollment_required_email_suffix)
+                else:
+                    handle_enrollment_request(course, user,
+                                              participation_status.active,
+                                              roles, request)
+
+                    messages.add_message(request, messages.SUCCESS,
+                                         _("Successfully enrolled."))
+                return redirect("relate-course_page", course_identifier)
+
         if course.enrollment_approval_required and preapproval is None:
             participation = handle_enrollment_request(
                     course, user, participation_status.requested,
@@ -313,7 +321,7 @@ def enroll_view(request, course_identifier):
 
 @transaction.atomic
 def handle_enrollment_request(course, user, status, roles, request=None):
-    # type: (Course, Any, Text, List[Text], Optional[http.HttpRequest]) -> Participation  # noqa
+    # type: (Course, Any, Text, Optional[List[ParticipationRole]], Optional[http.HttpRequest]) -> Participation  # noqa
     participations = Participation.objects.filter(course=course, user=user)
 
     assert participations.count() <= 1

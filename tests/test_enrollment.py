@@ -22,28 +22,27 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import unittest
 from django.test import TestCase
 from django.conf import settings
-from django.test.utils import override_settings
+from django.test.utils import override_settings  # noqa
 from django.core import mail
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.shortcuts import get_object_or_404
-from django.utils.translation import ugettext_lazy as _
 
 from relate.utils import string_concat
 
+from course import constants
 from course import enrollment
 from course.models import (
-    Course,
     Participation, ParticipationRole, ParticipationPreapproval)
-from course.constants import participation_status, user_status
+from course.constants import (
+    participation_status as p_status, user_status as u_status)
 
 from tests.base_test_mixins import (
-    SingleCourseTestMixin,
-    NONE_PARTICIPATION_USER_CREATE_KWARG_LIST,
+    CoursesTestMixinBase, SingleCourseTestMixin,
     FallBackStorageMessageTestMixin
 )
 from tests.utils import LocmemBackendTestsMixin, mock
@@ -62,131 +61,607 @@ ENROLLMENT_EMAIL_FROM = "ENROLLMENT_EMAIL_FROM"
 
 # {{{ message constants
 
-MESSAGE_ENROLLMENT_SENT_TEXT = _(
+MESSAGE_ENROLLMENT_SENT_TEXT = (
     "Enrollment request sent. You will receive notifcation "
     "by email once your request has been acted upon.")
-MESSAGE_ENROLL_REQUEST_PENDING_TEXT = _(
+MESSAGE_ENROLL_REQUEST_PENDING_TEXT = (
     "Your enrollment request is pending. You will be "
     "notified once it has been acted upon.")
-MESSAGE_ENROLL_DENIED_NOT_ALLOWED_TEXT = _(
+MESSAGE_ENROLL_DENIED_NOT_ALLOWED_TEXT = (
     "Your enrollment request had been denied. Enrollment is not allowed.")
-MESSAGE_ENROLL_DROPPED_NOT_ALLOWED_TEXT = _(
+MESSAGE_ENROLL_DROPPED_NOT_ALLOWED_TEXT = (
     "You had been dropped from the course. Re-enrollment is not allowed.")
-MESSAGE_ENROLL_REQUEST_ALREADY_PENDING_TEXT = _(
+MESSAGE_ENROLL_REQUEST_ALREADY_PENDING_TEXT = (
     "You have previously sent the enrollment request. "
     "Re-sending the request is not allowed.")
-MESSAGE_PARTICIPATION_ALREADY_EXIST_TEXT = _(
+MESSAGE_PARTICIPATION_ALREADY_EXIST_TEXT = (
     "A participation already exists. Enrollment attempt aborted.")
-MESSAGE_CANNOT_REENROLL_TEXT = _("Already enrolled. Cannot re-enroll.")
-MESSAGE_SUCCESSFULLY_ENROLLED_TEXT = _("Successfully enrolled.")
-MESSAGE_EMAIL_SUFFIX_REQUIRED_PATTERN = _(
+MESSAGE_CANNOT_REENROLL_TEXT = ("Already enrolled. Cannot re-enroll.")
+MESSAGE_SUCCESSFULLY_ENROLLED_TEXT = ("Successfully enrolled.")
+MESSAGE_EMAIL_SUFFIX_REQUIRED_PATTERN = (
     "Enrollment not allowed. Please use your '%s' email to enroll.")
-MESSAGE_NOT_ACCEPTING_ENROLLMENTS_TEXT = _("Course is not accepting enrollments.")
-MESSAGE_ENROLL_ONLY_ACCEPT_POST_REQUEST_TEXT = _(
+MESSAGE_NOT_ACCEPTING_ENROLLMENTS_TEXT = ("Course is not accepting enrollments.")
+MESSAGE_ENROLL_ONLY_ACCEPT_POST_REQUEST_TEXT = (
     "Can only enroll using POST request")
-MESSAGE_ENROLLMENT_DENIED_TEXT = _("Successfully denied.")
-MESSAGE_ENROLLMENT_DROPPED_TEXT = _("Successfully dropped.")
+MESSAGE_ENROLLMENT_DENIED_TEXT = "Successfully denied."
+MESSAGE_ENROLLMENT_DROPPED_TEXT = "Successfully dropped."
 
-MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN = _(
+MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN = (
     "%(n_created)d preapprovals created, "
     "%(n_exist)d already existed, "
     "%(n_requested_approved)d pending requests approved.")
 
-MESSAGE_EMAIL_NOT_CONFIRMED_TEXT = _(
+MESSAGE_EMAIL_NOT_CONFIRMED_TEXT = (
     "Your email address is not yet confirmed. "
     "Confirm your email to continue.")
-MESSAGE_PARTICIPATION_CHANGE_SAVED_TEXT = _("Changes saved.")
+MESSAGE_PARTICIPATION_CHANGE_SAVED_TEXT = ("Changes saved.")
 
 EMAIL_NEW_ENROLLMENT_REQUEST_TITLE_PATTERN = (
-    string_concat("[%s] ", _("New enrollment request")))
+    string_concat("[%s] ", "New enrollment request"))
 EMAIL_ENROLLMENT_DECISION_TITLE_PATTERN = (
-    string_concat("[%s] ", _("Your enrollment request")))
+    string_concat("[%s] ", "Your enrollment request"))
 
-VALIDATION_ERROR_USER_NOT_CONFIRMED = _(
+VALIDATION_ERROR_USER_NOT_CONFIRMED = (
     "This user has not confirmed his/her email.")
 
 # }}}
 
 
-def course_get_object_or_404_sf_enroll_apprv_not_required(klass, *args, **kwargs):
-    assert klass == Course
-    course_object = get_object_or_404(klass, *args, **kwargs)
-    course_object.enrollment_approval_required = False
-    return course_object
-
-
-def course_get_object_or_404_sf_not_accepts_enrollment(klass, *args, **kwargs):
-    assert klass == Course
-    course_object = get_object_or_404(klass, *args, **kwargs)
-    course_object.accepts_enrollment = False
-    return course_object
-
-
-def course_get_object_or_404_sf_not_email_suffix1(klass, *args, **kwargs):
-    assert klass == Course
-    course_object = get_object_or_404(klass, *args, **kwargs)
-    course_object.enrollment_required_email_suffix = TEST_EMAIL_SUFFIX1
-    return course_object
-
-
-def course_get_object_or_404_sf_not_email_suffix2(klass, *args, **kwargs):
-    assert klass == Course
-    course_object = get_object_or_404(klass, *args, **kwargs)
-    course_object.enrollment_required_email_suffix = TEST_EMAIL_SUFFIX2
-    return course_object
-
-
-class BaseEmailConnectionMixin:
-    EMAIL_CONNECTIONS = None
-    EMAIL_CONNECTION_DEFAULT = None
-    NO_REPLY_EMAIL_FROM = None
-    NOTIFICATION_EMAIL_FROM = None
-    GRADER_FEEDBACK_EMAIL_FROM = None
-    STUDENT_INTERACT_EMAIL_FROM = None
-    ENROLLMENT_EMAIL_FROM = None
-    ROBOT_EMAIL_FROM = "robot@example.com"
+class EnrollmentTestMixin(CoursesTestMixinBase):
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(EnrollmentTestMixin, cls).setUpTestData()
+        cls.course = factories.CourseFactory()
 
     def setUp(self):
-        kwargs = {}
-        for attr in [EMAIL_CONNECTIONS, EMAIL_CONNECTION_DEFAULT,
-                     NO_REPLY_EMAIL_FROM, NOTIFICATION_EMAIL_FROM,
-                     GRADER_FEEDBACK_EMAIL_FROM, STUDENT_INTERACT_EMAIL_FROM,
-                     ENROLLMENT_EMAIL_FROM]:
-            attr_value = getattr(self, attr, None)
-            if attr_value:
-                kwargs.update({attr: attr_value})
+        super(EnrollmentTestMixin, self).setUp()
+        self.course.refresh_from_db()
+        fake_add_message = mock.patch('course.enrollment.messages.add_message')
+        self.mock_add_message = fake_add_message.start()
+        self.addCleanup(fake_add_message.stop)
 
-        self.settings_email_connection_override = (
-            override_settings(**kwargs))
-        self.settings_email_connection_override.enable()
-        self.addCleanup(self.settings_email_connection_override.stop)
+    @property
+    def course_page_url(self):
+        return self.get_course_page_url(self.course.identifier)
+
+    @property
+    def enroll_request_url(self):
+        return reverse("relate-enroll", args=[self.course.identifier])
+
+    @classmethod
+    def get_participation_edit_url(cls, participation_id):
+        return reverse("relate-edit_participation",
+                       args=[cls.course.identifier, participation_id])
+
+    def get_participation_count_by_status(self, status):
+        return Participation.objects.filter(
+            course__identifier=self.course.identifier,
+            status=status
+        ).count()
+
+    def update_course(self, **kwargs):
+        self.course.__dict__.update(kwargs)
+        self.course.save()
+
+    def update_require_approval_course(self, **kwargs):
+        self.course.__dict__.update(kwargs)
+        self.course.enrollment_approval_required = True
+        self.course.save()
+
+    def get_test_participation(self, **kwargs):
+        return factories.ParticipationFactory(
+            course=self.course, **kwargs)
+
+    def get_test_preapproval(self, **kwargs):
+        defaults = {"course": self.course,
+                    "email": None,
+                    "institutional_id": None}
+        defaults.update(kwargs)
+
+        return factories.ParticipationPreapprovalFactory(**defaults)
+
+    def assertMockAddedMessagesCalledWith(self, expected_messages, reset=True):  # noqa
+        args = "; ".join([
+            "'%s'" % str(arg[2])
+            for arg, _ in self.mock_add_message.call_args_list])
+        if not isinstance(expected_messages, list):
+            expected_messages = [expected_messages]
+
+        not_called = []
+        for msg in expected_messages:
+            if msg not in args:
+                not_called.append(msg)
+
+        if not_called:
+            self.fail(
+                "%s unexpectedly not added in messages, "
+                "the actual message are \"%s\"" % (repr(not_called), args))
+        if reset:
+            self.mock_add_message.reset_mock()
+
+    def assertParticiaptionStatusCallCount(self, expected_counts):  # noqa
+        from collections import OrderedDict
+        d = OrderedDict()
+        counts = []
+        for status in sorted(
+                list(dict(constants.PARTICIPATION_STATUS_CHOICES).keys())):
+            count = Participation.objects.filter(
+                course=self.course, status=status
+            ).count()
+            d[status] = count
+            counts.append(count)
+
+        self.assertListEqual(counts, expected_counts, repr(d))
+
+    @property
+    def student_role_post_data(self):
+        role, _ = (ParticipationRole.objects.get_or_create(
+            course=self.course, identifier="student"))
+        return [str(role.pk)]
+
+
+class EnrollViewTest(EnrollmentTestMixin, TestCase):
+    # test enrollment.enroll_view
+
+    def test_participation_status_requested(self):
+        participation = self.get_test_participation(
+            status=p_status.requested)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        with self.temporarily_switch_to_user(participation.user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(
+            MESSAGE_ENROLL_REQUEST_ALREADY_PENDING_TEXT)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_participation_status_denied(self):
+        participation = self.get_test_participation(
+            status=p_status.denied)
+        self.assertParticiaptionStatusCallCount([0, 1, 0, 0])
+        with self.temporarily_switch_to_user(participation.user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            MESSAGE_ENROLL_DENIED_NOT_ALLOWED_TEXT,
+            self.mock_add_message.call_args[0])
+        self.assertParticiaptionStatusCallCount([0, 1, 0, 0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_participation_status_dropped(self):
+        participation = self.get_test_participation(
+            status=p_status.dropped)
+        self.assertParticiaptionStatusCallCount([0, 0, 1, 0])
+        with self.temporarily_switch_to_user(participation.user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            MESSAGE_ENROLL_DROPPED_NOT_ALLOWED_TEXT,
+            self.mock_add_message.call_args[0])
+        self.assertParticiaptionStatusCallCount([0, 0, 1, 0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_participation_status_active(self):
+        participation = self.get_test_participation(
+            status=p_status.active)
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        with self.temporarily_switch_to_user(participation.user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            MESSAGE_CANNOT_REENROLL_TEXT,
+            self.mock_add_message.call_args[0])
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_not_accepts_enrollment(self):
+        self.update_course(accepts_enrollment=False)
+        user = factories.UserFactory()
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            MESSAGE_NOT_ACCEPTING_ENROLLMENTS_TEXT,
+            self.mock_add_message.call_args[0])
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_not_post_request(self):
+        user = factories.UserFactory()
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get(self.enroll_request_url)
+            self.assertRedirects(
+                resp, self.course_page_url, fetch_redirect_response=False)
+            self.assertEqual(self.mock_add_message.call_count, 1)
+            self.assertIn(
+                MESSAGE_ENROLL_ONLY_ACCEPT_POST_REQUEST_TEXT,
+                self.mock_add_message.call_args[0])
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_user_not_active(self):
+        for status in dict(constants.USER_STATUS_CHOICES).keys():
+            if status != u_status.active:
+                with self.subTest(user_status=status):
+                    user = factories.UserFactory(status=status)
+                    with self.temporarily_switch_to_user(user):
+                        resp = self.c.post(self.enroll_request_url)
+                    self.assertRedirects(
+                        resp, self.course_page_url, fetch_redirect_response=False)
+                    self.assertEqual(self.mock_add_message.call_count, 1)
+                    self.assertIn(
+                        MESSAGE_EMAIL_NOT_CONFIRMED_TEXT,
+                        self.mock_add_message.call_args[0])
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_restrictions(self):
+        user = factories.UserFactory()
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            MESSAGE_SUCCESSFULLY_ENROLLED_TEXT,
+            self.mock_add_message.call_args[0])
+
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+
+    def test_no_restrictions_user_has_no_instid(self):
+        user = factories.UserFactory(institutional_id=None)
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            MESSAGE_SUCCESSFULLY_ENROLLED_TEXT,
+            self.mock_add_message.call_args[0])
+
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+
+    def test_not_matching_preapproved_email(self):
+        self.update_require_approval_course()
+        user = factories.UserFactory()
+        self.get_test_preapproval(email="blabla@com")
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+
+    def test_matched_preapproved_email(self):
+        self.update_require_approval_course()
+        user = factories.UserFactory()
+        self.get_test_preapproval(email=user.email)
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(
+            MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 1)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_coures_not_require_inst_id_verified(self):
+        self.update_require_approval_course(
+            preapproval_require_verified_inst_id=False)
+
+        for verified in [True, False]:
+            with self.subTest(user_inst_id_verified=verified):
+                user = factories.UserFactory(institutional_id_verified=verified)
+                self.get_test_preapproval(institutional_id=user.institutional_id)
+
+                with self.temporarily_switch_to_user(user):
+                    resp = self.c.post(self.enroll_request_url)
+                self.assertRedirects(
+                    resp, self.course_page_url, fetch_redirect_response=False)
+                self.assertEqual(self.mock_add_message.call_count, 1)
+                self.assertMockAddedMessagesCalledWith(
+                    MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
+
+        self.assertParticiaptionStatusCallCount([2, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_coures_require_inst_id_verified_user_inst_id_verified1(self):
+        # matched
+        self.update_require_approval_course(
+            preapproval_require_verified_inst_id=True)
+
+        user = factories.UserFactory(institutional_id_verified=True)
+        self.get_test_preapproval(institutional_id=user.institutional_id)
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_coures_require_inst_id_verified_user_inst_id_verified2(self):
+        # not matched
+        self.update_require_approval_course(
+            preapproval_require_verified_inst_id=True)
+
+        user = factories.UserFactory(institutional_id_verified=True)
+        self.get_test_preapproval(institutional_id="not_exist_instid")
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+
+    def test_coures_require_inst_id_verified_user_inst_id_not_verified1(self):
+        # thought matched
+        self.update_require_approval_course(
+            preapproval_require_verified_inst_id=True)
+
+        user = factories.UserFactory(institutional_id_verified=False)
+        self.get_test_preapproval(institutional_id=user.institutional_id)
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_coures_require_inst_id_verified_user_inst_id_not_verified2(self):
+        # not matched
+        self.update_require_approval_course(
+            preapproval_require_verified_inst_id=True)
+
+        user = factories.UserFactory(institutional_id_verified=False)
+        self.get_test_preapproval(institutional_id="not_exist_instid")
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_coures_require_email_suffix_passed(self):
+        self.update_require_approval_course(
+            enrollment_required_email_suffix="@blabla.com")
+
+        user = factories.UserFactory(email="abc@blabla.com")
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_coures_require_email_suffix_passed_without_at(self):
+        # without @ in suffix config
+        self.update_require_approval_course(
+            enrollment_required_email_suffix="blabla.com")
+        user = factories.UserFactory(email="abc@blabla.com")
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_coures_require_email_suffix_passed_without_at_pattern2(self):
+        # without @ in suffix config
+        self.update_require_approval_course(
+            enrollment_required_email_suffix="blabla.com")
+        user = factories.UserFactory(email="abc@edu.blabla.com")
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
+        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_coures_require_email_suffix_failed(self):
+        required_suffix = "blabla.com"
+        self.update_require_approval_course(
+            enrollment_required_email_suffix=required_suffix)
+        user = factories.UserFactory(email="abc@blabla.com.hk")
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.post(self.enroll_request_url)
+        self.assertRedirects(
+            resp, self.course_page_url, fetch_redirect_response=False)
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertMockAddedMessagesCalledWith(
+            MESSAGE_EMAIL_SUFFIX_REQUIRED_PATTERN % required_suffix)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_integrity_error(self):
+        with mock.patch(
+                "course.enrollment.handle_enrollment_request"
+        ) as mock_handle_enrollment_request:
+            from django.db import IntegrityError
+            mock_handle_enrollment_request.side_effect = IntegrityError
+            user = factories.UserFactory()
+            with self.temporarily_switch_to_user(user):
+                resp = self.c.post(self.enroll_request_url)
+            self.assertRedirects(
+                resp, self.course_page_url, fetch_redirect_response=False)
+            self.assertEqual(self.mock_add_message.call_count, 1)
+            self.assertMockAddedMessagesCalledWith(
+                MESSAGE_PARTICIPATION_ALREADY_EXIST_TEXT)
+
+            self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+
+
+class HandleEnrollmentRequestTest(SingleCourseTestMixin,
+                                  EnrollmentTestMixin, TestCase):
+    # test enrollment.handle_enrollment_request
+    def setUp(self):
+        super(HandleEnrollmentRequestTest, self).setUp()
+        fake_send_enrollment_decision = mock.patch(
+            "course.enrollment.send_enrollment_decision")
+        self.mock_send_enrollment_decision = fake_send_enrollment_decision.start()
+        self.addCleanup(fake_send_enrollment_decision.stop)
+
+    def test_approve_new(self):
+        user = factories.UserFactory()
+        status = p_status.active
+        roles = [
+            factories.ParticipationRoleFactory(course=self.course, identifier="1"),
+            factories.ParticipationRoleFactory(course=self.course, identifier="2")]
+        request = mock.MagicMock()
+
+        participation = enrollment.handle_enrollment_request(
+            self.course, user, status, roles, request=request)
+
+        self.assertEqual(participation.user, user)
+        self.assertEqual(participation.status, status)
+        self.assertSetEqual(
+            set([role for role in participation.roles.all()]), set(roles))
+        self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
+        self.mock_send_enrollment_decision.assert_called_with(
+            participation, True, request)
+
+    def test_approve_new_none_roles(self):
+        user = factories.UserFactory()
+        status = p_status.active
+        roles = None
+        request = mock.MagicMock()
+
+        participation = enrollment.handle_enrollment_request(
+            self.course, user, status, roles, request=request)
+
+        self.assertEqual(participation.user, user)
+        self.assertEqual(participation.status, status)
+        self.assertSetEqual(
+            set([role for role in participation.roles.all()]), set())
+        self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
+        self.mock_send_enrollment_decision.assert_called_with(
+            participation, True, request)
+
+    def test_deny_new(self):
+        user = factories.UserFactory()
+        status = p_status.denied
+        roles = [
+            factories.ParticipationRoleFactory(course=self.course, identifier="3"),
+            factories.ParticipationRoleFactory(course=self.course, identifier="4")]
+        request = mock.MagicMock()
+
+        participation = enrollment.handle_enrollment_request(
+            self.course, user, status, roles, request=request)
+
+        self.assertEqual(participation.user, user)
+        self.assertEqual(participation.status, status)
+        self.assertSetEqual(
+            set([role for role in participation.roles.all()]), set(roles))
+        self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
+        self.mock_send_enrollment_decision.assert_called_with(
+            participation, False, request)
+
+    def test_approve_requested(self):
+        user = factories.UserFactory()
+        request_participation = factories.ParticipationFactory(
+            course=self.course, user=user, status=p_status.requested,
+        )
+        status = p_status.active
+        roles = [
+            factories.ParticipationRoleFactory(course=self.course, identifier="1"),
+            factories.ParticipationRoleFactory(course=self.course, identifier="2")]
+        request = mock.MagicMock()
+
+        participation = enrollment.handle_enrollment_request(
+            self.course, user, status, roles, request=request)
+
+        self.assertEqual(participation.user, user)
+        self.assertEqual(participation.status, status)
+        self.assertSetEqual(
+            set([role for role in participation.roles.all()]),
+            set([role for role in request_participation.roles.all()]))
+        self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
+        self.mock_send_enrollment_decision.assert_called_with(
+            participation, True, request)
+
+    def test_deny_requested(self):
+        user = factories.UserFactory()
+        request_participation = factories.ParticipationFactory(
+            course=self.course, user=user, status=p_status.requested,
+        )
+        status = p_status.denied
+        roles = [
+            factories.ParticipationRoleFactory(course=self.course, identifier="1"),
+            factories.ParticipationRoleFactory(course=self.course, identifier="2")]
+        request = mock.MagicMock()
+
+        participation = enrollment.handle_enrollment_request(
+            self.course, user, status, roles, request=request)
+
+        self.assertEqual(participation.user, user)
+        self.assertEqual(participation.status, status)
+        self.assertSetEqual(
+            set([role for role in participation.roles.all()]),
+            set([role for role in request_participation.roles.all()]))
+        self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
+        self.mock_send_enrollment_decision.assert_called_with(
+            participation, False, request)
+
+
+class SendEnrollmentDecisionTest(SingleCourseTestMixin, TestCase):
+    # test enrollment.send_enrollment_decision
+    def test_request_none(self):
+        participation = factories.ParticipationFactory()
+        enrollment.send_enrollment_decision(participation, True, None)
+        self.assertEqual(len(mail.outbox), 1)
 
 
 class EnrollmentTestBaseMixin(SingleCourseTestMixin,
                               FallBackStorageMessageTestMixin):
-    none_participation_user_create_kwarg_list = (
-        NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
 
     @classmethod
     def setUpTestData(cls):  # noqa
         super(EnrollmentTestBaseMixin, cls).setUpTestData()
-        assert cls.non_participation_users.count() >= 4
-        cls.non_participation_user1 = cls.non_participation_users[0]
-        cls.non_participation_user2 = cls.non_participation_users[1]
-        cls.non_participation_user3 = cls.non_participation_users[2]
-        cls.non_participation_user4 = cls.non_participation_users[3]
-        if cls.non_participation_user1.status != user_status.active:
-            cls.non_participation_user1.status = user_status.active
-            cls.non_participation_user1.save()
-        if cls.non_participation_user2.status != user_status.active:
-            cls.non_participation_user2.status = user_status.active
-            cls.non_participation_user2.save()
-        if cls.non_participation_user3.status != user_status.unconfirmed:
-            cls.non_participation_user3.status = user_status.unconfirmed
-            cls.non_participation_user3.save()
-        if cls.non_participation_user4.status != user_status.unconfirmed:
-            cls.non_participation_user4.status = user_status.unconfirmed
-            cls.non_participation_user4.save()
+        (cls.non_ptcp_active_user1, cls.non_ptcp_active_user2) = (
+            factories.UserFactory.create_batch(
+                size=2))
+        (cls.non_ptcp_unconfirmed_user1, cls.non_ptcp_unconfirmed_user2) = (
+            factories.UserFactory.create_batch(
+                size=2, status=u_status.unconfirmed))
 
     @property
     def enroll_request_url(self):
@@ -210,418 +685,6 @@ class EnrollmentTestBaseMixin(SingleCourseTestMixin,
         return [str(role.pk)]
 
 
-class EnrollmentRequestTest(
-        LocmemBackendTestsMixin, EnrollmentTestBaseMixin, TestCase):
-
-    courses_attributes_extra_list = [{"enrollment_approval_required": True}]
-
-    def test_enroll_request_non_participation(self):
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-        self.assertResponseMessagesCount(resp, 2)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLLMENT_SENT_TEXT,
-                   MESSAGE_ENROLL_REQUEST_PENDING_TEXT])
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.INFO, messages.INFO])
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
-            1)
-
-        # Second and after visits to course page should display only 1 messages
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.get(self.course_page_url)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLL_REQUEST_PENDING_TEXT])
-
-        mailmessage = self.get_the_email_message()
-        self.assertEqual(mailmessage["Subject"],
-                         EMAIL_NEW_ENROLLMENT_REQUEST_TITLE_PATTERN
-                         % self.course.identifier)
-
-        with self.temporarily_switch_to_user(self.non_participation_user2):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-        self.assertRedirects(resp, self.course_page_url)
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
-            2)
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_enroll_apprv_not_required)
-    def test_enroll_request_non_participation_not_require_approval(
-            self, mocked_get_object_or_404):
-        expected_active_participation_count = (
-            self.get_participation_count_by_status(participation_status.active) + 1)
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_SUCCESSFULLY_ENROLLED_TEXT])
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.SUCCESS])
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
-            0)
-
-        mailmessage = self.get_the_email_message()
-        self.assertEqual(mailmessage["Subject"],
-                         EMAIL_ENROLLMENT_DECISION_TITLE_PATTERN
-                         % self.course.identifier)
-
-        # Second and after visits to course page should display no messages
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.get(self.course_page_url)
-        self.assertResponseMessagesCount(resp, 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.active),
-            expected_active_participation_count
-        )
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_accepts_enrollment)
-    def test_enroll_request_non_participation_course_not_accept_enrollment(
-            self, mocked_get_object_or_404):
-        expected_active_participation_count = (
-            self.get_participation_count_by_status(participation_status.active))
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_NOT_ACCEPTING_ENROLLMENTS_TEXT])
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
-            0)
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.active),
-            expected_active_participation_count
-        )
-
-        # Second and after visits to course page should display no messages
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.get(self.course_page_url)
-        self.assertResponseMessagesCount(resp, 0)
-
-    # https://github.com/inducer/relate/issues/370
-    def test_pending_user_re_enroll_request_failure(self):
-        self.create_participation(self.course, self.non_participation_user1,
-                                  status=participation_status.requested)
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        # Second enroll request won't send more emails,
-        self.assertEqual(len(mail.outbox), 0)
-
-        self.assertResponseMessagesCount(resp, 2)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLL_REQUEST_ALREADY_PENDING_TEXT,
-                   MESSAGE_ENROLL_REQUEST_PENDING_TEXT])
-
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.ERROR,
-                   messages.INFO])
-
-    def test_denied_user_enroll_request_failure(self):
-        self.create_participation(self.course, self.non_participation_user1,
-                                  status=participation_status.denied)
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLL_DENIED_NOT_ALLOWED_TEXT])
-
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.ERROR])
-
-    def test_dropped_user_re_enroll_request_failure(self):
-        self.create_participation(self.course, self.non_participation_user1,
-                                  status=participation_status.dropped)
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLL_DROPPED_NOT_ALLOWED_TEXT])
-
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.ERROR])
-
-    #  https://github.com/inducer/relate/issues/369
-    def test_unconfirmed_user_enroll_request(self):
-        with self.temporarily_switch_to_user(self.non_participation_user4):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp,
-            [MESSAGE_EMAIL_NOT_CONFIRMED_TEXT])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
-            0)
-
-    def test_enroll_request_fail_re_enroll(self):
-        with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_CANNOT_REENROLL_TEXT])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-
-    def test_enroll_by_get(self):
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            self.c.get(self.enroll_request_url)
-            resp = self.c.get(self.course_page_url)
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLL_ONLY_ACCEPT_POST_REQUEST_TEXT])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-
-    def test_edit_participation_view_get_for_requested(self):
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
-            1)
-        my_participation = Participation.objects.get(
-            user=self.non_participation_user1
-        )
-        my_participation_edit_url = (
-            self.get_participation_edit_url(my_participation.pk))
-
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 403)
-
-        with self.temporarily_switch_to_user(self.non_participation_user2):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 403)
-
-        with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 403)
-
-        # only instructor may view edit participation page
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "submit-id-submit")
-        self.assertContains(resp, "submit-id-approve")
-        self.assertContains(resp, "submit-id-deny")
-
-        with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "submit-id-submit")
-        self.assertContains(resp, "submit-id-approve")
-        self.assertContains(resp, "submit-id-deny")
-
-    def test_edit_participation_view_get_for_enrolled(self):
-        my_participation_edit_url = (
-            self.get_participation_edit_url(self.student_participation.pk))
-        resp = self.c.get(my_participation_edit_url)
-        self.assertEqual(resp.status_code, 403)
-
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 403)
-
-        with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 403)
-
-        # only instructor may view edit participation page
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "submit-id-submit")
-        self.assertContains(resp, "submit-id-drop")
-
-        with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.get(my_participation_edit_url)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "submit-id-submit")
-        self.assertContains(resp, "submit-id-drop")
-
-
-class EnrollRequireEmailSuffixTest(LocmemBackendTestsMixin,
-                                   EnrollmentTestBaseMixin, TestCase):
-    courses_attributes_extra_list = [{"enrollment_approval_required": True}]
-
-    # {{{ email suffix "@suffix.com"
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix1)
-    def test_email_suffix_matched(self, mocked_email_suffix):
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertResponseMessagesCount(resp, 2)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLLMENT_SENT_TEXT,
-                   MESSAGE_ENROLL_REQUEST_PENDING_TEXT])
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.INFO, messages.INFO])
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            1)
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix1)
-    def test_email_suffix_not_matched(self, mocked_email_suffix):
-        with self.temporarily_switch_to_user(self.non_participation_user2):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp,
-            [MESSAGE_EMAIL_SUFFIX_REQUIRED_PATTERN % TEST_EMAIL_SUFFIX1])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            0)
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix1)
-    def test_email_suffix_matched_unconfirmed(self, mocked_email_suffix):
-        with self.temporarily_switch_to_user(self.non_participation_user3):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp,
-            [MESSAGE_EMAIL_NOT_CONFIRMED_TEXT])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            0)
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix1)
-    def test_email_suffix_not_matched_unconfirmed(self, mocked_email_suffix):
-        with self.temporarily_switch_to_user(self.non_participation_user4):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp,
-            [MESSAGE_EMAIL_NOT_CONFIRMED_TEXT])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            0)
-    # }}}
-
-    # {{{ email suffix "suffix.com"
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix2)
-    def test_email_suffix_domain_matched(self, mocked_email_suffix):
-        with self.temporarily_switch_to_user(self.non_participation_user1):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-        self.assertResponseMessagesCount(resp, 2)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLLMENT_SENT_TEXT,
-                   MESSAGE_ENROLL_REQUEST_PENDING_TEXT])
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.INFO, messages.INFO])
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            1)
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix2)
-    def test_email_suffix_domain_not_matched(self, mocked_email_suffix):
-        with self.temporarily_switch_to_user(self.non_participation_user2):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp,
-            [MESSAGE_EMAIL_SUFFIX_REQUIRED_PATTERN % TEST_EMAIL_SUFFIX2])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            0)
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix2)
-    def test_email_suffix_domain_matched_unconfirmed(self, mocked_email_suffix):
-        with self.temporarily_switch_to_user(self.non_participation_user3):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertResponseMessagesCount(resp, 1)
-        self.assertResponseMessagesEqual(
-            resp,
-            [MESSAGE_EMAIL_NOT_CONFIRMED_TEXT])
-        self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            0)
-
-    @mock.patch("course.enrollment.get_object_or_404",
-                side_effect=course_get_object_or_404_sf_not_email_suffix2)
-    def test_email_suffix_dot_domain_matched(self, mocked_email_suffix):
-        test_user5 = self.create_user({
-            "username": "test_user5",
-            "password": "test_user5",
-            "email": "test_user5@some.suffix.com",
-            "first_name": "Test",
-            "last_name": "User5",
-            "status": user_status.active
-        })
-        with self.temporarily_switch_to_user(test_user5):
-            resp = self.c.post(self.enroll_request_url, follow=True)
-
-        self.assertResponseMessagesCount(resp, 2)
-        self.assertResponseMessagesEqual(
-            resp, [MESSAGE_ENROLLMENT_SENT_TEXT,
-                   MESSAGE_ENROLL_REQUEST_PENDING_TEXT])
-        self.assertResponseMessageLevelsEqual(
-            resp, [messages.INFO, messages.INFO])
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(
-            self.get_participation_count_by_status(
-                participation_status.requested),
-            1)
-        get_user_model().objects.get(pk=test_user5.pk).delete()
-    # }}}
-
-
 class EnrollmentDecisionTestMixin(LocmemBackendTestsMixin, EnrollmentTestBaseMixin):
     courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
@@ -629,8 +692,8 @@ class EnrollmentDecisionTestMixin(LocmemBackendTestsMixin, EnrollmentTestBaseMix
     def setUpTestData(cls):  # noqa
         super(EnrollmentDecisionTestMixin, cls).setUpTestData()
         my_participation = cls.create_participation(
-            cls.course, cls.non_participation_user1,
-            status=participation_status.requested)
+            cls.course, cls.non_ptcp_active_user1,
+            status=p_status.requested)
         time_factor = [str(my_participation.time_factor)]
         roles = [str(r.pk) for r in my_participation.roles.all()]
         notes = [str(my_participation.notes)]
@@ -657,7 +720,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
     def test_edit_participation_view_enroll_decision_approve(self):
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             1)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             resp = self.c.post(self.my_participation_edit_url,
@@ -665,14 +728,14 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             0)
         self.assertResponseMessagesEqual(
             resp, [MESSAGE_SUCCESSFULLY_ENROLLED_TEXT])
         self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             0)
 
     def test_edit_participation_view_enroll_decision_approve_no_permission1(self):
@@ -683,18 +746,18 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             1)
 
     def test_edit_participation_view_enroll_decision_approve_no_permission2(self):
-        with self.temporarily_switch_to_user(self.non_participation_user1):
+        with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
             resp = self.c.post(self.my_participation_edit_url,
                                self.approve_post_data)
 
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             1)
 
     def test_edit_participation_view_enroll_decision_deny(self):
@@ -703,27 +766,27 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             0)
         self.assertResponseMessagesEqual(
             resp, [MESSAGE_ENROLLMENT_DENIED_TEXT])
         self.assertResponseMessageLevelsEqual(resp, [messages.SUCCESS])
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             0)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.denied),
+            self.get_participation_count_by_status(p_status.denied),
             1)
 
     def test_edit_participation_view_enroll_decision_drop(self):
-        self.create_participation(self.course, self.non_participation_user3,
-                                  status=participation_status.active)
+        self.create_participation(self.course, self.non_ptcp_unconfirmed_user1,
+                                  status=p_status.active)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             resp = self.c.post(self.my_participation_edit_url, self.drop_post_data)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.dropped),
+            self.get_participation_count_by_status(p_status.dropped),
             1)
         self.assertResponseMessagesEqual(
             resp, [MESSAGE_ENROLLMENT_DROPPED_TEXT])
@@ -735,18 +798,18 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         resp = self.c.get(self.add_new_url)
         self.assertTrue(resp.status_code, 200)
 
-        if self.non_participation_user3.status != user_status.unconfirmed:
-            self.non_participation_user3.status = user_status.unconfirmed
-            self.non_participation_user3.save()
+        if self.non_ptcp_unconfirmed_user1.status != u_status.unconfirmed:
+            self.non_ptcp_unconfirmed_user1.status = u_status.unconfirmed
+            self.non_ptcp_unconfirmed_user1.save()
 
         expected_active_user_count = (
             get_user_model()
-            .objects.filter(status=user_status.unconfirmed).count())
+            .objects.filter(status=u_status.unconfirmed).count())
 
         expected_active_participation_count = (
-            self.get_participation_count_by_status(participation_status.active))
+            self.get_participation_count_by_status(p_status.active))
 
-        form_data = {"user": [str(self.non_participation_user3.pk)],
+        form_data = {"user": [str(self.non_ptcp_unconfirmed_user1.pk)],
                      "time_factor": 1,
                      "roles": self.student_role_post_data, "notes": [""],
                      "add_new": True
@@ -757,12 +820,12 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertFormError(resp, 'form', 'user',
                              VALIDATION_ERROR_USER_NOT_CONFIRMED)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.active),
+            self.get_participation_count_by_status(p_status.active),
             expected_active_participation_count)
 
         self.assertEqual(
             get_user_model()
-            .objects.filter(status=user_status.unconfirmed).count(),
+            .objects.filter(status=u_status.unconfirmed).count(),
             expected_active_user_count)
         self.assertResponseMessagesCount(resp, 0)
         self.assertEqual(len(mail.outbox), 0)
@@ -772,20 +835,20 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         resp = self.c.get(self.add_new_url)
         self.assertTrue(resp.status_code, 200)
 
-        if self.non_participation_user4.status != user_status.active:
-            self.non_participation_user4.status = user_status.active
-            self.non_participation_user4.save()
+        if self.non_ptcp_unconfirmed_user2.status != u_status.active:
+            self.non_ptcp_unconfirmed_user2.status = u_status.active
+            self.non_ptcp_unconfirmed_user2.save()
 
         expected_active_user_count = (
             get_user_model()
-            .objects.filter(status=user_status.unconfirmed).count()
+            .objects.filter(status=u_status.unconfirmed).count()
         )
 
         expected_active_participation_count = (
-            self.get_participation_count_by_status(participation_status.active) + 1
+            self.get_participation_count_by_status(p_status.active) + 1
         )
 
-        form_data = {"user": [str(self.non_participation_user4.pk)],
+        form_data = {"user": [str(self.non_ptcp_unconfirmed_user2.pk)],
                      "time_factor": 1,
                      "roles": self.student_role_post_data, "notes": [""],
                      "add_new": True
@@ -795,12 +858,12 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         resp = self.c.post(self.add_new_url, add_post_data, follow=True)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.active),
+            self.get_participation_count_by_status(p_status.active),
             expected_active_participation_count)
 
         self.assertEqual(
             get_user_model()
-            .objects.filter(status=user_status.unconfirmed).count(),
+            .objects.filter(status=u_status.unconfirmed).count(),
             expected_active_user_count)
         self.assertResponseMessagesEqual(
             resp, [MESSAGE_PARTICIPATION_CHANGE_SAVED_TEXT])
@@ -832,23 +895,23 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             1)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.denied),
+            self.get_participation_count_by_status(p_status.denied),
             0)
 
     def test_edit_participation_view_enroll_decision_deny_no_permission2(self):
-        with self.temporarily_switch_to_user(self.non_participation_user1):
+        with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
             resp = self.c.post(self.my_participation_edit_url, self.deny_post_data)
 
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.requested),
+            self.get_participation_count_by_status(p_status.requested),
             1)
         self.assertEqual(
-            self.get_participation_count_by_status(participation_status.denied),
+            self.get_participation_count_by_status(p_status.denied),
             0)
 
 
@@ -858,21 +921,23 @@ class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
     @classmethod
     def setUpTestData(cls):  # noqa
         super(EnrollmentPreapprovalTestMixin, cls).setUpTestData()
-        assert cls.non_participation_user1.institutional_id_verified is True
-        assert cls.non_participation_user2.institutional_id_verified is False
+        cls.non_ptcp_active_user1.institutional_id_verified = True
+        cls.non_ptcp_active_user1.save()
+        cls.non_ptcp_active_user2.institutional_id_verified = False
+        cls.non_ptcp_active_user2.save()
 
     @property
     def preapprove_data_emails(self):
-        preapproved_user = [self.non_participation_user1,
-                            self.non_participation_user2]
+        preapproved_user = [self.non_ptcp_active_user1,
+                            self.non_ptcp_active_user2]
         preapproved_data = [u.email for u in preapproved_user]
         return preapproved_data
 
     @property
     def preapprove_data_institutional_ids(self):
-        preapproved_user = [self.non_participation_user1,
-                            self.non_participation_user2,
-                            self.non_participation_user3]
+        preapproved_user = [self.non_ptcp_active_user1,
+                            self.non_ptcp_active_user2,
+                            self.non_ptcp_unconfirmed_user1]
         preapproved_data = [u.institutional_id for u in preapproved_user]
         return preapproved_data
 
@@ -1006,20 +1071,20 @@ class EnrollmentPreapprovalTest(EnrollmentPreapprovalTestMixin, TestCase):
             self.assertEqual(resp.status_code, 403)
 
     def test_preapproval_email_type_approve_pendings(self):
-        enroll_request_users = [self.non_participation_user1]
+        enroll_request_users = [self.non_ptcp_active_user1]
         for u in enroll_request_users:
             with self.temporarily_switch_to_user(u):
                 self.c.post(self.enroll_request_url, follow=True)
 
         self.flush_mailbox()
         expected_participation_count = (
-            self.get_participation_count_by_status(participation_status.active) + 1)
+            self.get_participation_count_by_status(p_status.active) + 1)
         resp = self.post_preapprovel(
             "email",
             self.preapprove_data_emails)
         self.assertEqual(
             self.get_participation_count_by_status(
-                participation_status.active), expected_participation_count)
+                p_status.active), expected_participation_count)
 
         self.assertResponseMessagesEqual(
             resp,
@@ -1036,7 +1101,7 @@ class EnrollmentPreapprovalTest(EnrollmentPreapprovalTestMixin, TestCase):
     def test_preapproval_inst_id_type_approve_pending_require_id_verified(self):
         assert self.course.preapproval_require_verified_inst_id is True
         enroll_request_users = [
-            self.non_participation_user1, self.non_participation_user2]
+            self.non_ptcp_active_user1, self.non_ptcp_active_user2]
         for u in enroll_request_users:
             with self.temporarily_switch_to_user(u):
                 self.c.post(self.enroll_request_url, follow=True)
@@ -1045,7 +1110,7 @@ class EnrollmentPreapprovalTest(EnrollmentPreapprovalTestMixin, TestCase):
         n_expected_newly_enrolled_users = (
             len([u for u in enroll_request_users if u.institutional_id_verified]))
         expected_participation_count = (
-            self.get_participation_count_by_status(participation_status.active)
+            self.get_participation_count_by_status(p_status.active)
             + n_expected_newly_enrolled_users
         )
         resp = self.post_preapprovel(
@@ -1053,7 +1118,7 @@ class EnrollmentPreapprovalTest(EnrollmentPreapprovalTestMixin, TestCase):
             self.preapprove_data_institutional_ids)
         self.assertEqual(
             self.get_participation_count_by_status(
-                participation_status.active), expected_participation_count)
+                p_status.active), expected_participation_count)
 
         self.assertResponseMessagesEqual(
             resp,
@@ -1071,16 +1136,13 @@ class EnrollmentPreapprovalTest(EnrollmentPreapprovalTestMixin, TestCase):
 class EnrollmentPreapprovalInstIdNotRequireVerifiedTest(
                                         EnrollmentPreapprovalTestMixin, TestCase):
 
-    # We'll have to mock course at two place if use mock, so I separate this
-    # test out of EnrollmentPreapprovalTest
     courses_attributes_extra_list = [{
         "enrollment_approval_required": True,
         "preapproval_require_verified_inst_id": False}]
 
     def test_preapproval_inst_id_type_approve_pending_not_require_id_verified(self):
-        assert self.course.preapproval_require_verified_inst_id is False
         enroll_request_users = [
-            self.non_participation_user1, self.non_participation_user2]
+            self.non_ptcp_active_user1, self.non_ptcp_active_user2]
         for u in enroll_request_users:
             with self.temporarily_switch_to_user(u):
                 self.c.post(self.enroll_request_url, follow=True)
@@ -1088,7 +1150,7 @@ class EnrollmentPreapprovalInstIdNotRequireVerifiedTest(
         self.flush_mailbox()
         n_expected_newly_enrolled_users = len(enroll_request_users)
         expected_participation_count = (
-            self.get_participation_count_by_status(participation_status.active)
+            self.get_participation_count_by_status(p_status.active)
             + n_expected_newly_enrolled_users
         )
         resp = self.post_preapprovel(
@@ -1096,7 +1158,7 @@ class EnrollmentPreapprovalInstIdNotRequireVerifiedTest(
             self.preapprove_data_institutional_ids)
         self.assertEqual(
             self.get_participation_count_by_status(
-                participation_status.active), expected_participation_count)
+                p_status.active), expected_participation_count)
 
         self.assertResponseMessagesEqual(
             resp,
@@ -1143,7 +1205,7 @@ class EnrollmentRequestEmailConnectionsTest(
                 ENROLLMENT_EMAIL_FROM=self.enrollment_email_from):
 
             expected_from_email = settings.ENROLLMENT_EMAIL_FROM
-            with self.temporarily_switch_to_user(self.non_participation_user1):
+            with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
                 self.c.post(self.enroll_request_url, follow=True)
 
             msg = mail.outbox[0]
@@ -1159,7 +1221,7 @@ class EnrollmentRequestEmailConnectionsTest(
 
             expected_from_email = settings.ROBOT_EMAIL_FROM
 
-            with self.temporarily_switch_to_user(self.non_participation_user1):
+            with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
                 self.c.post(self.enroll_request_url, follow=True)
 
             msg = mail.outbox[0]

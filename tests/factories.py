@@ -59,6 +59,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.Sequence(lambda n: "test_factory_%03d@exmaple.com" % n)
     status = constants.user_status.active
     password = factory.Sequence(lambda n: "password_%03d" % n)
+    institutional_id = factory.Sequence(lambda n: "institutional_id%03d" % n)
 
 
 class CourseFactory(factory.django.DjangoModelFactory):
@@ -226,6 +227,15 @@ class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
         if not create:
             # Simple build, do nothing.
             return
+        if extracted:
+            for role in extracted:
+                if isinstance(role, six.string_types):
+                    role = ParticipationRoleFactory(
+                        course=self.course, identifier=role)
+                else:
+                    assert isinstance(role, models.ParticipationRole)
+                self.roles.set([role])
+                return
         else:
             role = ParticipationRoleFactory(course=self.course)
             self.roles.set([role])
