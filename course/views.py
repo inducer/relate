@@ -117,9 +117,6 @@ def home(request):
             if (pperm.view_hidden_course_page, None) not in perms:
                 show = False
 
-        if not course.listed:
-            show = False
-
         if show:
             if (course.end_date is None
                     or now_datetime.date() <= course.end_date):

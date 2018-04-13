@@ -25,6 +25,7 @@ THE SOFTWARE.
 from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
 from django.urls import reverse
+from django.utils.timezone import now, timedelta
 import datetime
 from course import views
 
@@ -378,3 +379,35 @@ class GenerateSshKeypairTest(CoursesTestMixinBase, AuthTestMixin, TestCase):
             self.assertResponseContextContains(
                 resp, "private_key",
                 ["ssh-rsa", "relate-course-key"], in_bulk=True)
+
+
+class HomeTest(CoursesTestMixinBase, TestCase):
+    # test views.home
+
+    def test(self):
+        course1 = factories.CourseFactory(hidden=False)
+        course2 = factories.CourseFactory(
+            identifier="course2", hidden=True)
+        course3 = factories.CourseFactory(listed=False,
+            identifier="course3", hidden=False)
+        course4 = factories.CourseFactory(
+            identifier="course4", hidden=False, end_date=now() - timedelta(days=1))
+
+        user = factories.UserFactory()
+        factories.ParticipationFactory(
+            course=course1, user=user, roles=["instructor"])
+        factories.ParticipationFactory(
+            course=course2, user=user, roles=["instructor"])
+        factories.ParticipationFactory(
+            course=course3, user=user, roles=["instructor"])
+
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.get("/")
+        self.assertResponseContextEqual(resp, "current_courses", [course1])
+        self.assertResponseContextEqual(resp, "past_courses", [course4])
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get("/")
+            self.assertResponseContextEqual(
+                resp, "current_courses", [course1, course2])
+            self.assertResponseContextEqual(resp, "past_courses", [course4])
