@@ -1614,6 +1614,15 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
                 kwargs[k] = ""
         return kwargs
 
+    def get_course_page_context(self, user):
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        request.user = user
+
+        from course.utils import CoursePageContext
+        pctx = CoursePageContext(request, self.course.identifier)
+        return pctx
+
     def get_hacked_flow_desc(
             self, user=None, flow_id=None, commit_sha=None,
             del_rules=False, as_dict=False, **kwargs):
@@ -1642,11 +1651,10 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         if isinstance(commit_sha, six.text_type):
             commit_sha = commit_sha.encode()
 
-        from course.utils import CoursePageContext
-        pctx = CoursePageContext(request, self.course.identifier)
         from course.content import get_flow_desc
-        flow_desc = get_flow_desc(
-            pctx.repo, pctx.course, flow_id, commit_sha)
+        with self.get_course_page_context(user) as pctx:
+            flow_desc = get_flow_desc(
+                pctx.repo, pctx.course, flow_id, commit_sha)
 
         # }}}
 

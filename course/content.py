@@ -1510,7 +1510,7 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
 # }}}
 
 
-class CourseCommitShaDoesNotExist(Exception):
+class CourseCommitSHADoesNotExist(Exception):
     pass
 
 
@@ -1525,13 +1525,13 @@ def get_course_commit_sha(course, participation, repo=None,
         if isinstance(repo, SubdirRepoWrapper):
             repo = repo.repo
         try:
-            repo[preview_sha.encode()]
+            repo[commit_sha.encode()]
         except KeyError:
             if raise_on_nonexistent_preview_commit:
-                raise CourseCommitShaDoesNotExist(
+                raise CourseCommitSHADoesNotExist(
                     _("Preview revision '%s' does not exist--"
                       "showing active course content instead."
-                      % participation.preview_git_commit_sha))
+                      % commit_sha))
             return False
 
         return True

@@ -41,9 +41,9 @@ from django.utils.decorators import ContextDecorator
 
 from relate.utils import string_concat
 from course.content import (
-        get_course_repo, get_flow_desc,
-        parse_date_spec, get_course_commit_sha,
-        CourseCommitShaDoesNotExist)
+    get_course_repo, get_flow_desc,
+    parse_date_spec, get_course_commit_sha,
+    CourseCommitSHADoesNotExist)
 from course.constants import (
         flow_permission, flow_rule_kind)
 from course.content import (  # noqa
@@ -605,7 +605,7 @@ class CoursePageContext(object):
                 self.course, self.participation,
                 repo=self.repo,
                 raise_on_nonexistent_preview_commit=True)
-        except CourseCommitShaDoesNotExist as e:
+        except CourseCommitSHADoesNotExist as e:
             from django.contrib import messages
             messages.add_message(request, messages.ERROR, str(e))
 
