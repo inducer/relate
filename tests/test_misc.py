@@ -451,7 +451,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
                 mock_gettext.return_value = "foo"
                 with self.temporarily_switch_to_user(None):
                     resp = self.post_sign_up(
-                        data={"username": "Jack", "email": "jack@exmaple.com"},
+                        data={"username": "Jack", "email": "jack@example.com"},
                         follow=False
                     )
                     self.assertTrue(resp.status_code, 200)

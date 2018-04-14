@@ -56,7 +56,7 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = get_user_model()
 
     username = factory.Sequence(lambda n: "testuser_%03d" % n)
-    email = factory.Sequence(lambda n: "test_factory_%03d@exmaple.com" % n)
+    email = factory.Sequence(lambda n: "test_factory_%03d@example.com" % n)
     status = constants.user_status.active
     password = factory.Sequence(lambda n: "password_%03d" % n)
     institutional_id = factory.Sequence(lambda n: "institutional_id%03d" % n)
@@ -72,8 +72,8 @@ class CourseFactory(factory.django.DjangoModelFactory):
     number = factory.Sequence(lambda n: "%03d" % n)
     time_period = "Spring"
     git_source = SINGLE_COURSE_SETUP_LIST[0]["course"]["git_source"]
-    notify_email = factory.Sequence(lambda n: "test_notify_%03d@exmaple.com" % n)
-    from_email = factory.Sequence(lambda n: "test_from_%03d@exmaple.com" % n)
+    notify_email = factory.Sequence(lambda n: "test_notify_%03d@example.com" % n)
+    from_email = factory.Sequence(lambda n: "test_from_%03d@example.com" % n)
     active_git_commit_sha = "some_sha"
 
 
@@ -108,11 +108,27 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
                         course=self.course, identifier=role)
                 else:
                     assert isinstance(role, models.ParticipationRole)
-                self.roles.set([role])
-                return
+                self.roles.add(role)
+            return
 
         role = ParticipationRoleFactory(course=self.course)
         self.roles.set([role])
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+
+        if extracted:
+            for tag in extracted:
+                if isinstance(tag, six.string_types):
+                    tag = ParticipationTagFactory(
+                        course=self.course, name=tag)
+                else:
+                    assert isinstance(tag, models.ParticipationTag)
+                self.tags.add(tag)
+            return
 
 
 class ParticipationTagFactory(factory.django.DjangoModelFactory):
@@ -121,7 +137,7 @@ class ParticipationTagFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ('course', 'name', 'shown_to_participant')
 
     course = factory.SubFactory(CourseFactory)
-    name = "tag1"
+    name = fuzzy.FuzzyText()
     shown_to_participant = True
 
 

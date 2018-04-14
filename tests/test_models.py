@@ -67,8 +67,8 @@ class CourseTest(CoursesTestMixinBase, unittest.TestCase):
             self.assertEqual(self.course1.get_from_email(), self.course1.from_email)
             self.assertEqual(self.course2.get_from_email(), self.course2.from_email)
 
-        notification_email_from = "expected_email_from@exmaple.com"
-        robot_email_from = "robot@exmaple.com"
+        notification_email_from = "expected_email_from@example.com"
+        robot_email_from = "robot@example.com"
         with override_settings(
                 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER=False,
                 NOTIFICATION_EMAIL_FROM=notification_email_from,

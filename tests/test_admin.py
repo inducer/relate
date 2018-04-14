@@ -333,6 +333,64 @@ class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
         self.assertEqual(queryset.count(), self.course2_visits_has_answer_count)
 
 
+class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
+    def test_approve_enrollment(self):
+        active = factories.ParticipationFactory(
+            course=self.course1,
+            status=constants.participation_status.active)
+        (requested1, requested2) = factories.ParticipationFactory.create_batch(
+            size=2,
+            course=self.course1,
+            status=constants.participation_status.requested)
+
+        from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+        action_data = {
+            ACTION_CHECKBOX_NAME: [active.pk, requested1.pk],
+            'action': "approve_enrollment",
+            'index': 0,
+        }
+        with self.temporarily_switch_to_user(self.instructor1):
+            resp = self.c.post(
+                self.get_admin_course_change_list_view_url(
+                    models.Participation.__name__), action_data)
+            self.assertEqual(resp.status_code, 302)
+
+        active.refresh_from_db()
+        self.assertEqual(active.status, constants.participation_status.active)
+        requested1.refresh_from_db()
+        self.assertEqual(requested1.status, constants.participation_status.active)
+        requested2.refresh_from_db()
+        self.assertEqual(requested2.status, constants.participation_status.requested)
+
+    def test_deny_enrollment(self):
+        active = factories.ParticipationFactory(
+            course=self.course1,
+            status=constants.participation_status.active)
+        (requested1, requested2) = factories.ParticipationFactory.create_batch(
+            size=2,
+            course=self.course1,
+            status=constants.participation_status.requested)
+
+        from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+        action_data = {
+            ACTION_CHECKBOX_NAME: [active.pk, requested1.pk, requested2.pk],
+            'action': "deny_enrollment",
+            'index': 0,
+        }
+        with self.temporarily_switch_to_user(self.instructor1):
+            resp = self.c.post(
+                self.get_admin_course_change_list_view_url(
+                    models.Participation.__name__), action_data)
+            self.assertEqual(resp.status_code, 302)
+
+        active.refresh_from_db()
+        self.assertEqual(active.status, constants.participation_status.active)
+        requested1.refresh_from_db()
+        self.assertEqual(requested1.status, constants.participation_status.denied)
+        requested2.refresh_from_db()
+        self.assertEqual(requested2.status, constants.participation_status.denied)
+
+
 class ParticipationFormTest(CourseAdminTestMixin, TestCase):
     def setUp(self):
         super(ParticipationFormTest, self).setUp()
