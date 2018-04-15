@@ -49,7 +49,7 @@ from jinja2 import (
 from relate.utils import dict_to_struct, Struct, SubdirRepoWrapper
 from course.constants import ATTRIBUTES_FILENAME
 
-from yaml import load as load_yaml
+from yaml import safe_load as load_yaml
 
 if sys.version_info >= (3,):
     CACHE_KEY_ROOT = "py3"
@@ -769,7 +769,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
                 return self.reverse("relate-get_media",
                             args=(
                                 self.get_course_identifier(),
-                                self.commit_sha,
+                                self.commit_sha.decode(),
                                 PreserveFragment(media_path)))
 
             elif url.startswith("repo:"):
@@ -777,7 +777,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
                 return self.reverse("relate-get_repo_file",
                             args=(
                                 self.get_course_identifier(),
-                                self.commit_sha,
+                                self.commit_sha.decode(),
                                 PreserveFragment(path)))
 
             elif url.startswith("repocur:"):
@@ -995,7 +995,7 @@ def markup_to_html(
     return result
 
 
-TITLE_RE = re.compile(r"^\#+\s*(\w.*)", re.UNICODE)
+TITLE_RE = re.compile(r"^\#+\s*(.+)", re.UNICODE)
 
 
 def extract_title_from_markup(markup_text):
@@ -1400,6 +1400,7 @@ def normalize_flow_desc(flow_desc):
 def get_flow_desc(repo, course, flow_id, commit_sha):
     # type: (Repo_ish, Course, Text, bytes) -> FlowDesc
 
+    # FIXME: extension should be case-insensitive
     flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
 
     flow_desc = normalize_flow_desc(flow_desc)
@@ -1509,25 +1510,44 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
 # }}}
 
 
-def get_course_commit_sha(course, participation):
-    # type: (Course, Optional[Participation]) -> bytes
+class CourseCommitSHADoesNotExist(Exception):
+    pass
 
-    # logic duplicated in course.utils.CoursePageContext
+
+def get_course_commit_sha(course, participation, repo=None,
+                          raise_on_nonexistent_preview_commit=False):
+    # type: (Course, Optional[Participation], Optional[Repo_ish], Optional[bool]) -> bytes  # noqa
 
     sha = course.active_git_commit_sha
+
+    def is_commit_sha_valid(repo, commit_sha):
+        # type: (Repo_ish, Text) -> bool
+        if isinstance(repo, SubdirRepoWrapper):
+            repo = repo.repo
+        try:
+            repo[commit_sha.encode()]
+        except KeyError:
+            if raise_on_nonexistent_preview_commit:
+                raise CourseCommitSHADoesNotExist(
+                    _("Preview revision '%s' does not exist--"
+                      "showing active course content instead."
+                      % commit_sha))
+            return False
+
+        return True
 
     if participation is not None:
         if participation.preview_git_commit_sha:
             preview_sha = participation.preview_git_commit_sha
 
-            with get_course_repo(course) as repo:
-                if isinstance(repo, SubdirRepoWrapper):
-                    repo = repo.repo
+            if repo is not None:
+                commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
+            else:
+                with get_course_repo(course) as repo:
+                    commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
 
-                try:
-                    repo[preview_sha.encode()]
-                except KeyError:
-                    preview_sha = None
+            if not commit_sha_valid:
+                preview_sha = None
 
             if preview_sha is not None:
                 sha = preview_sha

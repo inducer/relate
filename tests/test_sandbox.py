@@ -24,11 +24,13 @@ THE SOFTWARE.
 
 from django.test import TestCase
 from django.urls import reverse
-from tests.base_test_mixins import SingleCourseTestMixin
 
 from course.sandbox import (
     PAGE_SESSION_KEY_PREFIX, PAGE_DATA_SESSION_KEY_PREFIX,
     ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
+
+from tests.base_test_mixins import SingleCourseTestMixin
+from tests.constants import PAGE_WARNINGS, HAVE_VALID_PAGE
 
 QUESTION_MARKUP = """
 type: TextQuestion
@@ -38,6 +40,7 @@ prompt: |
     # A half
     What's a half?
 answers:
+    - <regex>half
     - type: float
       value: 0.5
       rtol: 1e-4
@@ -46,9 +49,6 @@ answers:
 """
 
 CORRECT_ANSWER = 0.5
-PAGE_WARNINGS = "page_warnings"
-PAGE_ERRORS = "page_errors"
-HAVE_VALID_PAGE = "have_valid_page"
 
 
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
@@ -148,7 +148,7 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
 
     def test_page_sandbox_submit_answer(self):
         # Try to answer the rendered question
-        answer_data = {'answer': ['0.5']}
+        answer_data = {'answer': ['a half']}
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertEqual(resp.status_code, 200)

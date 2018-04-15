@@ -44,8 +44,6 @@ from tests.utils import mock
 
 
 class ExportGradebook(SingleCoursePageTestMixin, TestCase):
-    flow_id = "quiz-test"
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(ExportGradebook, cls).setUpTestData()
@@ -120,8 +118,6 @@ class ExportGradebook(SingleCoursePageTestMixin, TestCase):
 
 
 class ImportGradesTest(SingleCoursePageTestMixin, TestCase):
-    flow_id = "quiz-test"
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(ImportGradesTest, cls).setUpTestData()

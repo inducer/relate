@@ -57,6 +57,18 @@ DEBUG = True
 
 TIME_ZONE = "America/Chicago"
 
+# RELATE needs a message broker for long-running tasks.
+#
+# See here for options:
+# http://docs.celeryproject.org/en/latest/userguide/configuration.html#broker-url
+#
+# The dev server will run fine without this, but any tasks that require
+# queueing will just appear to hang. On Debian/Ubuntu, the following line
+# should be enough to satisfy this requirement.
+#
+# apt-get install rabbitmq-server
+CELERY_BROKER_URL = 'amqp://'
+
 # }}}
 
 # {{{ git storage
@@ -326,7 +338,9 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # A string containing the image ID of the docker image to be used to run
 # student Python code. Docker should download the image on first run.
-RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
+RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64"
+# RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64-tensorflow"
+# (bigger, but includes TensorFlow)
 
 # A URL pointing to the Docker command interface which RELATE should use
 # to spawn containers for student code.

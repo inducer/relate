@@ -327,21 +327,21 @@ def check_relate_settings(app_configs, **kwargs):
     else:
         if not os.path.isdir(git_root):
             errors.append(RelateCriticalCheckMessage(
-                msg=("`%(path)s` connfigured in %(location)s is not a valid path"
+                msg=("`%(path)s` configured in %(location)s is not a valid path"
                      % {"path": git_root, "location": GIT_ROOT}),
                 id="git_root.E003"
             ))
         else:
             if not os.access(git_root, os.W_OK):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("`%(path)s` connfigured in %(location)s is not writable "
+                    msg=("`%(path)s` configured in %(location)s is not writable "
                          "by RELATE"
                          % {"path": git_root, "location": GIT_ROOT}),
                     id="git_root.E004"
                 ))
             if not os.access(git_root, os.R_OK):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("`%(path)s` connfigured in %(location)s is not readable "
+                    msg=("`%(path)s` configured in %(location)s is not readable "
                          "by RELATE"
                          % {"path": git_root, "location": GIT_ROOT}),
                     id="git_root.E005"

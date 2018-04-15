@@ -107,7 +107,7 @@ class ChoiceInfo(object):
         item_mode = [None]
 
         def find_tag_by_mode(mode):
-            for k, v in six.iteritems(tag_mode_dict):
+            for k, v in six.iteritems(tag_mode_dict):  # pragma: no branch
                 if v == mode:
                     return k
 
@@ -401,12 +401,12 @@ class ChoiceQuestion(ChoiceQuestionBase):
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         self.check_page_data(page_data)
 
-        permutation = page_data["permutation"]
-
         if answer_data is None:
             return None
-        else:
-            unpermuted_choice = permutation[answer_data["choice"]]
+
+        permutation = page_data["permutation"]
+
+        unpermuted_choice = permutation[answer_data["choice"]]
 
         import json
         return ".json", json.dumps({
@@ -720,7 +720,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
 
     .. attribute:: type
 
-        ``ChoiceQuestion``
+        ``SurveyChoiceQuestion``
 
     .. attribute:: is_optional_page
 
@@ -747,7 +747,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     def process_choice_string(cls, page_context, s):
         if not isinstance(s, str):
             s = str(s)
-        s = markup_to_html(page_context, s)
+        s = markup_to_html_plain(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 
@@ -848,6 +848,16 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
         return self.process_choice_string(
                 page_context,
                 self.page_desc.choices[choice])
+
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        import json
+        return ".json", json.dumps({
+                "choice": self.page_desc.choices,
+                "0_based_answer": answer_data["choice"],
+                })
 
 # }}}
 

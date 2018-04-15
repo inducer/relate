@@ -41,11 +41,11 @@ from django.utils.decorators import ContextDecorator
 
 from relate.utils import string_concat
 from course.content import (
-        get_course_repo, get_flow_desc,
-        parse_date_spec, get_course_commit_sha)
+    get_course_repo, get_flow_desc,
+    parse_date_spec, get_course_commit_sha,
+    CourseCommitSHADoesNotExist)
 from course.constants import (
         flow_permission, flow_rule_kind)
-import dulwich.repo
 from course.content import (  # noqa
         FlowDesc,
         FlowPageDesc,
@@ -183,8 +183,6 @@ def _eval_generic_conditions(
 
     if (hasattr(rule, "if_signed_in_with_matching_exam_ticket")
             and rule.if_signed_in_with_matching_exam_ticket):
-        if login_exam_ticket is None:
-            return False
         if login_exam_ticket is None:
             return False
         if login_exam_ticket.exam.flow_id != flow_id:
@@ -600,40 +598,18 @@ class CoursePageContext(object):
         from course.views import check_course_state
         check_course_state(self.course, self.participation)
 
-        self.course_commit_sha = get_course_commit_sha(
-                self.course, self.participation)
-
         self.repo = get_course_repo(self.course)
 
-        # logic duplicated in course.content.get_course_commit_sha
-        sha = self.course.active_git_commit_sha.encode()
+        try:
+            sha = get_course_commit_sha(
+                self.course, self.participation,
+                repo=self.repo,
+                raise_on_nonexistent_preview_commit=True)
+        except CourseCommitSHADoesNotExist as e:
+            from django.contrib import messages
+            messages.add_message(request, messages.ERROR, str(e))
 
-        if self.participation is not None:
-            if self.participation.preview_git_commit_sha:
-                preview_sha = self.participation.preview_git_commit_sha.encode()
-
-                with get_course_repo(self.course) as repo:
-                    from relate.utils import SubdirRepoWrapper
-                    if isinstance(repo, SubdirRepoWrapper):
-                        true_repo = repo.repo
-                    else:
-                        true_repo = cast(dulwich.repo.Repo, repo)
-
-                    try:
-                        true_repo[preview_sha]
-                    except KeyError:
-                        from django.contrib import messages
-                        messages.add_message(request, messages.ERROR,
-                                _("Preview revision '%s' does not exist--"
-                                "showing active course content instead.")
-                                % preview_sha.decode())
-
-                        preview_sha = None
-                    finally:
-                        true_repo.close()
-
-                if preview_sha is not None:
-                    sha = preview_sha
+            sha = self.course.active_git_commit_sha.encode()
 
         self.course_commit_sha = sha
 
@@ -758,7 +734,7 @@ class FlowPageContext(FlowContext):
         from course.content import get_flow_page_desc
         try:
             self.page_desc = get_flow_page_desc(
-                    flow_session, self.flow_desc, page_data.group_id,
+                    flow_session.flow_id, self.flow_desc, page_data.group_id,
                     page_data.page_id)  # type: Optional[FlowPageDesc]
         except ObjectDoesNotExist:
             self.page_desc = None
@@ -939,7 +915,7 @@ def get_codemirror_widget(
         dependencies=(),  # type: Tuple
         read_only=False,  # type: bool
         ):
-    # type: (...) ->  CodeMirrorTextarea
+    # type: (...) ->  Tuple[CodeMirrorTextarea,Text]
 
     from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
 
@@ -1152,7 +1128,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
 
 
 def will_use_masked_profile_for_email(recipient_email):
-    # type: (Union[Text, List[Text]]) -> bool
+    # type: (Union[None, Text, List[Text]]) -> bool
     if not recipient_email:
         return False
     if not isinstance(recipient_email, list):

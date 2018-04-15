@@ -117,9 +117,6 @@ def home(request):
             if (pperm.view_hidden_course_page, None) not in perms:
                 show = False
 
-        if not course.listed:
-            show = False
-
         if show:
             if (course.end_date is None
                     or now_datetime.date() <= course.end_date):
@@ -976,7 +973,7 @@ class ExceptionStage3Form(StyledForm):
         if tags:
             tags = [NONE_SESSION_TAG] + tags
             self.fields["set_access_rules_tag"] = forms.ChoiceField(
-                    [(tag, tag) for tag in tags],
+                    choices=[(tag, tag) for tag in tags],
                     initial=(base_session_tag
                         if base_session_tag is not None
                         else NONE_SESSION_TAG),

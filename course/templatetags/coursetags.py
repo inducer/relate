@@ -24,20 +24,20 @@ THE SOFTWARE.
 
 from django.template import Library, Node, TemplateSyntaxError
 from django.utils import translation
-from relate.utils import to_js_lang_name
 
 register = Library()
 
-# {{{ get language_code in JS traditional naming format
 
+# {{{ get language_code in JS traditional naming format
 
 class GetCurrentLanguageJsFmtNode(Node):
     def __init__(self, variable):
         self.variable = variable
 
     def render(self, context):
-        js_lang_name = to_js_lang_name(translation.get_language())
-        context[self.variable] = js_lang_name
+        lang_name = (
+            translation.to_locale(translation.get_language()).replace("_", "-"))
+        context[self.variable] = lang_name
         return ''
 
 
@@ -46,9 +46,10 @@ def do_get_current_js_lang_name(parser, token):
     """
     This will store the current language in the context, in js lang format.
     This is different with built-in do_get_current_language, which returns
-    languange name like "en-us", "zh-cn", with the country code using lower
-    case. This method return lang name "en-US", "zh-CN", as most js packages
-    with i18n are providing translations using that naming format.
+    languange name like "en-us", "zh-hans". This method return lang name
+    "en-US", "zh-Hans",  with the country code capitallized if country code
+    has 2 characters, and capitalize first if country code has more than 2
+    characters.
 
     Usage::
 
@@ -65,6 +66,25 @@ def do_get_current_js_lang_name(parser, token):
                 "'as variable' (got %r)" % args)
     return GetCurrentLanguageJsFmtNode(args[2])
 
+
+@register.filter(name='js_lang_fallback')
+def js_lang_fallback(lang_name, js_name=None):
+    """
+    Return the fallback lang name for js files.
+    :param a :class:`str:`
+    :param js_name: a :class:`str:`, optional.
+    :return: a :class:`str:`
+    """
+
+    # The mapping is crap, we use a special case table to fix it.
+    if js_name == "fullcalendar":
+        known_fallback_mapping = {
+            "zh-hans": "zh-cn",
+            "zh-hant": "zh-tw"}
+        return known_fallback_mapping.get(lang_name.lower(), lang_name).lower()
+
+    return lang_name
+
 # }}}
 
 
@@ -74,7 +94,7 @@ def do_get_current_js_lang_name(parser, token):
 def has_permission(participation, arg):
     """
     Check if a participation instance has specific permission.
-    :param a :class:`participation:` instance
+    :param participation: a :class:`participation:` instance
     :param arg: String, with permission and arguments separated by comma
     :return: a :class:`bool`
     """
@@ -93,3 +113,9 @@ def has_permission(participation, arg):
     return has_pperm
 
 # }}}
+
+
+@register.filter(name='commit_message_as_html')
+def commit_message_as_html(commit_sha, repo):
+    from course.versioning import _get_commit_message_as_html
+    return _get_commit_message_as_html(repo, commit_sha)

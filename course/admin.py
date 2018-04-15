@@ -186,8 +186,11 @@ class EventAdmin(admin.ModelAdmin):
             "kind",
             )
 
-    def __unicode__(self):
-        return u"%s %d in %s" % (self.kind, self.ordinal, self.course)
+    def __unicode__(self):  # pragma: no cover  # not used
+        return u"%s%s in %s" % (
+            self.kind,
+            " (%s)" % str(self.ordinal) if self.ordinal is not None else "",
+            self.course)
 
     if six.PY3:
         __str__ = __unicode__
@@ -253,6 +256,12 @@ class ParticipationRoleAdmin(admin.ModelAdmin):
 
     list_filter = (_filter_related_only("course"), "identifier")
 
+    def get_queryset(self, request):
+        qs = super(ParticipationRoleAdmin, self).get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return _filter_course_linked_obj_for_user(qs, request.user)
+
 
 admin.site.register(ParticipationRole, ParticipationRoleAdmin)
 
@@ -293,11 +302,19 @@ class ParticipationAdmin(admin.ModelAdmin):
 
     get_roles.short_description = _("Roles")  # type: ignore
 
+    def get_tags(self, obj):
+        return ", ".join(six.text_type(tag.name) for tag in obj.tags.all())
+
+    get_tags.short_description = _("Tags")  # type: ignore
+
+    # Fixme: This can be misleading when Non-superuser click on the
+    # link of a user who also attend other courses.
     def get_user(self, obj):
         from django.urls import reverse
         from django.conf import settings
+        from django.utils.html import mark_safe
 
-        return string_concat(
+        return mark_safe(string_concat(
                 "<a href='%(link)s'>", "%(user_fullname)s",
                 "</a>"
                 ) % {
@@ -308,7 +325,7 @@ class ParticipationAdmin(admin.ModelAdmin):
                         args=(obj.user.id,)),
                     "user_fullname": obj.user.get_full_name(
                         force_verbose_blank=True),
-                    }
+                    })
 
     get_user.short_description = pgettext("real name of a user", "Name")  # type:ignore  # noqa
     get_user.admin_order_field = "user__last_name"  # type: ignore
@@ -320,8 +337,19 @@ class ParticipationAdmin(admin.ModelAdmin):
             "course",
             "get_roles",
             "status",
+            "get_tags",
             )
-    list_filter = (_filter_related_only("course"), "roles__name", "status", "tags")
+
+    def get_list_filter(self, request):
+        if request is not None and request.user.is_superuser:
+            return ("course",
+                    "roles__name",
+                    "status",
+                    "tags")
+        return (_filter_related_only("course"),
+                   _filter_related_only("roles"),
+                   "status",
+                   _filter_related_only("tags"))
 
     raw_id_fields = ("user",)
 
@@ -350,6 +378,8 @@ class ParticipationAdmin(admin.ModelAdmin):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
+
+        # Fixme: This seems not to be not reachable
         if db_field.name == "tags":
             kwargs["queryset"] = _filter_course_linked_obj_for_user(
                     ParticipationTag.objects, request.user)
@@ -370,7 +400,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
 
     list_display = ("email", "institutional_id", "course", "get_roles",
             "creation_time", "creator")
-    list_filter = (_filter_related_only("course"), "roles")
+    list_filter = (_filter_related_only("course"), _filter_related_only("roles"))
 
     search_fields = (
             "email", "institutional_id",
@@ -533,8 +563,8 @@ class HasAnswerListFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return (
-            ('y', 'Yes'),
-            ('n', 'No'),
+            ('y', _('Yes')),
+            ('n', _('No')),
         )
 
     def queryset(self, request, queryset):
@@ -692,6 +722,8 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
     get_participant.short_description = _("Participant")  # type: ignore
     get_participant.admin_order_field = "participation__user"  # type: ignore
 
+    ordering = ("-creation_time",)
+
     search_fields = (
             "flow_id",
             "participation__user__username",
@@ -734,7 +766,8 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
 
     exclude = ("creator", "creation_time")
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj, form, change):  # pragma: no cover
+        # This won't work since it's not allowed to add
         obj.creator = request.user
         obj.save()
 

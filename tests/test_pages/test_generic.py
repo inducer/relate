@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
@@ -22,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import os
+import six
 from base64 import b64encode
 
 import unittest
@@ -35,34 +37,26 @@ from course.page.base import (
     AnswerFeedback, get_auto_feedback,
     validate_point_count, InvalidFeedbackPointsError)
 
+from tests.constants import (
+    MESSAGE_ANSWER_SAVED_TEXT,
+    MESSAGE_ANSWER_FAILED_SAVE_TEXT, TEST_TEXT_FILE_PATH, TEST_PDF_FILE_PATH,
+    TEST_HGTEXT_MARKDOWN_ANSWER_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG)
+
 from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
-    SubprocessRunpyContainerMixin)
+    SingleCourseQuizPageTestMixin,
+    FallBackStorageMessageTestMixin)
 from tests.utils import mock
 from tests import factories
 
-QUIZ_FLOW_ID = "quiz-test"
 
-MESSAGE_ANSWER_SAVED_TEXT = "Answer saved."
-MESSAGE_ANSWER_FAILED_SAVE_TEXT = "Failed to submit answer."
-
-
-class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
+class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                                FallBackStorageMessageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCourseQuizPageTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
 
         # cls.default_flow_params will only be available after a flow is started
         cls.start_flow(cls.flow_id)
-
-    def setUp(self):  # noqa
-        super(SingleCourseQuizPageTest, self).setUp()
-        # This is needed to ensure student is logged in
-        self.c.force_login(self.student_participation.user)
 
     # view all pages
     def test_view_all_flow_pages(self):
@@ -75,195 +69,250 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
         # test PageOrdinalOutOfRange
         resp = self.c.get(
-            self.get_page_url_by_ordinal(page_ordinal=page_count+1))
+            self.get_page_url_by_ordinal(page_ordinal=page_count + 1))
         self.assertEqual(resp.status_code, 302)
         _, _, params = resolve(resp.url)
         #  ensure redirected to last page
-        self.assertEqual(int(params["page_ordinal"]), page_count-1)
+        self.assertEqual(int(params["page_ordinal"]), page_count - 1)
 
     # {{{ auto graded questions
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_quiz_no_answer(self):
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
-    def test_quiz_text(self):
-        resp = self.post_answer_by_ordinal(1, {"answer": ['0.5']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            page_count = FlowSession.objects.first().page_count
+            for i in range(page_count):
+                page_id, group_id = (
+                    self.get_page_id_via_page_oridnal(i, with_group_id=True))
+                with self.subTest(page_id=page_id, name="no answer page view"):
+                    resp = self.c.get(self.get_page_url_by_page_id(page_id=page_id))
+                    self.assertEqual(resp.status_code, 200)
+                    if page_id not in ["age_group", "fear", "welcome"]:
+                        self.assertContains(resp, "No answer provided.")
 
-        # Make sure the page is rendered with max_points
-        self.assertResponseContextEqual(resp, "max_points", 5)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(5)
+                with self.subTest(page_id=page_id, name="no answer page analytics"):
+                    # ensure analytics page work, when no answer_data
+                    # todo: make more assertions in terms of content
+                    resp = self.get_flow_page_analytics(
+                        flow_id=self.flow_id, group_id=group_id,
+                        page_id=page_id)
+                    self.assertEqual(resp.status_code, 200)
+
+                with self.subTest(page_id=page_id,
+                                  name="no answer download submission"):
+                    group_page_id = "%s/%s" % (group_id, page_id)
+
+                    # ensure download submissions work when no answer_data
+                    resp = self.post_download_all_submissions_by_group_page_id(
+                        group_page_id=group_page_id, flow_id=self.flow_id)
+                    self.assertEqual(resp.status_code, 200)
+                    prefix, zip_file = resp["Content-Disposition"].split('=')
+                    self.assertEqual(prefix, "attachment; filename")
+                    self.assertEqual(resp.get('Content-Type'), "application/zip")
+
+    def test_quiz_text(self):
+        page_id = "half"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id)
+        )
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_choice(self):
-        resp = self.post_answer_by_ordinal(2, {"choice": ['0']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(2)
+        page_id = "krylov"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id)
+        )
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_choice_failed_no_answer(self):
-        self.assertSubmitHistoryItemsCount(page_ordinal=2, expected_count=0)
-        resp = self.post_answer_by_ordinal(2, {"choice": []})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        page_id = "krylov"
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=0)
+
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"choice": []}, do_grading=False)
+        )
+
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
         # There should be no submission history
         # https://github.com/inducer/relate/issues/351
-        self.assertSubmitHistoryItemsCount(page_ordinal=2, expected_count=0)
-        self.assertEqual(self.end_flow().status_code, 200)
+        self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
+                                           expected_count=0)
+        self.end_flow()
         self.assertSessionScoreEqual(0)
 
     def test_quiz_multi_choice_exact_correct(self):
-        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
-        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(1)
+        page_id = "ice_cream_toppings"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id)
+        )
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
+
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=1)
 
     def test_quiz_multi_choice_exact_wrong(self):
-        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
-        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(0)
+        page_id = "ice_cream_toppings"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"choice": ['0', '1']}, do_grading=False)
+        )
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
-    def test_quiz_multi_choice_failed_change_answer(self):
-        # Note: this page doesn't have permission to change_answer
-        # submit a wrong answer
-        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=0)
-        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=1)
 
+        # This page doesn't have permission to change_answer
         # try to change answer to a correct one
-        resp = self.post_answer_by_ordinal(3, {"choice": ['0', '1', '4']})
-        self.assertSubmitHistoryItemsCount(page_ordinal=3, expected_count=1)
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(
-                    resp, ["Already have final answer.",
-                           "Failed to submit answer."])
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, do_grading=False))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            ["Already have final answer.",
+                                             "Failed to submit answer."])
+
+        self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=1)
+
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
 
-    def test_quiz_multi_choice_proportion_partial(self):
-        resp = self.post_answer_by_ordinal(4, {"choice": ['0']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(0.8)
+    def test_quiz_multi_choice_proportion_rule_partial(self):
+        page_id = "matrix_props"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"choice": ['0']}, expected_grade=0.8)
+        )
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
-    def test_quiz_multi_choice_proportion_correct(self):
-        resp = self.post_answer_by_ordinal(4, {"choice": ['0', '3']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(1)
+    def test_quiz_multi_choice_proportion_rule_correct(self):
+        page_id = "matrix_props"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
-    def test_quiz_inline(self):
+    def test_quiz_inline_wrong_answer(self):
+        page_id = "inlinemulti"
         answer_data = {
-            'blank1': ['Bar'], 'blank_2': ['0.2'], 'blank3': ['1'],
-            'blank4': ['5'], 'blank5': ['Bar'], 'choice2': ['0'],
-            'choice_a': ['0']}
-        resp = self.post_answer_by_ordinal(5, answer_data)
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(10)
+            'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
+            'blank4': '5', 'blank5': 'Bar', 'choice_a': '0'}
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data=answer_data, expected_grade=8.57))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
+
+        # 6 correct answer
+        self.assertContains(submit_answer_response, 'correctness="1"', count=6)
+        # 1 incorrect answer
+        self.assertContains(submit_answer_response, 'correctness="0"', count=1)
+
+    def test_quiz_inline_correct_answer(self):
+        page_id = "inlinemulti"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
+        # 7 answer
+        self.assertContains(submit_answer_response, 'correctness="1"', count=7)
 
     # }}}
 
     # {{{ survey questions
 
     def test_quiz_survey_text(self):
-        self.assertSubmitHistoryItemsCount(page_ordinal=6, expected_count=0)
-        resp = self.post_answer_by_ordinal(
-                            6, {"answer": ["NOTHING!!!"]})
-        self.assertSubmitHistoryItemsCount(page_ordinal=6, expected_count=1)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        # Survey question won't be counted into final score
-        self.assertSessionScoreEqual(0)
-        last_answer_visit = self.get_last_answer_visit()
-        self.assertEqual(last_answer_visit.answer["answer"], "NOTHING!!!")
+        page_id = "fear"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_survey_choice(self):
-        self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
-
-        # no answer thus no history
-        self.post_answer_by_ordinal(7, {"choice": []})
-        self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=0)
-
-        resp = self.post_answer_by_ordinal(7, {"choice": ['8']})
-        self.assertSubmitHistoryItemsCount(page_ordinal=7, expected_count=1)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        # Survey question won't be counted into final score
-        self.assertSessionScoreEqual(0)
-
-        last_answer_visit = self.get_last_answer_visit()
-        self.assertEqual(last_answer_visit.answer["choice"], 8)
+        page_id = "age_group"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     # }}}
+
+    def test_human_graded_text(self):
+        page_id = "hgtext"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
+
+    def test_human_graded_text_failed(self):
+        page_id = "hgtext"
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": TEST_HGTEXT_MARKDOWN_ANSWER_WRONG},
+                do_grading=False))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        self.assertFormErrorLoose(
+            submit_answer_response,
+            "ValidationError: submitted page: "
+            "one or more correct answer(s) expected, 0 found"
+        )
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
+                                           expected_count=0)
+
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id,
+                answer_data={"answer": TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG},
+                do_grading=False))
+        self.assertFormErrorLoose(
+            submit_answer_response,
+            "ValidationError: page must be of type 'ChoiceQuestion'"
+        )
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
+                                           expected_count=0)
 
     # {{{ fileupload questions
 
     def test_fileupload_any(self):
         page_id = "anyup"
-        ordinal = self.get_page_ordinal_via_page_id(page_id)
-        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
-                                           expected_count=0)
-        with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'test_file.txt'), 'rb') as fp:
-            resp = self.post_answer_by_page_id(
-                page_id, {"uploaded_file": fp})
-            fp.seek(0)
-            expected_result = b64encode(fp.read()).decode()
-            self.assertEqual(resp.status_code, 200)
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, do_grading=False))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
-                                           expected_count=1)
-        last_answer_visit = self.get_last_answer_visit()
-        self.assertEqual(last_answer_visit.answer["base64_data"], expected_result)
-        self.assertSessionScoreEqual(None)
-
-    def test_fileupload_any_change_answer(self):
-        page_id = "anyup"
-        ordinal = self.get_page_ordinal_via_page_id(page_id)
-        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
-                                           expected_count=0)
-        with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'test_file.txt'), 'rb') as fp:
-            resp = self.post_answer_by_page_id(
-                page_id, {"uploaded_file": fp})
-            fp.seek(0)
+        with open(TEST_TEXT_FILE_PATH, 'rb') as fp:
             expected_result1 = b64encode(fp.read()).decode()
-            self.assertEqual(resp.status_code, 200)
 
-        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
-                                           expected_count=1)
+        # change answer
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"uploaded_file": TEST_PDF_FILE_PATH},
+                expected_grade=5))
 
-        with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'test_file.pdf'), 'rb') as fp:
-            resp = self.post_answer_by_page_id(
-                page_id, {"uploaded_file": fp})
-            self.assertEqual(resp.status_code, 200)
-            fp.seek(0)
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
+
+        with open(TEST_PDF_FILE_PATH, 'rb') as fp:
             expected_result2 = b64encode(fp.read()).decode()
 
-        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
+        page_ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
                                            expected_count=2)
 
         answer_visits_qset = (
@@ -273,43 +322,40 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
             answer_visits_qset[1].answer["base64_data"], expected_result2)
         self.assertEqual(
             answer_visits_qset[0].answer["base64_data"], expected_result1)
-        self.assertSessionScoreEqual(None)
 
-    def test_fileupload_pdf(self):
+    def test_fileupload_pdf_wrong_mime_type(self):
         page_id = "proof"
+
+        # wrong MIME type, a text file
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"uploaded_file": TEST_TEXT_FILE_PATH},
+                do_grading=False))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+
+        # https://github.com/inducer/relate/issues/351
+        self.assertEqual(submit_answer_response.status_code, 200)
+
         ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
                                            expected_count=0)
-        # wrong MIME type
-        with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'test_file.txt'), 'rb') as fp:
-            resp = self.post_answer_by_page_id(
-                page_id, {"uploaded_file": fp})
+        self.end_flow()
+        self.assertSessionScoreEqual(0)
 
-            # https://github.com/inducer/relate/issues/351
-            self.assertEqual(resp.status_code, 200)
+    def test_fileupload_pdf(self):
+        page_id = "proof"
 
-        self.assertResponseMessagesContains(resp, [MESSAGE_ANSWER_FAILED_SAVE_TEXT])
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
-        # There should be no submission history
-        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
-                                           expected_count=0)
-        with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'test_file.pdf'), 'rb') as fp:
-            resp = self.post_answer_by_page_id(
-                page_id, {"uploaded_file": fp})
-            self.assertEqual(resp.status_code, 200)
-            fp.seek(0)
+        with open(TEST_PDF_FILE_PATH, 'rb') as fp:
             expected_result = b64encode(fp.read()).decode()
 
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
-                                           expected_count=1)
         last_answer_visit = self.get_last_answer_visit()
         self.assertEqual(last_answer_visit.answer["base64_data"], expected_result)
-        self.assertSessionScoreEqual(None)
 
     # }}}
 
@@ -317,28 +363,21 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
 
     def test_optional_page_with_correct_answer(self):
         page_id = "quarter"
-        resp = self.post_answer_by_page_id(page_id, {"answer": ['0.25']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-
-        # Make sure the page is rendered with 0 max_points
-        self.assertResponseContextEqual(resp, "max_points", 0)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-
-        # Even the answer is correct, there should be zero score.
-        self.assertSessionScoreEqual(0)
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_optional_page_with_wrong_answer(self):
         page_id = "quarter"
-        resp = self.post_answer_by_page_id(page_id, {"answer": ['0.15']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"answer": ['0.15']}, expected_grade=0))
+        self.assertResponseMessagesContains(submit_answer_response,
+                                            MESSAGE_ANSWER_SAVED_TEXT)
 
         # Make sure the page is rendered with 0 max_points
-        self.assertResponseContextEqual(resp, "max_points", 0)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertResponseContextEqual(submit_answer_response, "max_points", 0)
 
         # The answer is wrong, there should also be zero score.
         self.assertSessionScoreEqual(0)
@@ -372,153 +411,17 @@ class SingleCourseQuizPageTest(SingleCoursePageTestMixin,
         ta_flow_session = factories.FlowSessionFactory(
             participation=self.ta_participation)
         resp = self.get_page_submit_history_by_ordinal(
-                page_ordinal=1, flow_session_id=ta_flow_session.id)
+            page_ordinal=1, flow_session_id=ta_flow_session.id)
         self.assertEqual(resp.status_code, 403)
 
     # }}}
-
-
-class SingleCourseQuizPageCodeQuestionTest(
-            SingleCoursePageTestMixin, FallBackStorageMessageTestMixin,
-            SubprocessRunpyContainerMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageCodeQuestionTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
-        cls.start_flow(cls.flow_id)
-
-    def setUp(self):  # noqa
-        super(SingleCourseQuizPageCodeQuestionTest, self).setUp()
-        # This is needed to ensure student is logged in
-        self.c.force_login(self.student_participation.user)
-
-    def test_code_page_correct(self):
-        page_id = "addition"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = b + a\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(1)
-
-    def test_code_page_wrong(self):
-        page_id = "addition"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a - b\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(0)
-
-    def test_code_page_identical_to_reference(self):
-        page_id = "addition"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a + b\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp,
-                ("It looks like you submitted code "
-                 "that is identical to the reference "
-                 "solution. This is not allowed."))
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(1)
-
-    def test_code_human_feedback_page_submit(self):
-        page_id = "pymult"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a * b\r']})
-        self.assertEqual(resp.status_code, 200)
-        self.assertResponseMessagesContains(resp, MESSAGE_ANSWER_SAVED_TEXT)
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(None)
-
-    def test_code_human_feedback_page_grade1(self):
-        page_id = "pymult"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = b * a\r']})
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "'c' looks good")
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"]
-        }
-
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2/2 points.")
-
-        # since the test_code didn't do a feedback.set_points() after
-        # check_scalar()
-        self.assertSessionScoreEqual(None)
-
-    def test_code_human_feedback_page_grade2(self):
-        page_id = "pymult"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['c = a / b\r']})
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "'c' is inaccurate")
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0/2 points.")
-
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"]
-        }
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 2/2 points.")
-        self.assertSessionScoreEqual(2)
-
-    def test_code_human_feedback_page_grade3(self):
-        page_id = "py_simple_list"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['b = [a + 1] * 50\r']})
-
-        # this is testing feedback.finish(0.3, feedback_msg)
-        # 2 * 0.3 = 0.6
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The autograder assigned 0.90/3 points.")
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The elements in b have wrong values")
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        # The page is not graded before human grading.
-        self.assertSessionScoreEqual(None)
-
-    def test_code_human_feedback_page_grade4(self):
-        page_id = "py_simple_list"
-        resp = self.post_answer_by_page_id(
-            page_id, {"answer": ['b = [a] * 50\r']})
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "b looks good")
-        self.assertEqual(self.end_flow().status_code, 200)
-
-        grade_data = {
-            "grade_percent": ["100"],
-            "released": ["on"]
-        }
-
-        resp = self.post_grade_by_page_id(page_id, grade_data)
-        self.assertTrue(resp.status_code, 200)
-        self.assertResponseContextAnswerFeedbackContainsFeedback(
-                resp, "The human grader assigned 1/1 points.")
-
-        self.assertSessionScoreEqual(4)
 
 
 class ValidatePointCountTest(unittest.TestCase):
     """
     test course.page.base.validate_point_count
     """
+
     def test_none(self):
         self.assertIsNone(validate_point_count(None))
 
@@ -608,10 +511,10 @@ class AnswerFeedBackTest(unittest.TestCase):
 
     def test_validate_point_count_called(self):
         import random
-        with mock.patch("course.page.base.validate_point_count")\
-                as mock_validate_point_count,\
-                mock.patch("course.page.base.get_auto_feedback")\
-                as mock_get_auto_feedback:
+        with mock.patch("course.page.base.validate_point_count") \
+                as mock_validate_point_count, \
+                mock.patch("course.page.base.get_auto_feedback") \
+                        as mock_get_auto_feedback:
             mock_validate_point_count.side_effect = lambda x: x
 
             mock_get_auto_feedback.side_effect = lambda x: x
@@ -646,6 +549,7 @@ class GetAutoFeedbackTest(unittest.TestCase):
     """
     test course.page.base.get_auto_feedback
     """
+
     def test_none(self):
         self.assertIn("No information", get_auto_feedback(None))
 
@@ -712,6 +616,5 @@ class GetAutoFeedbackTest(unittest.TestCase):
 
             get_auto_feedback(correctness=None)
             mock_validate_point_count.assert_called_once_with(None)
-
 
 # vim: fdm=marker

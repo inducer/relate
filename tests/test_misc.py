@@ -285,6 +285,18 @@ class GetCurrentLanguageJsLangNameTest(TestCase):
             text = template.render()
             self.assertEqual(text, "de")
 
+        with override_settings(LANGUAGE_CODE="zh-hans"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "zh-Hans")
+
+        with override_settings(LANGUAGE_CODE="zh-hant"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "zh-Hant")
+
     def test_get_current_js_lang_name_tag_failed(self):
         from django.template import TemplateSyntaxError
         msg = ("'get_current_js_lang_name' requires 'as variable' "
@@ -306,6 +318,49 @@ class GetCurrentLanguageJsLangNameTest(TestCase):
         with self.assertRaisesMessage(TemplateSyntaxError, expected_message=msg):
             self.engines["django"].from_string(
                 "{% get_current_js_lang_name AS LANG %}{{LANG}}")
+
+    def test_js_lang_fallback(self):
+        with override_settings(LANGUAGE_CODE="en-us"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback}}")
+            text = template.render()
+            self.assertEqual(text, "en-US")
+
+        with override_settings(LANGUAGE_CODE="en-us"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback:'fullcalendar'}}")
+            text = template.render()
+            self.assertEqual(text, "en-us")
+
+        with override_settings(LANGUAGE_CODE="zh-cn"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback:'fullcalendar'}}")
+            text = template.render()
+            self.assertEqual(text, "zh-cn")
+
+        with override_settings(LANGUAGE_CODE="zh-cn"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback}}")
+            text = template.render()
+            self.assertEqual(text, "zh-CN")
+
+        with override_settings(LANGUAGE_CODE="zh-hans"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback}}")
+            text = template.render()
+            self.assertEqual(text, "zh-Hans")
+
+        with override_settings(LANGUAGE_CODE="zh-hans"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback:'fullcalendar'}}")
+            text = template.render()
+            self.assertEqual(text, "zh-cn")
 
 
 class HasPermissionTemplateFilterTest(SingleCourseTestMixin, TestCase):
@@ -396,7 +451,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
                 mock_gettext.return_value = "foo"
                 with self.temporarily_switch_to_user(None):
                     resp = self.post_sign_up(
-                        data={"username": "Jack", "email": "jack@exmaple.com"},
+                        data={"username": "Jack", "email": "jack@example.com"},
                         follow=False
                     )
                     self.assertTrue(resp.status_code, 200)

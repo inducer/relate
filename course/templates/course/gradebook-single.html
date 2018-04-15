@@ -244,7 +244,7 @@
                                 {% if visit.page_data.bookmarked %}
                                   <i class="fa fa-star" aria-hidden="true"></i>
                                 {% endif %}
-                                {{ visit.page_data.title }}
+                                {{ visit.page_data.title|safe }}
                               {% else %}
                                 {{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}
                               {% endif %}

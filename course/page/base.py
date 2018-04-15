@@ -338,6 +338,7 @@ class PageBase(object):
 
     .. automethod:: grade
     .. automethod:: correct_answer
+    .. automethod:: analytic_view_body
     .. automethod:: normalized_answer
     .. automethod:: normalized_bytes_answer
     """
@@ -462,6 +463,15 @@ class PageBase(object):
 
         raise NotImplementedError()
 
+    def analytic_view_body(self, page_context, page_data):
+        # type: (PageContext, Dict) -> str
+
+        """
+        Return the (HTML) body of the page, which is shown in page analytic
+        view."""
+
+        return self.body(page_context, page_data)
+
     def body(self, page_context, page_data):
         # type: (PageContext, Dict) -> str
 
@@ -575,20 +585,12 @@ class PageBase(object):
             ):
         """Returns an HTML rendering of *form*."""
 
-        from django.template import loader, RequestContext
-        from django import VERSION as django_version  # noqa
+        from django.template import loader
 
-        if django_version >= (1, 9):
-            return loader.render_to_string(
-                    "course/crispy-form.html",
-                    context={"form": form},
-                    request=request)
-        else:
-            context = RequestContext(request)
-            context.update({"form": form})
-            return loader.render_to_string(
-                    "course/crispy-form.html",
-                    context_instance=context)
+        return loader.render_to_string(
+                "course/crispy-form.html",
+                context={"form": form},
+                request=request)
 
     # }}}
 
@@ -670,10 +672,12 @@ class PageBase(object):
         # type: (...) -> Text
         """Returns an HTML rendering of *grading_form*."""
 
+        # http://bit.ly/2GxzWr1
         from crispy_forms.utils import render_crispy_form
-        from django.template import RequestContext
-        context = RequestContext(request, {})
-        return render_crispy_form(grading_form, context=context)
+        from django.template.context_processors import csrf
+        ctx = {}  # type: Dict
+        ctx.update(csrf(request))
+        return render_crispy_form(grading_form, context=ctx)
 
     # }}}
 
@@ -767,7 +771,7 @@ class PageBaseWithTitle(PageBase):
             except NotImplementedError:
                 from warnings import warn
                 warn(_("PageBaseWithTitle subclass '%s' does not implement "
-                        "markdown_body_for_title()")
+                        "markup_body_for_title()")
                         % type(self).__name__)
             else:
                 from course.content import extract_title_from_markup
@@ -779,6 +783,13 @@ class PageBaseWithTitle(PageBase):
                         "%s: ",
                         _("no title found in body or title attribute"))
                     % (location))
+
+        from markdown import markdown
+        from django.utils.html import strip_tags
+        title = strip_tags(markdown(title))
+
+        if not title and vctx is not None:
+            vctx.add_warning(location, _("the rendered title is an empty string"))
 
         self._title = title
 
@@ -805,6 +816,13 @@ class PageBaseWithValue(PageBase):
                         location,
                         _("Attribute 'value' should be removed when "
                           "'is_optional_page' is True.")))
+
+            if hasattr(page_desc, "value") and page_desc.value < 0:
+                raise ValidationError(
+                    string_concat(
+                        location,
+                        _("Attribute 'value' expects a non-negative value, "
+                          "got %s instead") % str(page_desc.value)))
 
     def allowed_attrs(self):
         return super(PageBaseWithValue, self).allowed_attrs() + (
@@ -852,8 +870,9 @@ class TextInputWithButtons(forms.TextInput):
         self.button_values = button_values
         super(TextInputWithButtons, self).__init__(*args, **kwargs)
 
-    def render(self, name, value, attrs=None):
-        html = super(TextInputWithButtons, self).render(name, value, attrs)
+    def render(self, name, value, attrs=None, renderer=None):
+        html = super(TextInputWithButtons, self).render(name, value, attrs,
+                                                        renderer)
         from django.utils.html import format_html, mark_safe, escapejs
         id = attrs["id"]
 
@@ -969,26 +988,25 @@ class HumanTextFeedbackForm(StyledForm):
     def cleaned_percent(self):
         if self.point_value is None:
             return self.cleaned_data["grade_percent"]
-        elif (self.cleaned_data["grade_percent"] is not None
-                and self.cleaned_data.get("grade_points") is not None):
-            points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
-            direct_percent = self.cleaned_data["grade_percent"]
-
-            if abs(points_percent - direct_percent) > 0.1:
-                raise RuntimeError(_("Grade (percent) and Grade (points) "
-                        "disagree"))
-
-            return max(points_percent, direct_percent)
-        elif self.cleaned_data["grade_percent"] is not None:
-            return self.cleaned_data["grade_percent"]
-
-        elif self.cleaned_data.get("grade_points") is not None:
-            if self.point_value:
-                return 100*self.cleaned_data["grade_points"]/self.point_value
-            else:
-                return None
         else:
-            return None
+            candidate_percentages = []
+
+            if self.cleaned_data["grade_percent"] is not None:
+                candidate_percentages.append(self.cleaned_data["grade_percent"])
+
+            if self.cleaned_data.get("grade_points") is not None:
+                candidate_percentages.append(
+                    100 * self.cleaned_data["grade_points"] / self.point_value)
+
+            if not candidate_percentages:
+                return None
+
+            if len(candidate_percentages) == 2:
+                if abs(candidate_percentages[1] - candidate_percentages[0]) > 0.1:
+                    raise RuntimeError(_("Grade (percent) and Grade (points) "
+                                         "disagree"))
+
+            return max(candidate_percentages)
 
 
 class PageBaseWithHumanTextFeedback(PageBase):

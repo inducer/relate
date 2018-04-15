@@ -26,19 +26,18 @@ import six
 from django.urls import reverse, NoReverseMatch
 from django.test import TestCase
 from unittest import skipIf
-from tests.base_test_mixins import SingleCoursePageTestMixin
 
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
     FlowRuleException
 )
 
+from tests.base_test_mixins import SingleCoursePageTestMixin
+
 
 class GradeTestMixin(SingleCoursePageTestMixin):
     # This serve as a base test cases for other grade tests to subclass
     # Nice little tricks :)
-    flow_id = "quiz-test"
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(GradeTestMixin, cls).setUpTestData()
@@ -134,7 +133,8 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(FlowSession.objects.all().count(),
                          len(self.flow_session_ids))
 
-    # Seems just show the answer
+    # Just show the grading interfaces of the unanswered pages
+    # the answered pages are tested in tests.teat_pages.test_generic
     def test_view_grade_flow_page(self):
         params = {"course_identifier": self.course.identifier,
                   "flow_session_id": self.flow_session_ids[0]}
@@ -230,12 +230,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
                     "flow_id": self.flow_id}
         resp = self.c.get(reverse("relate-flow_analytics",
                                             kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-
-    # Only check page for now
-    def test_view_regrade_flow(self):
-        resp = self.c.get(reverse("relate-regrade_flows_view",
-                                            args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_grant_exception_new_session(self):
@@ -381,6 +375,9 @@ class GradeTestMixin(SingleCoursePageTestMixin):
 
 
 class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
+
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls): # noqa
         super(GradeTwoQuizTakerTest, cls).setUpTestData()
@@ -393,6 +390,9 @@ class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
 
 
 class GradeThreeQuizTakerTest(GradeTestMixin, TestCase):
+
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls): # noqa
         super(GradeThreeQuizTakerTest, cls).setUpTestData()
@@ -406,12 +406,9 @@ class GradeThreeQuizTakerTest(GradeTestMixin, TestCase):
 
 @skipIf(six.PY2, "PY2 doesn't support subTest")
 class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
-    flow_id = "quiz-test"
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(GradePermissionsTests, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
         cls.start_flow(flow_id=cls.flow_id)
         cls.end_flow()
 

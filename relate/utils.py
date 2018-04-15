@@ -54,11 +54,10 @@ except ImportError:
     from django.utils.functional import lazy
     format_lazy = lazy(_format_lazy, str)
 
-try:
-    from django.utils.translation import string_concat
-except ImportError:
-    def string_concat(*strings):
-        return format_lazy("{}" * len(strings), *strings)
+
+def string_concat(*strings):
+    # type: (Any) -> Text
+    return format_lazy("{}" * len(strings), *strings)
 
 # }}}
 
@@ -364,22 +363,6 @@ if 0:
     print("*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 %s' to dump stacks"
             % os.getpid())
     signal.signal(signal.SIGUSR1, dumpstacks)
-
-# }}}
-
-
-# {{{ convert django language name to js styled language name
-
-def to_js_lang_name(dj_lang_name):
-    """
-    Turns a django language name (en-us) into a js styled language
-    name (en-US).
-    """
-    p = dj_lang_name.find('-')
-    if p >= 0:
-        return dj_lang_name[:p].lower() + '-' + dj_lang_name[p + 1:].upper()
-    else:
-        return dj_lang_name.lower()
 
 # }}}
 

@@ -13,17 +13,17 @@
 
     {% block head_assets %}
       {% block head_assets_before_form_media %}
-        <link href="{% static 'bootstrap/dist/css/bootstrap.css' %}" rel="stylesheet">
-        <link href="{% static 'jquery-ui/themes/smoothness/jquery-ui.css' %}" rel="stylesheet">
+        <link href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}" rel="stylesheet">
+        <link href="{% static 'jquery-ui-dist/jquery-ui.theme.min.css' %}" rel="stylesheet">
 
-        <link rel="stylesheet" href="{% static 'font-awesome/css/font-awesome.css' %}">
+        <link rel="stylesheet" href="{% static 'font-awesome/css/font-awesome.min.css' %}">
         <link rel="stylesheet" href="{% static 'jstree/dist/themes/default/style.min.css' %}"/>
 
         {# Don't be tempted to move all this JS stuff down to the end. #}
         {# The datepicker generates inline JS that relies on this being loaded. #}
-        <script src="{% static 'jquery/dist/jquery.js' %}"></script>
-        <script src="{% static 'jquery-ui/jquery-ui.js' %}"></script>
-        <script src="{% static 'bootstrap/dist/js/bootstrap.js' %}"></script>
+        <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+        <script src="{% static 'jquery-ui-dist/jquery-ui.min.js' %}"></script>
+        <script src="{% static 'bootstrap/dist/js/bootstrap.min.js' %}"></script>
         <script src="{% static 'jstree/dist/jstree.min.js' %}"></script>
       {% endblock %}
 
@@ -70,7 +70,7 @@
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
             </button>
-              <a class="navbar-brand" href="{% block brand_link %}/{% endblock %}">{%block brand %}{{ relate_site_name }}{% endblock %}</a>
+              <a class="navbar-brand" href="{% block brand_link %}{% url 'relate-home' %}{% endblock %}">{%block brand %}{{ relate_site_name }}{% endblock %}</a>
           </div>
           <div class="navbar-collapse collapse">
             {% if not maintenance_mode %}
@@ -85,7 +85,7 @@
                       <ul class="dropdown-menu">
                         {% block navbar_dropdown_staff_menu_admin %}
                           {% if user.is_staff %}
-                            <li><a href="/admin" target="_blank">{% trans "Admin site" %}</a></li>
+                            <li><a href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
                           {% endif %}
                         {% endblock %}
                         {% block navbar_dropdown_staff_menu_purge_page_view_data %}
@@ -184,7 +184,7 @@
       ================================================== -->
       <!-- Placed at the end of the document so the pages load faster -->
       <script type="text/javascript"
-              src="{% static "MathJax/MathJax.js" %}?config=TeX-AMS-MML_HTMLorMML">
+              src="{% static "mathjax/MathJax.js" %}?config=TeX-AMS-MML_HTMLorMML">
       </script>
       <script type="text/x-mathjax-config">
           MathJax.Hub.Config({

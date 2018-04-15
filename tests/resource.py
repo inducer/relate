@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
+
 
 def my_customized_get_full_name_method(first_name, last_name):
     return "%s %s" % (first_name.title(), last_name.title())
@@ -47,3 +49,7 @@ def my_custom_get_masked_profile_method_valid_but_return_none(u):
 
 def my_custom_get_masked_profile_method_valid_but_return_emtpy_string(u):
     return "  "
+
+
+class MyFakeEmailBackend(LocMemEmailBackend):
+    pass

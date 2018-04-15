@@ -56,14 +56,17 @@
   </tbody>
 </table>
 
-{% load static %}
-{% get_current_js_lang_name as LANG %}
-<script type="text/javascript">
-  var tbl = $("table.gradebook-participants").dataTable({
-      "scrollCollapse": true,
-      "paging": false,
-      "ordering": true,
-      "columnDefs": [{ type: 'name', targets: 1 }],
-      "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
-  } );
-</script>
+
+{% block participation_table_bottom_js %}
+  {% load static %}
+  {% get_current_js_lang_name as LANG %}
+  <script type="text/javascript">
+    var tbl = $("table.gradebook-participants").dataTable({
+        "scrollCollapse": true,
+        "paging": false,
+        "ordering": true,
+        "columnDefs": [{ type: 'name', targets: 1 }],
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
+    } );
+  </script>
+{% endblock %}

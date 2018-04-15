@@ -24,21 +24,23 @@ THE SOFTWARE.
 
 import json
 from django.test import TestCase
+
+from course.models import FlowSession
+from course import content
+
 from tests.base_test_mixins import (
+    SingleCourseTestMixin,
     improperly_configured_cache_patch, SingleCoursePageTestMixin)
-from tests.test_pages import QUIZ_FLOW_ID
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
+from tests import factories  # noqa
 
 
 class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
 
-    flow_id = QUIZ_FLOW_ID
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCoursePageCacheTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
         cls.start_flow(cls.flow_id)
 
     @improperly_configured_cache_patch()
@@ -274,10 +276,40 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
 
 class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
 
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls):  # noqa
         super(NbconvertRenderTest, cls).setUpTestData()
         cls.c.force_login(cls.instructor_participation.user)
+
+    def test_notebook_page_view(self):
+        self.start_flow(flow_id="001-linalg-recap",
+                        course_identifier=self.course.identifier,
+                        assume_success=False)
+        fs = FlowSession.objects.last()
+        resp = self.c.get(
+            self.get_page_url_by_page_id(
+                "ipynb", course_identifier=self.course.identifier,
+                flow_session_id=fs.id))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_notebook_file_not_found(self):
+        self.start_flow(flow_id="001-linalg-recap",
+                        course_identifier=self.course.identifier,
+                        assume_success=False)
+        with mock.patch(
+                "course.content.get_repo_blob_data_cached") as mock_get_blob_cached:
+
+            from django.core.exceptions import ObjectDoesNotExist
+            mock_get_blob_cached.side_effect = ObjectDoesNotExist()
+
+            fs = FlowSession.objects.last()
+            with self.assertRaises(ObjectDoesNotExist):
+                self.c.get(
+                    self.get_page_url_by_page_id(
+                        "ipynb", course_identifier=self.course.identifier,
+                        flow_session_id=fs.id))
 
     def test_full_notebook_render(self):
         resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_FULL)
@@ -474,5 +506,74 @@ class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertResponseContextContains(resp, "body", expected_literal)
 
     # }}}
+
+
+class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
+    # test content.get_course_commit_sha
+    def setUp(self):
+        super(GetCourseCommitShaTest, self).setUp()
+        self.valid_sha = self.course.active_git_commit_sha
+        self.new_sha = "some_sha"
+        self.course.active_git_commit_sha = self.new_sha
+        self.course.save()
+
+    def test_no_participation(self):
+        self.assertEqual(
+            content.get_course_commit_sha(
+                course=self.course, participation=None).decode(), self.new_sha)
+
+    def test_invalid_preview_sha(self):
+        invalid_sha = "invalid_sha"
+        self.ta_participation.preview_git_commit_sha = invalid_sha
+        self.ta_participation.save()
+
+        self.assertEqual(
+            content.get_course_commit_sha(
+                course=self.course, participation=self.ta_participation).decode(),
+            self.new_sha)
+
+    def test_invalid_preview_sha_error_raised(self):
+        invalid_sha = "invalid_sha"
+        self.ta_participation.preview_git_commit_sha = invalid_sha
+        self.ta_participation.save()
+
+        with self.assertRaises(content.CourseCommitSHADoesNotExist) as cm:
+            content.get_course_commit_sha(
+                course=self.course, participation=self.ta_participation,
+                raise_on_nonexistent_preview_commit=True)
+
+        expected_error_msg = ("Preview revision '%s' does not exist--"
+                      "showing active course content instead."
+                      % invalid_sha)
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_passed_repo_not_none(self):
+        with self.get_course_page_context(self.ta_participation.user) as pctx:
+            self.assertEqual(
+                content.get_course_commit_sha(
+                    self.course, self.ta_participation,
+                    repo=pctx.repo).decode(), self.course.active_git_commit_sha)
+
+    def test_preview_passed_repo_not_none(self):
+        self.ta_participation.preview_git_commit_sha = self.valid_sha
+        self.ta_participation.save()
+
+        with self.get_course_page_context(self.ta_participation.user) as pctx:
+            self.assertEqual(
+                content.get_course_commit_sha(
+                    self.course, self.ta_participation,
+                    repo=pctx.repo).decode(), self.valid_sha)
+
+    def test_repo_is_subdir_repo(self):
+        self.course.course_root_path = "/my_subdir"
+        self.course.save()
+        self.ta_participation.preview_git_commit_sha = self.valid_sha
+        self.ta_participation.save()
+
+        with self.get_course_page_context(self.ta_participation.user) as pctx:
+            self.assertEqual(
+                content.get_course_commit_sha(
+                    self.course, self.ta_participation,
+                    repo=pctx.repo).decode(), self.valid_sha)
 
 # vim: fdm=marker

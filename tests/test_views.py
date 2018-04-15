@@ -24,13 +24,17 @@ THE SOFTWARE.
 
 from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
+from django.urls import reverse
+from django.utils.timezone import now, timedelta
 import datetime
 from course import views
 
 from tests.base_test_mixins import (
-    SingleCourseTestMixin,
+    CoursesTestMixinBase, SingleCourseTestMixin,
 )
+from tests.test_auth import AuthTestMixin
 from tests.utils import mock
+from tests import factories
 
 DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
 
@@ -337,3 +341,73 @@ class TestEditCourse(SingleCourseTestMixin, TestCase):
         from django.core.exceptions import ValidationError
         with self.assertRaises(ValidationError):
             self.course.save()
+
+
+class GenerateSshKeypairTest(CoursesTestMixinBase, AuthTestMixin, TestCase):
+    def get_generate_ssh_keypair_url(self):
+        return reverse("relate-generate_ssh_keypair")
+
+    def test_anonymous(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            self.assertEqual(resp.status_code, 302)
+
+            expected_redirect_url = self.get_sign_in_choice_url(
+                redirect_to=self.get_generate_ssh_keypair_url())
+
+            self.assertRedirects(resp, expected_redirect_url,
+                                 fetch_redirect_response=False)
+
+    def test_not_staff(self):
+        user = factories.UserFactory()
+        assert not user.is_staff
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            self.assertEqual(resp.status_code, 403)
+
+    def test_success(self):
+        user = factories.UserFactory()
+        user.is_staff = True
+        user.save()
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextContains(
+                resp, "public_key",
+                ["-----BEGIN RSA PRIVATE KEY-----",
+                 "-----END RSA PRIVATE KEY-----"], in_bulk=True)
+            self.assertResponseContextContains(
+                resp, "private_key",
+                ["ssh-rsa", "relate-course-key"], in_bulk=True)
+
+
+class HomeTest(CoursesTestMixinBase, TestCase):
+    # test views.home
+
+    def test(self):
+        course1 = factories.CourseFactory(hidden=False)
+        course2 = factories.CourseFactory(
+            identifier="course2", hidden=True)
+        course3 = factories.CourseFactory(listed=False,
+            identifier="course3", hidden=False)
+        course4 = factories.CourseFactory(
+            identifier="course4", hidden=False, end_date=now() - timedelta(days=1))
+
+        user = factories.UserFactory()
+        factories.ParticipationFactory(
+            course=course1, user=user, roles=["instructor"])
+        factories.ParticipationFactory(
+            course=course2, user=user, roles=["instructor"])
+        factories.ParticipationFactory(
+            course=course3, user=user, roles=["instructor"])
+
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.get("/")
+        self.assertResponseContextEqual(resp, "current_courses", [course1])
+        self.assertResponseContextEqual(resp, "past_courses", [course4])
+
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get("/")
+            self.assertResponseContextEqual(
+                resp, "current_courses", [course1, course2])
+            self.assertResponseContextEqual(resp, "past_courses", [course4])
