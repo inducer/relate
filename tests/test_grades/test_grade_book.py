@@ -42,7 +42,7 @@ from tests.utils import mock  # noqa
 from tests.base_test_mixins import SingleCoursePageTestMixin
 from tests import factories as fctr
 from tests.factories import GradeChangeFactory as GCFactory
-from tests.test_pages import QUIZ_FLOW_ID
+from tests.constants import QUIZ_FLOW_ID
 
 
 def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(

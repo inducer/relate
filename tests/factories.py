@@ -154,6 +154,8 @@ class FlowSessionFactory(factory.django.DjangoModelFactory):
     start_time = factory.LazyFunction(now)
     in_progress = False
     expiration_mode = constants.flow_session_expiration_mode.end
+    completion_time = factory.lazy_attribute(
+        lambda x: now() if not x.in_progress else None)
 
 
 class GradingOpportunityFactory(factory.django.DjangoModelFactory):
