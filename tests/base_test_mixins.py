@@ -889,17 +889,27 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 cls.get_participant_grades_url(participation_id, course_identifier))
 
     @classmethod
-    def get_gradebook_by_opp_url(
-            cls, gopp_identifier, view_page_grades=False, course_identifier=None):
-        opp_id = GradingOpportunity.objects.get(identifier=gopp_identifier).pk
-
+    def get_gradebook_url_by_opp_id(cls, opp_id, course_identifier=None):
         course_identifier = (
             course_identifier or cls.get_default_course_identifier())
 
         kwargs = {"course_identifier": course_identifier,
                   "opp_id": opp_id}
-        url = reverse("relate-view_grades_by_opportunity",
+        return reverse("relate-view_grades_by_opportunity",
                                   kwargs=kwargs)
+
+    @classmethod
+    def get_gradebook_by_opp_url(
+            cls, gopp_identifier, view_page_grades=False, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp_identifier).pk
+
+        url = cls.get_gradebook_url_by_opp_id(opp_id, course_identifier)
+
         if view_page_grades:
             url += "?view_page_grades=1"
         return url
@@ -918,6 +928,129 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         with cls.temporarily_switch_to_user(switch_to):
             return cls.c.get(cls.get_gradebook_by_opp_url(
                 gopp_identifier, view_page_grades, course_identifier))
+
+    @classmethod
+    def post_gradebook_by_opp_view(
+            cls, gopp_identifier, post_data, view_page_grades=False,
+            course_identifier=None,
+            force_login_instructor=True):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.post(
+                cls.get_gradebook_by_opp_url(
+                    gopp_identifier, view_page_grades, course_identifier),
+                data=post_data)
+
+    @classmethod
+    def get_reopen_session_url(cls, gopp_identifier, flow_session_id=None,
+                               course_identifier=None):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp_identifier).pk
+
+        if flow_session_id is None:
+            flow_session_id = cls.get_default_flow_session_id(course_identifier)
+
+        kwargs = {"course_identifier": course_identifier,
+                  "opportunity_id": opp_id,
+                  "flow_session_id": flow_session_id}
+        return reverse("relate-view_reopen_session", kwargs=kwargs)
+
+    @classmethod
+    def get_reopen_session_view(cls, gopp_identifier, flow_session_id=None,
+                               course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.get(
+                cls.get_reopen_session_url(
+                    gopp_identifier, flow_session_id, course_identifier))
+
+    @classmethod
+    def post_reopen_session_view(cls, gopp_identifier, data, flow_session_id=None,
+                               course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.post(
+                cls.get_reopen_session_url(
+                    gopp_identifier, flow_session_id, course_identifier), data=data)
+
+    @classmethod
+    def get_single_grade_url(cls, participation_id, opp_id,
+                             course_identifier=None):
+
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+
+        kwargs = {"course_identifier": course_identifier,
+                  "opportunity_id": opp_id,
+                  "participation_id": participation_id}
+
+        return reverse("relate-view_single_grade", kwargs=kwargs)
+
+    @classmethod
+    def get_view_single_grade(cls, participation, gopp,
+                             course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp.identifier).pk
+
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.get(cls.get_single_grade_url(
+                participation.pk, opp_id, course_identifier))
+
+    @classmethod
+    def post_view_single_grade(cls, participation, gopp, data,
+                             course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp.identifier).pk
+
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.post(cls.get_single_grade_url(
+                participation.pk, opp_id, course_identifier),
+                data=data)
 
     @classmethod
     def get_logged_in_user(cls):
@@ -1538,6 +1671,27 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         defaults = deepcopy(self.default_session_grading_rule)
         defaults.update(kwargs)
         return FlowSessionGradingRule(**defaults)
+
+    # }}}
+
+    # {{{ grades view
+    def view_participant_grades_url(self, participation_id, course_identifier=None):
+        course_identifier = (
+            course_identifier or self.get_default_course_identifier())
+        kwargs = {"course_identifier": course_identifier}
+
+        if participation_id is not None:
+            kwargs["participation_id"] = participation_id
+
+        return reverse("relate-view_participant_grades", kwargs=kwargs)
+
+    def get_view_participant_grades(self, participation_id, course_identifier=None):
+        return self.c.get(self.view_participant_grades_url(
+            participation_id, course_identifier))
+
+    def get_view_my_grades(self, course_identifier=None):
+        return self.c.get(self.view_participant_grades_url(
+            participation_id=None, course_identifier=course_identifier))
 
     # }}}
 

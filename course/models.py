@@ -1661,8 +1661,8 @@ class GradeStateMachine(object):
 
         # check that times are increasing
         if self._last_grade_change_time is not None:
-            assert gchange.grade_time > self._last_grade_change_time
-            self._last_grade_change_time = gchange.grade_time
+            assert gchange.grade_time >= self._last_grade_change_time
+        self._last_grade_change_time = gchange.grade_time
 
         if gchange.state == grade_state_change_types.graded:
             if self.state == grade_state_change_types.unavailable:
