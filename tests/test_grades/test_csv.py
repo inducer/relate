@@ -287,3 +287,17 @@ class ImportGradesTest(SingleCoursePageTestMixin, TestCase):
                 self.assertEqual(resp.status_code, 200)
                 self.assertFormError(resp, "form", "file", expected_file_error_msg)
                 self.assertEqual(models.GradeChange.objects.count(), 0)
+
+    def test_used_preserved_attempt_id(self):
+        attempt_id = "flow-session-blabla"
+        error_msg = '"%s" as a prefix is not allowed' % "flow-session-"
+
+        with open(
+                os.path.join(os.path.dirname(__file__),
+                             '../fixtures',
+                             'csv', 'test_import_csv.csv'), 'rb') as csv_file:
+            resp = self.post_import_grades(csv_file, format="csv",
+                                           attempt_id=attempt_id)
+            self.assertEqual(resp.status_code, 200)
+            self.assertFormError(resp, "form", "attempt_id", error_msg)
+            self.assertEqual(models.GradeChange.objects.count(), 0)
