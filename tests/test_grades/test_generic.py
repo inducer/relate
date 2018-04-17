@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner"
+__copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner, Zhuang Dong"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,18 +35,18 @@ from course.models import (
 from tests.base_test_mixins import SingleCoursePageTestMixin
 
 
-class GradeTestMixin(SingleCoursePageTestMixin):
+class GradeGenericTestMixin(SingleCoursePageTestMixin):
     # This serve as a base test cases for other grade tests to subclass
     # Nice little tricks :)
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GradeTestMixin, cls).setUpTestData()
+        super(GradeGenericTestMixin, cls).setUpTestData()
         cls.flow_session_ids = []
         cls.do_quiz(cls.student_participation)
 
     @classmethod
     def tearDownClass(cls):
-        super(GradeTestMixin, cls).tearDownClass()
+        super(GradeGenericTestMixin, cls).tearDownClass()
 
     # Use specified user to take a quiz
     @classmethod
@@ -169,68 +169,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         resp = self.c.get(reverse("relate-show_grader_statistics",
                                             kwargs=params))
         self.assertEqual(resp.status_code, 200)
-
-    def test_view_download_submissions(self):
-        # Check download form first
-        resp = self.get_download_all_submissions(flow_id=self.flow_id)
-        self.assertEqual(resp.status_code, 200)
-
-        # Check download here, only test intro page
-        # Maybe we should include an "all" option in the future?
-        resp = (
-            self.post_download_all_submissions_by_group_page_id(
-                flow_id=self.flow_id,
-                group_page_id="intro/welcome")
-        )
-
-        self.assertEqual(resp.status_code, 200)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
-        self.assertEqual(prefix, "attachment; filename")
-        zip_file_name = zip_file.replace('"', '').split('_')
-        self.assertEqual(zip_file_name[0], "submissions")
-        self.assertEqual(zip_file_name[1], self.course.identifier)
-        self.assertEqual(zip_file_name[2], self.flow_id)
-        self.assertEqual(zip_file_name[3], "intro")
-        self.assertEqual(zip_file_name[4], "welcome")
-        self.assertTrue(zip_file_name[5].endswith(".zip"))
-
-    def test_view_edit_grading_opportunity(self):
-        # Check attributes
-        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
-        opportunity = GradingOpportunity.objects.all()[0]
-        self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.flow_id, opportunity.flow_id)
-
-        params = {"course_identifier": self.course.identifier,
-                    "opportunity_id": opportunity.id}
-        # Check page
-        resp = self.c.get(reverse("relate-edit_grading_opportunity",
-                                            kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-        # Try making a change
-        self.assertEqual(opportunity.page_scores_in_participant_gradebook, False)
-        data = {'page_scores_in_participant_gradebook': ['on'],
-                 'name': ['Flow: RELATE Test Quiz'],
-                 'hide_superseded_grade_history_before': [''],
-                 'submit': ['Update'],
-                 'shown_in_participant_grade_book': ['on'],
-                 'aggregation_strategy': ['use_latest'],
-                 'shown_in_grade_book': ['on'],
-                 'result_shown_in_participant_grade_book': ['on']}
-        resp = self.c.post(reverse("relate-edit_grading_opportunity",
-                                                    kwargs=params), data)
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse("relate-edit_grading_opportunity",
-                                                            kwargs=params))
-
-        # Check objects and attributes
-        # Should still be one
-        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
-        opportunity = GradingOpportunity.objects.all()[0]
-        self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.flow_id, opportunity.flow_id)
-        # Check changes
-        self.assertEqual(opportunity.page_scores_in_participant_gradebook, True)
 
     def test_view_flow_list_analytics(self):
         resp = self.c.get(reverse("relate-flow_list",
@@ -386,7 +324,7 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         return params
 
 
-class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
+class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
 
@@ -401,7 +339,7 @@ class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
         cls.c.force_login(cls.instructor_participation.user)
 
 
-class GradeThreeQuizTakerTest(GradeTestMixin, TestCase):
+class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
 

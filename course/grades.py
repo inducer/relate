@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 import six
-
+from decimal import Decimal
 from typing import cast
 
 from django.utils.translation import (
@@ -62,7 +62,7 @@ from course.constants import (
 # {{{ for mypy
 
 if False:
-    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+    from typing import Tuple, Text, Optional, Any, Iterable, List, Union  # noqa
     from course.utils import CoursePageContext  # noqa
     from course.content import FlowDesc  # noqa
     from course.models import Course, FlowPageVisitGrade  # noqa
@@ -1120,7 +1120,10 @@ class ParticipantNotFound(ValueError):
 def find_participant_from_user_attr(course, attr_type, attr_str):
     attr_str = attr_str.strip()
 
-    kwargs = {"user__%s__exact" % attr_type: attr_str}
+    exact_mode = "exact"
+    if attr_type == "institutional_id":
+        exact_mode = "iexact"
+    kwargs = {"user__%s__%s" % (attr_type, exact_mode): attr_str}
 
     matches = (Participation.objects
             .filter(
@@ -1199,6 +1202,18 @@ def fix_decimal(s):
         return s
 
 
+def points_equal(num, other):
+    # type: (Optional[Decimal], Optional[Decimal]) -> bool
+    if num is None and other is None:
+        return True
+    if ((num is None and other is not None)
+            or (num is not None and other is None)):
+        return False
+    assert num is not None
+    assert other is not None
+    return abs(num - other) < 1e-2
+
+
 def csv_to_grade_changes(
         log_lines,
         course, grading_opportunity, attempt_id, file_contents,
@@ -1228,9 +1243,7 @@ def csv_to_grade_changes(
                         course, attr_type,
                         get_col_contents_or_empty(row, attr_column-1))
             else:
-                raise ParticipantNotFound(
-                    _("Unknown user attribute '%(attr_type)s'") % {
-                        "attr_type": attr_type})
+                raise NotImplementedError()
         except ParticipantNotFound as e:
             log_lines.append(e)
             continue
@@ -1243,7 +1256,7 @@ def csv_to_grade_changes(
         if points_str in ["-", ""]:
             gchange.points = None
         else:
-            gchange.points = float(fix_decimal(points_str))
+            gchange.points = Decimal(fix_decimal(points_str))
 
         gchange.max_points = max_points
         if feedback_column is not None:
@@ -1263,11 +1276,10 @@ def csv_to_grade_changes(
             last_grade, = last_grades
 
             if last_grade.state == grade_state_change_types.graded:
-
                 updated = []
-                if last_grade.points != gchange.points:
+                if not points_equal(last_grade.points, gchange.points):
                     updated.append(ugettext("points"))
-                if last_grade.max_points != gchange.max_points:
+                if not points_equal(last_grade.max_points, gchange.max_points):
                     updated.append(ugettext("max_points"))
                 if last_grade.comment != gchange.comment:
                     updated.append(ugettext("comment"))

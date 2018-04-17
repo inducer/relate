@@ -59,13 +59,9 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         cls.start_flow(cls.flow_id)
 
     # view all pages
-    def test_view_all_flow_pages(self):
+    def test_view_all_flow_pages_ordinal_out_of_range(self):
         page_count = FlowSession.objects.get(
             id=self.default_flow_params["flow_session_id"]).page_count
-        for i in range(page_count):
-            resp = self.c.get(
-                self.get_page_url_by_ordinal(page_ordinal=i))
-            self.assertEqual(resp.status_code, 200)
 
         # test PageOrdinalOutOfRange
         resp = self.c.get(

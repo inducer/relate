@@ -1573,6 +1573,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 'page_id': group_page_id,
                 'non_in_progress_only': 'on'}
 
+        non_in_progress_only = kwargs.pop("non_in_progress_only", True)
+        if not non_in_progress_only:
+            del data["non_in_progress_only"]
+
         data.update(kwargs)
 
         return cls.c.post(
