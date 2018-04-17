@@ -30,6 +30,7 @@ import datetime
 
 import django.forms as forms
 from django.utils.translation import ugettext_lazy as _
+from django.utils.text import format_lazy
 import dulwich.repo
 
 from typing import Union
@@ -38,28 +39,10 @@ if False:
     from typing import Text, List, Dict, Tuple, Optional, Any  # noqa
     from django.http import HttpRequest  # noqa
 
-# {{{ string_concat compatibility for Django >= 1.11
-
-try:
-    from django.utils.text import format_lazy
-except ImportError:
-    def _format_lazy(format_string, *args, **kwargs):
-        # type(Text, *Any, **Any) -> Text
-        """
-        Apply str.format() on 'format_string' where format_string, args,
-        and/or kwargs might be lazy.
-        """
-        return format_string.format(*args, **kwargs)
-
-    from django.utils.functional import lazy
-    format_lazy = lazy(_format_lazy, str)
-
 
 def string_concat(*strings):
     # type: (Any) -> Text
     return format_lazy("{}" * len(strings), *strings)
-
-# }}}
 
 
 class StyledForm(forms.Form):

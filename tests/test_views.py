@@ -22,12 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import datetime
 from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
-import datetime
-from course import views
+
+from course import views, constants
 
 from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCourseTestMixin,
@@ -411,3 +412,143 @@ class HomeTest(CoursesTestMixinBase, TestCase):
             self.assertResponseContextEqual(
                 resp, "current_courses", [course1, course2])
             self.assertResponseContextEqual(resp, "past_courses", [course4])
+
+
+class CheckCourseStateTest(SingleCourseTestMixin, TestCase):
+    # test views.check_course_state
+    def test_course_not_hidden(self):
+        views.check_course_state(self.course, None)
+        views.check_course_state(self.course, self.student_participation)
+        views.check_course_state(self.course, self.ta_participation)
+        views.check_course_state(self.course, self.instructor_participation)
+
+    def test_course_hidden(self):
+        self.course.hidden = True
+        self.course.save()
+        with self.assertRaises(views.PermissionDenied):
+            views.check_course_state(self.course, None)
+
+        with self.assertRaises(views.PermissionDenied):
+            views.check_course_state(self.course, self.student_participation)
+
+        views.check_course_state(self.course, self.ta_participation)
+        views.check_course_state(self.course, self.instructor_participation)
+
+
+class StaticPageTest(SingleCourseTestMixin, TestCase):
+    # test views.static_page
+    def get_static_page_url(self, page_path, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return reverse("relate-content_page",
+                       kwargs={"course_identifier": course_identifier,
+                               "page_path": page_path})
+
+    def get_static_page(self, page_path, course_identifier=None):
+        return self.c.get(self.get_static_page_url(page_path, course_identifier))
+
+    def test_success(self):
+        resp = self.get_static_page("test")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(
+            resp, '<h1>Demo page</h1>', html=True)
+        self.assertContains(
+            resp, 'I am just a simple demo page. Go back to the '
+                  '<a href="/course/test-course/">course page</a>?')
+
+    def test_404(self):
+        resp = self.get_static_page("hello")
+        self.assertEqual(resp.status_code, 404)
+
+
+class CoursePageTest(SingleCourseTestMixin, TestCase):
+    # test views.course_page
+
+    def setUp(self):
+        super(CoursePageTest, self).setUp()
+        fake_add_message = mock.patch('course.views.messages.add_message')
+        self.mock_add_message = fake_add_message.start()
+        self.addCleanup(fake_add_message.stop)
+
+    # {{{ test show enroll button
+    def test_student_no_enroll_button(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "show_enroll_button", False)
+
+    def test_anonymous_show_enroll_button(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "show_enroll_button", True)
+
+    def test_non_participation_show_enroll_button(self):
+        user = factories.UserFactory()
+        with self.temporarily_switch_to_user(user):
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "show_enroll_button", True)
+
+    def test_requested_not_show_enroll_button(self):
+        requested = factories.ParticipationFactory(
+            course=self.course, status=constants.participation_status.requested)
+        with self.temporarily_switch_to_user(requested.user):
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "show_enroll_button", False)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertIn(
+            "Your enrollment request is pending. You will be "
+            "notified once it has been acted upon.",
+            self.mock_add_message.call_args[0])
+
+    def test_requested_hint_for_set_instid(self):
+        requested = factories.ParticipationFactory(
+            course=self.course, status=constants.participation_status.requested)
+        factories.ParticipationPreapprovalFactory(
+            course=self.course, institutional_id="inst_id1234")
+        with self.temporarily_switch_to_user(requested.user):
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "show_enroll_button", False)
+
+        self.assertEqual(self.mock_add_message.call_count, 2)
+        self.assertIn(
+            "Your institutional ID is not verified or "
+            "preapproved. Please contact your course "
+            "staff.",
+            self.mock_add_message.call_args[0])
+        self.mock_add_message.reset_mock()
+
+        # remove course verify inst_id requirements
+        self.course.preapproval_require_verified_inst_id = False
+        self.course.save()
+
+        with self.temporarily_switch_to_user(requested.user):
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "show_enroll_button", False)
+
+        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.mock_add_message.reset_mock()
+
+        # remove user inst_id
+        requested.user.institutional_id = ""
+        requested.user.save()
+        with self.temporarily_switch_to_user(requested.user):
+            resp = self.c.get(self.get_course_page_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "show_enroll_button", False)
+
+        self.assertEqual(self.mock_add_message.call_count, 2)
+        self.assertIn(
+            "This course uses institutional ID for enrollment preapproval, "
+            "please <a href='/profile/?referer=/course/test-course/"
+            "&set_inst_id=1' role='button' class='btn btn-md btn-primary'>"
+            "fill in your institutional ID &nbsp;&raquo;</a> in your profile.",
+            self.mock_add_message.call_args[0])
+
+    # }}}
+
+# vim: fdm=marker
