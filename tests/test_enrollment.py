@@ -1068,7 +1068,7 @@ class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
         return [str(role.pk)]
 
     def post_preapproval(self, preapproval_type, preapproval_data=None,
-                         force_loggin_instructor=True):
+                         force_login_instructor=True):
         if preapproval_data is None:
             if preapproval_type == "email":
                 preapproval_data = self.preapprove_data_emails
@@ -1084,7 +1084,7 @@ class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
             "roles": self.student_role_post_data,
             "submit": [""]
         }
-        if not force_loggin_instructor:
+        if not force_login_instructor:
             approver = self.get_logged_in_user()
         else:
             approver = self.instructor_participation.user
@@ -1114,7 +1114,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.addCleanup(fake_send_enrollment_decision.stop)
 
     def post_preapproval(
-            self, preapproval_type, data, force_loggin_instructor=True):
+            self, preapproval_type, data, force_login_instructor=True):
 
         data = {
             "preapproval_type": [preapproval_type],
@@ -1122,7 +1122,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
             "roles": self.student_role_post_data,
             "submit": [""]
         }
-        if not force_loggin_instructor:
+        if not force_login_instructor:
             approver = self.get_logged_in_user()
         else:
             approver = self.instructor_participation.user
@@ -1628,7 +1628,7 @@ class QueryParticipationsTestMixin(SingleCoursePageTestMixin):
         return p_list
 
     def post_query_participation(self, queries, op=None, tag=None, apply=False,
-                                 force_loggin_instructor=True):
+                                 force_login_instructor=True):
         form_data = {"queries": queries}
         form_data["op"] = op or "apply_tag"
         form_data["tag"] = tag or ""
@@ -1637,7 +1637,7 @@ class QueryParticipationsTestMixin(SingleCoursePageTestMixin):
         else:
             form_data["submit"] = ""
 
-        if not force_loggin_instructor:
+        if not force_login_instructor:
             u = self.get_logged_in_user()
         else:
             u = self.instructor_participation.user

@@ -85,12 +85,12 @@ COMMIT_SHA_MAP = {
         {"my_fake_commit_sha_for_grade_flow_session": {
             "path": "fake-quiz-test-for-grade_flow_session.yml",
             "page_ids": ["anyup"]}},
-        {"my_fake_commit_sha_for_grade_flow_session2": {
-            "path": "fake-quiz-test-for-grade_flow_session2.yml",
-            "page_ids": ["anyup"]}},
         {"my_fake_commit_sha_for_view_flow_page": {
             "path": "fake-quiz-test-for-view_flow_page.yml",
-            "page_ids": ["anyup"]}},
+            "page_ids": ["half", "half2"]}},
+        {"my_fake_commit_sha_for_download_submissions": {
+            "path": "fake-quiz-test-for-download-submissions.yml",
+            "page_ids": ["half", "proof"]}},
     ],
 }
 

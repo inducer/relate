@@ -25,12 +25,15 @@ THE SOFTWARE.
 """
 
 import six
+import datetime
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 import unittest
 
-from relate.utils import local_now
+from relate.utils import (
+    local_now,
+    dict_to_struct, struct_to_dict)
 
 from course import models, grades, constants
 from course.constants import (
@@ -42,8 +45,10 @@ from course.grades import (
     get_single_grade_changes_and_state_machine as get_gc_and_machine)
 
 from tests.utils import mock  # noqa
-from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.base_test_mixins import (
+    SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin)
 from tests import factories
+from tests.test_flow.test_flow import HackRepoMixin
 from tests.constants import QUIZ_FLOW_ID
 
 
@@ -57,12 +62,17 @@ def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(
 
 
 class GradesTestMixin(SingleCoursePageTestMixin):
+    time = now() - timedelta(days=10)
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(GradesTestMixin, cls).setUpTestData()
+        cls.gopp = factories.GradingOpportunityFactory(
+            course=cls.course, aggregation_strategy=g_stragety.use_latest)
+
     def setUp(self):
         super(GradesTestMixin, self).setUp()
-        self.time = now() - timedelta(days=10)
-        self.gopp = factories.GradingOpportunityFactory(
-            course=self.course, aggregation_strategy=g_stragety.use_latest)
-
+        self.gopp.refresh_from_db()
         fake_add_message = mock.patch("course.grades.messages.add_message")
         self.mock_add_message = fake_add_message.start()
         self.addCleanup(fake_add_message.stop)
@@ -87,7 +97,8 @@ class GradesTestMixin(SingleCoursePageTestMixin):
     def time_increment(self, minute_delta=10):
         self.time += timedelta(minutes=minute_delta)
 
-    def gc(self, opportunity=None, state=None, attempt_id=None, points=None,
+    @classmethod
+    def gc(cls, opportunity=None, state=None, attempt_id=None, points=None,
            max_points=None, comment=None, due_time=None,
            grade_time=None, flow_session=None, null_attempt_id=False, **kwargs):
 
@@ -99,18 +110,18 @@ class GradesTestMixin(SingleCoursePageTestMixin):
                 from course.flow import get_flow_session_attempt_id
                 attempt_id = get_flow_session_attempt_id(flow_session)
         gc_kwargs = {
-            "opportunity": opportunity or self.gopp,
-            "participation": self.student_participation,
+            "opportunity": opportunity or cls.gopp,
+            "participation": cls.student_participation,
             "state": state or g_state.graded,
             "attempt_id": attempt_id,
             "points": points,
             "max_points": max_points or 100,
             "comment": comment,
             "due_time": due_time,
-            "grade_time": grade_time or self.time,
+            "grade_time": grade_time or cls.time,
             "flow_session": flow_session,
         }
-        self.time += timedelta(minutes=10)
+        cls.time += timedelta(minutes=10)
         gc_kwargs.update(kwargs)
         return gc_kwargs
 
@@ -643,9 +654,6 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
         for i in range(10):
             self.run_test()
             factories.UserFactory.reset_sequence(0)
-            for gopp in models.GradingOpportunity.objects.filter(
-                    course=self.course):
-                gopp.delete()
             self.setUp()
 
 
@@ -1335,8 +1343,6 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
         self.assertTrue(self.fs1.in_progress)
 
     def test_set_access_rule_tag(self):
-        from relate.utils import dict_to_struct, struct_to_dict
-
         hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
         rules = hacked_flow_desc_dict["rules"]
         rules_dict = struct_to_dict(rules)
@@ -1622,6 +1628,329 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             resp_gchanges = resp.context["grade_changes"]
             self.assertEqual(len(resp_gchanges), 2)
+
+
+class EditGradingOpportunityTest(GradesTestMixin, TestCase):
+    # test grades.edit_grading_opportunity
+
+    def get_edit_grading_opportunity_url(self, opp_id, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        kwargs = {"course_identifier": course_identifier,
+                  "opportunity_id": opp_id}
+        return reverse("relate-edit_grading_opportunity", kwargs=kwargs)
+
+    def get_edit_grading_opportunity_view(self, opp_id, course_identifier=None,
+                                          force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+
+        with self.temporarily_switch_to_user(user):
+            return self.c.get(
+                self.get_edit_grading_opportunity_url(opp_id, course_identifier))
+
+    def post_edit_grading_opportunity_view(self, opp_id, data,
+                                           course_identifier=None,
+                                           force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+
+        with self.temporarily_switch_to_user(user):
+            return self.c.post(
+                self.get_edit_grading_opportunity_url(opp_id, course_identifier),
+                data)
+
+    def edit_grading_opportunity_post_data(
+            self, name, identifier, page_scores_in_participant_gradebook=False,
+            hide_superseded_grade_history_before=None,
+            op="sumbit", shown_in_participant_grade_book=True,
+            aggregation_strategy=constants.grade_aggregation_strategy.use_latest,
+            shown_in_grade_book=True, result_shown_in_participant_grade_book=True,
+            **kwargs):
+
+        data = {"name": name,
+                "identifier": identifier,
+                op: '',
+                "aggregation_strategy": aggregation_strategy}
+
+        if page_scores_in_participant_gradebook:
+            data["page_scores_in_participant_gradebook"] = ''
+
+        if hide_superseded_grade_history_before:
+            if isinstance(hide_superseded_grade_history_before, datetime.datetime):
+                date_time_picker_time_format = "%Y-%m-%d %H:%M"
+                hide_superseded_grade_history_before = (
+                    hide_superseded_grade_history_before.strftime(
+                        date_time_picker_time_format))
+            data["hide_superseded_grade_history_before"] = (
+                hide_superseded_grade_history_before)
+        if shown_in_participant_grade_book:
+            data["shown_in_participant_grade_book"] = ''
+        if shown_in_grade_book:
+            data["shown_in_grade_book"] = ''
+        if result_shown_in_participant_grade_book:
+            data["result_shown_in_participant_grade_book"] = ''
+
+        data.update(kwargs)
+        return data
+
+    def test_get_add_new(self):
+        resp = self.get_edit_grading_opportunity_view(-1)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_get_add_new(self):
+        name = "my Gopp"
+        identifier = "my_gopp"
+        data = self.edit_grading_opportunity_post_data(
+            name=name, identifier=identifier)
+        resp = self.post_edit_grading_opportunity_view(-1, data=data)
+        gopps = models.GradingOpportunity.objects.all()
+        self.assertEqual(gopps.count(), 2)
+        my_gopp = gopps.last()
+        self.assertEqual(my_gopp.name, name)
+        self.assertEqual(my_gopp.identifier, identifier)
+        self.assertRedirects(
+            resp, self.get_edit_grading_opportunity_url(my_gopp.pk),
+            fetch_redirect_response=False)
+
+    def test_course_not_match(self):
+        another_course = factories.CourseFactory(identifier="another-course")
+        another_course_gopp = factories.GradingOpportunityFactory(
+            course=another_course)
+        gopps = models.GradingOpportunity.objects.all()
+        self.assertEqual(gopps.count(), 2)
+
+        resp = self.get_edit_grading_opportunity_view(
+            another_course_gopp.id, course_identifier=self.course.identifier)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_view_edit_grading_opportunity(self):
+        my_gopp = factories.GradingOpportunityFactory(
+            course=self.course, identifier="another_gopp")
+
+        data = self.edit_grading_opportunity_post_data(
+            name=my_gopp.name, identifier=my_gopp.identifier,
+            shown_in_grade_book=False)
+
+        resp = self.post_edit_grading_opportunity_view(my_gopp.id, data=data)
+
+        self.assertRedirects(
+            resp, self.get_edit_grading_opportunity_url(my_gopp.pk),
+            fetch_redirect_response=False)
+
+        my_gopp.refresh_from_db()
+        self.assertEqual(my_gopp.shown_in_grade_book, False)
+
+    def test_view_edit_grading_opportunity_form_invalid(self):
+        my_gopp = factories.GradingOpportunityFactory(
+            course=self.course, identifier="another_gopp")
+
+        data = self.edit_grading_opportunity_post_data(
+            name=my_gopp.name, identifier=my_gopp.identifier,
+            shown_in_grade_book=False)
+        with mock.patch(
+                "course.grades.EditGradingOpportunityForm.is_valid"
+        ) as mock_form_is_valid:
+            mock_form_is_valid.return_value = False
+
+            resp = self.post_edit_grading_opportunity_view(my_gopp.id, data=data)
+            self.assertEqual(resp.status_code, 200)
+
+        my_gopp.refresh_from_db()
+        self.assertEqual(my_gopp.shown_in_grade_book, True)
+
+
+class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
+                                 HackRepoMixin, TestCase):
+    # test grades.download_all_submissions (for cases not covered by other tests)
+
+    page_id = "half"
+    my_access_rule_tag = "my_access_rule_tag"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(DownloadAllSubmissionsTest, cls).setUpTestData()
+
+        # with this faked commit_sha, we may do multiple submissions
+        cls.course.active_git_commit_sha = (
+            "my_fake_commit_sha_for_download_submissions")
+        cls.course.save()
+        with cls.temporarily_switch_to_user(cls.student_participation.user):
+            cls.start_flow(cls.flow_id)
+            cls.submit_page_answer_by_page_id_and_test(
+                cls.page_id, answer_data={"answer": 0.25})
+            cls.end_flow()
+
+            fs = models.FlowSession.objects.first()
+            fs.access_rules_tag = cls.my_access_rule_tag
+            fs.save()
+
+            cls.start_flow(cls.flow_id)
+            cls.submit_page_answer_by_page_id_and_test("proof")
+            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
+            cls.end_flow()
+
+        # create an in_progress flow, with the same page submitted
+        another_particpation = factories.ParticipationFactory(
+            course=cls.course)
+        with cls.temporarily_switch_to_user(another_particpation.user):
+            cls.start_flow(cls.flow_id)
+            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
+
+            # create a flow with no answers
+            cls.start_flow(cls.flow_id)
+            cls.end_flow()
+
+    @property
+    def group_page_id(self):
+        _, group_id = self.get_page_ordinal_via_page_id(
+            self.page_id, with_group_id=True)
+        return "%s/%s" % (group_id, self.page_id)
+
+    def get_zip_file_buf_from_response(self, resp):
+        return six.BytesIO(resp.content)
+
+    def assertDownloadedFileZippedExtensionCount(self, resp, extensions, counts):  # noqa
+
+        assert isinstance(extensions, list)
+        assert isinstance(counts, list)
+        assert len(extensions) == len(counts)
+        prefix, zip_file = resp["Content-Disposition"].split('=')
+        self.assertEqual(prefix, "attachment; filename")
+        self.assertEqual(resp.get('Content-Type'), "application/zip")
+        buf = six.BytesIO(resp.content)
+        import zipfile
+        with zipfile.ZipFile(buf, 'r') as zf:
+            self.assertIsNone(zf.testzip())
+
+            for f in zf.filelist:
+                self.assertTrue(f.file_size > 0)
+
+            for i, ext in enumerate(extensions):
+                self.assertEqual(
+                    len([f for f in zf.filelist if
+                         f.filename.endswith(ext)]), counts[i])
+
+    def test_no_rules_tag(self):
+        hacked_flow_desc = self.get_hacked_flow_desc(del_rules=True)
+        with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = hacked_flow_desc
+
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.post_download_all_submissions_by_group_page_id(
+                    group_page_id=self.group_page_id, flow_id=self.flow_id)
+                self.assertEqual(resp.status_code, 200)
+                self.assertDownloadedFileZippedExtensionCount(
+                    resp, [".txt"], [1])
+
+    def test_download_first_attempt(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.post_download_all_submissions_by_group_page_id(
+                group_page_id=self.group_page_id, flow_id=self.flow_id,
+                which_attempt="first")
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertDownloadedFileZippedExtensionCount(
+                resp, [".txt"], [1])
+
+    def test_download_all_attempts(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.post_download_all_submissions_by_group_page_id(
+                group_page_id=self.group_page_id, flow_id=self.flow_id,
+                which_attempt="all")
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertDownloadedFileZippedExtensionCount(
+                resp, [".txt"], [2])
+
+    # Fixme
+    @unittest.skipIf(six.PY2, "'utf8' codec can't decode byte 0x99 in "
+                              "position 10: invalid start byte")
+    def test_download_include_feedback(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.post_download_all_submissions_by_group_page_id(
+                group_page_id=self.group_page_id, flow_id=self.flow_id,
+                include_feedback=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertDownloadedFileZippedExtensionCount(
+                resp, [".txt"], [2])
+
+    def test_download_include_feedback_no_feedback(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            another_group_page_id = (
+                self.group_page_id.replace(self.page_id, "proof"))
+            resp = self.post_download_all_submissions_by_group_page_id(
+                group_page_id=another_group_page_id, flow_id=self.flow_id,
+                include_feedback=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertDownloadedFileZippedExtensionCount(
+                resp, [".pdf"], [1])
+
+    def test_download_include_extra_file(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            import os
+            with open(
+                    os.path.join(os.path.dirname(__file__),
+                                 '../fixtures',
+                                 'test_file.pdf'), 'rb') as extra_file:
+                resp = self.post_download_all_submissions_by_group_page_id(
+                    group_page_id=self.group_page_id, flow_id=self.flow_id,
+                    extra_file=extra_file)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertDownloadedFileZippedExtensionCount(
+                resp, [".txt", ".pdf"], [1, 1])
+
+    def test_download_in_progress(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.post_download_all_submissions_by_group_page_id(
+                group_page_id=self.group_page_id, flow_id=self.flow_id,
+                non_in_progress_only=False)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertDownloadedFileZippedExtensionCount(
+                resp, [".txt"], [2])
+
+    def test_download_other_access_rule_tags(self):
+        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
+        rules = hacked_flow_desc_dict["rules"]
+        rules_dict = struct_to_dict(rules)
+        rules_dict["tags"] = [self.my_access_rule_tag, "blahblah"]
+        rules = dict_to_struct(rules_dict)
+        hacked_flow_desc_dict["rules"] = rules
+        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
+        assert hacked_flow_desc.rules.tags == [self.my_access_rule_tag, "blahblah"]
+
+        with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = hacked_flow_desc
+
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.post_download_all_submissions_by_group_page_id(
+                    group_page_id=self.group_page_id, flow_id=self.flow_id,
+                    restrict_to_rules_tag=self.my_access_rule_tag)
+
+                self.assertEqual(resp.status_code, 200)
+
+                self.assertDownloadedFileZippedExtensionCount(
+                    resp, [".txt"], [1])
+
+
+class PointsEqualTest(unittest.TestCase):
+    # grades.points_equal
+    def test(self):
+        from decimal import Decimal
+        self.assertTrue(grades.points_equal(None, None))
+        self.assertFalse(grades.points_equal(Decimal(1.11), None))
+        self.assertFalse(grades.points_equal(None, Decimal(1.11)))
+        self.assertTrue(grades.points_equal(Decimal(1.11), Decimal(1.11)))
+        self.assertFalse(grades.points_equal(Decimal(1.11), Decimal(1.12)))
 
 
 @unittest.SkipTest
