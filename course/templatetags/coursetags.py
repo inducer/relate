@@ -115,6 +115,28 @@ def has_permission(participation, arg):
 # }}}
 
 
+@register.filter(name='may_set_fake_time')
+def may_set_fake_time(user):
+    """
+    Check if a user may set fake time.
+    :param user: a :class:`accounts.User:` instance
+    :return: a :class:`bool`
+    """
+    from course.views import may_set_fake_time as msf
+    return msf(user)
+
+
+@register.filter(name='may_set_pretend_facility')
+def may_set_pretend_facility(user):
+    """
+    Check if a user may set pretend_facility
+    :param user: a :class:`accounts.User:` instance
+    :return: a :class:`bool`
+    """
+    from course.views import may_set_pretend_facility as mspf
+    return mspf(user)
+
+
 @register.filter(name='commit_message_as_html')
 def commit_message_as_html(commit_sha, repo):
     from course.versioning import _get_commit_message_as_html
