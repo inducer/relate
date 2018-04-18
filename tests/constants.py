@@ -7,7 +7,9 @@ QUIZ_FLOW_ID = "quiz-test"
 MESSAGE_ANSWER_SAVED_TEXT = "Answer saved."
 MESSAGE_ANSWER_FAILED_SAVE_TEXT = "Failed to submit answer."
 
-FIXTURE_PATH = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURE_PATH = os.path.join(os.path.dirname(__file__), 'resource')
+CSV_PATH = os.path.join(FIXTURE_PATH, "csv")
+FAKED_YAML_PATH = os.path.join(FIXTURE_PATH, 'faked_yamls')
 
 
 def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
@@ -131,3 +133,42 @@ TEST_PAGE_TUPLE = (
 PAGE_WARNINGS = "page_warnings"
 PAGE_ERRORS = "page_errors"
 HAVE_VALID_PAGE = "have_valid_page"
+
+COMMIT_SHA_MAP = {
+    # This didn't use os.path.join, because "get_flow_desc" used "flows/%s.yml" to
+    # get the path.
+    "flows/%s.yml" % QUIZ_FLOW_ID: [
+
+        # key: commit_sha, value: attributes
+        {"my_fake_commit_sha_1": {"path": "fake-quiz-test1.yml"}},
+        {"my_fake_commit_sha_2": {"path": "fake-quiz-test2.yml"}},
+
+        {"my_fake_commit_sha_for_grades1": {
+            "path": "fake-quiz-test-for-grade1.yml",
+            "page_ids": ["half", "krylov", "quarter"]}},
+        {"my_fake_commit_sha_for_grades2": {
+            "path": "fake-quiz-test-for-grade2.yml",
+            "page_ids": ["krylov", "quarter"]}},
+
+        {"my_fake_commit_sha_for_finish_flow_session": {
+            "path": "fake-quiz-test-for-finish_flow_session.yml",
+            "page_ids": ["half", "krylov", "matrix_props", "age_group",
+                         "anyup", "proof", "neumann"]
+        }},
+
+        {"my_fake_commit_sha_for_grade_flow_session": {
+            "path": "fake-quiz-test-for-grade_flow_session.yml",
+            "page_ids": ["anyup"]}},
+        {"my_fake_commit_sha_for_view_flow_page": {
+            "path": "fake-quiz-test-for-view_flow_page.yml",
+            "page_ids": ["half", "half2"]}},
+        {"my_fake_commit_sha_for_download_submissions": {
+            "path": "fake-quiz-test-for-download-submissions.yml",
+            "page_ids": ["half", "proof"]}},
+    ],
+    os.path.join("images", ".attributes.yml"): [
+        # faked commit sha for .attributes.yml
+        {"abcdef001":
+             {"path": "fake-images-attributes.yml"}},
+    ]
+}

@@ -46,9 +46,8 @@ from course.grades import (
 
 from tests.utils import mock  # noqa
 from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin)
+    SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin, HackRepoMixin)
 from tests import factories
-from tests.test_flow.test_flow import HackRepoMixin
 from tests.constants import QUIZ_FLOW_ID
 
 
@@ -1898,7 +1897,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
             import os
             with open(
                     os.path.join(os.path.dirname(__file__),
-                                 '../fixtures',
+                                 '../resource',
                                  'test_file.pdf'), 'rb') as extra_file:
                 resp = self.post_download_all_submissions_by_group_page_id(
                     group_page_id=self.group_page_id, flow_id=self.flow_id,
