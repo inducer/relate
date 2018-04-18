@@ -224,7 +224,8 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
 
     dul_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    names = full_name.split("/")
+    from os.path import split
+    names = split(full_name)
 
     # Allow non-ASCII file name
     full_name_bytes = full_name.encode('utf-8')
@@ -240,7 +241,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     def access_directory_content(maybe_tree, name):
         # type: (Any, Text) -> Any
         try:
-            mode_and_blob_sha = tree[name.encode()]
+            mode_and_blob_sha = maybe_tree[name.encode()]
         except TypeError:
             raise ObjectDoesNotExist(_("resource '%s' is a file, "
                 "not a directory") % full_name)

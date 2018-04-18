@@ -40,6 +40,7 @@ from tests.test_grades.test_grades import GradesTestMixin
 from tests import factories
 from tests.factories import GradeChangeFactory as gc_factory  # noqa
 from tests.utils import mock
+from tests.constants import CSV_PATH
 
 
 class ExportGradebook(GradesTestMixin, TestCase):
@@ -316,9 +317,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_preview_success(self):
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, post_type="preview")
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(models.GradeChange.objects.count(), 0)
@@ -327,9 +326,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_preview_not_importing_feedback(self):
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, post_type="preview",
                                            feedback_column="")
             self.assertEqual(resp.status_code, 200)
@@ -339,9 +336,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_import_success(self):
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file)
             self.assertEqual(resp.status_code, 200)
             gchanges = models.GradeChange.objects.all()
@@ -351,9 +346,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_import_success_by_username(self):
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, attr_type="username")
             self.assertEqual(resp.status_code, 200)
             gchanges = models.GradeChange.objects.all()
@@ -363,9 +356,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_import_success_by_inst_id(self):
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(
                 csv_file,
                 attr_type="institutional_id",
@@ -378,9 +369,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_import_success_not_importing_feedback(self):
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, feedback_column="")
             self.assertEqual(resp.status_code, 200)
             gchanges = models.GradeChange.objects.all()
@@ -390,9 +379,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_import_success_none_points(self):
         with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../fixtures', 'csv', 'test_import_csv_none_points.csv'),
+                os.path.join(CSV_PATH, 'test_import_csv_none_points.csv'),
                 'rb') as csv_file:
             resp = self.post_import_grades(csv_file)
             self.assertEqual(resp.status_code, 200)
@@ -403,9 +390,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_preview_success_no_header(self):
         with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../fixtures', 'csv', 'test_import_csv_no_header.csv'),
+                os.path.join(CSV_PATH, 'test_import_csv_no_header.csv'),
                 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, format="csv",
                                            post_type='preview')
@@ -415,9 +400,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_import_success_no_header(self):
         with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    '../fixtures', 'csv', 'test_import_csv_no_header.csv'),
+                os.path.join(CSV_PATH, 'test_import_csv_no_header.csv'),
                 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, format="csv")
             self.assertEqual(resp.status_code, 200)
@@ -429,9 +412,8 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             "CSV file other than a Microsoft Excel file?")
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv',
-                             'test_import_excel_failed.xlsx'), 'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_excel_failed.xlsx'),
+                'rb') as csv_file:
             resp = self.post_import_grades(csv_file, format="csv")
             self.assertEqual(resp.status_code, 200)
             self.assertFormError(resp, "form", "file", expected_file_error_msg)
@@ -446,9 +428,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             "Error: TypeError: %s" % error_msg)
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             with mock.patch("csv.reader") as mock_csv_reader:
                 def sf():
                     raise TypeError(error_msg)
@@ -467,9 +447,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             "Error: %s" % error_msg)
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             with mock.patch(
                     "course.utils.get_col_contents_or_empty") as mock_get_col:
                 def sf(row, index):
@@ -488,9 +466,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             "Error: TypeError: %s" % error_msg)
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures',
-                             'csv', 'test_import_csv.csv'), 'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             with mock.patch(
                     "course.utils.get_col_contents_or_empty") as mock_get_col:
                 def sf(row, index):
@@ -507,9 +483,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         error_msg = '"%s" as a prefix is not allowed' % "flow-session-"
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures',
-                             'csv', 'test_import_csv.csv'), 'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, format="csv",
                                            attempt_id=attempt_id)
             self.assertEqual(resp.status_code, 200)
@@ -525,9 +499,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         self.assertEqual(gchanges.count(), 2)
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, feedback_column="")
             self.assertContains(
                 resp,
@@ -546,9 +518,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         self.assertEqual(gchanges.count(), 1)
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file, feedback_column="")
             self.assertContains(
                 resp,
@@ -568,9 +538,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         self.assertEqual(gchanges.count(), 1)
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file)
             self.assertContains(
                 resp,
@@ -592,9 +560,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         self.assertEqual(gchanges.count(), 1)
 
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             resp = self.post_import_grades(csv_file)
 
             self.assertEqual(resp.status_code, 200)
@@ -605,18 +571,14 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_re_import_same(self):
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             self.post_import_grades(csv_file)
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 1)
 
         # re-import
         with open(
-                os.path.join(os.path.dirname(__file__),
-                             '../fixtures', 'csv', 'test_import_csv.csv'),
-                'rb') as csv_file:
+                os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
             self.post_import_grades(csv_file)
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 1)
@@ -626,9 +588,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
                 "course.grades.csv_to_grade_changes") as mock_csv_to_grade_changes:
             mock_csv_to_grade_changes.side_effect = RuntimeError("my import error")
             with open(
-                    os.path.join(os.path.dirname(__file__),
-                                 '../fixtures', 'csv', 'test_import_csv.csv'),
-                    'rb') as csv_file:
+                    os.path.join(CSV_PATH, 'test_import_csv.csv'), 'rb') as csv_file:
                 self.post_import_grades(csv_file)
                 gchanges = models.GradeChange.objects.all()
                 self.assertEqual(gchanges.count(), 0)

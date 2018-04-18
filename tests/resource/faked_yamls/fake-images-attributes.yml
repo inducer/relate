@@ -1,0 +1,8 @@
+unenrolled:
+- "cc.png"
+
+in_exam:
+- "*.jpeg"
+
+ta:
+- "django-logo.png"

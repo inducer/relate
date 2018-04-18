@@ -22,16 +22,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import datetime
+import unittest
+
 from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
+from django import http
 
 from course import views, constants
 
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCourseTestMixin,
+    CoursesTestMixinBase, SingleCourseTestMixin, HackRepoMixin
 )
 from tests.test_auth import AuthTestMixin
 from tests.utils import mock
@@ -84,6 +88,10 @@ class TestSetFakeTime(SingleCourseTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertSessionFakeTimeEqual(self.c.session, self.fake_time)
 
+            # revisit the page, just to make sure it works
+            resp = self.get_set_fake_time()
+            self.assertEqual(resp.status_code, 200)
+
             # unset fake time
             resp = self.post_set_fake_time(self.unset_fake_time_data)
             self.assertEqual(resp.status_code, 200)
@@ -105,6 +113,16 @@ class TestSetFakeTime(SingleCourseTestMixin, TestCase):
             resp = self.post_set_fake_time(self.unset_fake_time_data)
             self.assertEqual(resp.status_code, 200)
             self.assertSessionFakeTimeIsNone(self.c.session)
+
+    def test_form_invalid(self):
+        with mock.patch("course.views.FakeTimeForm.is_valid") as mock_is_valid:
+            mock_is_valid.return_value = False
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.post_set_fake_time(self.set_fake_time_data)
+                self.assertEqual(resp.status_code, 200)
+
+                # fake failed
+                self.assertSessionFakeTimeIsNone(self.c.session)
 
 
 @override_settings(RELATE_FACILITIES=RELATE_FACILITIES)
@@ -149,6 +167,10 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
             self.assertSessionPretendFacilitiesContains(self.c.session,
                                                         "test_center1")
 
+            # revisit the page, just to make sure it works
+            resp = self.get_set_pretend_facilities()
+            self.assertEqual(resp.status_code, 200)
+
             resp = self.post_set_pretend_facilities(
                 self.unset_pretend_facilities_data)
             self.assertEqual(resp.status_code, 200)
@@ -172,6 +194,17 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
                 self.unset_pretend_facilities_data)
             self.assertEqual(resp.status_code, 200)
             self.assertSessionPretendFacilitiesIsNone(self.c.session)
+
+    def test_form_invalid(self):
+        with mock.patch("course.views.FakeFacilityForm.is_valid") as mock_is_valid:
+            mock_is_valid.return_value = False
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.post_set_pretend_facilities(
+                    self.set_pretend_facilities_data)
+                self.assertEqual(resp.status_code, 200)
+
+                # pretending failed
+                self.assertSessionPretendFacilitiesIsNone(self.c.session)
 
 
 class TestEditCourse(SingleCourseTestMixin, TestCase):
@@ -550,5 +583,225 @@ class CoursePageTest(SingleCourseTestMixin, TestCase):
             self.mock_add_message.call_args[0])
 
     # }}}
+
+
+class GetMediaTest(SingleCourseTestMixin, TestCase):
+    # test views.get_media
+    # currently only mock test, because there's no media in the sample repo
+
+    def get_media_url(self, media_path, course_identifier=None, commit_sha=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if commit_sha is None:
+            commit_sha = self.course.active_git_commit_sha
+
+        return reverse("relate-get_media",
+                       kwargs={"course_identifier": course_identifier,
+                               "commit_sha": commit_sha,
+                               "media_path": media_path})
+
+    def get_media_view(self, media_path, course_identifier=None, commit_sha=None):
+        return self.c.get(
+            self.get_media_url(media_path, course_identifier, commit_sha))
+
+    def test(self):
+        resp = self.get_media_view("foo.jpg")
+        self.assertEqual(resp.status_code, 404)
+
+    def test_func_call(self):
+        with mock.patch(
+                "course.views.get_repo_file_response") as mock_get_repo_file_resp:
+            mock_get_repo_file_resp.return_value = http.HttpResponse("hi")
+            resp = self.get_media_view("foo.jpg")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(mock_get_repo_file_resp.call_count, 1)
+
+    def test_course_does_not_exist_404(self):
+        with mock.patch(
+                "course.views.get_repo_file_response") as mock_get_repo_file_resp:
+            mock_get_repo_file_resp.return_value = http.HttpResponse("hi")
+            resp = self.get_media_view("foo.jpg", course_identifier="no-course")
+            self.assertEqual(resp.status_code, 404)
+            self.assertEqual(mock_get_repo_file_resp.call_count, 0)
+
+
+class GetRepoFileTestMixin(SingleCourseTestMixin):
+    # test views.get_repo_file and  views.get_current_repo_file
+    def get_repo_file_url(self, path, course_identifier=None, commit_sha=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if commit_sha is None:
+            commit_sha = self.course.active_git_commit_sha
+
+        return reverse("relate-get_repo_file",
+                       kwargs={"course_identifier": course_identifier,
+                               "commit_sha": commit_sha,
+                               "path": path})
+
+    def get_repo_file_view(self, path, course_identifier=None, commit_sha=None):
+        return self.c.get(
+            self.get_repo_file_url(path, course_identifier, commit_sha))
+
+    def get_current_repo_file_url(self, path, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return reverse("relate-get_current_repo_file",
+                       kwargs={"course_identifier": course_identifier,
+                               "path": path})
+
+    def get_current_repo_file_view(self, path, course_identifier=None):
+        return self.c.get(
+            self.get_current_repo_file_url(path, course_identifier))
+
+
+@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
+    # test views.get_repo_file
+    def test_file_not_exist(self):
+
+        repo_file = "images/file_not_exist.png"
+        tup = ((None, 404),
+               (self.student_participation.user, 404),
+               (self.ta_participation.user, 404),
+               (self.instructor_participation.user, 404))
+        for user, status_code in tup:
+            with self.subTest(user=user):
+                with self.temporarily_switch_to_user(user):
+                    resp = self.get_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+                    resp = self.get_current_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+    def test_accessible_by_unenrolled_and_above_wildcard(self):
+        """
+        This make sure file name with wildcard character "*.png" works
+            unenrolled:
+                - "*.png"
+        """
+        repo_file = "images/cc.png"
+        tup = ((None, 200),
+               (self.student_participation.user, 200),
+               (self.ta_participation.user, 200),
+               (self.instructor_participation.user, 200))
+        for user, status_code in tup:
+            with self.subTest(user=user):
+                with self.temporarily_switch_to_user(user):
+                    resp = self.get_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+                    resp = self.get_current_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+    def test_commit_sha_not_exist(self):
+        repo_file = "images/django-logo.png"
+        tup = ((None, 403),
+               (self.student_participation.user, 403),
+               (self.ta_participation.user, 403),
+               (self.instructor_participation.user, 403))
+        for user, status_code in tup:
+            with self.subTest(user=user):
+                with self.temporarily_switch_to_user(user):
+                    resp = self.get_repo_file_view(repo_file, commit_sha="123abc")
+                    self.assertEqual(resp.status_code, status_code)
+
+    def test_content_type(self):
+        tup = (
+            ("images/cc.png", "image/png"),
+            ("images/classroom.jpeg", "image/jpeg"),
+            ("pdfs/sample.pdf", "application/pdf"),
+            ("ipynbs/Ipynb_example.ipynb", "application/octet-stream"),
+        )
+        for repo_file, content_type in tup:
+            with self.subTest(repo_file=repo_file):
+                resp = self.get_repo_file_view(repo_file)
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp["Content-Type"], content_type)
+
+                resp = self.get_current_repo_file_view(repo_file)
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp["Content-Type"], content_type)
+
+
+@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
+    """
+    Test views.get_repo_file, with get_repo_blob mocked as class level,
+    the purpose is to test role permissions to repo files
+
+        unenrolled:
+        - "cc.png"
+
+        in_exam:
+        - "*.jpeg"
+
+        ta:
+        - "django-logo.png"
+
+    """
+
+    initial_commit_sha = "abcdef001"
+
+    def test_accessible_by_unenrolled_and_above_fullname(self):
+        repo_file = "images/cc.png"
+        tup = ((None, 200),
+               (self.student_participation.user, 200),
+               (self.ta_participation.user, 200),
+               (self.instructor_participation.user, 200))
+        for user, status_code in tup:
+            with self.subTest(user=user):
+                with self.temporarily_switch_to_user(user):
+                    resp = self.get_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+                    resp = self.get_current_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+    def test_accessible_by_ta_and_above_fullname(self):
+        repo_file = "images/django-logo.png"
+        tup = ((None, 403),
+               (self.student_participation.user, 403),
+               (self.ta_participation.user, 200),
+               (self.instructor_participation.user, 200))
+        for user, status_code in tup:
+            with self.subTest(user=user):
+                with self.temporarily_switch_to_user(user):
+                    resp = self.get_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+                    resp = self.get_current_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+    def test_accessible_in_exam(self):
+        repo_file = "images/classroom.jpeg"
+        tup = ((None, 403),
+               (self.student_participation.user, 403),
+               (self.ta_participation.user, 200),
+               (self.instructor_participation.user, 200))
+        for user, status_code in tup:
+            with self.subTest(user=user):
+                with self.temporarily_switch_to_user(user):
+                    resp = self.get_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+                    resp = self.get_current_repo_file_view(repo_file)
+                    self.assertEqual(resp.status_code, status_code)
+
+    def test_in_exam(self):
+        req = RequestFactory()
+        repo_file = "images/classroom.jpeg"
+        request = req.get(self.get_repo_file_url(repo_file))
+        request.relate_exam_lockdown = True
+
+        from django.contrib.auth.models import AnonymousUser
+        users = (AnonymousUser(),
+                 self.student_participation.user,
+                 self.ta_participation.user,
+                 self.instructor_participation.user)
+
+        for user in users:
+            request.user = user
+            with self.subTest(user=user):
+                response = views.get_repo_file(
+                    request, self.course.identifier,
+                    self.course.active_git_commit_sha, repo_file)
+                self.assertEqual(response.status_code, 200)
 
 # vim: fdm=marker

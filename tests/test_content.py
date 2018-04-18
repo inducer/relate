@@ -22,8 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import os
 import json
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
+from django.core.exceptions import ObjectDoesNotExist
 
 from course.models import FlowSession
 from course import content
@@ -575,5 +577,48 @@ class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
                 content.get_course_commit_sha(
                     self.course, self.ta_participation,
                     repo=pctx.repo).decode(), self.valid_sha)
+
+
+class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
+    # test content.get_repo_blob (for cases not covered by other tests)
+    def setUp(self):
+        super(GetRepoBlobTest, self).setUp()
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        request.user = self.instructor_participation.user
+
+        from course.utils import CoursePageContext
+        self.pctx = CoursePageContext(request, self.course.identifier)
+
+    def test_repo_root_not_allow_tree_key_error(self):
+        with self.pctx.repo as repo:
+            with self.assertRaises(ObjectDoesNotExist) as cm:
+                content.get_repo_blob(
+                    repo, "", self.course.active_git_commit_sha.encode(),
+                    allow_tree=False)
+            expected_error_msg = "repo root is a directory, not a file"
+            self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_access_directory_content_type_error(self):
+        full_name = os.path.join("course.yml", "cc.png")
+        with self.pctx.repo as repo:
+            with self.assertRaises(ObjectDoesNotExist) as cm:
+                content.get_repo_blob(
+                    repo, full_name, self.course.active_git_commit_sha.encode(),
+                    allow_tree=True)
+            expected_error_msg = (
+                    "resource '%s' is a file, not a directory" % full_name)
+            self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_resource_is_a_directory_error(self):
+        full_name = "images"
+        with self.pctx.repo as repo:
+            with self.assertRaises(ObjectDoesNotExist) as cm:
+                content.get_repo_blob(
+                    repo, full_name, self.course.active_git_commit_sha.encode(),
+                    allow_tree=False)
+            expected_error_msg = (
+                    "resource '%s' is a directory, not a file" % full_name)
+            self.assertIn(expected_error_msg, str(cm.exception))
 
 # vim: fdm=marker
