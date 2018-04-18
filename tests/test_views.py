@@ -58,6 +58,10 @@ class TestSetFakeTime(SingleCourseTestMixin, TestCase):
 
     def test_set_fake_time_by_anonymous(self):
         with self.temporarily_switch_to_user(None):
+            # the faking url is not rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertNotContains(resp, self.get_fake_time_url())
+
             resp = self.get_set_fake_time()
             self.assertEqual(resp.status_code, 302)
 
@@ -67,6 +71,10 @@ class TestSetFakeTime(SingleCourseTestMixin, TestCase):
 
     def test_set_fake_time_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
+            # the faking url is not rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertNotContains(resp, self.get_fake_time_url())
+
             resp = self.get_set_fake_time()
             self.assertEqual(resp.status_code, 403)
 
@@ -76,6 +84,10 @@ class TestSetFakeTime(SingleCourseTestMixin, TestCase):
 
     def test_set_fake_time_by_instructor(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
+            # the faking url is rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertContains(resp, self.get_fake_time_url())
+
             resp = self.get_set_fake_time()
             self.assertEqual(resp.status_code, 200)
 
@@ -95,6 +107,9 @@ class TestSetFakeTime(SingleCourseTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
 
             self.post_impersonate(impersonatee=self.student_participation.user)
+            # the faking url is rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertContains(resp, self.get_fake_time_url())
 
             # set fake time
             resp = self.post_set_fake_time(self.set_fake_time_data)
@@ -120,6 +135,10 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
 
     def test_pretend_facilities_by_anonymous(self):
         with self.temporarily_switch_to_user(None):
+            # the pretending url is not rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertNotContains(resp, self.get_set_pretend_facilities_url())
+
             resp = self.get_set_pretend_facilities()
             self.assertEqual(resp.status_code, 302)
 
@@ -130,6 +149,10 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
 
     def test_pretend_facilities_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
+            # the pretending url is not rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertNotContains(resp, self.get_set_pretend_facilities_url())
+
             resp = self.get_set_pretend_facilities()
             self.assertEqual(resp.status_code, 403)
 
@@ -140,6 +163,10 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
 
     def test_pretend_facilities_by_instructor(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
+            # the pretending url is rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertContains(resp, self.get_set_pretend_facilities_url())
+
             resp = self.get_set_pretend_facilities()
             self.assertEqual(resp.status_code, 200)
 
@@ -158,6 +185,10 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
 
             self.post_impersonate(impersonatee=self.student_participation.user)
+
+            # the pretending url is rendered in template
+            resp = self.c.get(self.course_page_url)
+            self.assertContains(resp, self.get_set_pretend_facilities_url())
 
             resp = self.get_set_pretend_facilities()
             self.assertEqual(resp.status_code, 200)
