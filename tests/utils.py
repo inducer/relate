@@ -26,6 +26,7 @@ class BaseEmailBackendTestsMixin(object):
     email_backend = None
 
     def setUp(self):  # noqa
+        super(BaseEmailBackendTestsMixin, self).setUp()
         self.email_backend_settings_override = (
             override_settings(EMAIL_BACKEND=self.email_backend))
         self.email_backend_settings_override.enable()
