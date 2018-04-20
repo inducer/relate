@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast
+from typing import cast, Text
 
 import six
 import datetime  # noqa
@@ -538,12 +538,7 @@ def get_session_grading_rule(
         max_points_enforced_cap = getattr_with_fallback(
                 (rule, flow_desc), "max_points_enforced_cap", None)
 
-        try:
-            from typing import Text  # noqa
-        except ImportError:
-            Text = None  # noqa
-
-        grade_aggregation_strategy = cast(Text, grade_aggregation_strategy)  # type: ignore  # noqa
+        grade_aggregation_strategy = cast(Text, grade_aggregation_strategy)
 
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,

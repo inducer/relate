@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Union
+from typing import cast, Union, Text
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -1147,11 +1147,7 @@ def parse_date_spec(
         return localize_if_needed(
                 datetime.datetime.combine(datespec, datetime.time.min))
 
-    try:
-        from typing import Text
-    except ImportError:
-        Text = None  # noqa
-    datespec_str = cast(Text, datespec).strip()  # type: ignore
+    datespec_str = cast(Text, datespec).strip()
 
     # {{{ parse postprocessors
 
