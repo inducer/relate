@@ -31,9 +31,7 @@ from django.urls import reverse
 from django.utils.timezone import now, timedelta
 import unittest
 
-from relate.utils import (
-    local_now,
-    dict_to_struct, struct_to_dict)
+from relate.utils import local_now
 
 from course import models, grades, constants
 from course.constants import (
@@ -1342,14 +1340,8 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
         self.assertTrue(self.fs1.in_progress)
 
     def test_set_access_rule_tag(self):
-        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
-        rules = hacked_flow_desc_dict["rules"]
-        rules_dict = struct_to_dict(rules)
-        rules_dict["tags"] = ["blahblah"]
-        rules = dict_to_struct(rules_dict)
-        hacked_flow_desc_dict["rules"] = rules
-        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
-        assert hacked_flow_desc.rules.tags == ["blahblah"]
+        hacked_flow_desc = (
+            self.get_hacked_flow_desc_with_access_rule_tags(["blahblah"]))
 
         with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
             mock_get_flow_desc.return_value = hacked_flow_desc
@@ -1918,14 +1910,9 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
                 resp, [".txt"], [2])
 
     def test_download_other_access_rule_tags(self):
-        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
-        rules = hacked_flow_desc_dict["rules"]
-        rules_dict = struct_to_dict(rules)
-        rules_dict["tags"] = [self.my_access_rule_tag, "blahblah"]
-        rules = dict_to_struct(rules_dict)
-        hacked_flow_desc_dict["rules"] = rules
-        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
-        assert hacked_flow_desc.rules.tags == [self.my_access_rule_tag, "blahblah"]
+        hacked_flow_desc = (
+            self.get_hacked_flow_desc_with_access_rule_tags(
+                [self.my_access_rule_tag, "blahblah"]))
 
         with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
             mock_get_flow_desc.return_value = hacked_flow_desc

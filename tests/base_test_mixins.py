@@ -1702,6 +1702,16 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     # }}}
 
+    def get_form_submit_inputs(self, form):
+        from crispy_forms.layout import Submit
+        inputs = [
+            (input.name, input.value) for input in form.helper.inputs
+            if isinstance(input, Submit)
+        ]
+        names = list(dict(inputs).keys())
+        values = list(dict(inputs).values())
+        return names, values
+
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
@@ -1831,6 +1841,19 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             return flow_desc_dict
 
         return dict_to_struct(flow_desc_dict)
+
+    def get_hacked_flow_desc_with_access_rule_tags(self, rule_tags):
+        assert isinstance(rule_tags, list)
+        from relate.utils import struct_to_dict, dict_to_struct
+        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
+        rules = hacked_flow_desc_dict["rules"]
+        rules_dict = struct_to_dict(rules)
+        rules_dict["tags"] = rule_tags
+        rules = dict_to_struct(rules_dict)
+        hacked_flow_desc_dict["rules"] = rules
+        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
+        assert hacked_flow_desc.rules.tags == rule_tags
+        return hacked_flow_desc
 
 
 class TwoCourseTestMixin(CoursesTestMixinBase):
@@ -2353,6 +2376,59 @@ class FallBackStorageMessageTestMixin(object):
             print("-----------message end-------------\n")
         except KeyError:
             print("\n-------no message----------")
+
+
+class MockAddMessageMixing(object):
+    """
+    The mixing for testing django.contrib.messages.add_message
+    """
+
+    # where the django.contrib.messages is imported, need to be overridden
+    # for module to be tested if it was imported into the modual at modual
+    # level.
+    django_messages_imported_path = "django.contrib.messages"
+
+    def setUp(self):
+        super(MockAddMessageMixing, self).setUp()
+        self._fake_add_message_path = (
+            "%s.add_message"
+            % self.django_messages_imported_path.replace("add_message", ""))
+        fake_add_messag = mock.patch(self._fake_add_message_path)
+
+        self._mock_add_message = fake_add_messag.start()
+        self.addCleanup(fake_add_messag.stop)
+
+    def assertAddMessageCallCount(self, expected_call_count, reset=False):  # noqa
+        self.assertEqual(
+            self._mock_add_message.call_count, expected_call_count,
+            msg="%s is unexpectedly called %d times, instead of %d times."
+                % (self._fake_add_message_path, self._mock_add_message.call_count,
+                   expected_call_count))
+        if reset:
+            self._mock_add_message.reset_mock()
+
+    def assertAddMessageCalledWith(self, expected_messages, reset=True):  # noqa
+        try:
+            args = "; ".join([
+                "'%s'" % str(arg[2])
+                for arg, _ in self._mock_add_message.call_args_list])
+        except IndexError:
+            self.fail("%s is unexpectedly not called." % self._fake_add_message_path)
+
+        if not isinstance(expected_messages, list):
+            expected_messages = [expected_messages]
+
+        not_called = []
+        for msg in expected_messages:
+            if msg not in args:
+                not_called.append(msg)
+
+        if not_called:
+            self.fail(
+                "%s unexpectedly not added in messages, "
+                "the actual message are \"%s\"" % (repr(not_called), args))
+        if reset:
+            self._mock_add_message.reset_mock()
 
 
 class SubprocessRunpyContainerMixin(object):

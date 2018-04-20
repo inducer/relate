@@ -26,7 +26,7 @@ import six
 import pytz
 from datetime import datetime
 
-from django.utils.timezone import now
+from django.utils.timezone import now, timedelta
 import factory
 from factory import fuzzy
 from django.contrib.auth import get_user_model
@@ -297,16 +297,15 @@ class AuthenticationTokenFactory(factory.django.DjangoModelFactory):
 class InstantFlowRequestFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.InstantFlowRequest
-        django_get_or_create = ('course', 'flow_id')
+        # django_get_or_create = ('course', 'flow_id')
 
     course = factory.SubFactory(CourseFactory)
     flow_id = "my_flow_id"
     start_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 1, 1, tzinfo=pytz.UTC),
-        datetime(2019, 1, 31, tzinfo=pytz.UTC))
-    end_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 2, 1, tzinfo=pytz.UTC),
-        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+        now() - timedelta(minutes=20),
+        now() + timedelta(minutes=15))
+    end_time = factory.lazy_attribute(
+        lambda x: x.start_time + timedelta(minutes=20))
     cancelled = False
 
 
