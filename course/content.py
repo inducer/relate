@@ -29,6 +29,7 @@ from typing import cast, Union, Text
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+import os
 import re
 import datetime
 import six
@@ -197,8 +198,7 @@ def get_true_repo_and_path(repo, path):
 def get_course_repo_path(course):
     # type: (Course) -> Text
 
-    from os.path import join
-    return join(settings.GIT_ROOT, course.identifier)
+    return os.path.join(settings.GIT_ROOT, course.identifier)
 
 
 def get_course_repo(course):
@@ -224,8 +224,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
 
     dul_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    from os.path import split
-    names = split(full_name)
+    names = os.path.normpath(full_name).split(os.sep)
 
     # Allow non-ASCII file name
     full_name_bytes = full_name.encode('utf-8')
@@ -347,8 +346,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
     """
 
     # set the path to .attributes.yml
-    from os.path import dirname, basename, join
-    attributes_path = join(dirname(path), ATTRIBUTES_FILENAME)
+    attributes_path = os.path.join(os.path.dirname(path), ATTRIBUTES_FILENAME)
 
     # retrieve the .attributes.yml structure
     try:
@@ -358,7 +356,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
         # no attributes file: not accessible
         return False
 
-    path_basename = basename(path)
+    path_basename = os.path.basename(path)
 
     # "public" is a deprecated alias for "unenrolled".
 
@@ -485,8 +483,7 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
                 super(YamlBlockEscapingGitTemplateLoader, self).get_source(
                         environment, template)
 
-        from os.path import splitext
-        _, ext = splitext(template)
+        _, ext = os.path.splitext(template)
         ext = ext.lower()
 
         if ext in [".yml", ".yaml"]:
@@ -503,8 +500,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
                 super(YamlBlockEscapingFileSystemLoader, self).get_source(
                         environment, template)
 
-        from os.path import splitext
-        _, ext = splitext(template)
+        _, ext = os.path.splitext(template)
         ext = ext.lower()
 
         if ext in [".yml", ".yaml"]:
