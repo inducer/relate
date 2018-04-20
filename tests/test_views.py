@@ -1805,6 +1805,47 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             exc_rule = models.FlowRuleException.objects.last().rule
             self.assertEqual(exc_rule.get("if_has_tag"), None)
 
+    def test_create_access_exception_restrict_to_same_tag2(self):
+        flow_desc_access_rule_tags = ["fdesc_tag1", "fdesc_tag2"]
+        hacked_flow_desc = self.get_hacked_flow_desc_with_access_rule_tags(
+            flow_desc_access_rule_tags)
+
+        # a flow session with it's own tag
+        another_fs_tag = "my_tag1"
+        another_fs = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation,
+            flow_id=self.flow_id, access_rules_tag=another_fs_tag)
+
+        with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = hacked_flow_desc
+
+            resp = self.post_grant_exception_stage_3_view(
+                session_id=another_fs.pk,
+                data=self.get_default_post_data(
+                    session=another_fs.pk,
+                    create_access_exception=True,
+                    set_access_rules_tag=[flow_desc_access_rule_tags[1]],
+                    restrict_to_same_tag=True  # then the above will be ignored
+                ))
+
+            self.assertFormErrorLoose(resp, None)
+            self.assertRedirects(
+                resp, self.get_grant_exception_url(),
+                fetch_redirect_response=False)
+
+            self.assertEqual(models.FlowRuleException.objects.count(), 1)
+            self.assertEqual(
+                models.FlowRuleException.objects.filter(
+                    kind=constants.flow_rule_kind.access).count(), 1)
+
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith("Exception granted to ", reset=True)
+            another_fs.refresh_from_db()
+            self.assertEqual(another_fs.access_rules_tag, another_fs_tag)
+
+            exc_rule = models.FlowRuleException.objects.last().rule
+            self.assertEqual(exc_rule["if_has_tag"], another_fs_tag)
+
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_access_permissions_created(self):
         # ensure all flow permission is in the form, and will be
@@ -2105,7 +2146,48 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
 
             exc_rule = models.FlowRuleException.objects.last().rule
             self.assertEqual(
-                exc_rule.get("if_has_tag"), flow_desc_access_rule_tags[1])
+                exc_rule.get("if_has_tag"), None)
+
+    def test_create_grading_exception_restrict_to_same_tag2(self):
+        flow_desc_access_rule_tags = ["fdesc_tag1", "fdesc_tag2"]
+        hacked_flow_desc = self.get_hacked_flow_desc_with_access_rule_tags(
+            flow_desc_access_rule_tags)
+
+        # a flow session with it's own tag
+        another_fs_tag = "my_tag1"
+        another_fs = factories.FlowSessionFactory(
+            course=self.course, participation=self.student_participation,
+            flow_id=self.flow_id, access_rules_tag=another_fs_tag)
+
+        with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
+            mock_get_flow_desc.return_value = hacked_flow_desc
+
+            resp = self.post_grant_exception_stage_3_view(
+                session_id=another_fs.pk,
+                data=self.get_default_post_data(
+                    session=another_fs.pk,
+                    create_grading_exception=True,
+                    set_access_rules_tag=[flow_desc_access_rule_tags[1]],
+                    restrict_to_same_tag=True  # then the above will be ignored
+                ))
+
+            self.assertFormErrorLoose(resp, None)
+            self.assertRedirects(
+                resp, self.get_grant_exception_url(),
+                fetch_redirect_response=False)
+
+            self.assertEqual(models.FlowRuleException.objects.count(), 1)
+            self.assertEqual(
+                models.FlowRuleException.objects.filter(
+                    kind=constants.flow_rule_kind.grading).count(), 1)
+
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith("Exception granted to ", reset=True)
+            another_fs.refresh_from_db()
+            self.assertEqual(another_fs.access_rules_tag, another_fs_tag)
+
+            exc_rule = models.FlowRuleException.objects.last().rule
+            self.assertEqual(exc_rule["if_has_tag"], another_fs_tag)
 
     # }}}
 

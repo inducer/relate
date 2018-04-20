@@ -1163,13 +1163,16 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             exception_created = False
 
+            restricted_to_same_tag = bool(
+                form.cleaned_data.get("restrict_to_same_tag")
+                and session.access_rules_tag is not None)
+
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
                 new_access_rule = {"permissions": permissions}
 
-                if (form.cleaned_data.get("restrict_to_same_tag")
-                        and session.access_rules_tag is not None):
+                if restricted_to_same_tag:
                     new_access_rule["if_has_tag"] = session.access_rules_tag
 
                 validate_session_access_rule(
@@ -1189,23 +1192,25 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             # }}}
 
-            new_access_rules_tag = form.cleaned_data.get("set_access_rules_tag")
-            if new_access_rules_tag == NONE_SESSION_TAG:
-                new_access_rules_tag = None
-
             session_access_rules_tag_changed = False
-            if session.access_rules_tag != new_access_rules_tag:
-                session.access_rules_tag = new_access_rules_tag
-                session.save()
-                session_access_rules_tag_changed = True
+            if not restricted_to_same_tag:
+                new_access_rules_tag = form.cleaned_data.get("set_access_rules_tag")
+                if new_access_rules_tag == NONE_SESSION_TAG:
+                    new_access_rules_tag = None
 
-                if new_access_rules_tag is not None:
-                    msg = _("Access rules tag of the selected session "
-                            "updated to '%s'.") % new_access_rules_tag
-                else:
-                    msg = _("Removed access rules tag of the selected session.")
+                if session.access_rules_tag != new_access_rules_tag:
+                    session.access_rules_tag = new_access_rules_tag
+                    session.save()
+                    session_access_rules_tag_changed = True
 
-                messages.add_message(pctx.request, messages.SUCCESS, msg)
+                    if new_access_rules_tag is not None:
+                        msg = _("Access rules tag of the selected session "
+                                "updated to '%s'.") % new_access_rules_tag
+                    else:
+                        msg = _(
+                            "Removed access rules tag of the selected session.")
+
+                    messages.add_message(pctx.request, messages.SUCCESS, msg)
 
             # {{{ put together grading rule
 
@@ -1239,8 +1244,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     if form.cleaned_data[attr_name] is not None:
                         new_grading_rule[attr_name] = form.cleaned_data[attr_name]
 
-                if (form.cleaned_data.get("restrict_to_same_tag")
-                        and session.access_rules_tag is not None):
+                if restricted_to_same_tag:
                     new_grading_rule["if_has_tag"] = session.access_rules_tag
 
                 validate_session_grading_rule(
