@@ -224,6 +224,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
 
     dul_repo, full_name = get_true_repo_and_path(repo, full_name)
 
+    # https://github.com/inducer/relate/pull/556
     names = os.path.normpath(full_name).split(os.sep)
 
     # Allow non-ASCII file name
@@ -522,13 +523,13 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
 
     # {{{ process explicit [JINJA] tags (deprecated)
 
-    def compute_replacement(match):
+    def compute_replacement(match):  # pragma: no cover  # deprecated
         template = jinja_env.from_string(match.group(1))
         return template.render()
 
     yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
 
-    if count:
+    if count:  # pragma: no cover  # deprecated
         # The file uses explicit [JINJA] tags. Assume that it doesn't
         # want anything else processed through YAML.
         return yaml_str
@@ -788,12 +789,13 @@ class LinkFixerTreeprocessor(Treeprocessor):
                 return self.reverse("relate-view_calendar",
                             args=(self.get_course_identifier(),))
 
+            else:
+                return None
+
         except NoReverseMatch:
             from base64 import b64encode
             message = ("Invalid character in RELATE URL: " + url).encode("utf-8")
             return "data:text/plain;base64,"+b64encode(message).decode()
-
-        return None
 
     def process_tag(self, tag_name, attrs):
         changed_attrs = {}
@@ -1102,11 +1104,9 @@ class PlusDeltaPostprocessor(DatespecPostprocessor):
             d = datetime.timedelta(days=self.count)
         elif self.period.startswith("hour"):
             d = datetime.timedelta(hours=self.count)
-        elif self.period.startswith("minute"):
-            d = datetime.timedelta(minutes=self.count)
         else:
-            raise InvalidDatespec(_("invalid period: %s" % self.period))
-
+            assert self.period.startswith("minute")
+            d = datetime.timedelta(minutes=self.count)
         return dtm + d
 
 
@@ -1276,16 +1276,16 @@ def compute_chunk_weight_and_shown(
 
         # {{{ deprecated
 
-        if hasattr(rule, "roles"):
+        if hasattr(rule, "roles"):  # pragma: no cover  # deprecated
             if all(role not in rule.roles for role in roles):
                 continue
 
-        if hasattr(rule, "start"):
+        if hasattr(rule, "start"):  # pragma: no cover  # deprecated
             start_date = parse_date_spec(course, rule.start)
             if now_datetime < start_date:
                 continue
 
-        if hasattr(rule, "end"):
+        if hasattr(rule, "end"):  # pragma: no cover  # deprecated
             end_date = parse_date_spec(course, rule.end)
             if end_date < now_datetime:
                 continue
@@ -1373,7 +1373,7 @@ def normalize_flow_desc(flow_desc):
 
     if hasattr(flow_desc, "rules"):
         rules = flow_desc.rules
-        if not hasattr(rules, "grade_identifier"):
+        if not hasattr(rules, "grade_identifier"):  # pragma: no cover  # deprecated
             # Legacy content with grade_identifier in grading rule,
             # move first found grade_identifier up to rules.
 
@@ -1488,7 +1488,7 @@ def get_flow_page_class(repo, typename, commit_sha):
 
         try:
             return module_dict[classname]
-        except AttributeError:
+        except (AttributeError, KeyError):
             raise ClassNotFoundError(typename)
     else:
         raise ClassNotFoundError(typename)
