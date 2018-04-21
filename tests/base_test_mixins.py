@@ -814,6 +814,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse(view_name, args=[course_identifier])
 
     @classmethod
+    def get_course_calender_url(cls, course_identifier=None):
+        return cls.get_course_view_url(
+            "relate-view_calendar", course_identifier)
+
+    @classmethod
     def get_set_up_new_course_url(cls):
         return reverse("relate-set_up_new_course")
 
@@ -1785,17 +1790,19 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
                 kwargs[k] = ""
         return kwargs
 
-    def get_course_page_context(self, user):
+    @classmethod
+    def get_course_page_context(cls, user):
         rf = RequestFactory()
-        request = rf.get(self.get_course_page_url())
+        request = rf.get(cls.get_course_page_url())
         request.user = user
 
         from course.utils import CoursePageContext
-        pctx = CoursePageContext(request, self.course.identifier)
+        pctx = CoursePageContext(request, cls.course.identifier)
         return pctx
 
+    @classmethod
     def get_hacked_flow_desc(
-            self, user=None, flow_id=None, commit_sha=None,
+            cls, user=None, flow_id=None, commit_sha=None,
             del_rules=False, as_dict=False, **kwargs):
         """
         Get a hacked version of flow_desc
@@ -1808,22 +1815,22 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
 
         # {{{ get the actual flow_desc by a real visit
         rf = RequestFactory()
-        request = rf.get(self.get_course_page_url())
+        request = rf.get(cls.get_course_page_url())
         if user is None:
-            user = self.student_participation.user
+            user = cls.student_participation.user
         request.user = user
 
         if flow_id is None:
             flow_id = QUIZ_FLOW_ID
 
         if commit_sha is None:
-            commit_sha = self.course.active_git_commit_sha
+            commit_sha = cls.course.active_git_commit_sha
 
         if isinstance(commit_sha, six.text_type):
             commit_sha = commit_sha.encode()
 
         from course.content import get_flow_desc
-        with self.get_course_page_context(user) as pctx:
+        with cls.get_course_page_context(user) as pctx:
             flow_desc = get_flow_desc(
                 pctx.repo, pctx.course, flow_id, commit_sha)
 
@@ -2384,7 +2391,7 @@ class MockAddMessageMixing(object):
     """
 
     # where the django.contrib.messages is imported, need to be overridden
-    # for module to be tested if it was imported into the modual at modual
+    # for module to be tested if it was imported into the module at module
     # level.
     django_messages_imported_path = "django.contrib.messages"
 

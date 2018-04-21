@@ -47,7 +47,8 @@ from course.content import parse_date_spec
 from course import constants  # noqa
 from course.constants import flow_permission as fperm
 
-from tests.constants import QUIZ_FLOW_ID
+from tests.constants import (
+    QUIZ_FLOW_ID, COMMIT_SHA_SUPPORT_CUSTOM_PAGES)
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
     SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
@@ -376,7 +377,7 @@ class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
 
     custom_page_type = "repo:simple_questions.MyTextQuestion"
 
-    commit_sha_deprecated = b"593a1cdcecc6f4759fd5cadaacec0ba9dd0715a7"
+    commit_sha_deprecated = COMMIT_SHA_SUPPORT_CUSTOM_PAGES.encode()
 
     deprecate_warning_message_pattern = (
         "Custom page type '%(page_type)s' specified. "
