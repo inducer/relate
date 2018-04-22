@@ -2027,12 +2027,14 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
                     if file_with_ext_count is None:
                         assert len([f for f in zf.filelist if
-                                 f.filename.endswith(dl_file_extension)]) > 0
+                                 f.filename.endswith(dl_file_extension)]) > 0,\
+                            repr([f.filename for f in zf.filelist])
                     else:
                         assert (
                                 len([f for f in zf.filelist if
                                      f.filename.endswith(dl_file_extension)])
-                                == file_with_ext_count)
+                                == file_with_ext_count),\
+                            repr([f.filename for f in zf.filelist])
 
     @classmethod
     def submit_page_answer_by_ordinal_and_test(
