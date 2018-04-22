@@ -33,6 +33,7 @@ from dulwich.repo import Tree
 
 from django.test import TestCase, RequestFactory, override_settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 
 from course.models import FlowSession
 from course import content
@@ -1199,24 +1200,6 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
                 group_id="quiz_tail",
                 page_id="addition").id, "addition")
 
-    def test_success_no_rules(self):
-        # this also make sure normalize_flow_desc without flow_desc.rule
-        # works correctly
-        flow_desc = self.get_hacked_flow_desc(del_rules=True)
-        self.assertEqual(
-            content.get_flow_page_desc(
-                flow_id=self.flow_id,
-                flow_desc=flow_desc,
-                group_id="intro",
-                page_id="welcome").id, "welcome")
-
-        self.assertEqual(
-            content.get_flow_page_desc(
-                flow_id=self.flow_id,
-                flow_desc=self.flow_desc,
-                group_id="quiz_tail",
-                page_id="addition").id, "addition")
-
     def test_flow_page_desc_does_not_exist(self):
         with self.assertRaises(ObjectDoesNotExist):
             content.get_flow_page_desc(
@@ -1225,6 +1208,97 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
         with self.assertRaises(ObjectDoesNotExist):
             content.get_flow_page_desc(
                 self.flow_id, self.flow_desc, "unknown_group", "unknown_page")
+
+
+class NormalizeFlowDescTest(SingleCoursePageTestMixin, TestCase):
+    # content.normalize_flow_desc
+    def test_success_no_rules(self):
+        # this also make sure normalize_flow_desc without flow_desc.rule
+        # works correctly
+        flow_desc = self.get_hacked_flow_desc(del_rules=True)
+        self.assertTrue(
+            content.normalize_flow_desc(
+                flow_desc=flow_desc), flow_desc)
+
+
+class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
+    # content.markup_to_html
+    def setUp(self):
+        super(MarkupToHtmlTest, self).setUp()
+        from django.core.cache import cache
+        cache.clear()
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        request.user = self.instructor_participation.user
+
+        from course.utils import CoursePageContext
+        self.pctx = CoursePageContext(request, self.course.identifier)
+
+    def test_link_fixer_works(self):
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            self.assertEqual(content.markup_to_html(
+                self.course, repo, self.course.active_git_commit_sha, text),
+                '<p><a href="%s">this course</a></p>' % self.course_page_url)
+
+    def test_startswith_jinja_prefix(self):
+        with self.pctx.repo as repo:
+            text = "   [JINJA][this course](course:)"
+            self.assertEqual(content.markup_to_html(
+                self.course, repo,
+                self.course.active_git_commit_sha.encode(), text),
+                '<p><a href="%s">this course</a></p>' % self.course_page_url)
+
+    @override_settings()
+    def test_disable_codehilite_not_configured(self):
+        # if RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION is not configured,
+        # the default value is True
+        del settings.RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            with mock.patch("markdown.markdown") as mock_markdown:
+                mock_markdown.return_value = u"some text"
+                content.markup_to_html(
+                    self.course, repo,
+                    self.course.active_git_commit_sha.encode(), text)
+
+                self.assertEqual(mock_markdown.call_count, 1)
+                used_extensions = mock_markdown.call_args[1]["extensions"]
+                self.assertNotIn(
+                    "markdown.extensions.codehilite(css_class=highlight)",
+                    used_extensions)
+
+    @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=True)
+    def test_disable_codehilite_configured_true(self):
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            with mock.patch("markdown.markdown") as mock_markdown:
+                mock_markdown.return_value = u"some text"
+                content.markup_to_html(
+                    self.course, repo,
+                    self.course.active_git_commit_sha.encode(), text)
+
+                self.assertEqual(mock_markdown.call_count, 1)
+                used_extensions = mock_markdown.call_args[1]["extensions"]
+                self.assertNotIn(
+                    "markdown.extensions.codehilite(css_class=highlight)",
+                    used_extensions)
+
+    @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=False)
+    def test_disable_codehilite_configured_false(self):
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            with mock.patch("markdown.markdown") as mock_markdown:
+                mock_markdown.return_value = u"some text"
+                content.markup_to_html(
+                    self.course, repo,
+                    self.course.active_git_commit_sha.encode(), text)
+
+                self.assertEqual(mock_markdown.call_count, 1)
+                used_extensions = mock_markdown.call_args[1]["extensions"]
+                self.assertIn(
+                    "markdown.extensions.codehilite(css_class=highlight)",
+                    used_extensions)
 
 
 class GetFlowPageClassTest(SingleCourseTestMixin, TestCase):
