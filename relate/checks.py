@@ -63,8 +63,7 @@ RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE = (
 class RelateCriticalCheckMessage(Critical):
     def __init__(self, *args, **kwargs):
         super(RelateCriticalCheckMessage, self).__init__(*args, **kwargs)
-        if not self.obj:
-            self.obj = ImproperlyConfigured.__name__
+        self.obj = self.obj or ImproperlyConfigured.__name__
 
 
 class DeprecatedException(Exception):
@@ -514,7 +513,7 @@ def register_startup_checks_extra():
     executed after AppConfig.ready() is done.
     """
     startup_checks_extra = getattr(settings, RELATE_STARTUP_CHECKS_EXTRA, None)
-    if startup_checks_extra:
+    if startup_checks_extra is not None:
         if not isinstance(startup_checks_extra, (list, tuple)):
             raise ImproperlyConfigured(
                 INSTANCE_ERROR_PATTERN
