@@ -31,7 +31,7 @@ import datetime
 import stat
 from dulwich.repo import Tree
 
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, override_settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from course.models import FlowSession
@@ -41,7 +41,7 @@ from course import page
 from tests.base_test_mixins import (
     SingleCourseTestMixin,
     improperly_configured_cache_patch, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
+    SingleCourseQuizPageTestMixin, MockAddMessageMixing, HackRepoMixin)
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
 from tests import factories  # noqa
@@ -1083,6 +1083,99 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
 
+class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
+    # test content.get_course_desc and content.get_processed_page_chunks
+
+    fake_commit_sha = "my_fake_commit_sha_for_course_desc"
+
+    def test_shown(self):
+        resp = self.c.get(self.course_page_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Welcome to the sample course")
+
+        # test that markup_to_html is called
+        self.assertContains(resp, "course/test-course/flow/quiz-test/start/")
+
+    def test_not_shown(self):
+        resp = self.c.get(self.course_page_url)
+        self.assertNotContains(
+            resp, "Welcome to the computer-based testing facility")
+
+    @override_settings(RELATE_FACILITIES={
+        "test_center": {
+            "ip_ranges": ["192.168.100.0/24"],
+            "exams_only": False}, })
+    def test_show_in_fake_facility(self):
+        data = {
+            "facilities": ["test_center"],
+            "custom_facilities": [],
+            "add_pretend_facilities_header": ["on"],
+            "set": ''}
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            # pretend facility
+            self.post_set_pretend_facilities(data=data)
+
+            resp = self.c.get(self.course_page_url)
+            self.assertEqual(resp.status_code, 200)
+            self.assertContains(resp, "Welcome to the sample course")
+            self.assertContains(
+                resp, "Welcome to the computer-based testing facility")
+
+    def test_shown_with_empty_chunk_rule(self):
+        self.course.active_git_commit_sha = self.fake_commit_sha
+        self.course.save()
+
+        resp = self.c.get(self.course_page_url)
+        self.assertContains(resp, "empty rules")
+
+    def test_visible_for_role(self):
+        self.course.active_git_commit_sha = self.fake_commit_sha
+        self.course.save()
+
+        resp = self.c.get(self.course_page_url)
+        self.assertNotContains(resp, "Shown to instructor")
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(self.course_page_url)
+            self.assertContains(resp, "Shown to instructor")
+
+    def test_weight_higher_shown_first(self):
+        self.course.active_git_commit_sha = self.fake_commit_sha
+        self.course.save()
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(self.course_page_url)
+
+            shown_to_instructor = "Shown to instructor"  # weight 100
+
+            # wight: 50 before 2018-1-1, after that, 200
+            display_order = "Display order"
+
+            self.assertContains(resp, shown_to_instructor)
+            self.assertContains(resp, display_order)
+
+            response_text = resp.content.decode()
+
+            shown_to_instructor_idx = response_text.index(shown_to_instructor)
+            display_order_idx = response_text.index(display_order)
+            self.assertGreater(shown_to_instructor_idx, display_order_idx)
+
+            # fake time to 2017-12-31
+            set_fake_time_data = {
+                "time": datetime.datetime(2017, 12, 31).strftime("%Y-%m-%d %H:%M"),
+                "set": ''}
+            self.post_set_fake_time(data=set_fake_time_data)
+
+            # second visit
+            resp = self.c.get(self.course_page_url)
+            response_text = resp.content.decode()
+
+            shown_to_instructor_idx = response_text.index(shown_to_instructor)
+            display_order_idx = response_text.index(display_order)
+            self.assertGreater(display_order_idx, shown_to_instructor_idx)
+
+
 class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
     # test content.get_flow_desc
 
@@ -1096,6 +1189,24 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
             content.get_flow_page_desc(
                 flow_id=self.flow_id,
                 flow_desc=self.flow_desc,
+                group_id="intro",
+                page_id="welcome").id, "welcome")
+
+        self.assertEqual(
+            content.get_flow_page_desc(
+                flow_id=self.flow_id,
+                flow_desc=self.flow_desc,
+                group_id="quiz_tail",
+                page_id="addition").id, "addition")
+
+    def test_success_no_rules(self):
+        # this also make sure normalize_flow_desc without flow_desc.rule
+        # works correctly
+        flow_desc = self.get_hacked_flow_desc(del_rules=True)
+        self.assertEqual(
+            content.get_flow_page_desc(
+                flow_id=self.flow_id,
+                flow_desc=flow_desc,
                 group_id="intro",
                 page_id="welcome").id, "welcome")
 
