@@ -1,0 +1,47 @@
+chunks:
+
+-
+    title: "Shown to instructor"
+    id: hidden
+    rules:
+    -
+        if_has_role: [instructor]
+        weight: 100
+        shown: True
+
+    -
+        weight: 0
+        shown: False
+
+    content: |
+
+        # Hello instructors
+        Hi!
+
+
+-
+    title: "empty rules"
+
+    id: no_actual_rules
+    rules: []
+
+    content: |
+
+        # All visitor can see this
+        Welcome!
+
+-
+    title: "Display order"
+
+    id: orders
+    rules:
+    -
+        if_after: 2018-01-01
+        weight: 200
+
+    -
+        weight: 50
+
+    content: |
+
+        # Where am I?

@@ -172,5 +172,10 @@ COMMIT_SHA_MAP = {
         # faked commit sha for .attributes.yml
         {"abcdef001":
              {"path": "fake-images-attributes.yml"}},
+    ],
+    "course.yml": [
+        {"my_fake_commit_sha_for_course_desc": {
+            "path":
+                "fake-course-for-page-chunk-tests.yml"}}
     ]
 }
