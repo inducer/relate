@@ -29,7 +29,8 @@ from course.sandbox import (
     PAGE_SESSION_KEY_PREFIX, PAGE_DATA_SESSION_KEY_PREFIX,
     ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
 
-from tests.base_test_mixins import SingleCourseTestMixin
+from tests.base_test_mixins import (
+    SingleCourseTestMixin, MockAddMessageMixing)
 from tests.constants import PAGE_WARNINGS, HAVE_VALID_PAGE, PAGE_ERRORS
 from tests.utils import mock
 
@@ -93,9 +94,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_page_sandbox_post_response(cls, data, action):
         post_data = {action: ""}
         post_data.update(data)
-        return cls.c.post(
-            reverse("relate-view_page_sandbox", args=[cls.course.identifier]),
-            post_data)
+        return cls.c.post(cls.get_page_sandbox_url(), post_data)
 
     @classmethod
     def get_page_sandbox_preview_response(cls, markup_content):
@@ -150,6 +149,21 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
 
     def assertSandboxNotHasValidPage(self, resp):  # noqa
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, False)
+
+    @classmethod
+    def get_markup_sandbox_url(cls):
+        return reverse("relate-view_markup_sandbox", args=[cls.course.identifier])
+
+    @classmethod
+    def get_markup_sandbox_view(cls):
+        return cls.c.get(cls.get_markup_sandbox_url())
+
+    @classmethod
+    def post_markup_sandbox_view(cls, markup_content, action="preview"):
+        post_data = {
+            "content": markup_content,
+            action: ""}
+        return cls.c.post(cls.get_markup_sandbox_url(), post_data)
 
 
 class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
@@ -315,3 +329,55 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertSandboxNotHasValidPage(resp)
             self.assertResponseContextContains(resp, PAGE_ERRORS, error_msg)
+
+
+class ViewMarkupSandboxTest(SingleCoursePageSandboxTestBaseMixin,
+                            MockAddMessageMixing, TestCase):
+    """test course.sansbox.view_markup_sandbox"""
+    def test_not_authenticated(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.get_markup_sandbox_view()
+            self.assertEqual(resp.status_code, 403)
+
+            resp = self.post_markup_sandbox_view(markup_content="abcd")
+            self.assertEqual(resp.status_code, 403)
+
+    def test_no_pperm(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.get_markup_sandbox_view()
+            self.assertEqual(resp.status_code, 403)
+
+            resp = self.post_markup_sandbox_view(markup_content="abcd")
+            self.assertEqual(resp.status_code, 403)
+
+    def test_get(self):
+        resp = self.get_markup_sandbox_view()
+        self.assertEqual(resp.status_code, 200)
+
+    def test_unknown_post_operation(self):
+        resp = self.post_markup_sandbox_view(markup_content="abcd", action="unknown")
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextEqual(resp, "preview_text", "")
+
+    def test_post_form_not_valid(self):
+        with mock.patch("course.sandbox.SandboxForm.is_valid") as mock_form_valid:
+            mock_form_valid.return_value = False
+            resp = self.post_markup_sandbox_view(markup_content=mock.MagicMock())
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextEqual(resp, "preview_text", "")
+
+    def test_preview(self):
+        resp = self.post_markup_sandbox_view(markup_content="[home](course:)")
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextEqual(
+            resp, "preview_text",
+            '<p><a href="/course/%s/">home</a></p>' % self.course.identifier)
+
+    def test_preview_failed(self):
+        with mock.patch("course.content.markup_to_html") as mock_mth:
+            error_msg = "my expected error"
+            mock_mth.side_effect = RuntimeError(error_msg)
+            resp = self.post_markup_sandbox_view(markup_content="[home](course:)")
+            self.assertEqual(resp.status_code, 200)
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith(error_msg)
