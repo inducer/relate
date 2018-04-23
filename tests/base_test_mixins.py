@@ -2027,14 +2027,23 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
                     if file_with_ext_count is None:
                         assert len([f for f in zf.filelist if
-                                 f.filename.endswith(dl_file_extension)]) > 0,\
-                            repr([f.filename for f in zf.filelist])
+                                    f.filename.endswith(dl_file_extension)]) > 0, \
+                            ("The zipped file unexpectedly didn't contain "
+                             "file with extension '%s', the actual file list "
+                             "is %s" % (
+                                 dl_file_extension,
+                                 repr([f.filename for f in zf.filelist])))
                     else:
                         assert (
                                 len([f for f in zf.filelist if
                                      f.filename.endswith(dl_file_extension)])
-                                == file_with_ext_count),\
-                            repr([f.filename for f in zf.filelist])
+                                == file_with_ext_count), \
+                            ("The zipped file unexpectedly didn't contain "
+                             "%d files with extension '%s', the actual file list "
+                             "is %s" % (
+                                 file_with_ext_count,
+                                 dl_file_extension,
+                                 repr([f.filename for f in zf.filelist])))
 
     @classmethod
     def submit_page_answer_by_ordinal_and_test(

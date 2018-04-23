@@ -168,10 +168,16 @@ COMMIT_SHA_MAP = {
             "path": "fake-quiz-test-for-download-submissions.yml",
             "page_ids": ["half", "proof"]}},
     ],
+
+    # This had to use path join
     os.path.join("images", ".attributes.yml"): [
         # faked commit sha for .attributes.yml
         {"abcdef001":
              {"path": "fake-images-attributes.yml"}},
+    ],
+    "questions/pdf-file-upload-example.yml": [
+        {"my_fake_commit_sha_for_normalized_bytes_answer":
+             {"path": "fake-pdf-file-upload-example.yml"}},
     ],
     "course.yml": [
         {"my_fake_commit_sha_for_course_desc": {
