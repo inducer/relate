@@ -3,6 +3,8 @@
 import os
 from collections import namedtuple
 
+DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
+
 QUIZ_FLOW_ID = "quiz-test"
 MESSAGE_ANSWER_SAVED_TEXT = "Answer saved."
 MESSAGE_ANSWER_FAILED_SAVE_TEXT = "Failed to submit answer."
@@ -187,6 +189,12 @@ COMMIT_SHA_MAP = {
     "course.yml": [
         {"my_fake_commit_sha_for_course_desc": {
             "path":
-                "fake-course-for-page-chunk-tests.yml"}}
+                "fake-course-desc-for-page-chunk-tests.yml"}}
+    ],
+    "events.yml": [
+        {"my_fake_commit_sha_for_events": {
+            "path":
+                "fake-events-desr-for-calendar-tests1.yml"}}
     ]
+
 }

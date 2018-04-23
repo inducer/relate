@@ -37,7 +37,7 @@ from course.versioning import CourseCreationForm
 
 from tests.base_test_mixins import SingleCourseTestMixin
 from tests.utils import LocmemBackendTestsMixin, mail, mock
-from tests.test_views import DATE_TIME_PICKER_TIME_FORMAT
+from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.test_utils import (
     REAL_TRANSLATION_FUNCTION_TO_MOCK, real_trans_side_effect)
 

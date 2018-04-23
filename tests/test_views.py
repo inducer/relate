@@ -45,8 +45,7 @@ from tests.base_test_mixins import (
 from tests.test_auth import AuthTestMixin
 from tests.utils import mock
 from tests import factories
-
-DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
+from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 
 RELATE_FACILITIES = {
     # intentionally to be different from local_settings_example.py
