@@ -170,18 +170,6 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
                                             kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
-    def test_view_flow_list_analytics(self):
-        resp = self.c.get(reverse("relate-flow_list",
-                                            args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-
-    def test_view_flow_analytics(self):
-        params = {"course_identifier": self.course.identifier,
-                    "flow_id": self.flow_id}
-        resp = self.c.get(reverse("relate-flow_analytics",
-                                            kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-
     def test_view_grant_exception_new_session(self):
         all_session = FlowSession.objects.all()
         # Check number of flow sessions and ids

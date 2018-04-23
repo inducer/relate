@@ -167,6 +167,11 @@ COMMIT_SHA_MAP = {
         {"my_fake_commit_sha_for_download_submissions": {
             "path": "fake-quiz-test-for-download-submissions.yml",
             "page_ids": ["half", "proof"]}},
+        {"my_fake_commit_sha_for_flow_analytics": {
+            "path": "fake-quiz-test-for-flow_analytics.yml"}},
+        {"my_fake_commit_sha_for_page_analytics": {
+            "path": "fake-quiz-test-for-page_analytics.yml"
+        }}
     ],
 
     # This had to use path join
