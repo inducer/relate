@@ -64,7 +64,7 @@ ipaddress
 
 # {{{ For interoperation with SAML2/Shibboleth
 
-pysaml2
+pysaml2<=4.4.0
 djangosaml2
 python-memcached
 
