@@ -26,14 +26,17 @@ THE SOFTWARE.
 
 import six
 import re
+import unittest
 import datetime
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 
 from course.models import Course
 from course.views import EditCourseForm
 from course.versioning import CourseCreationForm
+from relate.utils import (
+    is_maintenance_mode, render_email_template, get_outbound_mail_connection)
 
 from tests.base_test_mixins import SingleCourseTestMixin
 from tests.utils import LocmemBackendTestsMixin, mail, mock
@@ -472,5 +475,51 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
     @override_settings(RELATE_SITE_NAME="My RELATE")
     def test_custom_configure(self):
         self.verify_result_with_configure("My RELATE")
+
+
+class MaintenanceModeTest(SingleCourseTestMixin, TestCase):
+    """test relate.utils.is_maintenance_mode"""
+    def setUp(self):
+        rf = RequestFactory()
+        self.request = rf.get("/")
+
+    def test_is(self):
+        with override_settings(RELATE_MAINTENANCE_MODE=True):
+            self.assertTrue(is_maintenance_mode(self.request))
+            self.c.get("/")
+            self.assertTemplateUsed("maintenance.html")
+
+    def test_exceptions(self):
+        with override_settings(
+                RELATE_MAINTENANCE_MODE=True,
+                RELATE_MAINTENANCE_MODE_EXCEPTIONS=[
+                    "192.168.1.1", "127.0.0.1"]):
+            mata = self.request.META
+            mata["REMOTE_ADDR"] = "192.168.1.1"
+
+            self.assertFalse(is_maintenance_mode(self.request))
+            self.c.get("/")
+            self.assertTemplateNotUsed("maintenance.html")
+
+
+class RenderEmailTemplateTest(unittest.TestCase):
+    """test relate.utils.render_email_template, for not covered"""
+    def test_context_is_none(self):
+        with mock.patch(
+                "django.template.loader.render_to_string") as mock_render_to_string:
+            render_email_template("abcd", context=None)
+            self.assertDictEqual(mock_render_to_string.call_args[0][1],
+                                 {'relate_site_name': 'RELATE'})
+
+
+class GetOutboundMailConnectionTest(unittest.TestCase):
+    """test relate.utils.get_outbound_mail_connection, for not covered"""
+
+    def test_label_is_none(self):
+        # simply make sure it worked
+        from django.core.mail.backends.base import BaseEmailBackend
+        self.assertIsInstance(
+            get_outbound_mail_connection(None), BaseEmailBackend)
+
 
 # vim: foldmethod=marker

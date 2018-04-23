@@ -91,15 +91,6 @@ class VersioningTestMixin(CoursesTestMixinBase, FallBackStorageMessageTestMixin)
     def get_set_up_new_course_form_data(self):
         return deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
 
-    @classmethod
-    def add_user_permission(cls, user, perm):
-        from django.contrib.contenttypes.models import ContentType
-        content_type = ContentType.objects.get_for_model(Course)
-        from django.contrib.auth.models import Permission
-        permission = Permission.objects.get(
-            codename=perm, content_type=content_type)
-        user.user_permissions.add(permission)
-
 
 class CourseCreationTest(VersioningTestMixin, TestCase):
     def test_get_set_up_new_course_view(self):

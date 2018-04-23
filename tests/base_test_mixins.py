@@ -388,9 +388,18 @@ class SuperuserCreateMixin(ResponseContextMixin):
         super(SuperuserCreateMixin, cls).setUpTestData()
 
     @classmethod
+    def add_user_permission(cls, user, perm, model=Course):
+        from django.contrib.contenttypes.models import ContentType
+        content_type = ContentType.objects.get_for_model(model)
+        from django.contrib.auth.models import Permission
+        permission = Permission.objects.get(
+            codename=perm, content_type=content_type)
+        user.user_permissions.add(permission)
+
+    @classmethod
     def create_superuser(cls):
         return get_user_model().objects.create_superuser(
-                                                **cls.create_superuser_kwargs)
+            **cls.create_superuser_kwargs)
 
     @classmethod
     def get_sign_up_view_url(cls):
