@@ -3277,6 +3277,7 @@ class ViewResumeFlowTest(SingleCourseTestMixin, TestCase):
     # test flow.view_resume_flow
 
     def setUp(self):
+        super(ViewResumeFlowTest, self).setUp()
 
         fake_get_now_or_fake_time = mock.patch(
             "course.flow.get_now_or_fake_time")
