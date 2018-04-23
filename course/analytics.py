@@ -213,12 +213,12 @@ class Histogram(object):
         if max_len < 20:
             from django.template.loader import render_to_string
             return render_to_string("course/histogram-wide.html", {
-                "bin_info_list": self.get_bin_info_list(),
+                "bin_info_list": bin_info_list,
                 })
         else:
             from django.template.loader import render_to_string
             return render_to_string("course/histogram.html", {
-                "bin_info_list": self.get_bin_info_list(),
+                "bin_info_list": bin_info_list,
                 })
 
 # }}}
