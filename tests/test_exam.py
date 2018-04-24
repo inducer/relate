@@ -910,10 +910,20 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                     self.c.get(reverse("saml2_login"))
                 self.assertAddMessageCallCount(0)
 
-    @unittest.SkipTest
     def test_ok_with_select2_views(self):
-        # There's curently no views using select2 when locked down
-        pass
+        # There's curently no views using select2 when locked down.
+        # Here we are testing by using link from the select2 widget of
+        # impersonating form
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            resp = self.get_impersonate_view()
+            field_id = self.get_select2_field_id_from_response(resp)
+
+            # With no search term, should display all impersonatable users
+            term = None
+
+            self.tweak_session_to_lock_down()
+            resp = self.select2_get_request(field_id=field_id, term=term)
+            self.assertEqual(resp.status_code, 200)
 
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flow_page_related_view_ok(self):
