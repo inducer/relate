@@ -110,7 +110,6 @@ def get_not_empty_count_from_list(l):
 
 
 class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):
-    django_messages_imported_path = "course.enrollment.messages"
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -629,7 +628,6 @@ class SendEnrollmentDecisionTest(SingleCourseTestMixin, TestCase):
 
 
 class EnrollmentTestBaseMixin(MockAddMessageMixing, SingleCourseTestMixin):
-    django_messages_imported_path = "course.enrollment.messages"
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -1542,7 +1540,6 @@ class ParticipationQueryFormTest(unittest.TestCase):
 
 
 class QueryParticipationsTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
-    django_messages_imported_path = 'course.enrollment.messages'
 
     @property
     def query_participation_url(self):

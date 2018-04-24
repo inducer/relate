@@ -26,7 +26,6 @@ import six
 from six.moves.urllib.parse import ParseResult, quote, urlparse
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
 from django.test import TestCase, override_settings, RequestFactory
-from django.contrib import messages
 from django.conf import settings
 from django.core import mail
 from django.contrib.auth import (
@@ -44,8 +43,7 @@ from course.models import FlowPageVisit, ParticipationPermission
 from course import constants
 
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCoursePageTestMixin,
-    FallBackStorageMessageTestMixin)
+    CoursesTestMixinBase, SingleCoursePageTestMixin, MockAddMessageMixing)
 
 from tests.utils import (
     LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
@@ -64,18 +62,14 @@ IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG = (
     "Select a valid choice. That choice is "
     "not one of the available choices.")
 
-ADD_MESSAGES_FUNC_PATH = "course.auth.messages.add_message"
 
-
-class ImpersonateTest(SingleCoursePageTestMixin,
-                      FallBackStorageMessageTestMixin, TestCase):
-
+class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase):
     def test_impersonate_by_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             self.assertEqual(resp.status_code, 403)
 
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 403)
 
@@ -91,10 +85,10 @@ class ImpersonateTest(SingleCoursePageTestMixin,
         self.assertEqual(impersonatable.count(), 0)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             self.assertEqual(resp.status_code, 403)
 
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 403)
             resp = self.get_stop_impersonate()
@@ -122,17 +116,17 @@ class ImpersonateTest(SingleCoursePageTestMixin,
         self.assertNotIn(self.instructor_participation.user, impersonatable)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             self.assertEqual(resp.status_code, 200)
 
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(self.c.session["impersonate_id"],
                              self.student_participation.user.pk)
 
             # re-impersonate without stop_impersonating
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             # because the request.user is the impernatee (student)
             # who has no pperm
@@ -146,17 +140,15 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             # stop_impersonating
             resp = self.post_stop_impersonate()
             self.assertIsNone(self.c.session.get("impersonate_id"))
-            self.assertResponseMessageLevelsEqual(resp, [messages.INFO])
-            self.assertResponseMessagesEqual(resp, NO_LONGER_IMPERSONATING_MESSAGE)
+            self.assertAddMessageCalledWith(NO_LONGER_IMPERSONATING_MESSAGE)
 
             # fail re-stop_impersonating
             resp = self.post_stop_impersonate()
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp, NOT_IMPERSONATING_MESSAGE)
+            self.assertAddMessageCalledWith(NOT_IMPERSONATING_MESSAGE)
 
             # not allowed to impersonate instructor
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.instructor_participation.user)
 
             self.assertEqual(resp.status_code, 200)
@@ -165,7 +157,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             self.assertIsNone(self.c.session.get("impersonate_id"))
 
             # not allowed to impersonate self
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=user)
             self.assertEqual(resp.status_code, 200)
             self.assertFormError(resp, 'form', 'user',
@@ -178,7 +170,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
         self.assertEqual(impersonatable.count(), 3)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.instructor_participation.user)
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(self.c.session["impersonate_id"],
@@ -190,11 +182,11 @@ class ImpersonateTest(SingleCoursePageTestMixin,
         self.assertEqual(impersonatable.count(), 2)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             self.assertEqual(resp.status_code, 200)
 
             # first impersonate ta who has pperm
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.ta_participation.user)
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(self.c.session["impersonate_id"],
@@ -202,12 +194,10 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
             # then impersonate student without stop_impersonating,
             # this will fail
-            resp = self.post_impersonate(
+            resp = self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(
-                resp, ALREADY_IMPERSONATING_SOMEONE_MESSAGE)
+            self.assertAddMessageCalledWith(ALREADY_IMPERSONATING_SOMEONE_MESSAGE)
             self.assertEqual(self.c.session["impersonate_id"],
                              self.ta_participation.user.pk)
 
@@ -217,18 +207,16 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             # stop_impersonating
             resp = self.post_stop_impersonate()
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.INFO])
-            self.assertResponseMessagesEqual(resp, NO_LONGER_IMPERSONATING_MESSAGE)
+            self.assertAddMessageCalledWith(NO_LONGER_IMPERSONATING_MESSAGE)
 
             # re-stop_impersonating
             resp = self.post_stop_impersonate()
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp, NOT_IMPERSONATING_MESSAGE)
+            self.assertAddMessageCalledWith(NOT_IMPERSONATING_MESSAGE)
 
     def test_impersonate_error_none_user(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            self.post_impersonate(
+            self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             session = self.c.session
             session["impersonate_id"] = None
@@ -236,13 +224,11 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
             resp = self.c.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp,
-                                             ERROR_WHILE_IMPERSONATING_MESSAGE)
+            self.assertAddMessageCalledWith(ERROR_WHILE_IMPERSONATING_MESSAGE)
 
     def test_impersonatee_error_none_existing_user(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            self.post_impersonate(
+            self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             session = self.c.session
             session["impersonate_id"] = 100
@@ -250,13 +236,11 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
             resp = self.c.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp,
-                                             ERROR_WHILE_IMPERSONATING_MESSAGE)
+            self.assertAddMessageCalledWith(ERROR_WHILE_IMPERSONATING_MESSAGE)
 
     def test_impersonate_error_no_impersonatable(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            self.post_impersonate(
+            self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
 
             # drop the only impersonatable participation
@@ -266,9 +250,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
 
             resp = self.c.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseMessageLevelsEqual(resp, [messages.ERROR])
-            self.assertResponseMessagesEqual(resp,
-                                             ERROR_WHILE_IMPERSONATING_MESSAGE)
+            self.assertAddMessageCalledWith(ERROR_WHILE_IMPERSONATING_MESSAGE)
 
     def test_impersonator_flow_page_visit(self):
         session = factories.FlowSessionFactory(
@@ -287,7 +269,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
             self.assertIsNone(second_visit.impersonated_by)
 
             # this visit is not impersonated
-            self.post_impersonate(impersonatee=self.student_participation.user)
+            self.post_impersonate_view(impersonatee=self.student_participation.user)
             resp = self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(FlowPageVisit.objects.count(), 3)
@@ -312,7 +294,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
         with self.temporarily_switch_to_user(user):
             impersonatable = get_impersonable_user_qset(user)
 
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             field_id = self.get_select2_field_id_from_response(resp)
 
             # With no search term, should display all impersonatable users
@@ -363,7 +345,7 @@ class ImpersonateTest(SingleCoursePageTestMixin,
         with self.temporarily_switch_to_user(user):
             impersonatable = get_impersonable_user_qset(user)
 
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             field_id = self.get_select2_field_id_from_response(resp)
 
             # With no search term
@@ -444,7 +426,7 @@ class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
         self.assertEqual(impersonatable.count(), 0)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             self.assertEqual(resp.status_code, 403)
 
 
@@ -698,10 +680,8 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
                                      fetch_redirect_response=False)
 
 
-class SignInByPasswordTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
-                           AuthTestMixin, TestCase):
-    courses_setup_list = []
-
+class SignInByPasswordTest(CoursesTestMixinBase,
+                           AuthTestMixin, MockAddMessageMixing, TestCase):
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True)
     def test_user_pw_enabled_sign_in_view_anonymous(self):
         with self.temporarily_switch_to_user(None):
@@ -716,25 +696,23 @@ class SignInByPasswordTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin
                                  fetch_redirect_response=False)
 
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=False)
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_username_pw_not_enabled_sign_in_view_anonymous(self, mock_add_msg):
+    def test_username_pw_not_enabled_sign_in_view_anonymous(self):
         expected_msg = "Username-based sign-in is not being used"
         with self.temporarily_switch_to_user(None):
             resp = self.get_sign_in_by_user_pw(follow=True)
             self.assertEqual(resp.status_code, 200)
             self.assertSessionHasNoUserLoggedIn()
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith(expected_msg)
 
-            mock_add_msg.reset_mock()
             resp = self.post_sign_in_by_user_pw(data=self.get_sign_in_data(),
                                                 follow=False)
             self.assertEqual(resp.status_code, 302)
             self.assertRedirects(resp, self.get_sign_in_choice_url(),
                                  fetch_redirect_response=False)
             self.assertSessionHasNoUserLoggedIn()
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith(expected_msg)
 
     @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_security_check(self):
@@ -769,7 +747,7 @@ class SignInByPasswordTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin
 
 
 @override_settings(RELATE_SIGN_IN_BY_EMAIL_ENABLED=True)
-class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
+class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
                         AuthTestMixin, LocmemBackendTestsMixin, TestCase):
     courses_setup_list = []
 
@@ -820,8 +798,7 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
         self.user.refresh_from_db()
         self.flush_mailbox()
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_email_login_enabled_sign_in_view_anonymous(self, mock_add_msg):
+    def test_email_login_enabled_sign_in_view_anonymous(self):
         with self.temporarily_switch_to_user(None):
             resp = self.get_sign_in_by_email()
             self.assertEqual(resp.status_code, 200)
@@ -835,32 +812,30 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
                                  fetch_redirect_response=False)
             expected_msg = (
                 "Email sent. Please check your email and click the link.")
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(len(mail.outbox), 1)
 
     @override_settings()
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_email_login_not_enabled_sign_in_view_anonymous(self, mock_add_msg):
+    def test_email_login_not_enabled_sign_in_view_anonymous(self):
         expected_msg = "Email-based sign-in is not being used"
         settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED = False
         with self.temporarily_switch_to_user(None):
             resp = self.get_sign_in_by_email(follow=True)
             self.assertEqual(resp.status_code, 200)
             self.assertSessionHasNoUserLoggedIn()
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(len(mail.outbox), 0)
 
-            mock_add_msg.reset_mock()
             resp = self.post_sign_in_by_email(data=self.get_sign_in_data(),
                                               follow=False)
             self.assertEqual(resp.status_code, 302)
             self.assertRedirects(resp, self.get_sign_in_choice_url(),
                                  fetch_redirect_response=False)
             self.assertSessionHasNoUserLoggedIn()
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(len(mail.outbox), 0)
 
     def test_email_login_form_invalid(self):
@@ -874,30 +849,27 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
             self.assertEqual(len(mail.outbox), 0)
 
     @override_settings()
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_stage2_login_email_login_not_enabled(self, mock_add_msg):
+    def test_stage2_login_email_login_not_enabled(self):
         settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED = False
         expected_msg = "Email-based sign-in is not being used"
         with self.temporarily_switch_to_user(None):
             resp = self.c.get(self.second_sign_in_url)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 302)
             self.assertRedirects(resp, self.get_sign_in_choice_url(),
                                  fetch_redirect_response=False)
             self.assertSessionHasNoUserLoggedIn()
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_stage2_login_with_staled_signing_key(self, mock_add_msg):
+    def test_stage2_login_with_staled_signing_key(self):
         with self.temporarily_switch_to_user(None):
             expected_msg = ("Invalid sign-in token. Perhaps you've used "
                             "an old token email?")
             resp = self.c.get(self.first_sign_in_url)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 403)
             self.assertSessionHasNoUserLoggedIn()
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_stage2_login_user_inactive(self, mock_add_msg):
+    def test_stage2_login_user_inactive(self):
         self.user.is_active = False
         self.user.save()
         self.user.refresh_from_db()
@@ -905,18 +877,17 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
         with self.temporarily_switch_to_user(None):
             expected_msg = ("Account disabled.")
             resp = self.c.get(self.second_sign_in_url)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 403)
             self.assertSessionHasNoUserLoggedIn()
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def login_stage2_without_profile(self, user, mock_add_msg):
+    def login_stage2_without_profile(self, user):
         with self.temporarily_switch_to_user(None):
             expected_msg = (
                 "Successfully signed in. "
                 "Please complete your registration information below.")
             resp = self.c.get(self.second_sign_in_url)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 302)
 
             self.assertRedirects(resp,
@@ -937,8 +908,7 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
         self.user.save()
         self.login_stage2_without_profile(self.user)
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_stage2_login_with_first_name_and_last_name(self, mock_add_msg):
+    def test_stage2_login_with_first_name_and_last_name(self):
         self.user.first_name = "foo"
         self.user.last_name = "bar"
         self.user.save()
@@ -946,28 +916,27 @@ class SignInByEmailTest(CoursesTestMixinBase, FallBackStorageMessageTestMixin,
             expected_msg = (
                 "Successfully signed in.")
             resp = self.c.get(self.second_sign_in_url)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 302)
 
             self.assertRedirects(resp, reverse("relate-home"),
                                  fetch_redirect_response=False)
             self.assertSessionHasUserLoggedIn()
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_stage2_login_non_existing_user(self, mock_add_msg):
+    def test_stage2_login_non_existing_user(self):
         user = get_user_model().objects.get(pk=self.user.pk)
         user.delete()
         expected_msg = (
             "Account does not exist.")
         with self.temporarily_switch_to_user(None):
             resp = self.c.get(self.second_sign_in_url)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 403)
 
 
 @override_settings(RELATE_REGISTRATION_ENABLED=True)
-class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
-                 FallBackStorageMessageTestMixin, TestCase):
+class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
+                 AuthTestMixin, LocmemBackendTestsMixin, TestCase):
     sign_up_user_dict = {
         "username": "test_sign_up_user", "password": "mypassword",
         "email": "test_sign_up@example.com"
@@ -1008,8 +977,7 @@ class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
             self.assertNoNewUserCreated()
             self.assertEqual(len(mail.outbox), 0)
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_signup_existing_user_name(self, mock_add_msg):
+    def test_signup_existing_user_name(self):
         resp = self.get_sign_up()
         self.assertEqual(resp.status_code, 200)
         self.assertNoNewUserCreated()
@@ -1023,10 +991,9 @@ class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertNoNewUserCreated()
         self.assertEqual(len(mail.outbox), 0)
-        self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertAddMessageCalledWith(expected_msg)
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_signup_existing_email(self, mock_add_msg):
+    def test_signup_existing_email(self):
         expected_msg = (
                 "That email address is already in use. "
                 "Would you like to "
@@ -1040,10 +1007,9 @@ class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertNoNewUserCreated()
         self.assertEqual(len(mail.outbox), 0)
-        self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertAddMessageCalledWith(expected_msg)
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_signup_success(self, mock_add_msg):
+    def test_signup_success(self):
         expected_msg = (
             "Email sent. Please check your email and click "
             "the link.")
@@ -1066,14 +1032,13 @@ class SignUpTest(CoursesTestMixinBase, AuthTestMixin, LocmemBackendTestsMixin,
                 args=(new_user.id, new_user.sign_in_key,))
             + "?to_profile=1")
         self.assertIn(sign_in_url, mail.outbox[0].body)
-        self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.assertAddMessageCalledWith(expected_msg)
 
 
-class SignOutTest(CoursesTestMixinBase,
-                  AuthTestMixin, FallBackStorageMessageTestMixin, TestCase):
+class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
+                  MockAddMessageMixing, TestCase):
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_sign_out_anonymous(self, mock_add_msg):
+    def test_sign_out_anonymous(self):
         with self.temporarily_switch_to_user(None):
             expected_msg = "You've already signed out."
             resp = self.get_sign_out(follow=False)
@@ -1081,7 +1046,7 @@ class SignOutTest(CoursesTestMixinBase,
             self.assertRedirects(resp, reverse("relate-home"),
                                  fetch_redirect_response=False)
             self.assertSessionHasNoUserLoggedIn()
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
 
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=False)
     def test_sign_out_by_get(self):
@@ -1144,8 +1109,7 @@ class SignOutTest(CoursesTestMixinBase,
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_saml2_logout.call_count, 1)
 
-    @mock.patch(ADD_MESSAGES_FUNC_PATH)
-    def test_sign_out_confirmation_anonymous(self, mock_add_msg):
+    def test_sign_out_confirmation_anonymous(self):
         with self.temporarily_switch_to_user(None):
             expected_msg = "You've already signed out."
             resp = self.get_sign_out_confirmation(follow=False)
@@ -1153,7 +1117,7 @@ class SignOutTest(CoursesTestMixinBase,
             self.assertRedirects(resp, reverse("relate-home"),
                                  fetch_redirect_response=False)
             self.assertSessionHasNoUserLoggedIn()
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCalledWith(expected_msg)
 
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=True)
     def test_sign_out_confirmation(self):
@@ -1176,7 +1140,7 @@ class SignOutTest(CoursesTestMixinBase,
 
 
 class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
-                      FallBackStorageMessageTestMixin, TestCase):
+                      MockAddMessageMixing, TestCase):
 
     def setUp(self):
         super(UserProfileTest, self).setUp()
@@ -1491,34 +1455,26 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
 
         )
 
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            for conf in test_confs:
-                with self.subTest(conf.id):
-                    with override_settings(**conf.override_settings_dict):
-                        resp = self.update_profile_by_post_form(
-                            conf.user_profile_dict,
-                            conf.update_profile_dict)
+        for conf in test_confs:
+            with self.subTest(conf.id):
+                with override_settings(**conf.override_settings_dict):
+                    resp = self.update_profile_by_post_form(
+                        conf.user_profile_dict,
+                        conf.update_profile_dict)
 
-                        self.assertTrue(resp.status_code, 200)
-                        self.test_user.refresh_from_db()
-                        for k, v in six.iteritems(conf.expected_result_dict):
-                            self.assertEqual(self.test_user.__dict__[k], v)
+                    self.assertTrue(resp.status_code, 200)
+                    self.test_user.refresh_from_db()
+                    for k, v in six.iteritems(conf.expected_result_dict):
+                        self.assertEqual(self.test_user.__dict__[k], v)
 
-                        if conf.assert_in_html_kwargs_list:
-                            kwargs_list = conf.assert_in_html_kwargs_list
-                            for kwargs in kwargs_list:
-                                self.assertInHTML(haystack=resp.content.decode(),
-                                                  **kwargs)
+                    if conf.assert_in_html_kwargs_list:
+                        kwargs_list = conf.assert_in_html_kwargs_list
+                        for kwargs in kwargs_list:
+                            self.assertInHTML(haystack=resp.content.decode(),
+                                              **kwargs)
 
-                        if conf.expected_msg is not None:
-                            self.assertIn(conf.expected_msg,
-                                          mock_add_msg.call_args[0])
-                        else:
-                            if mock_add_msg.call_count > 0:
-                                self.fail("Message was actually called with %s."
-                                          % repr(mock_add_msg.call_args[0][2]))
-
-                        mock_add_msg.reset_mock()
+                    if conf.expected_msg is not None:
+                        self.assertAddMessageCalledWith(conf.expected_msg)
 
     def test_profile_page_hide_institutional_id_or_editor_mode(self):
         """
@@ -1564,42 +1520,36 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
     def test_update_profile_for_first_login(self):
         data = self.generate_profile_data(first_name="foo")
         expected_msg = "Profile data updated."
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            resp = self.post_profile_by_request_factory(
-                data, query_string_dict={"first_login": "1"})
-            self.assertRedirects(resp, reverse("relate-home"),
-                                 fetch_redirect_response=False)
-            self.assertIn(expected_msg,
-                          mock_add_msg.call_args[0])
+        resp = self.post_profile_by_request_factory(
+            data, query_string_dict={"first_login": "1"})
+        self.assertRedirects(resp, reverse("relate-home"),
+                             fetch_redirect_response=False)
+        self.assertAddMessageCalledWith(expected_msg)
 
     def test_update_profile_for_referer(self):
         data = self.generate_profile_data(first_name="foo")
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = "Profile data updated."
-            resp = self.post_profile_by_request_factory(
-                data, query_string_dict={"referer": "/some/where/",
-                                         "set_inst_id": "1"})
-            self.assertRedirects(resp, "/some/where/",
-                                 fetch_redirect_response=False)
-            self.assertIn(expected_msg,
-                          mock_add_msg.call_args[0])
+        expected_msg = "Profile data updated."
+        resp = self.post_profile_by_request_factory(
+            data, query_string_dict={"referer": "/some/where/",
+                                     "set_inst_id": "1"})
+        self.assertRedirects(resp, "/some/where/",
+                             fetch_redirect_response=False)
+        self.assertAddMessageCalledWith(expected_msg)
 
     def test_update_profile_for_referer_wrong_spell(self):
         data = self.generate_profile_data(first_name="foo")
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = "Profile data updated."
+        expected_msg = "Profile data updated."
 
-            # "Wrong" spell of referer, no redirect
-            resp = self.post_profile_by_request_factory(
-                data, query_string_dict={"referrer": "/some/where/",
-                                         "set_inst_id": "1"})
-            self.assertTrue(resp.status_code, 200)
-            self.assertIn(expected_msg,
-                          mock_add_msg.call_args[0])
+        # "Wrong" spell of referer, no redirect
+        resp = self.post_profile_by_request_factory(
+            data, query_string_dict={"referrer": "/some/where/",
+                                     "set_inst_id": "1"})
+        self.assertTrue(resp.status_code, 200)
+        self.assertAddMessageCalledWith(expected_msg)
 
 
-class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
-                                TestCase):
+class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
+                                LocmemBackendTestsMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super(ResetPasswordStageOneTest, cls).setUpTestData()
@@ -1645,41 +1595,38 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
         self.assertEqual(len(mail.outbox), 0)
 
     def test_reset_by_email_non_exist(self):
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = (
-                    "That %s doesn't have an "
-                    "associated user account. Are you "
-                    "sure you've registered?" % "email address")
-            resp = self.post_reset_password(
-                data={"email": "some_email@example.com"})
-            self.assertTrue(resp.status_code, 200)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        expected_msg = (
+                "That %s doesn't have an "
+                "associated user account. Are you "
+                "sure you've registered?" % "email address")
+        resp = self.post_reset_password(
+            data={"email": "some_email@example.com"})
+        self.assertTrue(resp.status_code, 200)
+        self.assertAddMessageCalledWith(expected_msg)
         self.assertEqual(len(mail.outbox), 0)
 
     def test_reset_by_instid_non_exist(self):
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = (
-                    "That %s doesn't have an "
-                    "associated user account. Are you "
-                    "sure you've registered?" % "institutional ID")
-            resp = self.post_reset_password(
-                data={"instid": "2345"}, use_instid=True)
-            self.assertTrue(resp.status_code, 200)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        expected_msg = (
+                "That %s doesn't have an "
+                "associated user account. Are you "
+                "sure you've registered?" % "institutional ID")
+        resp = self.post_reset_password(
+            data={"instid": "2345"}, use_instid=True)
+        self.assertTrue(resp.status_code, 200)
+        self.assertAddMessageCalledWith(expected_msg)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(resp.status_code, 200)
 
     def test_reset_user_has_no_email(self):
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            self.user.email = ""
-            self.user.save()
-            expected_msg = (
-                "The account with that institution ID "
-                "doesn't have an associated email.")
-            resp = self.post_reset_password(data={"instid": self.user_inst_id},
-                                            use_instid=True)
-            self.assertTrue(resp.status_code, 200)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        self.user.email = ""
+        self.user.save()
+        expected_msg = (
+            "The account with that institution ID "
+            "doesn't have an associated email.")
+        resp = self.post_reset_password(data={"instid": self.user_inst_id},
+                                        use_instid=True)
+        self.assertTrue(resp.status_code, 200)
+        self.assertAddMessageCalledWith(expected_msg)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(resp.status_code, 200)
 
@@ -1687,28 +1634,26 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
         with mock.patch("accounts.models.User.objects.get") as mock_get_user:
             from django.core.exceptions import MultipleObjectsReturned
             mock_get_user.side_effect = MultipleObjectsReturned()
-            with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-                expected_msg = (
-                    "Failed to send an email: multiple users were "
-                    "unexpectedly using that same "
-                    "email address. Please "
-                    "contact site staff.")
-                resp = self.post_reset_password(
-                    data={"email": "some_email@example.com"})
-                self.assertTrue(resp.status_code, 200)
-                self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            expected_msg = (
+                "Failed to send an email: multiple users were "
+                "unexpectedly using that same "
+                "email address. Please "
+                "contact site staff.")
+            resp = self.post_reset_password(
+                data={"email": "some_email@example.com"})
+            self.assertTrue(resp.status_code, 200)
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(len(mail.outbox), 0)
 
     def test_reset_by_email_post_success(self):
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = (
-                "Email sent. Please check your email and "
-                "click the link."
-            )
-            resp = self.post_reset_password(data={"email": self.user_email})
-            self.assertTrue(resp.status_code, 200)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+        expected_msg = (
+            "Email sent. Please check your email and "
+            "click the link."
+        )
+        resp = self.post_reset_password(data={"email": self.user_email})
+        self.assertTrue(resp.status_code, 200)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
         self.assertEqual(len(mail.outbox), 1)
         self.assertTemplateUsed("course/sign-in-email.txt", count=1)
 
@@ -1717,8 +1662,7 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
         masked = masked_email(self.user_email)
         self.assertNotEqual(masked, self.user_email)
 
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg, \
-                mock.patch("course.auth.masked_email") as mock_mask_email:
+        with mock.patch("course.auth.masked_email") as mock_mask_email:
             expected_msg = (
                 "Email sent. Please check your email and "
                 "click the link."
@@ -1726,15 +1670,18 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
             resp = self.post_reset_password(data={"instid": self.user_inst_id},
                                             use_instid=True)
             self.assertTrue(resp.status_code, 200)
-            self.assertEqual(mock_add_msg.call_count, 2)
+            self.assertAddMessageCallCount(2)
+            self.assertAddMessageCalledWith(
+                "'The email address associated with that account is",
+                reset=False)
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(mock_mask_email.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
         self.assertEqual(len(mail.outbox), 1)
         self.assertTemplateUsed("course/sign-in-email.txt", count=1)
 
 
-class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
-                                TestCase):
+class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
+                                LocmemBackendTestsMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -1775,46 +1722,40 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
         self.assertHasNoUserLoggedIn()
 
     def test_reset_stage2_invalid_user(self):
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = ("Account does not exist.")
-            resp = self.get_reset_password_stage2(user_id=1000,  # no exist
-                                                  sign_in_key=self.user.sign_in_key)
-            self.assertTrue(resp.status_code, 403)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasNoUserLoggedIn()
+        expected_msg = ("Account does not exist.")
+        resp = self.get_reset_password_stage2(user_id=1000,  # no exist
+                                              sign_in_key=self.user.sign_in_key)
+        self.assertTrue(resp.status_code, 403)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasNoUserLoggedIn()
 
-            mock_add_msg.reset_mock()
-
-            resp = self.post_reset_password_stage2(
-                user_id=1000,  # no exist
-                sign_in_key=self.user.sign_in_key,
-                data={})
-            self.assertTrue(resp.status_code, 403)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasNoUserLoggedIn()
+        resp = self.post_reset_password_stage2(
+            user_id=1000,  # no exist
+            sign_in_key=self.user.sign_in_key,
+            data={})
+        self.assertTrue(resp.status_code, 403)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasNoUserLoggedIn()
 
     def test_reset_stage2_invalid_token(self):
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = ("Invalid sign-in token. Perhaps you've used an "
-                            "old token email?")
-            resp = self.get_reset_password_stage2(user_id=self.user.id,
-                                                  sign_in_key="some_invalid_token")
-            self.assertTrue(resp.status_code, 403)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasNoUserLoggedIn()
+        expected_msg = ("Invalid sign-in token. Perhaps you've used an "
+                        "old token email?")
+        resp = self.get_reset_password_stage2(user_id=self.user.id,
+                                              sign_in_key="some_invalid_token")
+        self.assertTrue(resp.status_code, 403)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasNoUserLoggedIn()
 
-            mock_add_msg.reset_mock()
-
-            resp = self.post_reset_password_stage2(
-                user_id=self.user.id,
-                sign_in_key="some_invalid_token", data={})
-            self.assertTrue(resp.status_code, 403)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasNoUserLoggedIn()
+        resp = self.post_reset_password_stage2(
+            user_id=self.user.id,
+            sign_in_key="some_invalid_token", data={})
+        self.assertTrue(resp.status_code, 403)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasNoUserLoggedIn()
 
     def test_reset_stage2_get_sucess(self):
         resp = self.get_reset_password_stage2(self.user.id, self.user.sign_in_key)
@@ -1832,83 +1773,79 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
 
     def test_reset_stage2_post_success_redirect_profile_no_real_name(self):
         assert not (self.user.first_name or self.user.last_name)
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = ("Successfully signed in. "
-                            "Please complete your registration information below.")
-            data = {"password": "my_pass", "password_repeat": "my_pass"}
-            resp = self.post_reset_password_stage2(self.user.id,
-                                                   self.user.sign_in_key, data)
-            self.assertRedirects(resp,
-                                 self.get_profile_view_url() + "?first_login=1",
-                                 fetch_redirect_response=False)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasUserLoggedIn(self.user)
+        expected_msg = ("Successfully signed in. "
+                        "Please complete your registration information below.")
+        data = {"password": "my_pass", "password_repeat": "my_pass"}
+        resp = self.post_reset_password_stage2(self.user.id,
+                                               self.user.sign_in_key, data)
+        self.assertRedirects(resp,
+                             self.get_profile_view_url() + "?first_login=1",
+                             fetch_redirect_response=False)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasUserLoggedIn(self.user)
 
     def test_reset_stage2_post_success_redirect_profile_no_full_name(self):
         self.user.first_name = "testuser"
         self.user.save()
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = ("Successfully signed in. "
-                            "Please complete your registration information below.")
-            data = {"password": "my_pass", "password_repeat": "my_pass"}
-            resp = self.post_reset_password_stage2(self.user.id,
-                                                   self.user.sign_in_key, data)
-            self.assertRedirects(resp,
-                                 self.get_profile_view_url() + "?first_login=1",
-                                 fetch_redirect_response=False)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasUserLoggedIn(self.user)
+
+        expected_msg = ("Successfully signed in. "
+                        "Please complete your registration information below.")
+        data = {"password": "my_pass", "password_repeat": "my_pass"}
+        resp = self.post_reset_password_stage2(self.user.id,
+                                               self.user.sign_in_key, data)
+        self.assertRedirects(resp,
+                             self.get_profile_view_url() + "?first_login=1",
+                             fetch_redirect_response=False)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasUserLoggedIn(self.user)
 
     def test_reset_stage2_post_success_redirect_home(self):
         self.user.first_name = "test"
         self.user.last_name = "user"
         self.user.save()
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = ("Successfully signed in.")
-            data = {"password": "my_pass", "password_repeat": "my_pass"}
-            resp = self.post_reset_password_stage2(self.user.id,
-                                                   self.user.sign_in_key, data)
-            self.assertEqual(resp.status_code, 302)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasUserLoggedIn(self.user)
+
+        expected_msg = ("Successfully signed in.")
+        data = {"password": "my_pass", "password_repeat": "my_pass"}
+        resp = self.post_reset_password_stage2(self.user.id,
+                                               self.user.sign_in_key, data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasUserLoggedIn(self.user)
 
     def test_reset_stage2_post_success_redirect_profile_requesting_profile(self):
         self.user.first_name = "testuser"
         self.user.last_name = "user"
         self.user.save()
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = ("Successfully signed in. "
-                            "Please complete your registration information below.")
-            data = {"password": "my_pass", "password_repeat": "my_pass"}
-            resp = self.post_reset_password_stage2(self.user.id,
-                                                   self.user.sign_in_key, data,
-                                                   querystring={"to_profile": "-1"})
-            self.assertRedirects(resp,
-                                 self.get_profile_view_url() + "?first_login=1",
-                                 fetch_redirect_response=False)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasUserLoggedIn(self.user)
+        expected_msg = ("Successfully signed in. "
+                        "Please complete your registration information below.")
+        data = {"password": "my_pass", "password_repeat": "my_pass"}
+        resp = self.post_reset_password_stage2(self.user.id,
+                                               self.user.sign_in_key, data,
+                                               querystring={"to_profile": "-1"})
+        self.assertRedirects(resp,
+                             self.get_profile_view_url() + "?first_login=1",
+                             fetch_redirect_response=False)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasUserLoggedIn(self.user)
 
     def test_reset_stage2_post_user_not_active(self):
         self.user.is_active = False
         self.user.save()
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg:
-            expected_msg = ("Account disabled.")
-            data = {"password": "my_pass", "password_repeat": "my_pass"}
-            resp = self.post_reset_password_stage2(self.user.id,
-                                                   self.user.sign_in_key, data)
-            self.assertEqual(resp.status_code, 403)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
-            self.assertHasNoUserLoggedIn()
+        expected_msg = ("Account disabled.")
+        data = {"password": "my_pass", "password_repeat": "my_pass"}
+        resp = self.post_reset_password_stage2(self.user.id,
+                                               self.user.sign_in_key, data)
+        self.assertEqual(resp.status_code, 403)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(expected_msg)
+        self.assertHasNoUserLoggedIn()
 
     def test_reset_stage2_invalid_token_when_post_form(self):
-        with mock.patch(ADD_MESSAGES_FUNC_PATH) as mock_add_msg, \
-                mock.patch("django.contrib.auth.authenticate") as mock_auth:
+        with mock.patch("django.contrib.auth.authenticate") as mock_auth:
             mock_auth.return_value = None
             data = {"password": "my_pass", "password_repeat": "my_pass"}
             expected_msg = ("Invalid sign-in token. Perhaps you've used an "
@@ -1917,8 +1854,8 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, LocmemBackendTestsMixin,
             resp = self.post_reset_password_stage2(self.user.id,
                                                    self.user.sign_in_key, data)
             self.assertTrue(resp.status_code, 403)
-            self.assertEqual(mock_add_msg.call_count, 1)
-            self.assertIn(expected_msg, mock_add_msg.call_args[0])
+            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCalledWith(expected_msg)
             self.assertHasNoUserLoggedIn()
 
 
