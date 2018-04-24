@@ -24,23 +24,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import datetime
 import pytz
 
 import unittest
 from django.test import TestCase, override_settings
+from django import http
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
-from course.models import ExamTicket
+from course.models import ExamTicket, FlowSession
 from course import constants, exam
 
 from tests.constants import (
     DATE_TIME_PICKER_TIME_FORMAT)
 
 from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing)
-from tests.utils import mock
+    SingleCourseTestMixin, MockAddMessageMixing, SingleCoursePageTestMixin)
+from tests.utils import mock, reload_urlconf
 from tests import factories
 
 
@@ -442,7 +444,7 @@ class ExamTicketBackendTest(ExamTestMixin, TestCase):
 
 
 class IsFromExamsOnlyFacilityTest(unittest.TestCase):
-    # test exam.is_from_exams_only_facility
+    """test exam.is_from_exams_only_facility"""
     def setUp(self):
         self.requset = mock.MagicMock()
         self.requset.relate_facilities = ["fa1", "fa2"]
@@ -466,6 +468,33 @@ class IsFromExamsOnlyFacilityTest(unittest.TestCase):
             "fa1": {"exams_only": False, "ip_range": "foo"},
             "fa3": {"exams_only": True, "ip_range": "bar"}}
         self.assertFalse(exam.is_from_exams_only_facility(self.requset))
+
+
+class GetLoginExamTicketTest(ExamTestMixin, TestCase):
+    """test exam.get_login_exam_ticket"""
+    def setUp(self):
+        super(GetLoginExamTicketTest, self).setUp()
+        self.ticket = factories.ExamTicketFactory(
+            exam=self.exam, participation=self.student_participation,
+            state=constants.exam_ticket_states.valid)
+        self.request = mock.MagicMock()
+
+    def test_none(self):
+        self.request.session = {}
+        self.assertIsNone(exam.get_login_exam_ticket(self.request))
+
+    def test_object_does_not_exist(self):
+        self.request.session = {
+            "relate_exam_ticket_pk_used_for_login": 100
+        }
+        with self.assertRaises(ExamTicket.DoesNotExist):
+            exam.get_login_exam_ticket(self.request)
+
+    def test_get(self):
+        self.request.session = {
+            "relate_exam_ticket_pk_used_for_login": self.ticket.pk
+        }
+        self.assertEqual(exam.get_login_exam_ticket(self.request), self.ticket)
 
 
 class CheckInForExamTest(ExamTestMixin, TestCase):
@@ -610,5 +639,406 @@ class ListAvailableExamsTest(ExamTestMixin, TestCase):
             resp = self.get_list_available_view()
             exams = resp.context["exams"]
             self.assertEqual(exams.count(), 1)
+
+
+class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
+                                 MockAddMessageMixing, TestCase):
+    """Integration tests for exam.ExamFacilityMiddleware"""
+    def setUp(self):
+        super(ExamFacilityMiddlewareTest, self).setUp()
+        fake_is_from_exams_only_facility = mock.patch(
+            "course.exam.is_from_exams_only_facility")
+        self.mock_is_from_exams_only_facility = (
+            fake_is_from_exams_only_facility.start())
+        self.mock_is_from_exams_only_facility.return_value = True
+        self.addCleanup(fake_is_from_exams_only_facility.stop)
+
+    def test_not_exams_only_facility(self):
+        self.mock_is_from_exams_only_facility.return_value = False
+        resp = self.c.get(self.course_page_url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_exams_only_facility(self):
+        resp = self.c.get(self.course_page_url)
+        self.assertRedirects(
+            resp, reverse("relate-list_available_exams"),
+            fetch_redirect_response=False)
+
+    def test_exams_only_facility_not_authenticated(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.c.get(self.course_page_url)
+            self.assertRedirects(
+                resp, reverse("relate-sign_in_choice"),
+                fetch_redirect_response=False)
+
+    def test_already_locked_down(self):
+        factories.FlowSessionFactory(
+            participation=self.student_participation, flow_id=self.flow_id)
+        session = self.c.session
+        session["relate_session_locked_to_exam_flow_session_pk"] = 1
+        session.save()
+
+        resp = self.c.get(self.course_page_url)
+
+        self.assertRedirects(
+            resp, self.get_view_start_flow_url(self.flow_id),
+            fetch_redirect_response=False)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_ok_views(self):
+        # we only test ta participation
+        from course.auth import make_sign_in_key
+
+        # make sign in key for a user
+        u = factories.UserFactory(
+            first_name="foo", last_name="bar",
+            status=constants.user_status.unconfirmed)
+        sign_in_key = make_sign_in_key(u)
+        u.sign_in_key = sign_in_key
+        u.save()
+
+        self.c.force_login(self.ta_participation.user)
+
+        my_session = factories.FlowSessionFactory(
+            participation=self.ta_participation, flow_id=self.flow_id)
+
+        with override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True):
+            for url, args, kwargs, code_or_redirect in [
+                ("relate-sign_in_choice", [], {}, 200),
+                ("relate-sign_in_by_email", [], {}, 200),
+
+                ("relate-sign_in_stage2_with_token",
+                    [u.pk, sign_in_key], {}, "/"),
+                ("relate-sign_in_by_user_pw", [], {}, 200),
+                ("relate-impersonate", [], {}, 200),
+
+                # because not impersonating
+                ("relate-stop_impersonating", [], {}, "/"),
+                ("relate-check_in_for_exam", [], {}, 200),
+                ("relate-list_available_exams", [], {}, 200),
+                ("relate-view_start_flow", [],
+                     {"course_identifier": self.course.identifier,
+                      "flow_id": self.flow_id}, 200),
+                ("relate-view_resume_flow", [],
+                    {"course_identifier": self.course.identifier,
+                     "flow_session_id": my_session.pk},
+                    self.get_page_url_by_ordinal(0, flow_session_id=my_session.pk)),
+                ("relate-user_profile", [], {}, 200),
+                ("relate-logout", [], {}, "/"),
+                ("relate-set_pretend_facilities", [], {}, 200),
+            ]:
+                with self.subTest(url=url):
+                    if "sign_in" in url:
+                        switch_to = None
+                    else:
+                        switch_to = self.ta_participation.user
+                    with self.temporarily_switch_to_user(switch_to):
+                        resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                        try:
+                            code = int(code_or_redirect)
+                            self.assertEqual(resp.status_code, code)
+                        except ValueError:
+                            self.assertRedirects(
+                                resp, code_or_redirect,
+                                fetch_redirect_response=False)
+
+    def test_ok_with_saml2_views(self):
+        with override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=True):
+            reload_urlconf()
+
+            with self.temporarily_switch_to_user(None):
+                # 'Settings' object has no attribute 'SAML_CONFIG'
+                # with that error raised, we can confirm it is actually
+                # requesting the view
+                with self.assertRaises(AttributeError):
+                    self.c.get(reverse("saml2_login"))
+
+    def test_ok_with_select2_views(self):
+        # test by using the select2 widget of impersonating form
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            resp = self.get_impersonate()
+            field_id = self.get_select2_field_id_from_response(resp)
+
+            # With no search term, should display all impersonatable users
+            term = None
+            resp = self.select2_get_request(field_id=field_id, term=term)
+            self.assertEqual(resp.status_code, 200)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_ok_issue_exam_ticket_view_with_pperm(self):
+        tup = (
+            (self.student_participation.user, 302),
+            (self.ta_participation.user, 302),
+            (self.superuser, 200),)
+
+        for user, status_code in tup:
+            with self.subTest(user=user):
+                with self.temporarily_switch_to_user(user):
+                    resp = self.c.get(reverse("relate-issue_exam_ticket"))
+                    self.assertEqual(resp.status_code, status_code)
+
+    def test_not_ok_view_flow_page(self):
+        fs = factories.FlowSessionFactory(
+            participation=self.student_participation, flow_id=self.flow_id)
+        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.pk))
+        self.assertRedirects(
+            resp, reverse("relate-list_available_exams"),
+            fetch_redirect_response=False)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(
+            "Access to flows in an exams-only facility "
+            "is only granted if the flow is locked down. "
+            "To do so, add 'lock_down_as_exam_session' to "
+            "your flow's access permissions.")
+
+
+class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
+                                 MockAddMessageMixing, TestCase):
+    """Integration tests for exam.ExamLockdownMiddleware
+    """
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(SingleCoursePageTestMixin, cls).setUpTestData()
+        cls.start_flow(cls.flow_id)
+        cls.fs = FlowSession.objects.last()
+
+    def setUp(self):
+        super(ExamLockdownMiddlewareTest, self).setUp()
+        self.fs.refresh_from_db()
+
+    def tweak_session_to_lock_down(self, flow_session_id=None):
+        session = self.c.session
+        session["relate_session_locked_to_exam_flow_session_pk"] = (
+            flow_session_id or 1)
+        session.save()
+
+    def test_relate_exam_lockdown(self):
+        """make sure when not locked down, request.relate_exam_lockdown is True"""
+
+        # not locked down
+        with mock.patch("course.views.render") as mock_render:
+            mock_render.return_value = http.HttpResponse("hello")
+            self.c.get("/")
+            request_obj = mock_render.call_args[0][0]
+            self.assertTrue(hasattr(request_obj, "relate_exam_lockdown"))
+            self.assertFalse(request_obj.relate_exam_lockdown)
+
+        # add lock down to the session
+        self.tweak_session_to_lock_down()
+        with mock.patch("course.utils.render") as mock_render:
+            mock_render.return_value = http.HttpResponse("hello")
+            resp = self.c.get("/")
+            self.assertRedirects(
+                resp,
+                self.get_view_start_flow_url(self.flow_id))
+            request_obj = mock_render.call_args[0][0]
+            self.assertTrue(hasattr(request_obj, "relate_exam_lockdown"))
+            self.assertTrue(request_obj.relate_exam_lockdown)
+
+    def test_lock_down_session_does_not_exist(self):
+        """lock down to a session which does not exist"""
+        self.tweak_session_to_lock_down(flow_session_id=100)
+        resp = self.c.get("/")
+        self.assertEqual(resp.status_code, 403)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(
+            "Error while processing exam lockdown: "
+            "flow session not found.")
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_ok_views(self):
+        # we only test student participation user
+
+        from course.auth import make_sign_in_key
+
+        # make sign in key for a user
+        u = factories.UserFactory(
+            first_name="foo", last_name="bar",
+            status=constants.user_status.unconfirmed)
+        sign_in_key = make_sign_in_key(u)
+        u.sign_in_key = sign_in_key
+        u.save()
+
+        with override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True):
+            for url, args, kwargs, code_or_redirect in [
+                # 403, because these file do not have "in_exam" access permission
+                ("relate-get_repo_file", [], {
+                    "course_identifier": self.course.identifier,
+                    "commit_sha": self.course.active_git_commit_sha,
+                    "path": "images/cc.png"}, 403),
+                ("relate-get_current_repo_file", [], {
+                    "course_identifier": self.course.identifier,
+                    "path": "pdfs/sample.pdf"}, 403),
+
+                ("relate-check_in_for_exam", [], {}, 200),
+                ("relate-list_available_exams", [], {}, 200),
+
+                ("relate-sign_in_choice", [], {}, 200),
+                ("relate-sign_in_by_email", [], {}, 200),
+                ("relate-sign_in_stage2_with_token",
+                    [u.pk, sign_in_key], {}, "/"),
+                ("relate-sign_in_by_user_pw", [], {}, 200),
+                ("relate-user_profile", [], {}, 200),
+                ("relate-logout", [], {}, "/"),
+            ]:
+                with self.subTest(url=url):
+                    if "sign_in" in url:
+                        switch_to = None
+                    else:
+                        switch_to = self.student_participation.user
+                    with self.temporarily_switch_to_user(switch_to):
+                        self.tweak_session_to_lock_down()
+                        resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                        try:
+                            code = int(code_or_redirect)
+                            self.assertEqual(resp.status_code, code)
+                        except ValueError:
+                            self.assertRedirects(
+                                resp, code_or_redirect,
+                                fetch_redirect_response=False)
+
+    def test_ok_with_saml2_views(self):
+        with override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=True):
+            reload_urlconf()
+
+            with self.temporarily_switch_to_user(None):
+                self.tweak_session_to_lock_down()
+                # 'Settings' object has no attribute 'SAML_CONFIG'
+                # with that error raised, we can confirm it is actually
+                # requesting the view
+                with self.assertRaises(AttributeError):
+                    self.c.get(reverse("saml2_login"))
+                self.assertAddMessageCallCount(0)
+
+    @unittest.SkipTest
+    def test_ok_with_select2_views(self):
+        # There's curently no views using select2 when locked down
+        pass
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_flow_page_related_view_ok(self):
+        for url, args, kwargs, code_or_redirect in [
+            ("relate-view_resume_flow", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": self.fs.pk},
+                 self.get_page_url_by_ordinal(0, flow_session_id=self.fs.pk)),
+            ("relate-view_flow_page", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": self.fs.pk,
+                  "page_ordinal": 0}, 200),
+            ("relate-update_expiration_mode", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": self.fs.pk},
+                 400),  # this view doesn't allow get
+            ("relate-update_page_bookmark_state", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": self.fs.pk, "page_ordinal": 0},
+                 400),  # this view doesn't allow get
+            ("relate-finish_flow_session_view", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": self.fs.pk}, 200),
+        ]:
+            with self.subTest(url=url):
+                self.tweak_session_to_lock_down()
+                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                try:
+                    code = int(code_or_redirect)
+                    self.assertEqual(resp.status_code, code)
+                except ValueError:
+                    self.assertRedirects(
+                        resp, code_or_redirect,
+                        fetch_redirect_response=False)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_flow_page_related_view_not_ok(self):
+        another_flow_id = "jinja-yaml"
+        self.start_flow(flow_id=another_flow_id)
+        another_fs = FlowSession.objects.get(flow_id=another_flow_id)
+
+        for url, args, kwargs, code_or_redirect in [
+            ("relate-view_resume_flow", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": another_fs.pk},
+                 self.get_view_start_flow_url(self.flow_id)),
+            ("relate-view_flow_page", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": another_fs.pk, "page_ordinal": 0},
+                 self.get_view_start_flow_url(self.flow_id)),
+            ("relate-update_expiration_mode", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": another_fs.pk},
+                 self.get_view_start_flow_url(self.flow_id)),
+            ("relate-update_page_bookmark_state", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": another_fs.pk, "page_ordinal": 0},
+                 self.get_view_start_flow_url(self.flow_id)),
+            ("relate-finish_flow_session_view", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_session_id": another_fs.pk},
+                 self.get_view_start_flow_url(self.flow_id)),
+        ]:
+            with self.subTest(url=url):
+                self.tweak_session_to_lock_down()
+                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                try:
+                    code = int(code_or_redirect)
+                    self.assertEqual(resp.status_code, code)
+                except ValueError:
+                    self.assertRedirects(
+                        resp, code_or_redirect,
+                        fetch_redirect_response=False)
+                self.assertAddMessageCallCount(1)
+                self.assertAddMessageCalledWith(
+                    "Your RELATE session is currently locked down "
+                    "to this exam flow. Navigating to other parts of "
+                    "RELATE is not currently allowed. "
+                    "To exit this exam, log out.")
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_start_flow_ok(self):
+        for url, args, kwargs, code_or_redirect in [
+            ("relate-view_start_flow", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_id": self.flow_id}, 200),
+        ]:
+            with self.subTest(url=url):
+                self.tweak_session_to_lock_down()
+                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                try:
+                    code = int(code_or_redirect)
+                    self.assertEqual(resp.status_code, code)
+                except ValueError:
+                    self.assertRedirects(
+                        resp, code_or_redirect,
+                        fetch_redirect_response=False)
+
+                self.assertAddMessageCallCount(0, reset=True)
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_start_flow_not_ok(self):
+        another_flow_id = "jinja-yaml"
+
+        for url, args, kwargs, code_or_redirect in [
+            ("relate-view_start_flow", [],
+                 {"course_identifier": self.course.identifier,
+                  "flow_id": another_flow_id},
+                 self.get_view_start_flow_url(self.flow_id)),
+        ]:
+            with self.subTest(url=url):
+                self.tweak_session_to_lock_down()
+                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                try:
+                    code = int(code_or_redirect)
+                    self.assertEqual(resp.status_code, code)
+                except ValueError:
+                    self.assertRedirects(
+                        resp, code_or_redirect,
+                        fetch_redirect_response=False)
+                self.assertAddMessageCallCount(1)
+                self.assertAddMessageCalledWith(
+                    "Your RELATE session is currently locked down "
+                    "to this exam flow. Navigating to other parts of "
+                    "RELATE is not currently allowed. "
+                    "To exit this exam, log out.")
 
 # vim: fdm=marker

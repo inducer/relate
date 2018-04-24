@@ -521,7 +521,7 @@ def set_pretend_facilities(request):
             may_set_pretend_facility(request.user) or (
                 pre_imp_user is not None
                 and may_set_pretend_facility(pre_imp_user))):
-        raise PermissionDenied(_("may not set fake time"))
+        raise PermissionDenied(_("may not pretend facilities"))
 
     if request.method == "POST":
         form = FakeFacilityForm(request.POST)
