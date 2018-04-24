@@ -756,7 +756,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
     def test_ok_with_select2_views(self):
         # test by using the select2 widget of impersonating form
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.get_impersonate()
+            resp = self.get_impersonate_view()
             field_id = self.get_select2_field_id_from_response(resp)
 
             # With no search term, should display all impersonatable users

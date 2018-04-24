@@ -52,7 +52,7 @@ from tests.constants import (
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
     SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
-    SingleCourseTestMixin, FallBackStorageMessageTestMixin,
+    SingleCourseTestMixin,  MockAddMessageMixing,
 )
 from tests.utils import mock
 from tests import factories
@@ -366,7 +366,7 @@ class GetCustomPageTypesStopSupportDeadlineTest(unittest.TestCase):
 
 
 class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
-                                    FallBackStorageMessageTestMixin, TestCase):
+                                    MockAddMessageMixing, TestCase):
 
     def setUp(self):
         super(CustomRepoPageStopSupportTest, self).setUp()
@@ -416,7 +416,7 @@ class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
                 self.assertEqual(
                     self.get_course_commit_sha(self.instructor_participation),
                     self.current_commit_sha)
-            self.assertResponseMessagesContains(resp, expected_message, loose=True)
+            self.assertAddMessageCalledWith(expected_message)
 
     def test_custom_page_types_not_supported(self):
         deadline = datetime(2017, 1, 1, 0, 0, 0, 0)
@@ -430,7 +430,7 @@ class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
                 % {"page_type": self.custom_page_type,
                    "date_time": format_datetime_local(deadline)}
             )
-            self.assertResponseMessagesContains(resp, expected_message, loose=True)
+            self.assertAddMessageCalledWith(expected_message)
             self.assertEqual(
                 self.get_course_commit_sha(self.instructor_participation),
                 self.current_commit_sha)
@@ -460,7 +460,7 @@ class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
                 self.assertEqual(
                     self.get_course_commit_sha(self.instructor_participation),
                     self.current_commit_sha)
-            self.assertResponseMessagesContains(resp, expected_message, loose=True)
+            self.assertAddMessageCalledWith(expected_message)
 
 
 class Foo(object):
@@ -1769,17 +1769,13 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
         ))
 
 
-class CoursePageContextTest(SingleCourseTestMixin, TestCase):
+class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     # test utils.CoursePageContext (for cases not covered by other tests)
 
     def setUp(self):
         super(CoursePageContextTest, self).setUp()
         rf = RequestFactory()
         self.request = rf.get(self.get_course_page_url())
-
-        fake_add_message = mock.patch('django.contrib.messages.add_message')
-        self.mock_add_message = fake_add_message.start()
-        self.addCleanup(fake_add_message.stop)
 
     def test_preview_commit_sha(self):
         # commit_sha of https://github.com/inducer/relate-sample/pull/11
@@ -1793,7 +1789,7 @@ class CoursePageContextTest(SingleCourseTestMixin, TestCase):
             pctx.course_commit_sha,
             commit_sha.encode())
 
-        self.assertEqual(self.mock_add_message.call_count, 0)
+        self.assertAddMessageCallCount(0)
 
     def test_invalid_preview_commit_sha(self):
         commit_sha = "invalid_commit_sha"
@@ -1806,12 +1802,12 @@ class CoursePageContextTest(SingleCourseTestMixin, TestCase):
             pctx.course_commit_sha,
             self.course.active_git_commit_sha.encode())
 
-        self.assertEqual(self.mock_add_message.call_count, 1)
+        self.assertAddMessageCallCount(1)
         expected_error_msg = (
                 "Preview revision '%s' does not exist--"
                 "showing active course content instead." % commit_sha)
 
-        self.assertIn(expected_error_msg, self.mock_add_message.call_args[0])
+        self.assertAddMessageCalledWith(expected_error_msg)
 
     def test_role_identifiers(self):
         self.request.user = self.ta_participation.user

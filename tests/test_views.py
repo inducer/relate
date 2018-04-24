@@ -119,7 +119,7 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
             resp = self.get_set_fake_time()
             self.assertEqual(resp.status_code, 200)
 
-            self.post_impersonate(impersonatee=self.student_participation.user)
+            self.post_impersonate_view(impersonatee=self.student_participation.user)
             # the faking url is rendered in template
             resp = self.c.get(self.course_page_url)
             self.assertContains(resp, self.get_fake_time_url())
@@ -238,7 +238,7 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
     def test_pretend_facilities_by_instructor_when_impersonating(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
 
-            self.post_impersonate(impersonatee=self.student_participation.user)
+            self.post_impersonate_view(impersonatee=self.student_participation.user)
 
             # the pretending url is rendered in template
             resp = self.c.get(self.course_page_url)
@@ -271,7 +271,6 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
 
 
 class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
-    django_messages_imported_path = "course.views.messages"
 
     def setUp(self):
         super(TestEditCourse, self).setUp()
@@ -556,7 +555,6 @@ class StaticPageTest(SingleCourseTestMixin, TestCase):
 
 class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     # test views.course_page
-    django_messages_imported_path = "course.views.messages"
 
     # {{{ test show enroll button
     def test_student_no_enroll_button(self):
@@ -1111,7 +1109,6 @@ class TestFlowTest(SingleCoursePageTestMixin, TestCase):
 
 
 class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
-    django_messages_imported_path = "course.views.messages"
 
     @classmethod
     def setUpTestData(cls):  # noqa

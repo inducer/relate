@@ -43,14 +43,13 @@ from tests.constants import (
     TEST_HGTEXT_MARKDOWN_ANSWER_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG)
 
 from tests.base_test_mixins import (
-    SingleCourseQuizPageTestMixin,
-    FallBackStorageMessageTestMixin)
+    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
 from tests.utils import mock
 from tests import factories
 
 
 class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
-                               FallBackStorageMessageTestMixin, TestCase):
+                               MockAddMessageMixing, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCourseQuizPageTest, cls).setUpTestData()
@@ -113,16 +112,14 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id)
         )
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_choice(self):
         page_id = "krylov"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id)
         )
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_choice_failed_no_answer(self):
         page_id = "krylov"
@@ -134,8 +131,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, answer_data={"choice": []}, do_grading=False)
         )
 
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
         # There should be no submission history
         # https://github.com/inducer/relate/issues/351
@@ -149,8 +145,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id)
         )
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=1)
@@ -161,8 +156,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"choice": ['0', '1']}, do_grading=False)
         )
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=1)
@@ -172,9 +166,8 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, do_grading=False))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            ["Already have final answer.",
-                                             "Failed to submit answer."])
+        self.assertAddMessageCalledWith(["Already have final answer.",
+                                         "Failed to submit answer."])
 
         self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=1)
 
@@ -187,15 +180,13 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"choice": ['0']}, expected_grade=0.8)
         )
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_multi_choice_proportion_rule_correct(self):
         page_id = "matrix_props"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_inline_wrong_answer(self):
         page_id = "inlinemulti"
@@ -205,8 +196,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data=answer_data, expected_grade=8.57))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         # 6 correct answer
         self.assertContains(submit_answer_response, 'correctness="1"', count=6)
@@ -217,8 +207,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "inlinemulti"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
         # 7 answer
         self.assertContains(submit_answer_response, 'correctness="1"', count=7)
 
@@ -230,15 +219,13 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "fear"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_survey_choice(self):
         page_id = "age_group"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     # }}}
 
@@ -246,8 +233,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "hgtext"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_human_graded_text_failed(self):
         page_id = "hgtext"
@@ -255,8 +241,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": TEST_HGTEXT_MARKDOWN_ANSWER_WRONG},
                 do_grading=False))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
         self.assertFormErrorLoose(
             submit_answer_response,
             "ValidationError: submitted page: "
@@ -275,8 +260,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             submit_answer_response,
             "ValidationError: page must be of type 'ChoiceQuestion'"
         )
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
@@ -289,8 +273,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, do_grading=False))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         with open(TEST_TEXT_FILE_PATH, 'rb') as fp:
             expected_result1 = b64encode(fp.read()).decode()
@@ -301,8 +284,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, answer_data={"uploaded_file": TEST_PDF_FILE_PATH},
                 expected_grade=5))
 
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         with open(TEST_PDF_FILE_PATH, 'rb') as fp:
             expected_result2 = b64encode(fp.read()).decode()
@@ -327,8 +309,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"uploaded_file": TEST_TEXT_FILE_PATH},
                 do_grading=False))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 
         # https://github.com/inducer/relate/issues/351
         self.assertEqual(submit_answer_response.status_code, 200)
@@ -344,8 +325,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         with open(TEST_PDF_FILE_PATH, 'rb') as fp:
             expected_result = b64encode(fp.read()).decode()
@@ -361,16 +341,14 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "quarter"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_optional_page_with_wrong_answer(self):
         page_id = "quarter"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": ['0.15']}, expected_grade=0))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         # Make sure the page is rendered with 0 max_points
         self.assertResponseContextEqual(submit_answer_response, "max_points", 0)

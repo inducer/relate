@@ -439,11 +439,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-stop_impersonating")
 
     @classmethod
-    def get_impersonate(cls):
+    def get_impersonate_view(cls):
         return cls.c.get(cls.get_impersonate_view_url())
 
     @classmethod
-    def post_impersonate(cls, impersonatee, follow=True):
+    def post_impersonate_view(cls, impersonatee, follow=True):
         data = {"add_impersonation_header": ["on"],
                 "submit": [''],
                 }
@@ -2321,6 +2321,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
 
 class FallBackStorageMessageTestMixin(object):
+    """Deprecated in favor of MockAddMessageMixing"""
     # In case other message storage are used, the following is the default
     # storage used by django and RELATE. Tests which concerns the message
     # should not include this mixin.
@@ -2410,52 +2411,78 @@ class MockAddMessageMixing(object):
     The mixing for testing django.contrib.messages.add_message
     """
 
-    # where the django.contrib.messages is imported, need to be overridden
-    # for module to be tested if it was imported into the module at module
-    # level.
-    django_messages_imported_path = "django.contrib.messages"
-
     def setUp(self):
         super(MockAddMessageMixing, self).setUp()
-        self._fake_add_message_path = (
-            "%s.add_message"
-            % self.django_messages_imported_path.replace("add_message", ""))
+        self._fake_add_message_path = "django.contrib.messages.add_message"
         fake_add_messag = mock.patch(self._fake_add_message_path)
 
         self._mock_add_message = fake_add_messag.start()
         self.addCleanup(fake_add_messag.stop)
 
+    def _get_added_messages(self, join=True):
+        try:
+            msgs = [
+                "'%s'" % str(arg[2])
+                for arg, _ in self._mock_add_message.call_args_list]
+        except IndexError:
+            self.fail("%s is unexpectedly not called." % self._fake_add_message_path)
+        else:
+            if join:
+                return "; ".join(msgs)
+            return msgs
+
     def assertAddMessageCallCount(self, expected_call_count, reset=False):  # noqa
+        fail_msg = (
+            "%s is unexpectedly called %d times, instead of %d times." %
+            (self._fake_add_message_path, self._mock_add_message.call_count,
+             expected_call_count))
+        if self._mock_add_message.call_count > 0:
+            fail_msg += ("The called messages are: %s"
+                         % repr(self._get_added_messages(join=False)))
         self.assertEqual(
-            self._mock_add_message.call_count, expected_call_count,
-            msg="%s is unexpectedly called %d times, instead of %d times."
-                % (self._fake_add_message_path, self._mock_add_message.call_count,
-                   expected_call_count))
+            self._mock_add_message.call_count, expected_call_count, msg=fail_msg)
         if reset:
             self._mock_add_message.reset_mock()
 
     def assertAddMessageCalledWith(self, expected_messages, reset=True):  # noqa
-        try:
-            args = "; ".join([
-                "'%s'" % str(arg[2])
-                for arg, _ in self._mock_add_message.call_args_list])
-        except IndexError:
-            self.fail("%s is unexpectedly not called." % self._fake_add_message_path)
+        joined_msgs = self._get_added_messages()
 
         if not isinstance(expected_messages, list):
             expected_messages = [expected_messages]
 
         not_called = []
         for msg in expected_messages:
-            if msg not in args:
+            if msg not in joined_msgs:
                 not_called.append(msg)
 
         if not_called:
-            self.fail(
-                "%s unexpectedly not added in messages, "
-                "the actual message are \"%s\"" % (repr(not_called), args))
+            fail_msg = "%s unexpectedly not added in messages. " % repr(not_called)
+            if joined_msgs:
+                fail_msg += "the actual message are \"%s\"" % joined_msgs
+            self.fail(fail_msg)
         if reset:
             self._mock_add_message.reset_mock()
+
+    def assertAddMessageNotCalledWith(self, expected_messages, reset=False):  # noqa
+        joined_msgs = self._get_added_messages()
+
+        if not isinstance(expected_messages, list):
+            expected_messages = [expected_messages]
+
+        called = []
+        for msg in expected_messages:
+            if msg in joined_msgs:
+                called.append(msg)
+
+        if called:
+            fail_msg = "%s unexpectedly added in messages. " % repr(called)
+            fail_msg += "the actual message are \"%s\"" % joined_msgs
+            self.fail(fail_msg)
+        if reset:
+            self._mock_add_message.reset_mock()
+
+    def reset_add_message_mock(self):
+        self._mock_add_message.reset_mock()
 
 
 class SubprocessRunpyContainerMixin(object):
