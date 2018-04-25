@@ -67,6 +67,7 @@ from course.constants import (
         participation_permission as pperm,
         participation_status,
         FLOW_PERMISSION_CHOICES,
+        flow_rule_kind, FLOW_RULE_KIND_CHOICES
         )
 from course.models import (
         Course,
@@ -1132,8 +1133,6 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
         form = ExceptionStage3Form(
                 {}, flow_desc, session.access_rules_tag, request.POST)
 
-        from course.constants import flow_rule_kind
-
         if form.is_valid():
             permissions = [
                     key
@@ -1157,7 +1156,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             if hasattr(flow_desc, "rules"):
                 tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))
 
-            exception_created = False
+            exceptions_created = []
 
             restricted_to_same_tag = bool(
                 form.cleaned_data.get("restrict_to_same_tag")
@@ -1184,7 +1183,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     kind=flow_rule_kind.access,
                     rule=new_access_rule)
                 fre_access.save()
-                exception_created = True
+                exceptions_created.append(
+                    dict(FLOW_RULE_KIND_CHOICES)[fre_access.kind])
 
             # }}}
 
@@ -1256,18 +1256,21 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     kind=flow_rule_kind.grading,
                     rule=new_grading_rule)
                 fre_grading.save()
-                exception_created = True
+                exceptions_created.append(
+                    dict(FLOW_RULE_KIND_CHOICES)[fre_grading.kind])
 
             # }}}
 
-            if exception_created:
-                messages.add_message(pctx.request, messages.SUCCESS,
-                        _(
-                            "Exception granted to '%(participation)s' "
-                            "for '%(flow_id)s'.")
-                        % {
-                            'participation': participation,
-                            'flow_id': flow_id})
+            if exceptions_created:
+                for exc in exceptions_created:
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            _(
+                                "'%(exception_type)s' exception granted to "
+                                "'%(participation)s' for '%(flow_id)s'.")
+                            % {
+                                'exception_type': exc,
+                                'participation': participation,
+                                'flow_id': flow_id})
             else:
                 if session_access_rules_tag_changed:
                     messages.add_message(
