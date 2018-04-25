@@ -26,11 +26,15 @@ import six
 import os
 from datetime import datetime
 
+from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from unittest import skipIf
+
+from relate.checks import register_startup_checks_extra
+
 from tests.utils import mock
 from tests.factories import UserFactory
 
@@ -684,6 +688,15 @@ class CheckRelateSessionRestartCooldownSeconds(CheckRelateSettingsBase):
     INVALID_CONF_LIST = [10]
     INVALID_CONF_NEGATIVE = -10
 
+    @override_settings()
+    def test_valid_relate_session_restart_cooldown_seconds_not_configured(self):
+        del settings.RELATE_SESSION_RESTART_COOLDOWN_SECONDS
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_SESSION_RESTART_COOLDOWN_SECONDS=None)
+    def test_valid_relate_session_restart_cooldown_seconds_none(self):
+        self.assertCheckMessages([])
+
     @override_settings(RELATE_SESSION_RESTART_COOLDOWN_SECONDS=VALID_CONF)
     def test_valid_relate_session_restart_cooldown_seconds(self):
         self.assertCheckMessages([])
@@ -716,6 +729,15 @@ class CheckRelateTicketMinutesValidAfterUse(CheckRelateSettingsBase):
     INVALID_CONF_STR = "10"
     INVALID_CONF_LIST = [10]
     INVALID_CONF_NEGATIVE = -10
+
+    @override_settings()
+    def test_valid_relate_ticket_not_configured(self):
+        del settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_TICKET_MINUTES_VALID_AFTER_USE=None)
+    def test_valid_relate_ticket_none(self):
+        self.assertCheckMessages([])
 
     @override_settings(RELATE_TICKET_MINUTES_VALID_AFTER_USE=VALID_CONF)
     def test_valid_relate_ticket_minutes_valid_after_use(self):
@@ -1037,3 +1059,65 @@ class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
     def test_warning_conf_false(self):
         self.assertCheckMessages(
             ["relate_disable_codehilite_markdown_extension.W002"])
+
+
+class RelateStartupChecksExtraCheckTest(CheckRelateSettingsBase):
+    msg_id_prefix = "my_custom_check_msg"
+
+    INSTANCE_WRONG1 = "tests.resouce.my_check_func"
+    INSTANCE_WRONG2 = {"path": "tests.resouce.my_check_func"}
+
+    @override_settings()
+    def test_not_configured(self):
+        del settings.RELATE_STARTUP_CHECKS_EXTRA
+        register_startup_checks_extra()
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=None)
+    def test_none(self):
+        register_startup_checks_extra()
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=INSTANCE_WRONG1)
+    def test_instance_error1(self):
+        with self.assertRaises(ImproperlyConfigured) as cm:
+            register_startup_checks_extra()
+
+        expected_error_msg = (
+            "RELATE_STARTUP_CHECKS_EXTRA must be an instance of list or tuple")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=INSTANCE_WRONG2)
+    def test_instance_error2(self):
+        with self.assertRaises(ImproperlyConfigured) as cm:
+            register_startup_checks_extra()
+
+        expected_error_msg = (
+            "RELATE_STARTUP_CHECKS_EXTRA must be an instance of list or tuple")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=[])
+    def test_empty_list(self):
+        register_startup_checks_extra()
+
+    @skipIf(six.PY2, "python 2 generate different message for ImportError")
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=[
+        "unknown_package.unknown_module.func"])
+    def test_not_importable_check_func(self):
+        with self.assertRaises(ImproperlyConfigured) as cm:
+            register_startup_checks_extra()
+        expected_error_msg = ("No module named 'unknown_package'")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=[
+        "tests.resource.my_custom_check_func1",
+        "tests.resource.my_custom_check_func2"])
+    def test_do_check(self):
+        from tests.utils import mock
+        with mock.patch("relate.checks.register") as mock_register:
+            register_startup_checks_extra()
+            self.assertEqual(mock_register.call_count, 2)
+            stringified_call_args = ". ".join(
+                [repr(call) for call in mock_register.call_args_list])
+            self.assertIn(
+                "function my_custom_check_func1", stringified_call_args)
+            self.assertIn(
+                "function my_custom_check_func2", stringified_call_args)

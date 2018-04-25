@@ -53,3 +53,16 @@ def my_custom_get_masked_profile_method_valid_but_return_emtpy_string(u):
 
 class MyFakeEmailBackend(LocMemEmailBackend):
     pass
+
+
+class MyFakeQuestionType(object):
+    pass
+
+
+# used to test check.register_startup_checks_extra
+def my_custom_check_func1():
+    return ["my_custom_check_msg.E001"]
+
+
+def my_custom_check_func2():
+    return ["my_custom_check_msg.W001"]

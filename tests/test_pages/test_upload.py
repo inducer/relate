@@ -24,14 +24,9 @@ THE SOFTWARE.
 
 from django.test import TestCase
 
-from course.content import get_repo_blob
-
-from tests.base_test_mixins import SingleCourseQuizPageTestMixin
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
-)
+from tests.base_test_mixins import SingleCourseQuizPageTestMixin, HackRepoMixin
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.constants import PAGE_ERRORS
-from tests.utils import mock
 
 UPLOAD_WITH_NEGATIVE_MAXIMUM_SIZE_MARKDOWN = """
 type: FileUploadQuestion
@@ -128,26 +123,6 @@ rubric: |
 
 """
 
-UPLOAD_WITH_TWO_ALLOWED_MIME_TYPES = """
-type: FileUploadQuestion
-id: proof
-maximum_megabytes: 0.5
-value: 5
-prompt: |
-
-    # Upload a file
-
-mime_types:
-
-    - application/pdf
-    - text/plain
-
-rubric: |
-
-    uploaded?
-
-"""
-
 
 class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_size_validation(self):
@@ -199,28 +174,17 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
             self.assertFormErrorLoose(resp, "Current filesize is")
 
 
-def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
-    # Fake the inline multiple question yaml for specific commit
-    if not full_name == "questions/pdf-file-upload-example.yml":
-        return get_repo_blob(repo, full_name, commit_sha, allow_tree)
-    else:
-        class Blob(object):
-            pass
-
-        blob = Blob()
-        blob.data = UPLOAD_WITH_TWO_ALLOWED_MIME_TYPES.encode()
-        return blob
-
-
-class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin, TestCase):
+class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin,
+                                  HackRepoMixin, TestCase):
     def test_two_mime_types_normalize(self):
-        with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
-            mock_get_repo_blob.side_effect = get_repo_blob_side_effect
+        self.course.active_git_commit_sha = (
+            "my_fake_commit_sha_for_normalized_bytes_answer")
+        self.course.save()
 
-            self.start_flow(self.flow_id)
+        self.start_flow(self.flow_id)
 
-            self.submit_page_answer_by_page_id_and_test(
-                page_id="proof", do_grading=True, do_human_grade=True,
-                ensure_download_after_grading=True, dl_file_extension=".dat")
+        self.submit_page_answer_by_page_id_and_test(
+            page_id="proof", do_grading=True, do_human_grade=True,
+            ensure_download_after_grading=True, dl_file_extension=".dat")
 
 # vim: fdm=marker

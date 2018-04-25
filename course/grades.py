@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 import six
-
+from decimal import Decimal
 from typing import cast
 
 from django.utils.translation import (
@@ -62,7 +62,7 @@ from course.constants import (
 # {{{ for mypy
 
 if False:
-    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+    from typing import Tuple, Text, Optional, Any, Iterable, List, Union  # noqa
     from course.utils import CoursePageContext  # noqa
     from course.content import FlowDesc  # noqa
     from course.models import Course, FlowPageVisitGrade  # noqa
@@ -90,17 +90,23 @@ def view_participant_grades(pctx, participation_id=None):
 
     # NOTE: It's important that these two queries are sorted consistently,
     # also consistently with the code below.
+
+    gopp_extra_filter_kwargs = {}
+    if not is_privileged_view:
+        gopp_extra_filter_kwargs = {"shown_in_participant_grade_book": True}
+
     grading_opps = list((GradingOpportunity.objects
             .filter(
                 course=pctx.course,
                 shown_in_grade_book=True,
+                **gopp_extra_filter_kwargs
                 )
             .order_by("identifier")))
 
     grade_changes = list(GradeChange.objects
             .filter(
                 participation=grade_participation,
-                opportunity__course=pctx.course,
+                opportunity__pk__in=[gopp.pk for gopp in grading_opps],
                 opportunity__shown_in_grade_book=True)
             .order_by(
                 "participation__id",
@@ -484,15 +490,13 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                     return redirect("relate-monitor_task", async_res.id)
 
-                elif op == "recalculate":
+                else:
+                    assert op == "recalculate"
                     async_res = recalculate_ended_sessions.delay(
                             pctx.course.id, opportunity.flow_id,
                             rule_tag)
 
                     return redirect("relate-monitor_task", async_res.id)
-
-                else:
-                    raise SuspiciousOperation("invalid operation")
 
         else:
             batch_session_ops_form = ModifySessionsForm(session_rule_tags)
@@ -824,6 +828,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
 
+    if pctx.course != opportunity.course:
+        raise SuspiciousOperation(_("opportunity from wrong course"))
+
     my_grade = participation == pctx.participation
     is_privileged_view = pctx.has_permission(pperm.view_gradebook)
 
@@ -1111,7 +1118,10 @@ class ParticipantNotFound(ValueError):
 def find_participant_from_user_attr(course, attr_type, attr_str):
     attr_str = attr_str.strip()
 
-    kwargs = {"user__%s__exact" % attr_type: attr_str}
+    exact_mode = "exact"
+    if attr_type == "institutional_id":
+        exact_mode = "iexact"
+    kwargs = {"user__%s__%s" % (attr_type, exact_mode): attr_str}
 
     matches = (Participation.objects
             .filter(
@@ -1190,6 +1200,18 @@ def fix_decimal(s):
         return s
 
 
+def points_equal(num, other):
+    # type: (Optional[Decimal], Optional[Decimal]) -> bool
+    if num is None and other is None:
+        return True
+    if ((num is None and other is not None)
+            or (num is not None and other is None)):
+        return False
+    assert num is not None
+    assert other is not None
+    return abs(num - other) < 1e-2
+
+
 def csv_to_grade_changes(
         log_lines,
         course, grading_opportunity, attempt_id, file_contents,
@@ -1219,9 +1241,7 @@ def csv_to_grade_changes(
                         course, attr_type,
                         get_col_contents_or_empty(row, attr_column-1))
             else:
-                raise ParticipantNotFound(
-                    _("Unknown user attribute '%(attr_type)s'") % {
-                        "attr_type": attr_type})
+                raise NotImplementedError()
         except ParticipantNotFound as e:
             log_lines.append(e)
             continue
@@ -1234,7 +1254,7 @@ def csv_to_grade_changes(
         if points_str in ["-", ""]:
             gchange.points = None
         else:
-            gchange.points = float(fix_decimal(points_str))
+            gchange.points = Decimal(fix_decimal(points_str))
 
         gchange.max_points = max_points
         if feedback_column is not None:
@@ -1254,11 +1274,10 @@ def csv_to_grade_changes(
             last_grade, = last_grades
 
             if last_grade.state == grade_state_change_types.graded:
-
                 updated = []
-                if last_grade.points != gchange.points:
+                if not points_equal(last_grade.points, gchange.points):
                     updated.append(ugettext("points"))
-                if last_grade.max_points != gchange.max_points:
+                if not points_equal(last_grade.max_points, gchange.max_points):
                     updated.append(ugettext("max_points"))
                 if last_grade.comment != gchange.comment:
                     updated.append(ugettext("comment"))

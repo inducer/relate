@@ -24,11 +24,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Union
+from typing import cast, Union, Text
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+import os
 import re
 import datetime
 import six
@@ -197,8 +198,7 @@ def get_true_repo_and_path(repo, path):
 def get_course_repo_path(course):
     # type: (Course) -> Text
 
-    from os.path import join
-    return join(settings.GIT_ROOT, course.identifier)
+    return os.path.join(settings.GIT_ROOT, course.identifier)
 
 
 def get_course_repo(course):
@@ -224,7 +224,8 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
 
     dul_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    names = full_name.split("/")
+    # https://github.com/inducer/relate/pull/556
+    names = os.path.normpath(full_name).split(os.sep)
 
     # Allow non-ASCII file name
     full_name_bytes = full_name.encode('utf-8')
@@ -240,7 +241,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     def access_directory_content(maybe_tree, name):
         # type: (Any, Text) -> Any
         try:
-            mode_and_blob_sha = tree[name.encode()]
+            mode_and_blob_sha = maybe_tree[name.encode()]
         except TypeError:
             raise ObjectDoesNotExist(_("resource '%s' is a file, "
                 "not a directory") % full_name)
@@ -346,8 +347,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
     """
 
     # set the path to .attributes.yml
-    from os.path import dirname, basename, join
-    attributes_path = join(dirname(path), ATTRIBUTES_FILENAME)
+    attributes_path = os.path.join(os.path.dirname(path), ATTRIBUTES_FILENAME)
 
     # retrieve the .attributes.yml structure
     try:
@@ -357,7 +357,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
         # no attributes file: not accessible
         return False
 
-    path_basename = basename(path)
+    path_basename = os.path.basename(path)
 
     # "public" is a deprecated alias for "unenrolled".
 
@@ -484,8 +484,7 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
                 super(YamlBlockEscapingGitTemplateLoader, self).get_source(
                         environment, template)
 
-        from os.path import splitext
-        _, ext = splitext(template)
+        _, ext = os.path.splitext(template)
         ext = ext.lower()
 
         if ext in [".yml", ".yaml"]:
@@ -502,8 +501,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
                 super(YamlBlockEscapingFileSystemLoader, self).get_source(
                         environment, template)
 
-        from os.path import splitext
-        _, ext = splitext(template)
+        _, ext = os.path.splitext(template)
         ext = ext.lower()
 
         if ext in [".yml", ".yaml"]:
@@ -525,13 +523,13 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
 
     # {{{ process explicit [JINJA] tags (deprecated)
 
-    def compute_replacement(match):
+    def compute_replacement(match):  # pragma: no cover  # deprecated
         template = jinja_env.from_string(match.group(1))
         return template.render()
 
     yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
 
-    if count:
+    if count:  # pragma: no cover  # deprecated
         # The file uses explicit [JINJA] tags. Assume that it doesn't
         # want anything else processed through YAML.
         return yaml_str
@@ -791,12 +789,13 @@ class LinkFixerTreeprocessor(Treeprocessor):
                 return self.reverse("relate-view_calendar",
                             args=(self.get_course_identifier(),))
 
+            else:
+                return None
+
         except NoReverseMatch:
             from base64 import b64encode
             message = ("Invalid character in RELATE URL: " + url).encode("utf-8")
             return "data:text/plain;base64,"+b64encode(message).decode()
-
-        return None
 
     def process_tag(self, tag_name, attrs):
         changed_attrs = {}
@@ -1105,11 +1104,9 @@ class PlusDeltaPostprocessor(DatespecPostprocessor):
             d = datetime.timedelta(days=self.count)
         elif self.period.startswith("hour"):
             d = datetime.timedelta(hours=self.count)
-        elif self.period.startswith("minute"):
-            d = datetime.timedelta(minutes=self.count)
         else:
-            raise InvalidDatespec(_("invalid period: %s" % self.period))
-
+            assert self.period.startswith("minute")
+            d = datetime.timedelta(minutes=self.count)
         return dtm + d
 
 
@@ -1146,11 +1143,7 @@ def parse_date_spec(
         return localize_if_needed(
                 datetime.datetime.combine(datespec, datetime.time.min))
 
-    try:
-        from typing import Text
-    except ImportError:
-        Text = None  # noqa
-    datespec_str = cast(Text, datespec).strip()  # type: ignore
+    datespec_str = cast(Text, datespec).strip()
 
     # {{{ parse postprocessors
 
@@ -1283,16 +1276,16 @@ def compute_chunk_weight_and_shown(
 
         # {{{ deprecated
 
-        if hasattr(rule, "roles"):
+        if hasattr(rule, "roles"):  # pragma: no cover  # deprecated
             if all(role not in rule.roles for role in roles):
                 continue
 
-        if hasattr(rule, "start"):
+        if hasattr(rule, "start"):  # pragma: no cover  # deprecated
             start_date = parse_date_spec(course, rule.start)
             if now_datetime < start_date:
                 continue
 
-        if hasattr(rule, "end"):
+        if hasattr(rule, "end"):  # pragma: no cover  # deprecated
             end_date = parse_date_spec(course, rule.end)
             if end_date < now_datetime:
                 continue
@@ -1380,7 +1373,7 @@ def normalize_flow_desc(flow_desc):
 
     if hasattr(flow_desc, "rules"):
         rules = flow_desc.rules
-        if not hasattr(rules, "grade_identifier"):
+        if not hasattr(rules, "grade_identifier"):  # pragma: no cover  # deprecated
             # Legacy content with grade_identifier in grading rule,
             # move first found grade_identifier up to rules.
 
@@ -1495,7 +1488,7 @@ def get_flow_page_class(repo, typename, commit_sha):
 
         try:
             return module_dict[classname]
-        except AttributeError:
+        except (AttributeError, KeyError):
             raise ClassNotFoundError(typename)
     else:
         raise ClassNotFoundError(typename)

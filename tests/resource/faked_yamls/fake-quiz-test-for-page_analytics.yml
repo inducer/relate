@@ -1,0 +1,175 @@
+# The page_ids of included pages should the same as those in the sample repo.
+# Notice, don't do analysis and download test for this flow desc using
+# submit_page_answer_by_ordinal_and_test helper.
+
+{% from "yaml-macros.yml" import indented_include %}
+title: "RELATE Test Quiz"
+description: |
+
+    # RELATE Test Quiz
+
+rules:
+    start:
+    -
+        if_before: end_week 1
+        if_has_role: [student, ta, instructor]
+        if_has_fewer_sessions_than: 4
+        may_start_new_session: True
+        may_list_existing_sessions: True
+
+    -
+        may_start_new_session: False
+        may_list_existing_sessions: True
+
+    access:
+    -
+        permissions: [view, submit_answer, change_answer, end_session, see_correctness]
+
+    grade_identifier: la_quiz
+    grade_aggregation_strategy: use_latest
+
+    grading:
+    -
+        credit_percent: 100
+
+groups:
+-
+    id: intro
+    pages:
+
+    -
+        type: Page
+        id: welcome
+        content: |
+
+            # Welcome to the test quiz for RELATE!
+
+            Don't be scared.
+
+-
+    id: quiz_start
+    shuffle: False
+    pages:
+    -
+        type: TextQuestion
+        id: half
+        access_rules:
+            remove_permissions:
+                - see_correctness
+        value: 5
+        prompt: |
+
+          # A half
+
+          What's a half?
+
+        answers:
+
+          - type: float
+            value: 0.5
+            rtol: 1e-4
+          - <plain>half
+          - <plain>a half
+
+    -
+        type: MultipleChoiceQuestion
+        id: ice_cream_toppings
+        access_rules:
+            remove_permissions:
+                - change_answer
+        credit_mode: exact
+        value: 1
+        shuffle: False
+        prompt: |
+
+            # Ice Cream Toppings
+
+            Which of the following are ice cream toppings?
+
+        choices:
+
+          - ~CORRECT~ Sprinkles
+          - ~CORRECT~ Chocolate chunks
+          - Vacuum cleaner dust
+          - Spider webs
+          - ~CORRECT~ Almond bits
+
+    -
+        type: SurveyTextQuestion
+        id: fear
+        widget: textarea
+        prompt: |
+
+            # Psychology Survey
+
+            What's your biggest fear?
+
+    -
+        type: ChoiceQuestion
+        id: krylov
+        access_rules:
+            add_permissions:
+                - change_answer
+        value: 2
+        prompt: |
+
+            # Krylov-space methods
+
+            What form of a matrix is produced by Arnoldi iteration?
+
+        choices:
+
+          - ~CORRECT~ Upper Hessenberg form
+          - Diagonal
+          - Schur form
+          - Tridiagonal form
+
+    -
+        type: ChoiceQuestion
+        id: lsq
+        value: 1
+        shuffle: False
+        access_rules:
+            add_permissions:
+                - see_answer_after_submission
+        prompt: |
+
+            # Least squares problems
+
+            Let $m\ge n$ and $\boldsymbol A$ be an $m\times n$ matrix. Which of the
+            following conditions suffices to guarantee that
+            the least squares system $\boldsymbol A \boldsymbol x\cong \boldsymbol b$
+            has a *unique* solution?
+
+        choices:
+
+          - Always
+          - When $\operatorname{rank}(\boldsymbol A)=m$
+          - ~CORRECT~ When $\operatorname{rank}(\boldsymbol A)=n$
+          - When $\boldsymbol b$ lies in $\operatorname{span}(\boldsymbol A)$
+          - This is a really long option, but *certainly* not the correct one.
+
+            Instead, it tests whether Markdown works in choice questions.
+
+    -
+        type: SurveyChoiceQuestion
+        id: age_group
+        access_rules: []
+        prompt: |
+
+            # Age
+
+            How old are you?
+
+        choices:
+
+            - 0-10 years
+            - 11-20 years
+            - 21-30 years
+            - 31-40 years
+            - 41-50 years
+            - 51-60 years
+            - 61-70 years
+            - 71-80 years
+            - 81-90 years
+            - older

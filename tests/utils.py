@@ -26,6 +26,7 @@ class BaseEmailBackendTestsMixin(object):
     email_backend = None
 
     def setUp(self):  # noqa
+        super(BaseEmailBackendTestsMixin, self).setUp()
         self.email_backend_settings_override = (
             override_settings(EMAIL_BACKEND=self.email_backend))
         self.email_backend_settings_override.enable()
@@ -143,6 +144,10 @@ def load_url_pattern_names(patterns):
         elif pat.__class__.__name__ == 'RegexURLPattern':
             if pat.name is not None and pat.name not in url_names:
                 url_names.append(pat.name)
+        else:
+            from django.urls import URLPattern
+            assert isinstance(pat, URLPattern)
+            url_names.append(pat.name)
     return url_names
 
 

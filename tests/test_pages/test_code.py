@@ -43,8 +43,7 @@ from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
 
 from tests.base_test_mixins import (
     SubprocessRunpyContainerMixin, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin,
-    FallBackStorageMessageTestMixin)
+    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin
 )
@@ -84,7 +83,7 @@ AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
 
 
 class SingleCourseQuizPageCodeQuestionTest(
-            SingleCourseQuizPageTestMixin, FallBackStorageMessageTestMixin,
+            SingleCourseQuizPageTestMixin, MockAddMessageMixing,
             SubprocessRunpyContainerMixin, TestCase):
 
     skip_code_question = False
@@ -98,8 +97,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         page_id = "addition"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_page_wrong(self):
         page_id = "addition"
@@ -107,8 +105,7 @@ class SingleCourseQuizPageCodeQuestionTest(
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": 'c = a - b\r'},
                 expected_grade=0))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_page_identical_to_reference(self):
         page_id = "addition"
@@ -116,8 +113,8 @@ class SingleCourseQuizPageCodeQuestionTest(
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": 'c = a + b\r'},
                 expected_grade=1))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
+
         self.assertResponseContextAnswerFeedbackContainsFeedback(
             submit_answer_response,
             ("It looks like you submitted code "
@@ -128,8 +125,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         page_id = "pymult"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
-        self.assertResponseMessagesContains(submit_answer_response,
-                                            MESSAGE_ANSWER_SAVED_TEXT)
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_human_feedback_page_grade1(self):
         page_id = "pymult"
@@ -1333,6 +1329,13 @@ class IsNuisanceFailureTest(unittest.TestCase):
         result = {"result": "uncaught_error",
                   "traceback":
                       "\n[Errno 113] No route to host: \nfoo"}
+        self.assertTrue(is_nuisance_failure(result))
+
+    def test_read_timeout_https(self):
+        result = {"result": "uncaught_error",
+                  "traceback":
+                      "\nrequests.exceptions.ReadTimeout: "
+                      "HTTPSConnectionPool: \nfoo"}
         self.assertTrue(is_nuisance_failure(result))
 
 

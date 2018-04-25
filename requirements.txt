@@ -64,7 +64,7 @@ ipaddress
 
 # {{{ For interoperation with SAML2/Shibboleth
 
-pysaml2
+pysaml2<=4.4.0
 djangosaml2
 python-memcached
 
@@ -92,7 +92,7 @@ git+https://github.com/inducer/bleach@prevent-attribute-value-filtering#egg=blea
 pytools
 
 # For mypy (static type checking) support
-typing
+typing>=3.6.1
 
 # For unittest by mock (only required for Py2)
 # mock

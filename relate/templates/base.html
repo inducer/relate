@@ -79,7 +79,7 @@
                 {% block navbar %}{% endblock %}
 
                 {% block navbar_dropdown_staff %}
-                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility %}
+                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
                     <li class="dropdown">
                       <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Staff" %}<b class="caret"></b></a>
                       <ul class="dropdown-menu">
@@ -103,7 +103,7 @@
                           {% endif %}
                         {% endblock %}
                         {% block navbar_dropdown_staff_menu_trouble_shoot %}
-                          {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time %}
+                          {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
                             <li role="presentation" class="divider"></li>
                             <li role="presentation" class="dropdown-header">{% trans "Test/Troubleshoot" %}</li>
                             {% if currently_impersonating %}
@@ -111,10 +111,10 @@
                             {% else %}
                               <li><a href="{% url 'relate-impersonate' %}" target="_blank">{% trans "Impersonate user" %}</a></li>
                             {% endif %}
-                            {% if pperm.set_fake_time %}
+                            {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
                               <li><a href="{% url 'relate-set_fake_time' %}" target="_blank">{% trans "Set fake time" %}</a></li>
                             {% endif %}
-                            {% if pperm.set_pretend_facility %}
+                            {% if pperm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
                               <li><a href="{% url 'relate-set_pretend_facilities' %}" target="_blank">{% trans "Pretend to be in facilities" %}</a></li>
                             {% endif %}
                           {% endif %}

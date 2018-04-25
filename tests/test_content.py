@@ -22,18 +22,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import pytz
+import six
+import os
 import json
-from django.test import TestCase
+import unittest
+import datetime
+import stat
+from dulwich.repo import Tree
+
+from django.test import TestCase, RequestFactory, override_settings
+from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 
 from course.models import FlowSession
 from course import content
+from course import page
 
 from tests.base_test_mixins import (
     SingleCourseTestMixin,
-    improperly_configured_cache_patch, SingleCoursePageTestMixin)
+    improperly_configured_cache_patch, SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin, MockAddMessageMixing, HackRepoMixin)
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
 from tests import factories  # noqa
+from tests.constants import COMMIT_SHA_SUPPORT_CUSTOM_PAGES
 
 
 class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
@@ -358,7 +371,6 @@ class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
         self.assertNotContains(resp, CODE_CELL_PRINT_STR2)
 
         # code highlight functions (in terms of rendered ipynb notebook cells only)
-        import six
         if six.PY3:
             self.assertRegex(resp.context["body"], 'class="\w*\s*highlight[^\w]')
         self.assertContains(resp, " highlight hl-ipython3")
@@ -575,5 +587,848 @@ class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
                 content.get_course_commit_sha(
                     self.course, self.ta_participation,
                     repo=pctx.repo).decode(), self.valid_sha)
+
+
+class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCase):
+    # test subdir repo (for cases not covered by other tests)
+
+    subdir_branch_commit_sha = "fb3fffe4e88e52a91446a1ecdba502e8ee6a6031"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(SubDirRepoTest, cls).setUpTestData()
+        cls.course.course_root_path = "course_content"
+        cls.course.active_git_commit_sha = cls.subdir_branch_commit_sha
+        cls.course.save()
+
+    def test_flowpage(self):
+        self.start_flow(self.flow_id)
+        page_id = "half"
+        submit_answer_response, _ = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id)
+        )
+        self.assertEqual(submit_answer_response.status_code, 200)
+
+    def test_validation(self):
+        self.post_update_course_content(self.subdir_branch_commit_sha)
+        self.assertAddMessageCallCount(2)
+        self.assertAddMessageCalledWith(
+            ["Course content validated OK", "Update applied."])
+
+
+class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
+    # test content.get_repo_blob (for cases not covered by other tests)
+    def setUp(self):
+        super(GetRepoBlobTest, self).setUp()
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        request.user = self.instructor_participation.user
+
+        from course.utils import CoursePageContext
+        self.pctx = CoursePageContext(request, self.course.identifier)
+
+    def test_repo_root_not_allow_tree_key_error(self):
+        with self.pctx.repo as repo:
+            with self.assertRaises(ObjectDoesNotExist) as cm:
+                content.get_repo_blob(
+                    repo, "", self.course.active_git_commit_sha.encode(),
+                    allow_tree=False)
+            expected_error_msg = "repo root is a directory, not a file"
+            self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_access_directory_content_type_error(self):
+        full_name = os.path.join("course.yml", "cc.png")
+        with self.pctx.repo as repo:
+            with self.assertRaises(ObjectDoesNotExist) as cm:
+                content.get_repo_blob(
+                    repo, full_name, self.course.active_git_commit_sha.encode(),
+                    allow_tree=True)
+            expected_error_msg = (
+                    "resource '%s' is a file, not a directory" % full_name)
+            self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_resource_is_a_directory_error(self):
+        full_name = "images"
+        with self.pctx.repo as repo:
+            with self.assertRaises(ObjectDoesNotExist) as cm:
+                content.get_repo_blob(
+                    repo, full_name, self.course.active_git_commit_sha.encode(),
+                    allow_tree=False)
+            expected_error_msg = (
+                    "resource '%s' is a directory, not a file" % full_name)
+            self.assertIn(expected_error_msg, str(cm.exception))
+
+
+class GitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
+    # test content.GitTemplateLoader
+    def setUp(self):
+        super(GitTemplateLoaderTest, self).setUp()
+        rf = RequestFactory()
+        request = rf.get(self.course_page_url)
+        request.user = self.instructor_participation.user
+        from course.utils import CoursePageContext
+        self.pctx = CoursePageContext(request, self.course.identifier)
+
+    def test_object_not_found(self):
+        environment = mock.MagicMock()
+        template = mock.MagicMock()
+        with self.pctx.repo as repo:
+            loader = content.GitTemplateLoader(
+                repo, self.course.active_git_commit_sha.encode())
+            with mock.patch(
+                    "course.content.get_repo_blob_data_cached",
+                    side_effect=ObjectDoesNotExist):
+                with self.assertRaises(content.TemplateNotFound):
+                    loader.get_source(environment=environment,
+                                      template=template)
+
+    def test_get_source_uptodate(self):
+        environment = mock.MagicMock()
+        template = mock.MagicMock()
+        with self.pctx.repo as repo:
+            with mock.patch(
+                    "course.content.get_repo_blob_data_cached",
+                    return_value=b"blahblah"):
+                        loader = content.GitTemplateLoader(
+                            repo, self.course.active_git_commit_sha.encode())
+                        _, __, uptodate = loader.get_source(environment=environment,
+                                                            template=template)
+                        self.assertFalse(uptodate())
+
+
+class YamlBlockEscapingFileSystemLoaderTest(SingleCourseTestMixin, TestCase):
+    # test content.YamlBlockEscapingFileSystemLoader
+    pass
+
+
+class GetYamlFromRepoTest(SingleCourseTestMixin, TestCase):
+    # test content.get_yaml_from_repo
+    def setUp(self):
+        super(GetYamlFromRepoTest, self).setUp()
+        rf = RequestFactory()
+        request = rf.get(self.course_page_url)
+        request.user = self.instructor_participation.user
+        from course.utils import CoursePageContext
+        self.pctx = CoursePageContext(request, self.course.identifier)
+
+    def test_file_uses_tab_in_indentation(self):
+        fake_yaml_bytestream = "\tabcd\n".encode()
+
+        class _Blob(object):
+            def __init__(self):
+                self.data = fake_yaml_bytestream
+
+        with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
+            mock_get_repo_blob.return_value = _Blob()
+            with self.assertRaises(ValueError) as cm:
+                with self.pctx.repo as repo:
+                    content.get_yaml_from_repo(
+                        repo, "course.yml",
+                        self.course.active_git_commit_sha.encode())
+
+            expected_error_msg = (
+                "File uses tabs in indentation. "
+                "This is not allowed.")
+
+            self.assertIn(expected_error_msg, str(cm.exception))
+
+
+class AttrToStringTest(unittest.TestCase):
+    # test content._attr_to_string
+    def test(self):
+        self.assertEqual(content._attr_to_string("disabled", None), "disabled")
+        self.assertEqual(content._attr_to_string(
+            "id", "\"abc\""), "id='\"abc\"'")
+        self.assertEqual(content._attr_to_string("id", "abc"), "id=\"abc\"")
+
+
+MARKDOWN_WITH_LINK_FRAGMENT = """
+type: Page
+id: frag
+content: |
+
+    # Test frag in path
+
+    [A static page](staticpage:test#abcd)
+    <a href="blablabla">
+    <a href=http://foo.com />
+    <table bootstrop></table>
+    <!-- This is an invalid link -->
+    [A static page](course:test#abcd)
+    
+    ## link to another course
+    [A static page](course:another-course)
+    
+    ## calendar linkes
+    [A static page](calendar:)
+    
+    ## images
+    ![alt text](https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png "Example")
+    <img src="repo:images/cc.png">
+    
+    ## object data
+    <object width="400" height="400" data="helloworld.swf">
+    <object data="repo:images/cc.png">
+"""  # noqa
+
+
+class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
+        SingleCoursePageSandboxTestBaseMixin, TestCase):
+
+    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_embedded_raw_block1(self):
+        another_course = factories.CourseFactory(identifier="another-course")
+        markdown = MARKDOWN_WITH_LINK_FRAGMENT
+        expected_literal = [
+            '/course/test-course/page/test/#abcd',
+            '<a href="blablabla">',
+
+            # handle_startendtag
+            '<a href="http://foo.com"/>',
+
+            # handle_comment
+            '<!-- This is an invalid link -->',
+
+            # invalid link
+            "data:text/plain;base64,SW52YWxpZCBjaGFyYWN0ZXIgaW4gUkVMQVR"
+            "FIFVSTDogY291cnNlOnRlc3QjYWJjZA==",
+
+            # images
+            "https://raw.githubusercontent.com/inducer/relate/master/"
+            "doc/images/screenshot.png",
+            "/course/test-course/file-version/%s/images/cc.png"
+            % self.course.active_git_commit_sha,
+
+            # object data
+            'data="helloworld.swf"',
+            "/course/test-course/file-version/%s/images/cc.png"
+            % self.course.active_git_commit_sha,
+        ]
+
+        resp = self.get_page_sandbox_preview_response(markdown)
+
+        self.assertSandboxHasValidPage(resp)
+
+        for literal in (expected_literal
+                        + [self.get_course_page_url(),
+                           self.get_course_page_url(another_course.identifier)]):
+            with self.subTest(literal=literal):
+                self.assertResponseContextContains(resp, "body", literal)
+
+        table_literals = [
+            '<table bootstrop class="table table-condensed"></table>',
+            '<table class="table table-condensed" bootstrop></table>',
+        ]
+        if table_literals[0] not in resp.context["body"]:
+            self.assertResponseContextContains(resp, "body", table_literals[1])
+
+    def test_course_is_none(self):
+        md = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        reverse_func = mock.MagicMock()
+        processor = content.LinkFixerTreeprocessor(md, None,
+                                                   commit_sha, reverse_func)
+        result = processor.get_course_identifier()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, str)
+
+
+class YamlBlockEscapingGitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
+    # test content.YamlBlockEscapingGitTemplateLoader
+    # (for cases not covered by other tests)
+
+    def setUp(self):
+        super(YamlBlockEscapingGitTemplateLoaderTest, self).setUp()
+        rf = RequestFactory()
+        request = rf.get(self.course_page_url)
+        request.user = self.instructor_participation.user
+        from course.utils import CoursePageContext
+        self.pctx = CoursePageContext(request, self.course.identifier)
+
+    def test_load_not_yaml(self):
+        environment = mock.MagicMock()
+        with mock.patch(
+                "course.content.process_yaml_for_expansion") as mock_process_yaml:
+            with self.pctx.repo as repo:
+                loader = content.YamlBlockEscapingGitTemplateLoader(
+                    repo, self.course.active_git_commit_sha.encode())
+                result = loader.get_source(environment, "content-macros.jinja")
+                source, _, _ = result
+                self.assertIsNotNone(source)
+                self.assertTrue(source.startswith(
+                    "{# Make sure to avoid 4-spaces-deep (or deeper) "
+                    "indentation #}"))
+
+                # process_yaml_for_expansion is not called
+                self.assertEqual(mock_process_yaml.call_count, 0)
+
+
+class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
+    # test content.parse_date_spec
+
+    mock_now_value = mock.MagicMock()
+
+    def setUp(self):
+        super(ParseDateSpecTest, self).setUp()
+
+        fake_now = mock.patch("course.content.now")
+        self.mock_now = fake_now.start()
+        self.mock_now.return_value = self.mock_now_value
+        self.addCleanup(fake_now.stop)
+
+        self.vctx = mock.MagicMock()
+        self.mock_add_warning = mock.MagicMock()
+        self.mock_add_warning.return_value = None
+        self.vctx.add_warning = self.mock_add_warning
+
+    def test_datespec_is_none(self):
+        datespec = None
+        course = self.course
+        self.assertIsNone(content.parse_date_spec(course, datespec))
+
+    def test_course_is_none_not_parsed(self):
+        datespec = "homework_due 1 + 25 hours"
+        time = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+        course = None
+        self.assertEqual(
+            content.parse_date_spec(course, datespec), self.mock_now_value)
+
+    def test_course_is_none_parsed(self):
+        # this also tested datespec is datetime
+        course = None
+        datespec = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        self.assertEqual(
+            content.parse_date_spec(course, datespec, self.vctx), datespec)
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_datespec_is_datetime(self):
+        # when tzinfo is None
+        datespec = datetime.datetime(2018, 12, 30, 23).replace(tzinfo=None)
+        from relate.utils import localize_datetime
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, self.vctx),
+            localize_datetime(datespec))
+
+    def test_datespec_is_date(self):
+        # when tzinfo is None
+        datespec = datetime.date(2018, 12, 30)
+        from relate.utils import localize_datetime
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, self.vctx),
+            localize_datetime(datetime.datetime(2018, 12, 30, tzinfo=None)))
+
+    def test_datespec_date_str(self):
+        datespec = "2038-01-01"
+        from relate.utils import localize_datetime
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, self.vctx),
+            localize_datetime(datetime.datetime(2038, 1, 1)))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_not_parsed(self):
+        datespec = "foo + bar"
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec), self.mock_now_value)
+
+    def test_at_time(self):
+        datespec = "homework_due 1 @ 23:59"
+
+        from relate.utils import localize_datetime
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=localize_datetime(datetime.datetime(2019, 1, 1)))
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            localize_datetime(datetime.datetime(2019, 1, 1, 23, 59)))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_at_time_hour_invalid(self):
+        datespec = "homework_due 1 @ 24:59"
+        with self.assertRaises(content.InvalidDatespec):
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx)
+
+    def test_at_time_minute_invalid(self):
+        datespec = "homework_due 1 @ 20:62"
+        with self.assertRaises(content.InvalidDatespec):
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx)
+
+    def test_plus(self):
+        datespec = "homework_due 1 + 25 hours"
+
+        # event not defined, no vctx
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec), self.mock_now_value)
+
+        # event not defined, with vctx
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            self.mock_now_value)
+        expected_warning_msg = ("unrecognized date/time specification: '%s' "
+                                "(interpreted as 'now')" % datespec)
+
+        self.assertEqual(self.mock_add_warning.call_count, 1)
+        self.assertIn(expected_warning_msg, self.mock_add_warning.call_args[0])
+        self.mock_add_warning.reset_mock()
+
+        # event defined
+        time = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_minus(self):
+        datespec = "homework_due 1 - 25 hours"
+
+        time = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_plus_days(self):
+        datespec = "homework_due 1 + 1 day"
+
+        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_plus_weeks(self):
+        datespec = "homework_due 1 + 2 weeks"
+
+        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            datetime.datetime(2019, 1, 14, tzinfo=pytz.UTC))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_plus_minutes(self):
+        datespec = "homework_due 1 +     2 hour - 59 minutes"
+
+        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            datetime.datetime(2018, 12, 31, 1, 1, tzinfo=pytz.UTC))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+    def test_plus_invalid_time_unit(self):
+        datespec = "homework_due 1 + 2 foos"
+
+        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+        from course.validation import ValidationError
+        with self.assertRaises(ValidationError) as cm:
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx)
+
+        expected_error_msg = "invalid identifier '%s'" % datespec
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+        # no vctx
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec), self.mock_now_value)
+
+    def test_is_end(self):
+        datespec = "end:homework_due 1 + 25 hours"
+
+        time = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        evt = factories.EventFactory(
+            course=self.course, kind="homework_due", ordinal=1,
+            time=time)
+
+        # event has no end_time, no vctx
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec),
+            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+
+        # event has no end_time, no vctx
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+        self.assertEqual(self.mock_add_warning.call_count, 1)
+        expected_warning_msg = (
+            "event '%s' has no end time, using start time instead"
+            % datespec)
+        self.assertIn(expected_warning_msg, self.mock_add_warning.call_args[0])
+        self.mock_add_warning.reset_mock()
+
+        # update event with end_time
+        evt.time -= datetime.timedelta(days=1)
+        evt.end_time = time
+        evt.save()
+
+        self.assertEqual(
+            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+        self.assertEqual(self.mock_add_warning.call_count, 0)
+
+
+class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
+    # test content.get_course_desc and content.get_processed_page_chunks
+
+    fake_commit_sha = "my_fake_commit_sha_for_course_desc"
+
+    def test_shown(self):
+        resp = self.c.get(self.course_page_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Welcome to the sample course")
+
+        # test that markup_to_html is called
+        self.assertContains(resp, "course/test-course/flow/quiz-test/start/")
+
+    def test_not_shown(self):
+        resp = self.c.get(self.course_page_url)
+        self.assertNotContains(
+            resp, "Welcome to the computer-based testing facility")
+
+    @override_settings(RELATE_FACILITIES={
+        "test_center": {
+            "ip_ranges": ["192.168.100.0/24"],
+            "exams_only": False}, })
+    def test_show_in_fake_facility(self):
+        data = {
+            "facilities": ["test_center"],
+            "custom_facilities": [],
+            "add_pretend_facilities_header": ["on"],
+            "set": ''}
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            # pretend facility
+            self.post_set_pretend_facilities(data=data)
+
+            resp = self.c.get(self.course_page_url)
+            self.assertEqual(resp.status_code, 200)
+            self.assertContains(resp, "Welcome to the sample course")
+            self.assertContains(
+                resp, "Welcome to the computer-based testing facility")
+
+    def test_shown_with_empty_chunk_rule(self):
+        self.course.active_git_commit_sha = self.fake_commit_sha
+        self.course.save()
+
+        resp = self.c.get(self.course_page_url)
+        self.assertContains(resp, "empty rules")
+
+    def test_visible_for_role(self):
+        self.course.active_git_commit_sha = self.fake_commit_sha
+        self.course.save()
+
+        resp = self.c.get(self.course_page_url)
+        self.assertNotContains(resp, "Shown to instructor")
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(self.course_page_url)
+            self.assertContains(resp, "Shown to instructor")
+
+    def test_weight_higher_shown_first(self):
+        self.course.active_git_commit_sha = self.fake_commit_sha
+        self.course.save()
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(self.course_page_url)
+
+            shown_to_instructor = "Shown to instructor"  # weight 100
+
+            # wight: 50 before 2018-1-1, after that, 200
+            display_order = "Display order"
+
+            self.assertContains(resp, shown_to_instructor)
+            self.assertContains(resp, display_order)
+
+            response_text = resp.content.decode()
+
+            shown_to_instructor_idx = response_text.index(shown_to_instructor)
+            display_order_idx = response_text.index(display_order)
+            self.assertGreater(shown_to_instructor_idx, display_order_idx)
+
+            # fake time to 2017-12-31
+            set_fake_time_data = {
+                "time": datetime.datetime(2017, 12, 31).strftime("%Y-%m-%d %H:%M"),
+                "set": ''}
+            self.post_set_fake_time(data=set_fake_time_data)
+
+            # second visit
+            resp = self.c.get(self.course_page_url)
+            response_text = resp.content.decode()
+
+            shown_to_instructor_idx = response_text.index(shown_to_instructor)
+            display_order_idx = response_text.index(display_order)
+            self.assertGreater(display_order_idx, shown_to_instructor_idx)
+
+
+class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
+    # test content.get_flow_desc
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(GetFlowPageDescTest, cls).setUpTestData()
+        cls.flow_desc = cls.get_hacked_flow_desc()
+
+    def test_success(self):
+        self.assertEqual(
+            content.get_flow_page_desc(
+                flow_id=self.flow_id,
+                flow_desc=self.flow_desc,
+                group_id="intro",
+                page_id="welcome").id, "welcome")
+
+        self.assertEqual(
+            content.get_flow_page_desc(
+                flow_id=self.flow_id,
+                flow_desc=self.flow_desc,
+                group_id="quiz_tail",
+                page_id="addition").id, "addition")
+
+    def test_flow_page_desc_does_not_exist(self):
+        with self.assertRaises(ObjectDoesNotExist):
+            content.get_flow_page_desc(
+                self.flow_id, self.flow_desc, "quiz_start", "unknown_page")
+
+        with self.assertRaises(ObjectDoesNotExist):
+            content.get_flow_page_desc(
+                self.flow_id, self.flow_desc, "unknown_group", "unknown_page")
+
+
+class NormalizeFlowDescTest(SingleCoursePageTestMixin, TestCase):
+    # content.normalize_flow_desc
+    def test_success_no_rules(self):
+        # this also make sure normalize_flow_desc without flow_desc.rule
+        # works correctly
+        flow_desc = self.get_hacked_flow_desc(del_rules=True)
+        self.assertTrue(
+            content.normalize_flow_desc(
+                flow_desc=flow_desc), flow_desc)
+
+
+class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
+    # content.markup_to_html
+    def setUp(self):
+        super(MarkupToHtmlTest, self).setUp()
+        from django.core.cache import cache
+        cache.clear()
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        request.user = self.instructor_participation.user
+
+        from course.utils import CoursePageContext
+        self.pctx = CoursePageContext(request, self.course.identifier)
+
+    def test_link_fixer_works(self):
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            self.assertEqual(content.markup_to_html(
+                self.course, repo, self.course.active_git_commit_sha, text),
+                '<p><a href="%s">this course</a></p>' % self.course_page_url)
+
+    def test_startswith_jinja_prefix(self):
+        with self.pctx.repo as repo:
+            text = "   [JINJA][this course](course:)"
+            self.assertEqual(content.markup_to_html(
+                self.course, repo,
+                self.course.active_git_commit_sha.encode(), text),
+                '<p><a href="%s">this course</a></p>' % self.course_page_url)
+
+    @override_settings()
+    def test_disable_codehilite_not_configured(self):
+        # if RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION is not configured,
+        # the default value is True
+        del settings.RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            with mock.patch("markdown.markdown") as mock_markdown:
+                mock_markdown.return_value = u"some text"
+                content.markup_to_html(
+                    self.course, repo,
+                    self.course.active_git_commit_sha.encode(), text)
+
+                self.assertEqual(mock_markdown.call_count, 1)
+                used_extensions = mock_markdown.call_args[1]["extensions"]
+                self.assertNotIn(
+                    "markdown.extensions.codehilite(css_class=highlight)",
+                    used_extensions)
+
+    @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=True)
+    def test_disable_codehilite_configured_true(self):
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            with mock.patch("markdown.markdown") as mock_markdown:
+                mock_markdown.return_value = u"some text"
+                content.markup_to_html(
+                    self.course, repo,
+                    self.course.active_git_commit_sha.encode(), text)
+
+                self.assertEqual(mock_markdown.call_count, 1)
+                used_extensions = mock_markdown.call_args[1]["extensions"]
+                self.assertNotIn(
+                    "markdown.extensions.codehilite(css_class=highlight)",
+                    used_extensions)
+
+    @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=False)
+    def test_disable_codehilite_configured_false(self):
+        with self.pctx.repo as repo:
+            text = "[this course](course:)"
+            with mock.patch("markdown.markdown") as mock_markdown:
+                mock_markdown.return_value = u"some text"
+                content.markup_to_html(
+                    self.course, repo,
+                    self.course.active_git_commit_sha.encode(), text)
+
+                self.assertEqual(mock_markdown.call_count, 1)
+                used_extensions = mock_markdown.call_args[1]["extensions"]
+                self.assertIn(
+                    "markdown.extensions.codehilite(css_class=highlight)",
+                    used_extensions)
+
+
+class GetFlowPageClassTest(SingleCourseTestMixin, TestCase):
+    # test content.get_flow_page_class
+
+    def get_pctx(self, commit_sha=None):
+        if commit_sha is not None:
+            self.course.active_git_commit_sha = commit_sha
+            self.course.save()
+            self.course.refresh_from_db()
+
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        request.user = self.instructor_participation.user
+
+        from course.utils import CoursePageContext
+        return CoursePageContext(request, self.course.identifier)
+
+    def test_built_in_class(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        self.assertEqual(
+            content.get_flow_page_class(repo, "TextQuestion", commit_sha),
+            page.TextQuestion)
+
+    def test_class_not_found_dot_path_length_1(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        with self.assertRaises(content.ClassNotFoundError):
+            content.get_flow_page_class(repo, "UnknownClass", commit_sha)
+
+    def test_class_not_found_module_not_exist(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        with self.assertRaises(content.ClassNotFoundError):
+            content.get_flow_page_class(
+                repo, "mypackage.UnknownClass", commit_sha)
+
+    def test_class_not_found_module_does_not_exist(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        with self.assertRaises(content.ClassNotFoundError):
+            content.get_flow_page_class(
+                repo, "mypackage.UnknownClass", commit_sha)
+
+    def test_class_not_found_last_component_does_not_exist(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        with self.assertRaises(content.ClassNotFoundError):
+            content.get_flow_page_class(
+                repo, "tests.resource.UnknownClass", commit_sha)
+
+    def test_found_by_dotted_path(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        from tests.resource import MyFakeQuestionType
+        self.assertEqual(
+            content.get_flow_page_class(
+                repo, "tests.resource.MyFakeQuestionType", commit_sha),
+            MyFakeQuestionType)
+
+    def test_repo_path_length_1(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        type_name = "repo:UnknownClass"
+        with self.assertRaises(content.ClassNotFoundError) as cm:
+
+            content.get_flow_page_class(
+                repo, type_name, commit_sha)
+
+        expected_error_msg = (
+            "repo page class must conist of two "
+            "dotted components (invalid: '%s')"
+            % type_name)
+
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_repo_path_length_3(self):
+        repo = mock.MagicMock()
+        commit_sha = mock.MagicMock()
+        type_name = "repo:mydir.mymodule.UnknownClass"
+        with self.assertRaises(content.ClassNotFoundError) as cm:
+            content.get_flow_page_class(
+                repo, type_name, commit_sha)
+
+        expected_error_msg = (
+            "repo page class must conist of two "
+            "dotted components (invalid: '%s')"
+            % type_name)
+
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_repo_class_not_exist(self):
+        with self.get_pctx(commit_sha=COMMIT_SHA_SUPPORT_CUSTOM_PAGES).repo as repo:
+            with self.assertRaises(content.ClassNotFoundError):
+                content.get_flow_page_class(
+                    repo, "repo:simple_questions.Unknown",
+                    commit_sha=COMMIT_SHA_SUPPORT_CUSTOM_PAGES.encode())
+
+    def test_repo_class_found(self):
+        with self.get_pctx(commit_sha=COMMIT_SHA_SUPPORT_CUSTOM_PAGES).repo as repo:
+            content.get_flow_page_class(
+                repo, "repo:simple_questions.MyTextQuestion",
+                commit_sha=COMMIT_SHA_SUPPORT_CUSTOM_PAGES.encode())
+
+
+class ListFlowIdsTest(unittest.TestCase):
+    # test content.list_flow_ids
+    def setUp(self):
+        fake_get_repo_blob = mock.patch("course.content.get_repo_blob")
+        self.mock_get_repo_blob = fake_get_repo_blob.start()
+        self.addCleanup(fake_get_repo_blob.stop)
+        self.repo = mock.MagicMock()
+        self.commit_sha = mock.MagicMock()
+
+    def test_object_does_not_exist(self):
+        self.mock_get_repo_blob.side_effect = ObjectDoesNotExist()
+        self.assertEqual(content.list_flow_ids(self.repo, self.commit_sha), [])
+
+    def test_result(self):
+        tree = Tree()
+        tree.add(b"not_a_flow.txt", stat.S_IFREG, b"not a flow")
+        tree.add(b"flow_b.yml", stat.S_IFREG, b"flow_b content")
+        tree.add(b"flow_a.yml", stat.S_IFREG, b"flow_a content")
+        tree.add(b"flow_c.yml", stat.S_IFREG, b"flow_c content")
+        tree.add(b"temp_dir", stat.S_IFDIR, b"a temp dir")
+
+        self.mock_get_repo_blob.return_value = tree
+
+        self.assertEqual(content.list_flow_ids(
+            self.repo, self.commit_sha), ["flow_a", "flow_b", "flow_c"])
 
 # vim: fdm=marker

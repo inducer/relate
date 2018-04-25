@@ -36,9 +36,8 @@ from course.validation import ValidationWarning
 from course.constants import participation_permission as pperm
 
 from tests.base_test_mixins import (
-    SingleCourseTestMixin,
-    CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST,
-    FallBackStorageMessageTestMixin)
+    SingleCourseTestMixin, MockAddMessageMixing,
+    CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST)
 from tests.utils import suppress_stdout_decorator, mock
 from tests import factories
 
@@ -73,7 +72,7 @@ yZ/atCI8q7Wyi7i2wr/okVekQYWdMSbnamp0A3zkYW6mhKpvibdN
 """
 
 
-class VersioningTestMixin(CoursesTestMixinBase, FallBackStorageMessageTestMixin):
+class VersioningTestMixin(CoursesTestMixinBase, MockAddMessageMixing):
     courses_setup_list = []
 
     @classmethod
@@ -90,15 +89,6 @@ class VersioningTestMixin(CoursesTestMixinBase, FallBackStorageMessageTestMixin)
 
     def get_set_up_new_course_form_data(self):
         return deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
-
-    @classmethod
-    def add_user_permission(cls, user, perm):
-        from django.contrib.contenttypes.models import ContentType
-        content_type = ContentType.objects.get_for_model(Course)
-        from django.contrib.auth.models import Permission
-        permission = Permission.objects.get(
-            codename=perm, content_type=content_type)
-        user.user_permissions.add(permission)
 
 
 class CourseCreationTest(VersioningTestMixin, TestCase):
@@ -156,10 +146,9 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
 
             with mock.patch("dulwich.client.GitClient.fetch",
                             return_value={b"HEAD": b"some_commit_sha"}), \
-                 mock.patch("course.versioning.transfer_remote_refs",
+                  mock.patch("course.versioning.transfer_remote_refs",
                             return_value=None), \
-                 mock.patch('course.versioning.messages') as mock_messages, \
-                    mock.patch("course.validation.validate_course_content",
+                      mock.patch("course.validation.validate_course_content",
                                return_value=None):
                 data = self.get_set_up_new_course_form_data()
 
@@ -170,8 +159,8 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
                 self.assertEqual(Participation.objects.count(), 1)
                 self.assertEqual(Participation.objects.first().user.username,
                                  "test_instructor")
-                self.assertIn("Course content validated, creation succeeded.",
-                              mock_messages.add_message.call_args[0])
+                self.assertAddMessageCalledWith(
+                    "Course content validated, creation succeeded.")
 
                 from course.enrollment import get_participation_role_identifiers
 
@@ -199,19 +188,14 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
 
         data = SINGLE_COURSE_SETUP_LIST[0]["course"]
 
-        with mock.patch(
-                "course.versioning.Repo.init"
-        ) as mock_repo_innit, mock.patch(
-            'course.versioning.messages'
-        ) as mock_messages:
+        with mock.patch("course.versioning.Repo.init") as mock_repo_innit:
             mock_repo_innit.side_effect = RuntimeError("Repo init error")
             resp = self.post_create_course(data, raise_error=False)
             self.assertTrue(resp.status_code, 200)
             self.assertEqual(Course.objects.count(), 0)
 
-            self.assertIn("Course creation failed: RuntimeError: "
-                          "Repo init error",
-                          mock_messages.add_message.call_args[0][2])
+            self.assertAddMessageCalledWith(
+                "Course creation failed: RuntimeError: Repo init error")
 
     @suppress_stdout_decorator(suppress_stderr=True)
     def test_set_up_new_course_failed_to_delete_repo(self):
@@ -229,32 +213,19 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
                 "dulwich.client.GitClient.fetch"
         ) as mock_fetch, mock.patch(
                 'relate.utils.force_remove_path'
-        )as mock_force_remove_path, mock.patch(
-                'course.versioning.messages.add_message'
-        ) as mock_add_message:
+        )as mock_force_remove_path:
             mock_fetch.side_effect = RuntimeError("my fetch error")
             mock_force_remove_path.side_effect = force_remove_path_side_effect
             resp = self.post_create_course(data, raise_error=False)
             self.assertTrue(resp.status_code, 200)
             self.assertEqual(Course.objects.count(), 0)
 
-            self.assertEqual(mock_add_message.call_count, 2)
+            self.assertAddMessageCallCount(2)
 
-            messages = []
-            for call in mock_add_message.call_args_list:
-                args, _ = call
-                for arg in args:
-                    if not isinstance(arg, mock.MagicMock):
-                        messages.append(str(arg))
-            joined_messages = ". ".join(messages)
-
-            self.assertIn("Failed to delete unused "
-                          "repository directory",
-                          joined_messages)
-
-            self.assertIn("Course creation failed: RuntimeError: "
-                          "my fetch error",
-                          joined_messages)
+            self.assertAddMessageCalledWith(
+                "Failed to delete unused repository directory", reset=False)
+            self.assertAddMessageCalledWith(
+                "Course creation failed: RuntimeError: my fetch error")
 
     @suppress_stdout_decorator(suppress_stderr=True)
     def test_set_up_new_course_git_source_invalid(self):
@@ -263,14 +234,13 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
         request.user = self.instructor
         with mock.patch("dulwich.client.GitClient.fetch",
                         return_value=None), \
-             mock.patch('course.versioning.messages') as mock_messages, \
                 mock.patch("course.models.Course.save") as mock_save, \
                 mock.patch("course.versioning.render"):
             resp = versioning.set_up_new_course(request)
             self.assertTrue(resp.status_code, 200)
             self.assertEqual(mock_save.call_count, 0)
-            self.assertIn("No refs found in remote repository",
-                          mock_messages.add_message.call_args[0][2])
+            self.assertAddMessageCalledWith(
+                "No refs found in remote repository")
 
     @suppress_stdout_decorator(suppress_stderr=True)
     def test_set_up_new_course_subdir(self):
@@ -497,7 +467,7 @@ WARNING1 = "some waring1"
 WARNING2 = "some waring2"
 
 
-class RunCourseUpdateCommandTest(unittest.TestCase):
+class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
     # test versioning.run_course_update_command
 
     default_preview_sha = "preview_sha"
@@ -556,10 +526,6 @@ class RunCourseUpdateCommandTest(unittest.TestCase):
         self.mock_is_parent_commit = fake_is_parent_commit.start()
         self.mock_is_parent_commit.return_value = False
         self.addCleanup(fake_is_parent_commit.stop)
-
-        fake_add_message = mock.patch('course.versioning.messages.add_message')
-        self.mock_add_message = fake_add_message.start()
-        self.addCleanup(fake_add_message.stop)
 
         fake_validate_course_content = mock.patch(
             "course.validation.validate_course_content")
@@ -715,42 +681,12 @@ class RunCourseUpdateCommandTest(unittest.TestCase):
         else:
             versioning.run_course_update_command(**kwargs)
 
-        self.assertEqual(
-            self.mock_add_message.call_count, add_message_expected_call_count,
-            "add_message is unexpectedly called with %s"
-            % "; ".join(str(call) for call in self.mock_add_message.call_args_list)
-        )
-
-        if add_message_expected_call_count > 0:
-            messages = []
-            for call in self.mock_add_message.call_args_list:
-                args, _ = call
-                for arg in args:
-                    if not isinstance(arg, mock.MagicMock):
-                        messages.append(str(arg))
-            joined_messages = ". ".join(messages)
-
-            unexpected_not_presented = []
-            unexpected_presented = []
-            for l in expected_add_message_literals:
-                if l not in joined_messages:
-                    unexpected_not_presented.append(l)
-            for l in not_expected_add_message_literals:
-                if l in joined_messages:
-                    unexpected_presented.append(l)
-
-            error_msg = ""
-            if unexpected_not_presented:
-                error_msg += ("'%s' are expected to be added in messages "
-                              "while not."
-                              % ", ".join(unexpected_not_presented))
-            if unexpected_presented:
-                error_msg += ("'%s' are not expected to be added in messages "
-                              "while added."
-                              % ", ".join(unexpected_presented))
-
-            if error_msg:
-                self.fail(error_msg)
+        self.assertAddMessageCallCount(add_message_expected_call_count)
+        self.assertAddMessageCalledWith(
+            expected_add_message_literals, reset=False)
+        self.assertAddMessageNotCalledWith(
+            not_expected_add_message_literals, reset=False)
+        self.reset_add_message_mock()
 
     def test_fetch(self):
         self.check_command_message_result(
@@ -798,8 +734,6 @@ class RunCourseUpdateCommandTest(unittest.TestCase):
                     prevent_discarding_revisions=False
                 )
 
-                self.mock_add_message.reset_mock()
-
                 self.mock_is_parent_commit.return_value = True
                 self.check_command_message_result(
                     command=command,
@@ -812,8 +746,6 @@ class RunCourseUpdateCommandTest(unittest.TestCase):
                 self.assertEqual(
                     self.course.active_git_commit_sha, expected_course_sha)
 
-                self.mock_add_message.reset_mock()
-
     def test_fetch_prevent_discarding_revisions(self):
         self.mock_is_parent_commit.return_value = True
         self.check_command_message_result(
@@ -823,7 +755,7 @@ class RunCourseUpdateCommandTest(unittest.TestCase):
             add_message_expected_call_count=0,
             prevent_discarding_revisions=True
         )
-        self.assertEqual(self.mock_add_message.call_count, 0)
+        self.assertAddMessageCallCount(0)
 
     def test_fetch_update_success_with_warnings(self):
         self.mock_client.fetch.return_value = {
@@ -941,8 +873,6 @@ class RunCourseUpdateCommandTest(unittest.TestCase):
                     may_update=False
                 )
 
-                self.mock_add_message.reset_mock()
-
                 self.check_command_message_result(
                     command=command,
                     add_message_expected_call_count=add_message_call_count,
@@ -953,8 +883,6 @@ class RunCourseUpdateCommandTest(unittest.TestCase):
 
                 self.assertEqual(
                     self.course.active_git_commit_sha, expected_course_sha)
-
-                self.mock_add_message.reset_mock()
 
 
 class VersioningRepoMixin(object):
@@ -1076,7 +1004,7 @@ class GetCommitMessageAsHtmlTest(VersioningRepoMixin, SingleCourseTestMixin,
             expected_msg)
 
 
-class UpdateCourseTest(SingleCourseTestMixin, TestCase):
+class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_no_permission(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
             resp = self.c.get(self.get_update_course_url())
@@ -1133,8 +1061,6 @@ class UpdateCourseTest(SingleCourseTestMixin, TestCase):
     @suppress_stdout_decorator(suppress_stderr=True)
     def test_run_course_update_command_failure(self):
         with mock.patch(
-                'course.versioning.messages.add_message'
-        ) as mock_add_message, mock.patch(
             "course.versioning.run_course_update_command"
         ) as mock_run_update:
             error_msg = "my runtime error"
@@ -1142,9 +1068,9 @@ class UpdateCourseTest(SingleCourseTestMixin, TestCase):
             resp = self.post_update_course_content(
                 self.course.active_git_commit_sha, command="update")
             self.assertEqual(resp.status_code, 200)
-            self.assertEqual(mock_add_message.call_count, 1)
+            self.assertAddMessageCallCount(1)
             expected_error_msg = "Error: RuntimeError %s" % error_msg
-            self.assertIn(expected_error_msg, mock_add_message.call_args[0])
+            self.assertAddMessageCalledWith(expected_error_msg)
 
     def test_form_not_valid(self):
         with mock.patch(

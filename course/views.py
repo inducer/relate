@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, List
+from typing import cast, List, Text
 
 import datetime
 
@@ -67,6 +67,7 @@ from course.constants import (
         participation_permission as pperm,
         participation_status,
         FLOW_PERMISSION_CHOICES,
+        flow_rule_kind, FLOW_RULE_KIND_CHOICES
         )
 from course.models import (
         Course,
@@ -97,7 +98,7 @@ if False:
 # }}}
 
 
-NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
+NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")  # noqa
 
 
 # {{{ home
@@ -353,7 +354,7 @@ def get_repo_file_response(repo, path, commit_sha):
         raise http.Http404()
 
     from mimetypes import guess_type
-    content_type, _ = guess_type(path)
+    content_type, __ = guess_type(path)
 
     if content_type is None:
         content_type = "application/octet-stream"
@@ -521,7 +522,7 @@ def set_pretend_facilities(request):
             may_set_pretend_facility(request.user) or (
                 pre_imp_user is not None
                 and may_set_pretend_facility(pre_imp_user))):
-        raise PermissionDenied(_("may not set fake time"))
+        raise PermissionDenied(_("may not pretend facilities"))
 
     if request.method == "POST":
         form = FakeFacilityForm(request.POST)
@@ -629,7 +630,8 @@ def manage_instant_flow_requests(pctx):
                             minutes=form.cleaned_data["duration_in_minutes"]))
                 ifr.save()
 
-            elif op == "cancel":
+            else:
+                assert op == "cancel"
                 (InstantFlowRequest.objects
                         .filter(
                             course=pctx.course,
@@ -638,8 +640,6 @@ def manage_instant_flow_requests(pctx):
                             cancelled=False)
                         .order_by("start_time")
                         .update(cancelled=True))
-            else:
-                raise SuspiciousOperation(_("invalid operation"))
 
     else:
         form = InstantFlowRequestForm(flow_ids)
@@ -783,7 +783,7 @@ def strify_session_for_exception(session):
         as_local_time(session.start_time)))
 
     if session.access_rules_tag:
-        result += " tagged '%s'" % session.access_rules_tag
+        result += _(" tagged '%s'") % session.access_rules_tag
 
     return result
 
@@ -852,7 +852,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     form_text = (
             string_concat(
                 "<div class='well'>",
-                ugettext("Granting exception to '%(participation)s' for "
+                _("Granting exception to '%(participation)s' for "
                 "'%(flow_id)s'."),
                 "</div>")
             % {
@@ -873,12 +873,6 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
     else:
         access_rules_tags = []
 
-    NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")  # noqa
-    session_tag_choices = [
-            (tag, tag)
-            for tag in access_rules_tags] + [(NONE_SESSION_TAG,
-                    string_concat("(", _("NONE"), ")"))]
-
     from course.utils import get_session_start_rule
     session_start_rule = get_session_start_rule(pctx.course, participation,
             flow_id, flow_desc, now_datetime)
@@ -893,9 +887,16 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                 "by course rules. Clicking 'Create Session' anyway will "
                 "override this rule."))))
 
+    session_tag_choices = [
+            (tag, tag)
+            for tag in access_rules_tags] + [(NONE_SESSION_TAG, NONE_SESSION_TAG)]
+
     default_tag = session_start_rule.tag_session
     if default_tag is None:
         default_tag = NONE_SESSION_TAG
+    else:
+        if default_tag not in access_rules_tags:
+            session_tag_choices.insert(0, (default_tag, default_tag))
 
     # }}}
 
@@ -930,14 +931,28 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
             if access_rules_tag == NONE_SESSION_TAG:
                 access_rules_tag = None
 
-            start_flow(pctx.repo, pctx.course, participation,
+            new_session = start_flow(pctx.repo, pctx.course, participation,
                     user=participation.user,
                     flow_id=flow_id,
                     flow_desc=flow_desc,
                     session_start_rule=session_start_rule,
                     now_datetime=now_datetime)
 
+            if access_rules_tag is not None:
+                new_session.access_rules_tag = access_rules_tag
+                new_session.save()
+
             exception_form = None
+            messages.add_message(
+                pctx.request, messages.SUCCESS,
+                _("A new session%(tag)s was created for '%(participation)s' "
+                  "for '%(flow_id)s'.")
+                % {
+                    'tag':
+                        _(" tagged '%s'") % access_rules_tag
+                        if access_rules_tag is not None else "",
+                    'participation': participation,
+                    'flow_id': flow_id})
 
         elif exception_form.is_valid() and "next" in request.POST:  # type: ignore
             return redirect(
@@ -972,6 +987,9 @@ class ExceptionStage3Form(StyledForm):
 
         if tags:
             tags = [NONE_SESSION_TAG] + tags
+            if base_session_tag is not None and base_session_tag not in tags:
+                tags.append(base_session_tag)
+
             self.fields["set_access_rules_tag"] = forms.ChoiceField(
                     choices=[(tag, tag) for tag in tags],
                     initial=(base_session_tag
@@ -1023,7 +1041,7 @@ class ExceptionStage3Form(StyledForm):
                 "grading rules will be created."), initial=True,
                 label=_("Create grading rule exception"))
         self.fields["due_same_as_access_expiration"] = forms.BooleanField(
-                required=False, help_text=_("If set, the 'Due' field will be "
+                required=False, help_text=_("If set, the 'Due time' field will be "
                 "disregarded."),
                 initial=default_data.get("due_same_as_access_expiration") or False,
                 label=_("Due same as access expiration"))
@@ -1074,12 +1092,14 @@ class ExceptionStage3Form(StyledForm):
         self.helper.layout = Layout(*layout)
 
     def clean(self):
-        if (self.cleaned_data["access_expires"] is None
-                and self.cleaned_data["due_same_as_access_expiration"]):
-            from django.core.exceptions import ValidationError
-            raise ValidationError(
-                    _("Must specify access expiration if 'due same "
-                    "as access expiration' is set."))
+        access_expires = self.cleaned_data.get("access_expires")
+        due_same_as_access_expiration = self.cleaned_data.get(
+            "due_same_as_access_expiration")
+        if (not access_expires and due_same_as_access_expiration):
+            self.add_error(
+                "access_expires",
+                _("Must specify access expiration if 'due same "
+                  "as access expiration' is set."))
 
 
 @course_view
@@ -1113,12 +1133,10 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
         form = ExceptionStage3Form(
                 {}, flow_desc, session.access_rules_tag, request.POST)
 
-        from course.constants import flow_rule_kind
-
         if form.is_valid():
             permissions = [
                     key
-                    for key, _ in FLOW_PERMISSION_CHOICES
+                    for key, __ in FLOW_PERMISSION_CHOICES
                     if form.cleaned_data[key]]
 
             from course.validation import (
@@ -1136,23 +1154,24 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
             tags = []  # type: List[Text]
             if hasattr(flow_desc, "rules"):
-                try:
-                    from typing import Text  # noqa
-                except ImportError:
-                    Text = None  # noqa
-                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))  # type: ignore  # noqa
+                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))
+
+            exceptions_created = []
+
+            restricted_to_same_tag = bool(
+                form.cleaned_data.get("restrict_to_same_tag")
+                and session.access_rules_tag is not None)
 
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
                 new_access_rule = {"permissions": permissions}
 
-                if (form.cleaned_data.get("restrict_to_same_tag")
-                        and session.access_rules_tag is not None):
+                if restricted_to_same_tag:
                     new_access_rule["if_has_tag"] = session.access_rules_tag
 
                 validate_session_access_rule(
-                        vctx, ugettext("newly created exception"),
+                        vctx, _("newly created exception"),
                         dict_to_struct(new_access_rule), tags)
 
                 fre_access = FlowRuleException(
@@ -1164,16 +1183,30 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     kind=flow_rule_kind.access,
                     rule=new_access_rule)
                 fre_access.save()
+                exceptions_created.append(
+                    dict(FLOW_RULE_KIND_CHOICES)[fre_access.kind])
 
             # }}}
 
-            new_access_rules_tag = form.cleaned_data.get("set_access_rules_tag")
-            if new_access_rules_tag == NONE_SESSION_TAG:
-                new_access_rules_tag = None
+            session_access_rules_tag_changed = False
+            if not restricted_to_same_tag:
+                new_access_rules_tag = form.cleaned_data.get("set_access_rules_tag")
+                if new_access_rules_tag == NONE_SESSION_TAG:
+                    new_access_rules_tag = None
 
-            if session.access_rules_tag != new_access_rules_tag:
-                session.access_rules_tag = new_access_rules_tag
-                session.save()
+                if session.access_rules_tag != new_access_rules_tag:
+                    session.access_rules_tag = new_access_rules_tag
+                    session.save()
+                    session_access_rules_tag_changed = True
+
+                    if new_access_rules_tag is not None:
+                        msg = _("Access rules tag of the selected session "
+                                "updated to '%s'.") % new_access_rules_tag
+                    else:
+                        msg = _(
+                            "Removed access rules tag of the selected session.")
+
+                    messages.add_message(pctx.request, messages.SUCCESS, msg)
 
             # {{{ put together grading rule
 
@@ -1207,12 +1240,11 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     if form.cleaned_data[attr_name] is not None:
                         new_grading_rule[attr_name] = form.cleaned_data[attr_name]
 
-                if (form.cleaned_data.get("restrict_to_same_tag")
-                        and session.access_rules_tag is not None):
+                if restricted_to_same_tag:
                     new_grading_rule["if_has_tag"] = session.access_rules_tag
 
                 validate_session_grading_rule(
-                        vctx, ugettext("newly created exception"),
+                        vctx, _("newly created exception"),
                         dict_to_struct(new_grading_rule), tags,
                         grading_rule.grade_identifier)
 
@@ -1224,16 +1256,41 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     kind=flow_rule_kind.grading,
                     rule=new_grading_rule)
                 fre_grading.save()
+                exceptions_created.append(
+                    dict(FLOW_RULE_KIND_CHOICES)[fre_grading.kind])
 
             # }}}
 
-            messages.add_message(pctx.request, messages.SUCCESS,
-                    ugettext(
-                        "Exception granted to '%(participation)s' "
-                        "for '%(flow_id)s'.")
-                    % {
-                        'participation': participation,
-                        'flow_id': flow_id})
+            if exceptions_created:
+                for exc in exceptions_created:
+                    messages.add_message(pctx.request, messages.SUCCESS,
+                            _(
+                                "'%(exception_type)s' exception granted to "
+                                "'%(participation)s' for '%(flow_id)s'.")
+                            % {
+                                'exception_type': exc,
+                                'participation': participation,
+                                'flow_id': flow_id})
+            else:
+                if session_access_rules_tag_changed:
+                    messages.add_message(
+                        pctx.request, messages.WARNING,
+                        _(
+                            "No other exception granted to the given flow "
+                            "session of '%(participation)s' "
+                            "for '%(flow_id)s'.")
+                        % {
+                            'participation': participation,
+                            'flow_id': flow_id})
+                else:
+                    messages.add_message(pctx.request, messages.WARNING,
+                            _(
+                                "No exception granted to the given flow "
+                                "session of '%(participation)s' "
+                                "for '%(flow_id)s'.")
+                            % {
+                                'participation': participation,
+                                'flow_id': flow_id})
             return redirect(
                     "relate-grant_exception",
                     pctx.course.identifier)
@@ -1256,10 +1313,10 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_description": ugettext("Grant Exception"),
+        "form_description": _("Grant Exception"),
         "form_text": string_concat(
             "<div class='well'>",
-            ugettext("Granting exception to '%(participation)s' "
+            _("Granting exception to '%(participation)s' "
             "for '%(flow_id)s' (session %(session)s)."),
             "</div>")
         % {
@@ -1306,6 +1363,7 @@ def generate_ssh_keypair(request):
 @login_required
 def monitor_task(request, task_id):
     from celery.result import AsyncResult
+    from celery import states
     async_res = AsyncResult(task_id)
 
     progress_percent = None
@@ -1322,13 +1380,13 @@ def monitor_task(request, task_id):
                 _("%(current)d out of %(total)d items processed.")
                 % {"current": current, "total": total})
 
-    if async_res.state == "SUCCESS":
+    if async_res.state == states.SUCCESS:
         if (isinstance(async_res.result, dict)
                 and "message" in async_res.result):
             progress_statement = async_res.result["message"]
 
     traceback = None
-    if request.user.is_staff and async_res.state == "FAILURE":
+    if request.user.is_staff and async_res.state == states.FAILURE:
         traceback = async_res.traceback
 
     return render(request, "course/task-monitor.html", {

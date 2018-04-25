@@ -22,9 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import os
 import six
-from collections import OrderedDict
 import itertools
 
 import unittest
@@ -39,7 +37,6 @@ from django.core import mail
 
 from relate.utils import dict_to_struct, StyledForm
 
-from course.content import get_repo_blob
 from course import models, flow
 from course import constants
 from course.constants import grade_aggregation_strategy as g_strategy
@@ -47,12 +44,11 @@ from course.constants import flow_permission as fperm
 from course.utils import FlowSessionStartRule, FlowSessionGradingRule
 
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCourseQuizPageTestMixin, SingleCourseTestMixin)
+    CoursesTestMixinBase, SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
+    HackRepoMixin)
 from tests.constants import QUIZ_FLOW_ID
 from tests.utils import mock
 from tests import factories
-
-YAML_PATH = os.path.join(os.path.dirname(__file__), 'resource')
 
 
 def get_flow_permissions_list(excluded=None):
@@ -60,113 +56,6 @@ def get_flow_permissions_list(excluded=None):
         excluded = [excluded]
     all_flow_permissions = dict(constants.FLOW_PERMISSION_CHOICES).keys()
     return [fp for fp in all_flow_permissions if fp not in excluded]
-
-
-COMMIT_SHA_MAP = {
-    "flows/%s.yml" % QUIZ_FLOW_ID: [
-
-        # key: commit_sha, value: attributes
-        {"my_fake_commit_sha_1": {"path": "fake-quiz-test1.yml"}},
-        {"my_fake_commit_sha_2": {"path": "fake-quiz-test2.yml"}},
-
-        {"my_fake_commit_sha_for_grades1": {
-            "path": "fake-quiz-test-for-grade1.yml",
-            "page_ids": ["half", "krylov", "quarter"]}},
-        {"my_fake_commit_sha_for_grades2": {
-            "path": "fake-quiz-test-for-grade2.yml",
-            "page_ids": ["krylov", "quarter"]}},
-
-        {"my_fake_commit_sha_for_finish_flow_session": {
-            "path": "fake-quiz-test-for-finish_flow_session.yml",
-            "page_ids": ["half", "krylov", "matrix_props", "age_group",
-                         "anyup", "proof", "neumann"]
-        }},
-
-        {"my_fake_commit_sha_for_grade_flow_session": {
-            "path": "fake-quiz-test-for-grade_flow_session.yml",
-            "page_ids": ["anyup"]}},
-        {"my_fake_commit_sha_for_grade_flow_session2": {
-            "path": "fake-quiz-test-for-grade_flow_session2.yml",
-            "page_ids": ["anyup"]}},
-        {"my_fake_commit_sha_for_view_flow_page": {
-            "path": "fake-quiz-test-for-view_flow_page.yml",
-            "page_ids": ["anyup"]}},
-    ],
-}
-
-
-class HackRepoMixin(object):
-
-    # This is need to for correctly getting other blobs
-    fallback_commit_sha = b"4124e0c23e369d6709a670398167cb9c2fe52d35"
-
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(HackRepoMixin, cls).setUpTestData()
-
-        class Blob(object):
-            def __init__(self, yaml_file_name):
-                with open(os.path.join(YAML_PATH, yaml_file_name), "rb") as f:
-                    data = f.read()
-                self.data = data
-
-        def get_repo_side_effect(repo, full_name, commit_sha, allow_tree=True):
-            commit_sha_path_maps = COMMIT_SHA_MAP.get(full_name)
-            if commit_sha_path_maps:
-                assert isinstance(commit_sha_path_maps, list)
-                for cs_map in commit_sha_path_maps:
-                    if commit_sha.decode() in cs_map:
-                        path = cs_map[commit_sha.decode()]["path"]
-                        return Blob(path)
-
-            return get_repo_blob(repo, full_name, cls.fallback_commit_sha,
-                                 allow_tree=allow_tree)
-
-        cls.batch_fake_get_repo_blob = mock.patch("course.content.get_repo_blob")
-        cls.mock_get_repo_blob = cls.batch_fake_get_repo_blob.start()
-        cls.mock_get_repo_blob.side_effect = get_repo_side_effect
-
-    @classmethod
-    def tearDownClass(cls):  # noqa
-        # This must be done to avoid inconsistency
-        super(HackRepoMixin, cls).tearDownClass()
-        cls.batch_fake_get_repo_blob.stop()
-
-    def get_current_page_ids(self):
-        current_sha = self.course.active_git_commit_sha
-        for commit_sha_path_maps in COMMIT_SHA_MAP.values():
-            for cs_map in commit_sha_path_maps:
-                if current_sha in cs_map:
-                    return cs_map[current_sha]["page_ids"]
-
-        raise ValueError("Page_ids for that commit_sha doesn't exist")
-
-    def assertGradeInfoEqual(self, resp, expected_grade_info_dict=None):  # noqa
-        grade_info = resp.context["grade_info"]
-
-        assert isinstance(grade_info, flow.GradeInfo)
-        if not expected_grade_info_dict:
-            import json
-            error_msg = ("\n%s" % json.dumps(OrderedDict(
-                sorted(
-                    [(k, v) for (k, v) in six.iteritems(grade_info.__dict__)])),
-                indent=4))
-            error_msg = error_msg.replace("null", "None")
-            self.fail(error_msg)
-
-        assert isinstance(expected_grade_info_dict, dict)
-
-        grade_info_dict = grade_info.__dict__
-        not_match_infos = []
-        for k in grade_info_dict.keys():
-            if grade_info_dict[k] != expected_grade_info_dict[k]:
-                not_match_infos.append(
-                    "'%s' is expected to be %s, while got %s"
-                    % (k, str(expected_grade_info_dict[k]),
-                       str(grade_info_dict[k])))
-
-        if not_match_infos:
-            self.fail("\n".join(not_match_infos))
 
 
 #{{{ test flow.adjust_flow_session_page_data
@@ -3388,6 +3277,7 @@ class ViewResumeFlowTest(SingleCourseTestMixin, TestCase):
     # test flow.view_resume_flow
 
     def setUp(self):
+        super(ViewResumeFlowTest, self).setUp()
 
         fake_get_now_or_fake_time = mock.patch(
             "course.flow.get_now_or_fake_time")

@@ -31,6 +31,7 @@ import shutil
 import hashlib
 import datetime
 import memcache
+from collections import OrderedDict
 from copy import deepcopy
 from django.test import Client, override_settings, RequestFactory
 from django.urls import reverse, resolve
@@ -38,6 +39,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 
+from course.flow import GradeInfo
 from course.models import (
     Course, Participation, ParticipationRole, FlowSession, FlowPageData,
     FlowPageVisit, GradingOpportunity)
@@ -45,9 +47,10 @@ from course.constants import (
     participation_status, user_status,
     grade_aggregation_strategy as g_strategy,
     flow_permission as fperm)
-from course.content import get_course_repo_path
+from course.content import get_course_repo_path, get_repo_blob
 
-from tests.constants import QUIZ_FLOW_ID, TEST_PAGE_TUPLE
+from tests.constants import (
+    QUIZ_FLOW_ID, TEST_PAGE_TUPLE, FAKED_YAML_PATH, COMMIT_SHA_MAP)
 from tests.utils import mock
 
 CORRECTNESS_ATOL = 1e-05
@@ -385,9 +388,18 @@ class SuperuserCreateMixin(ResponseContextMixin):
         super(SuperuserCreateMixin, cls).setUpTestData()
 
     @classmethod
+    def add_user_permission(cls, user, perm, model=Course):
+        from django.contrib.contenttypes.models import ContentType
+        content_type = ContentType.objects.get_for_model(model)
+        from django.contrib.auth.models import Permission
+        permission = Permission.objects.get(
+            codename=perm, content_type=content_type)
+        user.user_permissions.add(permission)
+
+    @classmethod
     def create_superuser(cls):
         return get_user_model().objects.create_superuser(
-                                                **cls.create_superuser_kwargs)
+            **cls.create_superuser_kwargs)
 
     @classmethod
     def get_sign_up_view_url(cls):
@@ -427,11 +439,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-stop_impersonating")
 
     @classmethod
-    def get_impersonate(cls):
+    def get_impersonate_view(cls):
         return cls.c.get(cls.get_impersonate_view_url())
 
     @classmethod
-    def post_impersonate(cls, impersonatee, follow=True):
+    def post_impersonate_view(cls, impersonatee, follow=True):
         data = {"add_impersonation_header": ["on"],
                 "submit": [''],
                 }
@@ -811,6 +823,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse(view_name, args=[course_identifier])
 
     @classmethod
+    def get_course_calender_url(cls, course_identifier=None):
+        return cls.get_course_view_url(
+            "relate-view_calendar", course_identifier)
+
+    @classmethod
     def get_set_up_new_course_url(cls):
         return reverse("relate-set_up_new_course")
 
@@ -889,17 +906,27 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 cls.get_participant_grades_url(participation_id, course_identifier))
 
     @classmethod
-    def get_gradebook_by_opp_url(
-            cls, gopp_identifier, view_page_grades=False, course_identifier=None):
-        opp_id = GradingOpportunity.objects.get(identifier=gopp_identifier).pk
-
+    def get_gradebook_url_by_opp_id(cls, opp_id, course_identifier=None):
         course_identifier = (
             course_identifier or cls.get_default_course_identifier())
 
         kwargs = {"course_identifier": course_identifier,
                   "opp_id": opp_id}
-        url = reverse("relate-view_grades_by_opportunity",
+        return reverse("relate-view_grades_by_opportunity",
                                   kwargs=kwargs)
+
+    @classmethod
+    def get_gradebook_by_opp_url(
+            cls, gopp_identifier, view_page_grades=False, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp_identifier).pk
+
+        url = cls.get_gradebook_url_by_opp_id(opp_id, course_identifier)
+
         if view_page_grades:
             url += "?view_page_grades=1"
         return url
@@ -918,6 +945,129 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         with cls.temporarily_switch_to_user(switch_to):
             return cls.c.get(cls.get_gradebook_by_opp_url(
                 gopp_identifier, view_page_grades, course_identifier))
+
+    @classmethod
+    def post_gradebook_by_opp_view(
+            cls, gopp_identifier, post_data, view_page_grades=False,
+            course_identifier=None,
+            force_login_instructor=True):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.post(
+                cls.get_gradebook_by_opp_url(
+                    gopp_identifier, view_page_grades, course_identifier),
+                data=post_data)
+
+    @classmethod
+    def get_reopen_session_url(cls, gopp_identifier, flow_session_id=None,
+                               course_identifier=None):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp_identifier).pk
+
+        if flow_session_id is None:
+            flow_session_id = cls.get_default_flow_session_id(course_identifier)
+
+        kwargs = {"course_identifier": course_identifier,
+                  "opportunity_id": opp_id,
+                  "flow_session_id": flow_session_id}
+        return reverse("relate-view_reopen_session", kwargs=kwargs)
+
+    @classmethod
+    def get_reopen_session_view(cls, gopp_identifier, flow_session_id=None,
+                               course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.get(
+                cls.get_reopen_session_url(
+                    gopp_identifier, flow_session_id, course_identifier))
+
+    @classmethod
+    def post_reopen_session_view(cls, gopp_identifier, data, flow_session_id=None,
+                               course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.post(
+                cls.get_reopen_session_url(
+                    gopp_identifier, flow_session_id, course_identifier), data=data)
+
+    @classmethod
+    def get_single_grade_url(cls, participation_id, opp_id,
+                             course_identifier=None):
+
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+
+        kwargs = {"course_identifier": course_identifier,
+                  "opportunity_id": opp_id,
+                  "participation_id": participation_id}
+
+        return reverse("relate-view_single_grade", kwargs=kwargs)
+
+    @classmethod
+    def get_view_single_grade(cls, participation, gopp,
+                             course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp.identifier).pk
+
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.get(cls.get_single_grade_url(
+                participation.pk, opp_id, course_identifier))
+
+    @classmethod
+    def post_view_single_grade(cls, participation, gopp, data,
+                             course_identifier=None, force_login_instructor=True):
+
+        course_identifier = (
+                course_identifier or cls.get_default_course_identifier())
+
+        opp_id = GradingOpportunity.objects.get(
+            course__identifier=course_identifier,
+            identifier=gopp.identifier).pk
+
+        if force_login_instructor:
+            switch_to = cls.get_default_instructor_user(course_identifier)
+        else:
+            switch_to = cls.get_logged_in_user()
+
+        with cls.temporarily_switch_to_user(switch_to):
+            return cls.c.post(cls.get_single_grade_url(
+                participation.pk, opp_id, course_identifier),
+                data=data)
 
     @classmethod
     def get_logged_in_user(cls):
@@ -1442,6 +1592,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 'page_id': group_page_id,
                 'non_in_progress_only': 'on'}
 
+        non_in_progress_only = kwargs.pop("non_in_progress_only", True)
+        if not non_in_progress_only:
+            del data["non_in_progress_only"]
+
         data.update(kwargs)
 
         return cls.c.post(
@@ -1564,6 +1718,16 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     # }}}
 
+    def get_form_submit_inputs(self, form):
+        from crispy_forms.layout import Submit
+        inputs = [
+            (input.name, input.value) for input in form.helper.inputs
+            if isinstance(input, Submit)
+        ]
+        names = list(dict(inputs).keys())
+        values = list(dict(inputs).values())
+        return names, values
+
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
@@ -1637,17 +1801,19 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
                 kwargs[k] = ""
         return kwargs
 
-    def get_course_page_context(self, user):
+    @classmethod
+    def get_course_page_context(cls, user):
         rf = RequestFactory()
-        request = rf.get(self.get_course_page_url())
+        request = rf.get(cls.get_course_page_url())
         request.user = user
 
         from course.utils import CoursePageContext
-        pctx = CoursePageContext(request, self.course.identifier)
+        pctx = CoursePageContext(request, cls.course.identifier)
         return pctx
 
+    @classmethod
     def get_hacked_flow_desc(
-            self, user=None, flow_id=None, commit_sha=None,
+            cls, user=None, flow_id=None, commit_sha=None,
             del_rules=False, as_dict=False, **kwargs):
         """
         Get a hacked version of flow_desc
@@ -1660,22 +1826,22 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
 
         # {{{ get the actual flow_desc by a real visit
         rf = RequestFactory()
-        request = rf.get(self.get_course_page_url())
+        request = rf.get(cls.get_course_page_url())
         if user is None:
-            user = self.student_participation.user
+            user = cls.student_participation.user
         request.user = user
 
         if flow_id is None:
             flow_id = QUIZ_FLOW_ID
 
         if commit_sha is None:
-            commit_sha = self.course.active_git_commit_sha
+            commit_sha = cls.course.active_git_commit_sha
 
         if isinstance(commit_sha, six.text_type):
             commit_sha = commit_sha.encode()
 
         from course.content import get_flow_desc
-        with self.get_course_page_context(user) as pctx:
+        with cls.get_course_page_context(user) as pctx:
             flow_desc = get_flow_desc(
                 pctx.repo, pctx.course, flow_id, commit_sha)
 
@@ -1693,6 +1859,19 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             return flow_desc_dict
 
         return dict_to_struct(flow_desc_dict)
+
+    def get_hacked_flow_desc_with_access_rule_tags(self, rule_tags):
+        assert isinstance(rule_tags, list)
+        from relate.utils import struct_to_dict, dict_to_struct
+        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
+        rules = hacked_flow_desc_dict["rules"]
+        rules_dict = struct_to_dict(rules)
+        rules_dict["tags"] = rule_tags
+        rules = dict_to_struct(rules_dict)
+        hacked_flow_desc_dict["rules"] = rules
+        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
+        assert hacked_flow_desc.rules.tags == rule_tags
+        return hacked_flow_desc
 
 
 class TwoCourseTestMixin(CoursesTestMixinBase):
@@ -1859,12 +2038,23 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
                     if file_with_ext_count is None:
                         assert len([f for f in zf.filelist if
-                                 f.filename.endswith(dl_file_extension)]) > 0
+                                    f.filename.endswith(dl_file_extension)]) > 0, \
+                            ("The zipped file unexpectedly didn't contain "
+                             "file with extension '%s', the actual file list "
+                             "is %s" % (
+                                 dl_file_extension,
+                                 repr([f.filename for f in zf.filelist])))
                     else:
                         assert (
                                 len([f for f in zf.filelist if
                                      f.filename.endswith(dl_file_extension)])
-                                == file_with_ext_count)
+                                == file_with_ext_count), \
+                            ("The zipped file unexpectedly didn't contain "
+                             "%d files with extension '%s', the actual file list "
+                             "is %s" % (
+                                 file_with_ext_count,
+                                 dl_file_extension,
+                                 repr([f.filename for f in zf.filelist])))
 
     @classmethod
     def submit_page_answer_by_ordinal_and_test(
@@ -2133,6 +2323,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
 
 class FallBackStorageMessageTestMixin(object):
+    """Deprecated in favor of MockAddMessageMixing"""
     # In case other message storage are used, the following is the default
     # storage used by django and RELATE. Tests which concerns the message
     # should not include this mixin.
@@ -2215,6 +2406,85 @@ class FallBackStorageMessageTestMixin(object):
             print("-----------message end-------------\n")
         except KeyError:
             print("\n-------no message----------")
+
+
+class MockAddMessageMixing(object):
+    """
+    The mixing for testing django.contrib.messages.add_message
+    """
+
+    def setUp(self):
+        super(MockAddMessageMixing, self).setUp()
+        self._fake_add_message_path = "django.contrib.messages.add_message"
+        fake_add_messag = mock.patch(self._fake_add_message_path)
+
+        self._mock_add_message = fake_add_messag.start()
+        self.addCleanup(fake_add_messag.stop)
+
+    def _get_added_messages(self, join=True):
+        try:
+            msgs = [
+                "'%s'" % str(arg[2])
+                for arg, _ in self._mock_add_message.call_args_list]
+        except IndexError:
+            self.fail("%s is unexpectedly not called." % self._fake_add_message_path)
+        else:
+            if join:
+                return "; ".join(msgs)
+            return msgs
+
+    def assertAddMessageCallCount(self, expected_call_count, reset=False):  # noqa
+        fail_msg = (
+            "%s is unexpectedly called %d times, instead of %d times." %
+            (self._fake_add_message_path, self._mock_add_message.call_count,
+             expected_call_count))
+        if self._mock_add_message.call_count > 0:
+            fail_msg += ("The called messages are: %s"
+                         % repr(self._get_added_messages(join=False)))
+        self.assertEqual(
+            self._mock_add_message.call_count, expected_call_count, msg=fail_msg)
+        if reset:
+            self._mock_add_message.reset_mock()
+
+    def assertAddMessageCalledWith(self, expected_messages, reset=True):  # noqa
+        joined_msgs = self._get_added_messages()
+
+        if not isinstance(expected_messages, list):
+            expected_messages = [expected_messages]
+
+        not_called = []
+        for msg in expected_messages:
+            if msg not in joined_msgs:
+                not_called.append(msg)
+
+        if not_called:
+            fail_msg = "%s unexpectedly not added in messages. " % repr(not_called)
+            if joined_msgs:
+                fail_msg += "the actual message are \"%s\"" % joined_msgs
+            self.fail(fail_msg)
+        if reset:
+            self._mock_add_message.reset_mock()
+
+    def assertAddMessageNotCalledWith(self, expected_messages, reset=False):  # noqa
+        joined_msgs = self._get_added_messages()
+
+        if not isinstance(expected_messages, list):
+            expected_messages = [expected_messages]
+
+        called = []
+        for msg in expected_messages:
+            if msg in joined_msgs:
+                called.append(msg)
+
+        if called:
+            fail_msg = "%s unexpectedly added in messages. " % repr(called)
+            fail_msg += "the actual message are \"%s\"" % joined_msgs
+            self.fail(fail_msg)
+        if reset:
+            self._mock_add_message.reset_mock()
+
+    def reset_add_message_mock(self):
+        self._mock_add_message.reset_mock()
 
 
 class SubprocessRunpyContainerMixin(object):
@@ -2393,5 +2663,83 @@ class AdminTestMixin(TwoCourseTestMixin):
         return filterspec_list
 
 # }}}
+
+
+class HackRepoMixin(object):
+
+    # This is need to for correctly getting other blobs
+    fallback_commit_sha = b"4124e0c23e369d6709a670398167cb9c2fe52d35"
+
+    # This need to be configured when the module tested imported get_repo_blob
+    # at module level
+    get_repo_blob_patching_path = "course.content.get_repo_blob"
+
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(HackRepoMixin, cls).setUpTestData()
+
+        class Blob(object):
+            def __init__(self, yaml_file_name):
+                with open(os.path.join(FAKED_YAML_PATH, yaml_file_name), "rb") as f:
+                    data = f.read()
+                self.data = data
+
+        def get_repo_side_effect(repo, full_name, commit_sha, allow_tree=True):
+            commit_sha_path_maps = COMMIT_SHA_MAP.get(full_name)
+            if commit_sha_path_maps:
+                assert isinstance(commit_sha_path_maps, list)
+                for cs_map in commit_sha_path_maps:
+                    if commit_sha.decode() in cs_map:
+                        path = cs_map[commit_sha.decode()]["path"]
+                        return Blob(path)
+
+            return get_repo_blob(repo, full_name, cls.fallback_commit_sha,
+                                 allow_tree=allow_tree)
+
+        cls.batch_fake_get_repo_blob = mock.patch(cls.get_repo_blob_patching_path)
+        cls.mock_get_repo_blob = cls.batch_fake_get_repo_blob.start()
+        cls.mock_get_repo_blob.side_effect = get_repo_side_effect
+
+    @classmethod
+    def tearDownClass(cls):  # noqa
+        # This must be done to avoid inconsistency
+        super(HackRepoMixin, cls).tearDownClass()
+        cls.batch_fake_get_repo_blob.stop()
+
+    def get_current_page_ids(self):
+        current_sha = self.course.active_git_commit_sha
+        for commit_sha_path_maps in COMMIT_SHA_MAP.values():
+            for cs_map in commit_sha_path_maps:
+                if current_sha in cs_map:
+                    return cs_map[current_sha]["page_ids"]
+
+        raise ValueError("Page_ids for that commit_sha doesn't exist")
+
+    def assertGradeInfoEqual(self, resp, expected_grade_info_dict=None):  # noqa
+        grade_info = resp.context["grade_info"]
+
+        assert isinstance(grade_info, GradeInfo)
+        if not expected_grade_info_dict:
+            import json
+            error_msg = ("\n%s" % json.dumps(OrderedDict(
+                sorted(
+                    [(k, v) for (k, v) in six.iteritems(grade_info.__dict__)])),
+                indent=4))
+            error_msg = error_msg.replace("null", "None")
+            self.fail(error_msg)
+
+        assert isinstance(expected_grade_info_dict, dict)
+
+        grade_info_dict = grade_info.__dict__
+        not_match_infos = []
+        for k in grade_info_dict.keys():
+            if grade_info_dict[k] != expected_grade_info_dict[k]:
+                not_match_infos.append(
+                    "'%s' is expected to be %s, while got %s"
+                    % (k, str(expected_grade_info_dict[k]),
+                       str(grade_info_dict[k])))
+
+        if not_match_infos:
+            self.fail("\n".join(not_match_infos))
 
 # vim: fdm=marker
