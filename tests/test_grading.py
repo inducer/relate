@@ -31,7 +31,8 @@ from django.test import TestCase, override_settings
 from course.models import ParticipationPermission
 from course.constants import participation_permission as pperm
 
-from tests.base_test_mixins import SingleCourseQuizPageTestMixin
+from tests.base_test_mixins import (
+    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
 from tests import factories
 from tests.utils import mock
 
@@ -49,7 +50,7 @@ class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin)
 
 
 class SingleCourseQuizPageGradeInterfaceTest(
-        SingleCourseQuizPageGradeInterfaceTestMixin, TestCase):
+        SingleCourseQuizPageGradeInterfaceTestMixin, MockAddMessageMixing, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -480,9 +481,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
     def test_invalid_page_data(self):
         with mock.patch(
                 "course.page.upload.FileUploadQuestion.make_form"
-        ) as mock_make_form, mock.patch(
-            "course.grading.messages.add_message"
-        ) as mock_add_msg:
+        ) as mock_make_form:
             from course.grading import InvalidPageData
             error_msg = "your file is broken."
             mock_make_form.side_effect = InvalidPageData(error_msg)
@@ -501,7 +500,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
                 resp = self.c.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
-                self.assertIn(expected_error_msg, mock_add_msg.call_args[0])
+                self.assertAddMessageCalledWith(expected_error_msg)
 
     def test_no_perm_to_post_grade(self):
         some_user = factories.UserFactory()
