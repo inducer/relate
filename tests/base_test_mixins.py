@@ -455,8 +455,13 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return cls.c.get(cls.get_stop_impersonate_view_url(), follow=follow)
 
     @classmethod
-    def post_stop_impersonate(cls, follow=True):
-        data = {"submit": ['']}
+    def post_stop_impersonate(cls, data=None, follow=True, using_ajax=True):
+        if not data:
+            data = {"stop_impersonating": ""}
+        if using_ajax:
+            return cls.c.post(
+                cls.get_stop_impersonate_view_url(),
+                data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         return cls.c.post(
             cls.get_stop_impersonate_view_url(), data, follow=follow)
 

@@ -222,7 +222,7 @@ def impersonate(request):
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 _("Already impersonating someone."))
-        return redirect("relate-stop_impersonating")
+        return redirect("relate-home")
 
     # Remove duplicate and sort
     # order_by().distinct() directly on impersonable_user_qset will not work
@@ -250,17 +250,16 @@ def impersonate(request):
         })
 
 
-class StopImpersonatingForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        super(StopImpersonatingForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(Submit("submit", _("Stop impersonating")))
-
-
 def stop_impersonating(request):
+    # type: (http.HttpRequest) -> http.JsonResponse
+    if not request.is_ajax() or request.method != "POST":
+        raise PermissionDenied(_("only AJAX POST is allowed"))
+
     if not request.user.is_authenticated:
         raise PermissionDenied()
+
+    if "stop_impersonating" not in request.POST:
+        raise SuspiciousOperation(_("odd POST parameters"))
 
     if not hasattr(request, "relate_impersonate_original_user"):
         # prevent user without pperm to stop_impersonating
@@ -279,28 +278,16 @@ def stop_impersonating(request):
                 break
 
         if not may_impersonate:
-            raise PermissionDenied()
+            raise PermissionDenied(_("may not stop impersonating"))
 
         messages.add_message(request, messages.ERROR,
                 _("Not currently impersonating anyone."))
-        return redirect("relate-home")
+        return http.JsonResponse({})
 
-    if request.method == 'POST':
-        form = StopImpersonatingForm(request.POST)
-        if form.is_valid():
-            messages.add_message(request, messages.INFO,
-                    _("No longer impersonating anyone."))
-            del request.session['impersonate_id']
-
-            # Because otherwise the header will show stale data.
-            return redirect("relate-home")
-    else:
-        form = StopImpersonatingForm()
-
-    return render(request, "generic-form.html", {
-        "form_description": _("Stop impersonating user"),
-        "form": form
-        })
+    del request.session['impersonate_id']
+    messages.add_message(request, messages.INFO,
+            _("No longer impersonating anyone."))
+    return http.JsonResponse({"result": "success"})
 
 
 def impersonation_context_processor(request):

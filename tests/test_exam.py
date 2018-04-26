@@ -712,8 +712,10 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
                 ("relate-sign_in_by_user_pw", [], {}, 200),
                 ("relate-impersonate", [], {}, 200),
 
-                # because not impersonating
-                ("relate-stop_impersonating", [], {}, "/"),
+                # because not we are testing get, while stop_impersonating view
+                # doesn't allow get, if it return 403 instead of 302
+                # we think it passed test.
+                ("relate-stop_impersonating", [], {}, 403),
                 ("relate-check_in_for_exam", [], {}, 200),
                 ("relate-list_available_exams", [], {}, 200),
                 ("relate-view_start_flow", [],

@@ -107,7 +107,7 @@
                             <li role="presentation" class="divider"></li>
                             <li role="presentation" class="dropdown-header">{% trans "Test/Troubleshoot" %}</li>
                             {% if currently_impersonating %}
-                              <li><a href="{% url 'relate-stop_impersonating' %}" target="_blank">{% trans "Stop impersonating" %}</a></li>
+                              <li><a onclick=stop_impersonate()>{% trans "Stop impersonating" %}</a></li>
                             {% else %}
                               <li><a href="{% url 'relate-impersonate' %}" target="_blank">{% trans "Impersonate user" %}</a></li>
                             {% endif %}
@@ -183,6 +183,48 @@
       <!-- JavaScript
       ================================================== -->
       <!-- Placed at the end of the document so the pages load faster -->
+      {% if currently_impersonating and add_impersonation_header %}
+        <script type="text/javascript">
+          function stop_impersonate() {
+            $("#stop-impersonate")
+                .html(
+                    '<img src="{% static "images/busy.gif" %}" alt="Busy indicator">')
+                .show();
+              var jqxhr = $.ajax(
+                  "{% url "relate-stop_impersonating" %}",
+                  {
+                      type: "POST",
+                      data: {"stop_impersonating": true},
+                      beforeSend: function (xhr, settings) {
+                          var csrftoken = get_cookie('csrftoken');
+                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                      }
+                  })
+                  .done(function () {
+                      window.location.reload();
+                  })
+          }
+        </script>
+      {% endif %}
+
+      <script>
+          function get_cookie(name) {
+              var cookieValue = null;
+              if (document.cookie && document.cookie != '') {
+                  var cookies = document.cookie.split(';');
+                  for (var i = 0; i < cookies.length; i++) {
+                      var cookie = jQuery.trim(cookies[i]);
+                      // Does this cookie string begin with the name we want?
+                      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                          break;
+                      }
+                  }
+              }
+              return cookieValue;
+          }
+      </script>
+
       <script type="text/javascript"
               src="{% static "mathjax/MathJax.js" %}?config=TeX-AMS-MML_HTMLorMML">
       </script>
