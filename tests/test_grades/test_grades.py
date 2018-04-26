@@ -44,7 +44,8 @@ from course.grades import (
 
 from tests.utils import mock  # noqa
 from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin, HackRepoMixin)
+    SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin,
+    HackRepoMixin, MockAddMessageMixing)
 from tests import factories
 from tests.constants import QUIZ_FLOW_ID
 
@@ -58,7 +59,7 @@ def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(
     return actual_grading_rule
 
 
-class GradesTestMixin(SingleCoursePageTestMixin):
+class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
     time = now() - timedelta(days=10)
 
     @classmethod
@@ -70,9 +71,6 @@ class GradesTestMixin(SingleCoursePageTestMixin):
     def setUp(self):
         super(GradesTestMixin, self).setUp()
         self.gopp.refresh_from_db()
-        fake_add_message = mock.patch("course.grades.messages.add_message")
-        self.mock_add_message = fake_add_message.start()
-        self.addCleanup(fake_add_message.stop)
 
     def use_default_setup(self):  # noqa
         self.session1 = factories.FlowSessionFactory.create(
@@ -1315,10 +1313,9 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
             self.gopp_id, flow_session_id=self.fs2.pk, data=data)
         self.assertEqual(resp.status_code, 200)
 
-        self.assertEqual(self.mock_add_message.call_count, 1)
-        self.assertIn(
-            "Cannot reopen a session that's already in progress.",
-            self.mock_add_message.call_args[0])
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(
+            "Cannot reopen a session that's already in progress.")
         self.assertTrue(self.fs2.in_progress)
 
     def test_reopen_success(self):
@@ -1429,9 +1426,8 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
         resp = self.get_view_single_grade(
             self.student_participation, hidden_gopp)
         self.assertEqual(resp.status_code, 200)
-        self.assertIn(
-            "This grade is not shown in the grade book.",
-            self.mock_add_message.call_args[0])
+        self.assertAddMessageCalledWith(
+            "This grade is not shown in the grade book.")
 
         with self.temporarily_switch_to_user(self.student_participation.user):
             resp = self.get_view_single_grade(
@@ -1447,9 +1443,8 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
         resp = self.get_view_single_grade(
             self.student_participation, hidden_gopp)
         self.assertEqual(resp.status_code, 200)
-        self.assertIn(
-            "This grade is not shown in the student grade book.",
-            self.mock_add_message.call_args[0])
+        self.assertAddMessageCalledWith(
+            "This grade is not shown in the student grade book.")
 
         with self.temporarily_switch_to_user(self.student_participation.user):
             resp = self.get_view_single_grade(
@@ -1505,10 +1500,8 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
                     data={"%s_%d" % (op, fs.pk): ''})
                 self.assertEqual(resp.status_code, 200)
                 self.assertEqual(mock_func.call_count, 1)
-                self.assertIn(msg, self.mock_add_message.call_args[0])
-
+                self.assertAddMessageCalledWith(msg, reset=True)
                 mock_func.reset_mock()
-                self.mock_add_message.reset_mock()
 
     def test_post_invalid_session_op(self):
         fs = factories.FlowSessionFactory(
@@ -1544,13 +1537,11 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
                     self.student_participation, self.gopp,
                     data={"%s_%d" % (op, fs.pk): ''})
                 self.assertEqual(resp.status_code, 200)
-                self.assertNotIn(msg, self.mock_add_message.call_args[0])
-                self.assertIn(
-                    "Error: KeyboardInterrupt %s" % err,
-                    self.mock_add_message.call_args[0])
+                self.assertAddMessageNotCalledWith(msg, reset=False)
+                self.assertAddMessageCalledWith(
+                    "Error: KeyboardInterrupt %s" % err, reset=True)
 
                 mock_func.reset_mock()
-                self.mock_add_message.reset_mock()
 
     def test_view_gopp_flow_desc_not_exist(self):
         with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:

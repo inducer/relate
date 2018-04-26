@@ -593,5 +593,4 @@ class ImportGradesTest(GradesTestMixin, TestCase):
                 gchanges = models.GradeChange.objects.all()
                 self.assertEqual(gchanges.count(), 0)
 
-        self.assertIn("Error: RuntimeError my import error",
-                      self.mock_add_message.call_args[0])
+        self.assertAddMessageCalledWith("Error: RuntimeError my import error")
