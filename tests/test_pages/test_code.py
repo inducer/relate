@@ -1331,13 +1331,6 @@ class IsNuisanceFailureTest(unittest.TestCase):
                       "\n[Errno 113] No route to host: \nfoo"}
         self.assertTrue(is_nuisance_failure(result))
 
-    def test_read_timeout_https(self):
-        result = {"result": "uncaught_error",
-                  "traceback":
-                      "\nrequests.exceptions.ReadTimeout: "
-                      "HTTPSConnectionPool: \nfoo"}
-        self.assertTrue(is_nuisance_failure(result))
-
 
 class CodeQuestionWithHumanTextFeedbackSpecialCase(
         SingleCoursePageTestMixin, SubprocessRunpyContainerMixin, TestCase):
