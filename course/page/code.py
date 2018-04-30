@@ -280,10 +280,6 @@ def is_nuisance_failure(result):
         if "[Errno 113] No route to host" in result["traceback"]:
             return True
 
-        if "requests.exceptions.ReadTimeout: HTTPSConnectionPool" \
-                in result["traceback"]:
-            return True
-
     return False
 
 
