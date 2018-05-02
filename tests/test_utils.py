@@ -29,7 +29,6 @@ from datetime import datetime
 from copy import deepcopy
 
 import unittest
-from unittest import skipUnless
 from django.test import SimpleTestCase, TestCase, RequestFactory
 from django.utils.timezone import now, timedelta
 from django.test.utils import override_settings
@@ -68,18 +67,6 @@ else:
     REAL_TRANSLATION_FUNCTION_TO_MOCK = (
         "django.utils.translation._trans.gettext")
     real_trans_side_effect = lambda x: x  # noqa
-
-
-def is_travis_py3():
-    import os
-
-    if "RL_TRAVIS_TEST" not in os.environ:
-        return False
-
-    if six.PY2:
-        return False
-
-    return True
 
 
 class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
@@ -325,12 +312,10 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
                             translated_literal = translation.ugettext(literal)
                         self.assertContains(resp, translated_literal)
 
-    @skipUnless(is_travis_py3(), "This is tested only on Travis with PY3.5")
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="en-us")
     def test_course_no_force_lang_feedback(self):
         self.feedback_test(course_force_lang="")
 
-    @skipUnless(is_travis_py3(), "This is tested only on Travis with PY3.5")
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="en-us")
     def test_course_force_lang_zh_hans_feedback(self):
         self.feedback_test(course_force_lang="zh-hans")

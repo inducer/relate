@@ -44,8 +44,8 @@ from tests.base_test_mixins import (
     improperly_configured_cache_patch, SingleCoursePageTestMixin,
     SingleCourseQuizPageTestMixin, MockAddMessageMixing, HackRepoMixin)
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
-from tests.utils import mock
-from tests import factories  # noqa
+from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
+from tests import factories
 from tests.constants import COMMIT_SHA_SUPPORT_CUSTOM_PAGES
 
 
@@ -589,6 +589,7 @@ class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
                     repo=pctx.repo).decode(), self.valid_sha)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCase):
     # test subdir repo (for cases not covered by other tests)
 

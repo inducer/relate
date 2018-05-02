@@ -555,7 +555,10 @@ class ParseMatcherTest(unittest.TestCase):
         self.assertIn("some where: must be struct or string", str(cm.exception))
 
 
-class TextQuestionBaseTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+class TextQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+
+    # {{{ test TextQuestionBase
+
     def test_text_question_base_validation(self):
         with mock.patch("course.page.text.TextAnswerForm.get_text_widget"
                         ) as mock_get_text_widget:
@@ -566,9 +569,10 @@ class TextQuestionBaseTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             self.assertSandboxNotHasValidPage(resp)
             self.assertResponseContextContains(
                 resp, PAGE_ERRORS, "unrecognized widget type'unknown'")
+    # }}}
 
+    # {{{ test TextQuestion
 
-class TextQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_text_question_validation_no_answer(self):
         markdown = TEXT_QUESTION_WITH_NO_CORRECT_ANSWER_MARKDOWN
         expected_error_msg = "at least one answer must be provided"
@@ -596,8 +600,10 @@ class TextQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "correct_answer", expected_html)
 
+    # }}}
 
-class SurveyTextQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+    # {{{ test SurveyTextQuestion
+
     def test_correct_answer(self):
         markdown = SURVEY_TEXT_QUESTION_WITH_ANSWER_COMMENT
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -606,5 +612,7 @@ class SurveyTextQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxHasValidPage(resp)
         expected_html = '<p><a href="types.fear.com">reference</a></p>'
         self.assertResponseContextContains(resp, "correct_answer", expected_html)
+
+    # }}}
 
 # vim: fdm=marker

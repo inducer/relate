@@ -9,6 +9,8 @@ matrix:
     env: RL_TRAVIS_TEST=test PY_EXE=python3.5
   - python: "3.6"
     env: RL_TRAVIS_TEST=test PY_EXE=python3.6
+  - python: "3.6"
+    env: RL_TRAVIS_TEST=test_expensive PY_EXE=python3.6
 
   - python: "3.6"
     env: RL_TRAVIS_TEST=cmdline PY_EXE=python3.6

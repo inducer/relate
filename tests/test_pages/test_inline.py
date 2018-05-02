@@ -23,6 +23,7 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
+import unittest
 
 from course.content import get_repo_blob
 from course.flow import get_page_behavior
@@ -32,7 +33,7 @@ from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin
 )
 from tests.constants import PAGE_ERRORS
-from tests.utils import mock
+from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 INLINE_MULTI_MARKDOWN_SINGLE = """
 type: InlineMultiQuestion
@@ -1055,6 +1056,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                   '70398167cb9c2fe52d35/images/classroom.jpeg">', html=True)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
     page_id = "inlinemulti"
 

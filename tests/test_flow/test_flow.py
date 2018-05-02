@@ -47,7 +47,7 @@ from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
     HackRepoMixin)
 from tests.constants import QUIZ_FLOW_ID
-from tests.utils import mock
+from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 from tests import factories
 
 
@@ -373,6 +373,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         self.assertEqual(self.mock_get_flow_grading_opportunity.call_count, 0)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class AssemblePageGradesTest(HackRepoMixin,
                              SingleCourseQuizPageTestMixin, TestCase):
     # This is actually test course.flow.assemble_page_grades
@@ -925,6 +926,7 @@ class GradeInfoTest(unittest.TestCase):
             99 < g_info.unreachable_points_percent() < 100)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class FinishFlowSessionViewTest(HackRepoMixin,
                                 SingleCourseQuizPageTestMixin, TestCase):
     # test flow.finish_flow_session_view

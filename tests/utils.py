@@ -5,7 +5,9 @@ try:
     from importlib import reload
 except ImportError:
     pass  # PY2
+import os
 from importlib import import_module
+import six
 from six import StringIO
 from functools import wraps
 
@@ -162,5 +164,25 @@ def reload_urlconf(urlconf=None):
         reload(sys.modules[urlconf])
     else:
         import_module(urlconf)
+
+
+def may_run_expensive_tests():
+    if six.PY2:
+        return False
+
+    # Allow run expensive tests locally, i.e., CI not detected.
+    if not any([os.getenv(ci)
+                for ci in ["RL_TRAVIS_TEST", "GITLAB_CI", "APPVEYOR"]]):
+        return True
+
+    if os.getenv("RL_TRAVIS_TEST") != "test_expensive":
+        return False
+
+    return True
+
+
+SKIP_EXPENSIVE_TESTS_REASON = (
+    "This expensive test is ran separately on TRAVIS-CI with test_expensive "
+    "env variable, or local tests.")
 
 # vim: fdm=marker

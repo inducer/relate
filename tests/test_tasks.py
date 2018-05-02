@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import unittest
 from django.utils.timezone import now, timedelta
 from django.test import TestCase, override_settings
 
@@ -38,7 +39,7 @@ from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
 from tests.test_flow.test_purge_page_view_data import (
     PURGE_VIEW_TWO_COURSE_SETUP_LIST)
 from tests import factories
-from tests.utils import mock
+from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 from tests.constants import QUIZ_FLOW_ID
 
 from pkg_resources import parse_version
@@ -110,6 +111,7 @@ class GradesTasksTestSetUpMixin(object):
         self.ended_sessions_count = len(self.ended_sessions)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
                       TaskTestMixin, TestCase):
 
@@ -517,6 +519,7 @@ class PurgePageViewDataTaskTestSetUpMixin(object):
         return n_all_fpv, n_null_answer_fpv, n_non_null_answer_fpv
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
                                 PurgePageViewDataTaskTestSetUpMixin, TaskTestMixin,
                                 TestCase):
@@ -585,6 +588,7 @@ class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
     # }}}
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class TasksTestsWithCeleryDependency(SingleCourseTestMixin, TestCase):
     """
     This test involves celery. However, Django's sqlite3 is an in-memory database,

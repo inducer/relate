@@ -23,7 +23,7 @@ THE SOFTWARE.
 """
 
 import six
-from unittest import skipIf
+from unittest import skipIf, skipUnless
 
 from django.test import TestCase, RequestFactory
 from django.contrib.admin import site
@@ -34,6 +34,7 @@ from course import models, admin, constants
 from tests.base_test_mixins import AdminTestMixin
 from tests import factories
 from tests.constants import QUIZ_FLOW_ID
+from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 
 class CourseAdminTestMixin(AdminTestMixin):
@@ -119,6 +120,7 @@ class CourseAdminTestMixin(AdminTestMixin):
                                      expected_counts_dict["course2"])
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
 
     @skipIf(six.PY2, "PY2 doesn't support subTest")
@@ -237,6 +239,7 @@ class CourseAdminSessionRelatedMixin(CourseAdminTestMixin):
             answer__isnull=False).count()
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
     @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flowsession_filter_result(self):
@@ -333,6 +336,7 @@ class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
         self.assertEqual(queryset.count(), self.course2_visits_has_answer_count)
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
     def test_approve_enrollment(self):
         active = factories.ParticipationFactory(
@@ -391,6 +395,7 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
         self.assertEqual(requested2.status, constants.participation_status.denied)
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class ParticipationFormTest(CourseAdminTestMixin, TestCase):
     def setUp(self):
         super(ParticipationFormTest, self).setUp()
@@ -468,6 +473,7 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
         self.assertIn(expected_error_msg, str(form.errors))
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
     @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_participation_preapproval(self):
@@ -487,6 +493,7 @@ class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
             all_objs.last().creator, self.course1_instructor_participation.user)
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
     @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_grade_change(self):
@@ -522,12 +529,13 @@ class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
             all_objs.last().creator, self.course2_instructor_participation.user)
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
     def setUp(self):
         self.exam = factories.ExamFactory(course=self.course1)
 
     @skipIf(six.PY2, "PY2 doesn't support subTest")
-    def test_grade_change(self):
+    def test_navigate(self):
         factories.ExamTicketFactory(
             exam=self.exam,
             participation=self.course1_student_participation)

@@ -25,7 +25,7 @@ THE SOFTWARE.
 import six
 from django.urls import reverse, NoReverseMatch
 from django.test import TestCase
-from unittest import skipIf
+from unittest import skipIf, skipUnless
 
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
@@ -33,6 +33,7 @@ from course.models import (
 )
 
 from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 
 class GradeGenericTestMixin(SingleCoursePageTestMixin):
@@ -89,14 +90,6 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         resp = self.c.get(reverse("relate-view_gradebook",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
-
-    # todo: move to test_csv
-    def test_view_export_gradebook_csv(self):
-        resp = self.c.get(reverse("relate-export_gradebook_csv",
-                                  args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Disposition"],
-                         'attachment; filename="grades-test-course.csv"')
 
     def test_view_grades_by_opportunity(self):
         # Check attributes
@@ -312,6 +305,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         return params
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
@@ -327,6 +321,7 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
         cls.c.force_login(cls.instructor_participation.user)
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
@@ -342,7 +337,7 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
         cls.c.force_login(cls.instructor_participation.user)
 
 
-@skipIf(six.PY2, "PY2 doesn't support subTest")
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
