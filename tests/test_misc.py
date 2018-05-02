@@ -33,6 +33,7 @@ from django.test.utils import override_settings
 from django.utils.formats import date_format, get_format
 from django.utils.dateformat import format
 from django.utils.translation import ugettext_lazy as _
+from django.core.management import CommandError
 
 from course.models import Course
 from course.views import EditCourseForm
@@ -40,6 +41,8 @@ from course.versioning import CourseCreationForm
 from relate.utils import (
     is_maintenance_mode, render_email_template, get_outbound_mail_connection,
     format_datetime_local)
+
+from manage import get_local_test_settings_file
 
 from tests.base_test_mixins import SingleCourseTestMixin
 from tests.utils import LocmemBackendTestsMixin, mail, mock
@@ -577,5 +580,44 @@ class FormatDatetimeLocalTest(unittest.TestCase):
             result, date_format(dtime, format=get_format("DATETIME_FORMAT")))
 
 # }}}
+
+
+class GetLocalTestSettingsFileTest(unittest.TestCase):
+    """test manage.get_local_test_settings_file"""
+
+    def test_use_default_local_settings_example(self):
+        self.assertEqual(get_local_test_settings_file(
+                ["manage.py", "test", "foo"]), "local_settings_example.py")
+
+    def test_error_use_local_settings(self):
+        """test error when use local_settings.py as test settings"""
+        with self.assertRaises(CommandError) as cm:
+            get_local_test_settings_file(
+                ["manage.py", "test", "--local_test_settings",
+                 "local_settings.py"])
+
+        self.assertIn(
+            "Using production local_settings for tests is not "
+            "allowed due to security reason.", str(cm.exception))
+
+    def test_error_local_test_setting_file_does_not_exist(self):
+        """test error when use local_settings.py as test settings"""
+        invalid_file = "foo/local_test_settings.py"
+        with self.assertRaises(CommandError) as cm:
+            get_local_test_settings_file(
+                ["manage.py", "test", "--local_test_settings",
+                 invalid_file])
+
+        self.assertIn(
+            "file '%s' does not exist" % invalid_file, str(cm.exception))
+
+    def test_custom_local_test_setting_file(self):
+        settings_file = "foo/local_test_settings.py"
+        with mock.patch("os.path.isfile") as mock_is_file:
+            mock_is_file.return_value = True
+            self.assertEqual(get_local_test_settings_file(
+                    ["manage.py", "test", "foo",
+                     "--local_test_settings", settings_file]),
+                settings_file)
 
 # vim: foldmethod=marker
