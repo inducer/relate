@@ -79,6 +79,34 @@ if [[ "$PY_EXE" = python3* ]]; then
 fi
 
 $PIP install codecov factory_boy
-coverage run manage.py test tests/
+
+if [[ "$RL_TRAVIS_TEST" = "test_expensive" ]]; then
+    coverage run manage.py test tests.test_tasks \
+                                tests.test_admin \
+                                tests.test_pages.test_code \
+                                tests.test_pages.test_generic \
+                                tests.test_pages.test_inline.InlineMultiPageUpdateTest \
+                                tests.test_pages.test_upload.UploadQuestionNormalizeTest \
+                                tests.test_grades.test_generic \
+                                tests.test_grades.test_grades.GetGradeTableTest \
+                                tests.test_grading.SingleCourseQuizPageGradeInterfaceTest \
+                                tests.test_utils.LanguageOverrideTest \
+                                tests.test_accounts.test_admin.AccountsAdminTest \
+                                tests.test_flow.test_flow.AssemblePageGradesTest \
+                                tests.test_flow.test_flow.FinishFlowSessionViewTest \
+                                tests.test_content.SubDirRepoTest \
+                                tests.test_auth.SignInByPasswordTest \
+                                tests.test_analytics.FlowAnalyticsTest \
+                                tests.test_analytics.PageAnalyticsTest \
+                                tests.test_analytics.FlowListTest \
+                                tests.test_analytics.IsFlowMultipleSubmitTest \
+                                tests.test_analytics.IsPageMultipleSubmitTest \
+                                tests.test_versioning.ParamikoSSHVendorTest \
+                                tests.test_receivers.UpdateCouresOrUserSignalTest
+
+else
+    coverage run manage.py test tests
+fi
+
 coverage report -m
 codecov

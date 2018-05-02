@@ -46,7 +46,8 @@ from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCoursePageTestMixin, MockAddMessageMixing)
 
 from tests.utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
+    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock,
+    may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON)
 from tests import factories
 
 # settings names
@@ -680,6 +681,7 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
                                      fetch_redirect_response=False)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class SignInByPasswordTest(CoursesTestMixinBase,
                            AuthTestMixin, MockAddMessageMixing, TestCase):
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True)

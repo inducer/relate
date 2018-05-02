@@ -38,7 +38,9 @@ from course.constants import participation_permission as pperm
 from tests.base_test_mixins import (
     SingleCourseTestMixin, MockAddMessageMixing,
     CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST)
-from tests.utils import suppress_stdout_decorator, mock
+from tests.utils import (
+    suppress_stdout_decorator, mock, may_run_expensive_tests,
+    SKIP_EXPENSIVE_TESTS_REASON)
 from tests import factories
 
 TEST_PUBLIC_KEY = """
@@ -262,6 +264,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertTrue(resp.status_code, 200)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class ParamikoSSHVendorTest(unittest.TestCase):
     # A simple integration tests, making sure ParamikoSSHVendor is used
     # for ssh protocol.

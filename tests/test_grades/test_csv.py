@@ -86,13 +86,18 @@ class ExportGradebook(GradesTestMixin, TestCase):
     def get_export_gradebook_csv_url(self):
         return self.get_course_view_url("relate-export_gradebook_csv")
 
-    def get_export_gradebook_csv(self, force_login_instructor=None):
+    def get_export_gradebook_csv(self, force_login_instructor=True):
         if force_login_instructor:
             user = self.instructor_participation.user
         else:
             user = self.get_logged_in_user()
         with self.temporarily_switch_to_user(user):
             return self.c.get(self.get_export_gradebook_csv_url())
+
+    def test_view_export_gradebook_csv(self):
+        resp = self.get_export_gradebook_csv()
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseHasCsv(resp)
 
 
 class FindParticipantFromIdTest(CoursesTestMixinBase, TestCase):

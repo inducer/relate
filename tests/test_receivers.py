@@ -23,16 +23,18 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
+from unittest import skipUnless
 
 from course.constants import participation_status
 
 from tests import factories
-from tests.utils import mock
+from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 from tests.base_test_mixins import SingleCourseTestMixin
 
 HANDLE_ENROLLMENT_PATH = "course.enrollment.handle_enrollment_request"
 
 
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
 
     def test_update_course_no_requested(self):

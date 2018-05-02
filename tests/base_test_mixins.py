@@ -51,7 +51,8 @@ from course.content import get_course_repo_path, get_repo_blob
 
 from tests.constants import (
     QUIZ_FLOW_ID, TEST_PAGE_TUPLE, FAKED_YAML_PATH, COMMIT_SHA_MAP)
-from tests.utils import mock
+from tests.utils import (
+    mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON)
 
 CORRECTNESS_ATOL = 1e-05
 
@@ -2406,11 +2407,9 @@ class SubprocessRunpyContainerMixin(object):
     """
     @classmethod
     def setUpClass(cls):  # noqa
-        if six.PY2:
+        if not may_run_expensive_tests():
             from unittest import SkipTest
-            raise SkipTest("In process fake container is configured for "
-                           "PY3 only, since currently runpy docker only "
-                           "provide PY3 envrionment")
+            raise SkipTest(SKIP_EXPENSIVE_TESTS_REASON)
 
         super(SubprocessRunpyContainerMixin, cls).setUpClass()
 

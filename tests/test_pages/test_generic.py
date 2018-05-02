@@ -44,10 +44,11 @@ from tests.constants import (
 
 from tests.base_test_mixins import (
     SingleCourseQuizPageTestMixin, MockAddMessageMixing)
-from tests.utils import mock
+from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 from tests import factories
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                                MockAddMessageMixing, TestCase):
     @classmethod
