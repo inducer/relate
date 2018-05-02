@@ -224,12 +224,11 @@ def format_datetime_local(datetime, format='DATETIME_FORMAT'):
     """
 
     from django.utils import formats
-    from django.utils.dateformat import format as dformat
-
     try:
         return formats.date_format(datetime, format)
     except AttributeError:
         try:
+            from django.utils.dateformat import format as dformat
             return dformat(datetime, format)
         except AttributeError:
             return formats.date_format(datetime, "DATETIME_FORMAT")
@@ -324,7 +323,7 @@ class retry_transaction_decorator(object):  # noqa
 
 # {{{ hang debugging
 
-def dumpstacks(signal, frame):
+def dumpstacks(signal, frame):  # pragma: no cover
     import threading
     import sys
     import traceback

@@ -500,8 +500,6 @@ def page_analytics(pctx, flow_id, group_id, page_id):
     restrict_to_first_attempt = int(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
 
-    is_multiple_submit = is_flow_multiple_submit(flow_desc)
-
     page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
     visits = (FlowPageVisit.objects
@@ -516,6 +514,9 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                 ))
 
     if connection.features.can_distinct_on_fields:
+
+        is_multiple_submit = is_flow_multiple_submit(flow_desc)
+
         if restrict_to_first_attempt:
             visits = (visits
                     .distinct("flow_session__participation__id")

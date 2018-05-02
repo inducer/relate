@@ -64,6 +64,22 @@ $PIP install -r req.txt
 
 cp local_settings_example.py local_settings.py
 
+if [[ "$RL_TRAVIS_TEST" = "test_postgres" ]]; then
+    $PIP install psycopg2-binary
+    psql -c 'create database relate;' -U postgres
+    echo "import psycopg2.extensions" >> local_settings_example.py
+    echo "DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'USER': 'postgres',
+                'NAME': 'test_relate',
+                'OPTIONS': {
+                    'isolation_level': psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE,
+                },
+            },
+        }" >> local_settings_example.py
+fi
+
 # Make sure i18n literals marked correctly
 ${PY_EXE} manage.py makemessages --no-location --ignore=req.txt > output.txt
 
@@ -103,6 +119,9 @@ if [[ "$RL_TRAVIS_TEST" = "test_expensive" ]]; then
                                 tests.test_analytics.IsPageMultipleSubmitTest \
                                 tests.test_versioning.ParamikoSSHVendorTest \
                                 tests.test_receivers.UpdateCouresOrUserSignalTest
+
+elif [[ "$RL_TRAVIS_TEST" = "test_postgres" ]]; then
+    coverage run manage.py test tests.test_postgres
 
 else
     coverage run manage.py test tests

@@ -674,6 +674,8 @@ class GetMediaTest(SingleCourseTestMixin, TestCase):
 
 
 class GetRepoFileTestMixin(SingleCourseTestMixin):
+    force_login_student_for_each_test = True
+
     # test views.get_repo_file and  views.get_current_repo_file
     def get_repo_file_url(self, path, course_identifier=None, commit_sha=None):
         course_identifier = course_identifier or self.get_default_course_identifier()

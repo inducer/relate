@@ -352,6 +352,7 @@ class GetCustomPageTypesStopSupportDeadlineTest(unittest.TestCase):
 
 class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
                                     MockAddMessageMixing, TestCase):
+    force_login_student_for_each_test = True
 
     def setUp(self):
         super(CustomRepoPageStopSupportTest, self).setUp()

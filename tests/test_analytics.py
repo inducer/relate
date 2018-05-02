@@ -238,13 +238,15 @@ class PageAnalyticsTest(SingleCourseTestMixin, TestCase):
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
             resp = self.get_flow_page_analytics(
-                flow_id="blabla", group_id="foo", page_id="bar")
+                flow_id="blabla", group_id="foo", page_id="bar",
+                force_login_instructor=False)
             self.assertEqual(resp.status_code, 302)
 
     def test_no_pperm(self):
         # student user is logged in
         resp = self.get_flow_page_analytics(
-            flow_id="blabla", group_id="foo", page_id="bar")
+            flow_id="blabla", group_id="foo", page_id="bar",
+            force_login_instructor=False)
         self.assertEqual(resp.status_code, 403)
 
 
@@ -281,32 +283,6 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
         with cls.temporarily_switch_to_user(another_partcpt.user):
             cls.start_flow(cls.flow_id)
             cls.end_flow()
-
-    def get_flow_analytics_url(self, flow_id, course_identifier,
-                               restrict_to_first_attempt=None):
-        course_identifier = course_identifier or self.get_default_course_identifier()
-        kwargs = {
-            "flow_id": flow_id,
-            "course_identifier": course_identifier}
-        result = reverse("relate-flow_analytics", kwargs=kwargs)
-        if restrict_to_first_attempt:
-            result += "?restrict_to_first_attempt=%s" % restrict_to_first_attempt
-        return result
-
-    def get_flow_analytics_view(self, flow_id, course_identifier=None,
-                                restrict_to_first_attempt=None,
-                                force_login_instructor=True):
-        course_identifier = course_identifier or self.get_default_course_identifier()
-        if not force_login_instructor:
-            user = self.get_logged_in_user()
-        else:
-            user = self.instructor_participation.user
-
-        with self.temporarily_switch_to_user(user):
-            return self.c.get(
-                self.get_flow_analytics_url(
-                    flow_id, course_identifier=course_identifier,
-                    restrict_to_first_attempt=restrict_to_first_attempt))
 
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
