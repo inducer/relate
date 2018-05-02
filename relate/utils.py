@@ -324,7 +324,7 @@ class retry_transaction_decorator(object):  # noqa
 
 # {{{ hang debugging
 
-def dumpstacks(signal, frame):
+def dumpstacks(signal, frame):  # pragma: no cover
     import threading
     import sys
     import traceback

@@ -166,6 +166,17 @@ def reload_urlconf(urlconf=None):
         import_module(urlconf)
 
 
+def _is_connection_psql():
+    from django.db import connection
+    return connection.vendor == 'postgresql'
+
+
+is_connection_psql = _is_connection_psql()
+
+
+SKIP_NON_PSQL_REASON = "PostgreSQL specific SQL used"
+
+
 def may_run_expensive_tests():
     if six.PY2:
         return False

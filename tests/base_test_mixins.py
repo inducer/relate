@@ -916,6 +916,24 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-view_grades_by_opportunity",
                                   kwargs=kwargs)
 
+    def view_participant_grades_url(self, participation_id, course_identifier=None):
+        course_identifier = (
+            course_identifier or self.get_default_course_identifier())
+        kwargs = {"course_identifier": course_identifier}
+
+        if participation_id is not None:
+            kwargs["participation_id"] = participation_id
+
+        return reverse("relate-view_participant_grades", kwargs=kwargs)
+
+    def get_view_participant_grades(self, participation_id, course_identifier=None):
+        return self.c.get(self.view_participant_grades_url(
+            participation_id, course_identifier))
+
+    def get_view_my_grades(self, course_identifier=None):
+        return self.c.get(self.view_participant_grades_url(
+            participation_id=None, course_identifier=course_identifier))
+
     @classmethod
     def get_gradebook_by_opp_url(
             cls, gopp_identifier, view_page_grades=False, course_identifier=None):
@@ -1603,8 +1621,9 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         )
 
     @classmethod
-    def get_flow_page_analytics(cls, flow_id, group_id, page_id,
-                                course_identifier=None):
+    def get_flow_page_analytics_url(cls, flow_id, group_id, page_id,
+                                    course_identifier=None,
+                                    restrict_to_first_attempt=False):
         if course_identifier is None:
             course_identifier = cls.get_default_course_identifier()
 
@@ -1613,7 +1632,29 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                   "group_id": group_id,
                   "page_id": page_id}
 
-        return cls.c.get(reverse("relate-page_analytics", kwargs=params))
+        url = reverse("relate-page_analytics", kwargs=params)
+        if restrict_to_first_attempt:
+            url += "?restrict_to_first_attempt=1"
+
+        return url
+
+    @classmethod
+    def get_flow_page_analytics(cls, flow_id, group_id, page_id,
+                                course_identifier=None,
+                                force_login_instructor=True,
+                                restrict_to_first_attempt=False):
+
+        course_identifier = course_identifier or cls.get_default_course_identifier()
+        url = cls.get_flow_page_analytics_url(
+            flow_id, group_id, page_id, course_identifier, restrict_to_first_attempt)
+
+        if not force_login_instructor:
+            user = cls.get_logged_in_user()
+        else:
+            user = cls.instructor_participation.user
+
+        with cls.temporarily_switch_to_user(user):
+            return cls.c.get(url)
 
     # {{{ hack getting session rules
 
@@ -1696,27 +1737,6 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     # }}}
 
-    # {{{ grades view
-    def view_participant_grades_url(self, participation_id, course_identifier=None):
-        course_identifier = (
-            course_identifier or self.get_default_course_identifier())
-        kwargs = {"course_identifier": course_identifier}
-
-        if participation_id is not None:
-            kwargs["participation_id"] = participation_id
-
-        return reverse("relate-view_participant_grades", kwargs=kwargs)
-
-    def get_view_participant_grades(self, participation_id, course_identifier=None):
-        return self.c.get(self.view_participant_grades_url(
-            participation_id, course_identifier))
-
-    def get_view_my_grades(self, course_identifier=None):
-        return self.c.get(self.view_participant_grades_url(
-            participation_id=None, course_identifier=course_identifier))
-
-    # }}}
-
     def get_form_submit_inputs(self, form):
         from crispy_forms.layout import Submit
         inputs = [
@@ -1726,6 +1746,32 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         names = list(dict(inputs).keys())
         values = list(dict(inputs).values())
         return names, values
+
+    def get_flow_analytics_url(self, flow_id, course_identifier,
+                               restrict_to_first_attempt=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        kwargs = {
+            "flow_id": flow_id,
+            "course_identifier": course_identifier}
+        result = reverse("relate-flow_analytics", kwargs=kwargs)
+        if restrict_to_first_attempt:
+            result += "?restrict_to_first_attempt=%s" % restrict_to_first_attempt
+        return result
+
+    def get_flow_analytics_view(self, flow_id, course_identifier=None,
+                                restrict_to_first_attempt=None,
+                                force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+
+        with self.temporarily_switch_to_user(user):
+            return self.c.get(
+                self.get_flow_analytics_url(
+                    flow_id, course_identifier=course_identifier,
+                    restrict_to_first_attempt=restrict_to_first_attempt))
 
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
