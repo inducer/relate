@@ -244,11 +244,11 @@ def view_page_sandbox(pctx):
         new_page_source = None
 
         if edit_form.is_valid():
+            form_content = edit_form.cleaned_data["content"]
             try:
                 from pytools.py_codegen import remove_common_indentation
                 new_page_source = remove_common_indentation(
-                        edit_form.cleaned_data["content"],
-                        require_leading_newline=False)
+                        form_content, require_leading_newline=False)
                 from course.content import expand_yaml_macros
                 new_page_source = expand_yaml_macros(
                         pctx.repo, pctx.course_commit_sha, new_page_source)
@@ -282,9 +282,10 @@ def view_page_sandbox(pctx):
 
             else:
                 # Yay, it did validate.
-                request.session[page_session_key] = page_source = new_page_source
+                request.session[page_session_key] = page_source = form_content
 
             del new_page_source
+            del form_content
 
         edit_form = make_form(pctx.request.POST)
 
