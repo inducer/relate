@@ -135,11 +135,8 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertEqual(self.c.session["impersonate_id"],
                              self.student_participation.user.pk)
 
-            resp = self.get_stop_impersonate()
-            self.assertEqual(resp.status_code, 200)
-
             # stop_impersonating
-            resp = self.post_stop_impersonate()
+            self.post_stop_impersonate()
             self.assertIsNone(self.c.session.get("impersonate_id"))
             self.assertAddMessageCalledWith(NO_LONGER_IMPERSONATING_MESSAGE)
 
@@ -201,9 +198,6 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertAddMessageCalledWith(ALREADY_IMPERSONATING_SOMEONE_MESSAGE)
             self.assertEqual(self.c.session["impersonate_id"],
                              self.ta_participation.user.pk)
-
-            resp = self.get_stop_impersonate()
-            self.assertEqual(resp.status_code, 200)
 
             # stop_impersonating
             resp = self.post_stop_impersonate()
@@ -278,6 +272,42 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertTrue(second_visit.is_impersonated())
             self.assertEqual(second_visit.impersonated_by,
                              self.ta_participation.user)
+
+    def test_stop_impersonate_by_get_or_non_ajax_post_while_not_impersonating(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            # request by get
+            resp = self.get_stop_impersonate()
+            self.assertEqual(resp.status_code, 403)
+
+            # post not using ajax
+            resp = self.post_stop_impersonate(using_ajax=False)
+            self.assertEqual(resp.status_code, 403)
+
+    def test_stop_impersonate_by_get_or_non_ajax_post_while_impersonating(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            # first impersonate a user
+            self.post_impersonate_view(
+                impersonatee=self.student_participation.user)
+
+            # request by get
+            resp = self.get_stop_impersonate()
+            self.assertEqual(resp.status_code, 403)
+            self.assertIsNotNone(self.c.session.get("impersonate_id"))
+
+            # post not using ajax
+            resp = self.post_stop_impersonate(using_ajax=False)
+            self.assertEqual(resp.status_code, 403)
+            self.assertIsNotNone(self.c.session.get("impersonate_id"))
+
+    def test_stop_impersonate_suspicious_post(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            # first impersonate a user
+            self.post_impersonate_view(
+                impersonatee=self.student_participation.user)
+
+            resp = self.post_stop_impersonate(data={"foo": "bar"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIsNotNone(self.c.session.get("impersonate_id"))
 
     # {{{ ImpersonateForm select2 result test
 
