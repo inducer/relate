@@ -870,9 +870,52 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
         self.assertEqual(
             self.mock_recalculate_ended_sessions.call_count, 0)
 
-    def test_get(self):
+    def test_get_flow_status(self):
+        factories.FlowSessionFactory(participation=self.student_participation,
+                                     in_progress=True, page_count=13)
+
+        # There're 3 participations, student has 2 finished session,
+        # 1 in-progress session
+
+        not_started = '<span class="label label-danger">not started</span>'
+        finished = '<span class="label label-success">finished</span>'
+        unfinished = '<span class="label label-warning">unfinished</span>'
+
         resp = self.get_gradebook_by_opp_view(self.gopp_id)
         self.assertEqual(resp.status_code, 200)
+        # The instructor and ta didn't start the session
+        self.assertContains(resp, not_started, count=2, html=True)
+
+        self.assertContains(resp, finished, count=2, html=True)
+        self.assertContains(resp, unfinished, count=1, html=True)
+
+        resp = self.get_gradebook_by_opp_view(self.gopp_id, view_page_grades=True)
+        self.assertEqual(resp.status_code, 200)
+
+        # The student_participation has 2 session in setUp
+        self.assertContains(resp, finished, count=2, html=True)
+        self.assertContains(resp, unfinished, count=1, html=True)
+
+        # no "not started" when view_page_grades
+        self.assertContains(resp, not_started, count=0, html=True)
+
+        # remove all flow sessions
+        for fs in models.FlowSession.objects.all():
+            fs.delete()
+
+        resp = self.get_gradebook_by_opp_view(self.gopp_id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, not_started, count=3, html=True)
+        self.assertContains(resp, finished, count=0, html=True)
+        self.assertContains(resp, unfinished, count=0, html=True)
+
+        resp = self.get_gradebook_by_opp_view(self.gopp_id, view_page_grades=True)
+        self.assertEqual(resp.status_code, 200)
+
+        # no "not started" when view_page_grades
+        self.assertContains(resp, not_started, count=0, html=True)
+        self.assertContains(resp, finished, count=0, html=True)
+        self.assertContains(resp, unfinished, count=0, html=True)
 
     def test_get_with_multiple_flow_sessions(self):
         factories.FlowSessionFactory(
