@@ -138,7 +138,7 @@ class IssueTicketForm(StyledForm):
                     _("Issue ticket")))
 
 
-@permission_required("course.can_issue_exam_tickets")
+@permission_required("course.can_issue_exam_tickets", raise_exception=True)
 def issue_exam_ticket(request):
     now_datetime = get_now_or_fake_time(request)
 

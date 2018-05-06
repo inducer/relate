@@ -31,7 +31,6 @@ import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import ugettext as _
-from django.utils import translation
 from django.conf import settings
 
 from relate.utils import StyledForm, string_concat
@@ -76,6 +75,7 @@ class PythonCodeForm(StyledForm):
 
 
 RUNPY_PORT = 9941
+DOCKER_TIMEOUT = 15
 
 
 class InvalidPingResponse(RuntimeError):
@@ -98,8 +98,6 @@ def request_python_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    docker_timeout = 15
-
     if SPAWN_CONTAINERS_FOR_RUNPY:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
@@ -108,7 +106,7 @@ def request_python_run(run_req, run_timeout, image=None):
         docker_cnx = docker.Client(
                 base_url=docker_url,
                 tls=docker_tls,
-                timeout=docker_timeout,
+                timeout=DOCKER_TIMEOUT,
                 version="1.19")
 
         if image is None:
@@ -160,7 +158,7 @@ def request_python_run(run_req, run_timeout, image=None):
         from traceback import format_exc
 
         def check_timeout():
-                if time() - start_time < docker_timeout:
+                if time() - start_time < DOCKER_TIMEOUT:
                     sleep(0.1)
                     # and retry
                 else:
@@ -258,16 +256,15 @@ def is_nuisance_failure(result):
     if result["result"] != "uncaught_error":
         return False
 
-    if ("traceback" in result
-            and "BadStatusLine" in result["traceback"]):
-
-        # Occasionally, we fail to send a POST to the container, even after
-        # the inital ping GET succeeded, for (for now) mysterious reasons.
-        # Just try again.
-
-        return True
-
     if "traceback" in result:
+        if "BadStatusLine" in result["traceback"]:
+
+            # Occasionally, we fail to send a POST to the container, even after
+            # the inital ping GET succeeded, for (for now) mysterious reasons.
+            # Just try again.
+
+            return True
+
         if "bind: address already in use" in result["traceback"]:
             # https://github.com/docker/docker/issues/8714
 
@@ -278,6 +275,9 @@ def is_nuisance_failure(result):
             return True
 
         if "http.client.RemoteDisconnected" in result["traceback"]:
+            return True
+
+        if "[Errno 113] No route to host" in result["traceback"]:
             return True
 
     return False
@@ -482,8 +482,11 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     from course.content import get_repo_blob
                     get_repo_blob(vctx.repo, data_file, vctx.commit_sha)
                 except ObjectDoesNotExist:
-                    raise ValidationError("%s: data file '%s' not found"
-                            % (location, data_file))
+                    raise ValidationError(
+                        string_concat(
+                            "%(location)s: ",
+                            _("data file '%(file)s' not found"))
+                        % {"location": location, "file": data_file})
 
         if not getattr(page_desc, "single_submission", False) and vctx is not None:
             is_multi_submit = False
@@ -612,8 +615,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         transfer_attr("names_for_user")
         transfer_attr("names_from_user")
 
-        if hasattr(self.page_desc, "test_code"):
-            run_req["test_code"] = self.get_test_code()
+        run_req["test_code"] = self.get_test_code()
 
         if hasattr(self.page_desc, "data_files"):
             run_req["data_files"] = {}
@@ -643,6 +645,21 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         feedback_bits = []
 
+        correctness = None
+
+        if "points" in response_dict:
+            correctness = response_dict["points"]
+            try:
+                feedback_bits.append(
+                        "<p><b>%s</b></p>"
+                        % _(get_auto_feedback(correctness)))
+            except Exception as e:
+                correctness = None
+                response_dict["result"] = "setup_error"
+                response_dict["message"] = (
+                    "%s: %s" % (type(e).__name__, str(e))
+                )
+
         # {{{ send email if the grading code broke
 
         if response_dict["result"] in [
@@ -669,7 +686,8 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             error_msg = "\n".join(error_msg_parts)
 
             from relate.utils import local_now, format_datetime_local
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 message = render_email_template(
                     "course/broken-code-question-email.txt", {
@@ -746,13 +764,6 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         response = dict_to_struct(response_dict)
 
         bulk_feedback_bits = []
-        if hasattr(response, "points"):
-            correctness = response.points
-            feedback_bits.append(
-                    "<p><b>%s</b></p>"
-                    % get_auto_feedback(correctness))
-        else:
-            correctness = None
 
         if response.result == "success":
             pass
@@ -914,6 +925,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     else:
                         return False
 
+                if not isinstance(s, six.text_type):
+                    return _("(Non-string in 'HTML' output filtered out)")
+
                 return bleach.clean(s,
                         tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
                         attributes={
@@ -1068,10 +1082,11 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         % location)
 
         if hasattr(self.page_desc, "human_feedback_value"):
-            self.human_feedback_percentage = \
-                self.page_desc.human_feedback_value * 100 / self.page_desc.value
+            self.human_feedback_percentage = (
+                self.page_desc.human_feedback_value * 100 / self.page_desc.value)
         else:
-            self.human_feedback_percentage = self.page_desc.human_feedback_percentage
+            self.human_feedback_percentage = (
+                self.page_desc.human_feedback_percentage)
 
     def required_attrs(self):
         return super(
@@ -1132,7 +1147,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
         human_feedback_points = None
         if grade_data is not None:
-            if grade_data["feedback_text"] is not None:
+            assert grade_data["feedback_text"] is not None
+            if grade_data["feedback_text"].strip():
                 human_feedback_text = markup_to_html(
                         page_context, grade_data["feedback_text"])
 
@@ -1146,8 +1162,8 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 and code_feedback.correctness is not None):
             code_feedback_points = code_feedback.correctness*code_points
 
-        from relate.utils import render_email_template
-        feedback = render_email_template(
+        from django.template.loader import render_to_string
+        feedback = render_to_string(
                 "course/feedback-code-with-human.html",
                 {
                     "percentage": percentage,

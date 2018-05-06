@@ -196,7 +196,7 @@ class ImpersonateForm(StyledForm):
                 queryset=qset,
                 required=True,
                 help_text=_("Select user to impersonate."),
-                widget=UserSearchWidget(),
+                widget=UserSearchWidget(queryset=qset),
                 label=_("User"))
 
         self.fields["add_impersonation_header"] = forms.BooleanField(
@@ -222,7 +222,7 @@ def impersonate(request):
     if hasattr(request, "relate_impersonate_original_user"):
         messages.add_message(request, messages.ERROR,
                 _("Already impersonating someone."))
-        return redirect("relate-stop_impersonating")
+        return redirect("relate-home")
 
     # Remove duplicate and sort
     # order_by().distinct() directly on impersonable_user_qset will not work
@@ -234,17 +234,12 @@ def impersonate(request):
         if form.is_valid():
             impersonee = form.cleaned_data["user"]
 
-            if impersonable_user_qset.filter(
-                    pk=cast(User, impersonee).pk).count():
-                request.session['impersonate_id'] = impersonee.id
-                request.session['relate_impersonation_header'] = form.cleaned_data[
-                        "add_impersonation_header"]
+            request.session['impersonate_id'] = impersonee.id
+            request.session['relate_impersonation_header'] = form.cleaned_data[
+                    "add_impersonation_header"]
 
-                # Because we'll likely no longer have access to this page.
-                return redirect("relate-home")
-            else:
-                messages.add_message(request, messages.ERROR,
-                        _("Impersonating that user is not allowed."))
+            # Because we'll likely no longer have access to this page.
+            return redirect("relate-home")
 
     else:
         form = ImpersonateForm(impersonable_qset=qset)
@@ -255,17 +250,16 @@ def impersonate(request):
         })
 
 
-class StopImpersonatingForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        super(StopImpersonatingForm, self).__init__(*args, **kwargs)
-
-        self.helper.add_input(Submit("submit", _("Stop impersonating")))
-
-
 def stop_impersonating(request):
+    # type: (http.HttpRequest) -> http.JsonResponse
+    if not request.is_ajax() or request.method != "POST":
+        raise PermissionDenied(_("only AJAX POST is allowed"))
+
     if not request.user.is_authenticated:
         raise PermissionDenied()
+
+    if "stop_impersonating" not in request.POST:
+        raise SuspiciousOperation(_("odd POST parameters"))
 
     if not hasattr(request, "relate_impersonate_original_user"):
         # prevent user without pperm to stop_impersonating
@@ -284,28 +278,16 @@ def stop_impersonating(request):
                 break
 
         if not may_impersonate:
-            raise PermissionDenied()
+            raise PermissionDenied(_("may not stop impersonating"))
 
         messages.add_message(request, messages.ERROR,
                 _("Not currently impersonating anyone."))
-        return redirect("relate-home")
+        return http.JsonResponse({})
 
-    if request.method == 'POST':
-        form = StopImpersonatingForm(request.POST)
-        if form.is_valid():
-            messages.add_message(request, messages.INFO,
-                    _("No longer impersonating anyone."))
-            del request.session['impersonate_id']
-
-            # Because otherwise the header will show stale data.
-            return redirect("relate-home")
-    else:
-        form = StopImpersonatingForm()
-
-    return render(request, "generic-form.html", {
-        "form_description": _("Stop impersonating user"),
-        "form": form
-        })
+    del request.session['impersonate_id']
+    messages.add_message(request, messages.INFO,
+            _("No longer impersonating anyone."))
+    return http.JsonResponse({"result": "success"})
 
 
 def impersonation_context_processor(request):
@@ -333,7 +315,7 @@ def make_sign_in_key(user):
 
 
 def logout_confirmation_required(
-        func, redirect_field_name=REDIRECT_FIELD_NAME,
+        func=None, redirect_field_name=REDIRECT_FIELD_NAME,
         logout_confirmation_url='relate-logout-confirmation'):
     """
     Decorator for views that checks that no user is logged in.
@@ -426,7 +408,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
             # Ensure the user-originating redirection url is safe.
             if not is_safe_url(url=redirect_to, host=request.get_host(),
                                require_https=request.is_secure()):
-                redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
+                redirect_to = resolve_url("relate-home")
 
             user = form.get_user()
 
@@ -625,9 +607,6 @@ def reset_password(request, field="email"):
                             % {"field": FIELD_DICT[field]})
                 else:
                     if not user.email:
-                        # happens when a user have an inst_id but have no email.
-                        # This is almost impossible, because the email field of
-                        # User should meet NOT NULL constraint.
                         messages.add_message(request, messages.ERROR,
                                 _("The account with that institution ID "
                                     "doesn't have an associated email."))
@@ -733,6 +712,9 @@ def reset_password_stage2(request, user_id, sign_in_key):
             from django.contrib.auth import authenticate, login
             user = authenticate(user_id=int(user_id), token=sign_in_key)
             if user is None:
+                messages.add_message(request, messages.ERROR,
+                     _("Invalid sign-in token. Perhaps you've used an old token "
+                     "email?"))
                 raise PermissionDenied(_("invalid sign-in token"))
 
             if not user.is_active:

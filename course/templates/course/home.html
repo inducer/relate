@@ -45,7 +45,7 @@
             <td><a href="{% url 'relate-course_page' course.identifier %}">{{course.number}}</a>
             <td><a href="{% url 'relate-course_page' course.identifier %}">{{course.time_period}}</a>
             <td>{{course.name}}</td>
-            <td>{{course.start_date}}{% if course.end_date %} - {{course.end_date}}{% endif %}</td>
+            <td>{% if course.start_date %}{{course.start_date}}{% endif %}{% if course.start_date or course.end_date %} - {% endif %}{% if course.end_date %}{{course.end_date}}{% endif %}</td>
           </tr>
         {% endfor %}
       </table>

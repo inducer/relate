@@ -131,7 +131,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_full_name(self, allow_blank=True, force_verbose_blank=False):
         if (not allow_blank
-                and not self.first_name or not self.last_name):
+                and (not self.first_name or not self.last_name)):
             return None
 
         def verbose_blank(s):
@@ -150,11 +150,10 @@ class User(AbstractBaseUser, PermissionsMixin):
             return '%s %s' % (
                 verbose_blank(first_name), verbose_blank(last_name))
 
-        from django.conf import settings
-        format_method = getattr(
-                settings,
-                "RELATE_USER_FULL_NAME_FORMAT_METHOD",
-                default_fullname)
+        from accounts.utils import relate_user_method_settings
+        format_method = relate_user_method_settings.custom_full_name_method
+        if format_method is None:
+            format_method = default_fullname
 
         try:
             full_name = format_method(
@@ -173,13 +172,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         def default_mask_method(user):
             return "%s%s" % (_("User"), str(user.pk))
 
-        from django.conf import settings
-        mask_method = getattr(
-                settings,
-                "RELATE_USER_PROFILE_MASK_METHOD",
-                default_mask_method)
+        from accounts.utils import relate_user_method_settings
+        mask_method = relate_user_method_settings.custom_profile_mask_method
+        if mask_method is None:
+            mask_method = default_mask_method
 
-        return str(mask_method(self)).strip()
+        # Intentionally don't fallback if it failed -- let user see the exception.
+        result = mask_method(self)
+        if not result:
+            raise RuntimeError("get_masked_profile should not None.")
+        else:
+            result = str(result).strip()
+        if not result:
+            raise RuntimeError("get_masked_profile should not return "
+                               "an empty string.")
+        return result
 
     def get_short_name(self):
         "Returns the short name for the user."
@@ -187,36 +194,21 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_email_appellation(self):
         "Return the appellation of the receiver in email."
-        from django.conf import settings
 
-        # import the user defined priority list
-        customized_priority_list = getattr(
-                settings,
-                "RELATE_EMAIL_APPELATION_PRIORITY_LIST", [])
-
-        priority_list = []
-
-        # filter out not allowd appellations in customized list
-        for e in customized_priority_list:
-            if e in ["first_name", "email", "username", "full_name"]:
-                priority_list.append(e)
-
-        # make sure the default appellations are included in case
-        # user defined appellations are not available.
-        for e in ["first_name", "email", "username"]:
-            if e not in priority_list:
-                priority_list.append(e)
+        from accounts.utils import relate_user_method_settings
+        priority_list = (
+            relate_user_method_settings.email_appellation_priority_list)
 
         for attr in priority_list:
             if attr == "full_name":
-                appellation = self.get_full_name(allow_blank=True)
+                appellation = self.get_full_name(allow_blank=False)
             else:
                 appellation = getattr(self, attr)
 
-            if appellation:
-                return appellation
-            else:
+            if not appellation:
                 continue
+
+            return appellation
 
         return _("user")
 

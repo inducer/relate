@@ -565,7 +565,7 @@ if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
     urlpatterns.extend([
         url(r'^saml2/', include('djangosaml2.urls')),
         ])
-    if settings.DEBUG:
+    if settings.DEBUG:  # pragma: no cover
         import djangosaml2.views
         urlpatterns.extend([
             # Keep commented unless debugging SAML2.

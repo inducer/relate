@@ -18,5 +18,5 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 
 @app.task(bind=True)
-def debug_task(self):
+def debug_task(self):  # pragma: no cover
     print('Request: {0!r}'.format(self.request))

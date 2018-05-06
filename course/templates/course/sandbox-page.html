@@ -7,7 +7,7 @@
 {% block title %}
   {% if title %}
     {% comment %} Translators: "[SB]" is abbreviation for "Sandbox" {% endcomment %}
-    {% blocktrans trimmed %}
+    {% blocktrans trimmed with title=title|safe %}
     [SB] {{ title }}
     {% endblocktrans %}
   {% else %}

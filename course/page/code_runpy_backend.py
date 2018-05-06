@@ -300,10 +300,6 @@ def run_code(result, run_req):
             package_exception(result, "test_error")
             return
 
-    if not (feedback.points is None or 0 <= feedback.points <= 1):
-        raise ValueError("grade point value is invalid: %s"
-                % feedback.points)
-
     result["points"] = feedback.points
     result["feedback"] = feedback.feedback_items
 

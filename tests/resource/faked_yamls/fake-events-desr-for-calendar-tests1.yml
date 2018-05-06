@@ -1,0 +1,32 @@
+event_kinds:
+    lecture:
+        title: Lecture {nr}
+
+    exam:
+        title: Exam {nr}
+        color: red
+
+    test:
+        foo: bar
+
+
+events:
+    "lecture 1":
+        title: "Alternative title for lecture 1"
+        color: red
+        description: |
+            *Pre-lecture material:* [Linear algebra pre-quiz](flow:prequiz-linear-algebra) (not for credit)
+
+            * What is Scientific Computing?
+            * Python intro
+
+    "lecture 2":
+        description: "Can you see this?"
+        show_description_from: lecture 2
+        show_description_until: lecture 3
+
+
+    "test":
+        no_description: no description to show
+        show_description_from: lecture 2
+        show_description_until: lecture 3

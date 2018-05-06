@@ -24,19 +24,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import re
+import unittest
 import datetime
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
+from django.utils.formats import date_format, get_format
+from django.utils.dateformat import format
 from django.utils.translation import ugettext_lazy as _
+from django.core.management import CommandError
 
 from course.models import Course
 from course.views import EditCourseForm
 from course.versioning import CourseCreationForm
+from relate.utils import (
+    is_maintenance_mode, render_email_template, get_outbound_mail_connection,
+    format_datetime_local)
+
+from manage import get_local_test_settings_file
 
 from tests.base_test_mixins import SingleCourseTestMixin
 from tests.utils import LocmemBackendTestsMixin, mail, mock
-from tests.test_views import DATE_TIME_PICKER_TIME_FORMAT
+from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.test_utils import (
     REAL_TRANSLATION_FUNCTION_TO_MOCK, real_trans_side_effect)
 
@@ -264,6 +274,145 @@ class CourseSpecificLangFormTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(Course.objects.count(), expected_course_count)
 
 
+class GetCurrentLanguageJsLangNameTest(TestCase):
+    def setUp(self):
+        super(GetCurrentLanguageJsLangNameTest, self).setUp()
+
+        from django.template.utils import EngineHandler
+        self.engines = EngineHandler()
+
+    def test_get_current_js_lang_name_tag(self):
+        with override_settings(LANGUAGE_CODE="en-us"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "en-US")
+
+        with override_settings(LANGUAGE_CODE="de"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "de")
+
+        with override_settings(LANGUAGE_CODE="zh-hans"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "zh-Hans")
+
+        with override_settings(LANGUAGE_CODE="zh-hant"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}{{LANG}}")
+            text = template.render()
+            self.assertEqual(text, "zh-Hant")
+
+    def test_get_current_js_lang_name_tag_failed(self):
+        from django.template import TemplateSyntaxError
+        msg = ("'get_current_js_lang_name' requires 'as variable' "
+               "(got [u'get_current_js_lang_name'])")
+
+        if six.PY3:
+            msg = msg.replace("u'", "'")
+
+        with self.assertRaisesMessage(TemplateSyntaxError, expected_message=msg):
+            self.engines["django"].from_string(
+                "{% get_current_js_lang_name %}")
+
+        msg = ("'get_current_js_lang_name' requires 'as variable' "
+               "(got [u'get_current_js_lang_name', u'AS', u'LANG'])")
+
+        if six.PY3:
+            msg = msg.replace("u'", "'")
+
+        with self.assertRaisesMessage(TemplateSyntaxError, expected_message=msg):
+            self.engines["django"].from_string(
+                "{% get_current_js_lang_name AS LANG %}{{LANG}}")
+
+    def test_js_lang_fallback(self):
+        with override_settings(LANGUAGE_CODE="en-us"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback}}")
+            text = template.render()
+            self.assertEqual(text, "en-US")
+
+        with override_settings(LANGUAGE_CODE="en-us"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback:'fullcalendar'}}")
+            text = template.render()
+            self.assertEqual(text, "en-us")
+
+        with override_settings(LANGUAGE_CODE="zh-cn"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback:'fullcalendar'}}")
+            text = template.render()
+            self.assertEqual(text, "zh-cn")
+
+        with override_settings(LANGUAGE_CODE="zh-cn"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback}}")
+            text = template.render()
+            self.assertEqual(text, "zh-CN")
+
+        with override_settings(LANGUAGE_CODE="zh-hans"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback}}")
+            text = template.render()
+            self.assertEqual(text, "zh-Hans")
+
+        with override_settings(LANGUAGE_CODE="zh-hans"):
+            template = self.engines["django"].from_string(
+                "{% get_current_js_lang_name as LANG %}"
+                "{{LANG|js_lang_fallback:'fullcalendar'}}")
+            text = template.render()
+            self.assertEqual(text, "zh-cn")
+
+
+class HasPermissionTemplateFilterTest(SingleCourseTestMixin, TestCase):
+    def setUp(self):
+        super(HasPermissionTemplateFilterTest, self).setUp()
+
+        from django.template.utils import EngineHandler
+        self.engines = EngineHandler()
+
+    def test_has_permission_with_no_arg(self):
+        template = self.engines["django"].from_string(
+            "{% if participation|has_permission:'view_gradebook' %}"
+            "YES{% else %}NO{% endif %}")
+        text = template.render({"participation": self.student_participation})
+        self.assertEqual(text, "NO")
+
+    def test_has_permission_with_arg(self):
+        # with spaces in filter value
+        template = self.engines["django"].from_string(
+            "{% if participation|has_permission:'access_files_for , student ' %}"
+            "YES{% else %}NO{% endif %}")
+        text = template.render({"participation": self.student_participation})
+        self.assertEqual(text, "YES")
+
+        # with no spaces in filter value
+        template = self.engines["django"].from_string(
+            "{% if participation|has_permission:'access_files_for,student' %}"
+            "YES{% else %}NO{% endif %}")
+        text = template.render({"participation": self.student_participation})
+        self.assertEqual(text, "YES")
+
+    def test_has_permission_fail_silently(self):
+        with mock.patch(
+                "course.models.Participation.has_permission") as mock_has_pperm:
+            mock_has_pperm.side_effect = RuntimeError
+
+            template = self.engines["django"].from_string(
+                "{% if participation|has_permission:'access_files_for,public' %}"
+                "YES{% else %}NO{% endif %}")
+            text = template.render({"participation": self.student_participation})
+            self.assertEqual(text, "NO")
+
+
 class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCase):
     def setUp(self):
         super(RelateSiteNameTest, self).setUp()
@@ -311,7 +460,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
                 mock_gettext.return_value = "foo"
                 with self.temporarily_switch_to_user(None):
                     resp = self.post_sign_up(
-                        data={"username": "Jack", "email": "jack@exmaple.com"},
+                        data={"username": "Jack", "email": "jack@example.com"},
                         follow=False
                     )
                     self.assertTrue(resp.status_code, 200)
@@ -332,5 +481,143 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
     @override_settings(RELATE_SITE_NAME="My RELATE")
     def test_custom_configure(self):
         self.verify_result_with_configure("My RELATE")
+
+
+class MaintenanceModeTest(SingleCourseTestMixin, TestCase):
+    """test relate.utils.is_maintenance_mode"""
+    def setUp(self):
+        rf = RequestFactory()
+        self.request = rf.get("/")
+
+    def test_is(self):
+        with override_settings(RELATE_MAINTENANCE_MODE=True):
+            self.assertTrue(is_maintenance_mode(self.request))
+            self.c.get("/")
+            self.assertTemplateUsed("maintenance.html")
+
+    def test_exceptions(self):
+        with override_settings(
+                RELATE_MAINTENANCE_MODE=True,
+                RELATE_MAINTENANCE_MODE_EXCEPTIONS=[
+                    "192.168.1.1", "127.0.0.1"]):
+            mata = self.request.META
+            mata["REMOTE_ADDR"] = "192.168.1.1"
+
+            self.assertFalse(is_maintenance_mode(self.request))
+            self.c.get("/")
+            self.assertTemplateNotUsed("maintenance.html")
+
+
+class RenderEmailTemplateTest(unittest.TestCase):
+    """test relate.utils.render_email_template, for not covered"""
+    def test_context_is_none(self):
+        with mock.patch(
+                "django.template.loader.render_to_string") as mock_render_to_string:
+            render_email_template("abcd", context=None)
+            self.assertDictEqual(mock_render_to_string.call_args[0][1],
+                                 {'relate_site_name': 'RELATE'})
+
+
+class GetOutboundMailConnectionTest(unittest.TestCase):
+    """test relate.utils.get_outbound_mail_connection, for not covered"""
+
+    def test_label_is_none(self):
+        # simply make sure it worked
+        from django.core.mail.backends.base import BaseEmailBackend
+        self.assertIsInstance(
+            get_outbound_mail_connection(None), BaseEmailBackend)
+
+
+# {{{ test relate.utils.format_datetime_local
+
+def date_format_side_effect(value, format=None, use_l10n=None):
+    """mock django.utils.formats.date_format"""
+    if format == "foo":
+        raise AttributeError
+    else:
+        return date_format(value, format, use_l10n)
+
+
+def format_side_effectformat(value, format_string):
+    """mock django.utils.dateformat.format"""
+    if format_string == "foo":
+        raise AttributeError
+    else:
+        return format(value, format_string)
+
+
+class FormatDatetimeLocalTest(unittest.TestCase):
+    """test relate.utils.format_datetime_local"""
+
+    def test_success(self):
+        dtime = datetime.datetime(2019, 1, 1)
+        format_str = "SHORT_DATETIME_FORMAT"
+        self.assertEqual(
+            format_datetime_local(dtime, format=format_str),
+            date_format(dtime, format=format_str))
+
+    def test_attribute_error1(self):
+        dtime = datetime.datetime(2019, 1, 1)
+        with mock.patch("django.utils.formats.date_format") as mock_date_format:
+            mock_date_format.side_effect = date_format_side_effect
+            result = format_datetime_local(
+                dtime, format="foo")
+        self.assertEqual(
+            result, date_format(dtime, format="foo"))
+
+    def test_attribute_error2(self):
+        dtime = datetime.datetime(2019, 1, 1)
+        with mock.patch(
+                "django.utils.formats.date_format"
+        ) as mock_date_format, mock.patch(
+            "django.utils.dateformat.format"
+        ) as mock_format:
+            mock_date_format.side_effect = date_format_side_effect
+            mock_format.side_effect = format_side_effectformat
+            result = format_datetime_local(
+                dtime, format="foo")
+        self.assertEqual(
+            result, date_format(dtime, format=get_format("DATETIME_FORMAT")))
+
+# }}}
+
+
+class GetLocalTestSettingsFileTest(unittest.TestCase):
+    """test manage.get_local_test_settings_file"""
+
+    def test_use_default_local_settings_example(self):
+        self.assertEqual(get_local_test_settings_file(
+                ["manage.py", "test", "foo"]), "local_settings_example.py")
+
+    def test_error_use_local_settings(self):
+        """test error when use local_settings.py as test settings"""
+        with self.assertRaises(CommandError) as cm:
+            get_local_test_settings_file(
+                ["manage.py", "test", "--local_test_settings",
+                 "local_settings.py"])
+
+        self.assertIn(
+            "Using production local_settings for tests is not "
+            "allowed due to security reason.", str(cm.exception))
+
+    def test_error_local_test_setting_file_does_not_exist(self):
+        """test error when use local_settings.py as test settings"""
+        invalid_file = "foo/local_test_settings.py"
+        with self.assertRaises(CommandError) as cm:
+            get_local_test_settings_file(
+                ["manage.py", "test", "--local_test_settings",
+                 invalid_file])
+
+        self.assertIn(
+            "file '%s' does not exist" % invalid_file, str(cm.exception))
+
+    def test_custom_local_test_setting_file(self):
+        settings_file = "foo/local_test_settings.py"
+        with mock.patch("os.path.isfile") as mock_is_file:
+            mock_is_file.return_value = True
+            self.assertEqual(get_local_test_settings_file(
+                    ["manage.py", "test", "foo",
+                     "--local_test_settings", settings_file]),
+                settings_file)
 
 # vim: foldmethod=marker

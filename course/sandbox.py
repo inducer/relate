@@ -92,8 +92,7 @@ class SandboxForm(forms.Form):
 
         # 'strip' attribute was added to CharField in Django 1.9
         # with 'True' as default value.
-        if hasattr(self.fields["content"], "strip"):
-            self.fields["content"].strip = False
+        self.fields["content"].strip = False
 
         self.helper.add_input(
                 Submit("preview", _("Preview"), accesskey="p"),
@@ -215,15 +214,15 @@ def view_page_sandbox(pctx):
     from relate.utils import dict_to_struct, Struct
     import yaml
 
-    PAGE_SESSION_KEY = make_sandbox_session_key(  # noqa
+    page_session_key = make_sandbox_session_key(
         PAGE_SESSION_KEY_PREFIX, pctx.course.identifier)
-    ANSWER_DATA_SESSION_KEY = make_sandbox_session_key(  # noqa
+    answer_data_session_key = make_sandbox_session_key(
         ANSWER_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
-    PAGE_DATA_SESSION_KEY = make_sandbox_session_key(  # noqa
+    page_data_session_key = make_sandbox_session_key(
         PAGE_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
 
     request = pctx.request
-    page_source = pctx.request.session.get(PAGE_SESSION_KEY)
+    page_source = pctx.request.session.get(page_session_key)
 
     page_errors = None
     page_warnings = None
@@ -245,16 +244,16 @@ def view_page_sandbox(pctx):
         new_page_source = None
 
         if edit_form.is_valid():
+            form_content = edit_form.cleaned_data["content"]
             try:
                 from pytools.py_codegen import remove_common_indentation
                 new_page_source = remove_common_indentation(
-                        edit_form.cleaned_data["content"],
-                        require_leading_newline=False)
+                        form_content, require_leading_newline=False)
                 from course.content import expand_yaml_macros
                 new_page_source = expand_yaml_macros(
                         pctx.repo, pctx.course_commit_sha, new_page_source)
 
-                yaml_data = yaml.load(new_page_source)  # type: ignore
+                yaml_data = yaml.safe_load(new_page_source)  # type: ignore
                 page_desc = dict_to_struct(yaml_data)
 
                 if not isinstance(page_desc, Struct):
@@ -283,26 +282,27 @@ def view_page_sandbox(pctx):
 
             else:
                 # Yay, it did validate.
-                request.session[PAGE_SESSION_KEY] = page_source = new_page_source
+                request.session[page_session_key] = page_source = form_content
 
             del new_page_source
+            del form_content
 
         edit_form = make_form(pctx.request.POST)
 
     elif is_clear_post:
         page_source = None
-        pctx.request.session[PAGE_DATA_SESSION_KEY] = None
-        pctx.request.session[ANSWER_DATA_SESSION_KEY] = None
-        del pctx.request.session[PAGE_DATA_SESSION_KEY]
-        del pctx.request.session[ANSWER_DATA_SESSION_KEY]
+        pctx.request.session[page_data_session_key] = None
+        pctx.request.session[answer_data_session_key] = None
+        del pctx.request.session[page_data_session_key]
+        del pctx.request.session[answer_data_session_key]
         edit_form = make_form()
 
     elif is_clear_response_post:
         page_source = None
-        pctx.request.session[PAGE_DATA_SESSION_KEY] = None
-        pctx.request.session[ANSWER_DATA_SESSION_KEY] = None
-        del pctx.request.session[PAGE_DATA_SESSION_KEY]
-        del pctx.request.session[ANSWER_DATA_SESSION_KEY]
+        pctx.request.session[page_data_session_key] = None
+        pctx.request.session[answer_data_session_key] = None
+        del pctx.request.session[page_data_session_key]
+        del pctx.request.session[answer_data_session_key]
         edit_form = make_form(pctx.request.POST)
 
     else:
@@ -310,7 +310,7 @@ def view_page_sandbox(pctx):
 
     have_valid_page = page_source is not None
     if have_valid_page:
-        yaml_data = yaml.load(page_source)  # type: ignore
+        yaml_data = yaml.safe_load(page_source)  # type: ignore
         page_desc = cast(FlowPageDesc, dict_to_struct(yaml_data))
 
         from course.content import instantiate_flow_page
@@ -333,10 +333,10 @@ def view_page_sandbox(pctx):
 
         # Try to recover page_data, answer_data
         page_data = get_sandbox_data_for_page(
-                pctx, page_desc, PAGE_DATA_SESSION_KEY)
+                pctx, page_desc, page_data_session_key)
 
         answer_data = get_sandbox_data_for_page(
-                pctx, page_desc, ANSWER_DATA_SESSION_KEY)
+                pctx, page_desc, answer_data_session_key)
 
         from course.models import FlowSession
         from course.page import PageContext
@@ -354,7 +354,7 @@ def view_page_sandbox(pctx):
 
         if page_data is None:
             page_data = page.initialize_page_data(page_context)
-            pctx.request.session[PAGE_DATA_SESSION_KEY] = (
+            pctx.request.session[page_data_session_key] = (
                     page_desc.type, page_desc.id, page_data)
 
         title = page.title(page_context, page_data)
@@ -383,7 +383,7 @@ def view_page_sandbox(pctx):
                     feedback = page.grade(page_context, page_data, answer_data,
                             grade_data=None)
 
-                    pctx.request.session[ANSWER_DATA_SESSION_KEY] = (
+                    pctx.request.session[answer_data_session_key] = (
                             page_desc.type, page_desc.id, answer_data)
 
             else:
@@ -401,7 +401,6 @@ def view_page_sandbox(pctx):
                             + ": "
                             + "%(err_type)s: %(err_str)s" % {
                                 "err_type": tp.__name__, "err_str": e})  # type: ignore  # noqa: E501
-                    have_valid_page = False
 
                     page_form = None
 
@@ -417,12 +416,14 @@ def view_page_sandbox(pctx):
                 page_context, page_data, answer_data,
                 grade_data=None)
 
+        have_valid_page = have_valid_page and not page_errors
+
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
             "page_errors": page_errors,
             "page_warnings": page_warnings,
             "form": edit_form,  # to placate form.media
-            "have_valid_page": True,
+            "have_valid_page": have_valid_page,
             "title": title,
             "body": body,
             "page_form_html": page_form_html,
@@ -435,7 +436,7 @@ def view_page_sandbox(pctx):
         return render_course_page(pctx, "course/sandbox-page.html", {
             "edit_form": edit_form,
             "form": edit_form,  # to placate form.media
-            "have_valid_page": False,
+            "have_valid_page": have_valid_page,
             "page_errors": page_errors,
             "page_warnings": page_warnings,
         })

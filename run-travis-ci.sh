@@ -1,19 +1,21 @@
 #! /bin/bash
 
 # before_script
-if [[ $Flake8 == true ]]; then
+if [[ $RL_TRAVIS_TEST == flake8 ]]; then
   curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
 fi
 
-if [[ $Mypy == true ]]; then
+if [[ $RL_TRAVIS_TEST == mypy ]]; then
   curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
 fi
 
 # run ci according to env variables
-if [[ $PY == true ]]; then
+if [[ $RL_TRAVIS_TEST == test* ]]; then
   . ./run-tests-for-ci.sh
-elif [[ $Mypy == true ]]; then
+elif [[ $RL_TRAVIS_TEST == cmdline ]]; then
+  . ./test-command-line-tool.sh python3.6
+elif [[ $RL_TRAVIS_TEST == mypy ]]; then
   . ./prepare-and-run-mypy.sh python3.6 mypy==0.560
-elif [[ $Flake8 == true ]]; then
+elif [[ $RL_TRAVIS_TEST == flake8 ]]; then
   . ./prepare-and-run-flake8.sh relate course accounts tests bin
 fi

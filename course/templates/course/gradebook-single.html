@@ -51,7 +51,7 @@
       <td>
         {% if avg_grade_percentage != None %}
           {# Translators: average grade of a flow, format "10% (out of 5 grades)" #}
-          {% blocktrans trimmed with avg_grade_percentage=avg_grade_percentage|floatformat %}
+          {% blocktrans trimmed with avg_grade_percentage=avg_grade_percentage|floatformat:"-2" %}
           {{ avg_grade_percentage }}%
           (out of {{ avg_grade_population }} grades)
           {% endblocktrans %}
@@ -89,7 +89,7 @@
             {% if gchange.is_superseded %}<s>{% endif %}
             <span class="sensitive">
             {% if gchange.points != None %}
-              {% blocktrans trimmed with points=gchange.points|floatformat:1 max_points=gchange.max_points|floatformat:1 percentage=gchange.percentage|floatformat:1 %}
+              {% blocktrans trimmed with points=gchange.points|floatformat:"-2" max_points=gchange.max_points|floatformat:"-2" percentage=gchange.percentage|floatformat:"-2" %}
               {{ points }}/{{ max_points }}
               points
               ({{ percentage }}%)
@@ -196,13 +196,13 @@
                 <span class="sensitive">
                 {% if flow_session.max_points != None %}
                   {% if flow_session.points != None %}
-                    <b>{{ flow_session.points|floatformat:1 }}</b>
+                    <b>{{ flow_session.points|floatformat:"-2" }}</b>
                     /
-                    {{ flow_session.max_points|floatformat:1 }}
+                    {{ flow_session.max_points|floatformat:"-2" }}
 
-                    (<b>{{ flow_session.points_percentage|floatformat }}%</b>)
+                    (<b>{{ flow_session.points_percentage|floatformat:"-2" }}%</b>)
                   {% else %}
-                    {% blocktrans trimmed with max_points=flow_session.max_points|floatformat:1 %}
+                    {% blocktrans trimmed with max_points=flow_session.max_points|floatformat:"-2" %}
                     (grade not available)
                     ({{ max_points }} points achievable)
                     {% endblocktrans %}
@@ -244,15 +244,15 @@
                                 {% if visit.page_data.bookmarked %}
                                   <i class="fa fa-star" aria-hidden="true"></i>
                                 {% endif %}
-                                {{ visit.page_data.title }}
+                                {{ visit.page_data.title|safe }}
                               {% else %}
                                 {{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}
                               {% endif %}
                             {% endif %}
                           </td>
                           {% if visit.get_most_recent_grade != None and visit.get_most_recent_grade.value != None %}
-                            <td><span class="sensitive">{{ visit.get_most_recent_grade.percentage|floatformat:1 }}%</span></td>
-                            <td><span class="sensitive">{{ visit.get_most_recent_grade.value|floatformat:1 }}/{{ visit.get_most_recent_grade.max_points }}</span></td>
+                            <td><span class="sensitive">{{ visit.get_most_recent_grade.percentage|floatformat:"-2" }}%</span></td>
+                            <td><span class="sensitive">{{ visit.get_most_recent_grade.value|floatformat:"-2" }}/{{ visit.get_most_recent_grade.max_points }}</span></td>
                             {% if show_privileged_info %}
                               <td>{{ visit.get_most_recent_grade.grader.username }} </td>
                             {% endif %}

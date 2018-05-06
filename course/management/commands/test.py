@@ -8,7 +8,7 @@ class Command(DjangoTestCommand):
             '--local_test_settings', action='store',
             dest='local_test_settings',
             help=('Overrides the default local test setting file path. '
-                  'The default value is "local_settings.example.py" in '
+                  'The default value is "local_settings_example.py" in '
                   'project root. Note that local settings for production '
                   '("local_settings.py") is not allowed to be used '
                   'for unit tests for security reason.')

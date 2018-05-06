@@ -41,7 +41,6 @@ from django.utils.safestring import mark_safe
 mark_safe_lazy = lazy(mark_safe, six.text_type)
 from django import forms
 from django import http
-from django.utils import translation
 from django.conf import settings
 from django.urls import reverse
 
@@ -81,6 +80,7 @@ from course.utils import (
         get_session_access_rule,
         get_session_grading_rule,
         FlowSessionGradingRule,
+        LanguageOverride,
         )
 from course.exam import get_login_exam_ticket
 from course.page import InvalidPageData
@@ -125,8 +125,6 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
             in_sandbox=False,
             page_uri=None)
 
-    from course.models import FlowPageData
-
     def remove_page(fpd):
         if fpd.page_ordinal is not None:
             fpd.page_ordinal = None
@@ -153,7 +151,7 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
         def find_page_desc(page_id):
             new_page_desc = None
 
-            for page_desc in grp.pages:
+            for page_desc in grp.pages:  # pragma: no branch
                 if page_desc.id == page_id:
                     new_page_desc = page_desc
                     break
@@ -370,7 +368,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
                 commit_sha=course_commit_sha,
                 flow_session=flow_session)
 
-        with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+        with LanguageOverride(course=course):
             answer_feedback = page.grade(
                     grading_page_context, visit.page_data.data,
                     visit.answer, grade_data=grade_data)
@@ -496,7 +494,7 @@ def get_prev_answer_visits_qset(page_data):
 
 
 def get_first_from_qset(qset):
-    # type: (Sequence) -> Optional[Any]
+    # type: (query.QuerySet) -> Optional[Any]
     for item in qset[:1]:
         return item
 
@@ -614,7 +612,7 @@ def get_interaction_kind(
                 else:
                     return flow_session_interaction_kind.practice_grade
             else:
-                ikind = flow_session_interaction_kind.ungraded
+                return flow_session_interaction_kind.ungraded
 
     return ikind
 
@@ -890,9 +888,9 @@ def gather_grade_info(
         if points is not None:
             points = min(
                     points, grading_rule.max_points_enforced_cap)
-        if provisional_points is not None:
-            provisional_points = min(
-                    provisional_points, grading_rule.max_points_enforced_cap)
+        assert provisional_points is not None
+        provisional_points = min(
+                provisional_points, grading_rule.max_points_enforced_cap)
 
     # }}}
 
@@ -951,9 +949,9 @@ def grade_page_visits(
             if not page.is_answer_gradable():
                 continue
 
-        if answer_visit is not None:
-            if not answer_visit.grades.count() or force_regrade:  # type: ignore
-                grade_page_visit(answer_visit, respect_preview=respect_preview)
+        assert answer_visit is not None
+        if not answer_visit.grades.count() or force_regrade:  # type: ignore
+            grade_page_visit(answer_visit, respect_preview=respect_preview)
 
 
 @retry_transaction_decorator()
@@ -1038,8 +1036,9 @@ def expire_flow_session(
 
         if not session_start_rule.may_start_new_session:
             # No new session allowed: finish.
-            return finish_flow_session(fctx, flow_session, grading_rule,
-                    now_datetime=now_datetime, respect_preview=False)
+            finish_flow_session(fctx, flow_session, grading_rule,
+                                now_datetime=now_datetime, respect_preview=False)
+            return True
         else:
 
             flow_session.access_rules_tag = session_start_rule.tag_session
@@ -1064,14 +1063,20 @@ def expire_flow_session(
             return True
 
     elif flow_session.expiration_mode == flow_session_expiration_mode.end:
-        return finish_flow_session(fctx, flow_session, grading_rule,
-                now_datetime=now_datetime, respect_preview=False)
+        finish_flow_session(fctx, flow_session, grading_rule,
+                            now_datetime=now_datetime, respect_preview=False)
+        return True
     else:
         raise ValueError(
                 _("invalid expiration mode '%(mode)s' on flow session ID "
                 "%(session_id)d") % {
                     'mode': flow_session.expiration_mode,
                     'session_id': flow_session.id})
+
+
+def get_flow_session_attempt_id(flow_session):
+    # type: (FlowSession) -> Text
+    return "flow-session-%d" % flow_session.id
 
 
 def grade_flow_session(
@@ -1128,7 +1133,7 @@ def grade_flow_session(
         gchange.opportunity = gopp
         gchange.participation = flow_session.participation
         gchange.state = grade_state_change_types.graded
-        gchange.attempt_id = "flow-session-%d" % flow_session.id
+        gchange.attempt_id = get_flow_session_attempt_id(flow_session)
         gchange.points = points
         gchange.max_points = grade_info.max_points
         # creator left as NULL
@@ -1139,7 +1144,6 @@ def grade_flow_session(
                 .filter(
                     opportunity=gchange.opportunity,
                     participation=gchange.participation,
-                    state=gchange.state,
                     attempt_id=gchange.attempt_id,
                     flow_session=gchange.flow_session)
                 .order_by("-grade_time")
@@ -1151,6 +1155,7 @@ def grade_flow_session(
             previous_grade_change, = previous_grade_changes
             if (previous_grade_change.points == gchange.points
                     and previous_grade_change.max_points == gchange.max_points
+                    and previous_grade_change.state == gchange.state
                     and previous_grade_change.comment == gchange.comment):
                 do_save = False
         else:
@@ -1369,60 +1374,65 @@ def view_start_flow(pctx, flow_id):
     # type: (CoursePageContext, Text) -> http.HttpResponse
     request = pctx.request
 
-    login_exam_ticket = get_login_exam_ticket(pctx.request)
-    now_datetime = get_now_or_fake_time(request)
     fctx = FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
 
     if request.method == "POST":
         return post_start_flow(pctx, fctx, flow_id)
+
+    login_exam_ticket = get_login_exam_ticket(pctx.request)
+    now_datetime = get_now_or_fake_time(request)
+
+    session_start_rule = get_session_start_rule(
+            pctx.course, pctx.participation,
+            flow_id, fctx.flow_desc, now_datetime,
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=login_exam_ticket)
+
+    if session_start_rule.may_list_existing_sessions:
+        past_sessions = (FlowSession.objects
+                .filter(
+                    participation=pctx.participation,
+                    flow_id=fctx.flow_id,
+                    participation__isnull=False)
+               .order_by("start_time"))
+
+        from collections import namedtuple
+        SessionProperties = namedtuple("SessionProperties",  # noqa
+                ["may_view", "may_modify", "due", "grade_description",
+                    "grade_shown"])
+
+        past_sessions_and_properties = []
+        for session in past_sessions:
+            access_rule = get_session_access_rule(
+                    session, fctx.flow_desc, now_datetime,
+                    facilities=pctx.request.relate_facilities,
+                    login_exam_ticket=login_exam_ticket)
+            grading_rule = get_session_grading_rule(
+                    session, fctx.flow_desc, now_datetime)
+
+            session_properties = SessionProperties(
+                    may_view=flow_permission.view in access_rule.permissions,
+                    may_modify=(
+                        flow_permission.submit_answer in access_rule.permissions
+                        or
+                        flow_permission.end_session in access_rule.permissions
+                        ),
+                    due=grading_rule.due,
+                    grade_description=grading_rule.description,
+                    grade_shown=(
+                        flow_permission.cannot_see_flow_result
+                        not in access_rule.permissions))
+            past_sessions_and_properties.append((session, session_properties))
     else:
-        session_start_rule = get_session_start_rule(
-                pctx.course, pctx.participation,
-                flow_id, fctx.flow_desc, now_datetime,
-                facilities=pctx.request.relate_facilities,
-                login_exam_ticket=login_exam_ticket)
+        past_sessions_and_properties = []
 
-        if session_start_rule.may_list_existing_sessions:
-            past_sessions = (FlowSession.objects
-                    .filter(
-                        participation=pctx.participation,
-                        flow_id=fctx.flow_id,
-                        participation__isnull=False)
-                   .order_by("start_time"))
+    may_start = session_start_rule.may_start_new_session
+    new_session_grading_rule = None
+    start_may_decrease_grade = False
+    grade_aggregation_strategy_descr = None
 
-            from collections import namedtuple
-            SessionProperties = namedtuple("SessionProperties",  # noqa
-                    ["may_view", "may_modify", "due", "grade_description",
-                        "grade_shown"])
-
-            past_sessions_and_properties = []
-            for session in past_sessions:
-                access_rule = get_session_access_rule(
-                        session, fctx.flow_desc, now_datetime,
-                        facilities=pctx.request.relate_facilities,
-                        login_exam_ticket=login_exam_ticket)
-                grading_rule = get_session_grading_rule(
-                        session, fctx.flow_desc, now_datetime)
-
-                session_properties = SessionProperties(
-                        may_view=flow_permission.view in access_rule.permissions,
-                        may_modify=(
-                            flow_permission.submit_answer in access_rule.permissions
-                            or
-                            flow_permission.end_session in access_rule.permissions
-                            ),
-                        due=grading_rule.due,
-                        grade_description=grading_rule.description,
-                        grade_shown=(
-                            flow_permission.cannot_see_flow_result
-                            not in access_rule.permissions))
-                past_sessions_and_properties.append((session, session_properties))
-        else:
-            past_sessions_and_properties = []
-
-        may_start = session_start_rule.may_start_new_session
-
+    if may_start:
         potential_session = FlowSession(
             course=pctx.course,
             participation=pctx.participation,
@@ -1446,21 +1456,22 @@ def view_start_flow(pctx, flow_id):
                     grade_aggregation_strategy.max_grade,
                     grade_aggregation_strategy.use_earliest])
 
-        return render_course_page(pctx, "course/flow-start.html", {
-            "flow_desc": fctx.flow_desc,
-            "flow_identifier": flow_id,
+        grade_aggregation_strategy_descr = (
+            dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
+                new_session_grading_rule.grade_aggregation_strategy))
 
-            "now": now_datetime,
-            "may_start": may_start,
-            "new_session_grading_rule": new_session_grading_rule,
-            "grade_aggregation_strategy_descr": (
-                dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
-                    new_session_grading_rule.grade_aggregation_strategy)),
-            "start_may_decrease_grade": start_may_decrease_grade,
+    return render_course_page(pctx, "course/flow-start.html", {
+        "flow_desc": fctx.flow_desc,
+        "flow_identifier": flow_id,
 
-            "past_sessions_and_properties": past_sessions_and_properties,
-            },
-            allow_instant_flow_requests=False)
+        "now": now_datetime,
+        "may_start": may_start,
+        "new_session_grading_rule": new_session_grading_rule,
+        "grade_aggregation_strategy_descr": grade_aggregation_strategy_descr,
+        "start_may_decrease_grade": start_may_decrease_grade,
+        "past_sessions_and_properties": past_sessions_and_properties,
+        },
+        allow_instant_flow_requests=False)
 
 
 @retry_transaction_decorator(serializable=True)
@@ -1618,10 +1629,13 @@ def will_receive_feedback(permissions):
             or flow_permission.see_answer_after_submission in permissions)
 
 
-def may_send_email_about_flow_page(permissions):
-    # type: (FrozenSet[Text]) -> bool
+def may_send_email_about_flow_page(flow_session, permissions):
+    # type: (FlowSession, FrozenSet[Text]) -> bool
 
-    return flow_permission.send_email_about_flow_page in permissions
+    return (
+        flow_session.participation is not None
+        and flow_session.user is not None
+        and flow_permission.send_email_about_flow_page in permissions)
 
 
 def get_page_behavior(
@@ -1758,16 +1772,10 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
 
     flow_session_id = int(flow_session_id)
     flow_session = get_and_check_flow_session(pctx, flow_session_id)
+
+    assert flow_session is not None
+
     flow_id = flow_session.flow_id
-
-    if flow_session is None:
-        messages.add_message(request, messages.WARNING,
-                _("No in-progress session record found for this flow. "
-                "Redirected to flow start page."))
-
-        return redirect("relate-view_start_flow",
-                pctx.course.identifier,
-                flow_id)
 
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             respect_preview=True)
@@ -2053,7 +2061,7 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
         "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": page_behavior.show_answer,
         "may_send_email_about_flow_page":
-            may_send_email_about_flow_page(permissions),
+            may_send_email_about_flow_page(flow_session, permissions),
         "expects_answer": fpctx.page.expects_answer(),
 
         "session_minutes": session_minutes,
@@ -2101,13 +2109,10 @@ def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal)
     if not request.is_ajax() or request.method != "GET":
         raise PermissionDenied()
 
-    try:
-        page_ordinal = int(page_ordinal)
-        flow_session_id = int(flow_session_id)
-    except ValueError:
-        raise http.Http404()
+    page_ordinal = int(page_ordinal)
+    flow_session_id = int(flow_session_id)
 
-    flow_session = get_and_check_flow_session(pctx, int(flow_session_id))
+    flow_session = get_and_check_flow_session(pctx, flow_session_id)
 
     page_data = get_object_or_404(
         FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
@@ -2150,9 +2155,6 @@ def post_flow_page(
 
     assert page_context is not None
 
-    prev_answer_visits = list(
-            get_prev_answer_visits_qset(fpctx.page_data))
-
     submission_allowed = True
 
     assert fpctx.page is not None
@@ -2162,6 +2164,9 @@ def post_flow_page(
         messages.add_message(request, messages.ERROR,
                 _("Answer submission not allowed."))
         submission_allowed = False
+
+    prev_answer_visits = list(
+            get_prev_answer_visits_qset(fpctx.page_data))
 
     # reject if previous answer was final
     if (prev_answer_visits
@@ -2220,7 +2225,7 @@ def post_flow_page(
                 is_unenrolled_session=flow_session.participation is None)
 
         if fpctx.page.is_answer_gradable():
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            with LanguageOverride(course=fpctx.course):
                 feedback = fpctx.page.grade(
                         page_context, page_data.data, answer_visit.answer,
                         grade_data=None)  # type: Optional[AnswerFeedback]
@@ -2305,6 +2310,9 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
     flow_session = get_and_check_flow_session(pctx, flow_session_id)
     flow_id = flow_session.flow_id
 
+    adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
+            respect_preview=True)
+
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, page_ordinal,
                             participation=pctx.participation,
                             flow_session=flow_session,
@@ -2324,19 +2332,10 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
     permissions = fpctx.page.get_modified_permissions_for_page(
             access_rule.permissions)
 
-    if not may_send_email_about_flow_page(permissions):
+    if not may_send_email_about_flow_page(flow_session, permissions):
         raise http.Http404()
 
     # }}}
-
-    from django.conf import settings
-    from course.models import FlowSession
-
-    flow_session = get_object_or_404(
-        FlowSession, id=int(flow_session_id))
-    from course.models import FlowPageData
-    page_id = FlowPageData.objects.get(
-        flow_session=flow_session_id, page_ordinal=page_ordinal).page_id
 
     review_url = reverse(
         "relate-view_flow_page",
@@ -2362,36 +2361,39 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
                     settings.ROBOT_EMAIL_FROM)
             student_email = flow_session.participation.user.email
 
-            from course.constants import (
-                    participation_permission as pperm)
+            from course.constants import participation_status
 
             ta_email_list = Participation.objects.filter(
                     course=pctx.course,
                     roles__permissions__permission=pperm.assign_grade,
                     roles__identifier="ta",
-            ).values_list("user__email", flat=True)
-
-            instructor_email_list = Participation.objects.filter(
-                    course=pctx.course,
-                    roles__permissions__permission=pperm.assign_grade,
-                    roles__identifier="instructor"
+                    status=participation_status.active
             ).values_list("user__email", flat=True)
 
             recipient_list = ta_email_list
             if not recipient_list:
-                recipient_list = instructor_email_list
 
-            from django.utils import translation
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from relate.utils import render_email_template
+                # instructors to receive the email
+                recipient_list = Participation.objects.filter(
+                    course=pctx.course,
+                    roles__permissions__permission=pperm.assign_grade,
+                    roles__identifier="instructor"
+                ).values_list("user__email", flat=True)
+
+            with LanguageOverride(course=pctx.course):
+
                 from course.utils import will_use_masked_profile_for_email
-                use_masked_profile_for_email = (
-                    will_use_masked_profile_for_email(recipient_list)
-                )
-                if use_masked_profile_for_email:
+
+                if will_use_masked_profile_for_email(recipient_list):
                     username = pctx.participation.user.get_masked_profile()
                 else:
                     username = pctx.participation.user.get_full_name()
+
+                page_id = FlowPageData.objects.get(
+                    flow_session=flow_session_id, page_ordinal=page_ordinal).page_id
+
+                from relate.utils import render_email_template
+
                 message = render_email_template(
                     "course/flow-page-interaction-email.txt", {
                         "page_id": page_id,
@@ -2507,7 +2509,7 @@ def update_page_bookmark_state(pctx, flow_session_id, page_ordinal):
 
 @course_view
 def update_expiration_mode(pctx, flow_session_id):
-    # type: (CoursePageContext, int) -> http.HttpRequest
+    # type: (CoursePageContext, int) -> http.HttpResponse
 
     if pctx.request.method != "POST":
         raise SuspiciousOperation(_("only POST allowed"))
@@ -2627,10 +2629,15 @@ def finish_flow_session_view(pctx, flow_session_id):
 
         if (hasattr(fctx.flow_desc, "notify_on_submit")
                 and fctx.flow_desc.notify_on_submit):
-            from course.utils import will_use_masked_profile_for_email
             staff_email = (
                 fctx.flow_desc.notify_on_submit + [fctx.course.notify_email])
+
+            from course.utils import will_use_masked_profile_for_email
             use_masked_profile = will_use_masked_profile_for_email(staff_email)
+
+            if flow_session.participation is None or flow_session.user is None:
+                # because Anonymous doesn't have get_masked_profile() method
+                use_masked_profile = False
 
             if (grading_rule.grade_identifier
                     and flow_session.participation is not None):
@@ -2650,7 +2657,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                             flow_session.id,
                             0))
 
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
+            with LanguageOverride(course=pctx.course):
                 from relate.utils import render_email_template
                 participation = flow_session.participation
                 message = render_email_template("course/submit-notify.txt", {
@@ -2848,40 +2855,22 @@ class UnsubmitFlowPageForm(forms.Form):
 def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
     # type: (CoursePageContext, int, int) -> http.HttpResponse
 
+    if pctx.participation is None:
+        raise PermissionDenied()
+
+    if not pctx.has_permission(pperm.reopen_flow_session):
+        raise PermissionDenied()
+
     request = pctx.request
     now_datetime = get_now_or_fake_time(request)
 
     page_ordinal = int(page_ordinal)
-
     flow_session_id = int(flow_session_id)
-    try:
-        flow_session = (FlowSession.objects
-                .select_related("participation")
-                .get(id=flow_session_id))
-    except ObjectDoesNotExist:
-        raise http.Http404()
 
-    if flow_session.course.pk != pctx.course.pk:
-        raise http.Http404()
+    flow_session = get_and_check_flow_session(pctx, flow_session_id)
 
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             respect_preview=True)
-
-    # {{{ permission checking
-
-    if flow_session is None:
-        raise SuspiciousOperation("no flow session found")
-
-    if pctx.participation is None:
-        raise http.Http403()
-
-    if flow_session.course.pk != pctx.participation.course.pk:
-        raise http.Http403()
-
-    if not pctx.has_permission(pperm.reopen_flow_session):
-        raise http.Http403()
-
-    # }}}
 
     page_data = get_object_or_404(
             FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
@@ -2959,12 +2948,6 @@ def purge_page_view_data(request):
         if form.is_valid():
             if "submit" in request.POST:
                 course = form.cleaned_data["course"]
-
-                # This actually won't happen, because it will fail at
-                # form validation stage. We leave it here as a double
-                # check for data security.
-                if course not in list(purgeable_courses):
-                    raise PermissionDenied()
 
                 from course.tasks import purge_page_view_data
                 async_res = purge_page_view_data.delay(course.id)

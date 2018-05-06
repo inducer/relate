@@ -50,34 +50,35 @@ def update_requested_participation_status(sender, created, instance,
     if created:
         return
 
+    user_updated = False
+    course_updated = False
+
     if isinstance(instance, Course):
+        course_updated = True
         course = instance
         requested_qset = Participation.objects.filter(
                 course=course, status=participation_status.requested)
-    elif isinstance(instance, User):
+    else:
+        assert isinstance(instance, User)
+        user_updated = True
         user = instance
         requested_qset = Participation.objects.filter(
                 user=user, status=participation_status.requested)
-    else:
-        return
 
-    if requested_qset:
+    for requested in requested_qset:
+        if course_updated:
+            user = requested.user
+        else:
+            assert user_updated
+            course = requested.course
 
-        for requested in requested_qset:
-            if isinstance(instance, Course):
-                user = requested.user
-            elif isinstance(instance, User):
-                course = requested.course
-            else:
-                continue
+        may_preapprove, roles = may_preapprove_role(course, user)
 
-            may_preapprove, roles = may_preapprove_role(course, user)
+        if may_preapprove:
+            from course.enrollment import handle_enrollment_request
 
-            if may_preapprove:
-                from course.enrollment import handle_enrollment_request
-
-                handle_enrollment_request(
-                    course, user, participation_status.active, roles)
+            handle_enrollment_request(
+                course, user, participation_status.active, roles)
 
 
 def may_preapprove_role(course, user):
@@ -92,15 +93,17 @@ def may_preapprove_role(course, user):
             preapproval = ParticipationPreapproval.objects.get(
                     course=course, email__iexact=user.email)
         except ParticipationPreapproval.DoesNotExist:
-            if user.institutional_id:
-                if not (course.preapproval_require_verified_inst_id
-                        and not user.institutional_id_verified):
-                    try:
-                        preapproval = ParticipationPreapproval.objects.get(
-                                    course=course,
-                                    institutional_id__iexact=user.institutional_id)
-                    except ParticipationPreapproval.DoesNotExist:
-                        pass
+            pass
+    if preapproval is None:
+        if user.institutional_id:
+            if not (course.preapproval_require_verified_inst_id
+                    and not user.institutional_id_verified):
+                try:
+                    preapproval = ParticipationPreapproval.objects.get(
+                                course=course,
+                                institutional_id__iexact=user.institutional_id)
+                except ParticipationPreapproval.DoesNotExist:
+                    pass
 
     if preapproval:
         return True, list(preapproval.roles.all())

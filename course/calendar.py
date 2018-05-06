@@ -127,13 +127,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         elif interval == "biweekly":
             date += datetime.timedelta(weeks=2)
         else:
-            raise ValueError(
-                    string_concat(
-                        pgettext_lazy(
-                            "Unkown time interval",
-                            "unknown interval"),
-                        ": %s")
-                    % interval)
+            raise NotImplementedError()
 
         time = time.tzinfo.localize(
                 datetime.datetime(date.year, date.month, date.day,
@@ -293,17 +287,16 @@ class EventInfo(object):
 
 @course_view
 def view_calendar(pctx):
-    from course.content import markup_to_html, parse_date_spec
+    if not pctx.has_permission(pperm.view_calendar):
+        raise PermissionDenied(_("may not view calendar"))
 
     from course.views import get_now_or_fake_time
     now = get_now_or_fake_time(pctx.request)
 
-    if not pctx.has_permission(pperm.view_calendar):
-        raise PermissionDenied(_("may not view calendar"))
-
     events_json = []
 
-    from course.content import get_raw_yaml_from_repo
+    from course.content import (
+        get_raw_yaml_from_repo, markup_to_html, parse_date_spec)
     try:
         event_descr = get_raw_yaml_from_repo(pctx.repo,
                 pctx.course.events_file, pctx.course_commit_sha)
@@ -344,7 +337,7 @@ def view_calendar(pctx):
                 if event.ordinal is not None:
                     human_title = kind_desc["title"].format(nr=event.ordinal)
                 else:
-                    human_title = kind_desc["title"]
+                    human_title = kind_desc["title"].rstrip("{nr}").strip()
 
         description = None
         show_description = True

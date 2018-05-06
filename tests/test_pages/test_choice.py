@@ -22,18 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from six import BytesIO
-import zipfile
 from django.test import TestCase
+import unittest
 
-from tests.base_test_mixins import (  # noqa
-    SingleCoursePageTestMixin, NONE_PARTICIPATION_USER_CREATE_KWARG_LIST
-)
+from course.page.choice import markup_to_html_plain
+
+from tests.base_test_mixins import SingleCoursePageTestMixin
 from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin, PAGE_ERRORS
+    SingleCoursePageSandboxTestBaseMixin
 )
-
-from . import QUIZ_FLOW_ID
+from tests.constants import PAGE_ERRORS
+from tests.utils import mock
 
 # The last item is within a pair of backticks
 # https://github.com/inducer/relate/issues/121
@@ -231,7 +230,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
         page_data = self.get_sandbox_page_data()[2]
@@ -253,7 +252,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN_WITHOUT_CORRECT_ANSWER
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
             "one or more correct answer(s) "
@@ -263,7 +262,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN_WITH_DISREGARD
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
             "ChoiceQuestion does not allow any choices "
@@ -273,7 +272,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = CHOICE_MARKDOWN_WITH_ALWAYS_CORRECT
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
             "ChoiceQuestion does not allow any choices "
@@ -284,7 +283,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertResponseContextContains(resp, "correct_answer",
                                            "This is the explanation.")
 
@@ -296,7 +295,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         resp = self.get_page_sandbox_preview_response(
             MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         expected_page_error = ("ValidationError: sandbox, choice 1: "
                                "more than one choice modes set: "
                                "'~CORRECT~~CORRECT~'")
@@ -306,7 +305,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         resp = self.get_page_sandbox_preview_response(
             MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         expected_page_error = ("ValidationError: sandbox, choice 1: "
                                "more than one choice modes set: "
                                "'~DISREGARD~~CORRECT~'")
@@ -321,7 +320,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
         page_data = self.get_sandbox_page_data()[2]
         self.assertTrue("permutation" in page_data)
@@ -345,7 +344,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
 
         # This is to make sure page_data exists and is ordered
@@ -373,7 +372,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertEqual(len(self.get_sandbox_page_data()), 3)
 
         resp = self.get_page_sandbox_submit_answer_response(
@@ -395,7 +394,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     % {"credit_mode": "proportional_correct"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
             answer_data={"choice": ['2', '5']})
@@ -419,7 +418,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     % {"credit_mode": "proportional_correct"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
@@ -461,7 +460,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
 
         self.assertResponseContextContains(resp, "correct_answer",
                                            "This is the explanation.")
@@ -476,7 +475,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                        "extra_attr": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_error)
 
     def test_with_both_credit_mode_and_allow_partial_credit(self):
@@ -499,12 +498,12 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_error)
 
         resp = self.get_page_sandbox_preview_response(markdown2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_error)
 
     def test_without_credit_mode_but_allow_partial_credit(self):
@@ -558,51 +557,51 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_preview_response(markdown_exact1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_exact2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_exact3)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_exact4)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "exact", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_proportional1)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional", loose=True)
 
         resp = self.get_page_sandbox_preview_response(markdown_proportional2)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional", loose=True)
 
         resp = (
             self.get_page_sandbox_preview_response(markdown_proportional_correct1))
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional_correct", loose=True)
 
         resp = (
             self.get_page_sandbox_preview_response(markdown_proportional_correct2))
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHaveValidPage(resp)
+        self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
             resp, expected_warning_pattern % "proportional_correct", loose=True)
 
@@ -622,17 +621,54 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         resp = (
             self.get_page_sandbox_preview_response(markdown))
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHaveValidPage(resp)
+        self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(resp, PAGE_ERRORS, expected_page_error)
+
+    def test_choice_not_stringifiable(self):
+        expected_page_error = (
+            "choice 2: unable to convert to string")
+
+        class BadChoice(object):
+            def __str__(self):
+                raise Exception
+
+        from relate.utils import dict_to_struct
+        fake_page_desc = dict_to_struct(
+            {'type': 'MultipleChoiceQuestion', 'id': 'ice_cream_toppings',
+             'value': 1, 'shuffle': False,
+             'prompt': '# Ice Cream Toppings\nWhich of the following are '
+                       'ice cream toppings?\n',
+             'choices': ['~CORRECT~ Sprinkles',
+                         BadChoice(),
+                         'Vacuum cleaner dust', 'Spider webs',
+                         '~CORRECT~ Almond bits'],
+             'allow_partial_credit': True,
+             '_field_names': [
+                 'type', 'id', 'value', 'shuffle',
+                 'prompt', 'choices',
+                 'allow_partial_credit']}
+        )
+
+        with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:
+            mock_dict_to_struct.return_value = fake_page_desc
+
+            markdown = (MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN
+                         % {"shuffle": "False",
+                            "credit_mode_str": "",
+                            "extra_attr": "allow_partial_credit: True"})
+
+            resp = (
+                self.get_page_sandbox_preview_response(markdown))
+            self.assertEqual(resp.status_code, 200)
+            self.assertSandboxNotHasValidPage(resp)
+            self.assertResponseContextContains(resp, PAGE_ERRORS,
+                                               expected_page_error)
 
 
 class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-
     @classmethod
     def setUpTestData(cls):  # noqa
         super(BrokenPageDataTest, cls).setUpTestData()
-        cls.c.force_login(cls.student_participation.user)
         cls.start_flow(cls.flow_id)
         cls.end_flow()
         from course.models import FlowPageData
@@ -666,82 +702,93 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
                    "suitable for number of choices in question"))
 
 
-class NormalizedAnswerTest(SingleCoursePageTestMixin, TestCase):
-    flow_id = QUIZ_FLOW_ID
-    none_participation_user_create_kwarg_list = (
-        NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
+class MarkupToHtmlPlainTest(unittest.TestCase):
+    # test course.page.choice.markup_to_html_plain
+    def test_markup_to_html_plain_wrapp_by_p_tag(self):
+        with mock.patch("course.page.choice.markup_to_html") as mock_mth:
+            mock_mth.side_effect = lambda x, y: "<p>%s</p>" % y
+            fake_page_context = object
+            self.assertEqual(
+                markup_to_html_plain(fake_page_context, "abcd"), "abcd")
+            self.assertEqual(markup_to_html_plain(fake_page_context, ""), "")
 
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(NormalizedAnswerTest, cls).setUpTestData()
-        cls.extra_participation_user1 = cls.non_participation_users[0]
-        cls.create_participation(cls.course, cls.extra_participation_user1)
-        cls.c.force_login(cls.extra_participation_user1)
-        cls.start_flow(cls.flow_id)
-        cls.end_flow()
+    def test_markup_to_html_plain_wrapp_by_p_other_tag(self):
+        with mock.patch("course.page.choice.markup_to_html") as mock_mth:
+            mock_mth.side_effect = lambda x, y: "<div>%s</div>" % y
+            fake_page_context = object
+            self.assertEqual(
+                markup_to_html_plain(fake_page_context, "abcd"),
+                "<div>abcd</div>")
 
-        cls.c.force_login(cls.student_participation.user)
-        cls.start_flow(cls.flow_id)
 
-    def setUp(self):  # noqa
-        super(NormalizedAnswerTest, self).setUp()
-        # This is needed to ensure student is logged in
-        with self.temporarily_switch_to_user(self.student_participation.user):
-            self.post_answer_by_page_id(page_id="ice_cream_toppings",
-                                        answer_data={"choice": ['0', '1', '4']})
-            self.post_answer_by_page_id(page_id="krylov",
-                                        answer_data={"choice": ['0']})
-            self.end_flow()
-        self.c.force_login(self.instructor_participation.user)
+SURVEY_CHOICE_QUESTION_MARKDOWN = """
+type: SurveyChoiceQuestion
+id: age_group_with_comment_and_list_item
+answer_comment: this is a survey question
+prompt: |
 
-    def test_multiple_choice_submissions(self):
-        group_page_id = "quiz_start/ice_cream_toppings"
-        resp = self.post_download_all_submissions_by_group_page_id(
-            group_page_id=group_page_id, flow_id=self.flow_id)
+    # Age
+
+    How old are you?
+
+choices:
+
+    - 0-10 years
+    - 11-20 years
+    - 21-30 years
+    - 31-40 years
+    - 41-50 years
+    - 51-60 years
+    - 61-70 years
+    - 71-80 years
+    - 81-90 years
+    - -
+      - older
+"""
+
+
+class SurveyChoiceQuestionExtra(SingleCoursePageSandboxTestBaseMixin, TestCase):
+    # extra tests for SurveyChoiceQuestion which has not been tested in
+    # tests.test_pages.test_generic.py
+    def test_page_has_answer_comment_attr(self):
+        markdown = SURVEY_CHOICE_QUESTION_MARKDOWN
+        resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
-        self.assertEqual(prefix, "attachment; filename")
-        self.assertEqual(resp.get('Content-Type'), "application/zip")
+        self.assertSandboxHasValidPage(resp)
+        self.assertContains(resp, "older")
+        self.assertContains(resp, "this is a survey question")
 
-        buf = BytesIO(resp.content)
-        with zipfile.ZipFile(buf, 'r') as zf:
-            self.assertIsNone(zf.testzip())
-            self.assertEqual(len(zf.filelist), 1)
-            for f in zf.filelist:
-                self.assertGreater(f.file_size, 0)
-            # todo: make more assertions in terms of file content
-            self.assertIn('.json', zf.filelist[0].filename)
+    def test_choice_not_stringifiable(self):
+        expected_page_error = (
+            "choice 10: unable to convert to string")
 
-    def test_multiple_choice_page_analytics(self):
-        # todo: make more assertions in terms of content
-        resp = self.get_flow_page_analytics(
-            flow_id=self.flow_id, group_id="quiz_start",
-            page_id="ice_cream_toppings")
-        self.assertEqual(resp.status_code, 200)
+        class BadChoice(object):
+            def __str__(self):
+                raise Exception
 
-    def test_choice_submissions(self):
-        group_page_id = "quiz_start/krylov"
-        resp = self.post_download_all_submissions_by_group_page_id(
-            group_page_id=group_page_id, flow_id=self.flow_id)
-        self.assertEqual(resp.status_code, 200)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
-        self.assertEqual(prefix, "attachment; filename")
-        self.assertEqual(resp.get('Content-Type'), "application/zip")
+        from relate.utils import dict_to_struct
+        fake_page_desc = dict_to_struct(
+            {'type': 'SurveyChoiceQuestion', 'id': 'age_group_with_comment',
+             'answer_comment': 'this is a survey question',
+             'prompt': '\n# Age\n\nHow old are you?\n',
+             'choices': [
+                 '0-10 years', '11-20 years', '21-30 years', '31-40 years',
+                 '41-50 years', '51-60 years', '61-70 years', '71-80 years',
+                 '81-90 years', BadChoice()],
+             '_field_names': ['type', 'id', 'answer_comment',
+                              'prompt', 'choices']}
+        )
 
-        buf = BytesIO(resp.content)
-        with zipfile.ZipFile(buf, 'r') as zf:
-            self.assertIsNone(zf.testzip())
-            self.assertEqual(len(zf.filelist), 1)
-            for f in zf.filelist:
-                self.assertGreater(f.file_size, 0)
-            # todo: make more assertions in terms of file content
-            self.assertIn('.json', zf.filelist[0].filename)
+        with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:
+            mock_dict_to_struct.return_value = fake_page_desc
 
-    def test_choice_page_analytics(self):
-        # todo: make more assertions in terms of content
-        resp = self.get_flow_page_analytics(
-            flow_id=self.flow_id, group_id="quiz_start",
-            page_id="krylov")
-        self.assertEqual(resp.status_code, 200)
+            markdown = SURVEY_CHOICE_QUESTION_MARKDOWN
+
+            resp = (
+                self.get_page_sandbox_preview_response(markdown))
+            self.assertEqual(resp.status_code, 200)
+            self.assertSandboxNotHasValidPage(resp)
+            self.assertResponseContextContains(resp, PAGE_ERRORS,
+                                               expected_page_error)
 
 # vim: fdm=marker

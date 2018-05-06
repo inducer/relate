@@ -22,12 +22,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import six
 import os
+from datetime import datetime
+
+from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
+from unittest import skipIf
+
+from relate.checks import register_startup_checks_extra
+
 from tests.utils import mock
+from tests.factories import UserFactory
 
 
 class CheckRelateSettingsBase(SimpleTestCase):
@@ -125,25 +134,326 @@ class CheckRelateURL(CheckRelateSettingsBase):
         self.assertCheckMessages(["relate_base_url.E003"])
 
 
-class CheckRelateEmailAppelationPriorityList(CheckRelateSettingsBase):
-    msg_id_prefix = "relate_email_appelation_priority_list"
+class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
+    # This TestCase is not pure for check, but also make sure it returned
+    # expected result
+    allow_database_queries = True
+
+    msg_id_prefix = "relate_user_profile_mask_method"
+
+    def setUp(self):
+        super(CheckRelateUserProfileMaskMethod, self).setUp()
+        self.user = UserFactory.create(first_name="my_first", last_name="my_last")
+
+        from accounts.utils import relate_user_method_settings
+        relate_user_method_settings.__dict__ = {}
+
+    def test_get_masked_profile_not_configured(self):
+        with override_settings():
+            del settings.RELATE_USER_PROFILE_MASK_METHOD
+            self.assertCheckMessages([])
+
+            # make sure it runs without issue
+            self.assertIsNotNone(self.user.get_masked_profile())
+
+    def test_get_masked_profile_valid_none(self):
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=None):
+            self.assertCheckMessages([])
+
+            # make sure it runs without issue
+            self.assertIsNotNone(self.user.get_masked_profile())
+
+    def test_get_masked_profile_valid_method1(self):
+        def custom_method(u):
+            return "%s%s" % ("User", str(u.pk + 1))
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages([])
+            self.assertEqual(self.user.get_masked_profile(),
+                             custom_method(self.user))
+
+    def test_get_masked_profile_valid_method2(self):
+        def custom_method(user=None):
+            if user is not None:
+                return "%s%s" % ("User", str(user.pk + 1))
+            else:
+                return ""
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages([])
+            self.assertEqual(self.user.get_masked_profile(),
+                             custom_method(self.user))
+
+    def test_get_masked_profile_valid_method_path(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_valid")):
+            self.assertCheckMessages([])
+            from tests.resource import (
+                my_custom_get_masked_profile_method_valid as custom_method)
+            self.assertEqual(self.user.get_masked_profile(),
+                             custom_method(self.user))
+
+    def test_get_masked_profile_param_invalid1(self):
+        # the method has 0 args/kwargs
+        def custom_method():
+            return "profile"
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+
+    def test_get_masked_profile_param_invalid2(self):
+        # the method has 2 args/kwargs
+        def custom_method(u, v):
+            return "%s%s" % ("User", str(u.pk + 1))
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+
+    def test_get_masked_profile_param_invalid3(self):
+        # the method has 2 args/kwargs
+        def custom_method(u, v=None):
+            return "%s%s" % ("User", str(u.pk + 1))
+
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+
+    def test_get_masked_profile_invalid_path(self):
+        with override_settings(RELATE_USER_PROFILE_MASK_METHOD="invalid path"):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E001'])
+
+    def test_get_masked_profile_valid_path_not_callable(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_invalid_str")):
+            self.assertCheckMessages(['relate_user_profile_mask_method.E002'])
+
+    def test_passed_check_but_return_none(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_valid_but_return_none")):  # noqa
+            self.assertCheckMessages([])
+            from tests.resource import (
+                my_custom_get_masked_profile_method_valid_but_return_none
+                as custom_method)
+
+            # test method can run
+            custom_method(self.user)
+
+            with self.assertRaises(RuntimeError):
+                self.user.get_masked_profile()
+
+    def test_passed_check_but_return_empty_string(self):
+        with override_settings(
+                RELATE_USER_PROFILE_MASK_METHOD=(
+                        "tests.resource"
+                        ".my_custom_get_masked_profile_method_valid_but_return_emtpy_string")):  # noqa
+            self.assertCheckMessages([])
+            from tests.resource import (
+                my_custom_get_masked_profile_method_valid_but_return_emtpy_string
+                as custom_method)
+
+            # test method can run
+            custom_method(self.user)
+
+            with self.assertRaises(RuntimeError):
+                self.user.get_masked_profile()
+
+
+class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
+    # This TestCase is not pure for check, but also make sure it returned
+    # expected result
+    allow_database_queries = True
+
+    msg_id_prefix = "relate_user_full_name_format_method"
+
+    @skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_get_full_name(self):
+        def valid_method(first_name, last_name):
+            return "%s %s" % (last_name, first_name)
+
+        def invalid_method1(first_name):
+            return first_name
+
+        def invalid_method2(first_name, last_name):
+            return None
+
+        def invalid_method3(first_name, last_name):
+            return " "
+
+        def invalid_method4(first_name, last_name):
+            return b"my_name"
+
+        def invalid_method5(first_name, last_name):
+            return "my_name"
+
+        def invalid_method6(first_name, last_name):
+            return Exception()
+
+        default_user_dict = {"first_name": "first_name", "last_name": "last_name"}
+        default_result = "first_name last_name"
+
+        user_get_full_name_test_kwargs_list = (
+            ({"id": 1,
+              "custom_method": None,
+              "user_dict": {},
+              "default": '',
+              "not_allow_blank": None,
+              "force_verbose_blank": "(blank) (blank)"}),
+            ({"id": 2,
+              "custom_method": None,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result}),
+            ({"id": 3,
+              "custom_method": valid_method,
+              "user_dict": default_user_dict,
+              "default": "last_name first_name",
+              "not_allow_blank": "last_name first_name",
+              "force_verbose_blank": "last_name first_name"}),
+            ({"id": 4,
+              "custom_method": invalid_method1,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W003']}),
+            ({"id": 5,
+              "custom_method": invalid_method2,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 6,
+              "custom_method": invalid_method3,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 7,
+              "custom_method": invalid_method4,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 8,
+              "custom_method": invalid_method5,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W005']}),
+            ({"id": 9,
+              "custom_method": invalid_method6,
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 10,
+              "custom_method": "abcd",  # a string
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W001']}),
+            ({"id": 11,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method",
+              "user_dict": default_user_dict,
+              "default": "First_Name Last_Name",
+              "not_allow_blank": "First_Name Last_Name",
+              "force_verbose_blank": "First_Name Last_Name"}),
+            ({"id": 12,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method_invalid",
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W004']}),
+            ({"id": 13,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method_invalid_str",
+              "user_dict": default_user_dict,
+              "default": default_result,
+              "not_allow_blank": default_result,
+              "force_verbose_blank": default_result,
+              "check_messages": ['relate_user_full_name_format_method.W002']}),
+            ({"id": 14,
+              "custom_method":
+                  "tests.resource.my_customized_get_full_name_method",
+              "user_dict": {"first_name": "first_name"},
+              "default": "First_Name",
+              "not_allow_blank": None,
+              "force_verbose_blank": "First_Name (Blank)"}),
+        )
+
+        # Ensure no duplicate entries in user_get_full_name_test_kwargs_list
+        # to generate error info when subTests fail.
+        ids = set([kwargs["id"] for kwargs in user_get_full_name_test_kwargs_list])
+        assert len(ids) == len(user_get_full_name_test_kwargs_list)
+
+        for kwargs in user_get_full_name_test_kwargs_list:
+            # clear cached_property
+            from accounts.utils import relate_user_method_settings
+            relate_user_method_settings.__dict__ = {}
+            with self.subTest(id=kwargs["id"]):
+                with override_settings(
+                        RELATE_USER_FULL_NAME_FORMAT_METHOD=kwargs[
+                            "custom_method"]):
+                    check_messages = kwargs.get("check_messages", [])
+                    self.assertCheckMessages(check_messages)
+
+                    user = UserFactory(**kwargs["user_dict"])
+                    self.assertEqual(user.get_full_name(), kwargs["default"])
+                    self.assertEqual(user.get_full_name(allow_blank=False),
+                                     kwargs["not_allow_blank"])
+                    self.assertEqual(user.get_full_name(force_verbose_blank=True),
+                                     kwargs["force_verbose_blank"])
+
+
+class CheckRelateEmailAppellationPriorityList(CheckRelateSettingsBase):
+    msg_id_prefix = "relate_email_appellation_priority_list"
 
     VALID_CONF_NONE = None
-    VALID_CONF = ["name1", "name2"]
+    VALID_CONF = ["full_name"]
     INVALID_CONF_STR = "name1"
+    INVALID_CONF = ["name1", "name2"]
 
-    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=VALID_CONF_NONE)
-    def test_valid_relate_email_appelation_priority_list_none(self):
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=VALID_CONF_NONE)
+    def test_relate_email_appellation_priority_list_none(self):
         self.assertCheckMessages([])
 
-    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=VALID_CONF)
-    def test_valid_relate_email_appelation_priority_list(self):
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=VALID_CONF)
+    def test_relate_email_appellation_priority_list_valid(self):
         self.assertCheckMessages([])
 
-    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=INVALID_CONF_STR)
-    def test_invalid_relate_email_appelation_priority_list_str(self):
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=INVALID_CONF_STR)
+    def test_relate_email_appellation_priority_list_invalid_str(self):
         self.assertCheckMessages(
-            ["relate_email_appelation_priority_list.E002"])
+            ["relate_email_appellation_priority_list.W001"])
+
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=INVALID_CONF)
+    def test_relate_email_appellation_priority_list_invalid(self):
+        self.assertCheckMessages(["relate_email_appellation_priority_list.W002"])
+
+    @override_settings(RELATE_EMAIL_APPELLATION_PRIORITY_LIST=None,
+                       RELATE_EMAIL_APPELATION_PRIORITY_LIST=VALID_CONF)
+    def test_relate_email_appellation_priority_list_type_deprecated(self):
+        self.assertCheckMessages(["relate_email_appellation_priority_list.W003"])
+
+    @override_settings(RELATE_EMAIL_APPELATION_PRIORITY_LIST=None,
+                       RELATE_EMAIL_APPELLATION_PRIORITY_LIST=None)
+    def test_relate_email_appellation_priority_list_type_deprecated_none(self):
+        self.assertCheckMessages([])
 
 
 class CheckRelateEmailConnections(CheckRelateSettingsBase):
@@ -378,6 +688,15 @@ class CheckRelateSessionRestartCooldownSeconds(CheckRelateSettingsBase):
     INVALID_CONF_LIST = [10]
     INVALID_CONF_NEGATIVE = -10
 
+    @override_settings()
+    def test_valid_relate_session_restart_cooldown_seconds_not_configured(self):
+        del settings.RELATE_SESSION_RESTART_COOLDOWN_SECONDS
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_SESSION_RESTART_COOLDOWN_SECONDS=None)
+    def test_valid_relate_session_restart_cooldown_seconds_none(self):
+        self.assertCheckMessages([])
+
     @override_settings(RELATE_SESSION_RESTART_COOLDOWN_SECONDS=VALID_CONF)
     def test_valid_relate_session_restart_cooldown_seconds(self):
         self.assertCheckMessages([])
@@ -410,6 +729,15 @@ class CheckRelateTicketMinutesValidAfterUse(CheckRelateSettingsBase):
     INVALID_CONF_STR = "10"
     INVALID_CONF_LIST = [10]
     INVALID_CONF_NEGATIVE = -10
+
+    @override_settings()
+    def test_valid_relate_ticket_not_configured(self):
+        del settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_TICKET_MINUTES_VALID_AFTER_USE=None)
+    def test_valid_relate_ticket_none(self):
+        self.assertCheckMessages([])
 
     @override_settings(RELATE_TICKET_MINUTES_VALID_AFTER_USE=VALID_CONF)
     def test_valid_relate_ticket_minutes_valid_after_use(self):
@@ -509,7 +837,7 @@ class CheckGitRoot(CheckRelateSettingsBase):
 class CheckRelateCourseLanguages(CheckRelateSettingsBase):
     """
     For this tests to pass, LANGUAGE_CODE, LANGUAGES, USE_I18N in
-    local_settings.example.py should not be configured"""
+    local_settings_example.py should not be configured"""
 
     msg_id_prefix = "relate_languages"
 
@@ -675,3 +1003,121 @@ class CheckRelateTemplatesDirs(CheckRelateSettingsBase):
                 self.assertCheckMessages(
                     ["relate_override_templates_dirs.W001",
                      "relate_override_templates_dirs.W001"])
+
+
+class CheckRelateCustomPageTypesRemovedDeadline(CheckRelateSettingsBase):
+    msg_id_prefix = "relate_custom_page_types_removed_deadline"
+    VALID_CONF = datetime(2017, 12, 31, 0, 0)
+    INVALID_CONF = "2017-12-31 00:00"
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=None)
+    def test_valid_conf_none(self):
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=VALID_CONF)
+    def test_valid_conf(self):
+        self.assertCheckMessages([])
+
+    @override_settings(RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=INVALID_CONF)
+    def test_invalid_conf(self):
+        self.assertCheckMessages(
+            ["relate_custom_page_types_removed_deadline.E001"])
+
+
+class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
+    msg_id_prefix = "relate_disable_codehilite_markdown_extension"
+    VALID_CONF = None
+    VALID_CONF_NO_WARNING = True
+
+    WARNING_CONF_NOT_BOOL1 = "some string"
+    WARNING_CONF_NOT_BOOL2 = ["markdown.extensions.codehilite"]
+    WARNING_CONF_FALSE = False
+
+    @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=VALID_CONF)
+    def test_valid_conf(self):
+        self.assertCheckMessages([])
+
+    @override_settings(
+        RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=VALID_CONF_NO_WARNING)
+    def test_valid_conf_no_warning(self):
+        self.assertCheckMessages([])
+
+    @override_settings(
+        RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=WARNING_CONF_NOT_BOOL1)
+    def test_warning_conf_not_bool1(self):
+        self.assertCheckMessages(
+            ["relate_disable_codehilite_markdown_extension.W001"])
+
+    @override_settings(
+        RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=WARNING_CONF_NOT_BOOL2)
+    def test_warning_conf_not_bool2(self):
+        self.assertCheckMessages(
+            ["relate_disable_codehilite_markdown_extension.W001"])
+
+    @override_settings(
+        RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=WARNING_CONF_FALSE)
+    def test_warning_conf_false(self):
+        self.assertCheckMessages(
+            ["relate_disable_codehilite_markdown_extension.W002"])
+
+
+class RelateStartupChecksExtraCheckTest(CheckRelateSettingsBase):
+    msg_id_prefix = "my_custom_check_msg"
+
+    INSTANCE_WRONG1 = "tests.resouce.my_check_func"
+    INSTANCE_WRONG2 = {"path": "tests.resouce.my_check_func"}
+
+    @override_settings()
+    def test_not_configured(self):
+        del settings.RELATE_STARTUP_CHECKS_EXTRA
+        register_startup_checks_extra()
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=None)
+    def test_none(self):
+        register_startup_checks_extra()
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=INSTANCE_WRONG1)
+    def test_instance_error1(self):
+        with self.assertRaises(ImproperlyConfigured) as cm:
+            register_startup_checks_extra()
+
+        expected_error_msg = (
+            "RELATE_STARTUP_CHECKS_EXTRA must be an instance of list or tuple")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=INSTANCE_WRONG2)
+    def test_instance_error2(self):
+        with self.assertRaises(ImproperlyConfigured) as cm:
+            register_startup_checks_extra()
+
+        expected_error_msg = (
+            "RELATE_STARTUP_CHECKS_EXTRA must be an instance of list or tuple")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=[])
+    def test_empty_list(self):
+        register_startup_checks_extra()
+
+    @skipIf(six.PY2, "python 2 generate different message for ImportError")
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=[
+        "unknown_package.unknown_module.func"])
+    def test_not_importable_check_func(self):
+        with self.assertRaises(ImproperlyConfigured) as cm:
+            register_startup_checks_extra()
+        expected_error_msg = ("No module named 'unknown_package'")
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    @override_settings(RELATE_STARTUP_CHECKS_EXTRA=[
+        "tests.resource.my_custom_check_func1",
+        "tests.resource.my_custom_check_func2"])
+    def test_do_check(self):
+        from tests.utils import mock
+        with mock.patch("relate.checks.register") as mock_register:
+            register_startup_checks_extra()
+            self.assertEqual(mock_register.call_count, 2)
+            stringified_call_args = ". ".join(
+                [repr(call) for call in mock_register.call_args_list])
+            self.assertIn(
+                "function my_custom_check_func1", stringified_call_args)
+            self.assertIn(
+                "function my_custom_check_func2", stringified_call_args)

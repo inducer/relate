@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import unittest
 from django.utils.timezone import now, timedelta
 from django.test import TestCase, override_settings
 
@@ -38,7 +39,8 @@ from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
 from tests.test_flow.test_purge_page_view_data import (
     PURGE_VIEW_TWO_COURSE_SETUP_LIST)
 from tests import factories
-from tests.utils import mock
+from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
+from tests.constants import QUIZ_FLOW_ID
 
 from pkg_resources import parse_version
 import celery
@@ -46,47 +48,10 @@ import celery
 is_celery_4_or_higher = parse_version(celery.__version__) >= parse_version("4.0.0")
 
 
-def get_session_grading_rule_1_day_due_side_effect(
-        session, flow_desc, now_datetime):
-    from course.utils import get_session_grading_rule
-    actual_grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
-    actual_grading_rule.due = now() + timedelta(days=1)
-    return actual_grading_rule
-
-
-class FactoryTest(SingleCourseTestMixin, TestCase):
-    def test_create_participations(self):
-        exist_participation_count = models.Participation.objects.count()
-        factories.ParticipationFactory.create_batch(4)
-        self.assertEqual(
-            models.Participation.objects.count(),
-            exist_participation_count+4)
-
-    def test_create_gopp(self):
-        gopp = factories.GradingOpportunityFactory()
-        self.assertEqual(
-            gopp.flow_id, models.GradingOpportunity.objects.first().flow_id)
-
-    def test_create_flow_sessions(self):
-        exist_flowsession_count = models.FlowSession.objects.count()
-        participations = factories.ParticipationFactory.create_batch(10)
-        for p in participations:
-            factories.FlowSessionFactory.create(participation=p)
-        self.assertEqual(models.FlowSession.objects.count(),
-                         exist_flowsession_count+10)
-
-
 class TaskTestMixin(object):
     """
     This test is actually testing without celery dependency.
     """
-    @classmethod
-    def setUpClass(cls):  # noqa
-        super(TaskTestMixin, cls).setUpClass()
-        cls.update_state_patcher = mock.patch(
-            "celery.app.task.Task.update_state", side_effect=mock.MagicMock)
-        cls.update_state_patcher.start()
-
     def setUp(self):
         super(TaskTestMixin, self).setUp()
 
@@ -94,23 +59,26 @@ class TaskTestMixin(object):
         if is_celery_4_or_higher:
             override_settings_kwargs = {"task_always_eager": True}
         else:
-            override_settings_kwargs = {"CELERY_TASK_ALWAYS_EAGER": True}
+            override_settings_kwargs = {
+                "CELERY_TASK_ALWAYS_EAGER": True,
+                "CELERY_EAGER_PROPAGATES_EXCEPTIONS": True,
+                "BROKER_BACKEND": 'memory'
+            }
         celery_fake_overriding = (
             override_settings(**override_settings_kwargs))
         celery_fake_overriding.enable()
         self.addCleanup(celery_fake_overriding.disable)
-
-    @classmethod
-    def tearDownClass(cls):  # noqa
-        super(TaskTestMixin, cls).tearDownClass()
-        cls.update_state_patcher.stop()
+        update_state_patcher = mock.patch(
+            "celery.app.task.Task.update_state", side_effect=mock.MagicMock)
+        self.mock_update_state = update_state_patcher.start()
+        self.addCleanup(update_state_patcher.stop)
 
 
 class GradesTasksTestSetUpMixin(object):
     def create_flow_sessions(self, course,
-                             n_participations_per_course=5,
+                             n_participations_per_course=4,
                              n_in_progress_sessions_per_participation=1,
-                             n_ended_sessions_per_participation=3):
+                             n_ended_sessions_per_participation=2):
         """
         Create multiple flow_sessions with a single gopp
         :param course::class:`Course`
@@ -129,11 +97,11 @@ class GradesTasksTestSetUpMixin(object):
         for i, p in enumerate(participations):
             factories.FlowSessionFactory.create_batch(
                 size=n_in_progress_sessions_per_participation,
-                participation=p)
+                participation=p, in_progress=True)
             factories.FlowSessionFactory.create_batch(
                 size=n_ended_sessions_per_participation,
                 participation=p,
-                in_progress=True)
+                in_progress=False)
 
         all_sessions = models.FlowSession.objects.all()
         self.all_sessions_count = all_sessions.count()
@@ -143,6 +111,7 @@ class GradesTasksTestSetUpMixin(object):
         self.ended_sessions_count = len(self.ended_sessions)
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
                       TaskTestMixin, TestCase):
 
@@ -168,13 +137,16 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         self.assertEqual(
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.ended_sessions_count)
+        self.assertEqual(
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
 
     def test_expire_in_progress_sessions_past_due_only_dued(self):
         # now_datetime > grading_rule.due
+        fake_grading_rule = self.get_hacked_session_grading_rule(
+            due=now() + timedelta(days=1))
         with mock.patch("course.flow.get_session_grading_rule") as \
                 mock_get_grading_rule:
-            mock_get_grading_rule.side_effect = (
-                get_session_grading_rule_1_day_due_side_effect)
+            mock_get_grading_rule.return_value = fake_grading_rule
             expire_in_progress_sessions(
                 self.gopp.course.id, self.gopp.flow_id,
                 rule_tag=None, now_datetime=now()+timedelta(days=3),
@@ -189,12 +161,16 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.all_sessions_count)
 
+        self.assertEqual(
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
+
     def test_expire_in_progress_sessions_past_due_only_not_dued(self):
         # now_datetime <= grading_rule.due
+        fake_grading_rule = self.get_hacked_session_grading_rule(
+            due=now() + timedelta(days=1))
         with mock.patch("course.flow.get_session_grading_rule") as \
                 mock_get_grading_rule:
-            mock_get_grading_rule.side_effect = (
-                get_session_grading_rule_1_day_due_side_effect)
+            mock_get_grading_rule.return_value = fake_grading_rule
 
             expire_in_progress_sessions(
                 self.gopp.course.id, self.gopp.flow_id,
@@ -208,6 +184,12 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         self.assertEqual(
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.ended_sessions_count)
+
+        self.assertEqual(self.mock_update_state.call_count,
+                         self.in_progress_sessions_count)
+
+        self.assertEqual(
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
 
     def test_expire_in_progress_sessions_all(self):
         expire_in_progress_sessions(
@@ -223,6 +205,9 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         self.assertEqual(
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.all_sessions_count)
+
+        self.assertEqual(
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
 
     # }}}
 
@@ -244,20 +229,21 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
             self.ended_sessions_count)
 
         self.assertEqual(
-            models.FlowPageVisitGrade.objects.count(), 0
-        )
+            models.FlowPageVisitGrade.objects.count(), 0)
+        self.assertEqual(
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
 
     def test_finish_in_progress_sessions_past_due_only_dued(self):
         # now_datetime > grading_rule.due
+        fake_grading_rule = self.get_hacked_session_grading_rule(
+            due=now() + timedelta(days=1))
         with mock.patch("course.flow.get_session_grading_rule") as \
                 mock_get_grading_rule:
-            mock_get_grading_rule.side_effect = (
-                get_session_grading_rule_1_day_due_side_effect)
+            mock_get_grading_rule.return_value = fake_grading_rule
             finish_in_progress_sessions(
                 self.gopp.course_id, self.gopp.flow_id,
                 rule_tag=None, now_datetime=now()+timedelta(days=3),
-                past_due_only=True
-            )
+                past_due_only=True)
 
         self.assertEqual(
             models.FlowSession.objects.filter(in_progress=True).count(),
@@ -270,21 +256,23 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         self.assertEqual(
             models.FlowPageVisitGrade.objects.filter(
                 visit__flow_session__in=self.ended_sessions).count(),
-            0
-        )
+            0)
 
         for ended_session in self.in_progress_sessions:
             self.assertTrue(
                 models.FlowPageVisitGrade.objects.filter(
-                    visit__flow_session=ended_session).count() > 0
-            )
+                    visit__flow_session=ended_session).count() > 0)
+
+        self.assertEqual(
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
 
     def test_finish_in_progress_sessions_past_due_only_not_dued(self):
         # now_datetime < grading_rule.due
+        fake_grading_rule = self.get_hacked_session_grading_rule(
+            due=now() + timedelta(days=1))
         with mock.patch("course.flow.get_session_grading_rule") as \
                 mock_get_grading_rule:
-            mock_get_grading_rule.side_effect = (
-                get_session_grading_rule_1_day_due_side_effect)
+            mock_get_grading_rule.return_value = fake_grading_rule
             finish_in_progress_sessions(
                 self.gopp.course_id, self.gopp.flow_id,
                 rule_tag=None, now_datetime=now(),
@@ -299,9 +287,9 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
             models.FlowSession.objects.filter(in_progress=False).count(),
             self.ended_sessions_count)
 
+        self.assertEqual(models.FlowPageVisitGrade.objects.count(), 0)
         self.assertEqual(
-            models.FlowPageVisitGrade.objects.count(), 0
-        )
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
 
     def test_finish_in_progress_sessions_all(self):
         finish_in_progress_sessions(
@@ -337,6 +325,9 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
                     visit__flow_session=session).count() == 0
             )
 
+        self.assertEqual(
+            self.mock_update_state.call_count, self.in_progress_sessions_count)
+
     # }}}
 
     # {{{ test recalculate_ended_sessions
@@ -349,6 +340,10 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         first_round_visit_grade_count = models.FlowPageVisitGrade.objects.count()
         self.assertTrue(first_round_visit_grade_count > 0)
 
+        self.assertEqual(self.mock_update_state.call_count,
+                         self.ended_sessions_count)
+        self.mock_update_state.reset_mock()
+
         # second round
         recalculate_ended_sessions(self.gopp.course_id,
                                    self.gopp.flow_id,
@@ -357,11 +352,13 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         self.assertEqual(
             models.FlowPageVisitGrade.objects.count(), first_round_visit_grade_count
         )
+        self.assertEqual(self.mock_update_state.call_count,
+                         self.ended_sessions_count)
 
     # }}}
 
     # {{{ test regrade_flow_sessions
-    def test_recalculate_ended_sessions_not_in_progress_only(self):
+    def test_regrade_not_in_progress_only(self):
         regrade_flow_sessions(self.gopp.course_id,
                               self.gopp.flow_id,
                               access_rules_tag=None,
@@ -375,6 +372,10 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
                     visit__flow_session=session).count() > 0
             )
 
+        self.assertEqual(self.mock_update_state.call_count,
+                         self.ended_sessions_count)
+        self.mock_update_state.reset_mock()
+
         first_round_visit_grade_count = models.FlowPageVisitGrade.objects.count()
         regrade_flow_sessions(self.gopp.course_id,
                               self.gopp.flow_id,
@@ -386,7 +387,10 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
         self.assertTrue(models.FlowPageVisitGrade.objects.count()
                         > first_round_visit_grade_count)
 
-    def test_recalculate_ended_sessions_in_progress_only(self):
+        self.assertEqual(self.mock_update_state.call_count,
+                         self.ended_sessions_count)
+
+    def test_regrade_in_progress_only(self):
         regrade_flow_sessions(self.gopp.course_id,
                               self.gopp.flow_id,
                               access_rules_tag=None,
@@ -405,8 +409,10 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
             models.FlowPageVisitGrade.objects.filter(
                 visit__flow_session__in=self.in_progress_sessions).count() == 0
         )
+        self.assertEqual(self.mock_update_state.call_count,
+                         self.in_progress_sessions_count)
 
-    def test_recalculate_ended_sessions_all(self):
+    def test_regrade_all(self):
         # inprog_value=None means "any" page will be regraded disregard whether
         # the session is in-progress
         regrade_flow_sessions(self.gopp.course_id,
@@ -415,7 +421,7 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
                               inprog_value=None
                               )
 
-        # each ended session got not page regrades
+        # each ended session got page regrades
         self.assertTrue(
             models.FlowPageVisitGrade.objects.filter(
                 visit__flow_session__in=self.ended_sessions).count() > 0
@@ -426,6 +432,35 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
             models.FlowPageVisitGrade.objects.filter(
                 visit__flow_session__in=self.in_progress_sessions).count() == 0
         )
+
+    def test_regrade_with_access_rules_tag(self):
+        with mock.patch("course.flow.regrade_session") as mock_regrade:
+            regrade_flow_sessions(self.gopp.course_id,
+                                  self.gopp.flow_id,
+                                  access_rules_tag="None exist tag",
+                                  inprog_value=None
+                                  )
+
+            mock_regrade.return_value = None
+
+            # no regrade happened
+            self.assertEqual(mock_regrade.call_count, 0)
+
+            first_session = models.FlowSession.objects.first()
+            first_session.access_rules_tag = "some tag"
+            first_session.save()
+
+            regrade_flow_sessions(self.gopp.course_id,
+                                  self.gopp.flow_id,
+                                  access_rules_tag="some tag",
+                                  inprog_value=None
+                                  )
+
+            self.assertEqual(mock_regrade.call_count, 1)
+            self.assertIn(first_session, mock_regrade.call_args[0])
+
+            self.assertEqual(self.mock_update_state.call_count, 1)
+
     # }}}
 
 
@@ -484,6 +519,7 @@ class PurgePageViewDataTaskTestSetUpMixin(object):
         return n_all_fpv, n_null_answer_fpv, n_non_null_answer_fpv
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
                                 PurgePageViewDataTaskTestSetUpMixin, TaskTestMixin,
                                 TestCase):
@@ -547,9 +583,12 @@ class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
             ).count(),
             self.course2_n_null_answer_fpv
         )
+
+        self.assertEqual(self.mock_update_state.call_count, 0)
     # }}}
 
 
+@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class TasksTestsWithCeleryDependency(SingleCourseTestMixin, TestCase):
     """
     This test involves celery. However, Django's sqlite3 is an in-memory database,
@@ -559,7 +598,7 @@ class TasksTestsWithCeleryDependency(SingleCourseTestMixin, TestCase):
     with settings.CELERY_TASK_ALWAYS_EAGER=True.
     """
 
-    flow_id = "quiz-test"
+    flow_id = QUIZ_FLOW_ID
 
     def test_expire_in_progress_sessions(self):
         with mock.patch("course.tasks.Course.objects.get")\

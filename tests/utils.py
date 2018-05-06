@@ -5,7 +5,9 @@ try:
     from importlib import reload
 except ImportError:
     pass  # PY2
+import os
 from importlib import import_module
+import six
 from six import StringIO
 from functools import wraps
 
@@ -26,11 +28,11 @@ class BaseEmailBackendTestsMixin(object):
     email_backend = None
 
     def setUp(self):  # noqa
-        self.settings_override = override_settings(EMAIL_BACKEND=self.email_backend)
-        self.settings_override.enable()
-
-    def tearDown(self):  # noqa
-        self.settings_override.disable()
+        super(BaseEmailBackendTestsMixin, self).setUp()
+        self.email_backend_settings_override = (
+            override_settings(EMAIL_BACKEND=self.email_backend))
+        self.email_backend_settings_override.enable()
+        self.addCleanup(self.email_backend_settings_override.disable)
 
     def assertStartsWith(self, first, second):  # noqa
         if not first.startswith(second):
@@ -104,16 +106,6 @@ class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
         mail.outbox = []
 
 
-class BaseEmailBackendTestsMixin(object):
-    email_backend = None
-
-    def setUp(self):  # noqa
-        self.settings_override = override_settings(EMAIL_BACKEND=self.email_backend)
-        self.settings_override.enable()
-
-    def tearDown(self):  # noqa
-        self.settings_override.disable()
-
 # }}}
 
 
@@ -154,6 +146,10 @@ def load_url_pattern_names(patterns):
         elif pat.__class__.__name__ == 'RegexURLPattern':
             if pat.name is not None and pat.name not in url_names:
                 url_names.append(pat.name)
+        else:
+            from django.urls import URLPattern
+            assert isinstance(pat, URLPattern)
+            url_names.append(pat.name)
     return url_names
 
 
@@ -168,5 +164,36 @@ def reload_urlconf(urlconf=None):
         reload(sys.modules[urlconf])
     else:
         import_module(urlconf)
+
+
+def _is_connection_psql():
+    from django.db import connection
+    return connection.vendor == 'postgresql'
+
+
+is_connection_psql = _is_connection_psql()
+
+
+SKIP_NON_PSQL_REASON = "PostgreSQL specific SQL used"
+
+
+def may_run_expensive_tests():
+    if six.PY2:
+        return False
+
+    # Allow run expensive tests locally, i.e., CI not detected.
+    if not any([os.getenv(ci)
+                for ci in ["RL_TRAVIS_TEST", "GITLAB_CI", "APPVEYOR"]]):
+        return True
+
+    if os.getenv("RL_TRAVIS_TEST") != "test_expensive":
+        return False
+
+    return True
+
+
+SKIP_EXPENSIVE_TESTS_REASON = (
+    "This expensive test is ran separately on TRAVIS-CI with test_expensive "
+    "env variable, or local tests.")
 
 # vim: fdm=marker

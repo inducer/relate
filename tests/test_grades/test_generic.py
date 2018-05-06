@@ -1,6 +1,6 @@
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner"
+__copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner, Zhuang Dong"
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,30 +22,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.urls import reverse
-from tests.base_test_mixins import SingleCoursePageTestMixin
-
+import six
+from django.urls import reverse, NoReverseMatch
 from django.test import TestCase
+from unittest import skipIf, skipUnless
+
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
-    FlowRuleException, GradeChange
+    FlowRuleException
 )
 
+from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
-class GradeTestMixin(SingleCoursePageTestMixin):
+
+class GradeGenericTestMixin(SingleCoursePageTestMixin):
     # This serve as a base test cases for other grade tests to subclass
     # Nice little tricks :)
-    flow_id = "quiz-test"
-
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GradeTestMixin, cls).setUpTestData()
+        super(GradeGenericTestMixin, cls).setUpTestData()
         cls.flow_session_ids = []
         cls.do_quiz(cls.student_participation)
 
     @classmethod
     def tearDownClass(cls):
-        super(GradeTestMixin, cls).tearDownClass()
+        super(GradeGenericTestMixin, cls).tearDownClass()
 
     # Use specified user to take a quiz
     @classmethod
@@ -88,13 +90,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         resp = self.c.get(reverse("relate-view_gradebook",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
-
-    def test_view_export_gradebook_csv(self):
-        resp = self.c.get(reverse("relate-export_gradebook_csv",
-                                  args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Disposition"],
-                         'attachment; filename="grades-test-course.csv"')
 
     def test_view_grades_by_opportunity(self):
         # Check attributes
@@ -143,22 +138,8 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(FlowSession.objects.all().count(),
                          len(self.flow_session_ids))
 
-    def test_view_import_grades_without_header(self):
-        csv_data = [(self.instructor_participation.user.username,
-                        99, "Almost!"),
-                    (self.student_participation.user.username,
-                        50, "I hate this course :(")]
-        self.check_import_grade(csv_data)
-
-    def test_view_import_grades_with_header(self):
-        csv_data = [("username", "grade", "feedback"),
-                    (self.instructor_participation.user.username,
-                        99, "Almost!"),
-                    (self.student_participation.user.username,
-                        50, "I hate this course :(")]
-        self.check_import_grade(csv_data, True)
-
-    # Seems just show the answer
+    # Just show the grading interfaces of the unanswered pages
+    # the answered pages are tested in tests.teat_pages.test_generic
     def test_view_grade_flow_page(self):
         params = {"course_identifier": self.course.identifier,
                   "flow_session_id": self.flow_session_ids[0]}
@@ -180,86 +161,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
                     "flow_id": self.flow_id}
         resp = self.c.get(reverse("relate-show_grader_statistics",
                                             kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-
-    def test_view_download_submissions(self):
-        # Check download form first
-        resp = self.get_download_all_submissions(flow_id=self.flow_id)
-        self.assertEqual(resp.status_code, 200)
-
-        # Check download here, only test intro page
-        # Maybe we should include an "all" option in the future?
-        resp = (
-            self.post_download_all_submissions_by_group_page_id(
-                flow_id=self.flow_id,
-                group_page_id="intro/welcome")
-        )
-
-        self.assertEqual(resp.status_code, 200)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
-        self.assertEqual(prefix, "attachment; filename")
-        zip_file_name = zip_file.replace('"', '').split('_')
-        self.assertEqual(zip_file_name[0], "submissions")
-        self.assertEqual(zip_file_name[1], self.course.identifier)
-        self.assertEqual(zip_file_name[2], self.flow_id)
-        self.assertEqual(zip_file_name[3], "intro")
-        self.assertEqual(zip_file_name[4], "welcome")
-        self.assertTrue(zip_file_name[5].endswith(".zip"))
-
-    def test_view_edit_grading_opportunity(self):
-        # Check attributes
-        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
-        opportunity = GradingOpportunity.objects.all()[0]
-        self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.flow_id, opportunity.flow_id)
-
-        params = {"course_identifier": self.course.identifier,
-                    "opportunity_id": opportunity.id}
-        # Check page
-        resp = self.c.get(reverse("relate-edit_grading_opportunity",
-                                            kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-        # Try making a change
-        self.assertEqual(opportunity.page_scores_in_participant_gradebook, False)
-        data = {'page_scores_in_participant_gradebook': ['on'],
-                 'name': ['Flow: RELATE Test Quiz'],
-                 'hide_superseded_grade_history_before': [''],
-                 'submit': ['Update'],
-                 'shown_in_participant_grade_book': ['on'],
-                 'aggregation_strategy': ['use_latest'],
-                 'shown_in_grade_book': ['on'],
-                 'result_shown_in_participant_grade_book': ['on']}
-        resp = self.c.post(reverse("relate-edit_grading_opportunity",
-                                                    kwargs=params), data)
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse("relate-edit_grading_opportunity",
-                                                            kwargs=params))
-
-        # Check objects and attributes
-        # Should still be one
-        self.assertEqual(len(GradingOpportunity.objects.all()), 1)
-        opportunity = GradingOpportunity.objects.all()[0]
-        self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.flow_id, opportunity.flow_id)
-        # Check changes
-        self.assertEqual(opportunity.page_scores_in_participant_gradebook, True)
-
-    def test_view_flow_list_analytics(self):
-        resp = self.c.get(reverse("relate-flow_list",
-                                            args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-
-    def test_view_flow_analytics(self):
-        params = {"course_identifier": self.course.identifier,
-                    "flow_id": self.flow_id}
-        resp = self.c.get(reverse("relate-flow_analytics",
-                                            kwargs=params))
-        self.assertEqual(resp.status_code, 200)
-
-    # Only check page for now
-    def test_view_regrade_flow(self):
-        resp = self.c.get(reverse("relate-regrade_flows_view",
-                                            args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_grant_exception_new_session(self):
@@ -292,63 +193,6 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         # Should have two exception rules now
         # One for access and one for grading
         self.assertEqual(len(FlowRuleException.objects.all()), 2 * session_nums)
-
-    # Helper method for creating in memory csv files to test import grades
-    def creat_grading_csv(self, data):
-        try:
-            import cStringIO  # PY2
-        except ImportError:
-            import io as cStringIO  # PY3
-
-        csvfile = cStringIO.StringIO()
-
-        import csv
-        csvwriter = csv.writer(csvfile)
-        for d in data:
-            # (username, grades, feedback)
-            csvwriter.writerow([d[0], d[1], d[2]])
-        # Reset back to the start of file to avoid invalid form error
-        # Otherwise it will consider the file as empty
-        csvfile.seek(0)
-        return csvfile
-
-    # Helper method for testing import grades
-    def check_import_grade(self, csv_data, headers=False):
-        # Check import form works well
-        resp = self.c.get(reverse("relate-import_grades",
-                                  args=[self.course.identifier]))
-        self.assertEqual(resp.status_code, 200)
-
-        # Check number of GradeChange
-        self.assertEqual(GradeChange.objects.all().count(), self.n_quiz_takers)
-
-        # Check attributes
-        self.assertEqual(GradingOpportunity.objects.all().count(), 1)
-        opportunity = GradingOpportunity.objects.all().first()
-        self.assertEqual(self.course, opportunity.course)
-        self.assertEqual(self.flow_id, opportunity.flow_id)
-
-        # Prepare data
-        # Prepare csv
-        csv_file = self.creat_grading_csv(csv_data)
-        # Prepare form data
-        data = {'points_column': ['2'], 'attr_column': ['1'],
-                'feedback_column': ['3'],
-                'grading_opportunity': [str(opportunity.id)],
-                'format': ['csv' + ('head' if headers else '')],
-                'attempt_id': ['main'], 'max_points': ['100'],
-                'import': ['Import'], 'attr_type': ['email_or_id'],
-                'file': csv_file}
-
-        # Check importing
-        resp = self.c.post(reverse("relate-import_grades",
-                                    args=[self.course.identifier]), data)
-        self.assertEqual(resp.status_code, 200)
-
-        # Check number of GradeChange
-        num_diff = len(csv_data) - 1 if headers else len(csv_data)
-        self.assertEqual(GradeChange.objects.all().count(),
-                         self.n_quiz_takers + num_diff)
 
     # Helper method for testing grant exceptions for new session
     def check_grant_new_exception(self, params):
@@ -461,7 +305,11 @@ class GradeTestMixin(SingleCoursePageTestMixin):
         return params
 
 
-class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
+
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls): # noqa
         super(GradeTwoQuizTakerTest, cls).setUpTestData()
@@ -473,7 +321,11 @@ class GradeTwoQuizTakerTest(GradeTestMixin, TestCase):
         cls.c.force_login(cls.instructor_participation.user)
 
 
-class GradeThreeQuizTakerTest(GradeTestMixin, TestCase):
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
+
+    force_login_student_for_each_test = False
+
     @classmethod
     def setUpTestData(cls): # noqa
         super(GradeThreeQuizTakerTest, cls).setUpTestData()
@@ -483,3 +335,113 @@ class GradeThreeQuizTakerTest(GradeTestMixin, TestCase):
         cls.n_participations = 3
 
         cls.c.force_login(cls.instructor_participation.user)
+
+
+@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):  # noqa
+        super(GradePermissionsTests, cls).setUpTestData()
+        cls.start_flow(flow_id=cls.flow_id)
+        cls.end_flow()
+
+    def view_grades_permission(self, user, status_codes):
+        try:
+            participation = Participation.objects.get(user=user)
+        except Participation.DoesNotExist:
+            participation = self.student_participation
+
+        urlname_views = ([
+            ("relate-view_gradebook",
+             {"course_identifier": self.course.identifier}),
+            ("relate-view_grades_by_opportunity",
+             {"course_identifier": self.course.identifier, "opp_id": 1}),
+            ("relate-view_grading_opportunity_list",
+             {"course_identifier": self.course.identifier}),
+            ("relate-view_participant_grades",
+             {"course_identifier": self.course.identifier,
+              "participation_id": participation.pk}),
+            ("relate-view_participant_list",
+             {"course_identifier": self.course.identifier}),
+            ("relate-view_reopen_session",
+             {"course_identifier": self.course.identifier, "flow_session_id": 1,
+              "opportunity_id": 1}),
+            ("relate-view_single_grade",
+             {"course_identifier": self.course.identifier,
+              "participation_id": participation.pk, "opportunity_id": 1}),
+            ("relate-export_gradebook_csv",
+             {"course_identifier": self.course.identifier}),
+            ("relate-import_grades",
+             {"course_identifier": self.course.identifier}),
+            ("relate-download_all_submissions",
+             {"course_identifier": self.course.identifier,
+              "flow_id": self.flow_id}),
+            ("relate-edit_grading_opportunity",
+             {"course_identifier": self.course.identifier, "opportunity_id": 1})]
+        )
+        with self.temporarily_switch_to_user(user):
+            for (urlname, kwargs) in urlname_views:
+                try:
+                    url = reverse(urlname, kwargs=kwargs)
+                except NoReverseMatch:
+                    self.fail(
+                        "Reversal of url named '%s' failed with "
+                        "NoReverseMatch" % urlname)
+                with self.subTest(user=user, urlname=urlname, method="GET"):
+                    resp = self.c.get(url)
+                    self.assertEqual(
+                        resp.status_code,
+                        status_codes.get(
+                            urlname + "_get",
+                            status_codes.get(
+                                urlname,
+                                status_codes.get("default_status_code")
+                            )))
+
+                with self.subTest(user=user, urlname=urlname, method="POST"):
+                    postdata = {}
+                    resp = self.c.post(url, data=postdata)
+                    self.assertEqual(
+                        resp.status_code,
+                        status_codes.get(
+                            urlname + "_post",
+                            status_codes.get(
+                                urlname,
+                                status_codes.get("default_status_code")
+                            )))
+
+    def test_view_grades_instructor(self):
+        status_codes = {"default_status_code": 200,
+
+                        # no action_defined
+                        "relate-view_single_grade_post": 400,
+                        "relate-view_grades_by_opportunity_post": 400}
+        self.view_grades_permission(self.instructor_participation.user,
+                                    status_codes)
+
+    @skipIf(six.PY2, "PY2 doesn't support subTest")
+    def test_view_grades_ta(self):
+        status_codes = {"default_status_code": 200,
+                        "relate-edit_grading_opportunity": 403,
+                        "relate-import_grades": 403,
+                        "relate-export_gradebook_csv": 403,
+
+                        # no action_defined
+                        "relate-view_single_grade_post": 400,
+                        "relate-view_grades_by_opportunity": 200}
+        self.view_grades_permission(self.ta_participation.user,
+                                    status_codes)
+
+    def test_view_grades_student(self):
+        status_codes = {"default_status_code": 403,
+                        "relate-view_participant_grades": 200,
+
+                        # no action_defined
+                        "relate-view_single_grade_post": 400,
+                        "relate-view_single_grade": 200}
+        self.view_grades_permission(self.student_participation.user,
+                                    status_codes)
+
+    def test_view_grades_anonymous(self):
+        status_codes = {"default_status_code": 403}
+        self.view_grades_permission(None, status_codes)

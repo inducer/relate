@@ -1,0 +1,15 @@
+type: FileUploadQuestion
+id: proof
+maximum_megabytes: 0.5
+value: 5
+prompt: |
+
+    # Upload a file
+
+mime_types:
+    - application/pdf
+    - text/plain
+
+rubric: |
+
+    uploaded?

@@ -21,7 +21,7 @@
                           <b>{% trans "(so far)" %}</b>
                       {% endif %}
                       {# Translators: PartIII #}
-                      {% blocktrans trimmed with provisional_points=grade_info.provisional_points|floatformat max_points=grade_info.max_points|floatformat %}
+                      {% blocktrans trimmed with provisional_points=grade_info.provisional_points|floatformat:"-2" max_points=grade_info.max_points|floatformat:"-2" %}
                           achieved <b>{{ provisional_points }}</b> out of
                           {{ max_points }}
                           points.
@@ -34,7 +34,7 @@
                           {% endblocktrans %}
                       {% else %}
                           {# Translators: PartV #}
-                          {% blocktrans trimmed with points_percent=grade_info.points_percent|floatformat %}
+                          {% blocktrans trimmed with points_percent=grade_info.points_percent|floatformat:"-2" %}
                               (That's <b>{{ points_percent }}%</b>.)
                           {% endblocktrans %}
                       {% endif %}
