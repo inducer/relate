@@ -131,6 +131,33 @@ class EventTest(RelateModelTestMixin, unittest.TestCase):
                                         ordinal=2)
         self.assertNotEqual(str(event3), str(event4))
 
+    def test_validate_kind_with_spaces(self):
+        with self.assertRaises(ValidationError) as cm:
+            factories.EventFactory(course=self.course, kind="my event")
+
+        expected_error_msg = (
+            "Should be lower_case_with_underscores, no spaces "
+            "allowed.")
+        self.assertIn(expected_error_msg, cm.exception.message_dict["kind"])
+
+    def test_validate_kind_with_upper_case(self):
+        with self.assertRaises(ValidationError) as cm:
+            factories.EventFactory(course=self.course, kind="myEvent")
+
+        expected_error_msg = (
+            "Should be lower_case_with_underscores, no spaces "
+            "allowed.")
+        self.assertIn(expected_error_msg, cm.exception.message_dict["kind"])
+
+    def test_validate_kind_with_hyphen(self):
+        with self.assertRaises(ValidationError) as cm:
+            factories.EventFactory(course=self.course, kind="my-event")
+
+        expected_error_msg = (
+            "Should be lower_case_with_underscores, no spaces "
+            "allowed.")
+        self.assertIn(expected_error_msg, cm.exception.message_dict["kind"])
+
     def test_clean_end_time(self):
         with self.assertRaises(ValidationError) as cm:
             factories.EventFactory(
