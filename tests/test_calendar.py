@@ -605,9 +605,33 @@ class ViewCalendarTest(CalendarTestMixin, TestCase):
             resp = self.get_course_calender_view()
             self.assertEqual(resp.status_code, 403)
 
-    def test_success(self):
+    def test_student_view_success(self):
         resp = self.get_course_calender_view()
         self.assertEqual(resp.status_code, 200)
+
+    def test_student_view_get_events_called(self):
+        with mock.patch("course.calendar._get_events") as mock_get_events:
+            mock_get_events.return_value = ([], [])
+            resp = self.get_course_calender_view()
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(mock_get_events.call_count, 1)
+            self.assertIsNotNone(resp.context.get("events_json"))
+            self.assertIsNotNone(resp.context.get("events_info_html"))
+
+    def test_instructor_view_success(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_course_calender_view()
+            self.assertEqual(resp.status_code, 200)
+
+    def test_instructor_view_get_events_not_called(self):
+        with mock.patch("course.calendar._get_events") as mock_get_events:
+            mock_get_events.return_value = ([], [])
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.get_course_calender_view()
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(mock_get_events.call_count, 0)
+                self.assertIsNone(resp.context.get("events_json"))
+                self.assertIsNone(resp.context.get("events_info_html"))
 
     def test_default_time(self):
         if self.course.end_date is not None:
@@ -639,7 +663,7 @@ class ViewCalendarTest(CalendarTestMixin, TestCase):
 
 class FetchEventsTest(CalendarTestMixin, TestCase):
     """test course.calendar.fetch_events"""
-    force_login_student_for_each_test = True
+    force_login_student_for_each_test = False
 
     def setUp(self):
         super(FetchEventsTest, self).setUp()
@@ -649,8 +673,13 @@ class FetchEventsTest(CalendarTestMixin, TestCase):
         # Note: in this way, the events_info_html in the fetch_event response
         # will always be empty, we test the events_info_html by check the kwargs
         # when calling render_to_string
+
+        # Todo: This only test the behavior of _get_events when called
+        # in fetch_events. _get_events also need to be tested when called in
+        # view_calendar.
         self.mock_render_to_string.return_value = ""
         self.addCleanup(fake_render_to_string.stop)
+        self.c.force_login(self.instructor_participation.user)
 
     def get_event_info_list_rendered(self):
         """get the event_info_list rendered from mocked render_to_string call"""
@@ -670,10 +699,7 @@ class FetchEventsTest(CalendarTestMixin, TestCase):
             self.fetch_events_url(course_identifier), **kwargs)
 
     def test_no_pperm(self):
-        with mock.patch(
-                "course.utils.CoursePageContext.has_permission"
-        ) as mock_has_pperm:
-            mock_has_pperm.return_value = False
+        with self.temporarily_switch_to_user(self.student_participation.user):
             resp = self.get_fetch_events()
             self.assertEqual(resp.status_code, 403)
 

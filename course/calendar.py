@@ -374,9 +374,19 @@ def view_calendar(pctx):
     if pctx.course.end_date is not None and default_date > pctx.course.end_date:
         default_date = pctx.course.end_date
 
-    return render_course_page(pctx, "course/calendar.html", {
-        "default_date": default_date.isoformat(),
-    })
+    context = {"default_date": default_date.isoformat()}
+    if not pctx.has_permission(pperm.edit_events):
+        # When using feed as event source, almost each view change in
+        # FullCalendar js will trigger an AJAX request.
+        # Ref: https://stackoverflow.com/a/40832304/3437454
+        # This prevent AJAX fetching when participation has no edit_events pperm
+        events_info_html, events_json = _get_events(pctx)
+        context["events_info_html"] = events_info_html
+
+        import json
+        context["events_json"] = json.dumps(events_json)
+
+    return render_course_page(pctx, "course/calendar.html", context)
 
 
 def _get_events(pctx):
@@ -495,8 +505,8 @@ def _get_events(pctx):
 
 @course_view
 def fetch_events(pctx):
-    if not pctx.has_permission(pperm.view_calendar):
-        raise PermissionDenied(_("may not view calendar"))
+    if not pctx.has_permission(pperm.edit_events):
+        raise PermissionDenied(_("may not fetch events"))
 
     request = pctx.request
     if not (request.is_ajax() and request.method == "GET"):

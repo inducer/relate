@@ -21,17 +21,19 @@
     <script src='{% static "blueimp-tmpl/js/tmpl.min.js" %}'></script>
   {% endif %}
 
-  <style>
-    .spinner {
-      background: rgba(0, 0, 0, .2) url({% static "images/busy.gif" %}) no-repeat center center;
-      width: 100%;
-      height: 100%;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 999;
-    }
-  </style>
+  {% if pperm.edit_events %}
+    <style>
+      .spinner {
+        background: rgba(0, 0, 0, .2) url({% static "images/busy.gif" %}) no-repeat center center;
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 999;
+      }
+    </style>
+  {% endif %}
 
 {% endblock %}
 
@@ -39,11 +41,13 @@
 {% block content %}
   <h1>{{ course.number }} {% trans "Calendar" %}</h1>
   <div id="course-cal" style="margin-top:3em"></div>
-  <div id="cover"></div>
+  {% if pperm.edit_events %}
+    <div id="cover"></div>
+  {% endif %}
   <b class="relate-calendar-notes">{% trans "Note" %}:</b>
   {% trans "Some calendar entries are clickable and link to entries below." %}
 
-  <div id="relate-event-info" style="margin-top:3ex"></div>
+  <div id="relate-event-info" style="margin-top:3ex">{{ events_info_html|safe }}</div>
 {% endblock %}
 
 {% block page_bottom_javascript_extra %}
@@ -51,8 +55,6 @@
     (function(){
       var $courseCal = $('#course-cal'),
         $relateEventInfo = $('#relate-event-info');
-
-      var fetchUrl = '{% url "relate-fetch_events" course.identifier %}';
 
       $(document).ready(function () {
         $courseCal.fullCalendar({
@@ -78,7 +80,11 @@
               $("#cover").addClass('spinner');
             else $("#cover").removeClass('spinner');
           },
+        {% if not pperm.edit_events %}
+          events: {{ events_json|safe }},
+        {% else %}
           events: function (start, end, timezone, callback) {
+            var fetchUrl = '{% url "relate-fetch_events" course.identifier %}';
             $.ajax({
               url: fetchUrl,
               success: function (result) {
@@ -89,12 +95,12 @@
                 }
               })
             },
+        {% endif %}
         });
       });
     })();
 
   </script>
-
 
   {{ block.super }}
 {% endblock %}
