@@ -4,61 +4,98 @@
 {% load static %}
 
 {% block title %}
-  {{ course.number}}
+  {{ course.number }}
   {% trans "Calendar" %} - {{ relate_site_name }}
 {% endblock %}
 
-{%block head_assets_extra %}
-  <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}' />
+{% block head_assets_extra %}
+  <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}?version=3.9.0'/>
   <script src='{% static "moment/moment.js" %}'></script>
-  <script src='{% static "fullcalendar/dist/fullcalendar.js" %}'></script>
+  <script src='{% static "fullcalendar/dist/fullcalendar.min.js" %}?version=3.9.0'></script>
   {# load calendar with local language #}
   {% get_current_language as LANGUAGE_CODE %}
   {% if LANGUAGE_CODE != "en" %}
-    <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE |js_lang_fallback:"fullcalendar" }}.js'></script>
+    <script src='{% static "fullcalendar/dist/locale/" %}{{ LANGUAGE_CODE |js_lang_fallback:"fullcalendar" }}.js?version=3.9.0'></script>
   {% endif %}
+  {% if pperm.edit_events %}
+    <script src='{% static "blueimp-tmpl/js/tmpl.min.js" %}'></script>
+  {% endif %}
+
+  <style>
+    .spinner {
+      background: rgba(0, 0, 0, .2) url({% static "images/busy.gif" %}) no-repeat center center;
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 999;
+    }
+  </style>
+
 {% endblock %}
 
+
 {% block content %}
-  <h1>{{ course.number}} {% trans "Calendar" %}</h1>
+  <h1>{{ course.number }} {% trans "Calendar" %}</h1>
+  <div id="course-cal" style="margin-top:3em"></div>
+  <div id="cover"></div>
+  <b class="relate-calendar-notes">{% trans "Note" %}:</b>
+  {% trans "Some calendar entries are clickable and link to entries below." %}
 
-  <div id="coursecal" style="margin-top:3em"></div>
+  <div id="relate-event-info" style="margin-top:3ex"></div>
+{% endblock %}
 
-
+{% block page_bottom_javascript_extra %}
   <script type="text/javascript">
-    $(document).ready(function() {
-        $('#coursecal').fullCalendar({
+    (function(){
+      var $courseCal = $('#course-cal'),
+        $relateEventInfo = $('#relate-event-info');
+
+      var fetchUrl = '{% url "relate-fetch_events" course.identifier %}';
+
+      $(document).ready(function () {
+        $courseCal.fullCalendar({
           header: {
             left: 'prev,next today',
             center: 'title',
-            right: 'month,agendaWeek,agendaDay'
+            right: 'month,agendaWeek,agendaDay,listMonth'
           },
+          contentHeight: "auto",
           defaultDate: '{{ default_date }}',
+          defaultView: $(window).width() < 765 ? 'listMonth': 'month',
           timezone: "local",
+          nowIndicator: true,
+          views: {
+            month: {
+              displayEventEnd: $(window).width() < 765 ? false: true
+            }
+          },
+          minTime: "06:00:00",
+          maxTime: "24:00:00",
+          loading: function(isLoading, view){
+            if (isLoading)
+              $("#cover").addClass('spinner');
+            else $("#cover").removeClass('spinner');
+          },
+          events: function (start, end, timezone, callback) {
+            $.ajax({
+              url: fetchUrl,
+              success: function (result) {
+                $relateEventInfo.empty().html(result.events_info_html);
 
-          events: {{ events_json|safe }}
-        })
-    });
+                {# use events_json as eventSource #}
+                callback(result.events_json);
+                }
+              })
+            },
+        });
+      });
+    })();
+
   </script>
 
-{% blocktrans trimmed %}
-  <b>Note:</b> Some calendar entries are clickable and link to entries
-  below.
-{% endblocktrans %}
 
-  <div style="margin-top:3ex">
-  {% for event_info in event_info_list %}
-    <div id="event-{{ event_info.id }}" class="panel panel-default relate-calendar-event">
-      <div class="panel-heading">
-        <b>{{ event_info.human_title }}</b>
-        ({{ event_info.start_time }}{% if event_info.end_time %} - {{ event_info.end_time }}{% endif %})
-      </div>
-      <div class="panel-body">
-        {{ event_info.description|safe }}
-      </div>
-    </div>
-  {% endfor%}
-  </div>
-
+  {{ block.super }}
 {% endblock %}
 

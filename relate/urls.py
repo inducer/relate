@@ -345,6 +345,11 @@ urlpatterns = [
         "/calendar/$",
         course.calendar.view_calendar,
         name="relate-view_calendar"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX +
+        "/calendar/fetch/$",
+        course.calendar.fetch_events,
+        name="relate-fetch_events"),
 
     # }}}
 
