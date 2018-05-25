@@ -28,10 +28,12 @@ import datetime
 
 from django.test import TestCase
 from django.utils.timezone import now, timedelta
+from django.core.exceptions import ValidationError
 
 from relate.utils import as_local_time
 
 from course.models import Event
+from course import calendar
 
 from tests.base_test_mixins import (
     SingleCourseTestMixin, MockAddMessageMixing, HackRepoMixin)
@@ -152,6 +154,17 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
             list(Event.objects.values_list("ordinal", flat=True)),
             [1, 2, 3, 4, 5])
 
+    def test_post_success_starting_ordinal_not_specified_skip_exist(self):
+        factories.EventFactory(
+            course=self.course, kind=self.default_event_kind, ordinal=4)
+        resp = self.post_create_recurring_events_view(
+            data=self.get_post_create_recur_evt_data())
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Event.objects.count(), 6)
+        self.assertListEqual(
+            list(Event.objects.values_list("ordinal", flat=True)),
+            [4, 11, 12, 13, 14, 15])
+
     def test_post_event_already_exists_starting_ordinal_specified(self):
         factories.EventFactory(
             course=self.course, kind=self.default_event_kind, ordinal=7)
@@ -182,12 +195,10 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("Events created.")
 
-    def test_unknown_error(self):
+    def test_event_save_unknown_error(self):
         error_msg = "my unknown error"
-        with mock.patch(
-                "course.calendar._create_recurring_events_backend"
-        ) as mock_create_evt_backend:
-            mock_create_evt_backend.side_effect = RuntimeError(error_msg)
+        with mock.patch("course.models.Event.save") as mock_event_save:
+            mock_event_save.side_effect = RuntimeError(error_msg)
             resp = self.post_create_recurring_events_view(
                 data=self.get_post_create_recur_evt_data(starting_ordinal=4))
             self.assertEqual(resp.status_code, 200)
@@ -197,6 +208,23 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(
             "RuntimeError: %s. No events created." % error_msg)
+
+    def test_event_save_other_validation_error(self):
+        error_msg = "my unknown validation error for end_time"
+        with mock.patch("course.models.Event.save") as mock_event_save:
+            # mock error raised by event.end_time
+            mock_event_save.side_effect = (
+                ValidationError({"end_time": error_msg}))
+            resp = self.post_create_recurring_events_view(
+                data=self.get_post_create_recur_evt_data(starting_ordinal=4))
+            self.assertEqual(resp.status_code, 200)
+
+        # form error was raised instead of add_message
+        self.assertFormErrorLoose(resp, error_msg)
+        self.assertAddMessageCallCount(0)
+
+        # not created
+        self.assertEqual(Event.objects.count(), 0)
 
     def test_duration_in_minutes(self):
         resp = self.post_create_recurring_events_view(
@@ -238,6 +266,72 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
                 t = evt.time
 
 
+class RecurringEventFormTest(SingleCourseTestMixin, TestCase):
+    """test course.calendar.RecurringEventForm"""
+    def test_valid(self):
+        form_data = {
+            "kind": "some_kind",
+            "time": now().replace(tzinfo=None).strftime(
+                DATE_TIME_PICKER_TIME_FORMAT),
+            "interval": "weekly",
+            "count": 2
+        }
+        form = calendar.RecurringEventForm(
+            self.course.identifier,
+            data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_negative_duration_in_minutes(self):
+        form_data = {
+            "kind": "some_kind",
+            "time": now().replace(tzinfo=None).strftime(
+                DATE_TIME_PICKER_TIME_FORMAT),
+            "duration_in_minutes": -1,
+            "interval": "weekly",
+            "count": 5
+        }
+        form = calendar.RecurringEventForm(self.course.identifier, data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            "Ensure this value is greater than or equal to 0.",
+            form.errors["duration_in_minutes"])
+
+    def test_negative_event_count(self):
+        form_data = {
+            "kind": "some_kind",
+            "time": now().replace(tzinfo=None).strftime(
+                DATE_TIME_PICKER_TIME_FORMAT),
+            "interval": "weekly",
+            "count": -1
+        }
+        form = calendar.RecurringEventForm(self.course.identifier, data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            "Ensure this value is greater than or equal to 0.",
+            form.errors["count"])
+
+    def test_available_kind_choices(self):
+        factories.EventFactory(
+            course=self.course, kind="some_kind1", ordinal=None)
+        factories.EventFactory(
+            course=self.course, kind="some_kind2", ordinal=1)
+        another_course = factories.CourseFactory(identifier="another-course")
+        factories.EventFactory(
+            course=another_course, kind="some_kind3", ordinal=1)
+        factories.EventFactory(
+            course=another_course, kind="some_kind4", ordinal=1)
+        form = calendar.RecurringEventForm(self.course.identifier)
+        self.assertIn(
+            '<option value="some_kind1">some_kind1</option>', form.as_p())
+        self.assertIn(
+            '<option value="some_kind2">some_kind2</option>', form.as_p())
+
+        self.assertNotIn(
+            '<option value="some_kind3">some_kind3</option>', form.as_p())
+        self.assertNotIn(
+            '<option value="some_kind4">some_kind4</option>', form.as_p())
+
+
 class RenumberEventsTest(SingleCourseTestMixin,
                          MockAddMessageMixing, TestCase):
     """test course.calendar.create_recurring_events"""
@@ -277,10 +371,8 @@ class RenumberEventsTest(SingleCourseTestMixin,
 
         data = {
             "kind": kind or self.default_event_kind,
-            "starting_ordinal": starting_ordinal}
-
-        if starting_ordinal:
-            data["starting_ordinal"] = starting_ordinal
+            "starting_ordinal": starting_ordinal,
+            "preserve_ordinal_order": False}
 
         data.update(kwargs)
         return data
@@ -412,33 +504,68 @@ class RenumberEventsTest(SingleCourseTestMixin,
         self.assertAddMessageCalledWith("Events renumbered.")
 
     def test_renumber_non_existing_events(self):
-        all_pks = list(Event.objects.values_list("pk", flat=True))
-
         resp = self.post_renumber_events_view(
             data=self.get_post_renumber_evt_data(
                 kind="foo_kind", starting_ordinal=3))
         self.assertEqual(resp.status_code, 200)
+        expected_errors = ["Select a valid choice. foo_kind is "
+                           "not one of the available choices."]
+        self.assertFormError(resp, "form", "kind", expected_errors)
 
-        # nothing changed
+    def test_renumber_preserve_ordinal_order(self):
+
+        # make evt1 the latest, evt5 the earliest
+        time1, time5 = self.evt1.time, self.evt5.time
+        self.evt1.time, self.evt5.time = time5, time1
+        self.evt1.save()
+        self.evt5.save()
+
         all_default_evts = Event.objects.filter(kind=self.default_event_kind)
+        self.assertEqual(all_default_evts.count(), 5)
         self.assertListEqual(
-            list(all_default_evts.values_list("ordinal", flat=True)),
-            [1, 3, 5, 7, 9])
+            list(
+                all_default_evts.order_by("time").values_list("ordinal", flat=True)),
+            [9, 3, 5, 7, 1])
 
-        # no new objects created
+        resp = self.post_renumber_events_view(
+            data=self.get_post_renumber_evt_data(
+                starting_ordinal=3, preserve_ordinal_order=True))
+        self.assertEqual(resp.status_code, 200)
+
+        # originally (ordered by time) 9, 3, 5, 7, 1, now 7, 4, 5, 6, 3
+        all_default_evts = Event.objects.filter(kind=self.default_event_kind)
+        self.assertEqual(all_default_evts.count(), 5)
         self.assertListEqual(
-            list(Event.objects.values_list("pk", flat=True)), all_pks)
-
-        # other events also not affected
-        self.evt_another_kind1.refresh_from_db()
-        self.evt_another_kind2.refresh_from_db()
-        self.assertEqual(
-            self.evt_another_kind1.ordinal, self.evt_another_kind1_ordinal)
-        self.assertEqual(
-            self.evt_another_kind2.ordinal, self.evt_another_kind2_ordinal)
+            list(
+                all_default_evts.order_by("time").values_list("ordinal", flat=True)),
+            [7, 4, 5, 6, 3])
 
         self.assertAddMessageCallCount(1)
-        self.assertAddMessageCalledWith("No events found.")
+        self.assertAddMessageCalledWith("Events renumbered.")
+
+    def test_no_ordinal_event_not_renumbered(self):
+
+        no_ordinal_event = factories.EventFactory(
+            kind=self.default_event_kind, ordinal=None)
+
+        resp = self.post_renumber_events_view(
+            data=self.get_post_renumber_evt_data(
+                starting_ordinal=3, preserve_ordinal_order=True))
+        self.assertEqual(resp.status_code, 200)
+
+        all_evts_with_ordinal = Event.objects.filter(
+            kind=self.default_event_kind, ordinal__isnull=False)
+        self.assertEqual(all_evts_with_ordinal.count(), 5)
+        self.assertListEqual(
+            list(all_evts_with_ordinal.values_list("ordinal", flat=True)),
+            [3, 4, 5, 6, 7])
+
+        no_ordinal_event.refresh_from_db()
+        self.assertEqual(no_ordinal_event.kind, self.default_event_kind)
+        self.assertIsNone(no_ordinal_event.ordinal)
+
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith("Events renumbered.")
 
 
 class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):

@@ -26,7 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import six
 import unittest
 import pytz
@@ -130,6 +130,37 @@ class EventTest(RelateModelTestMixin, unittest.TestCase):
         event4 = factories.EventFactory(course=self.course, kind="my_event3",
                                         ordinal=2)
         self.assertNotEqual(str(event3), str(event4))
+
+    def test_clean_end_time(self):
+        with self.assertRaises(ValidationError) as cm:
+            factories.EventFactory(
+                course=self.course, time=now(), kind="some_kind",
+                end_time=now() - timedelta(seconds=1))
+
+        expected_error_msg = "End time must not be ahead of start time."
+        self.assertIn(expected_error_msg, cm.exception.message_dict["end_time"])
+
+        # make sure end_time >= time is valid
+        factories.EventFactory(
+            course=self.course, time=now(), kind="some_kind",
+            end_time=now())
+
+        factories.EventFactory(
+            course=self.course, time=now(), kind="some_kind",
+            end_time=now() + timedelta(seconds=1))
+
+    def test_event_with_no_ordinal_uniqueness(self):
+        kwargs = {"course": self.course, "time": now(),
+                  "kind": "some_kind", "ordinal": None}
+        event = factories.EventFactory(**kwargs)
+
+        # make sure it can be updated
+        event.time = now() - timedelta(days=1)
+        event.save()
+
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            factories.EventFactory(**kwargs)
 
 
 class ParticipationTagTest(RelateModelTestMixin, unittest.TestCase):
