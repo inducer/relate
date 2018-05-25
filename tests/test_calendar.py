@@ -27,6 +27,7 @@ import json
 import datetime
 
 from django.test import TestCase
+from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from django.core.exceptions import ValidationError
 
@@ -568,21 +569,19 @@ class RenumberEventsTest(SingleCourseTestMixin,
         self.assertAddMessageCalledWith("Events renumbered.")
 
 
-class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
-    """test course.calendar.view_calendar"""
+class CalendarTestMixin(SingleCourseTestMixin, HackRepoMixin):
 
     default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
     default_event_time = default_faked_now - timedelta(hours=12)
     default_event_kind = "lecture"
 
     def setUp(self):
-        super(ViewCalendarTest, self).setUp()
+        super(CalendarTestMixin, self).setUp()
         fake_get_now_or_fake_time = mock.patch(
-            "course.views.get_now_or_fake_time")
+            "course.calendar.get_now_or_fake_time")
         self.mock_get_now_or_fake_time = fake_get_now_or_fake_time.start()
         self.mock_get_now_or_fake_time.return_value = now()
         self.addCleanup(fake_get_now_or_fake_time.stop)
-
         self.addCleanup(factories.EventFactory.reset_sequence)
 
     def get_course_calender_view(self, course_identifier=None):
@@ -594,6 +593,10 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.course.events_file = "events.yml"
         self.course.save()
 
+
+class ViewCalendarTest(CalendarTestMixin, TestCase):
+    force_login_student_for_each_test = True
+
     def test_no_pperm(self):
         with mock.patch(
                 "course.utils.CoursePageContext.has_permission"
@@ -602,14 +605,130 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             resp = self.get_course_calender_view()
             self.assertEqual(resp.status_code, 403)
 
-    def test_neither_events_nor_event_file(self):
-        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+    def test_student_view_success(self):
         resp = self.get_course_calender_view()
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "events_json", '[]')
-        self.assertResponseContextEqual(resp, "event_info_list", [])
+
+    def test_student_view_get_events_called(self):
+        with mock.patch("course.calendar._get_events") as mock_get_events:
+            mock_get_events.return_value = ([], [])
+            resp = self.get_course_calender_view()
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(mock_get_events.call_count, 1)
+            self.assertIsNotNone(resp.context.get("events_json"))
+            self.assertIsNotNone(resp.context.get("events_info_html"))
+
+    def test_instructor_view_success(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.get_course_calender_view()
+            self.assertEqual(resp.status_code, 200)
+
+    def test_instructor_view_get_events_not_called(self):
+        with mock.patch("course.calendar._get_events") as mock_get_events:
+            mock_get_events.return_value = ([], [])
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.get_course_calender_view()
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(mock_get_events.call_count, 0)
+                self.assertIsNone(resp.context.get("events_json"))
+                self.assertIsNone(resp.context.get("events_info_html"))
+
+    def test_default_time(self):
+        if self.course.end_date is not None:
+            self.course.end_date = (
+                    self.default_faked_now.date() + timedelta(days=100))
+            self.course.save()
+
+        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+
+        resp = self.get_course_calender_view()
+        self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(
             resp, "default_date", self.default_faked_now.date().isoformat())
+
+    def test_default_time_after_course_ended(self):
+        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+
+        self.course.end_date = self.default_faked_now.date() - timedelta(days=100)
+        self.course.save()
+        self.assertTrue(self.course.end_date < self.default_faked_now.date())
+
+        resp = self.get_course_calender_view()
+        self.assertEqual(resp.status_code, 200)
+
+        # Calendar's default_date will be course.end_date
+        self.assertResponseContextEqual(
+            resp, "default_date", self.course.end_date.isoformat())
+
+
+class FetchEventsTest(CalendarTestMixin, TestCase):
+    """test course.calendar.fetch_events"""
+    force_login_student_for_each_test = False
+
+    def setUp(self):
+        super(FetchEventsTest, self).setUp()
+        fake_render_to_string = mock.patch("django.template.loader.render_to_string")
+        self.mock_render_to_string = fake_render_to_string.start()
+
+        # Note: in this way, the events_info_html in the fetch_event response
+        # will always be empty, we test the events_info_html by check the kwargs
+        # when calling render_to_string
+
+        # Todo: This only test the behavior of _get_events when called
+        # in fetch_events. _get_events also need to be tested when called in
+        # view_calendar.
+        self.mock_render_to_string.return_value = ""
+        self.addCleanup(fake_render_to_string.stop)
+        self.c.force_login(self.instructor_participation.user)
+
+    def get_event_info_list_rendered(self):
+        """get the event_info_list rendered from mocked render_to_string call"""
+        self.assertTrue(self.mock_render_to_string.call_count > 0)
+        return self.mock_render_to_string.call_args[1]["context"]["event_info_list"]
+
+    def fetch_events_url(self, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return reverse("relate-fetch_events", args=[course_identifier])
+
+    def get_fetch_events(self, course_identifier=None, using_ajax=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        kwargs = {}
+        if using_ajax:
+            kwargs["HTTP_X_REQUESTED_WITH"] = 'XMLHttpRequest'
+        return self.c.get(
+            self.fetch_events_url(course_identifier), **kwargs)
+
+    def test_no_pperm(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.get_fetch_events()
+            self.assertEqual(resp.status_code, 403)
+
+    def test_not_ajax(self):
+        resp = self.get_fetch_events(using_ajax=False)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_ajax_post(self):
+        resp = self.c.post(self.fetch_events_url(), data={},
+                           HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_post(self):
+        resp = self.c.post(self.fetch_events_url(), data={})
+        self.assertEqual(resp.status_code, 403)
+
+    def test_fetch_success(self):
+        resp = self.get_fetch_events()
+        self.assertEqual(resp.status_code, 200)
+
+    def test_neither_events_nor_event_file(self):
+        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+        resp = self.get_fetch_events()
+        self.assertEqual(resp.status_code, 200)
+
+        resp_dict = json.loads(resp.content.decode())
+        self.assertEqual(resp_dict["events_json"], [])
+        event_info_list = self.get_event_info_list_rendered()
+        self.assertEqual(event_info_list, [])
 
     def test_no_event_file(self):
         factories.EventFactory(
@@ -619,10 +738,11 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time + timedelta(hours=1))
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
         self.assertEqual(resp.status_code, 200)
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
         self.assertEqual(len(events_json), 2)
         self.assertDictEqual(
             events_json[0],
@@ -636,7 +756,8 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
              'allDay': False,
              'title': 'lecture 1'})
 
-        self.assertResponseContextEqual(resp, "event_info_list", [])
+        event_info_list = self.get_event_info_list_rendered()
+        self.assertEqual(event_info_list, [])
 
     def test_hidden_event_not_shown(self):
         factories.EventFactory(
@@ -647,27 +768,33 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             shown_in_calendar=False,
             time=self.default_event_time + timedelta(hours=1))
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
         self.assertEqual(resp.status_code, 200)
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 1)
         self.assertDictEqual(
             events_json[0],
             {'id': 1, 'start': self.default_event_time.isoformat(),
              'allDay': False,
              'title': 'lecture 0'})
-        self.assertResponseContextEqual(resp, "event_info_list", [])
+
+        event_info_list = self.get_event_info_list_rendered()
+        self.assertEqual(event_info_list, [])
 
     def test_event_has_end_time(self):
         factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time,
             end_time=self.default_event_time + timedelta(hours=1))
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
         self.assertEqual(resp.status_code, 200)
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 1)
         event_json = events_json[0]
         self.assertDictEqual(
@@ -678,42 +805,21 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
              'end': (self.default_event_time + timedelta(hours=1)).isoformat(),
              })
 
-        self.assertResponseContextEqual(resp, "event_info_list", [])
-
-    def test_event_course_finished(self):
-        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
-        self.course.end_date = (self.default_faked_now - timedelta(weeks=1)).date()
-        self.course.save()
-
-        resp = self.get_course_calender_view()
-        self.assertEqual(resp.status_code, 200)
-
-        self.assertResponseContextEqual(resp, "events_json", '[]')
-        self.assertResponseContextEqual(resp, "event_info_list", [])
-        self.assertResponseContextEqual(
-            resp, "default_date", self.course.end_date.isoformat())
-
-    def test_event_course_not_finished(self):
-        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
-        self.course.end_date = (self.default_faked_now + timedelta(weeks=1)).date()
-        self.course.save()
-
-        resp = self.get_course_calender_view()
-        self.assertEqual(resp.status_code, 200)
-
-        self.assertResponseContextEqual(resp, "events_json", '[]')
-        self.assertResponseContextEqual(resp, "event_info_list", [])
-        self.assertResponseContextEqual(
-            resp, "default_date", self.default_faked_now.date().isoformat())
+        event_info_list = self.get_event_info_list_rendered()
+        self.assertEqual(event_info_list, [])
 
     def test_events_file_no_events(self):
         # make sure it works
         self.switch_to_fake_commit_sha()
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
 
-        self.assertResponseContextEqual(resp, "events_json", '[]')
-        self.assertResponseContextEqual(resp, "event_info_list", [])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+        self.assertEqual(events_json, [])
+
+        event_info_list = self.get_event_info_list_rendered()
+        self.assertEqual(event_info_list, [])
 
     def test_events_file_with_events_test1(self):
         self.switch_to_fake_commit_sha()
@@ -729,9 +835,11 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time, ordinal=2)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 2)
         self.assertDictEqual(
             events_json[0],
@@ -749,7 +857,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
              'url': '#event-1'
              })
 
-        event_info_list = resp.context["event_info_list"]
+        event_info_list = self.get_event_info_list_rendered()
 
         # lecture 2 doesn't create an EventInfo object
         self.assertEqual(len(event_info_list), 1)
@@ -793,9 +901,11 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             time=test_start_time,
             ordinal=None)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 3)
 
         self.assertDictEqual(
@@ -817,7 +927,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
              'allDay': True,
              'title': 'test'})
 
-        event_info_list = resp.context["event_info_list"]
+        event_info_list = self.get_event_info_list_rendered()
 
         # only lecture 2 create an EventInfo object
         self.assertEqual(len(event_info_list), 1)
@@ -841,8 +951,9 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
                 lecture3_start_time + timedelta(minutes=5))
 
         # no EventInfo object
-        resp = self.get_course_calender_view()
-        self.assertResponseContextEqual(resp, "event_info_list", [])
+        resp = self.get_fetch_events()
+        event_info_list = self.get_event_info_list_rendered()
+        self.assertEqual(event_info_list, [])
 
     def test_events_file_with_events_test3(self):
         self.switch_to_fake_commit_sha()
@@ -854,9 +965,11 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             time=self.default_event_time,
             end_time=exam_end_time)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 1)
 
         self.assertDictEqual(
@@ -868,7 +981,8 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
              'color': 'red',
              'end': exam_end_time.isoformat()})
 
-        self.assertResponseContextEqual(resp, "event_info_list", [])
+        event_info_list = self.get_event_info_list_rendered()
+        self.assertEqual(event_info_list, [])
 
     def test_all_day_event(self):
         self.switch_to_fake_commit_sha()
@@ -890,9 +1004,11 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             kind=self.default_event_kind, course=self.course,
             time=lecture3_start_time, ordinal=3)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 2)
 
         self.assertDictEqual(
@@ -907,9 +1023,11 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         lecture2_evt.end_time = lecture2_end_time
         lecture2_evt.save()
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 2)
 
         self.assertDictEqual(
@@ -932,9 +1050,11 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
             lecture2_end_time += timedelta(hours=1)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_fetch_events()
 
-        events_json = json.loads(resp.context["events_json"])
+        resp_dict = json.loads(resp.content.decode())
+        events_json = resp_dict["events_json"]
+
         self.assertEqual(len(events_json), 2)
 
         self.assertDictEqual(

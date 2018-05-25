@@ -26,27 +26,29 @@ THE SOFTWARE.
 
 import six
 from six.moves import range
+import datetime
+from bootstrap3_datetime.widgets import DateTimePicker
+from crispy_forms.layout import Submit
 
 from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy)
 from django.contrib.auth.decorators import login_required
-from course.utils import course_view, render_course_page
 from django.core.exceptions import (
     PermissionDenied, ObjectDoesNotExist, ValidationError)
 from django.db import transaction
 from django.contrib import messages  # noqa
+from django.http import JsonResponse
 import django.forms as forms
 
-from crispy_forms.layout import Submit
+from relate.utils import (
+    StyledForm, as_local_time, string_concat)
 
-import datetime
-from bootstrap3_datetime.widgets import DateTimePicker
-
-from relate.utils import StyledForm, as_local_time, string_concat
+from course.views import get_now_or_fake_time
 from course.constants import (
         participation_permission as pperm,
         )
 from course.models import Event
+from course.utils import course_view, render_course_page
 
 
 class ListTextWidget(forms.TextInput):
@@ -367,9 +369,27 @@ def view_calendar(pctx):
     if not pctx.has_permission(pperm.view_calendar):
         raise PermissionDenied(_("may not view calendar"))
 
-    from course.views import get_now_or_fake_time
     now = get_now_or_fake_time(pctx.request)
+    default_date = now.date()
+    if pctx.course.end_date is not None and default_date > pctx.course.end_date:
+        default_date = pctx.course.end_date
 
+    context = {"default_date": default_date.isoformat()}
+    if not pctx.has_permission(pperm.edit_events):
+        # When using feed as event source, almost each view change in
+        # FullCalendar js will trigger an AJAX request.
+        # Ref: https://stackoverflow.com/a/40832304/3437454
+        # This prevent AJAX fetching when participation has no edit_events pperm
+        events_info_html, events_json = _get_events(pctx)
+        context["events_info_html"] = events_info_html
+
+        import json
+        context["events_json"] = json.dumps(events_json)
+
+    return render_course_page(pctx, "course/calendar.html", context)
+
+
+def _get_events(pctx):
     events_json = []
 
     from course.content import (
@@ -379,6 +399,8 @@ def view_calendar(pctx):
                 pctx.course.events_file, pctx.course_commit_sha)
     except ObjectDoesNotExist:
         event_descr = {}
+
+    now = get_now_or_fake_time(pctx.request)
 
     event_kinds_desc = event_descr.get("event_kinds", {})
     event_info_desc = event_descr.get("events", {})
@@ -472,16 +494,30 @@ def view_calendar(pctx):
 
         events_json.append(event_json)
 
-    default_date = now.date()
-    if pctx.course.end_date is not None and default_date > pctx.course.end_date:
-        default_date = pctx.course.end_date
+    from django.template.loader import render_to_string
+    events_info_html = render_to_string(
+        "course/events_info.html",
+        context={"event_info_list": event_info_list},
+        request=pctx.request)
 
-    from json import dumps
-    return render_course_page(pctx, "course/calendar.html", {
-        "events_json": dumps(events_json),
-        "event_info_list": event_info_list,
-        "default_date": default_date.isoformat(),
-    })
+    return events_info_html, events_json
+
+
+@course_view
+def fetch_events(pctx):
+    if not pctx.has_permission(pperm.edit_events):
+        raise PermissionDenied(_("may not fetch events"))
+
+    request = pctx.request
+    if not (request.is_ajax() and request.method == "GET"):
+        raise PermissionDenied(_("only AJAX GET is allowed"))
+
+    events_info_html, events_json = _get_events(pctx)
+
+    return JsonResponse(
+        {"events_json": events_json,
+         "events_info_html": events_info_html},
+        safe=False)
 
 # }}}
 
