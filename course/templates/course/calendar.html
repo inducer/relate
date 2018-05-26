@@ -1,185 +1,528 @@
 {% extends "course/course-base.html" %}
 {% load i18n %}
+{% load crispy_forms_tags %}
 
 {% load static %}
 
 {% block title %}
-  {{ course.number}}
+  {{ course.number }}
   {% trans "Calendar" %} - {{ relate_site_name }}
 {% endblock %}
 
-{%block head_assets_extra %}
-  <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}' />
-  <script src='{% static "moment/moment.js" %}'></script>
-  <script src='{% static "fullcalendar/dist/fullcalendar.js" %}'></script>
+{% block head_assets_extra %}
+  <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}?version=3.9.0'/>
+  <link rel='stylesheet' href='{% static "bootstrap3_datetime/css/bootstrap-datetimepicker.min.css" %}'/>
+  <script src='{% static "/bootstrap3_datetime/js/moment-with-locales.min.js" %}'></script>
+  <script src='{% static "bootstrap3_datetime/js/bootstrap-datetimepicker.min.js" %}'></script>
+  <script src='{% static "fullcalendar/dist/fullcalendar.min.js" %}?version=3.9.0'></script>
   {# load calendar with local language #}
   {% get_current_language as LANGUAGE_CODE %}
   {% if LANGUAGE_CODE != "en" %}
-    <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE |js_lang_fallback:"fullcalendar" }}.js'></script>
+    <script src='{% static "fullcalendar/dist/locale/" %}{{ LANGUAGE_CODE |js_lang_fallback:"fullcalendar" }}.js?version=3.9.0'></script>
   {% endif %}
+  {% if pperm.edit_events %}
+    <script src='{% static "blueimp-tmpl/js/tmpl.min.js" %}'></script>
+  {% endif %}
+
+  {% if pperm.edit_events %}
+    <style>
+      .mode-toggle[data-edit-mode=off] {
+        display: none;
+      }
+      .fc-content[data-drop-or-resize=off] {
+        display: none;
+      }
+      .fc-event {
+        min-height: 1em !important;
+      }
+      .spinner {
+        background: rgba(0, 0, 0, .2) url({% static "images/busy.gif" %}) no-repeat center center;
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 999;
+      }
+    </style>
+  {% endif %}
+
 {% endblock %}
 
 {% block content %}
-  <h1>{{ course.number}} {% trans "Calendar" %}</h1>
+  <h1>{{ course.number }} {% trans "Calendar" %}</h1>
   {% if pperm.edit_events %}
     <div>
-      <a
-          {% if edit_view %}
-            href="{% url "relate-view_calendar" course.identifier %}"
-          {% else %}
-            href="{% url "relate-edit_calendar" course.identifier %}"
-          {% endif %}
-          type="button" class="btn btn-primary">
-        {% if edit_view %}
-          {% trans "Switch to Student View" %}
-        {% else %}
-          {% trans "Switch to Edit View" %}
-        {% endif %}
-      </a>
-      {% if edit_view %}
-        <button id="create-new-event" type="button" class="btn btn-danger btn-md" data-toggle="modal" data-target="#editModal" onclick="remove_event_id_field();" title="create a new event">{% trans "Create a new event" %}</button>
-      {% endif %}
+      <button class="btn btn-primary" id="toggle-calendar-view">
+          <span id="switch-to-normal" {{ is_edit_view|yesno:"on,hidden" }}>
+            {% trans "Switch to normal view" %}
+          </span>
+          <span id="switch-to-edit" {{ is_edit_view|yesno:"hidden,on" }}>
+            {% trans "Switch to edit view" %}
+          </span>
+      </button>
+
+      <button class="btn btn-default btn-md mode-toggle relate-off-calendar-modal-form"
+              data-url="{% url 'relate-get_create_event_modal_form' course.identifier %}"
+              data-form-div="#div-id-relate-new-event-form"
+              data-edit-mode="{{ is_edit_view|yesno:"on,off" }}"
+      >{% trans "New event" %}</button>
+
+      <button class="btn btn-default btn-md mode-toggle relate-off-calendar-modal-form"
+              data-url="{% url 'relate-get_recurring_events_modal_form' course.identifier %}"
+              data-form-div="#div-id-relate-recurring-events-form"
+              data-edit-mode="{{ is_edit_view|yesno:"on,off" }}"
+      >{% trans "Create recurring events" %}</button>
+
+      <button class="btn btn-default btn-md mode-toggle relate-off-calendar-modal-form"
+              data-url="{% url 'relate-get_renumber_events_modal_form' course.identifier %}"
+              data-form-div="#div-id-relate-renumber-events-form"
+              data-edit-mode="{{ is_edit_view|yesno:"on,off" }}"
+      >{% trans "Renumber events" %}</button>
     </div>
   {% endif %}
-  <div id="coursecal" style="margin-top:3em"></div>
+  <div id="course-cal" style="margin-top:3em"></div>
 
-  <b>{% trans "Note" %}:</b> {% if edit_view %}{% trans "Different from the students' calendar, this calender shows <b>all</b> events. " %}{% endif %}{% trans "Some calendar entries are clickable and link to entries below." %}
-
-
-  <div style="margin-top:3ex">
-  {% for event_info in event_info_list %}
-    <div id="event-{{ event_info.id }}" class="panel panel-default relate-calendar-event">
-      <div class="panel-heading">
-        <b>{{ event_info.human_title }}</b>
-        ({{ event_info.start_time }}{% if event_info.end_time %} - {{ event_info.end_time }}{% endif %})
-      </div>
-      <div class="panel-body">
-        {{ event_info.description|safe }}
-      </div>
-    </div>
-  {% endfor%}
-  </div>
-
-  {% if edit_view %}
-    <div id="editModal" class="modal fade" role="dialog">
-      <div class="modal-dialog modal-lg modal-sm">
-        <form method="POST" class="form-horizontal">
-          <div class="modal-content">
-            <div class="modal-body">
-              <br>
-              {% load crispy_forms_tags %}
-              {% if form_description %}
-                <h1>{{ form_description }}</h1>
-              {% endif %}
-              {{ form_text|safe }}
-              {% if form %}
-                {% crispy form %}
-              {% endif %}
-              {% if forms %}
-                {% for sub_form in forms %}
-                  <div class="well">
-                    {% crispy sub_form %}
-                  </div>
-                {% endfor %}
-              {% endif %}
-              {% if edit_existing_event_flag %}
-                <input type="hidden" name="existing_event_to_save" id="existing_event_to_save" value='{{id_to_edit}}' readonly>
-              {% endif %}
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-md btn-default" data-dismiss="modal" type="button">{% trans "Cancel" %}</button>
-              <button class="btn btn-md btn-success" type="submit">{% trans "Save" %}</button>
-            </div>
-        </form>
-      </div>
-    </div>
-    <form method='post' name='existing_event_edit_form'>
-      {% csrf_token %}
-      <input type='Hidden' name='id_to_edit' id="id_to_edit" value=''>
-    </form>
-    <form method='post' name='existing_event_delete_form'>
-      {% csrf_token %}
-      <input type='Hidden' name='id_to_delete' id="id_to_delete" value=''>
-    </form>
+  <b class="relate-calendar-notes">{% trans "Note" %}:</b>
+  {% trans "Some calendar entries are clickable and link to entries below." %}
+  {% if pperm.edit_events %}
+    <span data-edit-mode="{{ is_edit_view|yesno:"on,off" }}" class="mode-toggle">
+      ({% trans "Different from normal view, this calender shows <b>all</b> events. " %})</span>
   {% endif %}
+
+  <div id="relate-event-info" style="margin-top:3ex">{{ events_info_html|safe }}</div>
+
+  {% if pperm.edit_events %}
+    <div id="div-id-relate-new-event-form"></div>
+    <div id="div-id-relate-renumber-events-form"></div>
+    <div id="div-id-relate-recurring-events-form"></div>
+    <div id="div-id-relate-delete-event-form"></div>
+    <div id="div-id-relate-update-event-form"></div>
+  {% endif %}
+
 {% endblock %}
 
 {% block page_bottom_javascript_extra %}
+  {% if pperm.edit_events %}
+    <script type="text/x-tmpl" id="django-message-template">
+      <div class="alert alert-{{ JQ_OPEN }}=o.tags{{ JQ_CLOSE }} fade in" data-alert="{{ JQ_OPEN }}=o.tags{{ JQ_CLOSE }}">
+        <button class="close" title="{% trans 'Close' %}" data-dismiss="alert">&times;</button>
+        <i class="fa fa-{{ JQ_OPEN }}=o.icon_class{{ JQ_CLOSE }}"></i>
+        {{ JQ_OPEN }}=o.message{{ JQ_CLOSE }}
+      </div>
+    </script>
+
+    <script type="text/x-tmpl" id="delete-event-icon-template">
+      <span class="relate-event-hover fc-title glyphicon glyphicon-remove-circle relate-delete-event"
+        style="float:right;cursor:pointer" title="{% trans 'Delete event' %}"</span>
+    </script>
+
+    <script type="text/x-tmpl" id="edit-event-icon-template">
+      <span class="relate-event-hover fc-title glyphicon glyphicon-pencil relate-update-event"
+        style="float:right; cursor:pointer" title="{% trans 'Edit event' %}"> </span>
+    </script>
+  {% endif %}
+
   <script type="text/javascript">
-    $(document).ready(function() {
-      $('#coursecal').fullCalendar({
-        header: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'month,agendaWeek,agendaDay'
-        },
-        contentHeight: "auto",
-        defaultDate: '{{ default_date }}',
-        defaultView: $(window).width() < 765 ? 'agendaWeek':'month',
-        timezone: "local",
-        events: {{ events_json|safe }},
-        {% if edit_view %}
-          eventRender: function(event, element) {
-            element.find('.fc-title').append( '<span class="glyphicon glyphicon-remove-circle" style="float:right;cursor:pointer" id="remove" title="{% trans 'Remove this event'%}" data-confirm="{% trans "Are you sure you want to delete this event?" %}" data-event-id="'+event.id+'"></span>');
-            element.find('.fc-title').append( '<span class="glyphicon glyphicon-pencil" style="float:right; cursor:pointer" id="edit" title="{% trans 'Edit this event'%}"> </span>');
-            element.find("#edit").click(function() {
-              edit_existing_event(event.id);
-            });
-            element.find("span[data-confirm]").click(function() {
-              var event_id = $(this).data('event-id');
-              if (!$('#deleteConfirmModal').length) {
-                $('body').append(
-                    '<div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">' +
-                    '  <div class="modal-dialog" role="document">' +
-                    '    <div class="modal-content">' +
-                    '      <div class="modal-header">' +
-                    '        <button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
-                    '          <span aria-hidden="true">&times;</span>' +
-                    '        </button>' +
-                    '        <h3 class="modal-title" >{% trans "Please confirm" %}</h3>' +
-                    '      </div>' +
-                    '      <div class="modal-body">' +
-                    '      </div>' +
-                    '      <div class="modal-footer">' +
-                    '        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans "Cancel" %}</button>' +
-                    '        <button type="button" class="btn btn-primary" id="deleteConfirmOK">{% trans "Delete" %}</button>' +
-                    '      </div>' +
-                    '    </div>' +
-                    '  </div>' +
-                    '</div>');
-              }
-              var $delete_confirm_modal = $('#deleteConfirmModal');
-                  $delete_confirm_modal.find('.modal-body').text($(this).attr('data-confirm'));
-                  $('#deleteConfirmOK').data('event-id', event_id).click(function() {
-                delete_existing_event($(this).data('event-id'));
-              });
-                  $delete_confirm_modal.modal({show:true});
-                  return false;
-              });
+    (function(){
+      var $courseCal = $('#course-cal'),
+        $relateEventInfo = $('#relate-event-info'), events;
+
+      {% if pperm.edit_events %}
+        var switchToNormalModeButtonText = $("#switch-to-normal").text(),
+          switchToEditViewModeButtonText = $("#switch-to-edit").text(),
+          deleteIconHtml = tmpl("delete-event-icon-template")(),
+          editIconHtml = tmpl("edit-event-icon-template")();
+      {% endif %}
+
+      function getFetchUrl() {
+        {% if not pperm.edit_events %}
+          return '{% url "relate-fetch_events" course.identifier %}';
+        {% else %}
+            if (isEditMode())
+              return '{% url "relate-fetch_events" course.identifier "edit" %}';
+            else
+              return '{% url "relate-fetch_events" course.identifier %}';
+        {% endif %}
+      }
+
+      function initEvents(callback) {
+        $.ajax({
+          url: getFetchUrl(),
+          success: function (result) {
+            renderEventInfo(result.events_info_html);
+            events = result.events_json;
+            callback(events);
           }
+        })
+      }
+
+      function renderEventInfo(value){
+        $relateEventInfo.empty().html(value);
+      }
+
+      function initCalendar() {
+        $courseCal.fullCalendar({
+          header: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'month,agendaWeek,agendaDay,listMonth'
+          },
+          contentHeight: "auto",
+          defaultDate: '{{ default_date }}',
+          defaultView: $(window).width() < 765 ? 'listMonth': 'month',
+          timezone: "local",
+          nowIndicator: true,
+          views: {
+            month: {
+              displayEventEnd: $(window).width() < 765 ? false: true
+            }
+          },
+          minTime: "06:00:00",
+          maxTime: "24:00:00",
+          loading: function(isLoading, view){
+            if (isLoading)
+              $("#cover").addClass('spinner');
+            else $("#cover").removeClass('spinner');
+          },
+        {% if not pperm.edit_events %}
+          events: events,
+        {% else %}
+          {# 5 minutes as time interval when resizing event (dragging end_time) #}
+          snapDuration: "00:05:00",
+
+          {% if is_edit_view %}
+            editable: true,
+            selectable: true,
+          {% endif %}
+          events: function (start, end, timezone, callback) {
+            if (isEditMode())
+              {# the event source is a feed url #}
+              initEvents(callback);
+            else
+              {# the event source is a JSON Array, i.e., no fetch when navigating #}
+              callback(events);
+            },
+          eventRender: function(event, element, view) {
+            if (view.name !== "listMonth") return;
+            if (!isEditMode()) return;
+
+            {# Add update and delete event buttion in listMonth view #}
+            element
+              .find('.fc-list-item-title').append(deleteIconHtml).append(editIconHtml).end()
+              .find('.relate-delete-event').on('click', function (e) {
+                e.preventDefault();
+                deleteEventHandler(event, view);}).end()
+              .find('.relate-update-event', $(this)).on('click', function (e) {
+                e.preventDefault();
+                updateEventHandler(event, view);
+              });
+            },
+          eventDrop: function (event, delta, revertFunc, jsEvent, ui, view) {
+            if (!confirm('{% trans "Are you sure about this change?" %}')) {
+              revertFunc();
+            } else {
+              updateEventHandler(event, view, "eventDrop", delta, revertFunc);
+            }
+          },
+          eventResize: function (event, delta, revertFunc, jsEvent, ui, view) {
+            if (!confirm('{% trans "Are you sure about this change?" %}')) {
+              revertFunc();
+            } else {
+              updateEventHandler(event, view, "eventResize", delta, revertFunc);
+            }
+          },
+          eventMouseover: function (event, jsEvent, view) {
+            if (!isEditMode()) return;
+            if (view.name === "listMonth") return;
+
+            $(this)
+              .find('.fc-content').append(deleteIconHtml).append(editIconHtml).end()
+              .find('.relate-delete-event').on('click', function (e) {
+                e.preventDefault();
+                deleteEventHandler(event, view);
+              }).end()
+              .find('.relate-update-event').on('click', function (e) {
+                e.preventDefault();
+                updateEventHandler(event, view);
+              });
+            },
+          eventMouseout: function (event, jsEvent, view) {
+            if (!isEditMode())
+              return;
+            if (view.name === "listMonth")
+              return;
+            $(this).find(".relate-event-hover").remove();
+          },
         {% endif %}
       });
-      {% if edit_view %}
-        {% if edit_existing_event_flag %}
-          $('#editModal').modal('show');
-        {% endif %}
-      {% endif %}
+    }
+
+    $(document).ready(function () {
+      initEvents(initCalendar);
     });
 
-    function edit_existing_event(event_id) {
-      $('#id_to_edit').val(event_id);
-      document.existing_event_edit_form.submit();
-    }
+    {% if pperm.edit_events %}
 
-    function delete_existing_event(event_id) {
-      $('#id_to_delete').val(event_id);
-      document.existing_event_delete_form.submit();
-    }
+      {# {{{ toggle calendar edit mode between "on" and "off" #}
 
-    function remove_event_id_field() {
-      $('#existing_event_to_save').remove()
-    }
+      var toggleViewModeButton = document.getElementById("toggle-calendar-view"),
+        toggleMode = function (element, one, two) {
+          var nodeList = document.querySelectorAll(element), newMode;
+          for (var i = 0; i < nodeList.length; i++) {
+            var node = nodeList[i];
+            if (newMode === undefined)
+              newMode = node.getAttribute('data-edit-mode') === one ? two : one;
+            node.setAttribute('data-edit-mode', newMode);
+          }
+          return newMode
+        };
+
+      toggleViewModeButton.onclick = function (e) {
+        var editMode = toggleMode('.mode-toggle', "on", "off");
+
+        {# change toggleViewModeButton button text #}
+        $(this).text(editMode==="on"? switchToNormalModeButtonText: switchToEditViewModeButtonText);
+
+        $courseCal.fullCalendar('option', {
+          editable: editMode === "on",
+          selectable: editMode === "on"
+        });
+
+        initEvents(refetchEvents);
+        e.preventDefault();
+      };
+
+      {# }}} #}
+
+      {# Get and handle ajax modal form above calendar #}
+      $('.relate-off-calendar-modal-form').click(function () {
+        var self = $(this);
+        $.ajax({
+          url: self.data("url"),
+          success: function (data, textStatus, jqXHR) {
+            $(self.data("form-div")).html(data.form_html);
+            $("#" + data.modal_id)
+              .modal('show')
+              .find("form")
+              .on('submit', function (e) {
+                e.preventDefault();
+                postModalForm($(this));
+              })
+          }
+        })
+      });
+
+      function isEditMode(){
+        return $('.mode-toggle[data-edit-mode=on]').length > 0
+      }
+
+      function getCurrentMode(){
+        return isEditMode() ? "on" : "off";
+      }
+
+      function refetchEvents(){
+        $courseCal.fullCalendar('refetchEvents');
+      }
+
+      function postModalForm(form, submitButton, revertFunc) {
+        var self = form,
+          url = self.attr("action"),
+          form_data = self.serialize();
+
+          {# add submitButton to serialized form_data #}
+          if(submitButton)
+            form_data = form_data + "&" + submitButton + "=''";
+
+          if (!revertFunc)
+            revertFunc = function () {};
+
+        $.ajax({
+          url: url,
+          type: "POST",
+          data: form_data,
+          beforeSend: function (xhr, settings) {
+            var csrftoken = get_cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+          },
+          success: function (data, textStatus, jqXHR) {
+            refetchEvents();
+            self.closest('.modal').modal("hide");
+            var messageLevel = data.message_level;
+            if (!messageLevel)
+              messageLevel = "success";
+            if (data.message)
+              djangoMessage(data.message, messageLevel);
+          },
+          error: function (data, textStatus, jqXHR) {
+            revertFunc();
+            clearFormErrors(self);
+            var result = data.responseJSON,
+              errors = result.errors,
+              form_profix = result.form_prefix;
+            $.each(errors, function (index, value) {
+              if (index === "__all__") {
+                applyFormNonFieldError(self, value[0]);
+              } else {
+                applyFormFieldError(index, value, form_profix);
+              }
+            });
+          }
+        })
+      }
+
+      {# reset modal form after close #}
+      $('.modal form')
+        .closest(".modal")
+        .on('hidden.bs.modal', function () {
+          var thisForm = $(this).find('form');
+          thisForm.trigger('reset');
+          clearFormErrors(thisForm);
+        })
+        .end()
+        .on('submit', function (e) {
+          var submitButton = $("input[type=submit][clicked=true]").attr("name");
+          e.preventDefault();
+          postModalForm($(this), submitButton);
+        });
+
+      function deleteEventHandler(event, view){
+        {# use ajax to get the HTML of delete_event_form and handle form action #}
+        $.ajax({
+          url: event.delete_form_url,
+          success: function (data, textStatus, jqXHR) {
+            $("#div-id-relate-delete-event-form").html(data.form_html);
+            $("#delete-event-modal")
+              .find("form")
+              .prop("action", event.delete_url)
+              .end()
+              .modal('show')
+              .find("form")
+              .on('submit', function (e) {
+                var submitButton = $("input[type=submit][clicked=true]").attr("name");
+                e.preventDefault();
+                postModalForm($(this), submitButton);
+              });
+          },
+          error: function (data, textStatus, jqXHR) {
+            djangoMessage(data.error, "error")
+          }
+        });
+      }
+
+      function updateEventHandler(event, view, updateType, delta, revertFunc) {
+        {# use ajax to get the HTML of update_event_form and handle form action #}
+        var updateEventModal = "#update-event-modal",
+          updateEventFormDiv = "#div-id-relate-update-event-form",
+          ajaxType = "GET", ajaxData, eventUpdated = false,
+          beforeSend = function () {};
+
+        if (updateType === "eventDrop" || updateType === "eventResize"){
+          ajaxType = "POST";
+
+          beforeSend = function (xhr, settings) {
+            var csrftoken = get_cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+          };
+
+          if (updateType === "eventDrop")
+            ajaxData = {"drop_timedelta_hours": delta.as("hours")};
+          else
+            ajaxData = {"resize_timedelta_hours": delta.as("hours")};
+        }
+
+        if (!revertFunc)
+          revertFunc = function () {};
+
+        {# use ajax to get the HTML of update event form #}
+        $.ajax({
+          url: event.update_form_url,
+          type: ajaxType,
+          data: ajaxData,
+          beforeSend: beforeSend,
+          success: function (data, textStatus, jqXHR) {
+            $(updateEventFormDiv).html(data.form_html);
+
+            {# for identifying which button was clicked when update_event_form was submitted #}
+            {# ref: https://stackoverflow.com/a/5721762/3437454 #}
+            $(updateEventFormDiv + " input[type=submit]").click(function () {
+              $("input[type=submit]", $(this).parents("form")).removeAttr("clicked");
+              $(this).attr("clicked", "true");
+            });
+
+            $(updateEventModal)
+              .find("form").prop("action", event.update_url).end()
+              .modal('show').find("form").on('submit', function (e) {
+                var submitButton = $("input[type=submit][clicked=true]").attr("name");
+                e.preventDefault();
+                postModalForm($(this), submitButton, revertFunc);
+                eventUpdated = true;
+              }).end()
+              .on('hidden.bs.modal', function () {
+                {# reset event when canceled updating #}
+                if (!eventUpdated) revertFunc();
+              });
+          },
+          error: function (data, textStatus, jqXHR) {
+            djangoMessage(data.error, "error");
+            revertFunc();
+          }
+        });
+      }
+
+      function applyFormFieldError(fieldname, error, form_prefix) {
+        if (form_prefix)
+          form_prefix = form_prefix + "-";
+        var input = $("#id_" + form_prefix + fieldname),
+          container = $("#div_id_" + form_prefix + fieldname),
+          errorMsg = $("<span />").addClass("text-danger help-inline ajax-error").text(error[0]);
+
+        container.addClass("has-error error");
+        errorMsg.insertAfter(input);
+      }
+
+      function applyFormNonFieldError(form, error) {
+        var formGroupLast = $(".form-group:last", $(form)),
+          errorMsg = $("<div />")
+            .addClass("alert alert-danger ajax-error")
+            .html('<i class="fa fa-ban"></i> ' + error);
+        if (formGroupLast.length)
+          {# in sert non-field errors after last form field #}
+          errorMsg.insertAfter(formGroupLast);
+
+        {# in case the form as no fields (e.g., delete_event_form) #}
+        else errorMsg.insertAfter($(form).children().first());
+      }
+
+      function clearFormErrors(form) {
+        $(".ajax-error", $(form)).remove();
+        $(".error", $(form)).removeClass("has-error");
+      }
+
+      function djangoMessage(msg, level) {
+        var levels = {
+            warning: 'warning',
+            error: 'error',
+            success: 'success',
+            info: 'info'
+          },
+          fontAwesomeClass = {
+            warning: 'warning',
+            error: 'ban',
+            success: 'check',
+            info: 'info-circle'
+          },
+          html = tmpl("django-message-template", {
+            "message": msg, "tags": levels[level],
+            "icon_class": fontAwesomeClass[level]
+          });
+        $("#message-area").append(html);
+      }
+    {% endif %}
+    })();
 
   </script>
+
   {{ block.super }}
 {% endblock %}
+

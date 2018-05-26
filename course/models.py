@@ -307,7 +307,6 @@ class Event(models.Model):
             verbose_name=_('All day'))
 
     shown_in_calendar = models.BooleanField(default=True,
-            help_text=_("Shown in students' calendar"),
             verbose_name=_('Shown in calendar'))
 
     class Meta:
@@ -332,6 +331,7 @@ class Event(models.Model):
                          _("End time must not be ahead of start time.")})
 
     def save(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
         self.full_clean()
 
         if self.ordinal is None:

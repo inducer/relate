@@ -6,28 +6,30 @@
   </div>
 {% endif %}
 
-{% for message in messages %}
-  <div class="alert
+<div id="message-area">
+  {% for message in messages %}
+    <div class="alert
     {% if message.tags == "error" %}
       alert-danger
     {% else %}
       alert-{{ message.tags }}
     {% endif %}
     ">
-    {% if message.tags == "error" %}
+      {% if message.tags == "error" %}
         <i class="fa fa-ban"></i>
-    {% elif message.tags == "success" %}
+      {% elif message.tags == "success" %}
         <i class="fa fa-check"></i>
-    {% elif message.tags == "info" %}
+      {% elif message.tags == "info" %}
         <i class="fa fa-info-circle"></i>
-    {% elif message.tags == "warning" %}
+      {% elif message.tags == "warning" %}
         <i class="fa fa-warning"></i>
-    {% elif message.tags == "danger warning" %}
+      {% elif message.tags == "danger warning" %}
         <i class="fa fa-warning"></i>
-    {% endif %}
-    {{ message|safe }}
-  </div>
-{% endfor %}
+      {% endif %}
+      {{ message|safe }}
+    </div>
+  {% endfor %}
+</div>
 
 {% if fake_time %}
   <div class="alert alert-info">
