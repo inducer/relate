@@ -1429,12 +1429,13 @@ def edit_course(pctx):
         raise PermissionDenied()
 
     request = pctx.request
+    instance = pctx.course
 
     if request.method == 'POST':
         form = EditCourseForm(request.POST, instance=pctx.course)
         if form.is_valid():
             if form.has_changed():
-                form.save()
+                instance = form.save()
                 messages.add_message(
                     request, messages.SUCCESS,
                     _("Successfully updated course settings."))
@@ -1447,13 +1448,15 @@ def edit_course(pctx):
             messages.add_message(request, messages.ERROR,
                                  _("Failed to update course settings."))
 
-    else:
-        form = EditCourseForm(instance=pctx.course)
+    form = EditCourseForm(instance=instance)
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
-        "form_description": _("Edit Course"),
-        "form": form
-        })
+    # Render the page with course.force_lang, in case force_lang was updated
+    from course.utils import LanguageOverride
+    with LanguageOverride(instance):
+        return render_course_page(pctx, "course/generic-course-form.html", {
+            "form_description": _("Edit Course"),
+            "form": form
+            })
 
 # }}}
 

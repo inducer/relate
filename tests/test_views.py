@@ -337,10 +337,11 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         # the message shows "success"
         with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
             mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
-            mock.patch('course.views.EditCourseForm.save'), \
+            mock.patch('course.views.EditCourseForm.save')as mock_save, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
+            mock_save.return_value = self.course
             mock_is_valid.return_value = True
             mock_changed.return_value = True
             mock_gettext.side_effect = lambda x: x
@@ -365,6 +366,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
                 mock.patch("course.views._") as mock_gettext:
 
             mock_gettext.side_effect = lambda x: x
+            mock_save.return_value = self.course
             request = self.rf.post(self.get_edit_course_url(),
                                    data=data)
             request.user = self.instructor_participation.user
