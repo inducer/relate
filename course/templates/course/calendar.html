@@ -24,8 +24,8 @@
     <script src='{% static "blueimp-tmpl/js/tmpl.min.js" %}'></script>
   {% endif %}
 
-  {% if pperm.edit_events %}
-    <style>
+  <style>
+    {% if pperm.edit_events %}
       .mode-toggle[data-edit-mode=off] {
         display: none;
       }
@@ -44,8 +44,12 @@
         left: 0;
         z-index: 999;
       }
-    </style>
-  {% endif %}
+    {% endif %}
+    {# prevent relate-calendar-notes being covered when there's no event in listMonth view #}
+    .fc-list-empty-wrap2{
+      position: relative !important;
+    }
+  </style>
 
 {% endblock %}
 
