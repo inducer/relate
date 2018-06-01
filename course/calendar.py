@@ -1386,6 +1386,7 @@ def update_event(pctx, event_id):
                 instance_to_update.shown_in_calendar = (
                     temp_instance.shown_in_calendar)
 
+                assert instance_to_update.course == pctx.course
                 instance_to_update.save()
 
                 if original_str == str(temp_instance):
@@ -1406,14 +1407,15 @@ def update_event(pctx, event_id):
 
                 if "update_all" in request.POST:
                     events_to_update = (
-                        Event.objects.filter(kind=instance_to_update.kind))
+                        events_of_same_kind_and_weekday_time.filter(
+                            kind=instance_to_update.kind))
                     message = string_concat(
                         _("All '%(kind)s' events updated"
                           % {"kind": instance_to_update.kind}),
                         changes)
 
                 elif "update_this_and_following" in request.POST:
-                    events_to_update = Event.objects.filter(
+                    events_to_update = events_of_same_kind_and_weekday_time.filter(
                         kind=instance_to_update.kind,
                         time__gte=instance_to_update.time)
                     message = string_concat(
@@ -1451,6 +1453,7 @@ def update_event(pctx, event_id):
                         temp_instance.ordinal - instance_to_update.ordinal)
 
                 for event in events_to_update:
+                    assert event.course == pctx.course
                     event.kind = temp_instance.kind
 
                     # This might result in IntegrityError

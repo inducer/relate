@@ -53,6 +53,11 @@ def get_prefixed_form_data(form_klass, form_data):
     return prefixed_form_data
 
 
+def get_object_dict(obj):
+    return dict((k, v) for (k, v) in six.iteritems(obj.__dict__)
+                if not k.startswith("_"))
+
+
 class CalendarTestMixin(SingleCourseTestMixin, HackRepoMixin):
 
     default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
@@ -99,7 +104,6 @@ class CalendarTestMixin(SingleCourseTestMixin, HackRepoMixin):
             hours=staring_time_offset_hours,
             minutes=staring_time_offset_minutes)
         for i in range(n):
-            now_time += timedelta(weeks=1)
             kwargs = {"kind": self.default_event_kind,
                       "ordinal": i + staring_ordinal,
                       "time": now_time}
@@ -107,6 +111,7 @@ class CalendarTestMixin(SingleCourseTestMixin, HackRepoMixin):
                 kwargs["end_time"] = (
                         now_time + timedelta(minutes=end_time_minute_duration))
             factories.EventFactory(**kwargs)
+            now_time += timedelta(weeks=1)
 
         return list(Event.objects.exclude(pk__in=exist_events_pks))
 
@@ -2239,26 +2244,29 @@ class UpdateEventTest(CalendarTestMixin, TestCase):
 
         # an event in another course, which should not be edited
         self.another_course_event = factories.EventFactory(
-            course=factories.CourseFactory(
-                identifier="another-course"), kind=self.default_event_kind)
+            course=factories.CourseFactory(identifier="another-course"),
+            kind=self.default_event_kind,
+            time=self.default_faked_now)
 
         # an event with another kind, which should not be edited
         self.another_kind_event = factories.EventFactory(
             course=self.course, kind="another_kind")
 
         # this is to make sure other events are not affected during update
-        self.another_course_event_dict = self.another_course_event.__dict__
-        self.another_kind_event_dict = self.another_kind_event.__dict__
+        self.another_course_event_dict = get_object_dict(self.another_course_event)
+        self.another_kind_event_dict = get_object_dict(self.another_kind_event)
 
         self.c.force_login(self.instructor_participation.user)
 
     def assertOtherEventNotAffected(self):  # noqa
-        self.another_kind_event.refresh_from_db()
+        self.another_course_event.refresh_from_db()
         self.another_kind_event.refresh_from_db()
         self.assertDictEqual(
-            self.another_course_event_dict, self.another_course_event.__dict__)
+            self.another_course_event_dict,
+            get_object_dict(self.another_course_event))
         self.assertDictEqual(
-            self.another_kind_event_dict, self.another_kind_event.__dict__)
+            self.another_kind_event_dict,
+            get_object_dict(self.another_kind_event))
 
     def create_event(self, **kwargs):
         data = {
@@ -2460,6 +2468,39 @@ class UpdateEventTest(CalendarTestMixin, TestCase):
         json_response = json.loads(resp.content.decode())
         self.assertEqual(json_response["message"],
                          "Event '%s' updated." % str(instance_to_update))
+        self.assertOtherEventNotAffected()
+
+    def test_update_all_no_endtime_success(self):
+        instance_to_update, another_event = self.create_recurring_events(2)
+
+        original_time1 = instance_to_update.time
+        original_time2 = another_event.time
+        new_time = as_local_time(instance_to_update.time + timedelta(hours=2))
+
+        resp = self.post_update_event_view(
+            instance_to_update.id,
+            self.get_default_post_data(
+                instance_to_update, time=new_time, operation="update_all")
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        instance_to_update.refresh_from_db()
+        self.assertEqual(
+            instance_to_update.time - original_time1,
+            timedelta(hours=2)
+        )
+
+        another_event.refresh_from_db()
+        self.assertEqual(
+            another_event.time - original_time2,
+            timedelta(hours=2)
+        )
+
+        json_response = json.loads(resp.content.decode())
+        self.assertEqual(json_response["message"],
+                         "All '%s' events updated."
+                         % instance_to_update.kind)
+
         self.assertOtherEventNotAffected()
 
     def test_update_all_success(self):
