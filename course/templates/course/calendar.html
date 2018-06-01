@@ -95,6 +95,7 @@
   {% endif %}
 
   <div id="relate-event-info" style="margin-top:3ex">{{ events_info_html|safe }}</div>
+  <div id="cover"></div>
 
   {% if pperm.edit_events %}
     <div id="div-id-relate-new-event-form"></div>
@@ -348,6 +349,10 @@
           beforeSend: function (xhr, settings) {
             var csrftoken = get_cookie('csrftoken');
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
+
+            {# disable inputs #}
+            $("input", form).attr("disabled", "disabled");
+            $("#cover").addClass('spinner');
           },
           success: function (data, textStatus, jqXHR) {
             refetchEvents();
@@ -370,6 +375,7 @@
               } else {
                 applyFormFieldError(index, value, form_profix);
               }
+              $("input", form).removeAttr("disabled");
             });
           }
         })
