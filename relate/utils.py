@@ -79,6 +79,37 @@ class StyledModelForm(StyledFormMixin, forms.ModelForm):
     pass
 
 
+class ModalStyledFormMixin(object):
+    ajax_modal_form_template = "modal-form.html"
+
+    @property
+    def form_title(self):
+        raise NotImplementedError()
+
+    @property
+    def modal_id(self):
+        raise NotImplementedError()
+
+    def get_ajax_form_helper(self):
+        # type: (...) -> FormHelper
+        return self.get_form_helper()  # type: ignore
+
+    def render_ajax_modal_form_html(self, request, context=None):
+        # type: (HttpRequest, Optional[Dict]) -> Text
+
+        # remove possbily added buttons by non-AJAX form
+        self.helper.inputs = []  # type: ignore
+
+        from crispy_forms.utils import render_crispy_form
+        from django.template.context_processors import csrf
+        helper = self.get_ajax_form_helper()
+        helper.template = self.ajax_modal_form_template
+        if context is None:
+            context = {}
+        context.update(csrf(request))
+        return render_crispy_form(self, helper, context)
+
+
 # {{{ repo-ish types
 
 class SubdirRepoWrapper(object):

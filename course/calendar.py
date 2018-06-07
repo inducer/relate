@@ -44,7 +44,8 @@ from django.http import JsonResponse
 import django.forms as forms
 
 from relate.utils import (
-    StyledForm, as_local_time, format_datetime_local, string_concat, StyledModelForm)
+    StyledForm, as_local_time, format_datetime_local, string_concat,
+    StyledModelForm, ModalStyledFormMixin)
 
 from course.views import get_now_or_fake_time
 from course.constants import (
@@ -62,37 +63,6 @@ if False:
     from course.utils import CoursePageContext  # noqa
 
 # }}}
-
-
-class ModalStyledFormMixin(object):
-    ajax_modal_form_template = "modal-form.html"
-
-    @property
-    def form_title(self):
-        raise NotImplementedError()
-
-    @property
-    def modal_id(self):
-        raise NotImplementedError()
-
-    def get_ajax_form_helper(self):
-        # type: (...) -> FormHelper
-        return self.get_form_helper()  # type: ignore
-
-    def render_ajax_modal_form_html(self, request, context=None):
-        # type: (http.HttpRequest, Optional[Dict]) -> Text
-
-        # remove possbily added buttons by non-AJAX form
-        self.helper.inputs = []  # type: ignore
-
-        from crispy_forms.utils import render_crispy_form
-        from django.template.context_processors import csrf
-        helper = self.get_ajax_form_helper()
-        helper.template = self.ajax_modal_form_template
-        if context is None:
-            context = {}
-        context.update(csrf(request))
-        return render_crispy_form(self, helper, context)
 
 
 class ListTextWidget(forms.TextInput):
@@ -586,12 +556,13 @@ def view_calendar(pctx, mode=None):
         raise PermissionDenied(_("may not edit calendar"))
 
     now = get_now_or_fake_time(pctx.request)
-    default_date = now.date()
+    now_date = default_date = now.date()
     if pctx.course.end_date is not None and default_date > pctx.course.end_date:
         default_date = pctx.course.end_date
 
     return render_course_page(pctx, "course/calendar.html", {
         "is_edit_view": is_edit_view,
+        "now_date": now_date.isoformat(),
         "default_date": default_date.isoformat(),
 
         # Wrappers used by JavaScript template (tmpl) so as not to
