@@ -941,7 +941,7 @@ class UserForm(StyledModelForm):
         self.helper.add_input(
                 Button("signout", _("Sign out"), css_class="btn btn-danger",
                        onclick=(
-                           "window.location.href=%s"
+                           "window.location.href='%s'"
                            % reverse("relate-logout"))))
         # }}}
 
