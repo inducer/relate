@@ -1,0 +1,12 @@
+{% for event_info in event_info_list %}
+    <div id="event-{{ event_info.id }}" class="panel panel-default relate-calendar-event">
+      <div class="panel-heading">
+        <b>{{ event_info.human_title }}</b>
+        ({{ event_info.start_time }}{% if event_info.end_time %} -
+        {{ event_info.end_time }}{% endif %})
+      </div>
+      <div class="panel-body">
+        {{ event_info.description|safe }}
+      </div>
+    </div>
+{% endfor %}

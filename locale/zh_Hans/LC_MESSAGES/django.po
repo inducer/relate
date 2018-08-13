@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-04-20 16:43+0800\n"
+"POT-Creation-Date: 2018-05-29 00:09+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language: \n"
@@ -236,17 +236,20 @@ msgstr "已经模拟了某个用户. "
 msgid "Impersonate user"
 msgstr "用户模拟"
 
-msgid "Stop impersonating"
-msgstr "停止模拟用户"
+msgid "only AJAX POST is allowed"
+msgstr "只允许AJAX POST操作"
+
+msgid "odd POST parameters"
+msgstr "怪异的POST参数设置"
+
+msgid "may not stop impersonating"
+msgstr "不能停止模拟用户"
 
 msgid "Not currently impersonating anyone."
 msgstr "当前未模拟任何用户. "
 
 msgid "No longer impersonating anyone."
 msgstr "未模拟任何用户. "
-
-msgid "Stop impersonating user"
-msgstr "停止模拟用户"
 
 msgid "Sign in"
 msgstr "登录"
@@ -401,6 +404,18 @@ msgstr "创建了一个新的认证token: %s. 请将它保存下来，您以后�
 msgid "Could not find which button was pressed."
 msgstr "无法找到哪一个按钮被按下"
 
+#. Translators: %s is the string of the start time of a session.
+#, python-format
+msgid "started at %s"
+msgstr "开始于%s"
+
+#, python-format
+msgid "ended at %s"
+msgstr "结束于%s"
+
+msgid "Create recurring events"
+msgstr "创建重复进行的event"
+
 #. Translators: format of event kind in Event model
 msgid "Should be lower_case_with_underscores, no spaces allowed."
 msgstr "只允许小写字母和下划线, 不允许有空格. "
@@ -447,25 +462,39 @@ msgctxt "Count of recurring events"
 msgid "Count"
 msgstr "次数"
 
-#, python-format
-msgid "'%(event_kind)s %(event_ordinal)d' already exists"
-msgstr "%(event_kind)s %(event_ordinal)d' 已经存在"
+msgid "Cancel"
+msgstr "放弃"
 
-msgctxt "Unkown time interval"
-msgid "unknown interval"
-msgstr "未知的时间间隔"
+#, python-format
+msgid "'%(exist_event)s' already exists"
+msgstr "%(exist_event)s' 已经存在"
 
 msgid "may not edit events"
 msgstr "不允许编辑event"
 
-msgid "No events created."
-msgstr "未创建event. "
+msgid "only AJAX GET is allowed"
+msgstr "只允许AJAX GET操作"
+
+msgid "may not GET by AJAX"
+msgstr "不允许AJAX GET"
 
 msgid "Events created."
 msgstr "Event创建成功. "
 
-msgid "Create recurring events"
-msgstr "创建重复进行的event"
+msgid "No events created."
+msgstr "未创建event. "
+
+msgid "Renumber events"
+msgstr "重新编号"
+
+msgid "The starting ordinal of this kind of events"
+msgstr "该kind的event的开始序号"
+
+msgid "Tick to preserve the order of ordinals of existing events."
+msgstr "勾选以维持现在event序号的先后次序."
+
+msgid "Preserve ordinal order"
+msgstr "维持序号的先后次序"
 
 msgid "Renumber"
 msgstr "重新编号"
@@ -473,14 +502,141 @@ msgstr "重新编号"
 msgid "Events renumbered."
 msgstr "Event重新编号完成. "
 
-msgid "No events found."
-msgstr "未找到Event. "
-
-msgid "Renumber events"
-msgstr "重新编号"
-
 msgid "may not view calendar"
 msgstr "不允许查看日历"
+
+msgid "may not edit calendar"
+msgstr "不允许编辑日历"
+
+msgid "may not fetch events"
+msgstr "不允许拉取event"
+
+msgid "may not fetch events as edit view"
+msgstr "不允许以编辑模式拉取event"
+
+msgid "Create a event"
+msgstr "创建event"
+
+msgid "Shown in students' calendar"
+msgstr "在学生的日历中显示"
+
+msgid "Save"
+msgstr "保存"
+
+#, python-format
+msgid "'%(exist_event)s' already exists."
+msgstr "'%(exist_event)s'已经存在."
+
+#, python-format
+msgid "Event created: '%s'."
+msgstr "Event创建成功: '%s'. "
+
+msgid "Delete event"
+msgstr "删除event"
+
+#, python-format
+msgid "Are you sure to delete event '%s'?"
+msgstr "你确认将删除event '%s'?"
+
+#, python-format
+msgid "Delete event '%s'"
+msgstr "删除event '%s'"
+
+#, python-format
+msgid "Delete all '%s' events"
+msgstr "所有所有'%s' event"
+
+#, python-format
+msgid "Delete this and following '%s' events"
+msgstr "删除此项及后续的'%s' event"
+
+#, python-format
+msgid "Delete all '%(kind)s' events (%(time)s)."
+msgstr "删除所有的'%(kind)s' event (%(time)s)."
+
+#, python-format
+msgid "Delete this and following '%(kind)s' events (%(time)s)."
+msgstr "删除此项及后续的'%(kind)s' event (%(time)s)."
+
+msgid "Operation"
+msgstr "操作"
+
+msgid "Select your operation:"
+msgstr "选择您的操作: "
+
+msgid "Delete"
+msgstr "删除"
+
+#, python-format
+msgid "%(number)d '%(kind)s' events deleted."
+msgstr "%(number)d个'%(kind)s' event被删除."
+
+#, python-format
+msgid "All '%(kind)s' events deleted."
+msgstr "所有'%(kind)s' event被删除."
+
+#, python-format
+msgid "All '%(kind)s' events (%(time)s) deleted."
+msgstr "所有'%(kind)s' events (%(time)s)被删除."
+
+#, python-format
+msgid "%(number)d '%(kind)s' events (%(time)s) deleted."
+msgstr "%(number)d个'%(kind)s' event (%(time)s)被删除."
+
+#, python-format
+msgid "Event '%s' deleted."
+msgstr "Event '%s'被删除. "
+
+#, python-format
+msgid "Update event '%s'"
+msgstr "更新event '%s'"
+
+msgid "Update all"
+msgstr "更新全部"
+
+msgid "Update this and following"
+msgstr "更新本项及后续的event"
+
+msgid "Update series"
+msgstr "更新本系列"
+
+msgid "Update this and following in series"
+msgstr "更新本项及本系列的后续event"
+
+msgid "only AJAX request is allowed"
+msgstr "只允许AJAX请求"
+
+msgid "No change was made."
+msgstr "未产生更改."
+
+#, python-format
+msgid "Event '%s' updated."
+msgstr "Event '%s' 更新成功. "
+
+msgid "Event updated"
+msgstr "Event更新成功"
+
+#, python-format
+msgid "All '%(kind)s' events updated"
+msgstr "所有 '%(kind)s' event已更新"
+
+#, python-format
+msgid "%(number)d '%(kind)s' events updated"
+msgstr "%(number)d个'%(kind)s' event已更新"
+
+#, python-format
+msgid "All '%(kind)s' events (%(time)s) updated"
+msgstr "所有'%(kind)s' event (%(time)s) 已更新"
+
+#, python-format
+msgid "%(number)d '%(kind)s' events (%(time)s) updated"
+msgstr "%(number)d个'%(kind)s' event (%(time)s) 已更新"
+
+msgid "unknown operation"
+msgstr "未知的操作"
+
+msgid "May not do bulk update when ordinal is None"
+msgstr "当ordinal设为空时，不能进行批量更新"
 
 msgctxt "User status"
 msgid "Unconfirmed"
@@ -848,10 +1004,6 @@ msgid "I have no idea what a processing instruction is."
 msgstr "我也不知道处理的指令是什么"
 
 #, python-format
-msgid "invalid period: %s"
-msgstr "无效的周期：%s"
-
-#, python-format
 msgid "unrecognized date/time specification: '%s' (interpreted as 'now')"
 msgstr "无法识别的日期/时间设定: '%s' (被解释为\"现在\")"
 
@@ -974,9 +1126,6 @@ msgstr "移除tag"
 
 msgid "Drop"
 msgstr "删除"
-
-msgid "Operation"
-msgstr "操作"
 
 msgid "Tag"
 msgstr "标签"
@@ -1371,9 +1520,6 @@ msgstr "只能更改正在进行中的session"
 msgid "invalid expiration mode"
 msgstr "无效的过期模式"
 
-msgid "odd POST parameters"
-msgstr "怪异的POST参数设置"
-
 msgid "Cannot end a session that's already ended"
 msgstr "无法结束已经结束的session"
 
@@ -1431,9 +1577,6 @@ msgstr "为不计入成绩的flow session重新评分"
 
 msgid "Re-allow changes"
 msgstr "重新允许修改回答"
-
-msgid "Cancel"
-msgstr "放弃"
 
 msgid "No prior answers found that could be un-submitted."
 msgstr "找不到可以取消提交的回答."
@@ -1983,6 +2126,9 @@ msgstr "事件(event)"
 
 msgid "Events"
 msgstr "事件(event)"
+
+msgid "End time must not be ahead of start time."
+msgstr "结束时间不得早于开始时间."
 
 #. Translators: name format of ParticipationTag
 msgid "Format is lower-case-with-hyphens. Do not use spaces."
@@ -3251,9 +3397,29 @@ msgstr "你可以到以下页面中查看这个问题:"
 msgid "Calendar"
 msgstr "教学日历"
 
-msgid ""
-"<b>Note:</b> Some calendar entries are clickable and link to entries below."
-msgstr "<b>注意:</b>一些日历的条目是可点击的, 且与其下方的输入内容相链接. "
+msgid "Switch to normal view"
+msgstr "切换至普通视图"
+
+msgid "Switch to edit view"
+msgstr "切换至编辑视图"
+
+msgid "New event"
+msgstr "新建event"
+
+msgid "Note"
+msgstr "注意"
+
+msgid "Some calendar entries are clickable and link to entries below."
+msgstr "一些日历的条目是可点击的, 且与其下方的输入内容相链接. "
+
+msgid "Different from normal view, this calender shows <b>all</b> events. "
+msgstr "与普通视图不同，本视图可以看见<b>所有</b>的event."
+
+msgid "Edit event"
+msgstr "编辑event"
+
+msgid "Are you sure about this change?"
+msgstr "你确定要进行这些更改？"
 
 #. Translators: The following are names for menu items in course page
 msgctxt "menu item"
@@ -3683,6 +3849,9 @@ msgstr "(当前的)"
 
 msgid "(submitted)"
 msgstr "(已提交的)"
+
+msgid "not started"
+msgstr "未开始的"
 
 msgid "unfinished"
 msgstr "未完成"
@@ -4857,6 +5026,9 @@ msgid ""
 "facility, as a reminder that this pretending is in progress."
 msgstr "为所有虚拟教学设备的页面添加header，以提示目前正在虚拟过程中."
 
+msgid "may not pretend facilities"
+msgstr "不允许假装置身于教学设施中"
+
 msgid "Pretend to be in Facilities"
 msgstr "假装置身于教学设施中"
 
@@ -4894,11 +5066,6 @@ msgstr "不允许实施破例"
 
 msgid "Grant Exception"
 msgstr "给予破例"
-
-#. Translators: %s is the string of the start time of a session.
-#, python-format
-msgid "started at %s"
-msgstr "开始于%s"
 
 #, python-format
 msgid " tagged '%s'"
@@ -4998,9 +5165,6 @@ msgstr "最高得分(按百分比)"
 msgid "Maximum number of points (enforced cap)"
 msgstr "最高得分(按分数)"
 
-msgid "Save"
-msgstr "保存"
-
 msgid ""
 "Must specify access expiration if 'due same as access expiration' is set."
 msgstr ""
@@ -5024,8 +5188,10 @@ msgid "credit"
 msgstr "应得分"
 
 #, python-format
-msgid "Exception granted to '%(participation)s' for '%(flow_id)s'."
-msgstr "已对%(participation)s的%(flow_id)s给予破例. "
+msgid ""
+"'%(exception_type)s' exception granted to '%(participation)s' for "
+"'%(flow_id)s'."
+msgstr "已对%(participation)s的%(flow_id)s给予'%(exception_type)s'破例. "
 
 #, python-format
 msgid ""
@@ -5063,9 +5229,6 @@ msgstr "课程设置更新失败."
 
 msgid "Edit Course"
 msgstr "编辑课程"
-
-msgid "LearningWhat"
-msgstr ""
 
 msgid "RELATE"
 msgstr ""
@@ -5151,6 +5314,9 @@ msgstr "假装置身于教学设施中"
 msgid "Now impersonating"
 msgstr "正在模拟"
 
+msgid "Stop impersonating"
+msgstr "停止模拟用户"
+
 msgid ""
 "This website may not be compatible with your outdated Internet Explorer "
 "version. If you want use Internet Explorer, please install one with version "
@@ -5197,6 +5363,9 @@ msgid ""
 msgstr ""
 "%(RELATE)s网站目前正在维护. 我们对因此为你带来不便深表抱歉, 我们很快将会恢"
 "复. "
+
+msgid "Close"
+msgstr "关闭"
 
 #, python-format
 msgid "Sign in to %(relate_site_name)s"

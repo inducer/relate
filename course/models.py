@@ -331,6 +331,7 @@ class Event(models.Model):
                          _("End time must not be ahead of start time.")})
 
     def save(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
         self.full_clean()
 
         if self.ordinal is None:

@@ -128,9 +128,10 @@
       {% if pperm.edit_events %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">{% trans "Calendar" %}</li>
-        {% if user.is_staff %}
-          <li><a href="{% url "admin:course_event_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit events" %}</a></li>
+        {% if perms.course.add_event and perms.course.change_event and perms.course.delete_event %}
+          <li><a href="{% url "admin:course_event_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit events (admin)" %}</a></li>
         {% endif %}
+        <li><a href="{% url "relate-view_calendar" course.identifier "edit" %}">{% trans "Edit events (calendar)" %}</a></li>
         <li><a href="{% url "relate-create_recurring_events" course.identifier %}">{% trans "Create recurring events" %}</a></li>
         <li><a href="{% url "relate-renumber_events" course.identifier %}">{% trans "Renumber events" %}</a></li>
       {% endif %}

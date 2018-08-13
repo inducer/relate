@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 import six
 import datetime
+from crispy_forms.helper import FormHelper
 
 import django.forms as forms
 from django.utils.translation import ugettext_lazy as _
@@ -45,41 +46,68 @@ def string_concat(*strings):
     return format_lazy("{}" * len(strings), *strings)
 
 
-class StyledForm(forms.Form):
+class StyledFormMixin(object):
+    styled_form_class = "form-horizontal"
+    styled_label_class = "col-lg-2"
+    styled_field_class = "col-lg-8"
+
     def __init__(self, *args, **kwargs):
-        # type: (...) -> None
-        from crispy_forms.helper import FormHelper
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
+        # type: (*Any, **Any) -> None
+        super(StyledFormMixin, self).__init__(*args, **kwargs)  # type: ignore
+        self.helper = self.get_form_helper()
 
-        super(StyledForm, self).__init__(*args, **kwargs)
-
-
-class StyledInlineForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        # type: (...) -> None
-
-        from crispy_forms.helper import FormHelper
-        self.helper = FormHelper()
-        self.helper.form_class = "form-inline"
-        self.helper.label_class = "sr-only"
-
-        super(StyledInlineForm, self).__init__(*args, **kwargs)
+    def get_form_helper(self):
+        # type: (...) -> FormHelper
+        helper = FormHelper()
+        helper.form_class = self.styled_form_class
+        helper.label_class = self.styled_label_class
+        helper.field_class = self.styled_field_class
+        return helper
 
 
-class StyledModelForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        # type: (...) -> None
+class StyledForm(StyledFormMixin, forms.Form):
+    pass
 
-        from crispy_forms.helper import FormHelper
-        self.helper = FormHelper()
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-lg-2"
-        self.helper.field_class = "col-lg-8"
 
-        super(StyledModelForm, self).__init__(*args, **kwargs)
+class StyledInlineForm(StyledFormMixin, forms.Form):
+    styled_field_class = ''
+    styled_label_class = "sr-only"
+    styled_form_class = "form-inline"
+
+
+class StyledModelForm(StyledFormMixin, forms.ModelForm):
+    pass
+
+
+class ModalStyledFormMixin(object):
+    ajax_modal_form_template = "modal-form.html"
+
+    @property
+    def form_title(self):
+        raise NotImplementedError()
+
+    @property
+    def modal_id(self):
+        raise NotImplementedError()
+
+    def get_ajax_form_helper(self):
+        # type: (...) -> FormHelper
+        return self.get_form_helper()  # type: ignore
+
+    def render_ajax_modal_form_html(self, request, context=None):
+        # type: (HttpRequest, Optional[Dict]) -> Text
+
+        # remove possbily added buttons by non-AJAX form
+        self.helper.inputs = []  # type: ignore
+
+        from crispy_forms.utils import render_crispy_form
+        from django.template.context_processors import csrf
+        helper = self.get_ajax_form_helper()
+        helper.template = self.ajax_modal_form_template
+        if context is None:
+            context = {}
+        context.update(csrf(request))
+        return render_crispy_form(self, helper, context)
 
 
 # {{{ repo-ish types

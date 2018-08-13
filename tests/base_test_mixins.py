@@ -829,11 +829,6 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse(view_name, args=[course_identifier])
 
     @classmethod
-    def get_course_calender_url(cls, course_identifier=None):
-        return cls.get_course_view_url(
-            "relate-view_calendar", course_identifier)
-
-    @classmethod
     def get_set_up_new_course_url(cls):
         return reverse("relate-set_up_new_course")
 
