@@ -342,8 +342,8 @@ class Event(models.Model):
             if null_ordinal_qset.exists():
                 raise ValidationError(
                         _("May not create multiple ordinal-less events "
-                            "of kind '%s' in course '%s'")
-                        % (self.kind, self.course))
+                            "of kind '{evt_kind}' in course '{course}'")
+                        .format(evt_kind=self.kind, course=self.course))
 
         return super(Event, self).clean(*args, **kwargs)
 
