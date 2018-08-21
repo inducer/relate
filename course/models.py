@@ -28,7 +28,7 @@ from typing import cast
 
 import six
 
-from django.db import models, IntegrityError
+from django.db import models
 from django.utils.timezone import now
 from django.urls import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -328,7 +328,7 @@ class Event(models.Model):
         else:
             return self.kind
 
-    def clean(self):
+    def clean(self, *args, **kwargs):
         super(Event, self).clean()
 
         if self.end_time:
@@ -337,20 +337,26 @@ class Event(models.Model):
                     {"end_time":
                          _("End time must not be ahead of start time.")})
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-
         if self.ordinal is None:
             null_ordinal_qset = Event.objects.filter(
-                kind=self.kind, ordinal__isnull=True)
+                    course=self.course,
+                    kind=self.kind,
+                    ordinal__isnull=True)
 
             if self.pk:
                 null_ordinal_qset = null_ordinal_qset.exclude(id=self.pk)
 
             if null_ordinal_qset.exists():
-                raise IntegrityError()
+                raise ValidationError(
+                        _("May not create multiple ordinal-less events "
+                            "of kind '{evt_kind}' in course '{course}'")
+                        .format(evt_kind=self.kind, course=self.course))
 
-        super(Event, self).save(*args, **kwargs)
+        return super(Event, self).clean(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super(Event, self).save(*args, **kwargs)
 
     if six.PY3:
         __str__ = __unicode__
