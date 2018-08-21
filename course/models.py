@@ -354,6 +354,10 @@ class Event(models.Model):
 
         return super(Event, self).clean(*args, **kwargs)
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super(Event, self).save(*args, **kwargs)
+
     if six.PY3:
         __str__ = __unicode__
 

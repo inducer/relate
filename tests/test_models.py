@@ -159,10 +159,11 @@ class EventTest(RelateModelTestMixin, unittest.TestCase):
         self.assertIn(expected_error_msg, cm.exception.message_dict["kind"])
 
     def test_clean_end_time(self):
+        now_dt = now()
         with self.assertRaises(ValidationError) as cm:
             factories.EventFactory(
-                course=self.course, time=now(), kind="some_kind",
-                end_time=now() - timedelta(seconds=1))
+                course=self.course, time=now_dt, kind="some_kind",
+                end_time=now_dt - timedelta(seconds=1))
 
         expected_error_msg = "End time must not be ahead of start time."
         self.assertIn(expected_error_msg, cm.exception.message_dict["end_time"])
@@ -185,8 +186,8 @@ class EventTest(RelateModelTestMixin, unittest.TestCase):
         event.time = now() - timedelta(days=1)
         event.save()
 
-        from django.db import IntegrityError
-        with self.assertRaises(IntegrityError):
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
             factories.EventFactory(**kwargs)
 
 
