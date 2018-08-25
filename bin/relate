@@ -109,7 +109,7 @@ def test_code_question(page_desc, repo_root):
         response["stdout"] = stdout.getvalue()
         response["stderr"] = stderr.getvalue()
 
-    except:
+    except Exception:
         response = {}
         package_exception(response, "uncaught_error")
 
@@ -168,9 +168,9 @@ def test_code_question(page_desc, repo_root):
 def test_code_yml(yml_file, repo_root):
     data = expand_yaml(yml_file, repo_root)
 
-    from yaml import load
+    from yaml import safe_load
     from relate.utils import dict_to_struct
-    data = dict_to_struct(load(data))
+    data = dict_to_struct(safe_load(data))
 
     if hasattr(data, "id") and hasattr(data, "type"):
         test_code_question(data, repo_root)
@@ -214,6 +214,9 @@ def main():
     pass
     import os
     import argparse
+
+    os.environ["RELATE_COMMAND_LINE"] = "1"
+
     parser = argparse.ArgumentParser(
             description='RELATE course content command line tool')
     subp = parser.add_subparsers()

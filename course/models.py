@@ -52,7 +52,7 @@ from course.constants import (  # noqa
         exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
         participation_permission, PARTICIPATION_PERMISSION_CHOICES,
 
-        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX
+        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX, NAME_VALID_REGEX, EVENT_KIND_REGEX
         )
 
 from course.page.base import AnswerFeedback
@@ -73,6 +73,19 @@ from yamlfield.fields import YAMLField
 
 
 # {{{ course
+
+def validate_course_specific_language(value):
+    # type: (Text) -> None
+    if not value.strip():
+        # the default value is ""
+        return
+    if value not in (
+                [lang_code for lang_code, lang_descr in settings.LANGUAGES]
+                + [settings.LANGUAGE_CODE]):
+        raise ValidationError(
+            _("'%s' is currently not supported as a course specific "
+              "language at this site.") % value)
+
 
 class Course(models.Model):
     identifier = models.CharField(max_length=200, unique=True,
@@ -129,7 +142,7 @@ class Course(models.Model):
             default=True,
             verbose_name=_('Accepts enrollment'))
 
-    git_source = models.CharField(max_length=200, blank=True,
+    git_source = models.CharField(max_length=200, blank=False,
             help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
             "<tt>git://github.com/inducer/relate-sample</tt> "
@@ -192,6 +205,13 @@ class Course(models.Model):
             "notifications about the course."),
             verbose_name=_('Notify email'))
 
+    force_lang = models.CharField(max_length=200, blank=True, null=True,
+            default="",
+            validators=[validate_course_specific_language],
+            help_text=_(
+                "Which language is forced to be used for this course."),
+            verbose_name=_('Course language forcibly used'))
+
     # {{{ XMPP
 
     course_xmpp_id = models.CharField(max_length=200, blank=True, null=True,
@@ -228,6 +248,10 @@ class Course(models.Model):
     if six.PY3:
         __str__ = __unicode__
 
+    def clean(self):
+        if self.force_lang:
+            self.force_lang = self.force_lang.strip()
+
     def get_absolute_url(self):
         return reverse("relate-course_page", args=(self.identifier,))
 
@@ -235,7 +259,9 @@ class Course(models.Model):
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
             return self.from_email
         else:
-            return settings.DEFAULT_FROM_EMAIL
+            return getattr(
+                settings, "NOTIFICATION_EMAIL_FROM",
+                settings.ROBOT_EMAIL_FROM)
 
     def get_reply_to_email(self):
         # this functionality need more fields in Course model,
@@ -244,6 +270,10 @@ class Course(models.Model):
             return self.from_email
         else:
             return self.notify_email
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # performs regular validation then clean()
+        super(Course, self).save(*args, **kwargs)
 
 # }}}
 
@@ -261,7 +291,14 @@ class Event(models.Model):
             # Translators: format of event kind in Event model
             help_text=_("Should be lower_case_with_underscores, no spaces "
             "allowed."),
-            verbose_name=_('Kind of event'))
+            verbose_name=_('Kind of event'),
+            validators=[
+                RegexValidator(
+                    "^" + EVENT_KIND_REGEX + "$",
+                    message=_("Should be lower_case_with_underscores, no spaces "
+                              "allowed.")),
+                ]
+            )
     ordinal = models.IntegerField(blank=True, null=True,
             # Translators: ordinal of event of the same kind
             verbose_name=_('Ordinal of event'))
@@ -291,6 +328,36 @@ class Event(models.Model):
         else:
             return self.kind
 
+    def clean(self, *args, **kwargs):
+        super(Event, self).clean()
+
+        if self.end_time:
+            if self.end_time < self.time:
+                raise ValidationError(
+                    {"end_time":
+                         _("End time must not be ahead of start time.")})
+
+        if self.ordinal is None:
+            null_ordinal_qset = Event.objects.filter(
+                    course=self.course,
+                    kind=self.kind,
+                    ordinal__isnull=True)
+
+            if self.pk:
+                null_ordinal_qset = null_ordinal_qset.exclude(id=self.pk)
+
+            if null_ordinal_qset.exists():
+                raise ValidationError(
+                        _("May not create multiple ordinal-less events "
+                            "of kind '{evt_kind}' in course '{course}'")
+                        .format(evt_kind=self.kind, course=self.course))
+
+        return super(Event, self).clean(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super(Event, self).save(*args, **kwargs)
+
     if six.PY3:
         __str__ = __unicode__
 
@@ -314,12 +381,13 @@ class ParticipationTag(models.Model):
         super(ParticipationTag, self).clean()
 
         import re
-        name_valid_re = re.compile(r"^\w+$")
+        name_valid_re = re.compile(NAME_VALID_REGEX)
 
         if name_valid_re.match(self.name) is None:
-            # Translators: "Name" is the name of a ParticipationTag
+            field_name = "name"
             raise ValidationError(
-                    {"name": _("Name contains invalid characters.")})
+                {field_name:
+                     _("'%s' contains invalid characters.") % field_name})
 
     def __unicode__(self):
         return "%s (%s)" % (self.name, self.course)
@@ -357,18 +425,45 @@ class ParticipationRole(models.Model):
         super(ParticipationRole, self).clean()
 
         import re
-        name_valid_re = re.compile(r"^\w+$")
+        identifier_valid_re = re.compile(NAME_VALID_REGEX)
 
-        if name_valid_re.match(self.identifier) is None:
-            # Translators: "Name" is the name of a ParticipationTag
+        if identifier_valid_re.match(self.identifier) is None:
+            field_name = "identifier"
             raise ValidationError(
-                    {"name": _("Name contains invalid characters.")})
+                {field_name:
+                     _("'%s' contains invalid characters.") % field_name})
 
     def __unicode__(self):
         return _("%(identifier)s in %(course)s") % {
             "identifier": self.identifier,
             "course": self.course}
 
+    # {{{ permissions handling
+
+    _permissions_cache = None  # type: FrozenSet[Tuple[Text, Optional[Text]]]
+
+    def permission_tuples(self):
+        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+
+        if self._permissions_cache is not None:
+            return self._permissions_cache
+
+        perm = list(
+                    ParticipationRolePermission.objects.filter(role=self)
+                    .values_list("permission", "argument"))
+
+        fset_perm = frozenset(
+                (permission, argument) if argument else (permission, None)
+                for permission, argument in perm)
+
+        self._permissions_cache = fset_perm
+        return fset_perm
+
+    def has_permission(self, perm, argument=None):
+        # type: (Text, Optional[Text]) -> bool
+        return (perm, argument) in self.permission_tuples()
+
+    # }}}
     if six.PY3:
         __str__ = __unicode__
 
@@ -404,6 +499,15 @@ class ParticipationRolePermission(ParticipationPermissionBase):
     role = models.ForeignKey(ParticipationRole,
             verbose_name=_('Role'), on_delete=models.CASCADE,
             related_name="permissions")
+
+    def __unicode__(self):
+        # Translators: permissions for roles
+        return _("%(permission)s for %(role)s") % {
+            "permission": super(ParticipationRolePermission, self).__unicode__(),
+            "role": self.role}
+
+    if six.PY3:
+        __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation role permission")
@@ -542,6 +646,9 @@ class ParticipationPreapproval(models.Model):
             # Participation Preapproval
             return _("Institutional ID %(inst_id)s in %(course)s") % {
                     "inst_id": self.institutional_id, "course": self.course}
+        else:
+            return _("Preapproval with pk %(pk)s in %(course)s") % {
+                    "pk": self.pk, "course": self.course}
 
     if six.PY3:
         __str__ = __unicode__
@@ -619,6 +726,7 @@ def add_default_roles_and_permissions(course,
                 argument="ta").save()
         rpm(role=role, permission=pp.edit_course_permissions).save()
         rpm(role=role, permission=pp.edit_course).save()
+        rpm(role=role, permission=pp.manage_authentication_tokens).save()
         rpm(role=role, permission=pp.access_files_for,
                 argument="instructor").save()
 
@@ -676,6 +784,57 @@ def _set_up_course_permissions(sender, instance, created, raw, using, update_fie
         **kwargs):
     if created:
         add_default_roles_and_permissions(instance)
+
+# }}}
+
+
+# {{{ auth token
+
+class AuthenticationToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+            verbose_name=_('User ID'), on_delete=models.CASCADE)
+
+    participation = models.ForeignKey(Participation,
+            verbose_name=_('Participation'), on_delete=models.CASCADE)
+
+    restrict_to_participation_role = models.ForeignKey(ParticipationRole,
+            verbose_name=_('Restrict to role'), on_delete=models.CASCADE,
+            blank=True, null=True)
+
+    description = models.CharField(max_length=200,
+            verbose_name=_('Description'))
+
+    creation_time = models.DateTimeField(
+            default=now, verbose_name=_('Creation time'))
+    last_use_time = models.DateTimeField(
+            verbose_name=_('Last use time'),
+            blank=True, null=True)
+    valid_until = models.DateTimeField(
+            default=None, verbose_name=_('Valid until'),
+            blank=True, null=True)
+    revocation_time = models.DateTimeField(
+            default=None, verbose_name=_('Revocation time'),
+            blank=True, null=True)
+
+    token_hash = models.CharField(max_length=200,
+            help_text=_("A hash of the authentication token to be "
+                "used for direct git access."),
+            null=True, blank=True, unique=True,
+            verbose_name=_('Hash of git authentication token'))
+
+    def __unicode__(self):
+        return _("Token %(id)d for %(participation)s: %(description)s") % {
+                "id": self.id,
+                "participation": self.participation,
+                "description": self.description}
+
+    if six.PY3:
+        __str__ = __unicode__
+
+    class Meta:
+        verbose_name = _("Authentication token")
+        verbose_name_plural = _("Authentication tokens")
+        ordering = ("participation", "creation_time")
 
 # }}}
 
@@ -844,8 +1003,8 @@ class FlowSession(models.Model):
 class FlowPageData(models.Model):
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
             verbose_name=_('Flow session'), on_delete=models.CASCADE)
-    ordinal = models.IntegerField(null=True, blank=True,
-            verbose_name=_('Ordinal'))
+    page_ordinal = models.IntegerField(null=True, blank=True,
+            verbose_name=_('Page ordinal'))
 
     # This exists to catch changing page types in course content,
     # which will generally lead to an inconsistency disaster.
@@ -877,10 +1036,10 @@ class FlowPageData(models.Model):
     def __unicode__(self):
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
-                "(ordinal %(ordinal)s) in %(flow_session)s") % {
+                "(page ordinal %(page_ordinal)s) in %(flow_session)s") % {
                     'group_id': self.group_id,
                     'page_id': self.page_id,
-                    'ordinal': self.ordinal,
+                    'page_ordinal': self.page_ordinal,
                     'flow_session': self.flow_session})
 
     if six.PY3:
@@ -888,13 +1047,13 @@ class FlowPageData(models.Model):
 
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
-        return self.ordinal - 1
+        return self.page_ordinal - 1
 
     def next_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
     def human_readable_ordinal(self):
-        return self.ordinal + 1
+        return self.page_ordinal + 1
 
 # }}}
 
@@ -1103,7 +1262,10 @@ def update_bulk_feedback(page_data, grade, bulk_feedback_json):
 
 
 def get_feedback_for_grade(grade):
-    # type: (FlowPageVisitGrade) -> Optional[AnswerFeedback]
+    # type: (Optional[FlowPageVisitGrade]) -> Optional[AnswerFeedback]
+
+    if grade is None:
+        return None
 
     try:
         bulk_feedback_json = FlowPageBulkFeedback.objects.get(
@@ -1112,18 +1274,14 @@ def get_feedback_for_grade(grade):
     except ObjectDoesNotExist:
         bulk_feedback_json = None
 
-    if grade is not None:
-        return AnswerFeedback.from_json(
-                grade.feedback, bulk_feedback_json)
-    else:
-        return None
+    return AnswerFeedback.from_json(grade.feedback, bulk_feedback_json)
 
 # }}}
 
 
-# {{{ flow access
+# {{{ deprecated exception stuff
 
-def validate_stipulations(stip):
+def validate_stipulations(stip):  # pragma: no cover (deprecated and not tested)
     if stip is None:
         return
 
@@ -1148,9 +1306,7 @@ def validate_stipulations(stip):
                 _("'allowed_session_count' must be a non-negative integer"))
 
 
-# {{{ deprecated exception stuff
-
-class FlowAccessException(models.Model):
+class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
     # deprecated
 
     participation = models.ForeignKey(Participation, db_index=True,
@@ -1203,7 +1359,7 @@ class FlowAccessException(models.Model):
         __str__ = __unicode__
 
 
-class FlowAccessExceptionEntry(models.Model):
+class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
     # deprecated
 
     exception = models.ForeignKey(FlowAccessException,
@@ -1254,19 +1410,27 @@ class FlowRuleException(models.Model):
     def __unicode__(self):
         return (
                 # Translators: For FlowRuleException
-                _("%(kind)s exception for '%(user)s' to '%(flow_id)s'"
-                "in '%(course)s'")
+                _("%(kind)s exception %(exception_id)s for '%(user)s' to "
+                "'%(flow_id)s' in '%(course)s'")
                 % {
                     "kind": self.kind,
                     "user": self.participation.user,
                     "flow_id": self.flow_id,
-                    "course": self.participation.course})
+                    "course": self.participation.course,
+                    "exception_id":
+                        " id %d" % self.id if self.id is not None else ""})
 
     if six.PY3:
         __str__ = __unicode__
 
     def clean(self):
+        # type: () -> None
         super(FlowRuleException, self).clean()
+
+        if self.kind not in dict(FLOW_RULE_KIND_CHOICES).keys():
+            raise ValidationError(
+                # Translators: the rule refers to FlowRuleException rule
+                string_concat(_("invalid exception rule kind"), ": ", self.kind))
 
         if (self.kind == flow_rule_kind.grading
                 and self.expiration is not None):
@@ -1296,10 +1460,10 @@ class FlowRuleException(models.Model):
                     self.participation.course,
                     self.flow_id, commit_sha)
 
-        tags = None
+        tags = []  # type: List
         grade_identifier = None
         if hasattr(flow_desc, "rules"):
-            tags = getattr(flow_desc.rules, "tags", None)
+            tags = cast(list, getattr(flow_desc.rules, "tags", []))
             grade_identifier = flow_desc.rules.grade_identifier
 
         try:
@@ -1311,13 +1475,13 @@ class FlowRuleException(models.Model):
                 validate_session_grading_rule(
                         ctx, six.text_type(self), rule, tags,
                         grade_identifier)
-            else:
-                # the rule refers to FlowRuleException rule
-                raise ValidationError(_("invalid rule kind: ")+self.kind)
+            else:  # pragma: no cover. This won't happen
+                raise ValueError("invalid exception rule kind")
 
         except ContentValidationError as e:
             # the rule refers to FlowRuleException rule
-            raise ValidationError(_("invalid existing_session_rules: ")+str(e))
+            raise ValidationError(
+                string_concat(_("invalid existing_session_rules"), ": ", str(e)))
 
     class Meta:
         verbose_name = _("Flow rule exception")
@@ -1534,8 +1698,8 @@ class GradeStateMachine(object):
 
         # check that times are increasing
         if self._last_grade_change_time is not None:
-            assert gchange.grade_time > self._last_grade_change_time
-            self._last_grade_change_time = gchange.grade_time
+            assert gchange.grade_time >= self._last_grade_change_time
+        self._last_grade_change_time = gchange.grade_time
 
         if gchange.state == grade_state_change_types.graded:
             if self.state == grade_state_change_types.unavailable:
@@ -1639,7 +1803,7 @@ class GradeStateMachine(object):
         if self.state is None:
             return u"- ∅ -"
         elif self.state == grade_state_change_types.exempt:
-            return "_((exempt))"
+            return _("(exempt)")
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
                 result = "%.1f%%" % self.percentage()
@@ -1649,7 +1813,7 @@ class GradeStateMachine(object):
             else:
                 return u"- ∅ -"
         else:
-            return "_((other state))"
+            return _("(other state)")
 
     def stringify_machine_readable_state(self):
         if self.state is None:

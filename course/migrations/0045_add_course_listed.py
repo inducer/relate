@@ -14,13 +14,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='course',
             name='listed',
-            field=models.BooleanField(default=False, help_text=b'Should the course be listed on the main page?'),
+            field=models.BooleanField(default=False, help_text='Should the course be listed on the main page?'),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='course',
             name='hidden',
-            field=models.BooleanField(default=True, help_text=b'Is the course only accessible to course staff?'),
+            field=models.BooleanField(default=True, help_text='Is the course only accessible to course staff?'),
             preserve_default=True,
         ),
     ]

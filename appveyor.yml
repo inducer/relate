@@ -9,6 +9,7 @@ build: off
 
 cache:
   - '%LOCALAPPDATA%\pip\Cache'
+  - memcached -> appveyor.yml
 
 environment:
   global:
@@ -22,12 +23,8 @@ environment:
     # a later point release.
     # See: http://www.appveyor.com/docs/installed-software#python
 
-    - PYTHON: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.x" # currently 2.7.13
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.x" # currently 3.5.3
+      PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "64"
 
 init:
@@ -40,6 +37,10 @@ install:
   # the parent CMD process).
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
+  - appveyor DownloadFile "http://s3.amazonaws.com/downloads.northscale.com/memcached-win64-1.4.4-14.zip" -FileName memcached.zip
+  - 7z x memcached.zip -y
+  - ps: $Memcached = Start-Process memcached\memcached.exe -PassThru
+
   - ECHO "Filesystem root:"
   - ps: "ls \"C:/\""
 
@@ -49,23 +50,20 @@ install:
 
   # Upgrade to the latest version of pip to avoid it displaying warnings
   # about it being out of date.
-  - "pip install --disable-pip-version-check --user --upgrade pip"
+  # - "pip install --disable-pip-version-check --user --upgrade pip"
 
   - "git submodule update --init --recursive"
 
   # Install requirements
-  - ps: "cat requirements.txt | ?{$_ -notmatch 'dnspython'} > req.txt"
-  - "%CMD_IN_ENV% pip install -r req.txt"
-  - ps: "if ($env:PYTHON -like '*Python2*') { pip install dnspython mock} else { pip install dnspython3 }"
+  - "%CMD_IN_ENV% pip install -r requirements.txt"
 
 
 before_test:
-  - "%CMD_IN_ENV% pip install coverage"
+  - "%CMD_IN_ENV% pip install coverage factory_boy"
 
 test_script:
   # Run the project tests
-  - "copy local_settings.example.py local_settings.py /Y"
-  - "%CMD_IN_ENV% coverage run manage.py test test/"
+  - "%CMD_IN_ENV% coverage run manage.py test tests/"
 
 after_test:
   - "%CMD_IN_ENV% pip install codecov"

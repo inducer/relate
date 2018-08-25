@@ -151,6 +151,9 @@ class Histogram(object):
                     max_value = 1
 
             if self.num_log_bins:
+                min_value = max(min_value, 1e-15)
+                max_value = max(max_value, 1.01*min_value)
+
                 from math import log, exp
                 bin_width = (log(max_value) - log(min_value))/self.num_bin_count
                 num_bin_starts = [
@@ -210,12 +213,12 @@ class Histogram(object):
         if max_len < 20:
             from django.template.loader import render_to_string
             return render_to_string("course/histogram-wide.html", {
-                "bin_info_list": self.get_bin_info_list(),
+                "bin_info_list": bin_info_list,
                 })
         else:
             from django.template.loader import render_to_string
             return render_to_string("course/histogram.html", {
-                "bin_info_list": self.get_bin_info_list(),
+                "bin_info_list": bin_info_list,
                 })
 
 # }}}
@@ -497,8 +500,6 @@ def page_analytics(pctx, flow_id, group_id, page_id):
     restrict_to_first_attempt = int(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
 
-    is_multiple_submit = is_flow_multiple_submit(flow_desc)
-
     page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
     visits = (FlowPageVisit.objects
@@ -513,6 +514,9 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                 ))
 
     if connection.features.can_distinct_on_fields:
+
+        is_multiple_submit = is_flow_multiple_submit(flow_desc)
+
         if restrict_to_first_attempt:
             visits = (visits
                     .distinct("flow_session__participation__id")
@@ -544,7 +548,7 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                 flow_session=visit.flow_session)
 
         title = page.title(grading_page_context, visit.page_data.data)
-        body = page.body(grading_page_context, visit.page_data.data)
+        body = page.analytic_view_body(grading_page_context, visit.page_data.data)
         normalized_answer = page.normalized_answer(
                 grading_page_context, visit.page_data.data, visit.answer)
 

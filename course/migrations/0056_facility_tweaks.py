@@ -27,6 +27,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='facilityiprange',
             name='ip_range',
-            field=models.CharField(max_length=200, verbose_name=b'IP Range'),
+            field=models.CharField(max_length=200, verbose_name='IP Range'),
         ),
     ]

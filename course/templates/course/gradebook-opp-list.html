@@ -5,7 +5,7 @@
 {% load static %}
 
 {% block title %}
-  {% trans "List of Grading Opportunities" %} - {% trans "RELATE" %}
+  {% trans "List of Grading Opportunities" %} - {{ relate_site_name }}
 {% endblock %}
 
 {% block header_extra %}
@@ -69,7 +69,9 @@
       {% endfor %}
     </tbody>
   </table>
+{% endblock %}
 
+{% block page_bottom_javascript_extra %}
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-opportunities").dataTable({
@@ -79,5 +81,5 @@
         "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
     } );
   </script>
-
+  {{ block.super }}
 {% endblock %}

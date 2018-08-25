@@ -1,49 +1,55 @@
-{% extends "base.html" %}
+{% extends "generic-form.html" %}
 {% load i18n %}
 
-{% load crispy_forms_tags %}
+{% block page_bottom_javascript_extra %}
+  {% if enable_profile_form_js %}
+    <script type="text/javascript">
 
-{% block content %}
-  <h1>{% trans "User Profile" %}</h1>
-  <div class="well">
-    {% crispy user_form %}
-  </div>
-  <div class="well">
-    <a href="{% url 'relate-logout' %}" class="btn btn-default col-lg-offset-2">{% trans "Sign out" %}</a>
-  </div>
+        var no_inst_id_checkbox_html = '<div class="form-group">\n' +
+            '  <div class="controls col-lg-offset-2 col-lg-8">\n' +
+            '    <div id="div_id_no_institutional_id" class="checkbox">\n' +
+            '      <label for="id_no_institutional_id" class="">\n' +
+            '        <input type="checkbox" name="no_institutional_id" class="checkboxinput"\n' +
+            '               id="id_no_institutional_id">\n' +
+            '        {% trans "I have no Institutional ID" %}\n' +
+            '        <p id="hint_id_no_institutional_id" class="help-block">\n' +
+            '          {% trans "Check the checkbox if you are not a student or you forget your institutional id." %}\n' +
+            '        </p>\n' +
+            '      </label>\n' +
+            '    </div>\n' +
+            '  </div>\n' +
+            '</div>';
 
+        {# show/hide/disabled of fields #}
+        function disable_inst_id(){
+            $('#div_id_institutional_id_confirm').addClass("hidden");
+            $('#id_institutional_id').prop('disabled', true);
+            $('#id_institutional_id_confirm').addClass('hidden');
+            $("#id_no_institutional_id").prop('checked', true);
+        }
 
-<script type="text/javascript">
+        function enable_inst_id(){
+            $('#div_id_institutional_id_confirm').removeClass("hidden");
+            $('#id_institutional_id_confirm').removeClass('hidden');
+            $('#id_institutional_id').prop('disabled', false);
+            $("#id_no_institutional_id").prop('checked', false);
+        }
 
-    {# show/hide/disabled of fields #}
-    function disable_inst_id(){
-        $('#div_id_institutional_id_confirm').hide();
-        $('#id_institutional_id').prop('disabled', true);
-        $("#id_no_institutional_id").prop('checked', true);
-    }
+        {# When no_id is checked, clear input data in inst_id #}
+        $(document).on('click', '#id_no_institutional_id', function(event) {
+            if (this.checked){
+                disable_inst_id();
+                $('#id_institutional_id').val("");
+                $('#id_institutional_id_confirm').val("")}
+            else {enable_inst_id();}
+        });
 
-    function enable_inst_id(){
-        $('#div_id_institutional_id_confirm').show();
-        $('#id_institutional_id').prop('disabled', false);
-        $("#id_no_institutional_id").prop('checked', false);
-    }
-
-    {# When no_id is checked, clear input data in inst_id #}
-    $(document).on('click', '#id_no_institutional_id', function(event) {
-        if (this.checked){
-            disable_inst_id();
-            $('#id_institutional_id').val("");
-            $('#id_institutional_id_confirm').val("")}
-        else {enable_inst_id();}
-    });
-
-    {# crispy form layout cannot hide wrapping div of a field. #}
-    $(document).ready(function(){
-        {% if is_inst_id_locked %}
-            disable_inst_id();
-        {% elif enable_inst_id_if_not_locked %}
+        {# crispy form layout cannot hide wrapping div of a field. #}
+        $(document).ready(function(){
+            $('#institutional_id_block').prepend(no_inst_id_checkbox_html);
+            {% if is_requesting_inst_id %}
             enable_inst_id();
-        {% else %}
+            {% else %}
             if ($('#id_institutional_id').val().length == 0 &&
                 $('#id_institutional_id_confirm').val().length == 0 &&
                 $('#error_1_id_institutional_id_confirm').length == 0 &&
@@ -51,8 +57,10 @@
                 {disable_inst_id();}
             else
                 {enable_inst_id();}
-        {% endif %}
-    });
+            {% endif %}
+        });
 
-</script>
+    </script>
+  {% endif %}
+  {{ block.super }}
 {% endblock %}

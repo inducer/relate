@@ -5,16 +5,18 @@
 
 {% block title %}
   {{ course.number}}
-  {% trans "Calendar" %} - {% trans "RELATE" %}
+  {% trans "Calendar" %} - {{ relate_site_name }}
 {% endblock %}
 
-{%block header_extra %}
+{%block head_assets_extra %}
   <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}' />
   <script src='{% static "moment/moment.js" %}'></script>
   <script src='{% static "fullcalendar/dist/fullcalendar.js" %}'></script>
   {# load calendar with local language #}
   {% get_current_language as LANGUAGE_CODE %}
-  <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE }}.js'></script>
+  {% if LANGUAGE_CODE != "en" %}
+    <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE |js_lang_fallback:"fullcalendar" }}.js'></script>
+  {% endif %}
 {% endblock %}
 
 {% block content %}

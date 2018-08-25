@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block title %}
-  {% trans "Analytics" %} - {% trans "RELATE" %}
+  {% trans "Analytics" %} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}
@@ -57,7 +57,7 @@
       {% else %}
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
-      {{ astats.title }}
+      {{ astats.title|safe }}
         {% blocktrans trimmed with answer_count=astats.answer_count count counter=astats.answer_count %}
             ({{ answer_count }} non-empty response,
         {% plural %}

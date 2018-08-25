@@ -4,8 +4,8 @@ Installation
 RELATE currently works with Python 2.7 and Python 3. (By default, :file:`requirements.txt`
 is set up for Python 3. See below for edit instructions if you are using Python 2.)
 
-Install `bower <http://bower.io/>`_ and its dependencies, as described on its
-web page.
+Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
+(alternative package manager) at your option.
 
 (Optional) Make a virtualenv to install to::
 
@@ -20,14 +20,13 @@ Enter the relate directory::
 
     cd relate
 
-Edit :file:`requirements.txt` to choose a version of `dnspython`, then install
-the dependencies::
+Install the dependencies::
 
     pip install -r requirements.txt
 
 Copy (and, optionally, edit) the example configuration::
 
-    cp local_settings.example.py local_settings.py
+    cp local_settings_example.py local_settings.py
     vi local_settings.py
 
 Initialize the database::
@@ -37,14 +36,18 @@ Initialize the database::
 
 Retrieve static (JS/CSS) dependencies::
 
-    python manage.py bower_install
+    npm install
+
+or::
+
+    yarn
 
 Run the server::
 
     python manage.py runserver
 
 Open a browser to http://localhost:8000, sign in (your user name will be the
-same as your system user name, or whatever `whoami` returned above) and select
+same as your system user name, or whatever ``whoami`` returned above) and select
 "Set up new course".
 
 As you play with the web interface, you may notice that some long-running tasks
@@ -52,6 +55,35 @@ just sit there: That is because RELATE relies on a task queue to process
 those long-running tasks. Start a worker by running::
 
     celery worker -A relate
+
+.. note::
+
+    For Windows, you need first install `eventlet` by::
+
+        pip install eventlet
+
+    and then run::
+
+        celery worker -A relate -P eventlet
+
+    See the `related issue <https://github.com/celery/celery/issues/4178>`_ for more information.
+
+To make this work, you also need a message broker running. This uses the
+setting ``CELERY_BROKER_URL`` in ``local_settings.py`` and defaults to
+``'amqp://'``.  With that setting, you need for example `RabbitMQ
+<https://www.rabbitmq.com/>`_ or another implementation installed.  On
+Debian-like Linux distributions (e.g. Ubuntu), the following should suffice::
+
+    apt-get install rabbitmq-server
+
+.. note::
+
+    To install RabbitMQ for Windows, see `Installing on Windows
+    <https://www.rabbitmq.com/install-windows.html>`_ for more information.
+
+See the `Celery documentation
+<http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-broker_url>`_
+for more information on alternate brokers and settings.
 
 Note that, due to limitations of the demo configuration (i.e. due to not having
 out-of-process caches available), long-running tasks can only show
@@ -234,7 +266,7 @@ Edit ``django.po``. For each ``msgid`` string, put it's translation in
 ``Translators:`` strings above some ``msgid`` strings, are used to provide
 more information for better understanding of the text to be translated.
 A Simplified Chinese version (demo) of translation is included for Chinese
-users, with locale name ``zh_CN``.
+users, with locale name ``zh_HANS``.
 
 Enabling Translations
 ---------------------

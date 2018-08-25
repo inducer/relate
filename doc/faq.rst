@@ -1,11 +1,6 @@
 Frequently Asked Questions
 ==========================
 
-What does the 'view' permission do?
-------------------------------------
-
-If you have it (the permission), you can see the pages in the flow. If
-you don't have it, you can't.
 
 What does 'starting a session' mean?
 ------------------------------------
@@ -64,6 +59,15 @@ The first one indicates whether a student is allowed to start a new session,
 and the second one indicates whether  a list of past sessions is shown
 to resume or review.
 
+Content Creation
+================
+
+What does the 'view' permission do?
+------------------------------------
+
+If you have it (the permission), you can see the pages in the flow. If
+you don't have it, you can't.
+
 Can flows be set up to branch somehow?
 --------------------------------------
 
@@ -78,16 +82,6 @@ Yes. All work *can* be made undoable by adding the "change_answer"
 permission, but by default, once an answer is "submitted", it cannot be
 changed. (That is distinct from just "saving" an answer which makes the
 system remember it but not consider it final.)
-
-Some events happen twice or three times in a week. How can I create create recurring events for that circumstance?
-------------------------------------------------------------------------------------------------------------------
-
-What I do in that case is create two recurring (weekly) event series (or three) and then renumber the result.
-
-Sometimes we need to postpone or put in advance all the following events, which belong or not belong to the same kind of events, by a specific interval of time. How do I avoid editing events one by one?
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-"Delete one and renumber" might do the trick? That's what I do when, say, a class gets cancelled.
 
 How do I have students realistically deal with data files in code questions?
 ----------------------------------------------------------------------------
@@ -133,3 +127,51 @@ This is a bit of a misfeature in YAML (which relate uses), wich parses ``No`` as
 a :class:`bool` instead of a literal string. Once that has happened, relate can't
 recover the original string representation. To avoid that, just put quotes
 around the ``"No"``.
+
+Course Operations
+=================
+
+How do I launch an exam?
+------------------------
+
+An exam does not launch automatically when the header is changed. First, make
+sure you have updated the course so the exam has the correct header in the public git revision.
+Then, you must go to Grading -> Edit Exams, and activate the exam for the correct dates.
+Most exam issues, like being unable to issue exam tickets, come from failing
+to do one of the above two things.
+
+How do I grant an extension for a particular student?
+-----------------------------------------------------
+
+Grant an exception (from say the gradebook or the grading menu) to the latest
+session of the assignment you want to extend. Change the "Access Expires" to what you want it to be.
+Make sure the correct access rules are checked. You will want it to generate a
+grade (so check it), but make sure to set the credit percent to what you want
+it to be.
+
+Some events happen twice or three times in a week. How can I create create recurring events for that circumstance?
+------------------------------------------------------------------------------------------------------------------
+
+What I do in that case is create two recurring (weekly) event series (or three) and then renumber the result.
+
+Sometimes we need to postpone or put in advance all the following events, which belong or not belong to the same kind of events, by a specific interval of time. How do I avoid editing events one by one?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+"Delete one and renumber" might do the trick? That's what I do when, say, a class gets cancelled.
+
+
+How do I manually upload a file for a student, after the deadline has passed?
+-----------------------------------------------------------------------------
+
+Typically, you can reopen the session with the appropriate access rules (from say, the gradebook),
+impersonate the student, upload the file, and then submit the session to close it.
+The previous steps may not work though if the flow rules are too restrictive.
+
+How do I adjust a particular student's grade up?
+------------------------------------------------
+
+An easy way is to grant an exception for that student's quiz/homework/exam and
+give them some number of bonus points. Note that this will also change the
+number of points that the assignment is out of. To compensate, you must also change
+the "maximum number of points" to the appropriate value. Remember to not grant
+an access exception.

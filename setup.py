@@ -19,7 +19,25 @@ setup(name="relate-courseware",
       url="https://github.com/inducer/relate",
       author_email="inform@tiker.net",
       license="MIT",
-      packages=find_packages(),
+      packages=find_packages(exclude=['tests']),
       install_requires=[
+          "django>=1.10,<2.1",
+          "django-crispy-forms>=1.5.1",
           "colorama",
-          ])
+          "markdown",
+          "dulwich",
+          "pyyaml",
+          "nbconvert>=5.2.1",
+          "pymbolic",
+          "sympy",
+          ],
+      package_data={
+          "relate": [
+              "templates/*.html",
+              ],
+          "course": [
+              "templates/course/*.html",
+              "templates/course/jinja2/*.tpl",
+              ],
+          },
+      )

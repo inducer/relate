@@ -92,7 +92,7 @@ class Feedback:
             return bad(
                     "'%s' does not have correct data type--"
                     "got: '%s', expected: '%s'" % (
-                        name, data.dtype.kind, ref.dtype.kind))
+                        name, data.dtype, ref.dtype))
 
         return True
 
@@ -170,17 +170,33 @@ class Feedback:
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            from traceback import format_exc
-            self.add_feedback(
-                    "<p>"
-                    "The callable '%s' supplied in your code failed with "
-                    "an exception while it was being called by the grading "
-                    "code:"
-                    "</p>"
-                    "<pre>%s</pre>"
-                    % (
-                        f.__name__,
-                        "".join(format_exc())))
+            if callable(f):
+                try:
+                    callable_name = f.__name__
+                except Exception as e_name:
+                    callable_name = (
+                                "<unable to retrieve name; encountered %s: %s>"
+                                % (
+                                    type(e_name).__name__,
+                                    str(e_name)))
+                from traceback import format_exc
+                self.add_feedback(
+                        "<p>"
+                        "The callable '%s' supplied in your code failed with "
+                        "an exception while it was being called by the grading "
+                        "code:"
+                        "</p>"
+                        "<pre>%s</pre>"
+                        % (
+                            callable_name,
+                            "".join(format_exc())))
+            else:
+                self.add_feedback(
+                        "<p>"
+                        "Your code was supposed to supply a function or "
+                        "callable, but the variable you supplied was not "
+                        "callable."
+                        "</p>")
 
             self.set_points(0)
             raise GradingComplete()

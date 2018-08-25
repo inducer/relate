@@ -27,8 +27,9 @@ THE SOFTWARE.
 from celery import shared_task
 
 from django.utils.translation import ugettext as _
+from django.db import transaction
 
-from course.models import (Course, FlowSession)
+from course.models import (Course, FlowSession, FlowPageVisit)
 from course.content import get_course_repo
 
 
@@ -166,6 +167,19 @@ def regrade_flow_sessions(self, course_id, flow_id, access_rules_tag, inprog_val
     repo.close()
 
     return {"message": _("%d sessions regraded.") % count}
+
+
+@shared_task(bind=True)
+@transaction.atomic
+def purge_page_view_data(self, course_id):
+    course = Course.objects.get(id=course_id)
+
+    _num_total, num_deleted_by_kind = FlowPageVisit.objects.filter(
+            flow_session__course=course,
+            answer__isnull=True).delete()
+
+    return {"message": _("%d page views purged.")
+            % num_deleted_by_kind.get("course.FlowPageVisit", 0)}
 
 
 # vim: foldmethod=marker

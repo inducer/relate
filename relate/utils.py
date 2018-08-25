@@ -29,36 +29,20 @@ import six
 import datetime
 
 import django.forms as forms
+from django.utils.translation import ugettext_lazy as _
+from django.utils.text import format_lazy
 import dulwich.repo
 
 from typing import Union
 
 if False:
     from typing import Text, List, Dict, Tuple, Optional, Any  # noqa
+    from django.http import HttpRequest  # noqa
 
-# {{{ string_concat compatibility for Django >= 1.11
 
-try:
-    from django.utils.text import format_lazy
-except ImportError:
-    def _format_lazy(format_string, *args, **kwargs):
-        # type(Text, *Any, **Any) -> Text
-        """
-        Apply str.format() on 'format_string' where format_string, args,
-        and/or kwargs might be lazy.
-        """
-        return format_string.format(*args, **kwargs)
-
-    from django.utils.functional import lazy
-    format_lazy = lazy(_format_lazy, str)
-
-try:
-    from django.utils.translation import string_concat
-except ImportError:
-    def string_concat(*strings):
-        return format_lazy("{}" * len(strings), *strings)
-
-# }}}
+def string_concat(*strings):
+    # type: (Any) -> Text
+    return format_lazy("{}" * len(strings), *strings)
 
 
 class StyledForm(forms.Form):
@@ -163,6 +147,21 @@ class MaintenanceMiddleware(object):
 # }}}
 
 
+def get_site_name():
+    # type: () -> Text
+    from django.conf import settings
+    return getattr(settings, "RELATE_SITE_NAME", "RELATE")
+
+
+def render_email_template(template_name, context=None, request=None, using=None):
+    # type: (Text, Optional[Dict], Optional[HttpRequest], Optional[bool]) -> Text
+    if context is None:
+        context = {}
+    context.update({"relate_site_name": _(get_site_name())})
+    from django.template.loader import render_to_string
+    return render_to_string(template_name, context, request, using)
+
+
 def settings_context_processor(request):
     from django.conf import settings
     return {
@@ -179,6 +178,7 @@ def settings_context_processor(request):
         settings.RELATE_SIGN_IN_BY_SAML2_ENABLED,
         "maintenance_mode": is_maintenance_mode(request),
         "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
+        "relate_site_name": _(get_site_name())
         }
 
 
@@ -224,12 +224,11 @@ def format_datetime_local(datetime, format='DATETIME_FORMAT'):
     """
 
     from django.utils import formats
-    from django.utils.dateformat import format as dformat
-
     try:
         return formats.date_format(datetime, format)
     except AttributeError:
         try:
+            from django.utils.dateformat import format as dformat
             return dformat(datetime, format)
         except AttributeError:
             return formats.date_format(datetime, "DATETIME_FORMAT")
@@ -324,7 +323,7 @@ class retry_transaction_decorator(object):  # noqa
 
 # {{{ hang debugging
 
-def dumpstacks(signal, frame):
+def dumpstacks(signal, frame):  # pragma: no cover
     import threading
     import sys
     import traceback
@@ -346,22 +345,6 @@ if 0:
     print("*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 %s' to dump stacks"
             % os.getpid())
     signal.signal(signal.SIGUSR1, dumpstacks)
-
-# }}}
-
-
-# {{{ convert django language name to js styled language name
-
-def to_js_lang_name(dj_lang_name):
-    """
-    Turns a django language name (en-us) into a js styled language
-    name (en-US).
-    """
-    p = dj_lang_name.find('-')
-    if p >= 0:
-        return dj_lang_name[:p].lower() + '-' + dj_lang_name[p + 1:].upper()
-    else:
-        return dj_lang_name.lower()
 
 # }}}
 
@@ -447,6 +430,5 @@ def force_remove_path(path):
         func(path)
 
     shutil.rmtree(path, onerror=remove_readonly)
-
 
 # vim: foldmethod=marker

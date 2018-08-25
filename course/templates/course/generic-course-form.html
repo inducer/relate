@@ -3,6 +3,10 @@
 
 {% load crispy_forms_tags %}
 
+{% block title %}
+  {{ form_description }} - {{ relate_site_name }}
+{% endblock %}
+
 {% block content %}
   {% if form_description %}
     <h1>{{ form_description }}</h1>

@@ -31,8 +31,9 @@ from django.utils.translation import (
         ugettext_lazy as _, pgettext_lazy)
 from django.contrib.auth.decorators import login_required
 from course.utils import course_view, render_course_page
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.db import transaction, IntegrityError
+from django.core.exceptions import (
+    PermissionDenied, ObjectDoesNotExist, ValidationError)
+from django.db import transaction
 from django.contrib import messages  # noqa
 import django.forms as forms
 
@@ -48,6 +49,25 @@ from course.constants import (
 from course.models import Event
 
 
+class ListTextWidget(forms.TextInput):
+    # Widget which allow free text and choices for CharField
+    def __init__(self, data_list, name, *args, **kwargs):
+        super(ListTextWidget, self).__init__(*args, **kwargs)
+        self._name = name
+        self._list = data_list
+        self.attrs.update({'list': 'list__%s' % self._name})
+
+    def render(self, name, value, attrs=None, renderer=None):
+        text_html = super(ListTextWidget, self).render(
+            name, value, attrs=attrs, renderer=renderer)
+        data_list = '<datalist id="list__%s">' % self._name
+        for item in self._list:
+            data_list += '<option value="%s">%s</option>' % (item[0], item[1])
+        data_list += '</datalist>'
+
+        return (text_html + data_list)
+
+
 # {{{ creation
 
 class RecurringEventForm(StyledForm):
@@ -60,6 +80,7 @@ class RecurringEventForm(StyledForm):
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
             label=pgettext_lazy("Starting time of event", "Starting time"))
     duration_in_minutes = forms.FloatField(required=False,
+            min_value=0,
             label=_("Duration in minutes"))
     all_day = forms.BooleanField(
                 required=False,
@@ -81,10 +102,19 @@ class RecurringEventForm(StyledForm):
             label=pgettext_lazy(
                 "Starting ordinal of recurring events", "Starting ordinal"))
     count = forms.IntegerField(required=True,
+            min_value=0,
             label=pgettext_lazy("Count of recurring events", "Count"))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, course_identifier, *args, **kwargs):
         super(RecurringEventForm, self).__init__(*args, **kwargs)
+        self.course_identifier = course_identifier
+
+        exist_event_choices = [(choice, choice) for choice in set(
+            Event.objects.filter(
+                course__identifier=course_identifier)
+            .values_list("kind", flat=True))]
+        self.fields['kind'].widget = ListTextWidget(data_list=exist_event_choices,
+                                                    name="event_choices")
 
         self.helper.add_input(
                 Submit("submit", _("Create")))
@@ -115,10 +145,12 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
                     minutes=duration_in_minutes)
         try:
             evt.save()
-        except IntegrityError:
-            raise EventAlreadyExists(
-                _("'%(event_kind)s %(event_ordinal)d' already exists") %
-                {'event_kind': kind, 'event_ordinal': ordinal})
+        except Exception as e:
+            if isinstance(e, ValidationError) and "already exists" in str(e):
+                raise EventAlreadyExists(
+                    _("'%(exist_event)s' already exists")
+                    % {'exist_event': evt})
+            raise e
 
         date = time.date()
         if interval == "weekly":
@@ -126,13 +158,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         elif interval == "biweekly":
             date += datetime.timedelta(weeks=2)
         else:
-            raise ValueError(
-                    string_concat(
-                        pgettext_lazy(
-                            "Unkown time interval",
-                            "unknown interval"),
-                        ": %s")
-                    % interval)
+            raise NotImplementedError()
 
         time = time.tzinfo.localize(
                 datetime.datetime(date.year, date.month, date.day,
@@ -149,9 +175,12 @@ def create_recurring_events(pctx):
         raise PermissionDenied(_("may not edit events"))
 
     request = pctx.request
+    message = None
+    message_level = None
 
     if request.method == "POST":
-        form = RecurringEventForm(request.POST, request.FILES)
+        form = RecurringEventForm(
+            pctx.course.identifier, request.POST, request.FILES)
         if form.is_valid():
             if form.cleaned_data["starting_ordinal"] is not None:
                 starting_ordinal = form.cleaned_data["starting_ordinal"]
@@ -175,35 +204,48 @@ def create_recurring_events(pctx):
                             shown_in_calendar=(
                                 form.cleaned_data["shown_in_calendar"])
                             )
+                    message = _("Events created.")
+                    message_level = messages.SUCCESS
                 except EventAlreadyExists as e:
                     if starting_ordinal_specified:
-                        messages.add_message(request, messages.ERROR,
+                        message = (
                                 string_concat(
                                     "%(err_type)s: %(err_str)s. ",
                                     _("No events created."))
                                 % {
                                     "err_type": type(e).__name__,
                                     "err_str": str(e)})
+                        message_level = messages.ERROR
                     else:
                         starting_ordinal += 10
                         continue
 
                 except Exception as e:
-                    messages.add_message(request, messages.ERROR,
-                            string_concat(
-                                "%(err_type)s: %(err_str)s. ",
-                                _("No events created."))
-                            % {
-                                "err_type": type(e).__name__,
-                                "err_str": str(e)})
-                else:
-                    messages.add_message(request, messages.SUCCESS,
-                            _("Events created."))
-
+                    if isinstance(e, ValidationError):
+                        for field, error in e.error_dict.items():
+                            try:
+                                form.add_error(field, error)
+                            except ValueError:
+                                # This happens when ValidationError were
+                                # raised for fields which don't exist in
+                                # RecurringEventForm
+                                form.add_error(
+                                    "__all__", "'%s': %s" % (field, error))
+                    else:
+                        message = (
+                                string_concat(
+                                    "%(err_type)s: %(err_str)s. ",
+                                    _("No events created."))
+                                % {
+                                    "err_type": type(e).__name__,
+                                    "err_str": str(e)})
+                        message_level = messages.ERROR
                 break
     else:
-        form = RecurringEventForm()
+        form = RecurringEventForm(pctx.course.identifier)
 
+    if message and message_level:
+        messages.add_message(request, message_level, message)
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": _("Create recurring events"),
@@ -211,16 +253,30 @@ def create_recurring_events(pctx):
 
 
 class RenumberEventsForm(StyledForm):
-    kind = forms.CharField(required=True,
+    kind = forms.ChoiceField(required=True,
             help_text=_("Should be lower_case_with_underscores, no spaces "
                         "allowed."),
             label=pgettext_lazy("Kind of event", "Kind of event"))
     starting_ordinal = forms.IntegerField(required=True, initial=1,
+            help_text=_("The starting ordinal of this kind of events"),
             label=pgettext_lazy(
                 "Starting ordinal of recurring events", "Starting ordinal"))
+    preserve_ordinal_order = forms.BooleanField(
+            required=False,
+            initial=False,
+            help_text=_("Tick to preserve the order of ordinals of "
+                        "existing events."),
+            label=_("Preserve ordinal order"))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, course_identifier, *args, **kwargs):
         super(RenumberEventsForm, self).__init__(*args, **kwargs)
+        self.course_identifier = course_identifier
+
+        renumberable_event_kinds = set(Event.objects.filter(
+            course__identifier=self.course_identifier,
+            ordinal__isnull=False).values_list("kind", flat=True))
+        self.fields['kind'].choices = tuple(
+            (kind, kind) for kind in renumberable_event_kinds)
 
         self.helper.add_input(
                 Submit("submit", _("Renumber")))
@@ -235,42 +291,58 @@ def renumber_events(pctx):
 
     request = pctx.request
 
+    message = None
+    message_level = None
+
     if request.method == "POST":
-        form = RenumberEventsForm(request.POST, request.FILES)
+        form = RenumberEventsForm(
+            pctx.course.identifier, request.POST, request.FILES)
         if form.is_valid():
-            events = list(Event.objects
-                    .filter(course=pctx.course, kind=form.cleaned_data["kind"])
-                    .order_by('time'))
+            kind = form.cleaned_data["kind"]
+            order_field = "time"
+            if form.cleaned_data["preserve_ordinal_order"]:
+                order_field = "ordinal"
+            events = list(
+                Event.objects.filter(
+                    course=pctx.course, kind=kind,
 
-            if events:
-                queryset = (Event.objects
-                    .filter(course=pctx.course, kind=form.cleaned_data["kind"]))
+                    # there might be event with the same kind but no ordinal,
+                    # we don't renumber that
+                    ordinal__isnull=False)
+                .order_by(order_field))
 
-                queryset.delete()
+            assert events
+            queryset = (Event.objects.filter(
+                course=pctx.course, kind=kind,
 
-                ordinal = form.cleaned_data["starting_ordinal"]
-                for event in events:
-                    new_event = Event()
-                    new_event.course = pctx.course
-                    new_event.kind = form.cleaned_data["kind"]
-                    new_event.ordinal = ordinal
-                    new_event.time = event.time
-                    new_event.end_time = event.end_time
-                    new_event.all_day = event.all_day
-                    new_event.shown_in_calendar = event.shown_in_calendar
-                    new_event.save()
+                # there might be event with the same kind but no ordinal,
+                # we don't renumber that
+                ordinal__isnull=False))
 
-                    ordinal += 1
+            queryset.delete()
 
-                messages.add_message(request, messages.SUCCESS,
-                        _("Events renumbered."))
-            else:
-                messages.add_message(request, messages.ERROR,
-                        _("No events found."))
+            ordinal = form.cleaned_data["starting_ordinal"]
+            for event in events:
+                new_event = Event()
+                new_event.course = pctx.course
+                new_event.kind = kind
+                new_event.ordinal = ordinal
+                new_event.time = event.time
+                new_event.end_time = event.end_time
+                new_event.all_day = event.all_day
+                new_event.shown_in_calendar = event.shown_in_calendar
+                new_event.save()
+
+                ordinal += 1
+
+            message = _("Events renumbered.")
+            message_level = messages.SUCCESS
 
     else:
-        form = RenumberEventsForm()
+        form = RenumberEventsForm(pctx.course.identifier)
 
+    if messages and message_level:
+        messages.add_message(request, message_level, message)
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": _("Renumber events"),
@@ -292,17 +364,16 @@ class EventInfo(object):
 
 @course_view
 def view_calendar(pctx):
-    from course.content import markup_to_html, parse_date_spec
+    if not pctx.has_permission(pperm.view_calendar):
+        raise PermissionDenied(_("may not view calendar"))
 
     from course.views import get_now_or_fake_time
     now = get_now_or_fake_time(pctx.request)
 
-    if not pctx.has_permission(pperm.view_calendar):
-        raise PermissionDenied(_("may not view calendar"))
-
     events_json = []
 
-    from course.content import get_raw_yaml_from_repo
+    from course.content import (
+        get_raw_yaml_from_repo, markup_to_html, parse_date_spec)
     try:
         event_descr = get_raw_yaml_from_repo(pctx.repo,
                 pctx.course.events_file, pctx.course_commit_sha)
@@ -343,7 +414,7 @@ def view_calendar(pctx):
                 if event.ordinal is not None:
                     human_title = kind_desc["title"].format(nr=event.ordinal)
                 else:
-                    human_title = kind_desc["title"]
+                    human_title = kind_desc["title"].rstrip("{nr}").strip()
 
         description = None
         show_description = True

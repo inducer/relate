@@ -6,7 +6,7 @@
 
 {% block title %}
   [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
-  {{title}} - {{ flow_desc.title}} - {% trans "RELATE" %}
+  {{title|safe}} - {{ flow_desc.title}} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}
@@ -30,7 +30,7 @@
 
   {# {{{ navigation #}
   <form
-    action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.ordinal %}"
+    action="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.page_ordinal %}"
     class="navigation-form"
     method="POST">
 
@@ -40,7 +40,7 @@
       {# {{{ prev/next buttons #}
 
       <div class="flow-nav">
-        {% if page_data.ordinal > 0 %}
+        {% if page_data.page_ordinal > 0 %}
           <a class="btn btn-default relate-nav-button"
             href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
             title='{% trans "Previous page" context "Previous page/item in a flow" %}'
@@ -85,7 +85,7 @@
       {% if may_send_email_about_flow_page %}
         <div class="navbar-right relate-flow-page-send-email"
              style="padding-right: 0.4em;">
-            <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id ordinal %}"
+            <a href="{% url 'relate-flow_page_interaction_email' course.identifier flow_session.id page_ordinal %}"
                class="btn btn-default relate-nav-button btn-info"
                title="{% trans 'Send an email about this page to course staff' %}"
                target="_blank"
@@ -133,7 +133,7 @@
               {% endif %}
               {% if pperm.view_gradebook %}
                 <li>
-                  <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id ordinal %}"
+                  <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id page_ordinal %}"
                      target="_blank">
                       {% trans "View in grading interface" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
@@ -143,7 +143,7 @@
             {% if pperm.reopen_flow_session and flow_session.in_progress and expects_answer and not may_change_answer %}
               <li role="separator" class="divider"></li>
               <li>
-                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id ordinal %}">
+                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id page_ordinal %}">
                     {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                 </a>
               </li>
@@ -155,23 +155,23 @@
       {# }}} #}
 
       {# {{{ past submissions #}
-
-      <div class="navbar-right relate-flow-page-past-submissions"
-        style="padding-right: 0.4em; margin-right:0;">
-        <div class="dropdown" id="past-submission_dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown_button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
-            title='{% trans "Submission history for this page" %}'>
-            <i class="fa fa-history"></i>
-            <span class="caret"></span>
-          </button>
-          <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
-            <li style="list-style:none; position:relative; left:50%;">
-              <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
-            </li>
-          </ul>
+      {% if expects_answer %}
+        <div class="navbar-right relate-flow-page-past-submissions"
+          style="padding-right: 0.4em; margin-right:0;">
+          <div class="dropdown" id="past-submission_dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" id="past-submission_dropdown_button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+              title='{% trans "Submission history for this page" %}'>
+              <i class="fa fa-history"></i>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
+              <li style="list-style:none; position:relative; left:50%;">
+                <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
-
+      {% endif %}
       {# }}} #}
 
       {# {{{ 'finish' button #}
@@ -248,7 +248,7 @@
 
       <div class="relate-flow-page-toc">
         {% for other_page_data in all_page_data %}
-          {% if other_page_data.ordinal == page_data.ordinal %}
+          {% if other_page_data.page_ordinal == page_data.page_ordinal %}
             <span class="relate-flow-page-toc-item btn btn-default btn-xs disabled
               relate-current
               {% if other_page_data.bookmarked %}
@@ -256,10 +256,10 @@
               {% endif %}
               ">{{ other_page_data.human_readable_ordinal }}</span>
           {% else %}
-            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}"
-               title="{{ other_page_data.title }}">
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}"
+               title="{{ other_page_data.title|safe }}">
             <span class="relate-flow-page-toc-item btn btn-default btn-xs
-              {% if page_nr < page_data.ordinal %}
+              {% if page_nr < page_data.page_ordinal %}
                 relate-prior
               {% else %}
                 relate-subsequent
@@ -267,7 +267,7 @@
               {% if other_page_data.bookmarked %}
                 relate-bookmarked
               {% endif %}
-              {% if other_page_data.ordinal in flow_page_ordinals_with_answers %}
+              {% if other_page_data.page_ordinal in flow_page_ordinals_with_answers %}
                 relate-answered
               {% endif %}
               ">{{ other_page_data.human_readable_ordinal }}
@@ -284,8 +284,8 @@
             <ul class="dropdown-menu" aria-labelledby="toc-dropdown">
               {% for other_page_data in all_page_data %}
               <li>
-                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.ordinal %}">
-                  {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title }}
+                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}">
+                  {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title|safe }}
                   {% if other_page_data.bookmarked %}
                     <i class="fa fa-star" aria-hidden="true"></i>
                   {% endif %}
@@ -373,9 +373,9 @@
         alert-info
       {% endif %}
       ">
-        <p>{{ feedback.feedback|safe }}</p>
+        <p>{% trans feedback.feedback|safe %}</p>
         {% if feedback.bulk_feedback %}
-          <p>{{ feedback.bulk_feedback|safe }}</p>
+          <p>{% trans feedback.bulk_feedback|safe %}</p>
         {% endif %}
       {% if show_answer and correct_answer %}
         <p>{{ correct_answer|safe }}</p>
@@ -467,22 +467,6 @@
   <script type="text/javascript">
 
     // using jQuery
-    function get_cookie(name) {
-        var cookieValue = null;
-        if (document.cookie && document.cookie != '') {
-            var cookies = document.cookie.split(';');
-            for (var i = 0; i < cookies.length; i++) {
-                var cookie = jQuery.trim(cookies[i]);
-                // Does this cookie string begin with the name we want?
-                if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
     function expiration_mode_changed()
     {
       $("#expiration_mode_change_progress")
@@ -552,7 +536,7 @@
             }
 
             var jqxhr = $.ajax(
-                "{% url "relate-update_page_bookmark_state" course.identifier flow_session.id page_data.ordinal %}",
+                "{% url "relate-update_page_bookmark_state" course.identifier flow_session.id page_data.page_ordinal %}",
                 {
                   type: "POST",
                   data: {
@@ -607,52 +591,54 @@
 
 {% block page_bottom_javascript_extra %}
 
-  <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
-  <script>
-    function generate_past_submission_dropdown_content(){
-      var jqxhr = $.ajax({
-        url: "{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id ordinal %}"
-      }).done(function (result) {
-        if(result.result)
-          document.getElementById("past-submission_dropdown_content").innerHTML = tmpl("tmpl-prev-answer-visits", result.result);
-      });
-    }
+  {% if expects_answer %}
+    <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
+    <script>
+      function generate_past_submission_dropdown_content(){
+        var jqxhr = $.ajax({
+          url: "{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id page_ordinal %}"
+        }).done(function (result) {
+          if(result.result)
+            document.getElementById("past-submission_dropdown_content").innerHTML = tmpl("tmpl-prev-answer-visits", result.result);
+        });
+      }
 
-    $('#past-submission_dropdown').on('shown.bs.dropdown', generate_past_submission_dropdown_content);
+      $('#past-submission_dropdown').on('shown.bs.dropdown', generate_past_submission_dropdown_content);
 
 
-  </script>
+    </script>
 
-  {# https://github.com/blueimp/JavaScript-Templates #}
-  <script type="text/x-tmpl" id="tmpl-prev-answer-visits">
-    {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
-      <li>
-        <a href="#" style="pointer-events: none; display: inline-block;">
-          {% trans 'No submission history' %}
-        </a>
-      </li>
-    {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-      {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
+    {# https://github.com/blueimp/JavaScript-Templates #}
+    <script type="text/x-tmpl" id="tmpl-prev-answer-visits">
+      {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
         <li>
-          {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-            <a href="?">
-          {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-            <a href="?visit_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
-          {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-            {% trans "(current)" %}
-            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            {{ JQ_OPEN }} if (o[i].is_submitted_answer) { {{ JQ_CLOSE }}
-              {% trans "(submitted)" %}
-            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+          <a href="#" style="pointer-events: none; display: inline-block;">
+            {% trans 'No submission history' %}
           </a>
         </li>
+      {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+        {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
+          <li>
+            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+              <a href="?">
+            {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
+              <a href="?visit_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
+            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+                {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
+              {% trans "(current)" %}
+              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+              {{ JQ_OPEN }} if (o[i].is_submitted_answer) { {{ JQ_CLOSE }}
+                {% trans "(submitted)" %}
+              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
+            </a>
+          </li>
+        {{ JQ_OPEN }} } {{ JQ_CLOSE }}
       {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-    {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-  </script>
+    </script>
+  {% endif %}
   {{ block.super }}
 {% endblock %}
 {# vim: set foldmethod=marker: #}
