@@ -128,6 +128,7 @@ class EventAlreadyExists(Exception):
 def _create_recurring_events_backend(course, time, kind, starting_ordinal, interval,
         count, duration_in_minutes, all_day, shown_in_calendar):
     ordinal = starting_ordinal
+    assert ordinal is not None
 
     import datetime
 
@@ -143,14 +144,13 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         if duration_in_minutes:
             evt.end_time = evt.time + datetime.timedelta(
                     minutes=duration_in_minutes)
-        try:
-            evt.save()
-        except Exception as e:
-            if isinstance(e, ValidationError) and "already exists" in str(e):
-                raise EventAlreadyExists(
-                    _("'%(exist_event)s' already exists")
-                    % {'exist_event': evt})
-            raise e
+
+        if Event.objects.filter(course=course, kind=kind, ordinal=ordinal).count():
+            raise EventAlreadyExists(
+                _("'%(exist_event)s' already exists")
+                % {'exist_event': evt})
+
+        evt.save()
 
         date = time.date()
         if interval == "weekly":
