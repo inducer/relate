@@ -98,7 +98,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                 self.assertEqual(resp.status_code, 200)
 
                 resp = self.c.get(self.superuser_change_url)
-                self.assertEqual(resp.status_code, 302)
+                self.assertEqual(resp.status_code, 200)
 
                 resp = self.c.get(self.instructor1_change_url)
                 self.assertEqual(resp.status_code, 200)
@@ -108,7 +108,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
                 # because that student joined 2 courses
                 resp = self.c.get(self.student1_change_url)
-                self.assertEqual(resp.status_code, 302)
+                self.assertEqual(resp.status_code, 200)
 
         with self.subTest("staff 2 admin change/changelist for "
                           "accounts.user"):
@@ -117,19 +117,19 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                 self.assertEqual(resp.status_code, 200)
 
                 resp = self.c.get(self.superuser_change_url)
-                self.assertEqual(resp.status_code, 302)
+                self.assertEqual(resp.status_code, 200)
 
                 # Because instructor 1 is also a staff
                 resp = self.c.get(self.instructor1_change_url)
-                self.assertEqual(resp.status_code, 302)
+                self.assertEqual(resp.status_code, 200)
 
                 # because that student joined 2 courses
                 resp = self.c.get(self.student1_change_url)
-                self.assertEqual(resp.status_code, 302)
+                self.assertEqual(resp.status_code, 200)
 
                 # because that student didn't join this course
                 resp = self.c.get(self.student2_change_url)
-                self.assertEqual(resp.status_code, 302)
+                self.assertEqual(resp.status_code, 200)
 
     def test_admin_add_user(self):
         # This is to make sure admin can add user without email.
@@ -277,16 +277,14 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
         # 4 non-participation users 'test_user4', 'test_user3', 'test_user2',
         # 'test_user1',
         # 1 instructor 'test_instructor' (request.user)
-        self.assertEqual(changelist.full_result_count, 7)
+        self.assertEqual(changelist.full_result_count, 10)
 
         queryset = changelist.get_queryset(request)
         self.assertIn(self.instructor1, queryset)
 
-        # Besides 'test_admin' (superuser),  'test_ta' (who is also a staff)
-        # and 'test_student' (who attend two courses) were not included
-        self.assertNotIn(self.superuser, queryset)
-        self.assertNotIn(self.course1_student_participation.user, queryset)
-        self.assertNotIn(self.instructor2, queryset)
+        self.assertIn(self.superuser, queryset)
+        self.assertIn(self.course1_student_participation.user, queryset)
+        self.assertIn(self.instructor2, queryset)
 
         # Although instructor 1 attended course2, the list_filter did not have that
         # choice, because he/she has no view_admin_interface pperm in that course
@@ -315,7 +313,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
         # 2 users created in setUp 'testuser_001', 'testuser_000',
         # 1 instructor 'test_instructor'
-        self.assertEqual(queryset.count(), 3)
+        self.assertEqual(queryset.count(), 5)
 
         # }}}
 

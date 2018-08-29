@@ -28,7 +28,6 @@ THE SOFTWARE.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import ugettext_lazy as _
-from django.db.models import Q
 
 from . models import User
 from course.models import Course, Participation
@@ -116,33 +115,6 @@ class UserAdmin(UserAdminBase):
         if request is not None and request.user.is_superuser:
             return list_filter
         return tuple([f for f in list_filter if f != "is_staff"])
-
-    def get_queryset(self, request):
-        qs = super(UserAdmin, self).get_queryset(request)
-
-        if request is not None and request.user.is_superuser:
-            return qs
-
-        user_courses = _filter_courses_for_user(Course.objects, request.user)
-
-        # Prevent users which attended other courses from being
-        # deleted or edited.
-        users_from_other_course = (
-            Participation.objects.exclude(course__in=user_courses)
-            .values_list("user", flat=True))
-
-        return (
-            qs.filter(is_superuser=False)
-            .filter(
-                # add the request.user back
-                Q(pk=request.user.pk)
-                | ~Q(
-                    # remove users who is_staff from the queryset
-                    Q(is_staff=True)
-                    |
-                    # remove users who attended other courses
-                    Q(pk__in=users_from_other_course))
-            ))
 
 
 admin.site.register(User, UserAdmin)
