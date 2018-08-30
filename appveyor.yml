@@ -54,6 +54,11 @@ install:
 
   - "git submodule update --init --recursive"
 
+  # Update pip/setuptools/wheel to avoid an issue like
+  # https://github.com/HearthSim/decrunch/issues/3
+  # e.g. https://ci.appveyor.com/project/inducer/relate/build/1.0.936
+  - "%CMD_IN_ENV% pip install --upgrade pip setuptools wheel"
+
   # Install requirements
   - "%CMD_IN_ENV% pip install -r requirements.txt"
 
