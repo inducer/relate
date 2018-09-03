@@ -18,7 +18,8 @@ RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
   python3-sympy \
   python3-pip \
   python3-dev \
-  python3-setuptools
+  python3-setuptools \
+  gcc
 RUN fc-cache
 
 RUN mkdir -p /opt/runpy
