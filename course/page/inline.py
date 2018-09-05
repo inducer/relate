@@ -355,7 +355,7 @@ class ShortAnswer(AnswerBase):
             if unspec_correct_answer_text is not None:
                 break
 
-        assert unspec_correct_answer_text
+        assert unspec_correct_answer_text is not None
         return ("%s%s%s"
                 % (getattr(self.answers_desc, "prepended_text", "").strip(),
                    unspec_correct_answer_text,
