@@ -429,7 +429,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_require_email_suffix_passed(self):
+    def test_coures_require_email_suffix_but_need_approval(self):
         self.update_require_approval_course(
             enrollment_required_email_suffix="@blabla.com")
 
@@ -440,8 +440,8 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
-        self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_coures_require_email_suffix_passed_without_at(self):
@@ -455,8 +455,8 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
-        self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_coures_require_email_suffix_passed_without_at_pattern2(self):
@@ -470,8 +470,8 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
-        self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
+        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_coures_require_email_suffix_failed(self):
