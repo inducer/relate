@@ -110,7 +110,7 @@ TEST_PAGE_TUPLE = (
     PageTuple("addition", "quiz_tail", False, True, True, {"answer": 'c = b + a\r'},
               {"grade_percent": "100", "released": "on"}, 1, ".py"),
     PageTuple("pymult", "quiz_tail", True, True, True, {"answer": 'c = a * b\r'},
-              {"grade_percent": "100", "released": "on"}, None, ".py"),
+              {"grade_percent": "100", "released": "on"}, 4, ".py"),
     PageTuple("neumann", "quiz_tail", False, True, False, {"answer": "1/(1-A)"}, {},
               5, ".txt"),
     PageTuple("py_simple_list", "quiz_tail", True, True, True,

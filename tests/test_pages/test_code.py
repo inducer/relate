@@ -130,17 +130,15 @@ class SingleCourseQuizPageCodeQuestionTest(
     def test_code_human_feedback_page_grade1(self):
         page_id = "pymult"
 
-        # since the test_code didn't do a feedback.set_points() after
-        # check_scalar()
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": 'c = b * a\r'},
-                expected_grade=None))
+                expected_grade=4))
 
         self.assertResponseContextAnswerFeedbackContainsFeedback(
             post_grade_response, "The human grader assigned 2/2 points.")
 
-        self.assertSessionScoreEqual(None)
+        self.assertSessionScoreEqual(4)
 
     def test_code_human_feedback_page_grade2(self):
         page_id = "pymult"
