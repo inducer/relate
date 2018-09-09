@@ -243,7 +243,11 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
                 t = evt.time
                 continue
             else:
-                self.assertEqual(evt.time - t, datetime.timedelta(weeks=1))
+                # One hour slack to avoid failure due to daylight savings.
+                self.assertTrue(evt.time - t >= (
+                    datetime.timedelta(weeks=1) - datetime.timedelta(hours=1)))
+                self.assertTrue(evt.time - t <= (
+                    datetime.timedelta(weeks=1) + datetime.timedelta(hours=1)))
                 t = evt.time
 
     def test_interval_biweekly(self):
@@ -262,7 +266,11 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
                 t = evt.time
                 continue
             else:
-                self.assertEqual(evt.time - t, datetime.timedelta(weeks=2))
+                # One hour slack to avoid failure due to daylight savings.
+                self.assertTrue(evt.time - t >= (
+                    datetime.timedelta(weeks=2) - datetime.timedelta(hours=1)))
+                self.assertTrue(evt.time - t <= (
+                    datetime.timedelta(weeks=2) + datetime.timedelta(hours=1)))
                 t = evt.time
 
 
