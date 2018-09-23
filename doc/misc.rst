@@ -91,10 +91,20 @@ out-of-process caches available), long-running tasks can only show
 information. This will be better as soon as you provide actual caches (the "CACHES"
 option :file:`local_settings.py`).
 
+
 Additional setup steps for Docker
 ---------------------------------
 
-(TODO)
+To allow running code questions, install docker and give Relate access. The simplest
+way to do so is (on a Debian/Ubuntu system)::
+
+    apt install docker.io
+
+Then add the user that runs Relate to the ``docker`` group in
+:file:`/etc/group`.  For deployment, this may be the ``www-data`` user.
+You should also pull the default container image::
+
+    docker pull inducer/relate-runpy-amd64
 
 Add to kernel command line, if needed::
 
@@ -105,6 +115,8 @@ Change docker config to disallow IP forwarding::
     --ip-forward=false
 
 in :file:`/etc/default/docker.io`.
+
+If you need more scalable code execution, consider Docker Swarm.
 
 Long-term maintenance
 ---------------------
@@ -139,6 +151,27 @@ Deployment
 
 The following assumes you are using systemd on your deployment system.
 
+Additional Setup Steps for Deploying to Production
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*   Install nginx for reverse proxying and uwsgi to run the app server. See below
+    for configuration.
+*   Use postgres as a database. You need to create a user and a database that relate
+    will use and enter the details (database name, user name, password) into
+    :file:`local_settings.py`. You will also need to::
+
+        pip install psycopg2
+
+*   The directory specified under ``GIT_ROOT`` must be owned by the user
+    running Relate.
+
+*   Run::
+
+        python manage.py collectstatic
+
+    to assemble the required collection of static files to be served, as the
+    production app server will not serve them (unlike the dev server).
+
 Configuring uwsgi
 ^^^^^^^^^^^^^^^^^
 
@@ -155,6 +188,7 @@ The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`::
     reload-mercy=8
     max-requests=300
     workers=8
+    autoload=false
 
 Then run::
 

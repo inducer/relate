@@ -4,10 +4,11 @@
 from setuptools import setup, find_packages
 
 # This script (for now) is only intended to install the 'relate' content helper
-# script.  relate-validate. Its use is not needed for (and unrelated to)
-# deploying RELATE as a web service.
+# script. Its use is not needed for (and unrelated to) deploying RELATE as a
+# web service.
 
-# Use 'pip install -r requirements.txt' first to install prerequisites.
+# Use 'pip install -r requirements.txt' to install prerequisites for RELATE as
+# a web service.
 
 setup(name="relate-courseware",
       version="2016.1",
@@ -24,7 +25,7 @@ setup(name="relate-courseware",
           "django>=1.10,<2.1",
           "django-crispy-forms>=1.5.1",
           "colorama",
-          "markdown",
+          "markdown<3.0",
           "dulwich",
           "pyyaml",
           "nbconvert>=5.2.1",

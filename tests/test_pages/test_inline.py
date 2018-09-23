@@ -1047,6 +1047,10 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
     def test_embedded_question_with_markdown(self):
+
+        self.post_update_course_content(
+            commit_sha=b"4124e0c23e369d6709a670398167cb9c2fe52d35")
+
         markdown = INLINE_MULTI_EMBEDDED_WITH_MARKDOWN
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)

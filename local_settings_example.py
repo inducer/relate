@@ -82,6 +82,10 @@ CELERY_BROKER_URL = 'amqp://'
 #
 # The 'course identifiers' you enter will be directory names below this root.
 
+# WARNING: The default, "..", is insecure (but convenient for development).
+# It will put course repos alongside the relate git checkout in the parent
+# directory of where you put the Relate source tree.
+
 #GIT_ROOT = "/some/where"
 GIT_ROOT = ".."
 
