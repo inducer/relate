@@ -841,6 +841,12 @@ def gather_grade_info(
                 optional_unknown_count += 1
                 continue
 
+            else:
+                page_points = grade.max_points*feedback.correctness
+
+                if points is not None:
+                    points += page_points
+
             if feedback.correctness == 1:
                 optional_fully_correct_count += 1
             elif feedback.correctness == 0:
