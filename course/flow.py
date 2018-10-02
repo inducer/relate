@@ -1415,8 +1415,7 @@ def view_start_flow(pctx, flow_id):
                     may_view=flow_permission.view in access_rule.permissions,
                     may_modify=(
                         flow_permission.submit_answer in access_rule.permissions
-                        or
-                        flow_permission.end_session in access_rule.permissions
+                        or flow_permission.end_session in access_rule.permissions
                         ),
                     due=grading_rule.due,
                     grade_description=grading_rule.description,
@@ -1449,9 +1448,8 @@ def view_start_flow(pctx, flow_id):
 
         start_may_decrease_grade = (
                 bool(past_sessions_and_properties)
-                and
-                new_session_grading_rule.grade_aggregation_strategy not in
-                [
+                and new_session_grading_rule.grade_aggregation_strategy
+                not in [
                     None,
                     grade_aggregation_strategy.max_grade,
                     grade_aggregation_strategy.use_earliest])
@@ -1586,8 +1584,7 @@ def get_and_check_flow_session(pctx, flow_session_id):
 
     my_session = (
             pctx.participation == flow_session.participation
-            or
-            (
+            or (
                 # anonymous by participation
                 flow_session.participation is None
                 and (
@@ -1658,8 +1655,8 @@ def get_page_behavior(
 
             if session_in_progress:
                 # Don't reveal the answer if they can still change their mind
-                show_answer = (show_answer and
-                        flow_permission.change_answer not in permissions)
+                show_answer = (show_answer
+                        and flow_permission.change_answer not in permissions)
 
             show_answer = show_answer or (
                     flow_permission.see_answer_before_submission in permissions)
@@ -1670,8 +1667,7 @@ def get_page_behavior(
     else:
         show_answer = (
                 flow_permission.see_answer_before_submission in permissions
-                or
-                flow_permission.see_answer_after_submission in permissions)
+                or flow_permission.see_answer_after_submission in permissions)
 
     may_change_answer = (
             not viewing_prior_version
@@ -1807,8 +1803,7 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
             flow_session, fpctx.flow_desc, now_datetime)
     generates_grade = (
             grading_rule.grade_identifier is not None
-            and
-            grading_rule.generates_grade)
+            and grading_rule.generates_grade)
     del grading_rule
 
     permissions = fpctx.page.get_modified_permissions_for_page(
@@ -1891,8 +1886,7 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
                             as_local_time(answer_visit.visit_time),
                             "DATETIME_FORMAT"),
                     }
-                    +
-                    '<a class="btn btn-default btn-sm" href="?" '
+                    + '<a class="btn btn-default btn-sm" href="?" '
                     'role="button">&laquo; %s</a>'
                     % _("Go back")))
 
@@ -2056,8 +2050,7 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
         "may_change_answer": page_behavior.may_change_answer,
         "may_change_graded_answer": (
             page_behavior.may_change_answer
-            and
-            (flow_permission.change_answer in permissions)),
+            and (flow_permission.change_answer in permissions)),
         "will_receive_feedback": will_receive_feedback(permissions),
         "show_answer": page_behavior.show_answer,
         "may_send_email_about_flow_page":
@@ -2717,8 +2710,7 @@ def finish_flow_session_view(pctx, flow_session_id):
                     completion_text=completion_text)
 
     if (not is_interactive_flow
-            or
-            (flow_session.in_progress
+            or (flow_session.in_progress
                 and flow_permission.end_session not in access_rule.permissions)):
         # No ability to end--just show completion page.
 
