@@ -142,8 +142,16 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
                 t = evt.time
                 continue
             else:
-                self.assertTrue(evt.time - t <= datetime.timedelta(weeks=1, hours=1))
-                self.assertTrue(evt.time - t >= datetime.timedelta(weeks=1))
+                self.assertTrue(
+                        evt.time - t
+                        >= (
+                            datetime.timedelta(weeks=1)
+                            - datetime.timedelta(hours=1)))
+                self.assertTrue(
+                        evt.time - t
+                        <= (
+                            datetime.timedelta(weeks=1)
+                            + datetime.timedelta(hours=1)))
                 t = evt.time
 
     def test_post_success_starting_ordinal_not_specified(self):
