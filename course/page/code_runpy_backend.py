@@ -224,7 +224,7 @@ def run_code(result, run_req):
     feedback = Feedback()
     maint_ctx = {
             "feedback": feedback,
-            "user_code": user_code,
+            "user_code": run_req.user_code,
             "data_files": data_files,
             "output_html": output_html,
             "GradingComplete": GradingComplete,
