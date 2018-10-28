@@ -587,8 +587,7 @@ class Participation(models.Model):
                         role__course=self.course,
                         role__participation=self)
                     .values_list("permission", "argument"))
-                +
-                list(
+                + list(
                     ParticipationPermission.objects.filter(
                         participation=self)
                     .values_list("permission", "argument")))
@@ -1716,8 +1715,8 @@ class GradeStateMachine(object):
 
             self.state = gchange.state
             if gchange.attempt_id is not None:
-                if (set_is_superseded and
-                        gchange.attempt_id in self.attempt_id_to_gchange):
+                if (set_is_superseded
+                        and gchange.attempt_id in self.attempt_id_to_gchange):
                     self.attempt_id_to_gchange[gchange.attempt_id] \
                             .is_superseded = True
                 self.attempt_id_to_gchange[gchange.attempt_id] \

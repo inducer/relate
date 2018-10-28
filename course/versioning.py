@@ -336,8 +336,7 @@ def run_course_update_command(
         remote_head = remote_refs[b"HEAD"]
         if (
                 prevent_discarding_revisions
-                and
-                is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
+                and is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
                     max_history_check_size=20)):
             raise RuntimeError(_("fetch would discard commits, refusing"))
 
@@ -437,8 +436,7 @@ class GitUpdateForm(StyledForm):
                             ref.decode("utf-8", errors="replace"),
                             format_sha(repo_refs[ref])))
                     for ref in repo_refs
-                    ] +
-                    [
+                    ] + [
                     (entry.commit.id.decode(), format_commit(entry.commit))
                     for entry in commit_iter
                     ]),
@@ -491,8 +489,7 @@ def _get_commit_message_as_html(repo, commit_sha):
 def update_course(pctx):
     if not (
             pctx.has_permission(pperm.update_content)
-            or
-            pctx.has_permission(pperm.preview_content)):
+            or pctx.has_permission(pperm.preview_content)):
         raise PermissionDenied()
 
     course = pctx.course

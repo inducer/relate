@@ -169,8 +169,7 @@ def get_sandbox_data_for_page(pctx, page_desc, key):
 
         if (
                 stored_data_page_type == page_desc.type
-                and
-                stored_data_page_id == page_desc.id):
+                and stored_data_page_id == page_desc.id):
             return stored_data
 
     return None

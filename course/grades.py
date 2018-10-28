@@ -591,17 +591,22 @@ def view_grades_by_opportunity(pctx, opp_id):
                         flow_session=None)))
         else:
             while (
-                    fsess_idx < len(flow_sessions) and (
-                    flow_sessions[fsess_idx].participation is None or
-                    flow_sessions[fsess_idx].participation.pk < participation.pk)):
+                    fsess_idx < len(flow_sessions)
+                    and (
+                        flow_sessions[fsess_idx].participation is None
+                        or (
+                            flow_sessions[fsess_idx].participation.pk
+                            < participation.pk))):
                 fsess_idx += 1
 
             my_flow_sessions = []
 
             while (
-                    fsess_idx < len(flow_sessions) and
-                    flow_sessions[fsess_idx].participation is not None and
-                    flow_sessions[fsess_idx].participation.pk == participation.pk):
+                    fsess_idx < len(flow_sessions)
+                    and flow_sessions[fsess_idx].participation is not None
+                    and (
+                        flow_sessions[fsess_idx].participation.pk
+                        == participation.pk)):
                 my_flow_sessions.append(flow_sessions[fsess_idx])
                 fsess_idx += 1
 
@@ -1020,13 +1025,13 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     # {{{ filter out pre-public grade changes
 
-    if (not show_privileged_info and
-            opportunity.hide_superseded_grade_history_before is not None):
+    if (not show_privileged_info
+            and opportunity.hide_superseded_grade_history_before is not None):
         grade_changes = [gchange
                 for gchange in grade_changes
                 if not gchange.is_superseded
-                or gchange.grade_time >=
-                        opportunity.hide_superseded_grade_history_before]
+                or gchange.grade_time
+                >= opportunity.hide_superseded_grade_history_before]
 
     # }}}
 

@@ -230,13 +230,13 @@ def _eval_participation_tags_conditions(
         ptag_set = set(participation.tags.all().values_list("name", flat=True))
         if not ptag_set:
             return False
-        if (participation_tags_any_set
-            and
-                not participation_tags_any_set & ptag_set):
+        if (
+                participation_tags_any_set
+                and not participation_tags_any_set & ptag_set):
             return False
-        if (participation_tags_all_set
-            and
-                not participation_tags_all_set <= ptag_set):
+        if (
+                participation_tags_all_set
+                and not participation_tags_all_set <= ptag_set):
             return False
 
     return True
