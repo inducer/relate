@@ -253,8 +253,7 @@ class CaseSensitivePlainMatcher(TextAnswerMatcher):
     def grade(self, s):
         return int(
                 multiple_to_single_spaces(self.pattern)
-                ==
-                multiple_to_single_spaces(s))
+                == multiple_to_single_spaces(s))
 
     def correct_answer_text(self):
         return self.pattern
@@ -268,8 +267,7 @@ class PlainMatcher(CaseSensitivePlainMatcher):
     def grade(self, s):
         return int(
             multiple_to_single_spaces(self.pattern.lower())
-            ==
-            multiple_to_single_spaces(s.lower()))
+            == multiple_to_single_spaces(s.lower()))
 
 
 class RegexMatcher(TextAnswerMatcher):
@@ -480,12 +478,9 @@ class FloatMatcher(TextAnswerMatcher):
 
         if (
                 not matcher_desc.value == 0
-                and
-                not hasattr(matcher_desc, "atol")
-                and
-                not hasattr(matcher_desc, "rtol")
-                and
-                vctx is not None):
+                and not hasattr(matcher_desc, "atol")
+                and not hasattr(matcher_desc, "rtol")
+                and vctx is not None):
             vctx.add_warning(location,
                     _("Float match should have either rtol or atol--"
                         "otherwise it will match any number"))

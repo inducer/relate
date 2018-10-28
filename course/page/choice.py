@@ -505,8 +505,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
 
             if (
                     hasattr(pd, "allow_partial_credit")
-                    or
-                    hasattr(pd, "allow_partial_credit_subset_only")):
+                    or hasattr(pd, "allow_partial_credit_subset_only")):
                 raise ValidationError(
                         string_concat(
                             "%(location)s: ",
@@ -617,11 +616,9 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
             correctness = (
                     (
                         num_choices
-                        -
-                        len(unpermed_idx_set
+                        - len(unpermed_idx_set
                             .symmetric_difference(correct_idx_set)))
-                    /
-                    num_choices)
+                    / num_choices)
 
         else:
             assert self.credit_mode == "proportional_correct"
@@ -629,13 +626,10 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
             correctness = (
                     (
                         len(unpermed_idx_set & correct_idx_set)
-                        +
-                        len(always_correct_idx_set))
-                    /
-                    (
+                        + len(always_correct_idx_set))
+                    / (
                         len(correct_idx_set)
-                        +
-                        len(always_correct_idx_set)))
+                        + len(always_correct_idx_set)))
 
             if not (unpermed_idx_set <= correct_idx_set):
                 correctness = 0

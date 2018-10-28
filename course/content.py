@@ -583,7 +583,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     return result
 
 
-LINE_HAS_INDENTING_TABS_RE = re.compile("^\s*\t\s*", re.MULTILINE)
+LINE_HAS_INDENTING_TABS_RE = re.compile(r"^\s*\t\s*", re.MULTILINE)
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):

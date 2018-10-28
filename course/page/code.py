@@ -701,8 +701,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
                 if (
                         not page_context.in_sandbox
-                        and
-                        not is_nuisance_failure(response_dict)):
+                        and not is_nuisance_failure(response_dict)):
                     try:
                         from django.core.mail import EmailMessage
                         msg = EmailMessage("".join(["[%s:%s] ",
@@ -1034,9 +1033,9 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 vctx, location, page_desc)
 
         if vctx is not None:
-            if (hasattr(self.page_desc, "human_feedback_value")
-                and
-                    hasattr(self.page_desc, "human_feedback_percentage")):
+            if (
+                    hasattr(self.page_desc, "human_feedback_value")
+                    and hasattr(self.page_desc, "human_feedback_percentage")):
                 raise ValidationError(
                     string_concat(
                         "%(location)s: ",
