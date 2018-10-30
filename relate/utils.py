@@ -55,6 +55,7 @@ class StyledForm(forms.Form):
         super(StyledForm, self).__init__(*args, **kwargs)
 
     def _configure_helper(self):
+        # type: () -> None
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
@@ -70,7 +71,6 @@ class StyledForm(forms.Form):
 
         self.helper.filter_by_widget(CodeMirrorTextarea).wrap(
                 Div, css_class="relate-codemirror-container")
-
 
 
 class StyledInlineForm(forms.Form):
