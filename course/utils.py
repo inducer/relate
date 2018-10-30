@@ -909,6 +909,7 @@ def get_codemirror_widget(
         addon_js=(),  # type: Tuple
         dependencies=(),  # type: Tuple
         read_only=False,  # type: bool
+        autofocus=False,  # type: bool
         ):
     # type: (...) ->  Tuple[CodeMirrorTextarea,Text]
 
@@ -945,7 +946,6 @@ def get_codemirror_widget(
 
     actual_config = {
             "fixedGutter": True,
-            #"autofocus": True,
             "matchBrackets": True,
             "styleActiveLine": True,
             "showTrailingSpace": True,
@@ -976,6 +976,9 @@ def get_codemirror_widget(
                 }
             """)
             }
+
+    if autofocus:
+        actual_config["autofocus"] = True
 
     if interaction_mode == "vim":
         actual_config["vimMode"] = True

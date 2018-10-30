@@ -50,11 +50,27 @@ class StyledForm(forms.Form):
         # type: (...) -> None
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
+        self._configure_helper()
+
+        super(StyledForm, self).__init__(*args, **kwargs)
+
+    def _configure_helper(self):
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        super(StyledForm, self).__init__(*args, **kwargs)
+    def style_codemirror_widget(self):
+        from codemirror import CodeMirrorTextarea
+        from crispy_forms.layout import Div
+
+        if self.helper.layout is None:
+            from crispy_forms.helper import FormHelper
+            self.helper = FormHelper(self)
+            self._configure_helper()
+
+        self.helper.filter_by_widget(CodeMirrorTextarea).wrap(
+                Div, css_class="relate-codemirror-container")
+
 
 
 class StyledInlineForm(forms.Form):

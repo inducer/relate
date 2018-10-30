@@ -54,20 +54,29 @@ class PythonCodeForm(StyledForm):
     # prevents form submission with codemirror's empty textarea
     use_required_attribute = False
 
-    def __init__(self, read_only, interaction_mode, initial_code, *args, **kwargs):
-        super(PythonCodeForm, self).__init__(*args, **kwargs)
+    def __init__(self, read_only, interaction_mode, initial_code,
+            data=None, *args, **kwargs):
+        super(PythonCodeForm, self).__init__(data, *args, **kwargs)
 
         from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
                 language_mode="python",
                 interaction_mode=interaction_mode,
-                read_only=read_only)
+                read_only=read_only,
+
+                # Automatically focus the text field once there has
+                # been some input.
+                autofocus=(
+                    not read_only
+                    and (data is not None and "answer" in data)))
 
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
             help_text=cm_help_text,
             widget=cm_widget,
             label=_("Answer"))
+
+        self.style_codemirror_widget()
 
     def clean(self):
         # FIXME Should try compilation
