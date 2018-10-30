@@ -102,6 +102,8 @@ class TextAnswerForm(StyledForm):
                 help_text=help_text,
                 label=_("Answer"))
 
+        self.style_codemirror_widget()
+
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()
 

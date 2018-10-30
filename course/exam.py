@@ -318,16 +318,19 @@ class BatchIssueTicketsForm(StyledForm):
                     "given facility"),
                 required=False)
 
+        self.fields["revoke_prior"] = forms.BooleanField(
+                label=_("Revoke prior exam tickets"),
+                required=False,
+                initial=False)
+
         self.fields["format"] = forms.CharField(
                 label=_("Ticket Format"),
                 help_text=help_text,
                 widget=cm_widget,
                 initial=INITIAL_EXAM_TICKET_TEMPLATE,
                 required=True)
-        self.fields["revoke_prior"] = forms.BooleanField(
-                label=_("Revoke prior exam tickets"),
-                required=False,
-                initial=False)
+
+        self.style_codemirror_widget()
 
         self.helper.add_input(
                 Submit(
