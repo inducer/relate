@@ -1514,7 +1514,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         for specific field
         """
         field_div_with_id_pattern = (
-            ".*(<div\s+[^\>]*id\s*=\s*['\"]div_id_%s['\"][^>]*\/?>).*")
+            r".*(<div\s+[^\>]*id\s*=\s*['\"]div_id_%s['\"][^>]*\/?>).*")
 
         def assertFieldDiv(field_name, exist=True):  # noqa
             resp = self.get_profile_by_request_factory()

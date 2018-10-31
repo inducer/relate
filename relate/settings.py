@@ -117,6 +117,8 @@ CODEMIRROR_PATH = "codemirror"
 
 ROOT_URLCONF = 'relate.urls'
 
+CRISPY_FAIL_SILENTLY = False
+
 WSGI_APPLICATION = 'relate.wsgi.application'
 
 # {{{ context processors

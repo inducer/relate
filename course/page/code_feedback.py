@@ -169,7 +169,7 @@ class Feedback:
     def call_user(self, f, *args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except Exception as e:
+        except Exception:
             if callable(f):
                 try:
                     callable_name = f.__name__

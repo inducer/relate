@@ -383,8 +383,8 @@ def check_relate_settings(app_configs, **kwargs):
 
     from django.utils.itercompat import is_iterable
 
-    if (isinstance(languages, six.string_types) or
-            not is_iterable(languages)):
+    if (isinstance(languages, six.string_types)
+            or not is_iterable(languages)):
         errors.append(RelateCriticalCheckMessage(
             msg=(INSTANCE_ERROR_PATTERN
                  % {"location": LANGUAGES,
@@ -392,8 +392,8 @@ def check_relate_settings(app_configs, **kwargs):
             id="relate_languages.E001")
         )
     else:
-        if any(isinstance(choice, six.string_types) or
-                       not is_iterable(choice) or len(choice) != 2
+        if any(isinstance(choice, six.string_types)
+                       or not is_iterable(choice) or len(choice) != 2
                for choice in languages):
             errors.append(RelateCriticalCheckMessage(
                 msg=("'%s' must be an iterable containing "
@@ -457,8 +457,8 @@ def check_relate_settings(app_configs, **kwargs):
     relate_override_templates_dirs = getattr(settings,
                                              RELATE_OVERRIDE_TEMPLATES_DIRS, None)
     if relate_override_templates_dirs is not None:
-        if (isinstance(relate_override_templates_dirs, six.string_types) or
-                not is_iterable(relate_override_templates_dirs)):
+        if (isinstance(relate_override_templates_dirs, six.string_types)
+                or not is_iterable(relate_override_templates_dirs)):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_OVERRIDE_TEMPLATES_DIRS,

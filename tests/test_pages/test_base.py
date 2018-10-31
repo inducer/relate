@@ -43,7 +43,7 @@ from tests.utils import mock
 
 SANDBOX_TITLE_PATTERN = "<title>[SB] %s - RELATE </title>"
 
-TEXT_QUESTION_MARKDOWN = """
+TEXT_QUESTION_MARKDOWN = r"""
 type: TextQuestion
 id: eigvec
 title: Eigenvectors
@@ -63,7 +63,7 @@ answers:
 
 """
 
-TEXT_QUESTION_WITH_NEGATIVE_VALUE_MARKDOWN = """
+TEXT_QUESTION_WITH_NEGATIVE_VALUE_MARKDOWN = r"""
 type: TextQuestion
 id: eigvec
 title: Eigenvectors
@@ -83,7 +83,7 @@ answers:
 
 """
 
-OPTIONAL_PAGE_WITH_VALUE_ATTR = """
+OPTIONAL_PAGE_WITH_VALUE_ATTR = r"""
 type: TextQuestion
 id: eigvec
 is_optional_page: True
@@ -117,7 +117,7 @@ content: |
 """
 
 
-TEST_ANSWER_MARKDOWN = """
+TEST_ANSWER_MARKDOWN = r"""
 type: ChoiceQuestion
 id: myquestion
 shuffle: True

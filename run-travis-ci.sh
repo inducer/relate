@@ -15,7 +15,7 @@ if [[ $RL_TRAVIS_TEST == test* ]]; then
 elif [[ $RL_TRAVIS_TEST == cmdline ]]; then
   . ./test-command-line-tool.sh python3.6
 elif [[ $RL_TRAVIS_TEST == mypy ]]; then
-  . ./prepare-and-run-mypy.sh python3.6 mypy==0.560
+  . ./prepare-and-run-mypy.sh python3.6 mypy==0.641
 elif [[ $RL_TRAVIS_TEST == flake8 ]]; then
   . ./prepare-and-run-flake8.sh relate course accounts tests bin
 fi

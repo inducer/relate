@@ -62,7 +62,7 @@ answers:
         - <plain>bar
 """
 
-INLINE_MULTI_MARKDOWN_TWO_NOT_REQUIRED = """
+INLINE_MULTI_MARKDOWN_TWO_NOT_REQUIRED = r"""
 type: InlineMultiQuestion
 id: inlinemulti
 value: 10
@@ -270,7 +270,7 @@ answers:
 
 """
 
-INLINE_MULTI_MARKDOWN_EMBEDDED_TEXT_Q_NO_STRINGIFIABLE_CORRECT_ANSWER = """
+INLINE_MULTI_MARKDOWN_EMBEDDED_TEXT_Q_NO_STRINGIFIABLE_CORRECT_ANSWER = r"""
 type: InlineMultiQuestion
 id: inlinemulti
 value: 10
@@ -343,7 +343,7 @@ answers:
 
 """
 
-INLINE_MULTI_MARKDOWN_EMBEDDED_NAMING_ERROR = """
+INLINE_MULTI_MARKDOWN_EMBEDDED_NAMING_ERROR = r"""
 type: InlineMultiQuestion
 id: inlinemulti
 value: 10
@@ -381,7 +381,7 @@ answers:
         - [0.25]
 """
 
-INLINE_MULTI_MARKDOWN_ANSWERS_NAMING_ERROR = """
+INLINE_MULTI_MARKDOWN_ANSWERS_NAMING_ERROR = r"""
 type: InlineMultiQuestion
 id: inlinemulti
 value: 10
@@ -429,7 +429,7 @@ answers:
 
 """
 
-INLINE_MULTI_MARKDOWN_EMBEDDED_NAMING_DUPLICATED = """
+INLINE_MULTI_MARKDOWN_EMBEDDED_NAMING_DUPLICATED = r"""
 type: InlineMultiQuestion
 id: inlinemulti
 value: 10

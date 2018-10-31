@@ -45,7 +45,7 @@ from tests.test_sandbox import (
 from tests.constants import PAGE_ERRORS
 from tests.utils import mock
 
-TEXT_QUESTION_WITH_ANSWER_EXPLANATION_MARKDOWN = """
+TEXT_QUESTION_WITH_ANSWER_EXPLANATION_MARKDOWN = r"""
 type: TextQuestion
 id: eigvec
 title: Eigenvectors
@@ -69,7 +69,7 @@ answer_explanation: |
 
 """
 
-TEXT_QUESTION_WITH_UNKNOWN_WIDGET_MARKDOWN = """
+TEXT_QUESTION_WITH_UNKNOWN_WIDGET_MARKDOWN = r"""
 type: TextQuestion
 id: eigvec
 title: Eigenvectors
@@ -105,7 +105,7 @@ answers: []
 
 """
 
-TEXT_QUESTION_WITH_NONE_STRINGIFIABLE_ANSWER_MARKDOWN = """
+TEXT_QUESTION_WITH_NONE_STRINGIFIABLE_ANSWER_MARKDOWN = r"""
 type: TextQuestion
 id: eigvec
 title: Eigenvectors
@@ -223,7 +223,7 @@ class MatcherTest(unittest.TestCase):
             RegexMatcher(None, "", failed_pattern)
         self.assertIn(expected_error_msg, str(cm.exception))
 
-        pattern = "(?:linear\s+)?\s*map"
+        pattern = r"(?:linear\s+)?\s*map"
         matcher = RegexMatcher(None, "", pattern)
         self.assertEqual(matcher.grade("Linear map"), 1)
         self.assertEqual(matcher.grade("linear    MAP  "), 1)
@@ -246,7 +246,7 @@ class MatcherTest(unittest.TestCase):
             CaseSensitiveRegexMatcher(None, "", failed_pattern)
         self.assertIn(expected_error_msg, str(cm.exception))
 
-        pattern = "(?:linear\s+)?\s*map"
+        pattern = r"(?:linear\s+)?\s*map"
         matcher = CaseSensitiveRegexMatcher(None, "", pattern)
         self.assertEqual(matcher.grade("linear map"), 1)
         self.assertEqual(matcher.grade("Linear map"), 0)

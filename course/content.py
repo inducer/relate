@@ -415,7 +415,9 @@ def process_yaml_for_expansion(yaml_str):
 
             unprocessed_block_lines.append(ln)
 
-            block_start_indent = len(LEADING_SPACES_RE.match(ln).group(1))
+            leading_spaces_match = LEADING_SPACES_RE.match(ln)
+            assert leading_spaces_match
+            block_start_indent = len(leading_spaces_match.group(1))
 
             i += 1
 
@@ -427,7 +429,9 @@ def process_yaml_for_expansion(yaml_str):
                     i += 1
                     continue
 
-                line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
+                leading_spaces_match = LEADING_SPACES_RE.match(ln)
+                assert leading_spaces_match
+                line_indent = len(leading_spaces_match.group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
@@ -583,7 +587,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     return result
 
 
-LINE_HAS_INDENTING_TABS_RE = re.compile("^\s*\t\s*", re.MULTILINE)
+LINE_HAS_INDENTING_TABS_RE = re.compile(r"^\s*\t\s*", re.MULTILINE)
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
