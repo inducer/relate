@@ -853,7 +853,7 @@ def gather_grade_info(
 
             if feedback is None or feedback.correctness is None:
                 unknown_count += 1
-                if not grade.max_points:
+                if grade.max_points:
                     points = None
 
                 continue
