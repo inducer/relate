@@ -1215,7 +1215,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 if form.cleaned_data["due_same_as_access_expiration"]:
                     due = form.cleaned_data["access_expires"]
 
-                descr = ugettext("Granted excecption")
+                descr = ugettext("Granted exception")
                 if form.cleaned_data["credit_percent"] is not None:
                     descr += string_concat(" (%.1f%% ", ugettext('credit'), ")") \
                             % form.cleaned_data["credit_percent"]

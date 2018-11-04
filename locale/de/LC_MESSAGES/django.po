@@ -5069,7 +5069,7 @@ msgstr ""
 msgid "newly created exception"
 msgstr ""
 
-msgid "Granted excecption"
+msgid "Granted exception"
 msgstr ""
 
 msgid "credit"
