@@ -5017,7 +5017,7 @@ msgstr "选定session的访问规则tag已经被更新为'%s'. "
 msgid "Removed access rules tag of the selected session."
 msgstr "选定session的访问规则tag已经被移除. "
 
-msgid "Granted excecption"
+msgid "Granted exception"
 msgstr "已给予破例"
 
 msgid "credit"
