@@ -28,7 +28,10 @@ RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
 #   "libpocl2=$POCL_VER" \
 #   "libpocl2-common=$POCL_VER" \
 #   "ocl-icd-libopencl1" \
-#   "python3-pyopencl"
+#   "python3-pyopencl" \
+#   git
+#
+# RUN python3 -m pip install git+https://github.com/inducer/loopy.git
 
 RUN apt-get clean
 RUN fc-cache
