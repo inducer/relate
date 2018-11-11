@@ -16,6 +16,9 @@ RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
   python3-pillow \
   graphviz \
   python3-pandas \
+  python3-statsmodels \
+  python3-sklearn \
+  python3-skimage \
   python3-sympy \
   python3-pip \
   python3-dev \
